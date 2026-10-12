@@ -1,0 +1,256 @@
+use veoveo_gateway_contract::GatewayAction;
+use veoveo_mcp_contract::audit::{ArtifactActivity, AuditDetail, AuditOutcome, AuditTarget};
+
+use axum::{
+    body::Body,
+    extract::{Extension, Path, State},
+    http::{HeaderMap, Method, StatusCode, header},
+    response::{IntoResponse, Response},
+};
+use chrono::{TimeDelta, Utc};
+use veoveo_artifact_contract::ArtifactId;
+use veoveo_mcp_contract::{GatewayProfileId, PolicyEffect, PolicyTarget, TraceId};
+use veoveo_service_gateway::{AuthenticatedSubject, PolicyRequest, audit::policy_reason};
+use veoveo_types::ResourceUri;
+
+use crate::runtime::{ArtifactHttpState, current_catalog};
+
+const INTERNAL_DOWNLOAD_TOKEN_TTL_SECONDS: i64 = 60;
+
+pub(super) async fn download_artifact(
+    State(state): State<ArtifactHttpState>,
+    Path((profile, artifact_id)): Path<(String, String)>,
+    Extension(subject): Extension<AuthenticatedSubject>,
+    method: Method,
+    request_headers: HeaderMap,
+) -> Response {
+    let Ok(profile) = GatewayProfileId::parse(profile) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let Ok(artifact_id) = ArtifactId::parse(artifact_id) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let Ok(artifact_uri) = ResourceUri::new(artifact_id.plane_uri()) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let catalog = current_catalog(&state.catalog);
+    if catalog.profile(&profile).is_none() {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    let trace_id = match TraceId::parse(&subject.audit.trace_id) {
+        Ok(trace_id) => trace_id,
+        Err(error) => {
+            tracing::error!("failed to create artifact download trace id: {error}");
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+    let target = PolicyTarget::Artifact {
+        server: state.artifacts.server().clone(),
+        artifact_uri,
+    };
+    let decision = catalog.decide(PolicyRequest {
+        principal: &subject.principal,
+        profile: &profile,
+        action: GatewayAction::ArtifactRead.into(),
+        target: &target,
+        trace_id: &trace_id,
+    });
+    if decision.effect != PolicyEffect::Allow {
+        let recorded = async {
+            let draft = subject.audit_draft(
+                &profile,
+                AuditTarget::Artifact {
+                    artifact: artifact_id,
+                },
+                AuditDetail::Artifact {
+                    requested: None,
+                    subject: None,
+                    release_state: None,
+                    related: None,
+                    activity: ArtifactActivity::Download,
+                    bytes: None,
+                    window_start: None,
+                },
+                AuditOutcome::Denied,
+                policy_reason(decision.reason),
+            )?;
+            state.gateway_state.record_audit(draft).await
+        }
+        .await;
+        if let Err(error) = recorded {
+            tracing::error!("failed to record artifact download policy decision: {error}");
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+        tracing::warn!(
+            profile = %profile,
+            principal = %subject.principal.id,
+            artifact_id = %artifact_id,
+            reason = ?decision.reason,
+            "artifact download denied by gateway policy"
+        );
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    drop(catalog);
+
+    let expires_at = std::cmp::min(
+        subject.access_token.expires_at,
+        Utc::now() + TimeDelta::seconds(INTERNAL_DOWNLOAD_TOKEN_TTL_SECONDS),
+    );
+    let internal_token =
+        match state
+            .artifacts
+            .issue(&state.internal_token_issuer, profile, &subject, expires_at)
+        {
+            Ok(token) => token,
+            Err(error) => {
+                tracing::error!("failed to issue artifact download token: {error}");
+                return StatusCode::UNAUTHORIZED.into_response();
+            }
+        };
+    let url = format!("{}/artifacts/{artifact_id}/download", state.artifacts.url());
+    let mut request = state
+        .http
+        .request(method, url)
+        .bearer_auth(internal_token.bearer_token);
+    for name in [
+        header::RANGE,
+        header::IF_RANGE,
+        header::IF_MATCH,
+        header::IF_NONE_MATCH,
+        header::IF_MODIFIED_SINCE,
+        header::IF_UNMODIFIED_SINCE,
+    ] {
+        if let Some(value) = request_headers.get(&name) {
+            request = request.header(name, value);
+        }
+    }
+    let upstream = match request.send().await {
+        Ok(response) => response,
+        Err(error) => {
+            tracing::error!(artifact_id = %artifact_id, "artifact service download failed: {error}");
+            return StatusCode::BAD_GATEWAY.into_response();
+        }
+    };
+
+    proxy_download_response(upstream)
+}
+
+fn proxy_download_response(upstream: reqwest::Response) -> Response {
+    let status = upstream.status();
+    if status.is_redirection() {
+        tracing::error!(
+            status = %status,
+            "artifact service returned a forbidden download redirect"
+        );
+        return StatusCode::BAD_GATEWAY.into_response();
+    }
+    if status.is_client_error() || status.is_server_error() {
+        return (status, download_error_message(status)).into_response();
+    }
+    let mut headers = HeaderMap::new();
+    for name in [
+        header::CONTENT_TYPE,
+        header::CONTENT_LENGTH,
+        header::CONTENT_RANGE,
+        header::CONTENT_DISPOSITION,
+        header::ACCEPT_RANGES,
+        header::CACHE_CONTROL,
+        header::ETAG,
+        header::LAST_MODIFIED,
+        header::REFERRER_POLICY,
+        header::X_CONTENT_TYPE_OPTIONS,
+        header::CONTENT_SECURITY_POLICY,
+    ] {
+        if let Some(value) = upstream.headers().get(&name) {
+            headers.insert(name, value.clone());
+        }
+    }
+    let mut response = Response::new(Body::from_stream(upstream.bytes_stream()));
+    *response.status_mut() = status;
+    *response.headers_mut() = headers;
+    response
+}
+
+/// Browser-facing text for a failed download. The upstream body is never
+/// forwarded, so backend detail cannot reach the browser.
+fn download_error_message(status: StatusCode) -> &'static str {
+    match status {
+        StatusCode::UNAUTHORIZED => "Sign in to download this file.",
+        StatusCode::FORBIDDEN => "You don't have access to this file.",
+        StatusCode::NOT_FOUND => "This file was not found. It may have been removed.",
+        StatusCode::RANGE_NOT_SATISFIABLE => "The requested byte range is outside this file.",
+        status if status.is_server_error() => {
+            "The file is temporarily unavailable. Try again shortly."
+        }
+        _ => "The download request was not accepted.",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::{Router, http::HeaderValue, routing::get};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn artifact_redirect_is_rejected() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let app = Router::new().route(
+            "/download",
+            get(|| async {
+                let mut response = StatusCode::TEMPORARY_REDIRECT.into_response();
+                response.headers_mut().insert(
+                    header::LOCATION,
+                    HeaderValue::from_static("https://objects.example/signed"),
+                );
+                response
+                    .headers_mut()
+                    .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+                response
+            }),
+        );
+        tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let upstream = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap()
+            .get(format!("http://{address}/download"))
+            .send()
+            .await
+            .unwrap();
+
+        let response = proxy_download_response(upstream);
+        assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
+        assert!(!response.headers().contains_key(header::LOCATION));
+    }
+
+    #[tokio::test]
+    async fn artifact_error_body_is_not_forwarded() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let app = Router::new().route(
+            "/download",
+            get(|| async {
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "transport error: s3 bucket veoveo-artifacts unreachable",
+                )
+            }),
+        );
+        tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let upstream = reqwest::get(format!("http://{address}/download"))
+            .await
+            .unwrap();
+
+        let response = proxy_download_response(upstream);
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(
+            body.as_ref(),
+            b"The file is temporarily unavailable. Try again shortly."
+        );
+    }
+}

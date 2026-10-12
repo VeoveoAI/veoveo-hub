@@ -1,0 +1,526 @@
+mod audit;
+mod snapshot;
+use crate::GatewayCatalogAdmission;
+
+use anyhow::{Context, Result};
+use serde::Serialize;
+use veoveo_mcp_contract::{
+    GatewayControlPlane, GatewayControlPlaneRevision, GatewayControlPlaneRevisionId,
+    GatewayControlPlaneRevisionSource, WorkContextDefinition,
+};
+use veoveo_platform_store::{
+    ArtifactGrantSubjectKind, GatewayControlActiveRecord, GatewayControlObjectContent,
+    GatewayControlRevisionContent, GatewayControlRevisionRecord, GatewayControlRevisionSource,
+    GrantPermission, OpenObject, PlatformStore, RecordId, StoreConfig,
+    WorkContextInitialGrantRecord, WorkContextMembershipLevel, WorkContextMembershipRuleRecord,
+    WorkContextOutputPolicyRecord, WorkContextRecord, deterministic_tenant_id,
+    deterministic_work_context_id,
+};
+use veoveo_types::AccessLevel;
+use veoveo_types::{AccessSubject, PrincipalId, TenantId};
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct GatewayControlPlaneRevisionHead {
+    pub revision_id: GatewayControlPlaneRevisionId,
+    pub sha256: String,
+}
+
+pub fn new_gateway_control_plane_revision_id() -> Result<GatewayControlPlaneRevisionId> {
+    GatewayControlPlaneRevisionId::parse(format!("gcp-{}", uuid::Uuid::now_v7()))
+        .context("failed to construct UUIDv7 gateway control-plane revision id")
+}
+
+#[derive(Debug, Clone)]
+pub struct GatewayControlStore {
+    admission: GatewayCatalogAdmission,
+    platform: PlatformStore,
+}
+
+#[derive(Debug)]
+struct ControlPlaneObjectRow {
+    tenant: Option<String>,
+    kind: veoveo_types::ExtensionName,
+    id: String,
+    document: OpenObject,
+    profile_policy_version: Option<veoveo_types::PolicyVersion>,
+}
+
+impl GatewayControlStore {
+    pub fn from_platform_store(
+        platform: PlatformStore,
+        admission: GatewayCatalogAdmission,
+    ) -> Self {
+        Self {
+            platform,
+            admission,
+        }
+    }
+    pub async fn connect(config: StoreConfig, admission: GatewayCatalogAdmission) -> Result<Self> {
+        let platform = PlatformStore::connect(config)
+            .await
+            .context("failed to connect to the SurrealDB platform store")?;
+        Ok(Self {
+            platform,
+            admission,
+        })
+    }
+
+    pub fn admission(&self) -> GatewayCatalogAdmission {
+        self.admission.clone()
+    }
+
+    pub async fn load_active_revision(&self) -> Result<Option<GatewayControlPlaneRevision>> {
+        self.admission.ensure_bound()?;
+        self.load_active_revision_record()
+            .await?
+            .map(|record| revision_from_record(record, &self.admission))
+            .transpose()
+            .context("active gateway control-plane revision is invalid")
+    }
+
+    pub async fn load_active_revision_head(
+        &self,
+    ) -> Result<Option<GatewayControlPlaneRevisionHead>> {
+        self.admission.ensure_bound()?;
+        self.load_active_revision_record()
+            .await?
+            .map(|record| -> Result<GatewayControlPlaneRevisionHead> {
+                Ok(GatewayControlPlaneRevisionHead {
+                    revision_id: GatewayControlPlaneRevisionId::parse(record.revision_id)?,
+                    sha256: record.sha256,
+                })
+            })
+            .transpose()
+            .context("active gateway control-plane revision head is invalid")
+    }
+
+    async fn load_active_revision_record(&self) -> Result<Option<GatewayControlRevisionRecord>> {
+        self.platform
+            .active_gateway_control_revision()
+            .await
+            .context("failed to read the active gateway control-plane revision")
+    }
+
+    /// Publish a revision and make it active, in one transaction with its audit records.
+    pub async fn record_revision(
+        &self,
+        revision: &GatewayControlPlaneRevision,
+        context: &veoveo_audit_contract::AuditContext,
+    ) -> Result<()> {
+        self.admission
+            .validate(&revision.control_plane)
+            .context("refusing to persist invalid gateway control plane")?;
+        let previous = self.load_active_revision().await?;
+        let expected = previous.as_ref().map(|revision| {
+            RecordId::new("gateway_control_revision", revision.revision_id.as_str())
+        });
+        let changes = audit::changes(
+            self.platform.audit_targets(),
+            previous.as_ref().map_or(&[], |revision| {
+                revision.control_plane.work_contexts.as_slice()
+            }),
+            &revision.control_plane.work_contexts,
+            context,
+        )?;
+        let revision_record =
+            RecordId::new("gateway_control_revision", revision.revision_id.as_str());
+        let revision_content = GatewayControlRevisionContent {
+            revision_id: revision.revision_id.to_string(),
+            sha256: revision.sha256.clone(),
+            source: revision_source_to_store(revision.source),
+            applied_at: revision.applied_at,
+            applied_by: revision.applied_by.to_string(),
+            tenant: revision.tenant.as_ref().map(ToString::to_string),
+            control_plane: snapshot::ControlPlaneSnapshot(revision.control_plane.clone()),
+        };
+        let object_rows = control_plane_object_rows(
+            &revision.control_plane,
+            &self.admission.validate(&revision.control_plane)?,
+        )?;
+        let work_contexts = revision
+            .control_plane
+            .work_contexts
+            .iter()
+            .map(|context| work_context_record(context, revision.applied_at))
+            .collect::<Result<Vec<_>>>()?;
+        let work_context_ids = work_contexts
+            .iter()
+            .map(|context| context.id.clone())
+            .collect::<Vec<_>>();
+        let objects: Vec<_> = object_rows
+            .into_iter()
+            .map(|row| GatewayControlObjectContent {
+                revision: revision_record.clone(),
+                tenant: row.tenant,
+                object_kind: row.kind.as_str().to_owned(),
+                object_id: row.id,
+                document: row.document,
+                profile_policy_version: row.profile_policy_version,
+            })
+            .collect();
+
+        self.platform
+            .client()
+            .query(include_str!("queries/control_store/record_revision.surql"))
+            .bind(("revision_record", revision_record))
+            .bind(("expected", expected))
+            .bind(changes.into_binding())
+            .bind(("revision", revision_content))
+            .bind(("revision_id", revision.revision_id.as_str()))
+            .bind(("applied_at", revision.applied_at))
+            .bind(("objects", objects))
+            .bind(("work_contexts", work_contexts))
+            .bind(("work_context_ids", work_context_ids))
+            .await
+            .context("failed to publish gateway control-plane revision")?
+            .check()
+            .context("gateway control-plane publication transaction failed")?;
+        Ok(())
+    }
+
+    pub async fn revision_count(&self) -> Result<u64> {
+        count_query(
+            &self.platform,
+            include_str!("queries/control_store/revision_count/statement_1.surql"),
+            None,
+        )
+        .await
+        .context("failed to count gateway control-plane revisions")
+    }
+
+    pub async fn object_count_for_active_revision(&self) -> Result<u64> {
+        let mut response = self
+            .platform
+            .client()
+            .query(include_str!("queries/control_store/active_record.surql"))
+            .await
+            .context("failed to load active gateway control-plane pointer for object count")?
+            .check()?;
+        let active: Option<GatewayControlActiveRecord> = response.take(0)?;
+        let Some(active) = active else {
+            return Ok(0);
+        };
+        count_query(
+            &self.platform,
+            include_str!(
+                "queries/control_store/object_count_for_active_revision/statement_1.surql"
+            ),
+            Some(active.revision),
+        )
+        .await
+        .context("failed to count active gateway control-plane objects")
+    }
+
+    pub fn platform_store(&self) -> &PlatformStore {
+        &self.platform
+    }
+}
+
+async fn count_query(
+    platform: &PlatformStore,
+    statement: &str,
+    revision: Option<RecordId>,
+) -> Result<u64> {
+    let query = platform.client().query(statement);
+    let mut response = match revision {
+        Some(revision) => query.bind(("revision", revision)).await?,
+        None => query.await?,
+    }
+    .check()?;
+    let counts: Vec<i64> = response.take(0)?;
+    let count = counts.first().copied().unwrap_or(0);
+    u64::try_from(count).context("SurrealDB returned a negative count")
+}
+
+fn revision_from_record(
+    record: GatewayControlRevisionRecord,
+    admission: &GatewayCatalogAdmission,
+) -> Result<GatewayControlPlaneRevision> {
+    let control_plane: GatewayControlPlane = serde_json::from_value(
+        serde_json::to_value(record.control_plane)
+            .context("failed to convert stored control plane to JSON")?,
+    )
+    .context("failed to deserialize stored gateway control plane")?;
+    admission
+        .validate(&control_plane)
+        .context("stored gateway control plane failed validation")?;
+
+    Ok(GatewayControlPlaneRevision {
+        revision_id: GatewayControlPlaneRevisionId::parse(record.revision_id)?,
+        sha256: record.sha256,
+        source: revision_source_from_store(record.source),
+        applied_at: record.applied_at,
+        applied_by: PrincipalId::parse(record.applied_by)?,
+        tenant: record.tenant.map(TenantId::parse).transpose()?,
+        control_plane,
+    })
+}
+
+fn revision_source_to_store(
+    source: GatewayControlPlaneRevisionSource,
+) -> GatewayControlRevisionSource {
+    match source {
+        GatewayControlPlaneRevisionSource::AdminApi => GatewayControlRevisionSource::AdminApi,
+        GatewayControlPlaneRevisionSource::SeedFile => GatewayControlRevisionSource::SeedFile,
+    }
+}
+
+fn revision_source_from_store(
+    source: GatewayControlRevisionSource,
+) -> GatewayControlPlaneRevisionSource {
+    match source {
+        GatewayControlRevisionSource::AdminApi => GatewayControlPlaneRevisionSource::AdminApi,
+        GatewayControlRevisionSource::SeedFile => GatewayControlPlaneRevisionSource::SeedFile,
+    }
+}
+
+fn control_plane_object_rows(
+    control_plane: &GatewayControlPlane,
+    sections: &veoveo_gateway_contract::AdmittedCatalogSections,
+) -> Result<Vec<ControlPlaneObjectRow>> {
+    let mut rows = Vec::new();
+    for identity_provider in &control_plane.identity_providers {
+        rows.push(object_row(
+            None,
+            "identity_provider",
+            identity_provider.id.as_str(),
+            identity_provider,
+        )?);
+    }
+    for authorization_server in &control_plane.authorization_servers {
+        rows.push(object_row(
+            None,
+            "authorization_server",
+            authorization_server.id.as_str(),
+            authorization_server,
+        )?);
+    }
+    for profile in &control_plane.profiles {
+        let mut row = object_row(None, "profile", profile.id.as_str(), profile)?;
+        row.profile_policy_version = Some(profile.policy_version.clone());
+        rows.push(row);
+    }
+    for object in sections.objects() {
+        rows.push(object_row(
+            object.tenant.as_ref().map(ToString::to_string),
+            object.kind.as_str(),
+            &object.id,
+            &object.value,
+        )?);
+    }
+    for tenant in &control_plane.tenants {
+        rows.push(object_row(
+            Some(tenant.id.as_str().to_owned()),
+            "tenant",
+            tenant.id.as_str(),
+            tenant,
+        )?);
+    }
+    for context in &control_plane.work_contexts {
+        rows.push(object_row(
+            Some(context.tenant.as_str().to_owned()),
+            "work_context",
+            context.id.as_str(),
+            context,
+        )?);
+    }
+    for policy in &control_plane.policies {
+        rows.push(object_row(None, "policy", policy.version.as_str(), policy)?);
+        for rule in &policy.rules {
+            let tenant = single_tenant(rule.tenant_ids.iter().map(TenantId::as_str));
+            rows.push(object_row(
+                tenant,
+                "policy_rule",
+                format!("{}/{}", policy.version, rule.id),
+                rule,
+            )?);
+        }
+    }
+    for data_label in &control_plane.data_labels {
+        rows.push(object_row(
+            None,
+            "data_label",
+            data_label.id.as_str(),
+            data_label,
+        )?);
+    }
+    for client in &control_plane.oauth_clients {
+        rows.push(object_row(
+            None,
+            "oauth_client",
+            client.id.as_str(),
+            client,
+        )?);
+    }
+    for client in &control_plane.oidc_clients {
+        rows.push(object_row(None, "oidc_client", client.id.as_str(), client)?);
+    }
+    for secret in &control_plane.secrets {
+        rows.push(object_row(None, "secret", secret.id.as_str(), secret)?);
+    }
+    Ok(rows)
+}
+
+fn work_context_record(
+    context: &WorkContextDefinition,
+    applied_at: chrono::DateTime<chrono::Utc>,
+) -> Result<WorkContextRecord> {
+    let tenant = deterministic_tenant_id(context.tenant.as_str())
+        .context("failed to derive Work Context tenant identity")?
+        .record_id();
+    let id = deterministic_work_context_id(context.tenant.as_str(), context.id.as_str())
+        .context("failed to derive Work Context identity")?
+        .record_id();
+    let (owner_kind, owner_key) = store_subject(&context.output_policy.owner);
+    Ok(WorkContextRecord {
+        id,
+        tenant,
+        context_key: context.id.to_string(),
+        title: context.title.clone(),
+        policy_revision: context.policy_revision.to_string(),
+        output_policy: WorkContextOutputPolicyRecord {
+            owner_kind,
+            owner_key,
+            initial_grants: context
+                .output_policy
+                .initial_grants
+                .iter()
+                .map(|grant| {
+                    let (subject_kind, subject_key) = store_subject(&grant.subject);
+                    WorkContextInitialGrantRecord {
+                        subject_kind,
+                        subject_key,
+                        permission: store_permission(grant.level),
+                    }
+                })
+                .collect(),
+            classification: context
+                .output_policy
+                .classification
+                .as_ref()
+                .map(ToString::to_string),
+            data_labels: context
+                .output_policy
+                .data_labels
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
+        },
+        memberships: context
+            .memberships
+            .iter()
+            .map(|rule| WorkContextMembershipRuleRecord {
+                level: match rule.level {
+                    veoveo_types::WorkContextMembershipLevel::Viewer => {
+                        WorkContextMembershipLevel::Viewer
+                    }
+                    veoveo_types::WorkContextMembershipLevel::Contributor => {
+                        WorkContextMembershipLevel::Contributor
+                    }
+                    veoveo_types::WorkContextMembershipLevel::Custodian => {
+                        WorkContextMembershipLevel::Custodian
+                    }
+                    veoveo_types::WorkContextMembershipLevel::Owner => {
+                        WorkContextMembershipLevel::Owner
+                    }
+                },
+                principals: rule.principals.iter().map(ToString::to_string).collect(),
+                groups: rule.groups.iter().map(ToString::to_string).collect(),
+                roles: rule.roles.iter().map(ToString::to_string).collect(),
+                oauth_clients: rule.oauth_clients.iter().map(ToString::to_string).collect(),
+            })
+            .collect(),
+        created_at: applied_at,
+        updated_at: applied_at,
+    })
+}
+
+fn store_subject(subject: &AccessSubject) -> (ArtifactGrantSubjectKind, String) {
+    match subject {
+        AccessSubject::Principal(principal) => {
+            (ArtifactGrantSubjectKind::Principal, principal.to_string())
+        }
+        AccessSubject::Group(group) => (ArtifactGrantSubjectKind::Group, group.to_string()),
+    }
+}
+
+fn store_permission(level: AccessLevel) -> GrantPermission {
+    match level {
+        AccessLevel::Read => GrantPermission::Read,
+        AccessLevel::Write => GrantPermission::Write,
+        AccessLevel::Admin => GrantPermission::Admin,
+    }
+}
+
+fn object_row(
+    tenant: Option<String>,
+    kind: impl Into<String>,
+    id: impl Into<String>,
+    value: impl Serialize,
+) -> Result<ControlPlaneObjectRow> {
+    Ok(ControlPlaneObjectRow {
+        tenant,
+        kind: veoveo_types::ExtensionName::parse(kind.into())?,
+        id: id.into(),
+        document: serialize_object(value)?,
+        profile_policy_version: None,
+    })
+}
+
+fn serialize_object(value: impl Serialize) -> Result<OpenObject> {
+    let value = serde_json::to_value(value)?;
+    let serde_json::Value::Object(object) = value else {
+        anyhow::bail!("gateway control-plane object did not serialize as an object");
+    };
+    Ok(OpenObject::new(object.into_iter().collect()))
+}
+
+fn single_tenant<'a>(mut tenants: impl Iterator<Item = &'a str>) -> Option<String> {
+    let tenant = tenants.next()?;
+    if tenants.next().is_none() {
+        Some(tenant.to_owned())
+    } else {
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn owner_control_kinds_use_the_shared_extension_name_admission() {
+        let row = object_row(
+            None,
+            "vendor/fleet-v2",
+            "record",
+            serde_json::json!({"value":true}),
+        )
+        .unwrap();
+        assert_eq!(row.kind.as_str(), "vendor/fleet-v2");
+        for kind in ["", "bad name", "bad?name", "nonascii-é"] {
+            assert!(
+                object_row(None, kind, "record", serde_json::json!({"value":true})).is_err(),
+                "accepted invalid control kind {kind:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn revision_source_round_trips_seed_file() {
+        assert_eq!(
+            revision_source_from_store(revision_source_to_store(
+                GatewayControlPlaneRevisionSource::SeedFile
+            )),
+            GatewayControlPlaneRevisionSource::SeedFile
+        );
+    }
+
+    #[test]
+    fn generated_revision_ids_use_uuid_v7() {
+        let id = new_gateway_control_plane_revision_id().unwrap();
+        let uuid = uuid::Uuid::parse_str(id.as_str().strip_prefix("gcp-").unwrap()).unwrap();
+        assert_eq!(uuid.get_version_num(), 7);
+    }
+}

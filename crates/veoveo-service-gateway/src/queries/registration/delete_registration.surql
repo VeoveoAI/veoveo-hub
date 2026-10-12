@@ -1,0 +1,1 @@
+DELETE ONLY $registration RETURN BEFORE;

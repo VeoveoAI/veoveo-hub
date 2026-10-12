@@ -1,0 +1,268 @@
+use veoveo_test_fixtures::store as fixture;
+
+use chrono::{TimeDelta, Utc};
+use std::{collections::BTreeSet, num::NonZeroU32};
+use veoveo_gateway_contract::{AuthorizationServerId, ProtectedResourceId};
+use veoveo_mcp_contract::*;
+use veoveo_service_gateway::{
+    GatewayRefreshDeliveryWindow, GatewayRefreshExchange, GatewayRefreshIssueRequest,
+    GatewayRefreshRotationRequest, GatewayState, RefreshTokenDeliveryCipher,
+};
+use veoveo_types::{InvocationMode, PrincipalId, ScopeName, TenantId, WorkContextId};
+
+#[tokio::test]
+async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation() {
+    let db = fixture::TestDb::new().await;
+    let first = GatewayState::new(db.a.clone());
+    let second = GatewayState::new(db.b.clone());
+    let profile = GatewayProfileId::parse("operator").unwrap();
+    let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
+    let client = OAuthClientId::parse("console").unwrap();
+    let context = WorkContextId::parse("mission").unwrap();
+    let principal = Principal {
+        id: PrincipalId::parse("https://identity.example#one").unwrap(),
+        kind: PrincipalKind::User,
+        issuer: TokenIssuer::parse("https://identity.example").unwrap(),
+        subject: TokenSubject::parse("one").unwrap(),
+        tenant: Some(TenantId::parse("tenant-a").unwrap()),
+        groups: BTreeSet::new(),
+        group_roles: BTreeSet::new(),
+        roles: BTreeSet::new(),
+        scopes: BTreeSet::from([ScopeName::parse("operator:use").unwrap()]),
+        data_labels: BTreeSet::new(),
+        assurances: BTreeSet::new(),
+        authenticated_at: None,
+    };
+    let display = PrincipalDisplayName::new("Same Display Name").unwrap();
+    let cipher = RefreshTokenDeliveryCipher::new(b"0123456789abcdef0123456789abcdef").unwrap();
+    // Each case has its own real family, using the same two independent clients.
+    for ending in ["logout", "replay", "expiry", "missing"] {
+        let now = Utc::now();
+        let issued = first
+            .issue_refresh_token(GatewayRefreshIssueRequest {
+                authorization_server: &authorization_server,
+                profile: &profile,
+                oauth_client_id: &client,
+                work_context: &context,
+                principal: &principal,
+                principal_display_name: &display,
+                scopes: &principal.scopes,
+                now,
+            })
+            .await
+            .unwrap();
+        let token = AccessTokenSubject {
+            managed_execution: None,
+            issuer: TokenIssuer::parse("https://veoveo.example").unwrap(),
+            subject: principal.subject.clone(),
+            oauth_client_id: client.clone(),
+            session_family: Some(issued.grant.family_id.clone()),
+            audience: ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap(),
+            work_context: context.clone(),
+            invocation_mode: InvocationMode::Direct,
+            initiator: Some(principal.id.clone()),
+            delegation_id: None,
+            scopes: principal.scopes.clone(),
+            jwt_id: Some(JwtId::parse("access-one").unwrap()),
+            issued_at: now,
+            not_before: None,
+            expires_at: now + TimeDelta::minutes(15),
+        };
+        // Match JwtVerifier: the signed gateway issuer becomes Principal.issuer,
+        // while the refresh family still holds the upstream OIDC issuer.
+        let mut authenticated = principal.clone();
+        authenticated.issuer = token.issuer.clone();
+        assert!(
+            second
+                .access_token_session_valid(&profile, &authorization_server, &token, &authenticated)
+                .await
+                .unwrap()
+        );
+        let mut foreign = authenticated.clone();
+        foreign.subject = TokenSubject::parse("two").unwrap();
+        assert!(
+            !second
+                .access_token_session_valid(&profile, &authorization_server, &token, &foreign)
+                .await
+                .unwrap()
+        );
+        foreign = authenticated.clone();
+        foreign.tenant = Some(TenantId::parse("tenant-b").unwrap());
+        assert!(
+            !second
+                .access_token_session_valid(&profile, &authorization_server, &token, &foreign)
+                .await
+                .unwrap()
+        );
+        assert!(
+            !second
+                .access_token_session_valid(
+                    &GatewayProfileId::parse("other").unwrap(),
+                    &authorization_server,
+                    &token,
+                    &authenticated
+                )
+                .await
+                .unwrap()
+        );
+        assert!(
+            !second
+                .access_token_session_valid(
+                    &profile,
+                    &AuthorizationServerId::parse("other").unwrap(),
+                    &token,
+                    &authenticated
+                )
+                .await
+                .unwrap()
+        );
+        for mismatch in ["client", "context", "scope"] {
+            let mut bad = token.clone();
+            match mismatch {
+                "client" => bad.oauth_client_id = OAuthClientId::parse("other").unwrap(),
+                "context" => bad.work_context = WorkContextId::parse("other").unwrap(),
+                _ => {
+                    bad.scopes.insert(ScopeName::parse("admin:use").unwrap());
+                }
+            }
+            assert!(
+                !second
+                    .access_token_session_valid(
+                        &profile,
+                        &authorization_server,
+                        &bad,
+                        &authenticated
+                    )
+                    .await
+                    .unwrap()
+            );
+        }
+        let success = audit(&profile, &principal, AuthReasonCode::AuthAllow);
+        let duplicate = audit(
+            &profile,
+            &principal,
+            AuthReasonCode::RefreshTokenDuplicateDelivery,
+        );
+        let request = |at| GatewayRefreshRotationRequest {
+            authorization_server: &authorization_server,
+            profile: &profile,
+            oauth_client_id: &client,
+            now: at,
+            delivery_window: GatewayRefreshDeliveryWindow::from_seconds(
+                NonZeroU32::new(1).unwrap(),
+            )
+            .unwrap(),
+            delivery_cipher: &cipher,
+            success_audit: &success,
+            duplicate_delivery_audit: &duplicate,
+        };
+        let rotated = match first
+            .rotate_refresh_token(&issued.token, request(now))
+            .await
+            .unwrap()
+        {
+            GatewayRefreshExchange::Rotated(rotated) => rotated,
+            _ => panic!("rotation must succeed"),
+        };
+        assert_eq!(rotated.grant.family_id, issued.grant.family_id);
+        assert!(
+            second
+                .access_token_session_valid(&profile, &authorization_server, &token, &authenticated)
+                .await
+                .unwrap()
+        );
+        match ending {
+            "logout" => {
+                first
+                    .revoke_refresh_token_family(
+                        &rotated.token,
+                        &authorization_server,
+                        &profile,
+                        &client,
+                        now,
+                    )
+                    .await
+                    .unwrap()
+                    .unwrap();
+            }
+            "replay" => assert!(matches!(
+                first
+                    .rotate_refresh_token(&issued.token, request(now + TimeDelta::seconds(2)))
+                    .await
+                    .unwrap(),
+                GatewayRefreshExchange::ReplayDetected { .. }
+            )),
+            _ => {
+                let family = veoveo_platform_store::gateway_refresh_family_record_id(
+                    issued.grant.family_id.as_str().parse().unwrap(),
+                );
+                let sql = if ending == "expiry" {
+                    include_str!(
+                        "queries/session_family/session_binding_survives_rotation_and_rejects_cross_replica_revocation/statement_1.surql"
+                    )
+                } else {
+                    include_str!(
+                        "queries/session_family/session_binding_survives_rotation_and_rejects_cross_replica_revocation/statement_2.surql"
+                    )
+                };
+                db.a.client()
+                    .query(sql)
+                    .bind(("family", family))
+                    .await
+                    .unwrap()
+                    .check()
+                    .unwrap();
+            }
+        }
+        // A still-unexpired signed access token cannot outlive committed family revocation.
+        assert!(
+            !second
+                .access_token_session_valid(&profile, &authorization_server, &token, &authenticated)
+                .await
+                .unwrap()
+        );
+    }
+}
+
+fn audit(
+    profile: &GatewayProfileId,
+    principal: &Principal,
+    reason: AuthReasonCode,
+) -> veoveo_audit_contract::AuditDraft {
+    use veoveo_audit_contract::*;
+    let activity = if reason == AuthReasonCode::RefreshTokenDuplicateDelivery {
+        AuthenticationActivity::DuplicateRefresh
+    } else {
+        AuthenticationActivity::Refresh
+    };
+    AuditDraft::builder(
+        AuditRequest::background(),
+        AuditTarget::Profile {
+            profile: profile.clone(),
+        },
+        AuditDetail::Authentication {
+            activity,
+            method: AuthMethod::RefreshToken,
+            reason,
+        },
+        AuditOutcome::Allowed,
+        AuditReason::Accepted,
+    )
+    .actor(AuditActor {
+        principal: principal.id.clone(),
+        kind: AuditPrincipalKind::User,
+        tenant: principal.tenant.clone(),
+        oauth_client: None,
+        session_family: None,
+        delegating_principal: None,
+        managed_agent: None,
+    })
+    .authority(AuditAuthority {
+        profile: Some(profile.clone()),
+        scopes: principal.scopes.clone(),
+        data_labels: principal.data_labels.clone(),
+        ..Default::default()
+    })
+    .build()
+    .unwrap()
+}

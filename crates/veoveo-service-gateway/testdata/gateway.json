@@ -1,0 +1,481 @@
+{
+  "identityProviders": [
+    {
+      "id": "enterprise",
+      "issuer": "https://idp.example.com",
+      "jwks": {
+        "source": "file",
+        "path": "configs/jwks.smoke.json"
+      },
+      "authorizationEndpoint": "https://idp.example.com/oauth2/authorize",
+      "tokenEndpoint": "https://idp.example.com/oauth2/token",
+      "enterpriseManagedAuthorizationEndpoint": "https://idp.example.com/oauth2/id-jag",
+      "metadata": {}
+    }
+  ],
+  "authorizationServers": [
+    {
+      "id": "veoveo",
+      "issuer": "https://veoveo.example/oauth",
+      "jwks": {
+        "source": "file",
+        "path": "configs/jwks.smoke.json"
+      },
+      "accessTokenKeyId": "test-key",
+      "accessTokenSigningKey": "veoveo_access_token_private_key",
+      "identityProvider": "enterprise",
+      "authorizationEndpoint": "https://veoveo.example/oauth/authorize",
+      "tokenEndpoint": "https://veoveo.example/oauth/token",
+      "metadata": {}
+    }
+  ],
+  "profiles": [
+    {
+      "id": "operator",
+      "identityProvider": "enterprise",
+      "authorizationServer": "veoveo",
+      "protectedResource": "https://veoveo.example/mcp/operator",
+      "policyVersion": "2026-07-02",
+      "authModes": [
+        "enterprise_managed_authorization",
+        "oauth_client_credentials",
+        "oidc_authorization_code_pkce"
+      ],
+      "requiredScopes": [
+        "operator:use"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "admin",
+      "identityProvider": "enterprise",
+      "authorizationServer": "veoveo",
+      "protectedResource": "https://veoveo.example/mcp/admin",
+      "policyVersion": "2026-07-02",
+      "authModes": [
+        "enterprise_managed_authorization",
+        "oauth_client_credentials",
+        "oidc_authorization_code_pkce"
+      ],
+      "requiredScopes": [
+        "operator:use",
+        "admin:manage"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "workspace",
+      "identityProvider": "enterprise",
+      "authorizationServer": "veoveo",
+      "protectedResource": "https://veoveo.example/mcp/workspace",
+      "policyVersion": "2026-07-02",
+      "authModes": [
+        "oidc_authorization_code_pkce"
+      ],
+      "requiredScopes": [
+        "operator:use"
+      ],
+      "metadata": {
+        "purpose": "Shared productivity chats and governed user tools"
+      }
+    }
+  ],
+  "policies": [
+    {
+      "version": "2026-07-02",
+      "rules": [],
+      "metadata": {}
+    }
+  ],
+  "dataLabels": [
+    {
+      "id": "cui",
+      "title": "Controlled Unclassified Information",
+      "regulated": true,
+      "metadata": {}
+    },
+    {
+      "id": "itar",
+      "title": "ITAR-controlled data",
+      "regulated": true,
+      "metadata": {}
+    },
+    {
+      "id": "pii",
+      "title": "Personally Identifiable Information",
+      "regulated": true,
+      "metadata": {}
+    }
+  ],
+  "tenants": [
+    {
+      "id": "tenant-a",
+      "title": "Smoke tenant",
+      "metadata": {}
+    }
+  ],
+  "workContexts": [
+    {
+      "id": "operations",
+      "tenant": "tenant-a",
+      "title": "Operations",
+      "policyRevision": "2026-07-02",
+      "outputPolicy": {
+        "owner": {
+          "kind": "group",
+          "id": "operations"
+        },
+        "initialGrants": [
+          {
+            "subject": {
+              "kind": "group",
+              "id": "reviewers"
+            },
+            "level": "read"
+          }
+        ]
+      },
+      "memberships": [
+        {
+          "level": "owner",
+          "oauthClients": [
+            "admin-console",
+            "admin-delegated",
+            "admin-service"
+          ]
+        },
+        {
+          "level": "contributor",
+          "oauthClients": [
+            "operator-local-public",
+            "operator-delegated",
+            "operator-hosted-public",
+            "operator-hosted-delegated",
+            "operator-service"
+          ]
+        },
+        {
+          "level": "contributor",
+          "oauthClients": [
+            "workspace"
+          ]
+        }
+      ]
+    }
+  ],
+  "oauthClients": [
+    {
+      "id": "operator-local-public",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "operations",
+      "invocationMode": "direct",
+      "displayName": "Veoveo Operator Local Client",
+      "clientSurface": "full_mcp",
+      "allowedResources": [
+        "https://veoveo.example/mcp/operator"
+      ],
+      "grantTypes": [
+        "authorization_code_pkce",
+        "refresh_token"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "allowedScopes": [
+        "operator:use"
+      ],
+      "metadata": {
+        "client_boundary": "local_public"
+      },
+      "redirectUris": [
+        "http://localhost:6274/oauth/callback",
+        "http://localhost:6274/oauth/callback/debug",
+        "http://127.0.0.1:6274/oauth/callback",
+        "http://127.0.0.1:6274/oauth/callback/debug",
+        "http://localhost:8789/callback",
+        "http://127.0.0.1:8789/callback",
+        "http://localhost:8789/oauth/callback",
+        "http://127.0.0.1:8789/oauth/callback"
+      ]
+    },
+    {
+      "id": "operator-delegated",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "operations",
+      "invocationMode": "delegated",
+      "displayName": "Operator Delegated Client",
+      "clientSurface": "full_mcp",
+      "allowedResources": [
+        "https://veoveo.example/mcp/operator"
+      ],
+      "grantTypes": [
+        "enterprise_managed_authorization"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "redirectUris": [
+        "http://localhost:8789/oauth/callback"
+      ],
+      "allowedScopes": [
+        "operator:use"
+      ],
+      "metadata": {
+        "client_boundary": "delegated"
+      }
+    },
+    {
+      "id": "operator-hosted-public",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "operations",
+      "invocationMode": "direct",
+      "displayName": "Veoveo Operator Hosted Client",
+      "clientSurface": "tools_compat",
+      "directTaskCallAdapter": true,
+      "allowedResources": [
+        "https://veoveo.example/mcp/operator"
+      ],
+      "grantTypes": [
+        "authorization_code_pkce",
+        "refresh_token"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "allowedScopes": [
+        "operator:use"
+      ],
+      "metadata": {
+        "client_boundary": "hosted_public"
+      },
+      "redirectUris": [
+        "https://claude.ai/api/mcp/auth_callback",
+        "https://chatgpt.com/connector/oauth/gJtUJETZMrHO"
+      ]
+    },
+    {
+      "id": "operator-hosted-delegated",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "operations",
+      "invocationMode": "delegated",
+      "displayName": "Hosted Operator Delegated Client",
+      "clientSurface": "tools_compat",
+      "directTaskCallAdapter": true,
+      "allowedResources": [
+        "https://veoveo.example/mcp/operator"
+      ],
+      "grantTypes": [
+        "enterprise_managed_authorization"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "redirectUris": [
+        "https://claude.ai/api/mcp/auth_callback"
+      ],
+      "allowedScopes": [
+        "operator:use"
+      ],
+      "metadata": {
+        "client_boundary": "hosted_delegated"
+      }
+    },
+    {
+      "id": "admin-console",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "operations",
+      "invocationMode": "direct",
+      "displayName": "Veoveo Admin Console",
+      "clientSurface": "full_mcp",
+      "allowedResources": [
+        "https://veoveo.example/mcp/admin"
+      ],
+      "grantTypes": [
+        "authorization_code_pkce",
+        "refresh_token"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "allowedScopes": [
+        "operator:use",
+        "admin:manage"
+      ],
+      "metadata": {
+        "client_boundary": "admin_console"
+      },
+      "redirectUris": [
+        "https://veoveo.example/admin/callback"
+      ]
+    },
+    {
+      "id": "admin-delegated",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "operations",
+      "invocationMode": "delegated",
+      "displayName": "Administration Delegated Client",
+      "clientSurface": "full_mcp",
+      "allowedResources": [
+        "https://veoveo.example/mcp/admin"
+      ],
+      "grantTypes": [
+        "enterprise_managed_authorization"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "redirectUris": [
+        "https://veoveo.example/admin/callback"
+      ],
+      "allowedScopes": [
+        "operator:use",
+        "admin:manage"
+      ],
+      "metadata": {
+        "client_boundary": "delegated"
+      }
+    },
+    {
+      "id": "operator-service",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "operations",
+      "invocationMode": "automated",
+      "displayName": "Veoveo Operator Service",
+      "clientSurface": "full_mcp",
+      "allowedResources": [
+        "https://veoveo.example/mcp/operator"
+      ],
+      "grantTypes": [
+        "client_credentials"
+      ],
+      "authMethods": [
+        "private_key_jwt"
+      ],
+      "allowedScopes": [
+        "operator:use"
+      ],
+      "metadata": {
+        "client_boundary": "operator_service"
+      },
+      "jwks": {
+        "source": "file",
+        "path": "configs/jwks.smoke.json"
+      },
+      "tenant": "tenant-a"
+    },
+    {
+      "id": "admin-service",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "operations",
+      "invocationMode": "automated",
+      "displayName": "Veoveo Admin Service",
+      "clientSurface": "full_mcp",
+      "allowedResources": [
+        "https://veoveo.example/mcp/admin"
+      ],
+      "grantTypes": [
+        "client_credentials"
+      ],
+      "authMethods": [
+        "private_key_jwt"
+      ],
+      "allowedScopes": [
+        "operator:use",
+        "admin:manage"
+      ],
+      "metadata": {
+        "client_boundary": "admin_service"
+      },
+      "jwks": {
+        "source": "file",
+        "path": "configs/jwks.smoke.json"
+      },
+      "tenant": "tenant-a"
+    },
+    {
+      "id": "workspace",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "operations",
+      "invocationMode": "direct",
+      "displayName": "Veoveo Workspace",
+      "clientSurface": "full_mcp",
+      "allowedResources": [
+        "https://veoveo.example/mcp/workspace"
+      ],
+      "grantTypes": [
+        "authorization_code_pkce",
+        "refresh_token"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "allowedScopes": [
+        "artifact:upload",
+        "operator:use"
+      ],
+      "metadata": {
+        "client_boundary": "workspace"
+      },
+      "redirectUris": [
+        "https://veoveo.example/admin/callback"
+      ]
+    }
+  ],
+  "oidcClients": [
+    {
+      "id": "enterprise",
+      "identityProvider": "enterprise",
+      "authorizationServer": "veoveo",
+      "allowedResources": [
+        "https://veoveo.example/mcp/operator",
+        "https://veoveo.example/mcp/admin",
+        "https://veoveo.example/mcp/workspace"
+      ],
+      "clientId": "veoveo",
+      "redirectUri": "https://veoveo.example/oauth/callback",
+      "authMethod": "client_secret_post",
+      "credentialSecret": "enterprise_oidc_client_secret",
+      "scopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "metadata": {}
+    }
+  ],
+  "secrets": [
+    {
+      "id": "enterprise_oidc_client_secret",
+      "source": "env",
+      "purpose": "oauth_client_secret",
+      "locator": "VEOVEO_IDP_OIDC_CLIENT_SECRET",
+      "owner": {
+        "kind": "gateway"
+      },
+      "metadata": {}
+    },
+    {
+      "id": "veoveo_access_token_private_key",
+      "source": "env",
+      "purpose": "jwks_private_key",
+      "locator": "VEOVEO_AUTHORIZATION_SERVER_PRIVATE_KEY_DER_B64",
+      "owner": {
+        "kind": "gateway"
+      },
+      "metadata": {}
+    },
+    {
+      "id": "gateway_internal_signing_private_key",
+      "source": "env",
+      "purpose": "gateway_signing_key",
+      "locator": "VEOVEO_INTERNAL_SIGNING_KEY_DER_B64",
+      "owner": {
+        "kind": "gateway"
+      },
+      "metadata": {}
+    }
+  ],
+  "metadata": {
+    "environment": "smoke"
+  }
+}
