@@ -133,7 +133,7 @@ impl GatewayState {
     }
     pub async fn audit_writer(&self) -> &veoveo_audit::AuditWriter {
         self.audit_writer
-            .get_or_init(|| async { veoveo_audit::AuditWriter::start(self.platform.clone()) })
+            .get_or_init(|| async { veoveo_audit::AuditWriter::start(self.audit.clone()) })
             .await
     }
     pub async fn record_audit(&self, draft: AuditDraft) -> Result<()> {
@@ -154,6 +154,28 @@ impl GatewayState {
             .record_indexing(read)
             .await
             .context("required indexing audit commit failed")
+    }
+}
+
+/// Audit records that commit in the same transaction as a Gateway state change. A
+/// record the audit log refuses rolls the change back.
+pub(crate) struct AuditAppend(AuditTransactionWrite);
+
+impl AuditAppend {
+    pub(crate) fn new(write: AuditTransactionWrite) -> Self {
+        Self(write)
+    }
+}
+
+impl veoveo_platform_store::gateway::TransactionAppend for AuditAppend {
+    async fn append(
+        &self,
+        connection: &mut sqlx::PgConnection,
+    ) -> Result<(), veoveo_platform_store::StoreError> {
+        self.0
+            .append(connection)
+            .await
+            .map_err(|error| veoveo_platform_store::StoreError::Append(Box::new(error)))
     }
 }
 

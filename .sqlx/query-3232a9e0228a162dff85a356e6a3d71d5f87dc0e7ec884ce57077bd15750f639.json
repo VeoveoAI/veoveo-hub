@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The details of the account changes the publications audited, in append order.\nSELECT draft -> 'detail' AS \"detail!: Json<AuditDetail>\"\nFROM audit.record\nWHERE class = 'account_change'\nORDER BY sequence\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "detail!: Json<AuditDetail>",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3232a9e0228a162dff85a356e6a3d71d5f87dc0e7ec884ce57077bd15750f639"
+}

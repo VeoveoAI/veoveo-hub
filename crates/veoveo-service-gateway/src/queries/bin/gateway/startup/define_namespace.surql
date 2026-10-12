@@ -1,1 +1,0 @@
-DEFINE NAMESPACE IF NOT EXISTS $namespace;

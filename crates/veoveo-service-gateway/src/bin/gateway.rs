@@ -45,7 +45,7 @@ use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use veoveo_mcp_contract::{TelemetryGuard, init_server_telemetry};
-use veoveo_platform_store::{StoreAuthLevel, StoreConfig, StoreCredentials};
+use veoveo_platform_store::StoreConfig;
 use veoveo_service_gateway::{
     GatewayCatalog, GatewayRefreshDeliveryWindow, GatewaySecretResolver, RefreshTokenDeliveryCipher,
 };
@@ -63,41 +63,25 @@ struct Args {
 }
 
 #[derive(Clone, ClapArgs, Debug)]
-struct SurrealStoreArgs {
-    /// SurrealDB WebSocket endpoint.
-    #[arg(long = "surreal-endpoint", env = "VEOVEO_SURREAL_ENDPOINT")]
-    endpoint: String,
-    /// SurrealDB namespace owned by this Veoveo installation.
-    #[arg(long = "surreal-namespace", env = "VEOVEO_SURREAL_NAMESPACE")]
-    namespace: String,
-    /// SurrealDB database containing Veoveo platform state.
-    #[arg(long = "surreal-database", env = "VEOVEO_SURREAL_DATABASE")]
-    database: String,
-    /// SurrealDB authentication scope.
-    #[arg(long = "surreal-auth-level", env = "VEOVEO_SURREAL_AUTH_LEVEL")]
-    auth_level: StoreAuthLevel,
-    /// SurrealDB username.
-    #[arg(long = "surreal-username", env = "VEOVEO_SURREAL_USERNAME")]
-    username: String,
-    /// SurrealDB password.
+struct DatabaseArgs {
+    /// The installation database as a `postgres://` URL that names the user and no
+    /// password.
+    #[arg(long = "database-url", env = "VEOVEO_DATABASE_URL")]
+    url: String,
+    /// The password of the URL's user.
     #[arg(
-        long = "surreal-password",
-        env = "VEOVEO_SURREAL_PASSWORD",
+        long = "database-password",
+        env = "VEOVEO_DATABASE_PASSWORD",
         hide_env_values = true
     )]
     password: RedactedSecret,
 }
 
-impl SurrealStoreArgs {
+impl DatabaseArgs {
     fn into_config(self) -> anyhow::Result<StoreConfig> {
-        Ok(StoreConfig::builder(
-            self.endpoint,
-            self.namespace,
-            self.database,
-            StoreCredentials::new(self.auth_level, self.username, self.password.0),
-        )
-        .audit_targets(veoveo_service_gateway::kernel_audit_target_registry())
-        .build()?)
+        Ok(StoreConfig::builder(self.url, self.password.0)
+            .application_name("veoveo-service-gateway")
+            .build()?)
     }
 }
 
@@ -170,10 +154,15 @@ struct ServeArgs {
     #[arg(long, env = "VEOVEO_CONFIG")]
     config: PathBuf,
     #[command(flatten)]
-    store: SurrealStoreArgs,
-    /// SurrealDB endpoint registered servers use, when it differs from the Gateway's.
-    #[arg(long, env = "VEOVEO_SERVER_DATABASE_ENDPOINT")]
-    server_database_endpoint: Option<url::Url>,
+    database: DatabaseArgs,
+    /// The database URL registration grants name, when servers reach the database at
+    /// another address than the Gateway. It carries no user or password.
+    #[arg(long, env = "VEOVEO_SERVER_DATABASE_URL")]
+    server_database_url: Option<url::Url>,
+    /// How long a registration may go without a live process of its login before the
+    /// Gateway removes it and drops the login.
+    #[arg(long, env = "VEOVEO_REGISTRATION_GRACE_SECONDS", default_value_t = 60)]
+    registration_grace_seconds: u64,
     /// Base64 Ed25519 PKCS#8 key that signs the access tokens the Gateway forwards
     /// to registered servers.
     #[arg(
@@ -298,8 +287,9 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         listen_address,
         issuer,
         config,
-        store,
-        server_database_endpoint,
+        database,
+        server_database_url,
+        registration_grace_seconds,
         forwarded_token_key_b64,
         refresh_delivery_key_b64,
         refresh_delivery_window_seconds,
@@ -311,19 +301,14 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         artifact_service_url,
         database_wait_seconds,
     } = args;
-    let database_password = store.password.0.clone();
-    let store_config = store.into_config()?;
+    let store_config = database.into_config()?;
     let server_database = veoveo_service_gateway::registration::ServerDatabase {
-        endpoint: match server_database_endpoint {
-            Some(endpoint) => endpoint,
-            None => url::Url::parse(store_config.endpoint().as_str())?,
-        },
-        namespace: veoveo_mcp_ext_registration::DatabaseIdentifier::new(store_config.namespace())?,
-        database: veoveo_mcp_ext_registration::DatabaseIdentifier::new(store_config.database())?,
+        url: veoveo_mcp_ext_registration::DatabaseUrl::new(
+            server_database_url.unwrap_or_else(|| store_config.url().clone()),
+        )?,
     };
     let platform = startup::connect(
         store_config,
-        &database_password,
         std::time::Duration::from_secs(database_wait_seconds),
     )
     .await?;
@@ -354,6 +339,7 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         artifact_service_url,
         control_store,
         server_database,
+        registration_grace: std::time::Duration::from_secs(registration_grace_seconds),
         forwarded_token_key_b64: forwarded_token_key_b64.0,
         refresh_delivery_cipher,
         refresh_delivery_window,
@@ -394,18 +380,10 @@ fn sha256_hex(bytes: &[u8]) -> String {
 mod tests {
     use super::*;
 
-    const CANONICAL_STORE_ARGS: [&str; 12] = [
-        "--surreal-endpoint",
-        "ws://127.0.0.1:8000",
-        "--surreal-namespace",
-        "veoveo",
-        "--surreal-database",
-        "platform",
-        "--surreal-auth-level",
-        "database",
-        "--surreal-username",
-        "root",
-        "--surreal-password",
+    const CANONICAL_STORE_ARGS: [&str; 4] = [
+        "--database-url",
+        "postgres://veoveo@127.0.0.1:5432/veoveo",
+        "--database-password",
         "do-not-log",
     ];
 

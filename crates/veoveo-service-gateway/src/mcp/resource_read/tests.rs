@@ -111,6 +111,8 @@ async fn negotiated_read_commits_observation_before_delivery_and_fails_when_writ
 }
 async fn qualify() {
     let db = crate::test_store::TestDb::new().await;
+    // A second pool reads what the Gateway's writer committed.
+    let reader = veoveo_audit::AuditStore::new(db.b.clone(), crate::kernel_audit_target_registry());
     let state = crate::GatewayState::new(db.a.clone())
         .bind_token_extensions(Default::default())
         .unwrap()
@@ -153,7 +155,7 @@ async fn qualify() {
     let query = AuditQuery::new(AuditPartition::Tenant(
         subject.actor.tenant.clone().unwrap(),
     ));
-    let page = db.b.audit_page(&scope, &query).await.unwrap();
+    let page = reader.page(&scope, &query).await.unwrap();
     assert_eq!(page.records.len(), 1);
     assert_eq!(page.records[0].draft.outcome(), AuditOutcome::Succeeded);
     assert!(
@@ -177,7 +179,7 @@ async fn qualify() {
         2,
         "conditional read must reach source authority again"
     );
-    let page = db.b.audit_page(&scope, &query).await.unwrap();
+    let page = reader.page(&scope, &query).await.unwrap();
     assert_eq!(page.records.len(), 2);
     assert!(matches!(
         page.records[1].draft.detail(),
@@ -203,7 +205,7 @@ async fn qualify() {
         .unwrap_err();
     assert_eq!(delivered.into_protocol(), denial);
     assert_eq!(calls.load(Ordering::SeqCst), 3);
-    let page = db.b.audit_page(&scope, &query).await.unwrap();
+    let page = reader.page(&scope, &query).await.unwrap();
     assert_eq!(page.records.len(), 3);
     assert_eq!(page.records[2].draft.outcome(), AuditOutcome::Denied);
     gateway
@@ -214,7 +216,7 @@ async fn qualify() {
         )
         .await
         .unwrap_err();
-    let page = db.b.audit_page(&scope, &query).await.unwrap();
+    let page = reader.page(&scope, &query).await.unwrap();
     assert_eq!(page.records.len(), 4);
     assert_eq!(page.records[3].draft.reason(), AuditReason::NotFound);
     denied.store(false, Ordering::SeqCst);
@@ -232,10 +234,7 @@ async fn qualify() {
         .await
         .unwrap_err();
     assert!(!error.to_string().contains("source content"));
-    assert_eq!(
-        db.b.audit_page(&scope, &query).await.unwrap().records.len(),
-        4
-    );
+    assert_eq!(reader.page(&scope, &query).await.unwrap().records.len(), 4);
     client.cancel().await.unwrap();
     source.cancel().await.unwrap();
 }

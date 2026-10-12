@@ -32,7 +32,8 @@ impl ServerCapabilities {
     }
 }
 
-/// One registered server whose lease was current when its snapshot was built.
+/// One registered server, as its newest registration declared it when the snapshot
+/// was built.
 #[derive(Debug, Clone)]
 pub struct RegisteredServer {
     pub slug: ServerSlug,

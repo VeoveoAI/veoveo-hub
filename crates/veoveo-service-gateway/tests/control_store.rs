@@ -3,15 +3,17 @@ mod catalog_admission;
 use std::collections::BTreeSet;
 use veoveo_test_fixtures::store as fixture;
 
-use chrono::Utc;
+use chrono::{SubsecRound, Utc};
+use sqlx::types::Json;
+use veoveo_audit_contract::AuditDetail;
 
 use veoveo_mcp_contract::{
     GatewayControlPlane, GatewayControlPlaneRevision, GatewayControlPlaneRevisionId,
     GatewayControlPlaneRevisionSource, OAuthClientId, PolicySet, TenantDefinition,
     WorkContextDefinition, WorkContextMembershipRule,
 };
-use veoveo_platform_store::deterministic_tenant_id;
-use veoveo_service_gateway::GatewayControlStore;
+use veoveo_platform_store::{PlatformStore, deterministic_tenant_id};
+use veoveo_service_gateway::{GatewayControlStore, is_revision_conflict};
 use veoveo_types::{AccessSubject, GroupId, PolicyVersion, PrincipalId, TenantId, WorkContextId};
 use veoveo_types::{WorkContextMembershipLevel, WorkContextOutputPolicy};
 
@@ -19,7 +21,7 @@ use veoveo_types::{WorkContextMembershipLevel, WorkContextOutputPolicy};
 async fn publishes_immutable_revisions_and_moves_active_pointer_atomically() {
     tokio::time::timeout(std::time::Duration::from_secs(90), publication())
         .await
-        .expect("native control publication exceeded 90 seconds");
+        .expect("control publication exceeded 90 seconds");
 }
 
 async fn publication() {
@@ -30,19 +32,7 @@ async fn publication() {
     assert!(store.load_active_revision().await.unwrap().is_none());
     assert!(store.load_active_revision_head().await.unwrap().is_none());
 
-    let audit_context = veoveo_audit_contract::AuditContext {
-        actor: veoveo_audit_contract::AuditActor {
-            principal: PrincipalId::parse("integration-admin").unwrap(),
-            kind: veoveo_audit_contract::AuditPrincipalKind::Service,
-            tenant: None,
-            oauth_client: None,
-            session_family: None,
-            delegating_principal: None,
-            managed_agent: None,
-        },
-        authority: Default::default(),
-        request: veoveo_audit_contract::AuditRequest::background(),
-    };
+    let audit_context = audit_context();
     let first = revision("gcp-first", "a".repeat(64), empty_control_plane());
     store.record_revision(&first, &audit_context).await.unwrap();
     assert_eq!(
@@ -52,8 +42,8 @@ async fn publication() {
     let first_head = store.load_active_revision_head().await.unwrap().unwrap();
     assert_eq!(first_head.revision_id, first.revision_id);
     assert_eq!(first_head.sha256, first.sha256);
-    assert_eq!(store.revision_count().await.unwrap(), 1);
-    assert_eq!(store.object_count_for_active_revision().await.unwrap(), 0);
+    assert_eq!(revision_count(&db.a).await, 1);
+    assert_eq!(active_object_count(&db.a).await, 0);
 
     let mut second_plane = empty_control_plane();
     second_plane.tenants.push(TenantDefinition {
@@ -98,15 +88,14 @@ async fn publication() {
     let second_head = store.load_active_revision_head().await.unwrap().unwrap();
     assert_eq!(second_head.revision_id, second.revision_id);
     assert_eq!(second_head.sha256, second.sha256);
-    assert_eq!(store.revision_count().await.unwrap(), 2);
-    assert_eq!(store.object_count_for_active_revision().await.unwrap(), 3);
+    assert_eq!(revision_count(&db.a).await, 2);
+    assert_eq!(active_object_count(&db.a).await, 3);
     let tenant_id = deterministic_tenant_id("tenant-integration").unwrap();
-    let context = store
-        .platform_store()
-        .work_context_by_key(tenant_id, "operations")
-        .await
-        .unwrap()
-        .unwrap();
+    let context =
+        db.b.work_context_by_key(tenant_id, "operations")
+            .await
+            .unwrap()
+            .unwrap();
     assert_eq!(context.title, "Operations");
     assert_eq!(context.output_policy.owner_key, "operations");
     assert_eq!(
@@ -122,48 +111,105 @@ async fn publication() {
         store.load_active_revision().await.unwrap(),
         Some(third.clone())
     );
-    assert_eq!(store.revision_count().await.unwrap(), 3);
-    assert_eq!(store.object_count_for_active_revision().await.unwrap(), 2);
+    assert_eq!(revision_count(&db.a).await, 3);
+    assert_eq!(active_object_count(&db.a).await, 2);
     assert!(
-        store
-            .platform_store()
-            .work_context_by_key(tenant_id, "operations")
+        db.a.work_context_by_key(tenant_id, "operations")
             .await
             .unwrap()
             .is_none()
     );
 
-    assert!(
-        store
-            .record_revision(&second, &audit_context)
-            .await
-            .is_err(),
-        "duplicate immutable revision unexpectedly succeeded"
-    );
+    let duplicate = store
+        .record_revision(&second, &audit_context)
+        .await
+        .expect_err("duplicate immutable revision unexpectedly succeeded");
+    assert!(is_revision_conflict(&duplicate));
     assert_eq!(
         store.load_active_revision().await.unwrap(),
         Some(third.clone()),
         "failed publication moved the active pointer"
     );
-    assert_eq!(store.revision_count().await.unwrap(), 3);
+    assert_eq!(revision_count(&db.a).await, 3);
+    assert!(
+        db.a.work_context_by_key(tenant_id, "operations")
+            .await
+            .unwrap()
+            .is_none(),
+        "failed re-publication must not recreate a deleted Work Context"
+    );
+    assert_eq!(
+        account_activities(&db.a).await,
+        ["account_create", "account_delete"],
+        "failed re-publication must not re-audit a deleted Work Context"
+    );
+}
 
-    let activities: Vec<String> = store
-        .platform_store()
-        .client()
-        .query(
-            include_str!("queries/control_store/publishes_immutable_revisions_and_moves_active_pointer_atomically/statement_1.surql"),
-        )
+#[tokio::test]
+async fn concurrent_publications_activate_one_revision_and_refuse_the_other() {
+    let db = fixture::TestDb::new().await;
+    let left = GatewayControlStore::from_platform_store(db.a.clone(), catalog_admission::binding());
+    let right =
+        GatewayControlStore::from_platform_store(db.b.clone(), catalog_admission::binding());
+    let context = audit_context();
+    let base = revision("gcp-base", "d".repeat(64), empty_control_plane());
+    left.record_revision(&base, &context).await.unwrap();
+    let one = revision("gcp-one", "e".repeat(64), empty_control_plane());
+    let two = revision("gcp-two", "f".repeat(64), empty_control_plane());
+    let (first, second) = tokio::join!(
+        left.record_revision(&one, &context),
+        right.record_revision(&two, &context),
+    );
+    let outcomes = [first, second];
+    assert_eq!(outcomes.iter().filter(|outcome| outcome.is_ok()).count(), 1);
+    let refused = outcomes
+        .iter()
+        .find_map(|outcome| outcome.as_ref().err())
+        .unwrap();
+    assert!(is_revision_conflict(refused), "{refused:#}");
+    let active = left.load_active_revision().await.unwrap().unwrap();
+    assert!(active == one || active == two);
+    assert_eq!(revision_count(&db.a).await, 2);
+}
+
+async fn revision_count(store: &PlatformStore) -> i64 {
+    sqlx::query_file_scalar!("tests/control_store/revision_count.sql")
+        .fetch_one(store.pool())
         .await
         .unwrap()
-        .check()
+}
+
+async fn active_object_count(store: &PlatformStore) -> i64 {
+    sqlx::query_file_scalar!("tests/control_store/active_object_count.sql")
+        .fetch_one(store.pool())
+        .await
         .unwrap()
-        .take(0)
-        .unwrap();
-    assert_eq!(
-        activities,
-        ["account_create", "account_delete"],
-        "failed re-publication must not recreate or re-audit a deleted Work Context"
-    );
+}
+
+async fn account_activities(store: &PlatformStore) -> Vec<&'static str> {
+    sqlx::query_file_scalar!("tests/control_store/account_details.sql")
+        .fetch_all(store.pool())
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|detail| detail.0.activity())
+        .collect()
+}
+
+fn audit_context() -> veoveo_audit_contract::AuditContext {
+    veoveo_audit_contract::AuditContext {
+        actor: veoveo_audit_contract::AuditActor {
+            principal: PrincipalId::parse("integration-admin").unwrap(),
+            kind: veoveo_audit_contract::AuditPrincipalKind::Service,
+            tenant: None,
+            oauth_client: None,
+            session_family: None,
+            delegating_principal: None,
+            managed_agent: None,
+        },
+        authority: Default::default(),
+        request: veoveo_audit_contract::AuditRequest::background(),
+    }
 }
 
 fn revision(
@@ -175,7 +221,7 @@ fn revision(
         revision_id: GatewayControlPlaneRevisionId::parse(id).unwrap(),
         sha256,
         source: GatewayControlPlaneRevisionSource::SeedFile,
-        applied_at: Utc::now(),
+        applied_at: Utc::now().trunc_subsecs(6),
         applied_by: PrincipalId::parse("integration-admin").unwrap(),
         tenant: None,
         control_plane,

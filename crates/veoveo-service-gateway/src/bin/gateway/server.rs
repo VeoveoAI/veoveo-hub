@@ -18,7 +18,7 @@ use tower::ServiceExt;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use veoveo_mcp_contract::{
     GatewayInternalSigningKey, GatewayInternalTokenIssuer, GatewayProfileId, PublicDeployment,
-    TokenIssuer, public_allowed_hosts,
+    ServerSlug, TokenIssuer, public_allowed_hosts,
 };
 use veoveo_service_gateway::{
     GatewayCatalog, GatewayCatalogHandle, GatewayControlStore, GatewayMcp,
@@ -55,6 +55,7 @@ pub(super) struct ServeConfig {
     pub(super) artifact_service_url: Option<String>,
     pub(super) control_store: GatewayControlStore,
     pub(super) server_database: ServerDatabase,
+    pub(super) registration_grace: std::time::Duration,
     pub(super) forwarded_token_key_b64: SecretString,
     pub(super) refresh_delivery_cipher: RefreshTokenDeliveryCipher,
     pub(super) refresh_delivery_window: GatewayRefreshDeliveryWindow,
@@ -73,6 +74,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         artifact_service_url,
         control_store,
         server_database,
+        registration_grace,
         forwarded_token_key_b64,
         refresh_delivery_cipher,
         refresh_delivery_window,
@@ -84,7 +86,15 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     } = config;
     let initial_catalog = Arc::new(initial_catalog);
     let gateway_state = crate::bindings::gateway_state(control_store.platform_store().clone())?;
-    let audit_store = control_store.platform_store().clone();
+    let audit_store = gateway_state.audit_store().clone();
+    let instance = Arc::new(
+        veoveo_platform_store::Instance::start(
+            gateway_state.platform_store(),
+            &ServerSlug::parse("gateway")?,
+        )
+        .await
+        .context("start the Gateway's kernel instance")?,
+    );
     let catalog = GatewayCatalogHandle::new(initial_catalog.clone());
     let signing_key = GatewayInternalSigningKey::new(
         BASE64_STANDARD
@@ -114,9 +124,11 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             signing_key,
         },
         server_database,
+        registration_grace,
     )?;
     registrations.refresh().await?;
     let registration_watcher = registrations.spawn_watcher(ct.child_token());
+    let registration_housekeeping = registrations.spawn_housekeeping(ct.child_token());
     let state = AppState {
         catalog: catalog.clone(),
         gateway_state: gateway_state.clone(),
@@ -225,6 +237,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         artifacts: artifacts.clone(),
         registrations,
         console_stream: super::admin::ConsoleStreamLimits::new(),
+        instance: instance.clone(),
     };
     let mut admin_router = Router::new()
         .route(
@@ -378,9 +391,16 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         authorization_gc.await?;
         refresh_gc.await?;
         registration_watcher.await?;
+        registration_housekeeping.await?;
         Ok::<(), tokio::task::JoinError>(())
     })
     .await;
+    // The router held the other references; a remaining one leaves the row to reaping.
+    if let Ok(instance) = Arc::try_unwrap(instance)
+        && let Err(error) = instance.shutdown().await
+    {
+        tracing::warn!("the Gateway's kernel instance did not shut down cleanly: {error}");
+    }
     result?;
     drained?;
     sealed?;

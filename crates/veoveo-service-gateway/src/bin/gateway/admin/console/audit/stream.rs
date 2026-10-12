@@ -54,11 +54,11 @@ pub(crate) async fn stream_audit(
     let Some(slot) = state.console_stream.acquire(subject.principal.id.as_str()) else {
         return StatusCode::TOO_MANY_REQUESTS.into_response();
     };
-    let store = state.control_store.platform_store().clone();
+    let store = state.gateway_state.audit_store().clone();
     let subscriptions = tokio::time::timeout(READ_DEADLINE, async {
-        Ok::<_, veoveo_platform_store::StoreError>((
-            store.audit_live(&scope, &partition).await?,
-            store.audit_blocks_live(&scope, &partition).await?,
+        Ok::<_, veoveo_audit::AuditStoreError>((
+            store.live(&scope, &partition).await?,
+            store.blocks_live(&scope, &partition).await?,
         ))
     })
     .await;
@@ -69,9 +69,7 @@ pub(crate) async fn stream_audit(
     // Register both watches before the initial read. Unsealed records invalidate
     // immediately; partition block sequences own resume progress in commit order.
     let head =
-        match tokio::time::timeout(READ_DEADLINE, store.audit_partition_checkpoint(&partition))
-            .await
-        {
+        match tokio::time::timeout(READ_DEADLINE, store.partition_checkpoint(&partition)).await {
             Ok(Ok(head)) => head.map(|head| head.sequence),
             _ => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
         };
@@ -95,7 +93,7 @@ pub(crate) async fn stream_audit(
                 // Large/expired resume ranges reset the view; they cannot create
                 // an unbounded replay or expose another partition's feed.
                 for _ in 0..64 {
-                    let page = match tokio::time::timeout(READ_DEADLINE, store.audit_blocks(&scope, &partition, cursor.sequence, 16)).await {
+                    let page = match tokio::time::timeout(READ_DEADLINE, store.blocks(&scope, &partition, cursor.sequence, 16)).await {
                         Ok(Ok(page)) => page, _ => { yield Ok(reset()); return; }
                     };
                     if page.is_empty() { caught_up = true; break; }

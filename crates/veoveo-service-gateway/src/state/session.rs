@@ -1,9 +1,13 @@
 //! Current browser-family binding for signed access tokens. Never cache positive results.
+use std::collections::BTreeSet;
+
 use anyhow::{Context, Result};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
+use serde::Serialize;
 use veoveo_gateway_contract::AuthorizationServerId;
-use veoveo_mcp_contract::{AccessTokenSubject, GatewayProfileId, Principal};
-use veoveo_platform_store::{GatewayRefreshFamilyRecord, gateway_refresh_family_record_id};
+use veoveo_mcp_contract::{AccessTokenSubject, GatewayProfileId, OAuthClientId, Principal};
+use veoveo_platform_store::gateway::RefreshFamily;
+use veoveo_types::{PrincipalId, ScopeName, TenantId, WorkContextId};
 
 use super::GatewayState;
 use veoveo_policy::session::{SessionFamilyAuthority, SessionRequest};
@@ -21,31 +25,66 @@ impl GatewayState {
         let Some(family_id) = &token.session_family else {
             return Ok(true);
         };
-        let family_uuid = family_id.as_str().parse()?;
-        let family: Option<GatewayRefreshFamilyRecord> =
-            tokio::time::timeout(std::time::Duration::from_secs(5), async {
-                self.platform
-                    .client()
-                    .select(gateway_refresh_family_record_id(family_uuid))
-                    .await
-            })
-            .await
-            .context("access-token session read deadline")?
-            .context("failed to read access-token session family")?;
+        let family = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            self.platform.refresh_family(family_id),
+        )
+        .await
+        .context("access-token session read deadline")?
+        .context("failed to read access-token session family")?;
         let Some(family) = family else {
             return Ok(false);
         };
-        if family.id != gateway_refresh_family_record_id(family_uuid) {
-            return Ok(false);
-        }
         Ok(
-            SessionFamilyAuthority::from_stored(&family)?.allows(SessionRequest {
-                profile,
-                authorization_server,
-                token,
-                principal,
-                now: Utc::now(),
-            }),
+            SessionFamilyAuthority::from_stored(&SessionView::from(&family))?.allows(
+                SessionRequest {
+                    profile,
+                    authorization_server,
+                    token,
+                    principal,
+                    now: Utc::now(),
+                },
+            ),
         )
+    }
+}
+
+/// The members of a family the session decision reads.
+#[derive(Serialize)]
+struct SessionView<'a> {
+    authorization_server: &'a AuthorizationServerId,
+    profile: &'a GatewayProfileId,
+    oauth_client_id: &'a OAuthClientId,
+    work_context: &'a WorkContextId,
+    principal_id: &'a PrincipalId,
+    tenant: &'a Option<TenantId>,
+    scopes: &'a BTreeSet<ScopeName>,
+    principal: SessionPrincipal<'a>,
+    current_generation: u64,
+    expires_at: DateTime<Utc>,
+    revoked_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Serialize)]
+struct SessionPrincipal<'a> {
+    principal: &'a Principal,
+}
+
+impl<'a> From<&'a RefreshFamily> for SessionView<'a> {
+    fn from(family: &'a RefreshFamily) -> Self {
+        let principal = &family.principal.principal;
+        Self {
+            authorization_server: &family.authorization_server,
+            profile: &family.profile,
+            oauth_client_id: &family.oauth_client_id,
+            work_context: &family.work_context,
+            principal_id: &principal.id,
+            tenant: &principal.tenant,
+            scopes: &family.scopes,
+            principal: SessionPrincipal { principal },
+            current_generation: family.current_generation,
+            expires_at: family.expires_at,
+            revoked_at: family.revoked_at,
+        }
     }
 }

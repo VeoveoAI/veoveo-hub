@@ -1,6 +1,7 @@
-//! Runs the Gateway binary against a disposable SurrealDB, registers core's modular
-//! fixture server through the RFC 7591 flow with core's registration client, and
-//! checks the role decisions, the namespace pin and lease expiry from a caller's side.
+//! Runs the Gateway binary against a disposable PostgreSQL database, registers core's
+//! modular fixture server through the RFC 7591 flow with core's registration client,
+//! and checks the role decisions, the namespace pin, the database grant and the end of
+//! a registration from the server's and a caller's side.
 
 use std::{
     collections::BTreeSet,
@@ -27,28 +28,30 @@ use rmcp::{
         streamable_http_server::StreamableHttpService,
     },
 };
-use secrecy::SecretString;
+use secrecy::{ExposeSecret, SecretString};
 use tokio::process::{Child, Command};
 use veoveo_mcp_contract::{GatewayInternalIdentity, GatewayInternalTokenVerifier};
 use veoveo_mcp_ext_registration::{
-    AuthorizationDeclaration, ClientMetadata, ModuleDeclaration, RegistrationDeclaration,
+    AuthorizationDeclaration, ClientMetadata, DatabaseGrant, RegistrationDeclaration,
     RegistrationErrorCode, ServerEndpoint, ServerVersion,
     client::{ClientError, RegistrationClient},
     statement::ServerKeyPair,
 };
 use veoveo_modular_fixture_mcp::mcp::{FixtureGrants, ObservatoryMcp};
 use veoveo_oauth_client::{CLIENT_ASSERTION_TYPE, ClientAssertionKeyId, ClientAssertionSigner};
+use veoveo_platform_store::{Instance, PlatformStore, StoreConfig};
 use veoveo_service_gateway::local::{LocalCaller, LocalInstallation};
-use veoveo_test_fixtures::store::{Server, Storage};
+use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::{OAuthClientId, ResourceScheme, ServerSlug};
 
-const DATABASE_PASSWORD: &str = "registration-fixture-password";
 const READING: &str = "observatory://reading/sensor-a";
 const CONTRACT: &str = "observatory://contract";
 const DOCUMENTS: &str = "observatory://docs";
+/// The grace period the Gateway gives a registration without a live process.
+const GRACE_SECONDS: u64 = 5;
 
 #[tokio::test]
-async fn registered_servers_route_by_role_keep_their_namespace_and_expire() {
+async fn registered_servers_route_by_role_receive_a_login_and_end_with_their_process() {
     tokio::time::timeout(Duration::from_secs(180), qualify())
         .await
         .expect("registration qualification exceeded three minutes");
@@ -57,11 +60,10 @@ async fn registered_servers_route_by_role_keep_their_namespace_and_expire() {
 async fn qualify() {
     let _ = rustls::crypto::ring::default_provider().install_default();
     let directory = tempfile::tempdir().unwrap();
-    let (database, endpoint) = Server::start(Storage::Memory, DATABASE_PASSWORD)
-        .await
-        .unwrap();
-    let gateway = Gateway::start(directory.path(), &endpoint).await;
+    let db = TestDb::new().await;
+    let gateway = Gateway::start(directory.path(), &db).await;
     let http = reqwest::Client::new();
+    let slug = ServerSlug::parse("observatory").unwrap();
 
     // The fixture server listens before it registers, so its endpoint is known.
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
@@ -70,25 +72,49 @@ async fn qualify() {
     let server_endpoint = format!("http://{}/observatory/mcp", listener.local_addr().unwrap());
     let issuer = url::Url::parse(&gateway.base).unwrap();
     let registration_endpoint = RegistrationClient::discover(&http, &issuer).await.unwrap();
+    let key = ServerKeyPair::generate().unwrap();
+    let replica_key = ServerKeyPair::from_pkcs8_der(key.pkcs8_der()).unwrap();
     let client = registration_client(
         &http,
         &registration_endpoint,
         &gateway.registration_secret,
         &server_endpoint,
-        ServerKeyPair::generate().unwrap(),
+        key,
     );
     let registration = client.register().await.unwrap();
     assert_eq!(registration.access_tokens().issuer.as_str(), gateway.base);
-    let database_grant = registration
+
+    // The grant is a login in the server's group role: it migrates the server's own
+    // schema as that role and holds the kernel instance that keeps it registered.
+    let grant = registration
         .database()
-        .expect("a module receives a database user");
-    assert!(database_grant.username.as_str().starts_with("observatory_"));
+        .expect("every registration receives a login")
+        .clone();
+    assert!(grant.username.as_str().starts_with("observatory_"));
+    let server = connect(&grant).await;
+    server
+        .migrate_server(&slug, sqlx::migrate!("tests/registration/migrations"))
+        .await
+        .unwrap();
+    let access = sqlx::query_file!(
+        "tests/registration/table_access.sql",
+        grant.username.as_str(),
+        "observatory",
+        "reading",
+    )
+    .fetch_one(db.a.pool())
+    .await
+    .unwrap();
+    assert_eq!(access.owner, "server_observatory");
+    assert!(access.insert, "the login writes its server's tables");
+    assert_eq!(server.current_servers().await.unwrap(), ["observatory"]);
+    let instance = Instance::start(&server, &slug).await.unwrap();
 
     let fixture = Fixture::default();
     *fixture.verifier.lock().unwrap() = Some(
         GatewayInternalTokenVerifier::from_access_tokens(
             registration.access_tokens(),
-            ServerSlug::parse("observatory").unwrap(),
+            slug.clone(),
         )
         .unwrap(),
     );
@@ -103,12 +129,6 @@ async fn qualify() {
             .nest_service("/observatory/mcp", service)
             .layer(axum::middleware::from_fn_with_state(served, authenticate));
         axum::serve(listener, router).await.unwrap();
-    });
-    let stale = registration.clone();
-    let maintained = tokio::spawn(async move {
-        client
-            .maintain(registration, std::future::pending::<()>())
-            .await
     });
 
     // A second key cannot claim the pinned namespace.
@@ -183,20 +203,51 @@ async fn qualify() {
                 .any(|permission| permission.as_str() == "observatory.contract.read")
     }));
 
-    // Without renewals the lease lapses and the server leaves routing.
-    maintained.abort();
-    let _ = maintained.await;
-    tokio::time::sleep(Duration::from_secs(5)).await;
-    assert!(read(&admin, READING).await.is_err());
-    let lapsed = registration_client(
+    // A second registration of the same server under the pinned key receives its own
+    // login, and deregistration drops that login.
+    let replica = registration_client(
         &http,
         &registration_endpoint,
         &gateway.registration_secret,
         &server_endpoint,
-        ServerKeyPair::generate().unwrap(),
+        replica_key,
     );
+    let second = replica.register().await.unwrap();
+    let second_grant = second.database().unwrap().clone();
+    assert_ne!(second_grant.username, grant.username);
+    connect(&second_grant).await.close().await;
+    assert!(role_exists(&db, &second_grant).await);
+    replica.deregister(second).await.unwrap();
+    assert!(!role_exists(&db, &second_grant).await);
+    assert!(
+        try_connect(&second_grant).await.is_err(),
+        "a dropped login cannot connect"
+    );
+    assert!(read(&admin, READING).await.is_ok());
+
+    // The process ends without deregistering: its instance's lock is released, and
+    // after the grace period the Gateway removes the registration and its login.
+    drop(instance);
+    server.close().await;
+    let removed = tokio::time::timeout(Duration::from_secs(30), async {
+        while role_exists(&db, &grant).await {
+            tokio::time::sleep(Duration::from_millis(500)).await;
+        }
+    })
+    .await;
+    assert!(
+        removed.is_ok(),
+        "the Gateway kept a registration without a live process"
+    );
+    let routed_out = tokio::time::timeout(Duration::from_secs(10), async {
+        while read(&admin, READING).await.is_ok() {
+            tokio::time::sleep(Duration::from_millis(200)).await;
+        }
+    })
+    .await;
+    assert!(routed_out.is_ok(), "an ended registration still routes");
     assert!(matches!(
-        lapsed.read(&stale).await,
+        client.read(&registration).await,
         Err(ClientError::Rejected {
             status: reqwest::StatusCode::UNAUTHORIZED,
             ..
@@ -205,7 +256,6 @@ async fn qualify() {
     member.cancel().await.unwrap();
     admin.cancel().await.unwrap();
     drop(gateway);
-    drop(database);
 }
 
 async fn read(
@@ -215,6 +265,32 @@ async fn read(
     client
         .read_resource(ReadResourceRequestParams::new(uri.to_owned()))
         .await
+}
+
+async fn try_connect(
+    grant: &DatabaseGrant,
+) -> Result<PlatformStore, veoveo_platform_store::StoreError> {
+    let config = StoreConfig::builder(grant.url.as_str(), grant.password.clone())
+        .username(grant.username.as_str())
+        .max_connections(2)
+        .build()?;
+    PlatformStore::connect(config).await
+}
+
+async fn connect(grant: &DatabaseGrant) -> PlatformStore {
+    try_connect(grant)
+        .await
+        .expect("the registration grant connects")
+}
+
+async fn role_exists(db: &TestDb, grant: &DatabaseGrant) -> bool {
+    sqlx::query_file_scalar!(
+        "tests/registration/role_exists.sql",
+        grant.username.as_str()
+    )
+    .fetch_one(db.a.pool())
+    .await
+    .unwrap()
 }
 
 fn registration_client(
@@ -240,16 +316,6 @@ fn registration_client(
         }
     }))
     .unwrap();
-    let module: ModuleDeclaration = serde_json::from_value(serde_json::json!({
-        "name": "observatory",
-        "ownership": [{ "kind": "table_prefix", "name": "observatory_" }],
-        "migrations": [{
-            "version": 0,
-            "name": "current",
-            "sql": "DEFINE TABLE observatory_reading SCHEMAFULL;"
-        }]
-    }))
-    .unwrap();
     let metadata = ClientMetadata::new(
         *key.public_key(),
         RegistrationDeclaration {
@@ -259,7 +325,6 @@ fn registration_client(
             endpoint: ServerEndpoint::new(url::Url::parse(server_endpoint).unwrap()).unwrap(),
         },
         authorization,
-        Some(module),
     )
     .unwrap();
     RegistrationClient::new(
@@ -321,7 +386,7 @@ struct Gateway {
 }
 
 impl Gateway {
-    async fn start(directory: &Path, database: &str) -> Self {
+    async fn start(directory: &Path, db: &TestDb) -> Self {
         let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
             .unwrap()
             .local_addr()
@@ -329,13 +394,6 @@ impl Gateway {
             .port();
         let base = format!("http://127.0.0.1:{port}");
         let installation = veoveo_service_gateway::local::generate(directory, &base).unwrap();
-        // Short leases let the test observe an expiry.
-        let mut config: serde_json::Value =
-            serde_json::from_slice(&std::fs::read(&installation.config).unwrap()).unwrap();
-        config["registration"]["lease"] =
-            serde_json::json!({ "renewEverySeconds": 1, "expiresAfterSeconds": 3 });
-        let config_path = directory.join("gateway-test.json");
-        std::fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
         let secrets: Vec<(String, String)> = std::fs::read_to_string(&installation.secrets)
             .unwrap()
             .lines()
@@ -361,13 +419,13 @@ impl Gateway {
                 SocketAddr::from((Ipv4Addr::LOCALHOST, port)).to_string(),
             )
             .env("VEOVEO_ISSUER", &base)
-            .env("VEOVEO_CONFIG", &config_path)
-            .env("VEOVEO_SURREAL_ENDPOINT", database)
-            .env("VEOVEO_SURREAL_NAMESPACE", "veoveo")
-            .env("VEOVEO_SURREAL_DATABASE", "platform")
-            .env("VEOVEO_SURREAL_AUTH_LEVEL", "root")
-            .env("VEOVEO_SURREAL_USERNAME", "fixture_admin")
-            .env("VEOVEO_SURREAL_PASSWORD", DATABASE_PASSWORD)
+            .env("VEOVEO_CONFIG", &installation.config)
+            .env("VEOVEO_DATABASE_URL", db.url())
+            .env("VEOVEO_DATABASE_PASSWORD", db.password().expose_secret())
+            .env(
+                "VEOVEO_REGISTRATION_GRACE_SECONDS",
+                GRACE_SECONDS.to_string(),
+            )
             .envs(secrets)
             .stdin(Stdio::null())
             .stdout(output.try_clone().unwrap())

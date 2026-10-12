@@ -73,7 +73,7 @@ pub(super) async fn admit_view(
         .map_or(AuditPartition::Installation, AuditPartition::Tenant);
     match tokio::time::timeout(
         READ_DEADLINE,
-        state.control_store.platform_store().audit_view_admitted(
+        state.gateway_state.audit_store().view_admitted(
             &scope,
             partition,
             &actor_partition,
@@ -220,7 +220,7 @@ pub(crate) async fn records(
 ) -> Response {
     let query = match model::decode_query(
         &parameters.query,
-        state.control_store.platform_store().audit_targets(),
+        state.gateway_state.audit_store().targets(),
     ) {
         Ok(query) => query,
         Err(error) => return (StatusCode::BAD_REQUEST, error).into_response(),
@@ -242,10 +242,7 @@ pub(crate) async fn records(
     };
     match tokio::time::timeout(
         READ_DEADLINE,
-        state
-            .control_store
-            .platform_store()
-            .audit_page(&scope, &query),
+        state.gateway_state.audit_store().page(&scope, &query),
     )
     .await
     {
@@ -289,10 +286,7 @@ pub(crate) async fn summary(
     };
     match tokio::time::timeout(
         READ_DEADLINE,
-        state
-            .control_store
-            .platform_store()
-            .audit_daily(&scope, &query),
+        state.gateway_state.audit_store().daily(&scope, &query),
     )
     .await
     {

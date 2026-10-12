@@ -1,5 +1,5 @@
 //! Installation operators explicitly select one partition for every audit command.
-use super::SurrealStoreArgs;
+use super::DatabaseArgs;
 use anyhow::Context;
 use base64::Engine;
 use chrono::{DateTime, Utc};
@@ -36,7 +36,7 @@ impl PartitionArgs {
 #[derive(Debug, Args)]
 pub(super) struct ReadArgs {
     #[command(flatten)]
-    store: SurrealStoreArgs,
+    store: DatabaseArgs,
     #[command(flatten)]
     partition: PartitionArgs,
     #[arg(long)]
@@ -85,10 +85,10 @@ pub(super) enum AuditCommand {
     List(ReadArgs),
     /// JSON Lines for sealed records through a fixed checkpoint, filtered in SQL.
     Export(ReadArgs),
-    /// Retained daily counts, grouped by class and outcome inside SurrealDB.
+    /// Retained daily counts, grouped by class and outcome inside PostgreSQL.
     Summary {
         #[command(flatten)]
-        store: SurrealStoreArgs,
+        store: DatabaseArgs,
         #[command(flatten)]
         partition: PartitionArgs,
         /// First UTC day included in the summary.
@@ -101,7 +101,7 @@ pub(super) enum AuditCommand {
     /// Verify record hashes, signatures and chain continuity through a known tail.
     Verify {
         #[command(flatten)]
-        store: SurrealStoreArgs,
+        store: DatabaseArgs,
         #[command(flatten)]
         partition: PartitionArgs,
         /// Trusted Ed25519 public key, standard base64 of 32 bytes; repeat for rotation.
@@ -118,12 +118,16 @@ pub(super) enum AuditCommand {
     },
 }
 async fn connect(
-    store: SurrealStoreArgs,
+    store: DatabaseArgs,
     partition: &PartitionArgs,
     method: AuditReadMethod,
-) -> anyhow::Result<PlatformStore> {
-    let principal = PrincipalId::parse(store.username.clone())?;
-    let store = PlatformStore::connect(store.into_config()?).await?;
+) -> anyhow::Result<AuditStore> {
+    let config = store.into_config()?;
+    let principal = PrincipalId::parse(config.username())?;
+    let store = AuditStore::new(
+        PlatformStore::connect(config).await?,
+        veoveo_service_gateway::kernel_audit_target_registry(),
+    );
     // The DB-authenticated operator is installation-scoped, including when the
     // selected read partition is a tenant. No CLI argument claims a tenant actor.
     let draft = AuditDraft::builder(
@@ -146,11 +150,11 @@ async fn connect(
     })
     .build()?;
     let marker = draft.id();
-    store.append_audit_records(&[draft]).await?;
+    store.append(&[draft]).await?;
     if method == AuditReadMethod::AuditExport {
         tokio::time::timeout(
             std::time::Duration::from_secs(10),
-            store.audit_wait_sealed(
+            store.wait_sealed(
                 &AuditReadScope::new(None, true),
                 &AuditPartition::Installation,
                 marker,
@@ -191,7 +195,7 @@ impl AuditCommand {
                     limit: 1000,
                 };
                 loop {
-                    let page = store.audit_daily(&partition.scope(), &query).await?;
+                    let page = store.daily(&partition.scope(), &query).await?;
                     for count in page.counts {
                         println!("{}", serde_json::to_string(&count)?);
                     }
@@ -227,7 +231,7 @@ impl AuditCommand {
                 let expected = match expected {
                     Some(path) => checkpoint(path)?,
                     None => store
-                        .audit_partition_checkpoint(&selected)
+                        .partition_checkpoint(&selected)
                         .await?
                         .context("partition has no sealed checkpoint")?,
                 };
@@ -246,7 +250,7 @@ impl AuditCommand {
                 let mut records = 0u64;
                 let mut findings = 0u64;
                 while after != Some(expected.sequence) {
-                    let page = store.audit_blocks(&scope, &selected, after, 16).await?;
+                    let page = store.blocks(&scope, &selected, after, 16).await?;
                     anyhow::ensure!(
                         !page.is_empty(),
                         "audit chain ended before the expected checkpoint"
@@ -256,7 +260,7 @@ impl AuditCommand {
                         if block.head.sequence > expected.sequence {
                             break;
                         }
-                        let members = store.audit_block_records(&scope, &block).await?;
+                        let members = store.block_records(&scope, &block).await?;
                         for finding in verifier.verify(&block, &members)? {
                             eprintln!("{finding:?}");
                             findings += 1;
@@ -323,18 +327,18 @@ async fn read(args: ReadArgs, export: bool) -> anyhow::Result<()> {
     query.target = args
         .target
         .as_deref()
-        .map(|input| store.audit_targets().decoder().from_str(input))
+        .map(|input| store.targets().decoder().from_str(input))
         .transpose()?;
     query.actor = args.actor;
     query.trace = args.trace;
     query.limit = args.limit;
     if !export {
-        let page = store.audit_page(&scope, &query).await?;
+        let page = store.page(&scope, &query).await?;
         println!("{}", serde_json::to_string(&page)?);
         return Ok(());
     }
     query.cursor = None;
-    let range = store.audit_export_range(&scope, &query.partition).await?;
+    let range = store.export_range(&scope, &query.partition).await?;
     write_export_line(&AuditExportLine::Header {
         query: Box::new(query.clone()),
         first: range.first,
@@ -348,7 +352,7 @@ async fn read(args: ReadArgs, export: bool) -> anyhow::Result<()> {
         while after != Some(tail.sequence) {
             let blocks = tokio::time::timeout_at(
                 deadline,
-                store.audit_blocks(&scope, &query.partition, after, 16),
+                store.blocks(&scope, &query.partition, after, 16),
             )
             .await??;
             anyhow::ensure!(
@@ -363,7 +367,7 @@ async fn read(args: ReadArgs, export: bool) -> anyhow::Result<()> {
                 expected += 1;
                 let records = tokio::time::timeout_at(
                     deadline,
-                    store.audit_filtered_block_records(&scope, &block, &query),
+                    store.filtered_block_records(&scope, &block, &query),
                 )
                 .await??;
                 for record in records {

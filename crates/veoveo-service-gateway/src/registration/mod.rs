@@ -1,9 +1,9 @@
-//! Server registration: the RFC 7591 and RFC 7592 endpoints, namespace claims,
-//! leases, migrations through the core module runner, and the snapshot of registered
-//! servers each catalog generation routes to.
+//! Server registration: the RFC 7591 and RFC 7592 endpoints, namespace claims, the
+//! PostgreSQL login each registration receives, the removal of registrations whose
+//! processes ended, and the snapshot of registered servers each catalog generation
+//! routes to.
 
 mod endpoint;
-mod modules;
 mod service;
 mod snapshot;
 mod store;
@@ -17,22 +17,9 @@ use axum::{
 use veoveo_mcp_ext_registration::{RegistrationErrorCode, RegistrationErrorResponse};
 
 pub use endpoint::router;
-pub use modules::{apply_modules, module_registry};
 pub use service::{RegistrationIdentity, RegistrationService, ServerDatabase};
 pub use snapshot::{RegisteredServer, RegistrationSnapshot, ServerCapabilities};
-
-/// Loads every module a namespace claim recorded, so startup migrations know the
-/// complete history the database holds.
-pub async fn claimed_modules(
-    store: &veoveo_platform_store::PlatformStore,
-) -> anyhow::Result<Vec<veoveo_modules::ModuleManifest>> {
-    Ok(store::RegistrationStore::new(store.clone())
-        .claims()
-        .await?
-        .into_iter()
-        .filter_map(|claim| claim.module)
-        .collect())
-}
+pub use watch::HOUSEKEEPING_INTERVAL;
 
 /// Why a registration request fails, in the error format of the RFC that defines the
 /// endpoint.

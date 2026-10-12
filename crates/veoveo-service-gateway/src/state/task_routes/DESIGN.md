@@ -6,69 +6,50 @@
 |---|---|
 | MCP 2026-07-28 Tasks extension | Opaque canonical Task identifiers projected from upstream CreateTaskResult |
 | Veoveo invocation authority | Stable tenant, actual actor, Work Context, profile and invocation provenance; every use checks current policy and retained data labels |
-| SurrealDB 3.3.0 | Gateway owner lane: durable opaque mapping, typed shared Task reference and optional version-1 ownership metadata |
+| PostgreSQL 18 | `gateway.task_route` in core's `gateway` schema, read and written through checked sqlx queries beside `task_routes.rs` |
 | Veoveo `gtr_` route identifiers | 32 random bytes encoded as base64url without padding; identifiers convey no access authority |
 
 `task_routes.rs` owns the mapping between an upstream Task and its public gateway
-identifier. The source tuple is server, opaque upstream ID, owner and profile. Each
-mapping also retains its tenant, Work Context, authorization digest and optional
-shared-runtime Task link. Those fields must match before an existing route is reused.
+identifier. The source tuple is server, opaque upstream ID, owner and profile, and a
+unique constraint holds it. Each mapping also records its tenant, Work Context,
+authorization digest and the owner's actor and provenance. Those fields must match
+before an existing route is reused.
+
+The tenant, owner and Work Context columns reference their rows in the `identity`
+schema. The Gateway records the owner as an identity before it writes the route, and
+the active configuration defines the Work Context. A route goes with its Work Context
+when a later configuration removes it.
 
 An upstream tool retry can return its original Task. Gateway projection returns that
 Task's existing public route, including across replicas and fresh authentication.
-It preserves the original creation time and expiry. A concurrent CREATE or an
-uncertain database response triggers one exact source lookup; this lookup never
-redispatches the upstream tool. The unique source index arbitrates competing writers.
-An expired mapping is not recreated or extended by a retry.
+It preserves the original creation time and expiry. Competing projections insert with
+`ON CONFLICT DO NOTHING` and then read the one route the source tuple holds; no lookup
+redispatches the upstream tool. An expired mapping is not recreated or extended by a
+retry.
 
-Route rows survive expiry and source Task pruning because the retained source tuple
-prevents a later retry from renewing retention or changing authority. The optional
-`source_task` link supplies ownership recovery under the reader profile below; it
-does not control the route's lifetime. Deleting a Task therefore does not cascade to
-its route. Access still requires an unexpired mapping and current authorization.
+Route rows survive expiry because the retained source tuple prevents a later retry
+from renewing retention or changing authority. Access still requires an unexpired
+mapping and current authorization.
 
-Reads, updates, cancellations and listeners match durable ownership before checking
-current profile exposure and policy. Version-1 ownership retains the principal key,
-kind, issuer, subject, invocation mode, initiator, delegation identity and admitted
-data labels. The route separately binds tenant, Work Context and profile. Current
-labels must contain the retained labels. A new sign-in, an unrelated scope change,
-or a Work Context policy revision does not change ownership. Removing required
+Reads, updates, cancellations and listeners match recorded ownership before checking
+current profile exposure and policy. Ownership is the principal key, kind, issuer and
+subject, the invocation provenance with its initiator and delegation identity, and
+the admitted data labels. The route separately binds tenant, Work Context and profile.
+Current labels must contain the recorded labels. A new sign-in, an unrelated scope
+change, or a Work Context policy revision does not change ownership. Removing required
 current permissions still denies access. Every upstream request carries the current
 caller authority; the owning server enforces its current domain and named grants.
 Creation authority never becomes a credential for later access.
 
-The full invocation fingerprint remains immutable admission evidence and an exact
-retry constraint. Discovery, continuation and subscription cache keys retain their
-full authority fingerprints. Their isolation must not be replaced with the durable
-ownership comparison.
-
-## Persisted Version Transition
-
-The current Gateway schema stores optional ownership metadata. New gateway writers
-always populate version 1. This route-level reader profile does not admit an old
-mixed-catalog database or convert its schema. For an existing route without that
-metadata, the gateway reads only ownership fields from its exact shared-runtime
-Task reference and verifies tenant, owner, Work Context, profile and source server.
-This gateway-owned version-0 reader preserves existing opaque IDs and original TTLs.
-It supports Tasks written during an overlapping rollout as well as earlier Tasks.
-No provider request, tool redispatch or data mutation participates in recovery.
-
-An old external route has no trusted shared-runtime ownership record. It keeps its
-original exact invocation constraint until expiry; current credentials cannot invent
-the missing provenance. This limitation applies only to routes created by old
-writers. New external routes have the same version-1 recovery as hosted Tasks.
-Remove the version-0 reader after old writers have retired and no unexpired route
-lacks ownership metadata. Old gateway binaries can read the additive schema, but
-rollback restores their stricter permission-bundle comparison. During overlap a
-request reaching an old replica can still encounter that recovery limitation.
+The full invocation fingerprint, stored as a `sha256:` digest, remains admission
+evidence and an exact retry constraint. Discovery, continuation and subscription cache
+keys retain their full authority fingerprints. Their isolation must not be replaced
+with the ownership comparison.
 
 Qualification exercises refreshed scopes and policy revisions, required-scope and
-role removal, retained-label removal, wrong tenant/context/profile/actor/issuer,
-changed initiator/delegation, current policy revocation and removed Task exposure.
-The isolated store also qualifies the version-0 first-party reader, old external
-constraints and rejection of a substituted source server. No existing Task ID,
-invocation digest, creation time or expiry changes during reads.
-
-The isolated store tests cover twelve competing projections, retained expiry,
-changed Work Context and authority, source-link substitution, expired mappings,
-independent servers and overflow-safe retention input.
+role removal, retained-label removal, wrong tenant, context, profile, actor and
+issuer, changed initiator and delegation, current policy revocation and removed Task
+exposure. The database tests cover twelve competing projections across two pools,
+retained expiry, changed Work Context, authority and labels, expired mappings,
+independent servers, overflow-safe retention input and the stored ownership round
+trip.

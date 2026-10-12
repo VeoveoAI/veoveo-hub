@@ -1,0 +1,221 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    r.id,\n    r.tenant AS \"tenant: TenantId\",\n    r.owner AS \"owner: PrincipalId\",\n    r.work_context AS \"work_context: WorkContextId\",\n    r.profile,\n    r.server,\n    r.source_task_id,\n    r.authority_digest,\n    p.principal_key AS owner_key,\n    r.owner_kind AS \"owner_kind: PrincipalKind\",\n    r.owner_issuer,\n    r.owner_subject,\n    r.invocation_mode,\n    r.initiator,\n    r.delegation_id,\n    r.data_labels,\n    r.expires_at\nFROM gateway.task_route AS r\nJOIN identity.principal AS p ON p.id = r.owner\nWHERE r.id = $1 AND r.expires_at > $2\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "tenant: TenantId",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "tenant"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "owner: PrincipalId",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "owner"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "work_context: WorkContextId",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "work_context"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "profile",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "profile"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "server",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "server"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "source_task_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "source_task_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "authority_digest",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "authority_digest"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "owner_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "identity.principal",
+            "name": "principal_key"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "owner_kind: PrincipalKind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "owner_kind"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "owner_issuer",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "owner_issuer"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "owner_subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "owner_subject"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "invocation_mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "invocation_mode"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "initiator",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "initiator"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "delegation_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "delegation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "data_labels",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "data_labels"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "gateway.task_route",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "75ae0cd2b91628f7ddfd57cbca4d106eccaeeef8b2b7f63e1a843e7bea317fb5"
+}

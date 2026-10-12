@@ -14,7 +14,7 @@ pub(crate) async fn export_audit(
 ) -> Response {
     let mut query = match model::decode_query(
         &parameters.query,
-        state.control_store.platform_store().audit_targets(),
+        state.gateway_state.audit_store().targets(),
     ) {
         Ok(query) => query,
         Err(error) => return (StatusCode::BAD_REQUEST, error).into_response(),
@@ -31,7 +31,7 @@ pub(crate) async fn export_audit(
     let Some(slot) = state.console_stream.acquire(subject.principal.id.as_str()) else {
         return StatusCode::TOO_MANY_REQUESTS.into_response();
     };
-    let store = state.control_store.platform_store().clone();
+    let store = state.gateway_state.audit_store().clone();
     let marker = match subject.audit_draft(
         &profile,
         AuditTarget::AuditLog {
@@ -56,7 +56,7 @@ pub(crate) async fn export_audit(
     if !matches!(
         tokio::time::timeout(
             READ_DEADLINE,
-            store.audit_wait_sealed(&scope, &marker_partition, marker_id)
+            store.wait_sealed(&scope, &marker_partition, marker_id)
         )
         .await,
         Ok(Ok(()))
@@ -67,15 +67,13 @@ pub(crate) async fn export_audit(
         )
             .into_response();
     }
-    let range = match tokio::time::timeout(
-        READ_DEADLINE,
-        store.audit_export_range(&scope, &query.partition),
-    )
-    .await
-    {
-        Ok(Ok(range)) => range,
-        _ => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
-    };
+    let range =
+        match tokio::time::timeout(READ_DEADLINE, store.export_range(&scope, &query.partition))
+            .await
+        {
+            Ok(Ok(range)) => range,
+            _ => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
+        };
     let tail = range.checkpoint;
     let deadline = tokio::time::Instant::now()
         + (subject.access_token.expires_at - Utc::now())
@@ -95,7 +93,7 @@ pub(crate) async fn export_audit(
                     if catalog.has_changed().unwrap_or(true) || tokio::time::timeout_at(deadline, current(&state, &profile, &subject)).await != Ok(true) {
                         Err(std::io::Error::other("audit export authority or deadline expired"))?;
                     }
-                    let blocks = tokio::time::timeout_at(deadline.min(tokio::time::Instant::now() + READ_DEADLINE), store.audit_blocks(&scope, &query.partition, after, 16)).await
+                    let blocks = tokio::time::timeout_at(deadline.min(tokio::time::Instant::now() + READ_DEADLINE), store.blocks(&scope, &query.partition, after, 16)).await
                         .map_err(std::io::Error::other)?.map_err(std::io::Error::other)?;
                     if blocks.is_empty() { Err(std::io::Error::other("audit export lost its sealed range"))?; }
                     for block in blocks {
@@ -103,7 +101,7 @@ pub(crate) async fn export_audit(
                             Err(std::io::Error::other("audit export range changed during retention"))?;
                         }
                         expected += 1;
-                        let records = tokio::time::timeout_at(deadline.min(tokio::time::Instant::now() + READ_DEADLINE), store.audit_filtered_block_records(&scope, &block, &query)).await
+                        let records = tokio::time::timeout_at(deadline.min(tokio::time::Instant::now() + READ_DEADLINE), store.filtered_block_records(&scope, &block, &query)).await
                             .map_err(std::io::Error::other)?.map_err(std::io::Error::other)?;
                         for record in records {
                             if tokio::time::Instant::now() >= deadline || catalog.has_changed().unwrap_or(true) {

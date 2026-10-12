@@ -53,3 +53,57 @@ pub fn registered_server(slug: &str, endpoint: &str) -> crate::registration::Reg
         capabilities: Default::default(),
     }
 }
+
+/// Publish a configuration that defines exactly one Work Context, so rows that
+/// reference it can be written.
+pub async fn publish_work_context(
+    store: &veoveo_platform_store::PlatformStore,
+    tenant: &veoveo_types::TenantId,
+    work_context: &veoveo_types::WorkContextId,
+) {
+    let plane: veoveo_mcp_contract::GatewayControlPlane =
+        serde_json::from_value(serde_json::json!({
+            "identityProviders": [],
+            "authorizationServers": [],
+            "profiles": [],
+            "tenants": [],
+            "workContexts": [{
+                "id": work_context,
+                "tenant": tenant,
+                "title": "Fixture Work Context",
+                "policyRevision": "r1",
+                "outputPolicy": { "owner": { "kind": "group", "id": "owners" } },
+                "memberships": []
+            }],
+            "policies": [],
+            "dataLabels": [],
+            "oidcClients": []
+        }))
+        .unwrap();
+    let revision = veoveo_mcp_contract::GatewayControlPlaneRevision {
+        revision_id: veoveo_mcp_contract::GatewayControlPlaneRevisionId::parse(format!(
+            "gcp-{}",
+            uuid::Uuid::now_v7()
+        ))
+        .unwrap(),
+        sha256: "0".repeat(64),
+        source: veoveo_mcp_contract::GatewayControlPlaneRevisionSource::SeedFile,
+        applied_at: chrono::Utc::now(),
+        applied_by: veoveo_types::PrincipalId::parse("fixture").unwrap(),
+        tenant: None,
+        control_plane: plane,
+    };
+    let active = store.active_control_revision().await.unwrap();
+    let audit = crate::audit::AuditAppend::new(Default::default());
+    store
+        .publish_control_revision(
+            veoveo_platform_store::gateway::ControlPublication {
+                revision: &revision,
+                replaces: active.as_ref().map(|active| &active.revision_id),
+                objects: &[],
+            },
+            &audit,
+        )
+        .await
+        .unwrap();
+}

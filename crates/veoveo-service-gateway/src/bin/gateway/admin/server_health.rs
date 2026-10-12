@@ -1,5 +1,5 @@
 //! Per-server health for operators and tools. A registered server is healthy while
-//! it renews its registration lease on schedule.
+//! its registration's login holds a live kernel instance.
 use veoveo_gateway_contract::{GatewayAction, ServerHealthEntry, ServerHealthReport};
 
 use std::time::Instant;
@@ -39,12 +39,15 @@ pub(crate) async fn read_server_health(
         Ok(authorized) => authorized,
         Err(response) => return *response,
     };
-    let leases = state.registrations.health();
+    let probed = match state.registrations.health().await {
+        Ok(probed) => probed,
+        Err(error) => return crate::audit::internal_error_response(error),
+    };
     let servers = catalog
         .registrations()
         .iter()
         .map(|server| server.slug.clone());
-    Json(report(servers, |slug| leases.get(slug))).into_response()
+    Json(report(servers, |slug| probed.get(slug))).into_response()
 }
 
 fn report<'a>(
@@ -62,10 +65,7 @@ fn report<'a>(
         })
         .collect::<Vec<_>>();
     servers.sort_by(|left, right| left.server.cmp(&right.server));
-    ServerHealthReport {
-        servers,
-        module_bindings: vec![],
-    }
+    ServerHealthReport { servers }
 }
 
 #[cfg(test)]
@@ -77,7 +77,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn servers_without_a_lease_report_no_state_instead_of_offline() {
+    fn servers_without_a_probe_report_no_state_instead_of_offline() {
         let checked_at = Utc::now();
         let probed = BTreeMap::from([(
             ServerSlug::parse("upstream-a").unwrap(),

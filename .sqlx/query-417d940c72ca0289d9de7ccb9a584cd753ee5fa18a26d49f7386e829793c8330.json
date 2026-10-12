@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The table owner lifts the immutability trigger, as a database administrator could.\nALTER TABLE audit.block DISABLE TRIGGER block_immutable\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "417d940c72ca0289d9de7ccb9a584cd753ee5fa18a26d49f7386e829793c8330"
+}

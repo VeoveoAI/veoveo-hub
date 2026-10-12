@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM audit.block\nWHERE partition = $1 AND sequence = $2\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a4ca792169d88e1a11fea26abd448325ba927fe677e9aa0ab48e0b557a1b9ecc"
+}

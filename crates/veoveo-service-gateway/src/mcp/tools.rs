@@ -19,7 +19,6 @@ use serde_json::Value;
 use veoveo_mcp_contract::{
     DiscoveryFailureMode, LocalToolName, related_task_meta, sanitized_request_meta,
 };
-use veoveo_platform_store::PrincipalKind as StorePrincipalKind;
 
 use crate::{
     AuthenticatedSubject,
@@ -508,29 +507,17 @@ impl GatewayMcp {
         server: &veoveo_mcp_contract::ServerSlug,
         mut created: CreateTaskResult,
     ) -> Result<CreateTaskResult, McpError> {
-        let authority_digest = hex::encode(invocation_authorization_fingerprint(
-            &subject.actor,
-            &subject.authority,
-        )?);
-        let owner_kind = match subject.actor.kind {
-            veoveo_mcp_contract::PrincipalKind::User => StorePrincipalKind::User,
-            veoveo_mcp_contract::PrincipalKind::Service => StorePrincipalKind::Service,
-        };
-        let source_task_id = created.task.task_id.clone();
-        let source_task = source_task_id.parse().ok();
+        let authority_digest = veoveo_types::Sha256Digest::from_bytes(
+            invocation_authorization_fingerprint(&subject.actor, &subject.authority)?,
+        );
         let (canonical, _) = self
             .state
             .create_task_route(GatewayTaskRouteDraft {
-                tenant_key: subject.authority.tenant.to_string(),
-                owner_key: subject.actor.id.to_string(),
-                owner_issuer: subject.actor.issuer.to_string(),
-                owner_subject: subject.actor.subject.to_string(),
-                owner_kind,
-                work_context: subject.authority.work_context.to_string(),
-                profile: self.profile_id.to_string(),
-                server: server.to_string(),
-                source_task_id,
-                source_task,
+                tenant: subject.authority.tenant.clone(),
+                work_context: subject.authority.work_context.clone(),
+                profile: self.profile_id.clone(),
+                server: server.clone(),
+                source_task_id: created.task.task_id.clone(),
                 authority_digest,
                 ownership: crate::state::GatewayTaskOwnership::from_invocation(
                     &subject.actor,

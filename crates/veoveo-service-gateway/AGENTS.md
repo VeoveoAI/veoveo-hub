@@ -10,9 +10,12 @@ repository's [AGENTS.md](../../AGENTS.md).
   `veoveo-core`. Change them there, then re-pin the core revision here.
 - Keep `src/bin/gateway.rs` a thin entrypoint: commands, startup and route wiring.
   Behavior belongs in focused library or binary modules.
-- Put every SurrealQL statement in its own file under `src/queries/` and bind runtime
-  values. `DEFINE USER` takes its password only as a literal, so the registration
-  store writes that one value as a JSON-encoded string the Gateway generated itself.
+- Put every SQL statement in its own `.sql` file beside the module that runs it and
+  run it through sqlx's `query_file!` macros; tests keep theirs under `tests/`. The
+  `gateway` schema and its shared statements belong to `veoveo-platform-store` in core.
+  After changing a query, regenerate `.sqlx` against a database with core's kernel
+  migrations applied.
 - Errors at OAuth endpoints use the defining RFC's format; other HTTP errors use
   `problem::Problem`.
-- Tests that need a database or the binary own their fixtures, timeouts and cleanup.
+- Tests that need a database or the binary own their fixtures, timeouts and cleanup;
+  databases come from core's PostgreSQL fixture.

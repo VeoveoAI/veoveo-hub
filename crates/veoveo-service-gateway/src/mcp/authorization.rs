@@ -12,7 +12,7 @@ use veoveo_mcp_contract::{
     ServerSlug, TraceId,
 };
 use veoveo_platform_store::{
-    RecordIdKey, deterministic_principal_id, deterministic_tenant_id, deterministic_work_context_id,
+    deterministic_principal_id, deterministic_tenant_id, deterministic_work_context_id,
 };
 
 use crate::{
@@ -76,19 +76,16 @@ impl GatewayMcp {
         };
         let tenant_key = subject.authority.tenant.as_str();
         let expected_tenant = deterministic_tenant_id(tenant_key)
-            .map_err(|error| mcp_internal(format!("invalid task tenant: {error}")))?
-            .record_id();
+            .map_err(|error| mcp_internal(format!("invalid task tenant: {error}")))?;
         let expected_owner = deterministic_principal_id(tenant_key, subject.actor.id.as_str())
-            .map_err(|error| mcp_internal(format!("invalid task owner: {error}")))?
-            .record_id();
+            .map_err(|error| mcp_internal(format!("invalid task owner: {error}")))?;
         let expected_work_context =
             deterministic_work_context_id(tenant_key, subject.authority.work_context.as_str())
-                .map_err(|error| mcp_internal(format!("invalid task Work Context: {error}")))?
-                .record_id();
+                .map_err(|error| mcp_internal(format!("invalid task Work Context: {error}")))?;
         if route.tenant != expected_tenant
             || route.owner != expected_owner
             || route.work_context != expected_work_context
-            || record_key(&route.profile)? != self.profile_id.as_str()
+            || route.profile != self.profile_id
         {
             tracing::warn!(
                 %task_id,
@@ -100,30 +97,10 @@ impl GatewayMcp {
             );
             return Err(mcp_invalid_params("unknown task id"));
         }
-        let ownership = self
-            .state
-            .task_route_ownership(&route)
-            .await
-            .map_err(|error| {
-                mcp_internal(format!("failed to read retained Task ownership: {error}"))
-            })?;
-        let owned = match ownership {
-            Some(ownership) => ownership.allows(&subject.actor, &subject.authority),
-            // A version-0 external route has no recoverable ownership metadata.
-            // Preserve its exact admission constraint until its original expiry.
-            None => {
-                route.authority_digest
-                    == hex::encode(super::invocation_authorization_fingerprint(
-                        &subject.actor,
-                        &subject.authority,
-                    )?)
-            }
-        };
-        if !owned {
+        if !route.ownership.allows(&subject.actor, &subject.authority) {
             return Err(mcp_invalid_params("unknown task id"));
         }
-        let server = ServerSlug::parse(record_key(&route.server)?)
-            .map_err(|error| mcp_internal(format!("task has invalid server: {error}")))?;
+        let server = route.server;
         let exposed = self
             .catalog
             .current()
@@ -613,17 +590,6 @@ fn trace_id_for_context(context: &RequestContext<RoleServer>) -> Result<TraceId,
         .get::<crate::request_observation::RequestObservation>()
         .ok_or_else(|| mcp_invalid_request("HTTP request correlation missing"))?;
     TraceId::parse(&observation.audit.trace_id).map_err(|_| mcp_internal("invalid request trace"))
-}
-
-fn record_key(record: &veoveo_platform_store::RecordId) -> Result<String, McpError> {
-    match &record.key {
-        RecordIdKey::String(value) => Ok(value.clone()),
-        RecordIdKey::Uuid(value) => Ok(value.to_string()),
-        RecordIdKey::Number(value) => Ok(value.to_string()),
-        other => Err(mcp_internal(format!(
-            "gateway task route has unsupported record key {other:?}"
-        ))),
-    }
 }
 
 fn client_surface_allows_task_projection(

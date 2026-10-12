@@ -1,11 +1,11 @@
 //! Admission of RFC 7591 registrations and RFC 7592 reads, updates and removals, in
 //! the order the registration protocol prescribes.
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Context;
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, Utc};
 use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
 use veoveo_audit_contract::{
@@ -13,31 +13,28 @@ use veoveo_audit_contract::{
     RegistrationActivity,
 };
 use veoveo_gateway_contract::SecretPurpose;
-use veoveo_mcp_contract::{GatewayInternalSigningKey, LeaseTimings, TokenIssuer};
+use veoveo_mcp_contract::{GatewayInternalSigningKey, TokenIssuer};
 use veoveo_mcp_ext_registration::{
     AccessTokenTrust, ClientInformation, ClientMetadata, ClientRegistrationRequest,
-    ClientUpdateRequest, DatabaseGrant, DatabaseIdentifier, Ed25519JwkSet, RegistrationAccessToken,
-    RegistrationErrorCode, RegistrationLease, ResourceIndicator, SoftwareStatement,
+    ClientUpdateRequest, DatabaseGrant, DatabaseIdentifier, DatabaseUrl, Ed25519JwkSet,
+    RegistrationAccessToken, RegistrationErrorCode, ResourceIndicator, SoftwareStatement,
     statement::verify_statement,
 };
-use veoveo_modules::ModuleManifest;
-use veoveo_types::{OAuthClientId, ServerSlug};
+use veoveo_platform_store::{LoginName, ServerSchema};
+use veoveo_types::{OAuthClientId, Sha256Digest};
 
 use super::{
     RegistrationError,
-    modules::{ModuleHistory, admit_modules, apply_modules, compare_history},
-    store::{NamespaceClaim, RegistrationStore, RegistrationWrite, StoredRegistration},
+    store::{EndedRegistration, NewRegistration, Pin, RegistrationStore, StoredRegistration},
     watch::LiveRegistrations,
 };
 use crate::{GatewayCatalogHandle, GatewaySecretResolver, GatewayState};
 
-/// Where registered servers reach the platform database. Servers and the Gateway may
-/// reach the same database at different addresses.
+/// The database a registered server reaches, as its registration grant names it.
+/// Servers and the Gateway may reach the same database at different addresses.
 #[derive(Debug, Clone)]
 pub struct ServerDatabase {
-    pub endpoint: url::Url,
-    pub namespace: DatabaseIdentifier,
-    pub database: DatabaseIdentifier,
+    pub url: DatabaseUrl,
 }
 
 /// The Gateway's identity as an authorization server.
@@ -62,8 +59,8 @@ pub(super) struct Inner {
     pub(super) registration_endpoint: url::Url,
     pub(super) access_token_keys: Ed25519JwkSet,
     pub(super) database: ServerDatabase,
-    /// Serializes admissions on this replica, so migrations see each other's claims.
-    pub(super) admission: tokio::sync::Mutex<()>,
+    /// How long a registration may go without a live kernel instance of its login.
+    pub(super) grace: Duration,
     pub(super) live: parking_lot::RwLock<LiveRegistrations>,
 }
 
@@ -80,6 +77,7 @@ impl RegistrationService {
         gateway: GatewayState,
         identity: RegistrationIdentity,
         database: ServerDatabase,
+        grace: Duration,
     ) -> anyhow::Result<Self> {
         veoveo_mcp_ext_registration::issuer_url(&identity.issuer)
             .context("the Gateway issuer must be an https URL, or http on a local host")?;
@@ -97,7 +95,7 @@ impl RegistrationService {
                     identity.signing_key.verification_key(),
                 ])?,
                 database,
-                admission: tokio::sync::Mutex::new(()),
+                grace,
                 live: parking_lot::RwLock::new(LiveRegistrations::default()),
             }),
         })
@@ -131,19 +129,9 @@ impl RegistrationService {
             .is_some()
     }
 
-    fn lease_timings(&self) -> LeaseTimings {
-        self.inner
-            .catalog
-            .current()
-            .control_plane()
-            .registration
-            .as_ref()
-            .map(|settings| settings.lease)
-            .unwrap_or_default()
-    }
-
     /// RFC 7591 §3: register a server presenting the installation's registration
-    /// secret as its initial access token.
+    /// secret as its initial access token. The response grants a new PostgreSQL login
+    /// in the server's group role.
     pub async fn register(
         &self,
         bearer: Bearer<'_>,
@@ -152,56 +140,68 @@ impl RegistrationService {
         self.check_initial_access_token(bearer).await?;
         let request: ClientRegistrationRequest = decode(body)?;
         request.metadata.check().map_err(invalid_metadata)?;
-        let _admission = self.inner.admission.lock().await;
         let now = Utc::now();
         let slug = request.metadata.slug().clone();
-        let claims = self.claims().await?;
-        let claim = claims.get(&slug);
+        let schema = ServerSchema::new(&slug).map_err(|error| {
+            RegistrationError::rejected(
+                RegistrationErrorCode::InvalidClientMetadata,
+                format!("software_id cannot name a database schema: {error}"),
+            )
+        })?;
+        let claim = self.inner.store.claim(&slug).await?;
         verify(
             &request.software_statement,
             &request.metadata,
-            claim,
+            claim.as_deref(),
             &self.inner.registration_endpoint,
             now,
         )?;
-        let plan = module_plan(&request.metadata, claim, &claims)?;
-        self.pin(&request.metadata, claim, plan.record.as_ref(), now)
-            .await?;
-        self.migrate(&slug, &plan, &claims).await?;
-
         let client_id = new_client_id(&slug)?;
-        let database = match plan.apply {
-            Some(_) => Some(self.issue_database_user(&client_id, &slug).await?),
-            None => None,
-        };
+        let login = registration_login(&schema, &client_id)?;
+        let password = random_token()?;
         let token = random_token()?;
-        let lease = self.lease_timings();
-        let expires_at = lease_expiry(now, lease);
-        self.inner
+        let pin = self
+            .inner
             .store
-            .create_registration(RegistrationWrite {
+            .register(NewRegistration {
                 client_id: &client_id,
                 metadata: &request.metadata,
                 software_statement: &request.software_statement,
                 token_digest: &digest(token.expose_secret()),
-                database_username: database.as_ref().map(|grant| &grant.username),
-                issued_at: now,
+                login: &login,
+                password: &password,
                 now,
-                lease_expires_at: expires_at,
             })
             .await?;
+        match pin {
+            Pin::Foreign => {
+                return Err(RegistrationError::rejected(
+                    RegistrationErrorCode::UnapprovedSoftwareStatement,
+                    "the namespace is pinned to another key",
+                ));
+            }
+            Pin::Claimed => {
+                self.audit(&slug, RegistrationActivity::ClaimNamespace)
+                    .await?;
+            }
+            Pin::Held => {}
+        }
         self.audit(&slug, RegistrationActivity::Register).await?;
         self.refresh().await?;
-        tracing::info!(server = %slug, client_id = %client_id, "server registered");
+        tracing::info!(server = %slug, client_id = %client_id, %login, "server registered");
+        let database = DatabaseGrant {
+            url: self.inner.database.url.clone(),
+            username: DatabaseIdentifier::new(login.as_str())
+                .context("the login is a PostgreSQL role name")?,
+            password,
+        };
         self.information(
             client_id,
             now,
             RegistrationAccessToken::new(token.expose_secret()),
             request.metadata,
             request.software_statement,
-            expires_at,
-            lease,
-            database,
+            Some(database),
         )
     }
 
@@ -212,21 +212,19 @@ impl RegistrationService {
         bearer: Bearer<'_>,
     ) -> Result<ClientInformation, RegistrationError> {
         let (registration, token) = self.authenticate(client_id, bearer).await?;
-        let lease = self.lease_timings();
         self.information(
             registration.client_id,
             registration.issued_at,
             RegistrationAccessToken::new(token),
             registration.metadata,
             registration.software_statement,
-            registration.lease_expires_at,
-            lease,
             None,
         )
     }
 
-    /// RFC 7592 §2.2: renew the lease, or admit changed declarations under the
-    /// pinned key.
+    /// RFC 7592 §2.2: replace the registered metadata. Changed declarations take the
+    /// admission of a new registration under the pinned key; an unchanged update
+    /// writes nothing.
     pub async fn update(
         &self,
         client_id: &str,
@@ -251,62 +249,33 @@ impl RegistrationService {
         let now = Utc::now();
         let slug = request.metadata.slug().clone();
         let audience = self.registration_client_uri(&registration.client_id);
-        let changed = request.metadata != registration.metadata;
-        let _admission = if changed {
-            Some(self.inner.admission.lock().await)
-        } else {
-            None
-        };
-        let claims = self.claims().await?;
-        let claim = claims.get(&slug);
-        if claim.is_none() {
+        let Some(claim) = self.inner.store.claim(&slug).await? else {
             return Err(RegistrationError::rejected(
                 RegistrationErrorCode::UnapprovedSoftwareStatement,
                 "the namespace has no pinned key",
             ));
-        }
+        };
         verify(
             &request.software_statement,
             &request.metadata,
-            claim,
+            Some(&claim),
             &audience,
             now,
         )?;
-        let mut database_username = registration.database_username.clone();
-        let mut database = None;
-        if changed {
-            let plan = module_plan(&request.metadata, claim, &claims)?;
-            self.pin(&request.metadata, claim, plan.record.as_ref(), now)
+        if request.metadata != registration.metadata {
+            let updated = self
+                .inner
+                .store
+                .update(
+                    &registration.client_id,
+                    &request.metadata,
+                    &request.software_statement,
+                    now,
+                )
                 .await?;
-            self.migrate(&slug, &plan, &claims).await?;
-            if plan.apply.is_some() && database_username.is_none() {
-                let grant = self
-                    .issue_database_user(&registration.client_id, &slug)
-                    .await?;
-                database_username = Some(grant.username.clone());
-                database = Some(grant);
+            if !updated {
+                return Err(RegistrationError::Unauthorized { token_sent: true });
             }
-        }
-        let lease = self.lease_timings();
-        let expires_at = lease_expiry(now, lease);
-        let updated = self
-            .inner
-            .store
-            .update_registration(RegistrationWrite {
-                client_id: &registration.client_id,
-                metadata: &request.metadata,
-                software_statement: &request.software_statement,
-                token_digest: &registration.token_digest,
-                database_username: database_username.as_ref(),
-                issued_at: registration.issued_at,
-                now,
-                lease_expires_at: expires_at,
-            })
-            .await?;
-        if !updated {
-            return Err(RegistrationError::Unauthorized { token_sent: true });
-        }
-        if changed {
             self.audit(&slug, RegistrationActivity::Update).await?;
             self.refresh().await?;
         }
@@ -316,45 +285,35 @@ impl RegistrationService {
             RegistrationAccessToken::new(token),
             request.metadata,
             request.software_statement,
-            expires_at,
-            lease,
-            database,
+            None,
         )
     }
 
-    /// RFC 7592 §2.3: remove a registration.
+    /// RFC 7592 §2.3: remove a registration and drop its login.
     pub async fn delete(
         &self,
         client_id: &str,
         bearer: Bearer<'_>,
     ) -> Result<(), RegistrationError> {
         let (registration, _) = self.authenticate(client_id, bearer).await?;
-        if let Some(removed) = self
-            .inner
-            .store
-            .delete_registration(&registration.client_id)
-            .await?
-        {
-            self.release(&removed, RegistrationActivity::Deregister)
-                .await?;
+        if let Some(ended) = self.inner.store.deregister(&registration.client_id).await? {
+            self.ended(&ended, RegistrationActivity::Deregister).await?;
         }
         self.refresh().await?;
         Ok(())
     }
 
-    /// Remove the database user of a registration that ended and record why.
-    pub(super) async fn release(
+    /// Record why a registration ended.
+    pub(super) async fn ended(
         &self,
-        registration: &StoredRegistration,
+        registration: &EndedRegistration,
         activity: RegistrationActivity,
     ) -> anyhow::Result<()> {
-        if let Some(username) = &registration.database_username {
-            self.inner.store.remove_user(username).await?;
-        }
-        self.audit(registration.metadata.slug(), activity).await?;
+        self.audit(&registration.server, activity).await?;
         tracing::info!(
-            server = %registration.metadata.slug(),
+            server = %registration.server,
             client_id = %registration.client_id,
+            login = %registration.login,
             ?activity,
             "server registration ended"
         );
@@ -390,7 +349,7 @@ impl RegistrationService {
     }
 
     /// RFC 7592 §3: the registration access token authorizes its own registration
-    /// while the lease is current.
+    /// while the registration exists.
     async fn authenticate(
         &self,
         client_id: &str,
@@ -406,122 +365,12 @@ impl RegistrationService {
         let Some(registration) = self.inner.store.registration(&client_id).await? else {
             return Err(unauthorized);
         };
-        if registration.token_digest != digest(presented)
-            || registration.lease_expires_at <= Utc::now()
-        {
+        if registration.token_digest != digest(presented) {
             return Err(unauthorized);
         }
         Ok((registration, presented.to_owned()))
     }
 
-    async fn claims(&self) -> Result<BTreeMap<ServerSlug, NamespaceClaim>, RegistrationError> {
-        Ok(self
-            .inner
-            .store
-            .claims()
-            .await?
-            .into_iter()
-            .map(|claim| (claim.slug.clone(), claim))
-            .collect())
-    }
-
-    /// Pin the namespace to the server's key on its first registration.
-    async fn pin(
-        &self,
-        metadata: &ClientMetadata,
-        claim: Option<&NamespaceClaim>,
-        module: Option<&ModuleManifest>,
-        now: DateTime<Utc>,
-    ) -> Result<(), RegistrationError> {
-        let slug = metadata.slug();
-        if claim.is_some() {
-            if let Some(module) = module {
-                self.inner.store.record_module(slug, module, now).await?;
-            }
-            return Ok(());
-        }
-        let thumbprint = metadata.key().thumbprint();
-        if self
-            .inner
-            .store
-            .create_claim(slug, thumbprint.as_str(), module, now)
-            .await?
-        {
-            self.audit(slug, RegistrationActivity::ClaimNamespace)
-                .await?;
-            return Ok(());
-        }
-        // Another replica claimed the namespace first.
-        match self.inner.store.claim(slug).await? {
-            Some(claim) if claim.key_thumbprint == thumbprint.as_str() => {
-                if let Some(module) = module {
-                    self.inner.store.record_module(slug, module, now).await?;
-                }
-                Ok(())
-            }
-            _ => Err(RegistrationError::rejected(
-                RegistrationErrorCode::UnapprovedSoftwareStatement,
-                "the namespace is pinned to another key",
-            )),
-        }
-    }
-
-    async fn migrate(
-        &self,
-        slug: &ServerSlug,
-        plan: &ModulePlan,
-        claims: &BTreeMap<ServerSlug, NamespaceClaim>,
-    ) -> Result<(), RegistrationError> {
-        let Some(module) = &plan.apply else {
-            return Ok(());
-        };
-        let known = registry_modules(claims, slug, module);
-        apply_modules(
-            self.inner.store.platform().client(),
-            known.iter(),
-            vec![module.name.clone()],
-        )
-        .await
-        .map_err(|error| {
-            tracing::warn!(server = %slug, "module migration failed: {error:#}");
-            RegistrationError::rejected(
-                RegistrationErrorCode::InvalidClientMetadata,
-                "veoveo_module migrations failed to apply",
-            )
-        })?;
-        self.audit(slug, RegistrationActivity::Migrate).await?;
-        Ok(())
-    }
-
-    async fn issue_database_user(
-        &self,
-        client_id: &OAuthClientId,
-        slug: &ServerSlug,
-    ) -> Result<DatabaseGrant, RegistrationError> {
-        let suffix = client_id
-            .as_str()
-            .rsplit('-')
-            .next()
-            .unwrap_or_default()
-            .to_owned();
-        let username =
-            DatabaseIdentifier::new(format!("{}_{suffix}", slug.as_str().replace('-', "_")))
-                .context("derive the server's database user name")?;
-        let password = random_token()?;
-        self.inner
-            .store
-            .define_user(&username, password.expose_secret())
-            .await?;
-        Ok(DatabaseGrant {
-            endpoint: self.inner.database.endpoint.clone(),
-            namespace: self.inner.database.namespace.clone(),
-            database: self.inner.database.database.clone(),
-            username,
-            password,
-        })
-    }
-
-    #[allow(clippy::too_many_arguments)]
     fn information(
         &self,
         client_id: OAuthClientId,
@@ -529,8 +378,6 @@ impl RegistrationService {
         token: RegistrationAccessToken,
         metadata: ClientMetadata,
         software_statement: SoftwareStatement,
-        expires_at: DateTime<Utc>,
-        lease: LeaseTimings,
         database: Option<DatabaseGrant>,
     ) -> Result<ClientInformation, RegistrationError> {
         let information = ClientInformation {
@@ -545,10 +392,6 @@ impl RegistrationService {
             },
             metadata,
             software_statement,
-            lease: RegistrationLease {
-                expires_at,
-                renew_every_seconds: lease.renew_every_seconds,
-            },
             database,
         };
         information
@@ -559,7 +402,7 @@ impl RegistrationService {
 
     pub(super) async fn audit(
         &self,
-        server: &ServerSlug,
+        server: &veoveo_types::ServerSlug,
         activity: RegistrationActivity,
     ) -> anyhow::Result<()> {
         let draft = AuditDraft::builder(
@@ -576,72 +419,15 @@ impl RegistrationService {
     }
 }
 
-/// The module work one admission performs.
-struct ModulePlan {
-    /// The manifest to record on the claim: a longer history than the one recorded.
-    record: Option<ModuleManifest>,
-    /// The manifest whose lane must be current before the server may route.
-    apply: Option<ModuleManifest>,
-}
-
-fn module_plan(
-    metadata: &ClientMetadata,
-    claim: Option<&NamespaceClaim>,
-    claims: &BTreeMap<ServerSlug, NamespaceClaim>,
-) -> Result<ModulePlan, RegistrationError> {
-    let Some(received) = metadata.module.as_ref().map(|module| module.manifest()) else {
-        return Ok(ModulePlan {
-            record: None,
-            apply: None,
-        });
-    };
-    let recorded = claim.and_then(|claim| claim.module.as_ref());
-    let (record, apply) = match compare_history(recorded, received) {
-        ModuleHistory::Extends => (Some(received.clone()), received.clone()),
-        ModuleHistory::Contained => (None, recorded.expect("contained in a record").clone()),
-        ModuleHistory::Diverges => {
-            return Err(RegistrationError::rejected(
-                RegistrationErrorCode::InvalidClientMetadata,
-                "veoveo_module changes a migration this namespace already applied",
-            ));
-        }
-    };
-    let known = registry_modules(claims, metadata.slug(), &apply);
-    admit_modules(known.iter()).map_err(|error| {
-        RegistrationError::rejected(
-            RegistrationErrorCode::InvalidClientMetadata,
-            format!("veoveo_module is not admissible: {error}"),
-        )
-    })?;
-    Ok(ModulePlan {
-        record,
-        apply: Some(apply),
-    })
-}
-
-/// Every claimed module, with `slug`'s replaced by `module`.
-fn registry_modules(
-    claims: &BTreeMap<ServerSlug, NamespaceClaim>,
-    slug: &ServerSlug,
-    module: &ModuleManifest,
-) -> Vec<ModuleManifest> {
-    claims
-        .values()
-        .filter(|claim| &claim.slug != slug)
-        .filter_map(|claim| claim.module.clone())
-        .chain(std::iter::once(module.clone()))
-        .collect()
-}
-
 fn verify(
     statement: &SoftwareStatement,
     metadata: &ClientMetadata,
-    claim: Option<&NamespaceClaim>,
+    pinned: Option<&str>,
     audience: &url::Url,
     now: DateTime<Utc>,
 ) -> Result<(), RegistrationError> {
-    if let Some(claim) = claim
-        && claim.key_thumbprint != metadata.key().thumbprint().as_str()
+    if let Some(pinned) = pinned
+        && pinned != metadata.key().thumbprint().as_str()
     {
         return Err(RegistrationError::rejected(
             RegistrationErrorCode::UnapprovedSoftwareStatement,
@@ -672,13 +458,28 @@ fn invalid_metadata(error: veoveo_mcp_ext_registration::DeclarationError) -> Reg
     )
 }
 
-fn lease_expiry(now: DateTime<Utc>, lease: LeaseTimings) -> DateTime<Utc> {
-    now + TimeDelta::seconds(i64::from(lease.expires_after_seconds))
-}
-
-fn new_client_id(slug: &ServerSlug) -> anyhow::Result<OAuthClientId> {
+fn new_client_id(slug: &veoveo_types::ServerSlug) -> anyhow::Result<OAuthClientId> {
     OAuthClientId::parse(format!("{slug}-{}", uuid::Uuid::now_v7().simple()))
         .context("derive the registration's client identifier")
+}
+
+/// Hexadecimal digits of the client identifier's random tail that name its login. With
+/// the longest schema name they fill PostgreSQL's 63-byte identifier limit.
+const LOGIN_SUFFIX_DIGITS: usize = 14;
+
+/// The registration's login, `<schema>_<suffix>`, where the suffix ends the client
+/// identifier.
+fn registration_login(
+    schema: &ServerSchema,
+    client_id: &OAuthClientId,
+) -> anyhow::Result<LoginName> {
+    let client = client_id.as_str();
+    let suffix = client
+        .get(client.len().saturating_sub(LOGIN_SUFFIX_DIGITS)..)
+        .context("the client identifier is shorter than a login suffix")?;
+    schema
+        .login(suffix)
+        .context("derive the registration's login name")
 }
 
 /// 256 random bits, base64url without padding.
@@ -688,6 +489,34 @@ fn random_token() -> anyhow::Result<SecretString> {
     Ok(SecretString::from(URL_SAFE_NO_PAD.encode(bytes)))
 }
 
-pub(super) fn digest(value: &str) -> String {
-    format!("sha256:{}", hex::encode(Sha256::digest(value.as_bytes())))
+pub(super) fn digest(value: &str) -> Sha256Digest {
+    Sha256Digest::from_bytes(Sha256::digest(value.as_bytes()).into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn logins_end_with_the_client_identifier_and_fit_postgres_names() {
+        let longest = veoveo_types::ServerSlug::parse("a".repeat(48)).unwrap();
+        let schema = ServerSchema::new(&longest).unwrap();
+        let client_id = new_client_id(&longest).unwrap();
+        let login = registration_login(&schema, &client_id).unwrap();
+        assert_eq!(login.as_str().len(), 63);
+        assert!(client_id.as_str().ends_with(&login.as_str()[49..]));
+        let short = veoveo_types::ServerSlug::parse("time-zones").unwrap();
+        let client_id = new_client_id(&short).unwrap();
+        let login = registration_login(&ServerSchema::new(&short).unwrap(), &client_id).unwrap();
+        assert!(login.as_str().starts_with("time_zones_"));
+        assert!(DatabaseIdentifier::new(login.as_str()).is_ok());
+    }
+
+    #[test]
+    fn access_token_digests_name_their_algorithm() {
+        let value = digest("registration-access-token");
+        assert!(value.as_str().starts_with("sha256:"));
+        assert_eq!(value, digest("registration-access-token"));
+        assert_ne!(value, digest("another-token"));
+    }
 }

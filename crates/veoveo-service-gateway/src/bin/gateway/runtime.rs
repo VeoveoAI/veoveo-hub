@@ -45,6 +45,8 @@ pub(super) struct AdminState {
     pub(super) artifacts: Option<ArtifactService>,
     pub(super) registrations: veoveo_service_gateway::registration::RegistrationService,
     pub(super) console_stream: crate::admin::ConsoleStreamLimits,
+    /// This process's kernel instance, which also reaps the instances of ended processes.
+    pub(super) instance: Arc<veoveo_platform_store::Instance>,
 }
 
 #[derive(Clone)]

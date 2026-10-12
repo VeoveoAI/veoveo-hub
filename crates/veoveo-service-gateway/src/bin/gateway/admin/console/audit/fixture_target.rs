@@ -1,8 +1,7 @@
 //! A fixture owner Audit target. Audit tests use it to exercise owner registration
 //! without depending on any domain crate.
 use veoveo_audit_contract::{
-    AuditLookupKey, AuditLookupReference, AuditTargetError, AuditTargetOwner,
-    AuditTargetRegistration, AuditTargetRegistryBuilder,
+    AuditTargetError, AuditTargetOwner, AuditTargetRegistration, AuditTargetRegistryBuilder,
 };
 
 #[derive(
@@ -12,25 +11,9 @@ use veoveo_audit_contract::{
 pub struct SensorId(uuid::Uuid);
 
 impl SensorId {
-    #[allow(
-        dead_code,
-        reason = "Each audit test selects fresh or literal identities"
-    )]
+    #[allow(dead_code, reason = "Only audit tests create sensor identities")]
     pub fn new() -> Self {
         Self(uuid::Uuid::now_v7())
-    }
-
-    #[allow(
-        dead_code,
-        reason = "Each audit test selects fresh or literal identities"
-    )]
-    pub fn parse(value: &str) -> Result<Self, uuid::Error> {
-        uuid::Uuid::parse_str(value).map(Self)
-    }
-
-    #[allow(dead_code, reason = "Only lookup assertions read the UUID")]
-    pub fn as_uuid(&self) -> uuid::Uuid {
-        self.0
     }
 }
 
@@ -75,12 +58,6 @@ impl<'de> serde::Deserialize<'de> for SensorAuditTarget {
 
 impl AuditTargetOwner for SensorAuditTarget {
     const KIND: &'static str = "sensor";
-    fn lookup_reference(&self) -> Result<Option<AuditLookupReference>, AuditTargetError> {
-        Ok(Some(AuditLookupReference::new(
-            "sensor",
-            AuditLookupKey::Uuid(self.sensor.0),
-        )?))
-    }
 }
 
 pub fn register_audit_target(

@@ -311,6 +311,15 @@ pub(crate) async fn update_control_plane(
         {
             return internal_error_response(audit_err);
         }
+        if veoveo_service_gateway::is_revision_conflict(&err) {
+            return veoveo_service_gateway::problem::Problem::new(
+                StatusCode::CONFLICT,
+                "control-plane-revision-changed",
+                "Control plane changed",
+            )
+            .detail("another revision became active; read the control plane and retry")
+            .into_response();
+        }
         return internal_error_response(err);
     }
 

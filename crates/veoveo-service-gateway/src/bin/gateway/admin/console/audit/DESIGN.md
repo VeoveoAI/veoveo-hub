@@ -6,7 +6,7 @@
 |---|---|
 | HTTP, RFC 9110 | Profile-scoped authenticated JSON reads, POST view admission and streaming JSON Lines export; responses use `no-store` |
 | Server-Sent Events | Partition-filtered notifications and `Last-Event-ID` recovery through sealed block sequences |
-| SurrealDB 3.3.0 | Parameterized SQL filtering and keyset pagination, partition-scoped LIVE queries, exact-record access receipts |
+| PostgreSQL 18 through core's `AuditStore` | Parameterized SQL filtering and keyset pagination, partition-scoped change streams on the `audit` channel, exact-record access receipts |
 | Veoveo audit contract | Owner-defined scope, actor and target types, closed record summaries, queries and export framing |
 
 `/admin/{profile}/console/audit` provides partitions, views, records, summary, stream
@@ -24,8 +24,8 @@ does not replace current authorization. Stream reconnects reuse the receipt.
 Record filters run before SQL pagination. Record UUIDs order pages; cursors include
 that order and the selected partition. Summaries read the grouped daily view.
 
-The stream registers partition-scoped record and block LIVE queries before reading
-its checkpoint. Record changes invalidate the view immediately. Sealed block sequences
+The stream subscribes to the partition's record and block changes before reading its
+checkpoint. Record changes invalidate the view immediately. Sealed block sequences
 advance the reconnect cursor in commit order. Reconnect recovery reads only that
 partition's blocks, with sixteen blocks per page and at most 64 pages per recovery.
 Retention gaps reset the browser queries. Events carry invalidations and checkpoints;

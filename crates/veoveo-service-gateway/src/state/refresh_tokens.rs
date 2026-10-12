@@ -11,18 +11,18 @@ use chacha20poly1305::{
     aead::{Aead, KeyInit, Payload},
 };
 use chrono::{DateTime, TimeDelta, Utc};
-use serde::{Deserialize, Serialize};
+use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 use veoveo_mcp_contract::{
     GatewayProfileId, GatewayRefreshFamilyId, GatewayRefreshGrant, OAuthClientId,
     OAuthRefreshToken, Principal, PrincipalDisplayName,
 };
-use veoveo_platform_store::{
-    GatewayRefreshFamilyRecord, GatewayRefreshRotationOutcome, GatewayRefreshTokenRecord,
-    RecordIdKey, RedactedSecret, gateway_refresh_family_record_id, gateway_refresh_token_record_id,
+use veoveo_platform_store::gateway::{
+    NewRefreshFamily, NewRefreshToken, RefreshBinding, RefreshDeliveryEnvelope, RefreshFamily,
+    RefreshPrincipal, RefreshRetention, RefreshRotation,
 };
-use veoveo_types::{ScopeName, WorkContextId};
+use veoveo_types::{ScopeName, Sha256Digest, WorkContextId};
 
 use super::GatewayState;
 
@@ -59,7 +59,7 @@ impl RefreshTokenDeliveryCipher {
         )))
     }
 
-    fn seal(&self, token: &OAuthRefreshToken, aad: &[u8]) -> Result<RedactedSecret> {
+    fn seal(&self, token: &OAuthRefreshToken, aad: &[u8]) -> Result<SecretString> {
         let mut nonce = [0_u8; REFRESH_DELIVERY_NONCE_BYTES];
         getrandom::fill(&mut nonce).context("failed to generate refresh delivery nonce")?;
         let ciphertext = self
@@ -75,10 +75,10 @@ impl RefreshTokenDeliveryCipher {
         let mut envelope = Vec::with_capacity(nonce.len() + ciphertext.len());
         envelope.extend_from_slice(&nonce);
         envelope.extend_from_slice(&ciphertext);
-        Ok(RedactedSecret::new(URL_SAFE_NO_PAD.encode(envelope)))
+        Ok(SecretString::from(URL_SAFE_NO_PAD.encode(envelope)))
     }
 
-    fn open(&self, envelope: &RedactedSecret, aad: &[u8]) -> Result<OAuthRefreshToken> {
+    fn open(&self, envelope: &SecretString, aad: &[u8]) -> Result<OAuthRefreshToken> {
         let envelope = URL_SAFE_NO_PAD
             .decode(envelope.expose_secret())
             .context("refresh delivery envelope is not base64url")?;
@@ -177,25 +177,27 @@ impl GatewayState {
         oauth_client_id: &OAuthClientId,
         now: DateTime<Utc>,
     ) -> Result<Option<GatewayRefreshGrant>> {
-        let hash = refresh_token_hash(token);
         let Some((current, family)) = self
             .platform
-            .gateway_refresh_grant_by_hash(&hash)
+            .refresh_grant(&refresh_token_digest(token))
             .await
             .context("failed to read gateway refresh-token grant")?
         else {
             return Ok(None);
         };
-        if family.authorization_server != authorization_server.as_str()
-            || family.profile != profile.as_str()
-            || family.oauth_client_id != oauth_client_id.as_str()
+        let binding = RefreshBinding {
+            authorization_server,
+            profile,
+            oauth_client_id,
+        };
+        if !family.bound_to(binding)
             || current.expires_at <= now
             || family.expires_at <= now
             || family.revoked_at.is_some()
         {
             return Ok(None);
         }
-        grant_from_family(family).map(Some)
+        Ok(Some(grant_from_family(family)))
     }
 
     pub async fn revoke_refresh_token_family(
@@ -206,18 +208,20 @@ impl GatewayState {
         oauth_client_id: &OAuthClientId,
         now: DateTime<Utc>,
     ) -> Result<Option<GatewayRefreshGrant>> {
-        self.platform
-            .revoke_gateway_refresh_family_by_hash(
-                &refresh_token_hash(token),
-                authorization_server.as_str(),
-                profile.as_str(),
-                oauth_client_id.as_str(),
+        Ok(self
+            .platform
+            .revoke_refresh_family(
+                &refresh_token_digest(token),
+                RefreshBinding {
+                    authorization_server,
+                    profile,
+                    oauth_client_id,
+                },
                 now,
             )
             .await
             .context("failed to revoke gateway refresh-token family")?
-            .map(grant_from_family)
-            .transpose()
+            .map(grant_from_family))
     }
 
     pub async fn issue_refresh_token(
@@ -237,41 +241,32 @@ impl GatewayState {
         let expires_at = now
             .checked_add_signed(TimeDelta::seconds(REFRESH_TOKEN_TTL_SECONDS))
             .context("refresh-token lifetime overflow")?;
-        let family_uuid = Uuid::now_v7();
-        let family_id = GatewayRefreshFamilyId::parse(family_uuid.to_string())?;
-        let family_record_id = gateway_refresh_family_record_id(family_uuid);
+        let family_id = GatewayRefreshFamilyId::parse(Uuid::now_v7().to_string())?;
         let token = random_refresh_token()?;
-        let token_record = GatewayRefreshTokenRecord {
-            id: gateway_refresh_token_record_id(Uuid::now_v7()),
-            family: family_record_id.clone(),
-            token_hash: refresh_token_hash(&token),
+        let family = NewRefreshFamily {
+            id: family_id.clone(),
+            authorization_server: authorization_server.clone(),
+            profile: profile.clone(),
+            oauth_client_id: oauth_client_id.clone(),
+            work_context: work_context.clone(),
+            principal: RefreshPrincipal {
+                principal: principal.clone(),
+                display_name: principal_display_name.clone(),
+            },
+            scopes: scopes.clone(),
+            issued_at: now,
+            expires_at,
+        };
+        let first = NewRefreshToken {
+            id: Uuid::now_v7(),
+            digest: refresh_token_digest(&token),
             generation: 0,
             issued_at: now,
             expires_at,
-            consumed_at: None,
-            replacement: None,
-            replay_detected_at: None,
-            delivery_envelope: None,
-            delivery_expires_at: None,
-        };
-        let family = GatewayRefreshFamilyRecord {
-            id: family_record_id,
-            authorization_server: authorization_server.to_string(),
-            profile: profile.to_string(),
-            oauth_client_id: oauth_client_id.to_string(),
-            work_context: work_context.to_string(),
-            principal_id: principal.id.to_string(),
-            tenant: principal.tenant.as_ref().map(ToString::to_string),
-            scopes: scopes.iter().map(ToString::to_string).collect(),
-            principal: serialize_principal(principal, principal_display_name)?,
-            current_generation: 0,
-            issued_at: now,
-            expires_at,
-            revoked_at: None,
-            revocation_reason: None,
+            delivery: None,
         };
         self.platform
-            .create_gateway_refresh_family(family, token_record)
+            .create_refresh_family(&family, &first)
             .await
             .context("failed to create gateway refresh-token family")?;
         Ok(IssuedGatewayRefreshToken {
@@ -297,105 +292,102 @@ impl GatewayState {
         token: &OAuthRefreshToken,
         request: GatewayRefreshRotationRequest<'_>,
     ) -> Result<GatewayRefreshExchange> {
-        let hash = refresh_token_hash(token);
+        let digest = refresh_token_digest(token);
         let Some((current, family)) = self
             .platform
-            .gateway_refresh_grant_by_hash(&hash)
+            .refresh_grant(&digest)
             .await
             .context("failed to read gateway refresh-token grant")?
         else {
             return Ok(GatewayRefreshExchange::Invalid);
         };
-        if family.authorization_server != request.authorization_server.as_str()
-            || family.profile != request.profile.as_str()
-            || family.oauth_client_id != request.oauth_client_id.as_str()
+        let binding = RefreshBinding {
+            authorization_server: request.authorization_server,
+            profile: request.profile,
+            oauth_client_id: request.oauth_client_id,
+        };
+        if !family.bound_to(binding)
+            || current.expires_at <= request.now
+            || family.expires_at <= request.now
         {
             return Ok(GatewayRefreshExchange::Invalid);
         }
-        if current.expires_at <= request.now || family.expires_at <= request.now {
-            return Ok(GatewayRefreshExchange::Invalid);
-        }
-        let success_audit = request.success_audit.clone();
-        let duplicate_delivery_audit = request.duplicate_delivery_audit.clone();
         let next_generation = current
             .generation
             .checked_add(1)
             .context("refresh-token generation overflow")?;
         let replacement_token = random_refresh_token()?;
-        let delivery_expires_at = std::cmp::min(
-            request.delivery_window.expires_at(request.now)?,
-            family.expires_at,
-        );
-        let delivery_envelope = request.delivery_cipher.seal(
-            &replacement_token,
-            &refresh_delivery_aad(&family, next_generation)?,
-        )?;
-        let replacement = GatewayRefreshTokenRecord {
-            id: gateway_refresh_token_record_id(Uuid::now_v7()),
-            family: family.id.clone(),
-            token_hash: refresh_token_hash(&replacement_token),
+        let delivery = RefreshDeliveryEnvelope {
+            envelope: request.delivery_cipher.seal(
+                &replacement_token,
+                &refresh_delivery_aad(&family, next_generation),
+            )?,
+            expires_at: std::cmp::min(
+                request.delivery_window.expires_at(request.now)?,
+                family.expires_at,
+            ),
+        };
+        let replacement = NewRefreshToken {
+            id: Uuid::now_v7(),
+            digest: refresh_token_digest(&replacement_token),
             generation: next_generation,
             issued_at: request.now,
             expires_at: family.expires_at,
-            consumed_at: None,
-            replacement: None,
-            replay_detected_at: None,
-            delivery_envelope: Some(delivery_envelope),
-            delivery_expires_at: Some(delivery_expires_at),
+            delivery: Some(delivery),
         };
-        match self
+        let rotation = self
             .platform
-            .rotate_gateway_refresh_token(
-                &hash,
-                replacement,
+            .rotate_refresh_token(
+                &digest,
+                &replacement,
                 request.now,
-                success_audit,
-                duplicate_delivery_audit,
+                &self.audit_write(request.success_audit)?,
+                &self.audit_write(request.duplicate_delivery_audit)?,
             )
             .await
-            .context("failed to rotate gateway refresh token")?
-        {
-            GatewayRefreshRotationOutcome::Rotated(rotation) => {
+            .context("failed to rotate gateway refresh token")?;
+        match rotation {
+            RefreshRotation::Rotated { family, .. } => {
                 Ok(GatewayRefreshExchange::Rotated(IssuedGatewayRefreshToken {
                     token: replacement_token,
-                    grant: grant_from_family(rotation.family)?,
+                    grant: grant_from_family(family),
                 }))
             }
-            GatewayRefreshRotationOutcome::Redelivered(redelivery) => {
-                let envelope = redelivery
-                    .replacement
-                    .delivery_envelope
+            RefreshRotation::Redelivered {
+                family,
+                replacement,
+            } => {
+                let envelope = replacement
+                    .delivery
                     .as_ref()
                     .context("duplicate refresh delivery is missing its encrypted envelope")?;
                 let token = request.delivery_cipher.open(
-                    envelope,
-                    &refresh_delivery_aad(&redelivery.family, redelivery.replacement.generation)?,
+                    &envelope.envelope,
+                    &refresh_delivery_aad(&family, replacement.generation),
                 )?;
-                if refresh_token_hash(&token) != redelivery.replacement.token_hash {
+                if refresh_token_digest(&token) != replacement.digest {
                     anyhow::bail!("duplicate refresh delivery token does not match its record");
                 }
                 Ok(GatewayRefreshExchange::DuplicateDelivery(
                     IssuedGatewayRefreshToken {
                         token,
-                        grant: grant_from_family(redelivery.family)?,
+                        grant: grant_from_family(family),
                     },
                 ))
             }
-            GatewayRefreshRotationOutcome::ReplayDetected(family) => {
-                Ok(GatewayRefreshExchange::ReplayDetected {
-                    grant: grant_from_family(*family)?,
-                })
-            }
-            GatewayRefreshRotationOutcome::Invalid => Ok(GatewayRefreshExchange::Invalid),
+            RefreshRotation::ReplayDetected(family) => Ok(GatewayRefreshExchange::ReplayDetected {
+                grant: grant_from_family(family),
+            }),
+            RefreshRotation::Invalid => Ok(GatewayRefreshExchange::Invalid),
         }
     }
 
     pub async fn prune_expired_refresh_tokens(
         &self,
         now: DateTime<Utc>,
-    ) -> Result<veoveo_platform_store::GatewayRefreshRetentionSummary> {
+    ) -> Result<RefreshRetention> {
         self.platform
-            .prune_expired_gateway_refresh_state(now)
+            .prune_refresh_state(now)
             .await
             .context("failed to prune expired gateway refresh-token state")
     }
@@ -405,71 +397,39 @@ impl GatewayState {
         now: DateTime<Utc>,
     ) -> Result<u64> {
         self.platform
-            .clear_expired_gateway_refresh_delivery_envelopes(now)
+            .clear_refresh_delivery_envelopes(now)
             .await
             .context("failed to clear expired gateway refresh delivery envelopes")
     }
 }
 
-pub(super) fn grant_from_family(family: GatewayRefreshFamilyRecord) -> Result<GatewayRefreshGrant> {
-    let family_id = family_id(&family)?;
-    let stored_principal: StoredPrincipal =
-        serde_json::from_value(serde_json::to_value(family.principal)?)?;
-    Ok(GatewayRefreshGrant {
-        family_id,
-        authorization_server: AuthorizationServerId::parse(family.authorization_server)?,
-        profile: GatewayProfileId::parse(family.profile)?,
-        oauth_client_id: OAuthClientId::parse(family.oauth_client_id)?,
-        work_context: WorkContextId::parse(family.work_context)?,
-        principal: stored_principal.principal,
-        principal_display_name: stored_principal.principal_display_name,
-        scopes: family
-            .scopes
-            .into_iter()
-            .map(ScopeName::parse)
-            .collect::<Result<_, _>>()?,
-        generation: u64::try_from(family.current_generation)
-            .context("stored refresh-token generation is negative")?,
+pub(super) fn grant_from_family(family: RefreshFamily) -> GatewayRefreshGrant {
+    GatewayRefreshGrant {
+        family_id: family.id,
+        authorization_server: family.authorization_server,
+        profile: family.profile,
+        oauth_client_id: family.oauth_client_id,
+        work_context: family.work_context,
+        principal: family.principal.principal,
+        principal_display_name: family.principal.display_name,
+        scopes: family.scopes,
+        generation: family.current_generation,
         issued_at: family.issued_at,
         expires_at: family.expires_at,
-    })
+    }
 }
 
-fn family_id(family: &GatewayRefreshFamilyRecord) -> Result<GatewayRefreshFamilyId> {
-    let RecordIdKey::Uuid(value) = &family.id.key else {
-        anyhow::bail!("stored refresh-token family id is not a UUID");
-    };
-    GatewayRefreshFamilyId::parse(value.to_string()).map_err(Into::into)
-}
-
-fn refresh_delivery_aad(family: &GatewayRefreshFamilyRecord, generation: i64) -> Result<Vec<u8>> {
-    Ok(format!(
+/// Binds a delivery envelope to its family's client, Work Context and generation.
+fn refresh_delivery_aad(family: &RefreshFamily, generation: u64) -> Vec<u8> {
+    format!(
         "veoveo-refresh-delivery-v2\0{}\0{}\0{}\0{}\0{}\0{generation}",
         family.authorization_server,
         family.profile,
         family.oauth_client_id,
         family.work_context,
-        family_id(family)?,
+        family.id,
     )
-    .into_bytes())
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(super) struct StoredPrincipal {
-    pub(super) principal: Principal,
-    pub(super) principal_display_name: PrincipalDisplayName,
-}
-
-pub(super) fn serialize_principal(
-    principal: &Principal,
-    principal_display_name: &PrincipalDisplayName,
-) -> Result<veoveo_platform_store::GatewayPrincipalRecord> {
-    let value = serde_json::to_value(StoredPrincipal {
-        principal: principal.clone(),
-        principal_display_name: principal_display_name.clone(),
-    })?;
-    serde_json::from_value(value).context("invalid refresh Principal snapshot")
+    .into_bytes()
 }
 
 fn random_refresh_token() -> Result<OAuthRefreshToken> {
@@ -478,23 +438,12 @@ fn random_refresh_token() -> Result<OAuthRefreshToken> {
     OAuthRefreshToken::parse(URL_SAFE_NO_PAD.encode(bytes)).map_err(Into::into)
 }
 
-fn refresh_token_hash(token: &OAuthRefreshToken) -> String {
-    let digest = Sha256::digest(token.as_str().as_bytes());
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
-}
-
-pub(super) fn deserialize_principal(
-    record: veoveo_platform_store::GatewayPrincipalRecord,
-) -> Result<StoredPrincipal> {
-    serde_json::from_value(serde_json::to_value(record)?)
-        .context("invalid retained Principal snapshot")
+fn refresh_token_digest(token: &OAuthRefreshToken) -> Sha256Digest {
+    Sha256Digest::from_bytes(Sha256::digest(token.as_str().as_bytes()).into())
 }
 
 #[cfg(test)]
 mod tests {
-    use veoveo_mcp_contract::{PrincipalKind, TokenIssuer, TokenSubject};
-    use veoveo_types::{PrincipalId, TenantId};
-
     use super::*;
 
     const TEST_KEY: &[u8; 32] = b"0123456789abcdef0123456789abcdef";
@@ -529,27 +478,11 @@ mod tests {
     }
 
     #[test]
-    fn refresh_principal_state_preserves_display_metadata() {
-        let principal = Principal {
-            id: PrincipalId::parse("https://idp.example#alice").unwrap(),
-            kind: PrincipalKind::User,
-            issuer: TokenIssuer::parse("https://idp.example").unwrap(),
-            subject: TokenSubject::parse("alice").unwrap(),
-            tenant: Some(TenantId::parse("tenant-a").unwrap()),
-            groups: BTreeSet::new(),
-            group_roles: BTreeSet::new(),
-            roles: BTreeSet::new(),
-            scopes: BTreeSet::new(),
-            data_labels: BTreeSet::new(),
-            assurances: BTreeSet::new(),
-            authenticated_at: Some(Utc::now()),
-        };
-        let display_name = PrincipalDisplayName::new("Alice Example").unwrap();
-        let encoded = serialize_principal(&principal, &display_name).unwrap();
-        let decoded: StoredPrincipal =
-            serde_json::from_value(serde_json::to_value(encoded).unwrap()).unwrap();
-
-        assert_eq!(decoded.principal, principal);
-        assert_eq!(decoded.principal_display_name, display_name);
+    fn refresh_digests_name_their_algorithm_and_never_contain_the_token() {
+        let token = OAuthRefreshToken::parse("t".repeat(43)).unwrap();
+        let digest = refresh_token_digest(&token);
+        assert!(digest.as_str().starts_with("sha256:"));
+        assert!(!digest.as_str().contains(token.as_str()));
+        assert_eq!(digest, refresh_token_digest(&token));
     }
 }

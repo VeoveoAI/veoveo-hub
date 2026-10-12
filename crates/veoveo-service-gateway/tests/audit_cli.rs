@@ -1,15 +1,14 @@
-//! Public verification against root-tampered records in an owned RocksDB database.
-use veoveo_test_fixtures::store::{Server, Storage, module_lanes};
+//! Public verification against records an administrator tampered with in a fresh
+//! PostgreSQL database.
+use veoveo_test_fixtures::store::TestDb;
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 use chrono::{TimeDelta, Utc};
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::ExposeSecret;
 use serde::Deserialize;
 use std::{num::NonZeroU32, process::Output, sync::Arc, time::Duration};
-use surrealdb::types::{Array, RecordId, SurrealValue};
 use tokio::process::Command;
 use veoveo_audit::{integrity::AuditSigningKey, *};
-use veoveo_platform_store::{PlatformStore, StoreConfig, StoreCredentials, StoreError};
 
 #[derive(Clone, Copy, Debug)]
 enum Attack {
@@ -45,38 +44,17 @@ fn decode_verification_report(bytes: &[u8]) -> VerificationReport {
     report
 }
 
-async fn connect(endpoint: &str, password: &SecretString) -> PlatformStore {
-    let config = StoreConfig::builder(
-        endpoint,
-        "audit_cli_fixture",
-        format!("case_{}", uuid::Uuid::now_v7().simple()),
-        StoreCredentials::root("fixture_admin", password.clone()),
+/// The audit log of a fresh database, read and written as the installation owner.
+fn audit(db: &TestDb) -> AuditStore {
+    AuditStore::new(
+        db.a.clone(),
+        veoveo_service_gateway::kernel_audit_target_registry(),
     )
-    .audit_targets(veoveo_service_gateway::kernel_audit_target_registry())
-    .build()
-    .unwrap();
-    tokio::time::timeout(Duration::from_secs(45), async {
-        loop {
-            match PlatformStore::connect(config.clone()).await {
-                Ok(store) => {
-                    module_lanes::install(&store, Vec::new()).await.unwrap();
-                    return store;
-                }
-                Err(error @ (StoreError::FreshInstallationRequired | StoreError::Config(_))) => {
-                    panic!("audit CLI fixture initialization failed: {error}");
-                }
-                Err(_) => tokio::time::sleep(Duration::from_millis(100)).await,
-            }
-        }
-    })
-    .await
-    .expect("audit CLI fixture initialization exceeded 45 seconds")
 }
 
-async fn verify(store: &PlatformStore, password: &SecretString, key: &AuditSigningKey) -> Output {
+async fn verify(db: &TestDb, key: &AuditSigningKey) -> Output {
     audit_command(
-        store,
-        password,
+        db,
         &[
             "verify",
             "--installation",
@@ -87,8 +65,7 @@ async fn verify(store: &PlatformStore, password: &SecretString, key: &AuditSigni
     .await
 }
 
-async fn audit_command(store: &PlatformStore, password: &SecretString, args: &[&str]) -> Output {
-    let config = store.config();
+async fn audit_command(db: &TestDb, args: &[&str]) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_veoveo-service-gateway"));
     // A fixture must neither load the worktree .env nor inherit installation credentials.
     command
@@ -101,12 +78,8 @@ async fn audit_command(store: &PlatformStore, password: &SecretString, args: &[&
         // CLI commands must not initialize server exporters or put logs on stdout.
         .env("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:9")
         .env("RUST_LOG", "info")
-        .env("VEOVEO_SURREAL_ENDPOINT", config.endpoint().as_str())
-        .env("VEOVEO_SURREAL_NAMESPACE", config.namespace())
-        .env("VEOVEO_SURREAL_DATABASE", config.database())
-        .env("VEOVEO_SURREAL_AUTH_LEVEL", "root")
-        .env("VEOVEO_SURREAL_USERNAME", "fixture_admin")
-        .env("VEOVEO_SURREAL_PASSWORD", password.expose_secret());
+        .env("VEOVEO_DATABASE_URL", db.url())
+        .env("VEOVEO_DATABASE_PASSWORD", db.password().expose_secret());
     if let Some(path) = std::env::var_os("LD_LIBRARY_PATH") {
         command.env("LD_LIBRARY_PATH", path);
     }
@@ -121,24 +94,24 @@ async fn audit_command(store: &PlatformStore, password: &SecretString, args: &[&
     output
 }
 
-fn diagnostic(output: &Output, password: &SecretString) -> String {
-    String::from_utf8_lossy(&output.stderr).replace(password.expose_secret(), "[REDACTED]")
+fn diagnostic(output: &Output, db: &TestDb) -> String {
+    String::from_utf8_lossy(&output.stderr).replace(db.password().expose_secret(), "[REDACTED]")
 }
 
-async fn qualify_export(store: &PlatformStore, password: &SecretString) {
+async fn qualify_export(db: &TestDb) {
     let service = AuditService::start(
-        store.clone(),
+        audit(db),
         Arc::new(AuditSigningKey::from_seed(&[38; 32])),
         NonZeroU32::new(7).unwrap(),
         Default::default(),
     )
     .unwrap();
-    let output = audit_command(store, password, &["export", "--installation"]).await;
+    let output = audit_command(db, &["export", "--installation"]).await;
     service.shutdown(Duration::from_secs(15)).await.unwrap();
     assert!(
         output.status.success(),
         "audit export failed: {}",
-        diagnostic(&output, password)
+        diagnostic(&output, db)
     );
     let lines: Vec<AuditExportLine> = String::from_utf8(output.stdout)
         .unwrap()
@@ -173,7 +146,8 @@ async fn qualify_export(store: &PlatformStore, password: &SecretString) {
     );
 }
 
-async fn qualify(store: &PlatformStore, password: &SecretString, attack: Attack) {
+async fn qualify(db: &TestDb, attack: Attack) {
+    let store = audit(db);
     let key = Arc::new(AuditSigningKey::from_seed(&[37; 32]));
     let service = AuditService::start(
         store.clone(),
@@ -198,28 +172,25 @@ async fn qualify(store: &PlatformStore, password: &SecretString, attack: Attack)
         }
         let draft = builder.build().unwrap();
         ids.push(draft.id());
-        store.append_audit_records(&[draft]).await.unwrap();
+        store.append(&[draft]).await.unwrap();
         tokio::time::timeout(
             Duration::from_secs(20),
-            store.audit_wait_sealed(&scope, &partition, *ids.last().unwrap()),
+            store.wait_sealed(&scope, &partition, *ids.last().unwrap()),
         )
         .await
         .expect("fixture record was not sealed")
         .unwrap();
     }
     service.shutdown(Duration::from_secs(15)).await.unwrap();
-    let blocks = store
-        .audit_blocks(&scope, &partition, None, 10)
-        .await
-        .unwrap();
+    let blocks = store.blocks(&scope, &partition, None, 10).await.unwrap();
     assert_eq!(blocks.len(), 2);
 
     if !matches!(attack, Attack::BackdatedInsert) {
-        let output = verify(store, password, &key).await;
+        let output = verify(db, &key).await;
         assert!(
             output.status.success(),
             "pristine audit CLI verification failed: {}",
-            diagnostic(&output, password)
+            diagnostic(&output, db)
         );
         let report: VerificationReport = decode_verification_report(&output.stdout);
         assert_eq!(
@@ -229,45 +200,61 @@ async fn qualify(store: &PlatformStore, password: &SecretString, attack: Attack)
         assert_eq!(report.checkpoint, blocks[1].checkpoint());
     }
 
-    let record = veoveo_platform_store::audit::record_id(&partition, ids[0]);
-    let block = RecordId::new(
-        "audit_block",
-        Array::from(vec![
-            partition.storage_key().into_value(),
-            (blocks[0].head.sequence.get() as i64).into_value(),
-        ]),
-    );
-    let statement = match attack {
+    // The installation owner owns the audit tables and models a database administrator.
+    let pool = db.a.pool();
+    let record = ids[0].as_uuid();
+    let block_partition = partition.storage_key();
+    let block_sequence = i64::try_from(blocks[0].head.sequence.get()).unwrap();
+    match attack {
         Attack::ChangedRecord => {
-            include_str!("queries/audit_cli/qualify/statement_1.surql")
+            sqlx::query_file!("tests/audit_cli/allow_record_updates.sql")
+                .execute(pool)
+                .await
+                .unwrap();
+            sqlx::query_file!("tests/audit_cli/change_record.sql", record)
+                .execute(pool)
+                .await
+                .unwrap();
         }
-        Attack::DeletedRecord => include_str!("queries/audit_cli/qualify/statement_2.surql"),
-        Attack::DeletedBlock => include_str!("queries/audit_cli/qualify/statement_3.surql"),
+        Attack::DeletedRecord => {
+            sqlx::query_file!("tests/audit_cli/delete_record.sql", record)
+                .execute(pool)
+                .await
+                .unwrap();
+        }
+        Attack::DeletedBlock => {
+            sqlx::query_file!(
+                "tests/audit_cli/delete_block.sql",
+                block_partition,
+                block_sequence
+            )
+            .execute(pool)
+            .await
+            .unwrap();
+        }
         Attack::ForgedSignature => {
-            include_str!("queries/audit_cli/qualify/statement_4.surql")
+            sqlx::query_file!("tests/audit_cli/allow_block_updates.sql")
+                .execute(pool)
+                .await
+                .unwrap();
+            sqlx::query_file!(
+                "tests/audit_cli/forge_signature.sql",
+                block_partition,
+                block_sequence,
+                serde_json::to_value(AuditSignature::from_bytes([0; 64])).unwrap(),
+            )
+            .execute(pool)
+            .await
+            .unwrap();
         }
-        Attack::BackdatedInsert => include_str!("queries/audit_cli/qualify/statement_5.surql"),
-    };
-    // Only the owned root client weakens READONLY fields to model a database administrator.
-    store
-        .client()
-        .query(statement)
-        .bind(("record", record))
-        .bind(("block", block))
-        .bind((
-            "signature",
-            serde_json::to_value(AuditSignature::from_bytes([0; 64])).unwrap(),
-        ))
-        .await
-        .unwrap()
-        .check()
-        .unwrap();
-    let output = verify(store, password, &key).await;
+        Attack::BackdatedInsert => {}
+    }
+    let output = verify(db, &key).await;
     assert!(
         !output.status.success(),
         "{attack:?} was accepted by audit verify"
     );
-    let error = diagnostic(&output, password);
+    let error = diagnostic(&output, db);
     let expected = match attack {
         Attack::ChangedRecord => "record hash does not match",
         Attack::DeletedRecord => "audit row identity or document is inconsistent",
@@ -292,14 +279,6 @@ async fn qualify(store: &PlatformStore, password: &SecretString, attack: Attack)
 #[tokio::test]
 async fn public_verify_detects_root_tampering_and_backdated_inserts() {
     tokio::time::timeout(Duration::from_secs(240), async {
-        let password = SecretString::from(format!(
-            "{}{}",
-            uuid::Uuid::now_v7().simple(),
-            uuid::Uuid::now_v7().simple()
-        ));
-        let (_server, endpoint) = Server::start(Storage::RocksDb, password.expose_secret())
-            .await
-            .unwrap();
         for attack in [
             Attack::ChangedRecord,
             Attack::DeletedRecord,
@@ -307,11 +286,9 @@ async fn public_verify_detects_root_tampering_and_backdated_inserts() {
             Attack::ForgedSignature,
             Attack::BackdatedInsert,
         ] {
-            let store = connect(&endpoint, &password).await;
-            qualify(&store, &password, attack).await;
+            qualify(&TestDb::new().await, attack).await;
         }
-        let store = connect(&endpoint, &password).await;
-        qualify_export(&store, &password).await;
+        qualify_export(&TestDb::new().await).await;
     })
     .await
     .expect("audit CLI acceptance exceeded 240 seconds");

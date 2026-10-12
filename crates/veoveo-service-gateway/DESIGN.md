@@ -18,7 +18,7 @@ Neither its code nor its configuration names a server.
 | Authorization server metadata, RFC 8414 | `/.well-known/oauth-authorization-server` for the Gateway's issuer and `/.well-known/oauth-authorization-server/oauth` for the hosted authorization server |
 | Protected resource metadata, RFC 9728 | `/.well-known/oauth-protected-resource/mcp/{profile}` |
 | Problem details, RFC 9457 | HTTP API errors outside OAuth endpoints, typed `https://veoveo.ai/problems/<code>` |
-| SurrealDB 3.3.0 | Platform store, LIVE queries for registration changes, and migrations through core's module runner |
+| PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, including `gateway`, applied at startup; `LISTEN` on the `gateway` channel for registration changes; one login role per registration |
 | OpenTelemetry | `service.name` is `veoveo-service-gateway` |
 | Veoveo installation configuration | `GatewayControlPlane` from `veoveo-mcp-contract`, read as JSON |
 
@@ -26,27 +26,30 @@ Neither its code nor its configuration names a server.
 
 `veoveo-service-gateway serve` starts in this order:
 
-1. Connect to SurrealDB. With root credentials it first creates the namespace and the
-   database. It waits up to `VEOVEO_DATABASE_WAIT_SECONDS` for the database.
-2. Apply pending kernel migrations with core's module runner. The runner's registry
-   also holds every module a namespace claim recorded, because the database holds
-   their history.
+1. Connect to PostgreSQL with `VEOVEO_DATABASE_URL` and `VEOVEO_DATABASE_PASSWORD`,
+   waiting up to `VEOVEO_DATABASE_WAIT_SECONDS` for the database to accept the login.
+2. Apply pending kernel migrations with `PlatformStore::migrate`. Replicas starting
+   together wait on the migrator's lock.
 3. Load the installation configuration from `VEOVEO_CONFIG` and publish it as the
-   active revision when its digest differs from the active one.
-4. Load the registrations, start the LIVE watcher and listen on
-   `VEOVEO_LISTEN_ADDRESS`.
+   active revision when its digest differs from the active one. A replica that loses
+   the publication to another one with the same file continues.
+4. Load the registrations, start the registration listener and the housekeeping loop,
+   and listen on `VEOVEO_LISTEN_ADDRESS`.
 
-The Gateway's credentials must be able to apply migrations and define database users:
-root, or a database user with the `OWNER` role. The other commands are `validate`,
-`resolve-secret`, `audit` and `generate-local-installation`.
+The Gateway connects as the installation owner, a role that owns the database and has
+`CREATEROLE`, because it applies the kernel migrations and creates each registration's
+login. The other commands are `validate`, `resolve-secret`, `audit` and
+`generate-local-installation`; `audit` reads the same database settings.
 
 | Variable | Meaning |
 |---|---|
 | `VEOVEO_LISTEN_ADDRESS` | Socket address, `127.0.0.1:8080` by default |
 | `VEOVEO_ISSUER` | The Gateway's public origin: its RFC 8414 issuer, the `iss` of forwarded tokens and the base of every URL it announces |
 | `VEOVEO_CONFIG` | Installation configuration file |
-| `VEOVEO_SURREAL_ENDPOINT`, `_NAMESPACE`, `_DATABASE`, `_AUTH_LEVEL`, `_USERNAME`, `_PASSWORD` | Platform database |
-| `VEOVEO_SERVER_DATABASE_ENDPOINT` | The database endpoint registration responses name, when servers reach it at another address |
+| `VEOVEO_DATABASE_URL`, `VEOVEO_DATABASE_PASSWORD` | The installation database as a `postgres://` URL naming host, database and user, and the user's password |
+| `VEOVEO_DATABASE_WAIT_SECONDS` | How long startup waits for the database, 60 seconds by default |
+| `VEOVEO_SERVER_DATABASE_URL` | The database URL registration grants name, when servers reach it at another address; by default the Gateway's own URL without its user |
+| `VEOVEO_REGISTRATION_GRACE_SECONDS` | How long a registration may go without a live process before the Gateway removes it, 60 seconds by default |
 | `VEOVEO_FORWARDED_TOKEN_KEY_B64` | Ed25519 PKCS#8 key that signs forwarded tokens |
 | `VEOVEO_REFRESH_DELIVERY_KEY_B64` | 32-byte key for refresh successor envelopes |
 | `VEOVEO_AUDIT_SIGNING_KEY_B64`, `VEOVEO_AUDIT_RETENTION_DAYS`, `VEOVEO_AUDIT_EXPORT_CONFIG` | Audit sealing, retention and export |
@@ -65,8 +68,7 @@ own actions, and two sections for registered servers:
 
 - `authorization`: roles that select permissions by access kind and risk, grants of
   roles to groups or principals, and overrides that add a risk to or deny a permission;
-- `registration`: the secret reference of the registration secret and the lease
-  timings, renewal every 10 seconds and expiry after 30 by default.
+- `registration`: the secret reference of the registration secret.
 
 `generate-local-installation` writes a complete local installation: the
 configuration, its secrets, and two client-credentials callers, `acceptance-member`
@@ -78,34 +80,43 @@ and `acceptance-admin`, that hold the `member` and `admin` roles.
 protocol](https://github.com/VeoveoAI/veoveo-core/blob/main/mcp/ext-registration/DESIGN.md)
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
-the software statement against the pinned key and the endpoint URL, then the module.
+then the software statement against the pinned key and the endpoint URL.
 
-| Table | Holds |
+| Table in core's `gateway` schema | Holds |
 |---|---|
-| `gateway_namespace_claim` | One row per slug: the RFC 7638 thumbprint of the pinned key and the module manifest whose migrations the Gateway applied |
-| `gateway_registration` | One row per registration: client identifier, metadata, software statement, SHA-256 digest of the registration access token, database user and lease expiry |
+| `namespace_claim` | One row per slug: the RFC 7638 thumbprint of the pinned key |
+| `registration` | One row per registration: client identifier, metadata, software statement, SHA-256 digest of the registration access token, its login and when the Gateway last saw that login hold a live process |
 
-The first registration of a slug creates its claim. A later version may append
-migrations to the recorded module; a manifest that changes an applied migration is
-refused with `invalid_client_metadata`, and an older version whose migrations are a
-prefix of the record registers without migrating. Each registration with a module
-receives its own database user, `{slug}_{suffix}` with the `EDITOR` role over the whole
-database, which the Gateway removes when the registration ends. Admissions on one
-replica are serialized, so each migration sees the other claims.
+One transaction registers a server: it claims the namespace on the slug's first
+registration, or finds it pinned to the same key, calls `kernel.ensure_server` for the
+server's group role `server_<schema>` and its schema, creates the registration's login
+with `kernel.create_server_login`, and inserts the registration row. A namespace pinned
+to another key is refused with `unapproved_software_statement`. The login is
+`<schema>_<suffix>`, where the suffix is the last 14 hexadecimal digits of the client
+identifier, and its password is 256 random bits. The response grants the login as
+`veoveo_database`: `VEOVEO_SERVER_DATABASE_URL`, or the Gateway's own URL without its
+user, with the login and its password. The Gateway keeps only the login's name.
 
-A renewal is an update that repeats the metadata. The Gateway extends the lease and
-returns the presented registration access token, so tokens do not rotate. An update
-with changed declarations takes full admission. Reads return the stored statement.
-A registration whose lease lapsed answers HTTP 401, and its row and database user are
-removed. Every claim, migration, registration, declaration update, removal and expiry
-writes an audit record; renewals do not.
+A server takes its group role, applies its own migrations in its schema and holds a
+kernel instance on its login while it serves. An RFC 7592 update replaces the stored
+metadata when it changed and writes nothing otherwise; it never extends anything.
+Reads return the stored statement. A `DELETE` removes the row and drops the login in
+one transaction, and the registration access token then answers HTTP 401.
 
-Every replica follows `gateway_registration` through a LIVE query and checks leases
-every second. It routes each slug to its newest current registration and replaces
-the catalog only when the routed set or a declaration changes, so renewals leave the
-discovery caches intact. Requests in flight finish on the catalog snapshot they
-started with. Server health comes from the leases: healthy while renewals arrive on
-schedule, degraded after a late renewal.
+A process can end without deregistering. Every replica's housekeeping loop runs every 5
+seconds: it stamps the registrations whose logins hold a live kernel instance, then
+removes the registrations whose logins held none for `VEOVEO_REGISTRATION_GRACE_SECONDS`
+and drops their logins in the same transaction. Each claim, registration, declaration
+update, deregistration and removal writes an audit record.
+
+Every replica listens on the `gateway` channel. A row inserted or deleted, or a
+metadata change, wakes it to reload the registrations, and so does every reconnection
+of the listener, because PostgreSQL does not replay notifications. Liveness stamps wake
+no one. A replica routes each slug to its newest registration and replaces the catalog
+only when the routed set or a declaration changes, so discovery caches stay intact
+otherwise. Requests in flight finish on the catalog snapshot they started with. Server
+health comes from liveness: healthy while the routed registration's login holds a live
+instance, degraded until housekeeping removes it.
 
 ## Routing And Catalog
 
@@ -179,27 +190,38 @@ Every route except the probes requires a `Host` header naming the issuer's host.
 
 ## Persistence
 
-The library embeds its SurrealQL from `src/queries/`, one file per statement; tests
-use `tests/queries/`. Callers bind every runtime value. The Gateway's tables belong
-to the kernel `gateway` module in `veoveo-platform-store`.
+The `gateway` schema belongs to core: its migration ships with the kernel migrations in
+`veoveo-platform-store`, which the Gateway applies at startup. With the store's
+`gateway` feature the Gateway reads and writes its OAuth state, refresh families,
+revocations, replay identifiers, control-plane revisions and Artifact upload authority
+through the store's typed API. Refresh rotation and control-plane publication commit
+their audit records in the same transaction through the Audit API's transactional
+append; an audit record that cannot commit rolls the change back.
+
+The Gateway's own statements, for registrations and Task routes, are `.sql` files
+beside the modules that run them, checked at compile time through sqlx's `query_file!`
+macros against the metadata in `.sqlx`; tests keep theirs under `tests/`. No Rust code
+builds SQL text.
 
 ## Qualification
 
-`tests/registration.rs` starts the binary against a disposable SurrealDB with a
+`tests/registration.rs` starts the binary against a fresh PostgreSQL database with a
 generated local installation, registers core's modular fixture server with core's
 registration client and calls the Gateway as both acceptance callers. It checks the
-pinned namespace, the initial access token, role decisions by risk, refusal of
-undeclared resources, the permissions each forwarded token carries, and that an
-expired lease removes the server. Unit and store tests cover the catalog, policy
-adapter, discovery cache, Task routes, refresh families, audit readers and the
-control store.
+pinned namespace, the initial access token, the database grant, which migrates the
+server's schema as its group role and holds the server's kernel instance, role
+decisions by risk, refusal of undeclared resources, the permissions each forwarded
+token carries, that deregistration drops a registration's login, and that a process
+that ends without deregistering loses its registration and login after the grace
+period. Unit and database tests cover the catalog, policy adapter, discovery cache,
+Task routes, refresh families, session binding, audit readers and the control store.
 
 ## Contract Compliance
 
 - Several versions of one slug may hold registrations; the newest routes until
   session version selection exists.
-- A server's database user has database-wide `EDITOR` access; limiting it to the
-  server's table prefix is tracked separately.
+- A server stays registered only while its registration's login holds a live kernel
+  instance; a server that never starts one is removed after the grace period.
 - Servers are reached at their registered endpoint; dial-in is not implemented.
 - Concrete resources a server adds at run time appear in `resources/list` after the
   next catalog generation; templates and reads are always current.

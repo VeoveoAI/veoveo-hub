@@ -31,7 +31,8 @@ pub use catalog::{
     GatewayAuthorityError, GatewayCatalog, GatewayCatalogHandle, GatewayCatalogSnapshot,
 };
 pub use control_store::{
-    GatewayControlPlaneRevisionHead, GatewayControlStore, new_gateway_control_plane_revision_id,
+    GatewayControlPlaneRevisionHead, GatewayControlStore, is_revision_conflict,
+    new_gateway_control_plane_revision_id,
 };
 pub use mcp::{
     GatewayMcp, GatewayServerHealth, GatewayServerHealthState, GatewayUpstreamHttpClientPool,

@@ -1,6 +1,6 @@
 use veoveo_test_fixtures::store as fixture;
 
-use chrono::{TimeDelta, Utc};
+use chrono::{SubsecRound, TimeDelta, Utc};
 use std::{collections::BTreeSet, num::NonZeroU32};
 use veoveo_gateway_contract::{AuthorizationServerId, ProtectedResourceId};
 use veoveo_mcp_contract::*;
@@ -37,7 +37,7 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
     let cipher = RefreshTokenDeliveryCipher::new(b"0123456789abcdef0123456789abcdef").unwrap();
     // Each case has its own real family, using the same two independent clients.
     for ending in ["logout", "replay", "expiry", "missing"] {
-        let now = Utc::now();
+        let now = Utc::now().trunc_subsecs(6);
         let issued = first
             .issue_refresh_token(GatewayRefreshIssueRequest {
                 authorization_server: &authorization_server,
@@ -192,26 +192,24 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
                     .unwrap(),
                 GatewayRefreshExchange::ReplayDetected { .. }
             )),
+            "expiry" => {
+                sqlx::query_file!(
+                    "tests/session_family/expire_family.sql",
+                    issued.grant.family_id.as_uuid(),
+                    Utc::now() - TimeDelta::seconds(1),
+                )
+                .execute(db.a.pool())
+                .await
+                .unwrap();
+            }
             _ => {
-                let family = veoveo_platform_store::gateway_refresh_family_record_id(
-                    issued.grant.family_id.as_str().parse().unwrap(),
-                );
-                let sql = if ending == "expiry" {
-                    include_str!(
-                        "queries/session_family/session_binding_survives_rotation_and_rejects_cross_replica_revocation/statement_1.surql"
-                    )
-                } else {
-                    include_str!(
-                        "queries/session_family/session_binding_survives_rotation_and_rejects_cross_replica_revocation/statement_2.surql"
-                    )
-                };
-                db.a.client()
-                    .query(sql)
-                    .bind(("family", family))
-                    .await
-                    .unwrap()
-                    .check()
-                    .unwrap();
+                sqlx::query_file!(
+                    "tests/session_family/delete_family.sql",
+                    issued.grant.family_id.as_uuid(),
+                )
+                .execute(db.a.pool())
+                .await
+                .unwrap();
             }
         }
         // A still-unexpired signed access token cannot outlive committed family revocation.

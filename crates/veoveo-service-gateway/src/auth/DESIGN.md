@@ -10,7 +10,7 @@
 | JWK Thumbprint, RFC 7638 | The `kid` of the hosted authorization server's key, which the configuration repeats as `accessTokenKeyId` |
 | Token revocation, RFC 7009, and OAuth security BCP, RFC 9700 | Refresh-family rotation, replay detection and revocation |
 | Veoveo access token claims | Collision-resistant names under `https://veoveo.ai/claims/`: `principal`, `principal-display-name`, `principal-kind`, `session-family`, `work-context`, `invocation-mode`, `initiator`, `delegation`, `tenant`, `data-labels` and `principal-assurances`; `managed-execution` is reserved and never accepted from a token |
-| SurrealDB 3.3.0 | Refresh families, replay guards, JWT revocations and audit records shared by every replica |
+| PostgreSQL 18 | Refresh families, replay guards, JWT revocations and audit records shared by every replica, in core's `gateway` and `audit` schemas |
 
 The forwarded tokens the Gateway sends to registered servers are a separate profile,
 defined by core's [server registration protocol](https://github.com/VeoveoAI/veoveo-core/blob/main/mcp/ext-registration/DESIGN.md#forwarded-identity).
@@ -44,7 +44,11 @@ tokens, as RFC 7009 §2.1 allows. The family predicate lives in core's
 
 Refresh tokens reference their family with `ON DELETE CASCADE`, so deleting a family
 removes its tokens in the same transaction. Revocation keeps the family until expiry
-so that replay stays detectable.
+so that replay stays detectable. The store keeps each token's SHA-256 digest, never the
+token. Rotation locks the family's row, so concurrent presentations of one token
+serialize across replicas: the first rotates it and commits its audit record in the same
+transaction, a presentation inside the successor's delivery window receives the same
+successor from its encrypted envelope, and a later one revokes the family.
 
 ## Request Context And Audit
 

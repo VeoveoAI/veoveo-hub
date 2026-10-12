@@ -1,51 +1,55 @@
-//! Every replica observes registrations through a SurrealDB LIVE query and routes to
-//! the servers whose leases are current. A lease that lapses leaves routing at the
-//! next tick, on every replica, whether or not its row was already removed.
+//! Every replica follows registrations through notifications on the `gateway` channel
+//! and routes each server to its newest registration. A housekeeping loop removes the
+//! registrations whose logins hold no live kernel instance for the grace period.
 
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{TimeDelta, Utc};
 use futures::StreamExt;
 use tokio_util::sync::CancellationToken;
 use veoveo_audit_contract::RegistrationActivity;
 use veoveo_mcp_ext_registration::ClientMetadata;
-use veoveo_platform_store::{ObservationReplay, ObservationTable};
+use veoveo_platform_store::{ChangeSignal, Channel};
 use veoveo_types::{OAuthClientId, ServerSlug};
 
 use super::{
     RegisteredServer, RegistrationService, RegistrationSnapshot, ServerCapabilities,
-    store::{REGISTRATION_TABLE, StoredRegistration},
+    store::StoredRegistration,
 };
 use crate::{GatewayServerHealth, GatewayServerHealthState};
 
-const TICK: Duration = Duration::from_secs(1);
-const RECONNECT: Duration = Duration::from_secs(1);
+/// How often a replica records which logins hold a live instance and collects the
+/// registrations that held none for the grace period.
+pub const HOUSEKEEPING_INTERVAL: Duration = Duration::from_secs(5);
+
+/// The table whose changes reload registrations.
+const REGISTRATION_TABLE: &str = "registration";
 
 #[derive(Default)]
 pub(crate) struct LiveRegistrations {
     rows: BTreeMap<OAuthClientId, StoredRegistration>,
     /// The client and metadata of every routed server, to replace the catalog only
-    /// when routing changes rather than on every renewal.
+    /// when routing changes.
     routed: Vec<(OAuthClientId, ClientMetadata)>,
 }
 
 impl RegistrationService {
-    /// Reload every registration and route to the current ones.
+    /// Reload every registration and route to the newest of each server.
     pub async fn refresh(&self) -> anyhow::Result<()> {
         let rows = self.inner.store.registrations().await?;
         self.inner.live.write().rows = rows
             .into_iter()
             .map(|row| (row.client_id.clone(), row))
             .collect();
-        self.route(Utc::now());
+        self.route();
         Ok(())
     }
 
-    /// Route to the newest current registration of each slug.
-    fn route(&self, now: DateTime<Utc>) {
+    /// Route to the newest registration of each slug.
+    fn route(&self) {
         let mut live = self.inner.live.write();
         let mut chosen: BTreeMap<ServerSlug, &StoredRegistration> = BTreeMap::new();
-        for row in live.rows.values().filter(|row| row.lease_expires_at > now) {
+        for row in live.rows.values() {
             let slug = row.metadata.slug().clone();
             match chosen.get(&slug) {
                 Some(current) if current.issued_at >= row.issued_at => {}
@@ -71,105 +75,97 @@ impl RegistrationService {
         self.inner.catalog.replace_registrations(snapshot);
     }
 
-    /// Remove lapsed registrations from the store and from routing.
-    async fn sweep(&self) -> anyhow::Result<()> {
+    /// Record live registrations and remove the ones whose logins held no live instance
+    /// for the grace period, with their logins.
+    pub async fn collect_abandoned(&self) -> anyhow::Result<()> {
         let now = Utc::now();
-        for expired in self.inner.store.expire(now).await? {
-            self.release(&expired, RegistrationActivity::Expire).await?;
+        let grace = TimeDelta::from_std(self.inner.grace)?;
+        for ended in self.inner.store.collect(now, now - grace).await? {
+            self.ended(&ended, RegistrationActivity::Expire).await?;
         }
-        self.route(now);
         Ok(())
     }
 
-    /// Lease health of every routed server: healthy while it renews on schedule,
-    /// degraded once a renewal is late.
-    pub fn health(&self) -> BTreeMap<ServerSlug, GatewayServerHealth> {
-        let renew = TimeDelta::seconds(i64::from(
-            self.inner
-                .catalog
-                .current()
-                .control_plane()
-                .registration
-                .as_ref()
-                .map(|settings| settings.lease.renew_every_seconds)
-                .unwrap_or(10),
-        ));
-        let now = Utc::now();
-        let live = self.inner.live.read();
-        live.routed
+    /// Health of every routed server: healthy while its login holds a live kernel
+    /// instance, degraded until the grace period removes it.
+    pub async fn health(&self) -> anyhow::Result<BTreeMap<ServerSlug, GatewayServerHealth>> {
+        let routed = self
+            .inner
+            .live
+            .read()
+            .routed
             .iter()
-            .filter_map(|(client_id, _)| live.rows.get(client_id))
-            .map(|row| {
-                let state = if row.lease_expires_at <= now {
-                    GatewayServerHealthState::Offline
-                } else if now - row.updated_at > renew + renew / 2 {
-                    GatewayServerHealthState::Degraded
-                } else {
-                    GatewayServerHealthState::Healthy
-                };
-                (
-                    row.metadata.slug().clone(),
+            .map(|(client_id, _)| client_id.clone())
+            .collect::<Vec<_>>();
+        let now = Utc::now();
+        Ok(self
+            .inner
+            .store
+            .liveness(&routed)
+            .await?
+            .into_iter()
+            .map(|liveness| {
+                let health = if liveness.alive {
                     GatewayServerHealth {
-                        state,
-                        checked_at: row.updated_at,
-                    },
-                )
+                        state: GatewayServerHealthState::Healthy,
+                        checked_at: now,
+                    }
+                } else {
+                    GatewayServerHealth {
+                        state: GatewayServerHealthState::Degraded,
+                        checked_at: liveness.live_at,
+                    }
+                };
+                (liveness.server, health)
             })
-            .collect()
+            .collect())
     }
 
-    /// Follow registration changes until `stop` fires.
+    /// Follow registration changes until `stop` fires. The stream asks for a reload
+    /// once subscribed and after every reconnection.
     pub fn spawn_watcher(&self, stop: CancellationToken) -> tokio::task::JoinHandle<()> {
         let service = self.clone();
         tokio::spawn(async move {
-            let table = ObservationTable::new(
-                veoveo_modules::TableName::new(REGISTRATION_TABLE).expect("registration table"),
-                ObservationReplay::LiveOnly,
-            );
+            let mut changes = service
+                .inner
+                .store
+                .platform()
+                .listen(vec![Channel::GATEWAY]);
             loop {
-                let stream = service
-                    .inner
-                    .store
-                    .platform()
-                    .live::<surrealdb::types::Value>(table.clone())
-                    .await;
-                match stream {
-                    Ok(mut stream) => {
-                        // Rows written before the LIVE query registered arrive here.
-                        if let Err(error) = service.refresh().await {
-                            tracing::error!("registration reload failed: {error:#}");
-                        }
-                        let mut tick = tokio::time::interval(TICK);
-                        loop {
-                            tokio::select! {
-                                () = stop.cancelled() => return,
-                                event = stream.next() => match event {
-                                    Some(Ok(_)) => {
-                                        if let Err(error) = service.refresh().await {
-                                            tracing::error!("registration reload failed: {error:#}");
-                                        }
-                                    }
-                                    Some(Err(error)) => {
-                                        tracing::warn!("registration LIVE query ended: {error}");
-                                        break;
-                                    }
-                                    None => break,
-                                },
-                                _ = tick.tick() => {
-                                    if let Err(error) = service.sweep().await {
-                                        tracing::error!("registration expiry failed: {error:#}");
-                                    }
-                                }
-                            }
-                        }
+                let signal = tokio::select! {
+                    () = stop.cancelled() => return,
+                    signal = changes.next() => signal,
+                };
+                let reload = match signal {
+                    Some(Ok(ChangeSignal::Reconcile)) => true,
+                    Some(Ok(ChangeSignal::Changed(change))) => change.table == REGISTRATION_TABLE,
+                    Some(Err(error)) => {
+                        tracing::warn!("registration notifications interrupted: {error}");
+                        false
                     }
-                    Err(error) => tracing::warn!("registration LIVE query failed: {error}"),
+                    None => return,
+                };
+                if reload && let Err(error) = service.refresh().await {
+                    tracing::error!("registration reload failed: {error:#}");
                 }
-                // Leases keep expiring from routing while the query reconnects.
-                service.route(Utc::now());
+            }
+        })
+    }
+
+    /// Collect abandoned registrations every [`HOUSEKEEPING_INTERVAL`] until `stop`
+    /// fires.
+    pub fn spawn_housekeeping(&self, stop: CancellationToken) -> tokio::task::JoinHandle<()> {
+        let service = self.clone();
+        tokio::spawn(async move {
+            let mut tick = tokio::time::interval(HOUSEKEEPING_INTERVAL);
+            tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+            loop {
                 tokio::select! {
                     () = stop.cancelled() => return,
-                    () = tokio::time::sleep(RECONNECT) => {}
+                    _ = tick.tick() => {}
+                }
+                if let Err(error) = service.collect_abandoned().await {
+                    tracing::error!("registration housekeeping failed: {error:#}");
                 }
             }
         })

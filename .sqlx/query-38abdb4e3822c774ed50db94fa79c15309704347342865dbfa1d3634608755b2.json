@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    r.server,\n    r.live_at,\n    EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    ) AS \"alive!\"\nFROM gateway.registration AS r\nWHERE r.client_id = ANY ($1)\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "server",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.registration",
+            "name": "server"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "live_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "gateway.registration",
+            "name": "live_at"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "alive!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "38abdb4e3822c774ed50db94fa79c15309704347342865dbfa1d3634608755b2"
+}

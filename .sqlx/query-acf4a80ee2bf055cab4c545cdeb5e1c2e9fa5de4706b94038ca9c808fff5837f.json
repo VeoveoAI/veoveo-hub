@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gateway.task_route\nSET created_at = $2::timestamptz - interval '1 hour', expires_at = $2\nWHERE id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "acf4a80ee2bf055cab4c545cdeb5e1c2e9fa5de4706b94038ca9c808fff5837f"
+}

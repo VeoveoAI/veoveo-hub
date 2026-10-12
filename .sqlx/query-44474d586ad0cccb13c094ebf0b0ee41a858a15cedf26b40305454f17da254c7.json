@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The owner of a server table and whether a login may write it.\nSELECT\n    pg_catalog.pg_get_userbyid(c.relowner)::text AS \"owner!\",\n    pg_catalog.has_table_privilege($1, c.oid, 'INSERT') AS \"insert!\"\nFROM pg_catalog.pg_class AS c\nJOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace\nWHERE n.nspname = $2 AND c.relname = $3\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "owner!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "insert!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Name",
+        "Name",
+        "Name"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "44474d586ad0cccb13c094ebf0b0ee41a858a15cedf26b40305454f17da254c7"
+}

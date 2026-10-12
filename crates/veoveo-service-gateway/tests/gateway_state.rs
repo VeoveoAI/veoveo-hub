@@ -3,22 +3,20 @@ use veoveo_audit_contract::*;
 use veoveo_gateway_contract::AuthorizationServerId;
 use veoveo_test_fixtures::store as fixture;
 
-use chrono::{TimeDelta, Utc};
+use chrono::{SubsecRound, TimeDelta, Utc};
 use futures::future::join_all;
 use veoveo_mcp_contract::{
     AuthMethod, AuthReasonCode, GatewayAuthorizationCodeRecord, GatewayAuthorizationRequest,
-    GatewayJwtRevocation, GatewayProfileId, GatewayResourceSubscription, JwtId,
-    OAuthAuthorizationCode, OAuthClientId, OAuthRedirectUri, OAuthStateValue,
-    OidcClientRegistrationId, OidcNonce, PkceCodeChallenge, PkceCodeChallengeMethod,
-    PkceCodeVerifier, Principal, PrincipalDisplayName, PrincipalKind, ServerSlug, TokenIssuer,
-    TokenSubject,
+    GatewayJwtRevocation, GatewayProfileId, JwtId, OAuthAuthorizationCode, OAuthClientId,
+    OAuthRedirectUri, OAuthStateValue, OidcClientRegistrationId, OidcNonce, PkceCodeChallenge,
+    PkceCodeChallengeMethod, PkceCodeVerifier, Principal, PrincipalDisplayName, PrincipalKind,
+    TokenIssuer, TokenSubject,
 };
-use veoveo_platform_store::GatewayRefreshTokenRecord;
 use veoveo_service_gateway::{
     GatewayRefreshDeliveryWindow, GatewayRefreshExchange, GatewayRefreshIssueRequest,
     GatewayRefreshRotationRequest, GatewayState, RefreshTokenDeliveryCipher,
 };
-use veoveo_types::{PrincipalId, ResourceUri, ScopeName, TenantId, WorkContextId};
+use veoveo_types::{PrincipalId, ScopeName, TenantId, WorkContextId};
 
 #[tokio::test]
 async fn concurrent_gateway_audit_writes_retry_transaction_conflicts() {
@@ -26,7 +24,7 @@ async fn concurrent_gateway_audit_writes_retry_transaction_conflicts() {
         let db = fixture::TestDb::new().await;
         let state = GatewayState::new(db.a.clone());
         let profile = GatewayProfileId::parse("admin").unwrap();
-        let now = Utc::now();
+        let now = Utc::now().trunc_subsecs(6);
         let principal = authorization_code(
             now,
             &profile,
@@ -61,329 +59,292 @@ async fn concurrent_gateway_audit_writes_retry_transaction_conflicts() {
 #[tokio::test]
 async fn gateway_correctness_state_is_shared_and_single_use_across_replicas() {
     tokio::time::timeout(Duration::from_secs(180), async {
-    let db = fixture::TestDb::new().await;
-    let first = GatewayState::new(db.a.clone());
-    let second = GatewayState::new(db.b.clone());
-    let now = Utc::now();
-    let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
-    let client_id = OAuthClientId::parse("operator-console").unwrap();
+        let db = fixture::TestDb::new().await;
+        let first = GatewayState::new(db.a.clone());
+        let second = GatewayState::new(db.b.clone());
+        let now = Utc::now().trunc_subsecs(6);
+        let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
+        let client_id = OAuthClientId::parse("operator-console").unwrap();
 
-    for (jwt_id, register_id_jag) in [("assertion-jti", false), ("id-jag-jti", true)] {
-        let jwt_id = JwtId::parse(jwt_id).unwrap();
-        let expires_at = now + TimeDelta::minutes(5);
-        let (left, right) = if register_id_jag {
-            tokio::join!(
-                first.record_id_jag_jti(
-                    &authorization_server,
-                    &client_id,
-                    &jwt_id,
-                    expires_at,
-                    now,
-                ),
-                second.record_id_jag_jti(
-                    &authorization_server,
-                    &client_id,
-                    &jwt_id,
-                    expires_at,
-                    now,
-                ),
-            )
-        } else {
-            tokio::join!(
-                first.record_client_assertion_jti(
-                    &authorization_server,
-                    &client_id,
-                    &jwt_id,
-                    expires_at,
-                    now,
-                ),
-                second.record_client_assertion_jti(
-                    &authorization_server,
-                    &client_id,
-                    &jwt_id,
-                    expires_at,
-                    now,
-                ),
-            )
-        };
-        assert_eq!(
-            usize::from(left.unwrap()) + usize::from(right.unwrap()),
-            1,
-            "exactly one replica must claim a replay identifier",
-        );
-    }
-
-    let profile = GatewayProfileId::parse("operator").unwrap();
-    let issuer = TokenIssuer::parse("https://idp.example.com").unwrap();
-    let revoked_jwt = JwtId::parse("revoked-jwt").unwrap();
-    let revocation = GatewayJwtRevocation {
-        profile: profile.clone(),
-        issuer: issuer.clone(),
-        jwt_id: revoked_jwt.clone(),
-        revoked_at: now,
-        expires_at: now + TimeDelta::hours(1),
-        reason: Some("integration-test".to_owned()),
-    };
-    first.record_jwt_revocation(&revocation).await.unwrap();
-    assert_eq!(
-        second
-            .jwt_revocation(&profile, &issuer, &revoked_jwt, now)
-            .await
-            .unwrap(),
-        Some(revocation),
-    );
-
-    let subscription = GatewayResourceSubscription {
-        profile: profile.clone(),
-        owner: PrincipalId::parse("https://idp.example.com#alice").unwrap(),
-        upstream_server: ServerSlug::parse("upstream-a").unwrap(),
-        resource_uri: ResourceUri::new("artifact://0197f78e-f2f0-7a6e-8a5d-f41c691e4471").unwrap(),
-        created_at: now,
-        updated_at: now,
-    };
-    first
-        .record_resource_subscription(&subscription)
-        .await
-        .unwrap();
-    assert_eq!(
-        second
-            .resource_subscription(
-                &subscription.profile,
-                &subscription.owner,
-                &subscription.upstream_server,
-                &subscription.resource_uri,
-            )
-            .await
-            .unwrap(),
-        Some(subscription.clone()),
-    );
-    second
-        .delete_resource_subscription(
-            &subscription.profile,
-            &subscription.owner,
-            &subscription.upstream_server,
-            &subscription.resource_uri,
-        )
-        .await
-        .unwrap();
-    assert!(
-        first
-            .resource_subscription(
-                &subscription.profile,
-                &subscription.owner,
-                &subscription.upstream_server,
-                &subscription.resource_uri,
-            )
-            .await
-            .unwrap()
-            .is_none(),
-    );
-
-    let request = authorization_request(now, &profile, &client_id);
-    first.record_authorization_request(&request).await.unwrap();
-    let (left, right) = tokio::join!(
-        first.consume_authorization_request(&request.idp_state, now),
-        second.consume_authorization_request(&request.idp_state, now),
-    );
-    assert_single_consumption(left.unwrap(), right.unwrap(), &request);
-
-    let code = authorization_code(now, &profile, &client_id);
-    first.record_authorization_code(&code).await.unwrap();
-    let (left, right) = tokio::join!(
-        first.consume_authorization_code(&code.code, now),
-        second.consume_authorization_code(&code.code, now),
-    );
-    let consumed = [left.unwrap(), right.unwrap()]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
-    assert_eq!(consumed.len(), 1, "authorization code must consume once");
-    assert_eq!(consumed[0].consumed_at, Some(now));
-
-    let principal = code.principal.clone();
-    let issued_refresh = first
-        .issue_refresh_token(GatewayRefreshIssueRequest {
-            authorization_server: &authorization_server,
-            profile: &profile,
-            oauth_client_id: &client_id,
-            work_context: &WorkContextId::parse("mission").unwrap(),
-            principal: &principal,
-            principal_display_name: &PrincipalDisplayName::new("Alice").unwrap(),
-            scopes: &principal.scopes,
-            now,
-        })
-        .await
-        .unwrap();
-    let presented_refresh = issued_refresh.token.clone();
-    let delivery_cipher = test_refresh_delivery_cipher();
-    let left_refresh_audit = auth_draft("refresh-left", now, &profile, &principal);
-    let right_refresh_audit = auth_draft("refresh-right", now, &profile, &principal);
-    let left_duplicate_audit =
-        redelivery_draft("refresh-left-duplicate", now, &profile, &principal);
-    let right_duplicate_audit =
-        redelivery_draft("refresh-right-duplicate", now, &profile, &principal);
-    let (left, right) = tokio::join!(
-        first.rotate_refresh_token(
-            &presented_refresh,
-            refresh_rotation_request(
-                &authorization_server,
-                &profile,
-                &client_id,
-                now + TimeDelta::seconds(1),
-                &delivery_cipher,
-                &left_refresh_audit,
-                &left_duplicate_audit,
-            ),
-        ),
-        second.rotate_refresh_token(
-            &presented_refresh,
-            refresh_rotation_request(
-                &authorization_server,
-                &profile,
-                &client_id,
-                now + TimeDelta::seconds(1),
-                &delivery_cipher,
-                &right_refresh_audit,
-                &right_duplicate_audit,
-            ),
-        ),
-    );
-    let mut rotated = None;
-    let mut duplicate_delivery = None;
-    for outcome in [left.unwrap(), right.unwrap()] {
-        match outcome {
-            GatewayRefreshExchange::Rotated(successor) => rotated = Some(successor),
-            GatewayRefreshExchange::DuplicateDelivery(successor) => {
-                duplicate_delivery = Some(successor);
-            }
-            GatewayRefreshExchange::ReplayDetected { .. } => {
-                panic!("concurrent refresh exchange was treated as delayed replay")
-            }
-            GatewayRefreshExchange::Invalid => panic!("concurrent refresh exchange was invalid"),
+        for (jwt_id, register_id_jag) in [("assertion-jti", false), ("id-jag-jti", true)] {
+            let jwt_id = JwtId::parse(jwt_id).unwrap();
+            let expires_at = now + TimeDelta::minutes(5);
+            let (left, right) = if register_id_jag {
+                tokio::join!(
+                    first.record_id_jag_jti(
+                        &authorization_server,
+                        &client_id,
+                        &jwt_id,
+                        expires_at,
+                        now,
+                    ),
+                    second.record_id_jag_jti(
+                        &authorization_server,
+                        &client_id,
+                        &jwt_id,
+                        expires_at,
+                        now,
+                    ),
+                )
+            } else {
+                tokio::join!(
+                    first.record_client_assertion_jti(
+                        &authorization_server,
+                        &client_id,
+                        &jwt_id,
+                        expires_at,
+                        now,
+                    ),
+                    second.record_client_assertion_jti(
+                        &authorization_server,
+                        &client_id,
+                        &jwt_id,
+                        expires_at,
+                        now,
+                    ),
+                )
+            };
+            assert_eq!(
+                usize::from(left.unwrap()) + usize::from(right.unwrap()),
+                1,
+                "exactly one replica must claim a replay identifier",
+            );
         }
-    }
-    let rotated = rotated.expect("one replica must rotate the refresh token");
-    let duplicate_delivery =
-        duplicate_delivery.expect("one replica must receive the committed successor");
-    assert_eq!(rotated.grant.generation, 1);
-    assert_eq!(
-        rotated.token.as_str(),
-        duplicate_delivery.token.as_str(),
-        "both replicas must deliver the identical successor refresh token",
-    );
-    assert_eq!(rotated.grant.family_id, duplicate_delivery.grant.family_id);
 
-    let delayed_replay_audit = auth_draft("refresh-delayed-replay", now, &profile, &principal);
-    let delayed_duplicate_audit = redelivery_draft(
-        "refresh-delayed-replay-duplicate",
-        now,
-        &profile,
-        &principal,
-    );
-    assert!(matches!(
-        first
-            .rotate_refresh_token(
+        let profile = GatewayProfileId::parse("operator").unwrap();
+        let issuer = TokenIssuer::parse("https://idp.example.com").unwrap();
+        let revoked_jwt = JwtId::parse("revoked-jwt").unwrap();
+        let revocation = GatewayJwtRevocation {
+            profile: profile.clone(),
+            issuer: issuer.clone(),
+            jwt_id: revoked_jwt.clone(),
+            revoked_at: now,
+            expires_at: now + TimeDelta::hours(1),
+            reason: Some("integration-test".to_owned()),
+        };
+        first.record_jwt_revocation(&revocation).await.unwrap();
+        assert_eq!(
+            second
+                .jwt_revocation(&profile, &issuer, &revoked_jwt, now)
+                .await
+                .unwrap(),
+            Some(revocation),
+        );
+
+        assert_eq!(
+            second
+                .jwt_revocation(&profile, &issuer, &revoked_jwt, now + TimeDelta::hours(2))
+                .await
+                .unwrap(),
+            None,
+            "an expired revocation no longer applies",
+        );
+        assert_eq!(
+            first
+                .prune_expired_jwt_revocations(now + TimeDelta::hours(2))
+                .await
+                .unwrap(),
+            1
+        );
+
+        let request = authorization_request(now, &profile, &client_id);
+        first.record_authorization_request(&request).await.unwrap();
+        let (left, right) = tokio::join!(
+            first.consume_authorization_request(&request.idp_state, now),
+            second.consume_authorization_request(&request.idp_state, now),
+        );
+        assert_single_consumption(left.unwrap(), right.unwrap(), &request);
+
+        let code = authorization_code(now, &profile, &client_id);
+        first.record_authorization_code(&code).await.unwrap();
+        let (left, right) = tokio::join!(
+            first.consume_authorization_code(&code.code, now),
+            second.consume_authorization_code(&code.code, now),
+        );
+        let consumed = [left.unwrap(), right.unwrap()]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        assert_eq!(consumed.len(), 1, "authorization code must consume once");
+        assert_eq!(consumed[0].consumed_at, Some(now));
+
+        let principal = code.principal.clone();
+        let issued_refresh = first
+            .issue_refresh_token(GatewayRefreshIssueRequest {
+                authorization_server: &authorization_server,
+                profile: &profile,
+                oauth_client_id: &client_id,
+                work_context: &WorkContextId::parse("mission").unwrap(),
+                principal: &principal,
+                principal_display_name: &PrincipalDisplayName::new("Alice").unwrap(),
+                scopes: &principal.scopes,
+                now,
+            })
+            .await
+            .unwrap();
+        let presented_refresh = issued_refresh.token.clone();
+        let delivery_cipher = test_refresh_delivery_cipher();
+        let left_refresh_audit = auth_draft("refresh-left", now, &profile, &principal);
+        let right_refresh_audit = auth_draft("refresh-right", now, &profile, &principal);
+        let left_duplicate_audit =
+            redelivery_draft("refresh-left-duplicate", now, &profile, &principal);
+        let right_duplicate_audit =
+            redelivery_draft("refresh-right-duplicate", now, &profile, &principal);
+        let (left, right) = tokio::join!(
+            first.rotate_refresh_token(
                 &presented_refresh,
                 refresh_rotation_request(
                     &authorization_server,
                     &profile,
                     &client_id,
-                    now + TimeDelta::seconds(6),
+                    now + TimeDelta::seconds(1),
                     &delivery_cipher,
-                    &delayed_replay_audit,
-                    &delayed_duplicate_audit,
+                    &left_refresh_audit,
+                    &left_duplicate_audit,
                 ),
-            )
-            .await
-            .unwrap(),
-        GatewayRefreshExchange::ReplayDetected { .. }
-    ));
-    let revoked_successor_audit =
-        auth_draft("refresh-revoked-successor", now, &profile, &principal);
-    let revoked_successor_duplicate_audit = redelivery_draft(
-        "refresh-revoked-successor-duplicate",
-        now,
-        &profile,
-        &principal,
-    );
-    assert!(matches!(
-        first
-            .rotate_refresh_token(
-                &rotated.token,
+            ),
+            second.rotate_refresh_token(
+                &presented_refresh,
                 refresh_rotation_request(
                     &authorization_server,
                     &profile,
                     &client_id,
-                    now + TimeDelta::seconds(7),
+                    now + TimeDelta::seconds(1),
                     &delivery_cipher,
-                    &revoked_successor_audit,
-                    &revoked_successor_duplicate_audit,
+                    &right_refresh_audit,
+                    &right_duplicate_audit,
                 ),
-            )
+            ),
+        );
+        let mut rotated = None;
+        let mut duplicate_delivery = None;
+        for outcome in [left.unwrap(), right.unwrap()] {
+            match outcome {
+                GatewayRefreshExchange::Rotated(successor) => rotated = Some(successor),
+                GatewayRefreshExchange::DuplicateDelivery(successor) => {
+                    duplicate_delivery = Some(successor);
+                }
+                GatewayRefreshExchange::ReplayDetected { .. } => {
+                    panic!("concurrent refresh exchange was treated as delayed replay")
+                }
+                GatewayRefreshExchange::Invalid => {
+                    panic!("concurrent refresh exchange was invalid")
+                }
+            }
+        }
+        let rotated = rotated.expect("one replica must rotate the refresh token");
+        let duplicate_delivery =
+            duplicate_delivery.expect("one replica must receive the committed successor");
+        assert_eq!(rotated.grant.generation, 1);
+        assert_eq!(
+            rotated.token.as_str(),
+            duplicate_delivery.token.as_str(),
+            "both replicas must deliver the identical successor refresh token",
+        );
+        assert_eq!(rotated.grant.family_id, duplicate_delivery.grant.family_id);
+
+        let delayed_replay_audit = auth_draft("refresh-delayed-replay", now, &profile, &principal);
+        let delayed_duplicate_audit = redelivery_draft(
+            "refresh-delayed-replay-duplicate",
+            now,
+            &profile,
+            &principal,
+        );
+        assert!(matches!(
+            first
+                .rotate_refresh_token(
+                    &presented_refresh,
+                    refresh_rotation_request(
+                        &authorization_server,
+                        &profile,
+                        &client_id,
+                        now + TimeDelta::seconds(6),
+                        &delivery_cipher,
+                        &delayed_replay_audit,
+                        &delayed_duplicate_audit,
+                    ),
+                )
+                .await
+                .unwrap(),
+            GatewayRefreshExchange::ReplayDetected { .. }
+        ));
+        let revoked_successor_audit =
+            auth_draft("refresh-revoked-successor", now, &profile, &principal);
+        let revoked_successor_duplicate_audit = redelivery_draft(
+            "refresh-revoked-successor-duplicate",
+            now,
+            &profile,
+            &principal,
+        );
+        assert!(matches!(
+            first
+                .rotate_refresh_token(
+                    &rotated.token,
+                    refresh_rotation_request(
+                        &authorization_server,
+                        &profile,
+                        &client_id,
+                        now + TimeDelta::seconds(7),
+                        &delivery_cipher,
+                        &revoked_successor_audit,
+                        &revoked_successor_duplicate_audit,
+                    ),
+                )
+                .await
+                .unwrap(),
+            GatewayRefreshExchange::Invalid
+        ));
+        let stored_tokens = sqlx::query_file!("tests/gateway_state/stored_tokens.sql")
+            .fetch_all(first.platform_store().pool())
             .await
-            .unwrap(),
-        GatewayRefreshExchange::Invalid
-    ));
-    let mut response = first
-        .platform_store()
-        .client()
-        .query(include_str!("queries/gateway_state/gateway_correctness_state_is_shared_and_single_use_across_replicas/statement_1.surql"))
-        .await
-        .unwrap()
-        .check()
-        .unwrap();
-    let stored_tokens: Vec<GatewayRefreshTokenRecord> = response.take(0).unwrap();
-    assert_eq!(stored_tokens.len(), 2);
-    assert!(
-        stored_tokens
-            .iter()
-            .all(|token| token.token_hash.len() == 64)
-    );
-    assert!(stored_tokens.iter().all(|token| {
-        token.token_hash != presented_refresh.as_str() && token.token_hash != rotated.token.as_str()
-    }));
+            .unwrap();
+        assert_eq!(stored_tokens.len(), 2);
+        assert!(stored_tokens.iter().all(|token| {
+            token.token_digest.starts_with("sha256:")
+                && !token.token_digest.contains(presented_refresh.as_str())
+                && !token.token_digest.contains(rotated.token.as_str())
+        }));
 
-    let old_policy = policy_draft("policy-old", now - TimeDelta::days(2), &profile, &principal);
-    first.record_audit(old_policy).await.unwrap();
-    let auth = auth_draft("auth-current", now, &profile, &principal);
-    second.record_audit(auth).await.unwrap();
-    assert_eq!(
-        audit_count(&second, &principal, AuditClass::ApiActivity).await,
-        1
-    );
-    assert_eq!(
-        audit_count(&first, &principal, AuditClass::Authentication).await,
-        3
-    );
-    let delivery_retention = second
-        .prune_expired_refresh_tokens(now + TimeDelta::seconds(7))
-        .await
-        .unwrap();
-    assert_eq!(delivery_retention.delivery_envelopes_deleted, 1);
-    assert_eq!(delivery_retention.tokens_deleted, 0);
-    assert_eq!(delivery_retention.families_deleted, 0);
-    let mut response = first
-        .platform_store()
-        .client()
-        .query(include_str!("queries/gateway_state/gateway_correctness_state_is_shared_and_single_use_across_replicas/statement_2.surql"))
-        .await
-        .unwrap()
-        .check()
-        .unwrap();
-    let retained_tokens: Vec<GatewayRefreshTokenRecord> = response.take(0).unwrap();
-    assert!(
-        retained_tokens.iter().all(|token| {
-            token.delivery_envelope.is_none() && token.delivery_expires_at.is_none()
-        })
-    );
+        let old_policy = policy_draft("policy-old", now - TimeDelta::days(2), &profile, &principal);
+        first.record_audit(old_policy).await.unwrap();
+        let auth = auth_draft("auth-current", now, &profile, &principal);
+        second.record_audit(auth).await.unwrap();
+        assert_eq!(
+            audit_count(&second, &principal, AuditClass::ApiActivity).await,
+            1
+        );
+        assert_eq!(
+            audit_count(&first, &principal, AuditClass::Authentication).await,
+            3
+        );
+        let delivery_retention = second
+            .prune_expired_refresh_tokens(now + TimeDelta::seconds(7))
+            .await
+            .unwrap();
+        assert_eq!(delivery_retention.delivery_envelopes_deleted, 1);
+        assert_eq!(delivery_retention.tokens_deleted, 0);
+        assert_eq!(delivery_retention.families_deleted, 0);
+        let retained_tokens = sqlx::query_file!("tests/gateway_state/stored_tokens.sql")
+            .fetch_all(first.platform_store().pool())
+            .await
+            .unwrap();
+        assert!(
+            retained_tokens
+                .iter()
+                .all(|token| !token.delivered && token.delivery_expires_at.is_none())
+        );
 
-    let refresh_retention = second
-        .prune_expired_refresh_tokens(now + TimeDelta::days(8))
-        .await
-        .unwrap();
-    assert_eq!(refresh_retention.tokens_deleted, 2);
-    assert_eq!(refresh_retention.families_deleted, 1);
-    }).await.expect("gateway_correctness_state_is_shared_and_single_use_across_replicas exceeded three minutes");
+        let refresh_retention = second
+            .prune_expired_refresh_tokens(now + TimeDelta::days(8))
+            .await
+            .unwrap();
+        assert_eq!(refresh_retention.tokens_deleted, 2);
+        assert_eq!(refresh_retention.families_deleted, 1);
+    })
+    .await
+    .expect(
+        "gateway_correctness_state_is_shared_and_single_use_across_replicas exceeded three minutes",
+    );
 }
 
 #[tokio::test]
@@ -391,7 +352,7 @@ async fn refresh_rotation_rolls_back_when_success_audit_cannot_commit() {
     tokio::time::timeout(Duration::from_secs(180), async {
         let db = fixture::TestDb::new().await;
         let state = GatewayState::new(db.a.clone());
-        let now = Utc::now();
+        let now = Utc::now().trunc_subsecs(6);
         let delivery_cipher = test_refresh_delivery_cipher();
         let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
         let profile = GatewayProfileId::parse("operator").unwrap();
@@ -483,7 +444,7 @@ async fn consuming_a_successor_clears_its_delivery_envelope_atomically() {
     tokio::time::timeout(Duration::from_secs(180), async {
         let db = fixture::TestDb::new().await;
         let state = GatewayState::new(db.a.clone());
-        let now = Utc::now();
+        let now = Utc::now().trunc_subsecs(6);
         let delivery_cipher = test_refresh_delivery_cipher();
         let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
         let profile = GatewayProfileId::parse("operator").unwrap();
@@ -549,7 +510,7 @@ async fn consuming_a_successor_clears_its_delivery_envelope_atomically() {
             .expect_err("failed successor consumption must roll back envelope clearing");
         let generation_one = stored_refresh_generation(&state, 1).await;
         assert!(generation_one.consumed_at.is_none());
-        assert!(generation_one.delivery_envelope.is_some());
+        assert!(generation_one.delivered);
         assert!(generation_one.delivery_expires_at.is_some());
 
         let consume_audit = auth_draft("eager-clear-consume", now, &profile, &principal);
@@ -575,10 +536,10 @@ async fn consuming_a_successor_clears_its_delivery_envelope_atomically() {
         ));
         let generation_one = stored_refresh_generation(&state, 1).await;
         assert!(generation_one.consumed_at.is_some());
-        assert!(generation_one.delivery_envelope.is_none());
+        assert!(!generation_one.delivered);
         assert!(generation_one.delivery_expires_at.is_none());
         let generation_two = stored_refresh_generation(&state, 2).await;
-        assert!(generation_two.delivery_envelope.is_some());
+        assert!(generation_two.delivered);
     })
     .await
     .expect("consuming_a_successor_clears_its_delivery_envelope_atomically exceeded three minutes");
@@ -589,7 +550,7 @@ async fn public_client_revocation_is_bound_idempotent_and_family_wide() {
     tokio::time::timeout(Duration::from_secs(180), async {
         let db = fixture::TestDb::new().await;
         let state = GatewayState::new(db.a.clone());
-        let now = Utc::now();
+        let now = Utc::now().trunc_subsecs(6);
         let delivery_cipher = test_refresh_delivery_cipher();
         let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
         let profile = GatewayProfileId::parse("operator").unwrap();
@@ -843,11 +804,7 @@ async fn audit_count(state: &GatewayState, principal: &Principal, class: AuditCl
     let mut query = AuditQuery::new(scope.partitions().into_iter().next().unwrap());
     query.class = Some(class);
     query.limit = 1000;
-    let page = state
-        .platform_store()
-        .audit_page(&scope, &query)
-        .await
-        .unwrap();
+    let page = state.audit_store().page(&scope, &query).await.unwrap();
     assert!(page.next.is_none(), "fixture exceeds its audit page");
     page.records.len()
 }
@@ -878,24 +835,22 @@ fn refresh_rotation_request<'a>(
     }
 }
 
-async fn stored_refresh_generation(
-    state: &GatewayState,
-    generation: i64,
-) -> GatewayRefreshTokenRecord {
-    let mut response = state
-        .platform_store()
-        .client()
-        .query(include_str!(
-            "queries/gateway_state/stored_refresh_generation/statement_1.surql"
-        ))
-        .bind(("generation", generation))
-        .await
-        .unwrap()
-        .check()
-        .unwrap();
-    let records: Vec<GatewayRefreshTokenRecord> = response.take(0).unwrap();
-    assert_eq!(records.len(), 1);
-    records.into_iter().next().unwrap()
+/// What a stored refresh-token generation holds besides its digest.
+struct StoredGeneration {
+    consumed_at: Option<chrono::DateTime<Utc>>,
+    delivered: bool,
+    delivery_expires_at: Option<chrono::DateTime<Utc>>,
+}
+
+async fn stored_refresh_generation(state: &GatewayState, generation: i64) -> StoredGeneration {
+    sqlx::query_file_as!(
+        StoredGeneration,
+        "tests/gateway_state/token_generation.sql",
+        generation
+    )
+    .fetch_one(state.platform_store().pool())
+    .await
+    .unwrap()
 }
 
 fn assert_single_consumption<T: Clone + PartialEq + std::fmt::Debug>(

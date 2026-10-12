@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM gateway.registration AS r\nWHERE r.live_at < $1\n    AND NOT EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    )\nRETURNING r.client_id, r.server, r.login\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "client_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.registration",
+            "name": "client_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "server",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.registration",
+            "name": "server"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "login",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.registration",
+            "name": "login"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4b1d83ceb1a4cae482d3f6aa65cedc94f3d607c594538f9ecf4d6206c8ea15ae"
+}

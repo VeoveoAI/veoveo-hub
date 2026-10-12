@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT FROM kernel.create_server_login($1, $2, $3)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4159fcd872d9f5425845f2f6053aa0cc01e99c66c71e31bbfab9fa9fd7b137bc"
+}

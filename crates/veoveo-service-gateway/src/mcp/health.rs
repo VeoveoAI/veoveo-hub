@@ -2,7 +2,8 @@ pub use veoveo_gateway_contract::GatewayServerHealthState;
 
 use chrono::{DateTime, Utc};
 
-/// A registered server's lease health: `checked_at` is its last renewal.
+/// A registered server's health: `checked_at` is when the Gateway last saw its
+/// registration's login hold a live kernel instance.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GatewayServerHealth {
     pub state: GatewayServerHealthState,

@@ -1,246 +1,327 @@
+//! Public identifiers for the upstream Tasks the Gateway projects. The design is in
+//! `task_routes/DESIGN.md`.
+use std::collections::BTreeSet;
+
+use anyhow::{Context, Result, anyhow, bail, ensure};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use chrono::{DateTime, Utc};
-use surrealdb::types::{RecordId, SurrealValue};
-use veoveo_mcp_contract::CanonicalTaskId;
-use veoveo_platform_store::task_record_id;
+use chrono::{DateTime, TimeDelta, Utc};
+use veoveo_mcp_contract::{CanonicalTaskId, GatewayProfileId, Principal, ServerSlug};
 use veoveo_platform_store::{
-    PrincipalKind, RecordIdKey, StoreError, deterministic_principal_id, deterministic_tenant_id,
-    deterministic_work_context_id,
+    PrincipalId, PrincipalKind, TenantId, WorkContextId, deterministic_principal_id,
+    deterministic_tenant_id, deterministic_work_context_id,
 };
-use veoveo_types::TaskId;
+use veoveo_types::{
+    DataLabelId, DelegationId, InvocationAuthority, InvocationProvenance, Sha256Digest,
+    TokenIssuer, TokenSubject,
+};
 
 use super::GatewayState;
 
 const DEFAULT_TASK_ROUTE_TTL_MS: u64 = 7 * 24 * 60 * 60 * 1_000;
-
-mod ownership;
-pub(crate) use ownership::GatewayTaskOwnership;
+const MAX_SOURCE_TASK_ID_BYTES: usize = 512;
 
 #[cfg(test)]
 #[path = "task_routes/tests.rs"]
 mod tests;
 
+/// A projection to record: who created the upstream Task, in which tenant, Work
+/// Context and profile, on which server, under which authority.
 #[derive(Clone, Debug)]
 pub(crate) struct GatewayTaskRouteDraft {
-    pub tenant_key: String,
-    pub owner_key: String,
-    pub owner_issuer: String,
-    pub owner_subject: String,
-    pub owner_kind: PrincipalKind,
-    pub work_context: String,
-    pub profile: String,
-    pub server: String,
+    pub tenant: veoveo_types::TenantId,
+    pub work_context: veoveo_types::WorkContextId,
+    pub profile: GatewayProfileId,
+    pub server: ServerSlug,
     pub source_task_id: String,
-    pub source_task: Option<TaskId>,
-    pub authority_digest: String,
+    pub authority_digest: Sha256Digest,
     pub ownership: GatewayTaskOwnership,
     pub ttl_ms: Option<u64>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, SurrealValue)]
-pub(crate) struct GatewayTaskRouteRecord {
-    pub id: RecordId,
-    pub tenant: RecordId,
-    pub owner: RecordId,
-    pub work_context: RecordId,
-    pub profile: RecordId,
-    pub server: RecordId,
+/// The actor and provenance that created a Task. Later access must present the same
+/// actor and provenance, and current data labels must contain the recorded ones.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct GatewayTaskOwnership {
+    principal: veoveo_types::PrincipalId,
+    kind: PrincipalKind,
+    issuer: TokenIssuer,
+    subject: TokenSubject,
+    provenance: InvocationProvenance,
+    data_labels: BTreeSet<DataLabelId>,
+}
+
+impl GatewayTaskOwnership {
+    pub(crate) fn from_invocation(actor: &Principal, authority: &InvocationAuthority) -> Self {
+        Self {
+            principal: actor.id.clone(),
+            kind: match actor.kind {
+                veoveo_mcp_contract::PrincipalKind::User => PrincipalKind::User,
+                veoveo_mcp_contract::PrincipalKind::Service => PrincipalKind::Service,
+            },
+            issuer: actor.issuer.clone(),
+            subject: actor.subject.clone(),
+            provenance: authority.provenance.clone(),
+            data_labels: actor.data_labels.clone(),
+        }
+    }
+
+    pub(crate) fn allows(&self, actor: &Principal, authority: &InvocationAuthority) -> bool {
+        let mut current = Self::from_invocation(actor, authority);
+        if !self.data_labels.is_subset(&current.data_labels) {
+            return false;
+        }
+        current.data_labels = self.data_labels.clone();
+        self == &current
+    }
+}
+
+/// One stored route.
+#[derive(Clone, Debug)]
+pub(crate) struct GatewayTaskRoute {
+    pub id: CanonicalTaskId,
+    pub tenant: TenantId,
+    pub owner: PrincipalId,
+    pub work_context: WorkContextId,
+    pub profile: GatewayProfileId,
+    pub server: ServerSlug,
     pub source_task_id: String,
-    pub source_task: Option<RecordId>,
-    pub authority_digest: String,
-    pub ownership: Option<GatewayTaskOwnership>,
-    pub created_at: DateTime<Utc>,
+    pub authority_digest: Sha256Digest,
+    pub ownership: GatewayTaskOwnership,
     pub expires_at: DateTime<Utc>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, SurrealValue)]
-struct GatewayTaskRouteContent {
-    tenant: RecordId,
-    owner: RecordId,
-    work_context: RecordId,
-    profile: RecordId,
-    server: RecordId,
+struct RouteRow {
+    id: String,
+    tenant: TenantId,
+    owner: PrincipalId,
+    work_context: WorkContextId,
+    profile: String,
+    server: String,
     source_task_id: String,
-    source_task: Option<RecordId>,
     authority_digest: String,
-    ownership: GatewayTaskOwnership,
-    created_at: DateTime<Utc>,
+    owner_key: String,
+    owner_kind: PrincipalKind,
+    owner_issuer: String,
+    owner_subject: String,
+    invocation_mode: String,
+    initiator: Option<String>,
+    delegation_id: Option<String>,
+    data_labels: Vec<String>,
     expires_at: DateTime<Utc>,
 }
 
+impl TryFrom<RouteRow> for GatewayTaskRoute {
+    type Error = anyhow::Error;
+
+    fn try_from(row: RouteRow) -> Result<Self> {
+        let initiator = row
+            .initiator
+            .map(veoveo_types::PrincipalId::parse)
+            .transpose()?;
+        let provenance = match (row.invocation_mode.as_str(), initiator, row.delegation_id) {
+            ("direct", Some(initiator), None) => InvocationProvenance::Direct { initiator },
+            ("delegated", Some(initiator), Some(delegation_id)) => {
+                InvocationProvenance::Delegated {
+                    initiator,
+                    delegation_id: DelegationId::parse(delegation_id)?,
+                }
+            }
+            ("automated", None, None) => InvocationProvenance::Automated,
+            _ => bail!("stored task route provenance is inconsistent"),
+        };
+        Ok(Self {
+            id: CanonicalTaskId::parse(row.id)?,
+            tenant: row.tenant,
+            owner: row.owner,
+            work_context: row.work_context,
+            profile: GatewayProfileId::parse(row.profile)?,
+            server: ServerSlug::parse(row.server)?,
+            source_task_id: row.source_task_id,
+            authority_digest: Sha256Digest::parse(row.authority_digest)?,
+            ownership: GatewayTaskOwnership {
+                principal: veoveo_types::PrincipalId::parse(row.owner_key)?,
+                kind: row.owner_kind,
+                issuer: TokenIssuer::parse(row.owner_issuer)?,
+                subject: TokenSubject::parse(row.owner_subject)?,
+                provenance,
+                data_labels: row
+                    .data_labels
+                    .into_iter()
+                    .map(DataLabelId::parse)
+                    .collect::<Result<_, _>>()?,
+            },
+            expires_at: row.expires_at,
+        })
+    }
+}
+
+/// The identity columns a route's source tuple and authority resolve to.
+struct RouteIdentity {
+    tenant: TenantId,
+    owner: PrincipalId,
+    work_context: WorkContextId,
+}
+
+impl RouteIdentity {
+    fn of(draft: &GatewayTaskRouteDraft) -> Result<Self> {
+        let tenant = draft.tenant.as_str();
+        Ok(Self {
+            tenant: deterministic_tenant_id(tenant)?,
+            owner: deterministic_principal_id(tenant, draft.ownership.principal.as_str())?,
+            work_context: deterministic_work_context_id(tenant, draft.work_context.as_str())?,
+        })
+    }
+}
+
 impl GatewayState {
+    /// Record the public route of an upstream Task, or return the route an earlier or
+    /// concurrent projection of the same Task recorded. A retry never extends the
+    /// original expiry or changes its authority; a mismatching or expired route is
+    /// refused.
     pub(crate) async fn create_task_route(
         &self,
         draft: GatewayTaskRouteDraft,
-    ) -> Result<(CanonicalTaskId, GatewayTaskRouteRecord), StoreError> {
-        if draft.source_task_id.is_empty() || draft.source_task_id.len() > 512 {
-            return Err(StoreError::InvalidGatewayTaskRoute {
-                reason: "source task id must contain 1 to 512 bytes".to_owned(),
-            });
-        }
-        if draft.authority_digest.len() != 64
-            || !draft
-                .authority_digest
-                .bytes()
-                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-        {
-            return Err(StoreError::InvalidGatewayTaskRoute {
-                reason: "authority digest must contain 64 lowercase hexadecimal digits".to_owned(),
-            });
-        }
+    ) -> Result<(CanonicalTaskId, GatewayTaskRoute)> {
+        ensure!(
+            !draft.source_task_id.is_empty()
+                && draft.source_task_id.len() <= MAX_SOURCE_TASK_ID_BYTES,
+            "source task id must contain 1 to {MAX_SOURCE_TASK_ID_BYTES} bytes"
+        );
         let now = Utc::now();
-        let ttl_ms = draft.ttl_ms.unwrap_or(DEFAULT_TASK_ROUTE_TTL_MS);
-        let ttl = chrono::TimeDelta::try_milliseconds(i64::try_from(ttl_ms).map_err(|_| {
-            StoreError::InvalidGatewayTaskRoute {
-                reason: "task route TTL exceeds supported range".to_owned(),
-            }
-        })?)
-        .ok_or_else(|| StoreError::InvalidGatewayTaskRoute {
-            reason: "task route TTL is invalid".to_owned(),
-        })?;
-        let content = GatewayTaskRouteContent {
-            tenant: deterministic_tenant_id(&draft.tenant_key)?.record_id(),
-            owner: deterministic_principal_id(&draft.tenant_key, &draft.owner_key)?.record_id(),
-            work_context: deterministic_work_context_id(&draft.tenant_key, &draft.work_context)?
-                .record_id(),
-            profile: RecordId::new("profile", draft.profile),
-            server: RecordId::new("mcp_server", draft.server),
-            source_task_id: draft.source_task_id,
-            source_task: draft.source_task.map(task_record_id),
-            authority_digest: draft.authority_digest,
-            ownership: draft.ownership,
-            created_at: now,
-            expires_at: now.checked_add_signed(ttl).ok_or_else(|| {
-                StoreError::InvalidGatewayTaskRoute {
-                    reason: "task route expiry exceeds supported range".into(),
-                }
-            })?,
-        };
-        if let Some(route) = self.task_route_for_source(&content).await? {
-            return reusable_route(route, &content);
+        let ttl = draft
+            .ttl_ms
+            .unwrap_or(DEFAULT_TASK_ROUTE_TTL_MS)
+            .try_into()
+            .ok()
+            .and_then(TimeDelta::try_milliseconds)
+            .context("task route TTL exceeds the supported range")?;
+        let expires_at = now
+            .checked_add_signed(ttl)
+            .context("task route expiry exceeds the supported range")?;
+        let identity = RouteIdentity::of(&draft)?;
+        if let Some(route) = self.task_route_for_source(&draft, &identity).await? {
+            return reusable(route, &draft, &identity, now);
         }
+        let ownership = &draft.ownership;
         self.platform
             .ensure_identity(
-                &draft.tenant_key,
-                &draft.owner_key,
-                &draft.owner_issuer,
-                &draft.owner_subject,
-                draft.owner_kind,
+                draft.tenant.as_str(),
+                ownership.principal.as_str(),
+                ownership.issuer.as_str(),
+                ownership.subject.as_str(),
+                ownership.kind,
             )
-            .await?;
-        let canonical = new_task_route_id()?;
-        let record_id = RecordId::new("gateway_task_route", canonical.as_str().to_owned());
-        let created = async {
-            let mut response = self
-                .platform
-                .client()
-                .query(include_str!(
-                    "../queries/state/task_routes/create_task_route/statement_1.surql"
-                ))
-                .bind(("record", record_id))
-                .bind(("content", content.clone()))
-                .await?
-                .check()?;
-            let route: Option<GatewayTaskRouteRecord> = response.take(0)?;
-            route.ok_or_else(|| StoreError::InvalidGatewayTaskRoute {
-                reason: "gateway task route creation returned no record".to_owned(),
-            })
-        }
-        .await;
-        match created {
-            Ok(route) => reusable_route(route, &content),
-            Err(error) => {
-                // A concurrent replica or lost CREATE reply may already have
-                // committed the unique source mapping. Read it; never redispatch
-                // the tool, replace its authority or extend its original expiry.
-                match self.task_route_for_source(&content).await {
-                    Ok(Some(route)) => reusable_route(route, &content),
-                    _ => Err(error),
-                }
-            }
-        }
+            .await
+            .context("failed to record the task route owner")?;
+        let id = new_task_route_id()?;
+        let (mode, initiator, delegation_id) = match &ownership.provenance {
+            InvocationProvenance::Direct { initiator } => ("direct", Some(initiator), None),
+            InvocationProvenance::Delegated {
+                initiator,
+                delegation_id,
+            } => ("delegated", Some(initiator), Some(delegation_id)),
+            InvocationProvenance::Automated => ("automated", None, None),
+        };
+        let data_labels = ownership
+            .data_labels
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
+        sqlx::query_file!(
+            "src/state/task_routes/create.sql",
+            id.as_str(),
+            identity.tenant as TenantId,
+            identity.owner as PrincipalId,
+            identity.work_context as WorkContextId,
+            draft.profile.as_str(),
+            draft.server.as_str(),
+            draft.source_task_id,
+            draft.authority_digest.as_str(),
+            ownership.kind as PrincipalKind,
+            ownership.issuer.as_str(),
+            ownership.subject.as_str(),
+            mode,
+            initiator.map(|initiator| initiator.as_str()),
+            delegation_id.map(|delegation| delegation.as_str()),
+            &data_labels,
+            now,
+            expires_at,
+        )
+        .execute(self.platform.pool())
+        .await
+        .context("failed to record the task route")?;
+        let route = self
+            .task_route_for_source(&draft, &identity)
+            .await?
+            .ok_or_else(|| anyhow!("the recorded task route is missing"))?;
+        reusable(route, &draft, &identity, now)
+    }
+
+    /// The unexpired route with this public identifier.
+    pub(crate) async fn task_route(
+        &self,
+        canonical: &CanonicalTaskId,
+    ) -> Result<Option<GatewayTaskRoute>> {
+        sqlx::query_file_as!(
+            RouteRow,
+            "src/state/task_routes/route.sql",
+            canonical.as_str(),
+            Utc::now(),
+        )
+        .fetch_optional(self.platform.pool())
+        .await
+        .context("failed to read the task route")?
+        .map(GatewayTaskRoute::try_from)
+        .transpose()
     }
 
     async fn task_route_for_source(
         &self,
-        content: &GatewayTaskRouteContent,
-    ) -> Result<Option<GatewayTaskRouteRecord>, StoreError> {
-        let mut response = self
-            .platform
-            .client()
-            .query(include_str!(
-                "../queries/state/task_routes/task_route_for_source/statement_1.surql"
-            ))
-            .bind(("server", content.server.clone()))
-            .bind(("source", content.source_task_id.clone()))
-            .bind(("owner", content.owner.clone()))
-            .bind(("profile", content.profile.clone()))
-            .await?
-            .check()?;
-        let mut rows: Vec<GatewayTaskRouteRecord> = response.take(0)?;
-        Ok(rows.pop())
-    }
-
-    pub(crate) async fn task_route(
-        &self,
-        canonical: &CanonicalTaskId,
-    ) -> Result<Option<GatewayTaskRouteRecord>, StoreError> {
-        let record = RecordId::new("gateway_task_route", canonical.as_str().to_owned());
-        let mut response = self
-            .platform
-            .client()
-            .query(include_str!(
-                "../queries/state/task_routes/task_route/statement_1.surql"
-            ))
-            .bind(("record", record))
-            .await?
-            .check()?;
-        response.take(0).map_err(Into::into)
+        draft: &GatewayTaskRouteDraft,
+        identity: &RouteIdentity,
+    ) -> Result<Option<GatewayTaskRoute>> {
+        sqlx::query_file_as!(
+            RouteRow,
+            "src/state/task_routes/for_source.sql",
+            draft.server.as_str(),
+            draft.source_task_id,
+            identity.owner as PrincipalId,
+            draft.profile.as_str(),
+        )
+        .fetch_optional(self.platform.pool())
+        .await
+        .context("failed to read the task route of the upstream Task")?
+        .map(GatewayTaskRoute::try_from)
+        .transpose()
     }
 }
 
-fn reusable_route(
-    route: GatewayTaskRouteRecord,
-    expected: &GatewayTaskRouteContent,
-) -> Result<(CanonicalTaskId, GatewayTaskRouteRecord), StoreError> {
-    if route.tenant != expected.tenant
-        || route.owner != expected.owner
-        || route.work_context != expected.work_context
-        || route.profile != expected.profile
-        || route.server != expected.server
-        || route.source_task_id != expected.source_task_id
-        || route.source_task != expected.source_task
-        || route.authority_digest != expected.authority_digest
-        || route
-            .ownership
-            .as_ref()
-            .is_some_and(|owner| owner != &expected.ownership)
-        || route.expires_at <= Utc::now()
-    {
-        return Err(StoreError::InvalidGatewayTaskRoute {
-            reason: "existing task route does not admit this retry".into(),
-        });
-    }
-    let RecordIdKey::String(id) = &route.id.key else {
-        return Err(StoreError::InvalidGatewayTaskRoute {
-            reason: "invalid stored task route identity".into(),
-        });
-    };
-    let canonical =
-        CanonicalTaskId::parse(id.clone()).map_err(|_| StoreError::InvalidGatewayTaskRoute {
-            reason: "invalid stored task route identity".into(),
-        })?;
-    Ok((canonical, route))
+fn reusable(
+    route: GatewayTaskRoute,
+    draft: &GatewayTaskRouteDraft,
+    identity: &RouteIdentity,
+    now: DateTime<Utc>,
+) -> Result<(CanonicalTaskId, GatewayTaskRoute)> {
+    ensure!(
+        route.tenant == identity.tenant
+            && route.owner == identity.owner
+            && route.work_context == identity.work_context
+            && route.profile == draft.profile
+            && route.server == draft.server
+            && route.source_task_id == draft.source_task_id
+            && route.authority_digest == draft.authority_digest
+            && route.ownership == draft.ownership
+            && route.expires_at > now,
+        "the existing task route does not admit this retry"
+    );
+    Ok((route.id.clone(), route))
 }
 
-fn new_task_route_id() -> Result<CanonicalTaskId, StoreError> {
+fn new_task_route_id() -> Result<CanonicalTaskId> {
     let mut entropy = [0_u8; 32];
-    getrandom::fill(&mut entropy).map_err(|error| StoreError::InvalidGatewayTaskRoute {
-        reason: format!("task route entropy failed: {error}"),
-    })?;
-    CanonicalTaskId::parse(format!("gtr_{}", URL_SAFE_NO_PAD.encode(entropy))).map_err(|error| {
-        StoreError::InvalidGatewayTaskRoute {
-            reason: error.to_string(),
-        }
-    })
+    getrandom::fill(&mut entropy).map_err(|error| anyhow!("task route entropy: {error}"))?;
+    Ok(CanonicalTaskId::parse(format!(
+        "gtr_{}",
+        URL_SAFE_NO_PAD.encode(entropy)
+    ))?)
 }

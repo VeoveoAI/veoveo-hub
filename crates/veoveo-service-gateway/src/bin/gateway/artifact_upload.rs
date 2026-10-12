@@ -151,29 +151,29 @@ async fn proxy(
     }
     let configuration_sha256 = hex::encode(catalog.configuration_sha256());
     drop(catalog);
-    let version = match state
+    let authority = match state
         .gateway_state
         .platform_store()
-        .artifact_upload_authority_version(
-            subject.authority.tenant.as_str(),
-            subject.authority.work_context.as_str(),
-            route.profile.as_str(),
+        .artifact_upload_authority(
+            &subject.authority.tenant,
+            &subject.authority.work_context,
+            &route.profile,
         )
         .await
     {
-        Ok(Some(version)) => version,
+        Ok(Some(authority)) => authority,
         Ok(None) => return fault(Code::Denied),
         Err(error) => {
             tracing::error!(%error, "upload authority unavailable");
             return fault(Code::Unavailable);
         }
     };
-    if version.control_plane_digest != configuration_sha256 {
+    if authority.control_plane_digest.hex() != configuration_sha256 {
         return fault(Code::Unavailable);
     }
     let binding = match (
         veoveo_artifact_contract::UploadSha256::parse(configuration_sha256),
-        veoveo_artifact_contract::UploadSha256::parse(version.context_digest),
+        veoveo_artifact_contract::UploadSha256::parse(authority.context_digest.hex().to_owned()),
     ) {
         (Ok(control_plane_digest), Ok(context_digest)) => {
             veoveo_artifact_contract::ArtifactUploadAuthority {

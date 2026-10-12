@@ -3,9 +3,9 @@ use anyhow::Result;
 use std::collections::BTreeMap;
 use veoveo_audit_contract::{
     AccountActivity, AuditContext, AuditDetail, AuditOutcome, AuditReason, AuditTarget,
+    AuditTransactionWrite,
 };
 use veoveo_mcp_contract::WorkContextDefinition;
-use veoveo_platform_store::audit::AuditTransactionWrite;
 
 pub(super) fn changes(
     registry: &veoveo_audit_contract::AuditTargetRegistry,

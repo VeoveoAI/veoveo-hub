@@ -82,29 +82,26 @@ pub(crate) async fn cancel_task(
         return StatusCode::NOT_FOUND.into_response();
     }
 
+    // The Gateway acts for the Task's owner on the server's Tasks; its own kernel
+    // instance owns no Task work.
     let task_runtime = TaskRuntime::new(
-        state.control_store.platform_store().clone(),
-        server_slug.to_string(),
-        "gateway-admin",
+        state.gateway_state.platform_store().clone(),
+        server_slug.clone(),
+        state.instance.clone(),
     );
     let owner = TaskOwner {
-        principal_key: subject.principal.id.to_string(),
+        principal_key: subject.principal.id.clone(),
         principal_kind: match subject.principal.kind {
             veoveo_mcp_contract::PrincipalKind::User => veoveo_task_runtime::PrincipalKind::User,
             veoveo_mcp_contract::PrincipalKind::Service => {
                 veoveo_task_runtime::PrincipalKind::Service
             }
         },
-        issuer: subject.principal.issuer.to_string(),
-        subject: subject.principal.subject.to_string(),
-        profile: profile_id.to_string(),
-        tenant_key: subject.principal.tenant.as_ref().map(ToString::to_string),
-        data_labels: subject
-            .principal
-            .data_labels
-            .iter()
-            .map(ToString::to_string)
-            .collect(),
+        issuer: subject.principal.issuer.clone(),
+        subject: subject.principal.subject.clone(),
+        profile: profile_id.clone(),
+        tenant_key: subject.principal.tenant.clone(),
+        data_labels: subject.principal.data_labels.clone(),
         authority: subject.authority.clone(),
     };
     let query = match task_runtime.for_owner(&owner).in_work_context() {
