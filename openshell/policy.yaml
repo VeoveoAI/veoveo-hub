@@ -2,7 +2,7 @@
 # The environment installs toolchains, components and crates, and fetches from GitHub.
 # Pushing stays unauthorized: no GitHub credential enters the sandbox, and only
 # git-upload-pack (fetch) is allowed. The Gateway reaches a local installation's
-# SurrealDB and the MCP servers it forwards through host.openshell.internal.
+# PostgreSQL and the MCP servers it forwards through host.openshell.internal.
 version: 1
 filesystem_policy:
   include_workdir: true
@@ -51,7 +51,7 @@ network_policies:
   local_database:
     endpoints:
       - host: host.openshell.internal
-        port: 8000
+        port: 5432
         protocol: tcp
     binaries:
       - path: /sandbox/run/veoveo-service-gateway-*
