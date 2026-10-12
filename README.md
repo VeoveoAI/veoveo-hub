@@ -63,18 +63,27 @@ The command writes into `/sandbox/state/gateway`:
 It prints the token endpoint, the profile's MCP endpoint, the scope and each caller's
 client identifier and key identifier, and no secret. Put the database password from
 the installation's `.env` into `/sandbox/state/database.env` as
-`VEOVEO_SURREAL_PASSWORD=...`, then start the Gateway and forward its port:
+`VEOVEO_SURREAL_PASSWORD=...`.
+
+OpenShell pins every policy-listed executable path to the SHA-256 it first observes and
+denies the path once the file changes. The Gateway therefore runs from a
+content-addressed copy under `/sandbox/run`, which `openshell/policy.yaml` allows to
+reach SurrealDB and registered servers, so every build gets a fresh path. Start it in
+its own terminal and forward its port:
 
 ```sh
-openshell sandbox exec vv-srv-gateway -- bash -lc 'cd /sandbox/state/gateway \
-  && set -a && . ./gateway.env && . ../database.env && set +a \
+openshell sandbox exec vv-srv-gateway -- bash -lc 'cd /sandbox/src \
+  && cargo build --locked --bin veoveo-service-gateway \
+  && bin=/sandbox/run/veoveo-service-gateway-$(sha256sum target/debug/veoveo-service-gateway | cut -c1-16) \
+  && install -D -m 0755 target/debug/veoveo-service-gateway "$bin" \
+  && cd /sandbox/state/gateway && set -a && . ./gateway.env && . ../database.env && set +a \
   && VEOVEO_ISSUER=http://host.openshell.internal:8080 \
      VEOVEO_CONFIG=/sandbox/state/gateway/gateway.json \
      VEOVEO_SURREAL_ENDPOINT=ws://host.openshell.internal:8000 \
      VEOVEO_SURREAL_NAMESPACE=veoveo VEOVEO_SURREAL_DATABASE=platform \
      VEOVEO_SURREAL_AUTH_LEVEL=root VEOVEO_SURREAL_USERNAME=root \
-     /sandbox/src/target/debug/veoveo-service-gateway serve'
-openshell forward start 8080 vv-srv-gateway
+     "$bin" serve'
+openshell forward start 8080 vv-srv-gateway -d
 ```
 
 The Gateway listens on `127.0.0.1:8080` inside the environment. Through the forward,

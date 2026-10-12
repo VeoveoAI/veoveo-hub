@@ -44,17 +44,21 @@ network_policies:
       - path: /usr/lib/git-core/*
       - path: /usr/local/cargo/bin/*
       - path: /usr/local/rustup/toolchains/*/bin/cargo
+  # Local installation endpoints. OpenShell pins each policy-listed executable path to
+  # the SHA-256 it first observes and denies the path after the file changes. The
+  # Gateway therefore runs from a content-addressed copy under /sandbox/run, so every
+  # build gets a fresh path and its own pin.
   local_database:
     endpoints:
       - host: host.openshell.internal
         port: 8000
         protocol: tcp
     binaries:
-      - path: /sandbox/src/target/debug/veoveo-service-gateway
+      - path: /sandbox/run/veoveo-service-gateway-*
   # A local installation forwards each registered MCP server on one of these ports.
   local_servers:
     endpoints:
       - host: host.openshell.internal
         ports: [8800, 8801, 8802, 8803, 8804, 8805, 8806, 8807, 8808, 8809]
     binaries:
-      - path: /sandbox/src/target/debug/veoveo-service-gateway
+      - path: /sandbox/run/veoveo-service-gateway-*
