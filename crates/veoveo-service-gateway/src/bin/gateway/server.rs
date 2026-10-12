@@ -395,10 +395,8 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         Ok::<(), tokio::task::JoinError>(())
     })
     .await;
-    // The router held the other references; a remaining one leaves the row to reaping.
-    if let Ok(instance) = Arc::try_unwrap(instance)
-        && let Err(error) = instance.shutdown().await
-    {
+    // Deleting the instance's row tells the other replicas at once that this one is gone.
+    if let Err(error) = instance.shutdown().await {
         tracing::warn!("the Gateway's kernel instance did not shut down cleanly: {error}");
     }
     result?;
