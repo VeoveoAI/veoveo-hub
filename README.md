@@ -88,7 +88,7 @@ openshell sandbox exec vv-srv-gateway -- bash -lc 'cd /sandbox/src \
   && cd /sandbox/state/gateway && set -a && . ./gateway.env && . ../database.env && set +a \
   && VEOVEO_ISSUER=http://host.openshell.internal:8080 \
      VEOVEO_CONFIG=/sandbox/state/gateway/gateway.json \
-     VEOVEO_DATABASE_URL=postgres://veoveo@host.openshell.internal:5432/veoveo \
+     VEOVEO_DATABASE_URL=postgres://veoveo_owner@host.openshell.internal:5432/veoveo \
      "$bin" serve'
 openshell forward start 8080 vv-srv-gateway -d
 ```
@@ -113,7 +113,9 @@ A server registers at `/oauth/register` with the registration secret as its init
 access token. An environment receives that secret through an OpenShell provider, so it
 holds only a placeholder that the proxy replaces on requests to the registration
 endpoint. The registration response grants the server its own PostgreSQL login; the
-server stays registered while that login holds a live kernel instance. A caller obtains a token by presenting an RFC 7523 client assertion, signed
+server stays registered while that login holds a live kernel instance.
+
+A caller obtains a token by presenting an RFC 7523 client assertion, signed
 with its key and naming its key identifier, at `/oauth/token` with
 `grant_type=client_credentials`, `resource=http://host.openshell.internal:8080/mcp/local`
 and `scope=mcp`. `acceptance-member` receives every permission without a risk, and
