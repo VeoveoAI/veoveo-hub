@@ -156,9 +156,10 @@ async fn concurrent_publications_activate_one_revision_and_refuse_the_other() {
     left.record_revision(&base, &context).await.unwrap();
     let one = revision("gcp-one", "e".repeat(64), empty_control_plane());
     let two = revision("gcp-two", "f".repeat(64), empty_control_plane());
+    // Both publishers base their revision on the same active one, whichever commits first.
     let (first, second) = tokio::join!(
-        left.record_revision(&one, &context),
-        right.record_revision(&two, &context),
+        left.record_revision_on(Some(&base), &one, &context),
+        right.record_revision_on(Some(&base), &two, &context),
     );
     let outcomes = [first, second];
     assert_eq!(outcomes.iter().filter(|outcome| outcome.is_ok()).count(), 1);

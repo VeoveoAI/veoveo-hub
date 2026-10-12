@@ -98,11 +98,24 @@ impl GatewayControlStore {
         revision: &GatewayControlPlaneRevision,
         context: &veoveo_audit_contract::AuditContext,
     ) -> Result<()> {
+        let previous = self.load_active_revision().await?;
+        self.record_revision_on(previous.as_ref(), revision, context)
+            .await
+    }
+
+    /// Publish `revision` as the successor of `previous`, the revision its author based
+    /// it on. The publication fails with [`StoreError::ControlRevisionChanged`] when
+    /// `previous` is no longer active.
+    pub async fn record_revision_on(
+        &self,
+        previous: Option<&GatewayControlPlaneRevision>,
+        revision: &GatewayControlPlaneRevision,
+        context: &veoveo_audit_contract::AuditContext,
+    ) -> Result<()> {
         let sections = self
             .admission
             .validate(&revision.control_plane)
             .context("refusing to persist invalid gateway control plane")?;
-        let previous = self.load_active_revision().await?;
         let audit = crate::audit::AuditAppend::new(audit::changes(
             &crate::kernel_audit_target_registry(),
             previous.as_ref().map_or(&[], |revision| {
