@@ -203,6 +203,20 @@ async fn qualify() {
         ),
         other => panic!("expected a pinned-namespace rejection, got {other:?}"),
     }
+    // No server may take the Gateway's own schema as its slug.
+    let gateway_slug = gateway_slug_client(
+        &http,
+        &registration_endpoint,
+        registration_secret,
+        &server_endpoint,
+    );
+    match gateway_slug.register().await {
+        Err(ClientError::Rejected {
+            status: reqwest::StatusCode::BAD_REQUEST,
+            error: Some(error),
+        }) => assert_eq!(error.error, RegistrationErrorCode::InvalidClientMetadata),
+        other => panic!("expected the gateway slug to be refused, got {other:?}"),
+    }
     // The installation's registration secret is the initial access token.
     let unauthorized = registration_client(
         &http,
@@ -433,6 +447,38 @@ fn registration_client(
         RegistrationDeclaration {
             slug: ServerSlug::parse("observatory").unwrap(),
             uri_scheme: ResourceScheme::parse("observatory").unwrap(),
+            version: ServerVersion::new("0.1.0").unwrap(),
+            endpoint: ServerEndpoint::new(url::Url::parse(server_endpoint).unwrap()).unwrap(),
+        },
+        authorization,
+    )
+    .unwrap();
+    RegistrationClient::new(
+        http.clone(),
+        endpoint.clone(),
+        SecretString::from(secret.to_owned()),
+        key,
+        metadata,
+    )
+    .unwrap()
+}
+
+/// A registration that claims the slug `gateway`, with no permissions of its own.
+fn gateway_slug_client(
+    http: &reqwest::Client,
+    endpoint: &url::Url,
+    secret: &str,
+    server_endpoint: &str,
+) -> RegistrationClient {
+    let key = ServerKeyPair::generate().unwrap();
+    let authorization: AuthorizationDeclaration =
+        serde_json::from_value(serde_json::json!({ "permissions": [], "requirements": {} }))
+            .unwrap();
+    let metadata = ClientMetadata::new(
+        *key.public_key(),
+        RegistrationDeclaration {
+            slug: ServerSlug::parse("gateway").unwrap(),
+            uri_scheme: ResourceScheme::parse("gateway").unwrap(),
             version: ServerVersion::new("0.1.0").unwrap(),
             endpoint: ServerEndpoint::new(url::Url::parse(server_endpoint).unwrap()).unwrap(),
         },

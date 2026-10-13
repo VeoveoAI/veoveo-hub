@@ -179,6 +179,12 @@ impl RegistrationService {
         request.metadata.check().map_err(invalid_metadata)?;
         let now = Utc::now();
         let slug = request.metadata.slug().clone();
+        if slug.as_str() == crate::store::SCHEMA {
+            return Err(RegistrationError::rejected(
+                RegistrationErrorCode::InvalidClientMetadata,
+                "software_id `gateway` names the Gateway's own schema; choose another slug",
+            ));
+        }
         let schema = ServerSchema::new(&slug).map_err(|error| {
             RegistrationError::rejected(
                 RegistrationErrorCode::InvalidClientMetadata,

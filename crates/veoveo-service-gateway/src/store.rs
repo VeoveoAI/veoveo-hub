@@ -23,9 +23,12 @@ use std::future::Future;
 use sqlx::{PgConnection, PgPool, migrate::Migrator};
 use veoveo_platform_store::{Channel, PlatformStore, StoreError};
 
+/// The Gateway's schema. No registered server may take it as its slug.
+pub const SCHEMA: &str = "gateway";
+
 /// The channel on which `gateway` schema triggers publish changes, such as registrations.
 pub fn channel() -> Channel {
-    Channel::parse("gateway").expect("the gateway schema name is a channel")
+    Channel::parse(SCHEMA).expect("the gateway schema name is a channel")
 }
 
 /// The `gateway` schema migrations. Their history lives in `gateway._sqlx_migrations`,
