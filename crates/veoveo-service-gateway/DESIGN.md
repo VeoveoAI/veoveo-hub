@@ -12,8 +12,9 @@ Neither its code nor its configuration names a server.
 |---|---|
 | MCP `2026-07-28`, Streamable HTTP | One endpoint per profile at `/mcp/{profile}`, aggregating tools, resources, resource templates, prompts, completions, Tasks and resource subscriptions of registered servers. `server/discover` lists `2026-07-28` as the only version, and another version is refused with `-32022`. The `resources.subscribe` capability declares `resourceSubscriptions` on `subscriptions/listen`; `resources/subscribe` and `resources/unsubscribe` are no methods of that version and answer `-32601` |
 | MCP Apps, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value |
-| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/c9742c0b624c55e47f0d336cc7fd200676226304/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
-| JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `GatewayInternalTokenIssuer` |
+| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/4f2773f5959bd58473831bd06a6ee02d6254fdfd/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
+| JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `GatewayInternalTokenIssuer`; a call another server made names that server as the prior actor |
+| OAuth 2.0 Token Exchange, RFC 8693, with RFC 9396 token requests | `/oauth/token` with the `urn:ietf:params:oauth:grant-type:token-exchange` grant, for registered servers that declare uses; profile in [calls between servers](#calls-between-servers) |
 | OAuth 2.0, RFC 6749, and RFC 7523 | The hosted authorization server; see [token and session authority](src/auth/DESIGN.md) |
 | Authorization server metadata, RFC 8414 | `/.well-known/oauth-authorization-server` for the Gateway's issuer and `/.well-known/oauth-authorization-server/oauth` for the hosted authorization server; each names its `jwks_uri`, and `response_types_supported`, `grant_types_supported` and `token_endpoint_auth_methods_supported` are always present because §2 gives an absent member a default |
 | JWK Set, RFC 7517, and JWK Thumbprint, RFC 7638 | `/jwks.json` and `/oauth/jwks.json`, served as `application/jwk-set+json`: public Ed25519 keys whose `kid` is the RFC 7638 thumbprint |
@@ -82,7 +83,7 @@ and `acceptance-admin`, that hold the `member` and `admin` roles.
 ## Server Registration
 
 `src/registration` implements the [server registration
-protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/c9742c0b624c55e47f0d336cc7fd200676226304/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
+protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/4f2773f5959bd58473831bd06a6ee02d6254fdfd/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
 then the software statement against the pinned key and the endpoint URL. The slug
@@ -181,6 +182,45 @@ takes three rollouts, each complete on every replica before the next begins:
 3. When 15 minutes, the longest lifetime of a forwarded token, have passed since the
    last replica stopped signing with A, remove the verification key.
 
+## Calls Between Servers
+
+`src/delegation.rs` implements the exchange of the SDK's [calls between
+servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/4f2773f5959bd58473831bd06a6ee02d6254fdfd/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers)
+and the admission of the tokens it issues. A registered server authenticates at
+`/oauth/token` with an RFC 7523 assertion signed by the key its registration pinned;
+the Gateway records the assertion's `jti` with the other replay identifiers. The
+registration must hold the token exchange grant, which a server registers exactly when
+it declares uses. The subject is a forwarded token addressed to that server and not
+itself delegated, or one of the server's Tasks.
+
+A Task is a subject while it runs. When the Gateway records the route of a Task that
+a server with declared uses created for a caller's own call, the route keeps that
+caller in `delegated_caller`: the OAuth client, actor, invocation authority and request
+context the Gateway authenticated. A Task another server's call created keeps none, so
+a delegation never extends past one calling server. The exchange reads the route by
+server and Task identifier, and core's `tasks.task` for that server must hold the Task
+as queued, running or waiting in the caller's tenant.
+
+The token carries the requested permissions that the server declared and the caller
+holds now: the installation's roles and overrides are evaluated again at each
+exchange, over each provider's current declaration, for the caller as authenticated.
+A request permission no registered server declares refuses the exchange with
+`invalid_target`, whose description names each such permission. A token for a request
+subject ends with the subject token; one for a Task lives at most five minutes and
+until the route expires. Each exchange, and each refusal after client authentication,
+writes a `gateway.token_exchange` record whose target is the calling server and whose
+actor is the caller once the subject is known.
+
+At `/mcp/{profile}` the Gateway first reads a bearer's unverified `iss`. A token it
+issued itself is an exchanged token and is verified with the forwarded-token keys for
+the profile's protected resource, whatever authorization servers the profile names;
+for a Task subject the Task must still run. The admitted subject is the caller, with
+its delegation: the acting server and the token's permissions. Every policy decision
+for that subject narrows the role-granted permissions to the token's, so a target the
+token does not carry is denied as a missing permission. The forwarded token names the
+calling server as the prior actor, and `mcp.tool_admission` and `mcp.tool_completion`
+records name it as `acting_server`.
+
 ## Upstream Transport
 
 The workspace pins RMCP 3.5.0 from `VeoveoAI/rust-sdk` at
@@ -246,7 +286,9 @@ migrations as the installation owner after the kernel migrations, as startup doe
 plans every statement as that owner. Refresh families and control-plane revisions are
 read without a tenant predicate: a family is addressed by its identifier or a token
 digest, and a revision configures the whole installation.
-A Task route lookup names the caller's tenant. Registration housekeeping and
+A Task route lookup names the caller's tenant, except the exchange's lookup of a
+server's own Task by the identifier it issued, which finds the caller there.
+Registration housekeeping and
 reconciliation read every registration and every process instance of the installation
 by design, and each such statement carries a `-- veoveo:` marker with its reason.
 
@@ -276,6 +318,16 @@ metadata to its authorization server's RFC 8414 metadata, checks each issuer, en
 and member §2 requires, verifies an issued token with the key at `jwks_uri`, and
 compares the forwarded-token JWK Set with the configured key and the RFC 7638
 thumbprint of each `kid`.
+
+`tests/calls.rs` registers the SDK's Ledger and Relay fixture servers, Relay with a
+durable Task on its own login, and checks calls between them as both acceptance
+callers: the caller, client and acting server Ledger receives, the act chain of the
+delegated token, narrowing of a sensitive permission to the admin, a Ledger Task
+resolved through Relay's Task handle, a Relay Task that calls Ledger after the call
+that created it returned and is refused once it ended, the token endpoint's refusal of
+an undeclared use, another profile, another server's subject and a delegated subject,
+the audit records of exchanges and delegated admissions, and the refusal naming the
+missing permission once Ledger deregisters.
 
 `tests/mcp_lifecycle.rs` checks the advertised version and resource capabilities, the
 answers to `resources/subscribe` under `2026-07-28` and under `2025-11-25`, and the

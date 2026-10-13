@@ -15,6 +15,10 @@ unique constraint holds it. Each mapping also records its tenant, Work Context,
 authorization digest and the owner's actor and provenance. Those fields must match
 before an existing route is reused.
 
+A route of a server that declares uses keeps `delegated_caller`, the caller a token
+exchange with the Task as its subject acts for while the Task runs, unless another
+server's call created the Task. Retention removes it with its route.
+
 The tenant, owner and Work Context columns reference their rows in the `identity`
 schema. The Gateway records the owner as an identity before it writes the route, and
 the active configuration defines the Work Context. A route goes with its Work Context

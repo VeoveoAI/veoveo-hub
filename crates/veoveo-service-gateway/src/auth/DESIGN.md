@@ -4,7 +4,7 @@
 
 | Standard | Profile |
 |---|---|
-| OAuth 2.0, RFC 6749 | Authorization code with PKCE, refresh, client credentials and the ID-JAG grant, for clients the installation configures |
+| OAuth 2.0, RFC 6749 | Authorization code with PKCE, refresh, client credentials and the ID-JAG grant, for clients the installation configures; RFC 8693 token exchange for registered servers, described in the [Gateway design](../../DESIGN.md#calls-between-servers) |
 | JWT assertions, RFC 7521 and RFC 7523 | `private_key_jwt` client authentication and identity assertion grants |
 | Resource indicators, RFC 8707 | `resource` names the protected resource a token is for |
 | JWT access tokens, RFC 9068 | Every caller access token: the hosted authorization server's carry `typ` `at+jwt`, and profile authentication accepts no other type |
@@ -15,7 +15,7 @@
 | PostgreSQL 18 | Refresh families, replay guards, JWT revocations and audit records shared by every replica, in the Gateway's `gateway` schema and core's `audit` schema |
 
 The forwarded tokens the Gateway sends to registered servers are a separate profile,
-defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/c9742c0b624c55e47f0d336cc7fd200676226304/crates/veoveo-sdk-rust/src/registration/DESIGN.md#forwarded-identity).
+defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/4f2773f5959bd58473831bd06a6ee02d6254fdfd/crates/veoveo-sdk-rust/src/registration/DESIGN.md#forwarded-identity).
 
 ## Access Tokens
 
@@ -54,10 +54,13 @@ Errors carry the codes of RFC 6749 §5.2 and RFC 8707 §2, with HTTP 400 and
 | A grant the resource does not support | `unsupported_grant_type` |
 | A resource that is unknown or that the client may not request | `invalid_target` |
 | A scope the client may not request | `invalid_scope` |
+| A token exchange whose `resource` is not the subject's profile, or whose permission no registered server provides | `invalid_target` |
+| A token exchange requesting a permission the server did not declare in `uses` | `invalid_authorization_details` |
 
 The token and revocation endpoints accept no HTTP authentication scheme, so
 `invalid_client` keeps the 400 of RFC 6749 §5.2. A 401 would have to carry a challenge
-for such a scheme.
+for such a scheme. A token exchange the Gateway cannot judge, because its database is
+unavailable, answers HTTP 503 with `server_error`.
 
 ## Sessions
 

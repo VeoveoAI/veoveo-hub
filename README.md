@@ -10,7 +10,7 @@ The [crate design](crates/veoveo-service-gateway/DESIGN.md) describes the Gatewa
 builds on [veoveo-core](https://github.com/VeoveoAI/veoveo-core) for the database
 kernel, identity, Tasks and the audit envelope, and on
 [veoveo-sdk-rust](https://github.com/VeoveoAI/veoveo-sdk-rust) for MCP, the forwarded
-token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/c9742c0b624c55e47f0d336cc7fd200676226304/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
+token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/4f2773f5959bd58473831bd06a6ee02d6254fdfd/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
 every server follows. The Gateway owns its control plane, its policy evaluator and the
 `gateway` database schema.
 
@@ -112,9 +112,9 @@ other environments reach it at `http://host.openshell.internal:8080`:
 |---|---|
 | `/livez` | HTTP 204 while the process runs |
 | `/readyz` | HTTP 200 once the audit service is ready |
-| `/.well-known/oauth-authorization-server` | RFC 8414 metadata with `registration_endpoint` and `jwks_uri` |
+| `/.well-known/oauth-authorization-server` | RFC 8414 metadata with `registration_endpoint`, `token_endpoint` and `jwks_uri` |
 | `/jwks.json` | The keys that verify the tokens the Gateway forwards to servers |
-| `/oauth/token` | Client-credentials tokens for the profile `local` |
+| `/oauth/token` | Client-credentials tokens for the profile `local`, and the token exchange a registered server performs to call other servers for its caller |
 | `/mcp/local` | The MCP endpoint of every registered server |
 
 A server registers at `/oauth/register` with the registration secret as its initial
