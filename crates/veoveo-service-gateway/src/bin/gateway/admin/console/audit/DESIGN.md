@@ -7,7 +7,7 @@
 | HTTP, RFC 9110 | Profile-scoped authenticated JSON reads, POST view admission and streaming JSON Lines export; responses use `no-store` |
 | Server-Sent Events | Partition-filtered notifications and `Last-Event-ID` recovery through sealed block sequences |
 | PostgreSQL 18 through core's `AuditStore` | Parameterized SQL filtering and keyset pagination, partition-scoped change streams on the `audit` channel, exact-record access receipts |
-| Veoveo audit envelope | Owner-declared classes and targets admitted through the Gateway's audit registry, closed record summaries, queries and export framing |
+| Veoveo audit envelope | Owner-declared classes and targets, closed record summaries, queries and export framing; reads admit every class stored in `audit.detail_type` |
 
 `/admin/{profile}/console/audit` provides partitions, views, records, summary, stream
 and export routes. The audit scope is checked on the acting principal. Its tenant
@@ -20,6 +20,13 @@ lifetime. Pages, daily summaries and the event stream reference that record. Sto
 checks its actor, selected partition, class and age in SQL. A missing or
 expired receipt returns 410. The receipt is an identifier, not a credential, and
 does not replace current authorization. Stream reconnects reuse the receipt.
+
+Pages, streams and exports read through `GatewayState::audit_reader`, whose registry
+joins the Gateway's own vocabulary with every class stored in `audit.detail_type`, so
+records a registered server appended through its own login decode. The reader is built
+for each request, because servers declare classes while the Gateway runs. Record
+targets decode only when the Gateway registers their kind; a server's records name core
+targets, such as a resource by its URI.
 
 Record filters run before SQL pagination. Record UUIDs order pages; cursors include
 that order and the selected partition. Summaries read the grouped daily view.
