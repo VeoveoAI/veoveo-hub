@@ -1,7 +1,3 @@
-#[path = "admin/artifact_access.rs"]
-mod artifact_access;
-#[path = "admin/artifacts.rs"]
-mod artifacts;
 #[path = "admin/console/mod.rs"]
 mod console;
 pub(crate) use console::{ConsoleStreamLimits, audit as console_audit};
@@ -16,14 +12,6 @@ mod tasks;
 
 use veoveo_mcp_contract::GatewayProfileId;
 
-pub(super) use artifact_access::{
-    cancel_artifact_access_request, create_artifact_access_request, decide_artifact_access_request,
-    list_artifact_access_requests,
-};
-pub(super) use artifacts::{
-    create_artifact_share_link, grant_artifact, revoke_artifact_grant, revoke_artifact_share_link,
-    set_artifact_release_state,
-};
 pub(super) use control_plane::{read_control_plane, update_control_plane};
 pub(super) use jwt_revocations::{prune_jwt_revocations, revoke_jwt};
 pub(super) use server_health::read_server_health;

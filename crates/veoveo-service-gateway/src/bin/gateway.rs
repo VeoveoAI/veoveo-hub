@@ -9,10 +9,6 @@ use bindings::catalog_admission;
 
 #[path = "gateway/admin.rs"]
 mod admin;
-#[path = "gateway/artifact_download.rs"]
-mod artifact_download;
-#[path = "gateway/artifact_upload.rs"]
-mod artifact_upload;
 #[path = "gateway/audit.rs"]
 mod audit;
 #[path = "gateway/audit_cli.rs"]
@@ -213,9 +209,6 @@ struct ServeArgs {
     /// Audit export destinations (JSON); credentials stay in secrets.
     #[arg(long, env = "VEOVEO_AUDIT_EXPORT_CONFIG")]
     audit_export_config: Option<PathBuf>,
-    /// Artifact service URL. Without it the Gateway serves no Artifact routes.
-    #[arg(long, env = "VEOVEO_ARTIFACT_SERVICE_URL")]
-    artifact_service_url: Option<String>,
     /// How long startup waits for the database.
     #[arg(long, env = "VEOVEO_DATABASE_WAIT_SECONDS", default_value_t = 60)]
     database_wait_seconds: u64,
@@ -308,7 +301,6 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         audit_retention_days,
         audit_signing_key_b64,
         audit_export_config,
-        artifact_service_url,
         database_wait_seconds,
     } = args;
     let store_config = database.into_config()?;
@@ -346,7 +338,6 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         listen_address,
         issuer,
         catalog,
-        artifact_service_url,
         control_store,
         server_database,
         registration_grace: std::time::Duration::from_secs(registration_grace_seconds),

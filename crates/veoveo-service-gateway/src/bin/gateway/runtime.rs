@@ -5,11 +5,7 @@ use chrono::Utc;
 use parking_lot::RwLock;
 use serde::Serialize;
 use tokio_util::sync::CancellationToken;
-use veoveo_mcp_contract::{
-    ForwardedRequest, GatewayInternalTokenIssuer, GatewayProfileId, InternalTokenError,
-    IssuedGatewayInternalToken, ServerSlug,
-};
-use veoveo_mcp_ext_registration::ResourceIndicator;
+use veoveo_mcp_contract::{GatewayInternalTokenIssuer, GatewayProfileId};
 use veoveo_platform_store::MaintenanceBatch;
 use veoveo_service_gateway::{
     GatewayCatalog, GatewayCatalogHandle, GatewayControlStore, GatewayRefreshDeliveryWindow,
@@ -44,8 +40,6 @@ pub(super) struct AdminState {
     pub(super) http: SharedHttpClient,
     pub(super) control_store: GatewayControlStore,
     pub(super) gateway_state: GatewayState,
-    pub(super) internal_token_issuer: GatewayInternalTokenIssuer,
-    pub(super) artifacts: Option<ArtifactService>,
     pub(super) registrations: veoveo_service_gateway::registration::RegistrationService,
     pub(super) console_stream: crate::admin::ConsoleStreamLimits,
     /// This process's kernel instance, which also reaps the instances of ended processes.
@@ -61,79 +55,6 @@ pub(super) struct DynamicMcpState {
     pub(super) allowed_hosts: Arc<Vec<String>>,
     pub(super) cancellation_token: CancellationToken,
     pub(super) services: SharedProfileMcpServices,
-}
-
-#[derive(Clone)]
-pub(super) struct ArtifactHttpState {
-    pub(super) catalog: SharedCatalog,
-    pub(super) gateway_state: GatewayState,
-    pub(super) http: reqwest::Client,
-    pub(super) internal_token_issuer: GatewayInternalTokenIssuer,
-    pub(super) artifacts: ArtifactService,
-}
-
-/// The Artifact service, a platform dependency the installation configures by
-/// address. Requests forwarded to it carry an access token whose audience is its URL.
-#[derive(Clone, Debug)]
-pub(super) struct ArtifactService {
-    url: String,
-    audience: ResourceIndicator,
-    server: ServerSlug,
-}
-
-impl ArtifactService {
-    pub(super) fn new(url: &str) -> anyhow::Result<Self> {
-        let url = url.trim_end_matches('/').to_owned();
-        Ok(Self {
-            audience: ResourceIndicator::parse(&url)?,
-            server: ServerSlug::parse(veoveo_artifact_contract::ARTIFACT_PLANE_SCHEME)?,
-            url,
-        })
-    }
-
-    pub(super) fn url(&self) -> &str {
-        &self.url
-    }
-
-    pub(super) fn audience(&self) -> &ResourceIndicator {
-        &self.audience
-    }
-
-    /// The server identity artifact policy targets name.
-    pub(super) fn server(&self) -> &ServerSlug {
-        &self.server
-    }
-
-    /// An access token that lets the Artifact service act for the caller.
-    pub(super) fn issue(
-        &self,
-        issuer: &GatewayInternalTokenIssuer,
-        profile: GatewayProfileId,
-        subject: &veoveo_service_gateway::AuthenticatedSubject,
-        expires_at: chrono::DateTime<Utc>,
-    ) -> Result<IssuedGatewayInternalToken, InternalTokenError> {
-        issuer.issue(ForwardedRequest {
-            profile,
-            server: self.server.clone(),
-            audience: self.audience.clone(),
-            client: subject.access_token.oauth_client_id.clone(),
-            actor: subject.actor.clone(),
-            authority: subject.authority.clone(),
-            permissions: Default::default(),
-            request_context: Some(subject.request_context()),
-            expires_at,
-        })
-    }
-}
-
-/// The Artifact service of an admin request, or 404 when none is configured.
-pub(super) fn artifact_service(
-    state: &AdminState,
-) -> Result<&ArtifactService, Box<axum::response::Response>> {
-    use axum::response::IntoResponse;
-    state.artifacts.as_ref().ok_or_else(|| {
-        Box::new(veoveo_service_gateway::problem::Problem::not_found().into_response())
-    })
 }
 
 #[derive(Debug, Serialize)]

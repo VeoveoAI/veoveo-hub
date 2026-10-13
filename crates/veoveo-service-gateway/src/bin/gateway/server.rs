@@ -28,13 +28,9 @@ use veoveo_service_gateway::{
 
 use super::{
     admin::{
-        cancel_artifact_access_request, cancel_task, create_artifact_access_request,
-        create_artifact_share_link, decide_artifact_access_request, grant_artifact,
-        list_artifact_access_requests, prune_jwt_revocations, read_control_plane,
-        read_server_health, revoke_artifact_grant, revoke_artifact_share_link, revoke_jwt,
-        set_artifact_release_state, update_control_plane,
+        cancel_task, prune_jwt_revocations, read_control_plane, read_server_health, revoke_jwt,
+        update_control_plane,
     },
-    artifact_download::download_artifact,
     auth::{
         authenticate_mcp, authorization_server_jwks, authorization_server_metadata,
         protected_resource_metadata,
@@ -42,9 +38,9 @@ use super::{
     host::validate_host,
     oauth::{authorization_callback, authorize_endpoint, revoke_refresh_token, token_endpoint},
     runtime::{
-        AdminState, AppState, ArtifactHttpState, ArtifactService, DynamicMcpState,
-        ProfileAuthState, ProfileMcpService, Readiness, build_http_client, current_catalog,
-        spawn_authorization_retention_gc_loop, spawn_refresh_delivery_gc_loop,
+        AdminState, AppState, DynamicMcpState, ProfileAuthState, ProfileMcpService, Readiness,
+        build_http_client, current_catalog, spawn_authorization_retention_gc_loop,
+        spawn_refresh_delivery_gc_loop,
     },
 };
 
@@ -52,7 +48,6 @@ pub(super) struct ServeConfig {
     pub(super) listen_address: SocketAddr,
     pub(super) issuer: String,
     pub(super) catalog: GatewayCatalog,
-    pub(super) artifact_service_url: Option<String>,
     pub(super) control_store: GatewayControlStore,
     pub(super) server_database: ServerDatabase,
     pub(super) registration_grace: std::time::Duration,
@@ -72,7 +67,6 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         listen_address,
         issuer,
         catalog: initial_catalog,
-        artifact_service_url,
         control_store,
         server_database,
         registration_grace,
@@ -116,11 +110,6 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     let issuer = TokenIssuer::parse(deployment.base_url())?;
     let internal_token_issuer =
         GatewayInternalTokenIssuer::new(issuer.clone(), signing_key.clone())?;
-    let artifacts = artifact_service_url
-        .as_deref()
-        .map(ArtifactService::new)
-        .transpose()
-        .context("invalid Artifact service URL")?;
     let ct = CancellationToken::new();
     let _stop = ct.clone().drop_guard();
     let allowed_hosts = Arc::new(public_allowed_hosts(&deployment, allow_loopback_hosts));
@@ -197,33 +186,6 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         ));
     router = router.merge(mcp_router);
 
-    if let Some(artifacts) = &artifacts {
-        let artifact_http_state = ArtifactHttpState {
-            catalog: catalog.clone(),
-            gateway_state: gateway_state.clone(),
-            http: reqwest::Client::builder()
-                .connect_timeout(std::time::Duration::from_secs(10))
-                .read_timeout(std::time::Duration::from_secs(60))
-                .redirect(reqwest::redirect::Policy::none())
-                .build()?,
-            internal_token_issuer: internal_token_issuer.clone(),
-            artifacts: artifacts.clone(),
-        };
-        router = router.merge(
-            Router::new()
-                .route(
-                    "/artifacts/{profile}/{artifact_id}/download",
-                    get(download_artifact),
-                )
-                .with_state(artifact_http_state.clone())
-                .merge(crate::artifact_upload::router(artifact_http_state))
-                .layer(middleware::from_fn_with_state(
-                    auth_state.clone(),
-                    authenticate_mcp,
-                )),
-        );
-    }
-
     router = router.merge(
         Router::new()
             .route(
@@ -245,13 +207,11 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         http: http.clone(),
         control_store,
         gateway_state: gateway_state.clone(),
-        internal_token_issuer,
-        artifacts: artifacts.clone(),
         registrations,
         console_stream: super::admin::ConsoleStreamLimits::new(),
         instance: instance.clone(),
     };
-    let mut admin_router = Router::new()
+    let admin_router = Router::new()
         .route(
             "/admin/{profile}/control-plane",
             get(read_control_plane).put(update_control_plane),
@@ -290,41 +250,6 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             post(cancel_task),
         )
         .route("/admin/{profile}/server-health", get(read_server_health));
-    if artifacts.is_some() {
-        admin_router = admin_router
-            .route(
-                "/admin/{profile}/artifacts/{artifact_id}/release-state",
-                axum::routing::put(set_artifact_release_state),
-            )
-            .route(
-                "/admin/{profile}/artifacts/{artifact_id}/grants",
-                post(grant_artifact).delete(revoke_artifact_grant),
-            )
-            .route(
-                "/admin/{profile}/artifacts/{artifact_id}/share-links",
-                post(create_artifact_share_link),
-            )
-            .route(
-                "/admin/{profile}/artifacts/{artifact_id}/share-links/{link_id}",
-                axum::routing::delete(revoke_artifact_share_link),
-            )
-            .route(
-                "/admin/{profile}/artifacts/{artifact_id}/access-requests",
-                post(create_artifact_access_request),
-            )
-            .route(
-                "/admin/{profile}/artifact-access-requests",
-                get(list_artifact_access_requests),
-            )
-            .route(
-                "/admin/{profile}/artifact-access-requests/{request_id}/decision",
-                post(decide_artifact_access_request),
-            )
-            .route(
-                "/admin/{profile}/artifact-access-requests/{request_id}/cancel",
-                post(cancel_artifact_access_request),
-            );
-    }
     router = router.merge(
         admin_router
             .with_state(admin_state)
@@ -512,20 +437,6 @@ mod tests {
         assert_eq!(
             public_allowed_hosts(&deployment, true),
             vec!["veoveo.example", "localhost", "127.0.0.1", "::1"]
-        );
-    }
-
-    #[test]
-    fn artifact_download_path_carries_the_authenticated_profile() {
-        assert_eq!(
-            veoveo_service_gateway::http::profile_from_route(
-                "/artifacts/{profile}/{artifact_id}/download",
-                "/artifacts/operator/0197f78e-f2f0-7a6e-8a5d-f41c691e4471/download"
-            )
-            .as_ref()
-            .map(ToString::to_string)
-            .as_deref(),
-            Some("operator")
         );
     }
 }
