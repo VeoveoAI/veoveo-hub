@@ -41,6 +41,7 @@ pub(super) struct GatewayAuthorizedHttpClient {
     permissions: BTreeSet<PermissionName>,
     request_context: GatewayRequestContext,
     acting_server: Option<veoveo_sdk_rust::ActingServer>,
+    acting_task: Option<veoveo_sdk_rust::OpaqueTaskId>,
 }
 
 impl std::fmt::Debug for GatewayAuthorizedHttpClient {
@@ -81,6 +82,7 @@ impl GatewayAuthorizedHttpClient {
                 .delegation
                 .as_ref()
                 .map(|delegation| delegation.acting_server.clone()),
+            acting_task: subject.acting_task().cloned(),
         }
     }
 
@@ -124,6 +126,7 @@ impl GatewayAuthorizedHttpClient {
                 permissions: self.permissions.clone(),
                 request_context: Some(self.request_context.clone()),
                 acting_server: self.acting_server.clone(),
+                acting_task: self.acting_task.clone(),
                 expires_at,
             })
             .map(|issued| issued.bearer_token)

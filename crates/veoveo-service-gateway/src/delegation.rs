@@ -1,7 +1,7 @@
 //! Calls between servers: the RFC 8693 token exchange a registered server performs to
 //! call other servers for its caller, and the admission of the token it receives at a
 //! profile. The protocol is the SDK's
-//! [calls between servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/4f2773f5959bd58473831bd06a6ee02d6254fdfd/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers).
+//! [calls between servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/8cc3235fe03a8463bef57c661ae0b8a1a99a2715/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers).
 use std::{collections::BTreeSet, sync::Arc};
 
 use anyhow::Context;
@@ -11,7 +11,7 @@ use veoveo_audit_contract::{AuditOutcome, AuditReason, AuditTarget};
 use veoveo_sdk_rust::{
     ActingServer, DelegatedCaller, ExchangeGrant, ExchangedTokenVerifier, GatewayInternalIdentity,
     GatewayInternalTokenIssuer, GatewayInternalTokenVerifier, GatewayInternalTrustBundle,
-    TokenAudience, TokenIssuer,
+    OpaqueTaskId, TokenAudience, TokenIssuer,
     calls::{
         ACCESS_TOKEN_TOKEN_TYPE, TASK_TOKEN_TYPE, TokenErrorCode, TokenErrorResponse,
         TokenExchangeResponse,
@@ -42,8 +42,9 @@ pub struct SubjectDelegation {
     pub acting_server: ActingServer,
     /// The permissions the exchange granted; the call carries no others.
     pub permissions: BTreeSet<PermissionName>,
-    /// The calling server's Task the delegation lasts as long as.
-    pub task: Option<String>,
+    /// The calling server's Task the delegation lasts as long as, and which the call
+    /// names as provenance.
+    pub task: Option<OpaqueTaskId>,
 }
 
 impl SubjectDelegation {
@@ -169,7 +170,7 @@ struct Subject {
     caller: DelegatedCaller,
     profile: veoveo_sdk_rust::GatewayProfileId,
     expires_at: DateTime<Utc>,
-    task: Option<String>,
+    task: Option<OpaqueTaskId>,
 }
 
 impl DelegationService {
@@ -484,10 +485,13 @@ impl DelegationService {
                 })
             }
             (Some(task), Some(TASK_TOKEN_TYPE)) => {
+                let task = OpaqueTaskId::parse(task).map_err(|_| {
+                    TokenExchangeRefusal::new(InvalidGrant, "the subject is no Task identifier")
+                })?;
                 let delegation = self
                     .inner
                     .gateway
-                    .task_delegation(slug, task)
+                    .task_delegation(slug, task.as_str())
                     .await
                     .map_err(TokenExchangeRefusal::unavailable)?
                     .ok_or_else(|| {
@@ -501,7 +505,7 @@ impl DelegationService {
                 let live = self
                     .inner
                     .gateway
-                    .task_live(slug, task, &delegation.caller)
+                    .task_live(slug, task.as_str(), &delegation.caller)
                     .await
                     .map_err(TokenExchangeRefusal::unavailable)?;
                 if !live {
@@ -515,7 +519,7 @@ impl DelegationService {
                     caller: delegation.caller,
                     profile: delegation.profile,
                     expires_at: (Utc::now() + TASK_DELEGATION_LIFETIME).min(delegation.expires_at),
-                    task: Some(task.to_owned()),
+                    task: Some(task),
                 })
             }
             (Some(_), Some(other)) => Err(TokenExchangeRefusal::new(
@@ -626,7 +630,11 @@ impl DelegationService {
             match self
                 .inner
                 .gateway
-                .task_live(&identity.acting_server.server, task, &identity.caller)
+                .task_live(
+                    &identity.acting_server.server,
+                    task.as_str(),
+                    &identity.caller,
+                )
                 .await
                 .context("failed to read the delegating Task")
             {

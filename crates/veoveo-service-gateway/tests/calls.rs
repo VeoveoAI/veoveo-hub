@@ -49,7 +49,7 @@ use veoveo_sdk_rust::{
     },
 };
 use veoveo_sdk_rust_fixture::{
-    calls::{Inspect, Inspection},
+    calls::{EntryState, FollowedEntry, Inspect, Inspection},
     ledger::{self, LedgerDomain, LedgerTasks},
     relay::{self, RelayDomain, RelayTasks},
 };
@@ -373,7 +373,7 @@ async fn qualify() {
     let admin = caller(&gateway, &http, "admin").await;
 
     // Inline: Ledger sees the member as the caller and Relay as the acting server, with
-    // only the Ledger permission the member holds.
+    // only the Ledger permissions the member holds.
     let inspection: Inspection = serde_json::from_value(
         relay_call(&member, "relay_inspect", json!({}))
             .await
@@ -382,7 +382,11 @@ async fn qualify() {
     .unwrap();
     assert_eq!(inspection.client, "acceptance-member");
     assert_eq!(inspection.acting_server.as_deref(), Some("relay"));
-    assert_eq!(inspection.permissions, ["ledger.entries.read"]);
+    assert_eq!(inspection.acting_task, None);
+    assert_eq!(
+        inspection.permissions,
+        ["ledger.entries.read", "ledger.entries.write"]
+    );
     let delegated = decoded_claims(&ledger.bearers.last());
     assert_eq!(delegated["act"]["sub"], gateway.base);
     assert_eq!(
@@ -408,6 +412,18 @@ async fn qualify() {
         .unwrap();
     assert_eq!(tallied["entries"], 2);
     assert_eq!(tallied["inspection"]["acting_server"], "relay");
+
+    // Relay reads a Ledger entry through the Gateway and follows its updates through a
+    // resource subscription until it closes.
+    let followed: FollowedEntry = serde_json::from_value(
+        relay_call(&member, "relay_follow_entry", json!({"entry": "gateway-1"}))
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(followed.states, [EntryState::Open, EntryState::Closed]);
+    assert_eq!(followed.waited.state, EntryState::Closed);
+    assert_eq!(followed.read, followed.waited);
 
     // A durable Relay Task calls Ledger after the call that created it returned.
     let created = match member
@@ -439,14 +455,21 @@ async fn qualify() {
     let later: Inspection = serde_json::from_value(later["structuredContent"].clone()).unwrap();
     assert_eq!(later.client, "acceptance-member");
     assert_eq!(later.acting_server.as_deref(), Some("relay"));
-
-    // Once the Task ended, it acts for nobody.
+    // Ledger sees the Relay Task the call came from, by the identifier Relay issued.
     let source: String = sqlx::query_scalar(
         "SELECT source_task_id FROM gateway.task_route WHERE server = 'relay' AND delegated_caller IS NOT NULL",
     )
     .fetch_one(db.a.pool())
     .await
     .unwrap();
+    assert_eq!(later.acting_task.as_deref(), Some(source.as_str()));
+    let from_task = decoded_claims(&ledger.bearers.last());
+    assert_eq!(
+        from_task["https://veoveo.ai/claims/invocation"]["acting_task"],
+        source.as_str()
+    );
+
+    // Once the Task ended, it acts for nobody.
     let profile = GatewayProfileId::parse(PROFILE).unwrap();
     let ended = relay_calls
         .for_task_id(TaskId::parse(source.clone()).unwrap(), &profile)
@@ -513,13 +536,14 @@ async fn qualify() {
             .contains("delegated again"),
         "{answer}"
     );
-    // Relay's own subject exchanges; the response names what the token carries.
+    // Relay's own subject exchanges; the response names what the token carries: the
+    // member's Ledger permissions among Relay's uses, without the sensitive seal.
     let (status, answer) =
         exchange(&gateway, &http, &relay, (&relay_token, access), None, None).await;
     assert_eq!(status, reqwest::StatusCode::OK, "{answer}");
     assert_eq!(
         answer["authorization_details"][0]["actions"],
-        json!(["ledger.entries.read"])
+        json!(["ledger.entries.read", "ledger.entries.write"])
     );
 
     // Each exchange and each delegated admission is in the audit chain.
@@ -537,6 +561,17 @@ async fn qualify() {
     .await
     .unwrap();
     assert!(acting >= 3, "{acting} delegated admissions");
+    let from_tasks: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM audit.record WHERE class IN ('mcp.tool_admission', 'mcp.tool_completion') AND draft #>> '{detail,acting_task}' = $1",
+    )
+    .bind(&source)
+    .fetch_one(db.a.pool())
+    .await
+    .unwrap();
+    assert_eq!(
+        from_tasks, 2,
+        "the Task's call is admitted and completed once"
+    );
 
     // Without Ledger, the refusal names the permission no server provides.
     ledger.client.deregister(ledger.registration).await.unwrap();

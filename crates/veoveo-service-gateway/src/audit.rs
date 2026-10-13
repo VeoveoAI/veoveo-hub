@@ -21,6 +21,13 @@ impl AuthenticatedSubject {
             .map(|delegation| &delegation.acting_server.server)
     }
 
+    /// The acting server's Task the call came from, when that server called from one.
+    pub fn acting_task(&self) -> Option<&veoveo_sdk_rust::OpaqueTaskId> {
+        self.delegation
+            .as_ref()
+            .and_then(|delegation| delegation.task.as_ref())
+    }
+
     pub fn audit_context(&self) -> Result<AuditContext> {
         Ok(AuditContext {
             actor: self.audit_actor()?,
@@ -169,6 +176,7 @@ pub fn mcp_action_detail(
     match action {
         GatewayAction::ToolsCall => audit.detail(&ToolAdmission {
             acting_server: subject.acting_server().cloned(),
+            acting_task: subject.acting_task().cloned(),
         }),
         GatewayAction::ResourcesRead => read(McpReadMethod::ResourceRead),
         GatewayAction::PromptsGet => read(McpReadMethod::PromptGet),
