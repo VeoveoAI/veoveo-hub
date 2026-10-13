@@ -270,15 +270,18 @@ impl GatewayState {
         reusable(route, &draft, &identity, now)
     }
 
-    /// The unexpired route with this public identifier.
+    /// The unexpired route with this public identifier in the caller's tenant.
     pub(crate) async fn task_route(
         &self,
         canonical: &CanonicalTaskId,
+        tenant: &veoveo_types::TenantId,
     ) -> Result<Option<GatewayTaskRoute>> {
+        let tenant = deterministic_tenant_id(tenant.as_str())?;
         sqlx::query_file_as!(
             RouteRow,
             "src/state/task_routes/route.sql",
             canonical.as_str(),
+            tenant as TenantId,
             Utc::now(),
         )
         .fetch_optional(self.platform.pool())
@@ -300,6 +303,7 @@ impl GatewayState {
             draft.source_task_id,
             identity.owner as PrincipalId,
             draft.profile.as_str(),
+            identity.tenant as TenantId,
         )
         .fetch_optional(self.platform.pool())
         .await

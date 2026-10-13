@@ -234,7 +234,15 @@ prune repeats it until a statement changes fewer.
 The Gateway's own statements, for registrations and Task routes, are `.sql` files
 beside the modules that run them, checked at compile time through sqlx's `query_file!`
 macros against the metadata in `.sqlx`; tests keep theirs under `tests/`. No Rust code
-builds SQL text.
+builds SQL text. `.sqlx` also holds the metadata of the core crates' queries, because
+the check stage compiles them offline from an empty target directory.
+
+`tests/database_conformance.rs` holds the Gateway's own statements to core's
+[database rules](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/DATABASE.md#server-schema-rules)
+over the `gateway`, `identity` and `kernel` schemas, planned as the installation owner.
+A Task route lookup names the caller's tenant. Registration housekeeping and
+reconciliation read every registration and every process instance of the installation
+by design, and each such statement carries a `-- veoveo:` marker with its reason.
 
 ## Qualification
 

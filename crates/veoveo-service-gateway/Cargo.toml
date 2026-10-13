@@ -74,7 +74,7 @@ zeroize.workspace = true
 [dev-dependencies]
 veoveo-modular-fixture-mcp.workspace = true
 tempfile.workspace = true
-veoveo-test-fixtures = { workspace = true, features = ["store"] }
+veoveo-test-fixtures = { workspace = true, features = ["store", "database-conformance"] }
 jsonschema.workspace = true
 rcgen.workspace = true
 schemars.workspace = true

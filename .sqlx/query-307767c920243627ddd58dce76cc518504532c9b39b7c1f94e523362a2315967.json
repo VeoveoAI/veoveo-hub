@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT count(*) AS \"count!\"\nFROM gateway.task_route\n",
+  "query": "-- veoveo: all tenants (a unit test counts every route of its own fixture database)\nSELECT count(*) AS \"count!\"\nFROM gateway.task_route\n",
   "describe": {
     "columns": [
       {
@@ -17,5 +17,5 @@
       null
     ]
   },
-  "hash": "24e6093f60cb1a178b35cbbd174261d9626da10d46083114a1e0252a251d5b72"
+  "hash": "307767c920243627ddd58dce76cc518504532c9b39b7c1f94e523362a2315967"
 }

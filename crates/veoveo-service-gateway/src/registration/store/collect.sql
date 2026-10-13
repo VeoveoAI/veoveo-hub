@@ -1,3 +1,7 @@
+-- Housekeeping removes every registration orphaned past the grace period. The caller
+-- drops each removed registration's login in the same transaction.
+-- veoveo: unbounded (the orphaned registrations of ended server processes, which one transaction removes with their logins)
+-- veoveo: scan (housekeeping reads every registration and every process instance of the installation)
 DELETE FROM gateway.registration AS r
 WHERE r.orphaned_at < $1
     AND NOT EXISTS (

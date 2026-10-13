@@ -38,9 +38,11 @@ and registered servers forwarded to the host on ports 8800 to 8809 of
 Tests that need a database start a private PostgreSQL cluster per test process from the
 PostgreSQL 18 programs on `PATH`; the `dev` image installs the PGDG `postgresql-18`
 18.6 packages, and on macOS Homebrew's `postgresql@18` provides the same programs.
-Queries are checked at compile time against the metadata in `.sqlx`. After changing a
-query, apply core's kernel migrations to a scratch database and run
-`cargo sqlx prepare --workspace -- --all-targets --all-features` against it.
+Queries are checked at compile time against the metadata in `.sqlx`, which also holds
+the queries of the core crates the check stage compiles. After changing a query or the
+core pin, apply core's kernel migrations to a scratch database and run
+`cargo sqlx prepare --workspace -- --all-targets --all-features` against it with an
+empty `CARGO_TARGET_DIR`, so every core query is compiled and recorded.
 
 ## Local Launch
 

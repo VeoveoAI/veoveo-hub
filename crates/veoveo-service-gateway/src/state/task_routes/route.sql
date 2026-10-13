@@ -17,5 +17,5 @@ SELECT
     r.data_labels,
     r.expires_at
 FROM gateway.task_route AS r
-JOIN identity.principal AS p ON p.id = r.owner
-WHERE r.id = $1 AND r.expires_at > $2
+JOIN identity.principal AS p ON p.id = r.owner AND p.tenant = r.tenant
+WHERE r.id = $1 AND r.tenant = $2 AND r.expires_at > $3

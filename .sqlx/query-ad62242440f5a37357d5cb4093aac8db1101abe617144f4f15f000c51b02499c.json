@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM gateway.registration AS r\nWHERE r.orphaned_at < $1\n    AND NOT EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    )\nRETURNING r.client_id, r.server, r.login\n",
+  "query": "-- Housekeeping removes every registration orphaned past the grace period. The caller\n-- drops each removed registration's login in the same transaction.\n-- veoveo: unbounded (the orphaned registrations of ended server processes, which one transaction removes with their logins)\n-- veoveo: scan (housekeeping reads every registration and every process instance of the installation)\nDELETE FROM gateway.registration AS r\nWHERE r.orphaned_at < $1\n    AND NOT EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    )\nRETURNING r.client_id, r.server, r.login\n",
   "describe": {
     "columns": [
       {
@@ -48,5 +48,5 @@
       false
     ]
   },
-  "hash": "581661798f48a32d6929b40dff8de74cc624769c148ce9c50a91b52e9bbf4e08"
+  "hash": "ad62242440f5a37357d5cb4093aac8db1101abe617144f4f15f000c51b02499c"
 }

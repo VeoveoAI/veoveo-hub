@@ -65,7 +65,7 @@ impl GatewayMcp {
             .map_err(|error| mcp_invalid_params(format!("invalid canonical task id: {error}")))?;
         let Some(route) = self
             .state
-            .task_route(&canonical_task_id)
+            .task_route(&canonical_task_id, &subject.authority.tenant)
             .await
             .map_err(|error| {
                 mcp_internal(format!("failed to read canonical task route: {error}"))

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    client_id,\n    server,\n    metadata AS \"metadata: Json<ClientMetadata>\",\n    software_statement,\n    access_token_digest,\n    issued_at\nFROM gateway.registration\nORDER BY client_id\n",
+  "query": "-- Every replica routes every registered server, so a reconciliation reads them all.\n-- veoveo: unbounded (one row per registration of a running server process, which the installation's grace period bounds)\n-- veoveo: scan (a reconciliation reads every registration of the installation)\nSELECT\n    client_id,\n    server,\n    metadata AS \"metadata: Json<ClientMetadata>\",\n    software_statement,\n    access_token_digest,\n    issued_at\nFROM gateway.registration\nORDER BY client_id\n",
   "describe": {
     "columns": [
       {
@@ -82,5 +82,5 @@
       false
     ]
   },
-  "hash": "1e0e5727d8588cc07bfa2eb7d843feeccf778fcf032169ce134536e0ab8a605a"
+  "hash": "237c62215e3dcd634f8e7b4d6930d799a1852636f9b7245b757e8558fc0238ba"
 }

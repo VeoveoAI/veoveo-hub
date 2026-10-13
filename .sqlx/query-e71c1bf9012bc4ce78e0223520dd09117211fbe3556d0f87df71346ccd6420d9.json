@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    r.id,\n    r.tenant AS \"tenant: TenantId\",\n    r.owner AS \"owner: PrincipalId\",\n    r.work_context AS \"work_context: WorkContextId\",\n    r.profile,\n    r.server,\n    r.source_task_id,\n    r.authority_digest,\n    p.principal_key AS owner_key,\n    r.owner_kind AS \"owner_kind: PrincipalKind\",\n    r.owner_issuer,\n    r.owner_subject,\n    r.invocation_mode,\n    r.initiator,\n    r.delegation_id,\n    r.data_labels,\n    r.expires_at\nFROM gateway.task_route AS r\nJOIN identity.principal AS p ON p.id = r.owner\nWHERE r.id = $1 AND r.expires_at > $2\n",
+  "query": "SELECT\n    r.id,\n    r.tenant AS \"tenant: TenantId\",\n    r.owner AS \"owner: PrincipalId\",\n    r.work_context AS \"work_context: WorkContextId\",\n    r.profile,\n    r.server,\n    r.source_task_id,\n    r.authority_digest,\n    p.principal_key AS owner_key,\n    r.owner_kind AS \"owner_kind: PrincipalKind\",\n    r.owner_issuer,\n    r.owner_subject,\n    r.invocation_mode,\n    r.initiator,\n    r.delegation_id,\n    r.data_labels,\n    r.expires_at\nFROM gateway.task_route AS r\nJOIN identity.principal AS p ON p.id = r.owner AND p.tenant = r.tenant\nWHERE r.id = $1 AND r.tenant = $2 AND r.expires_at > $3\n",
   "describe": {
     "columns": [
       {
@@ -194,6 +194,7 @@
     "parameters": {
       "Left": [
         "Text",
+        "Uuid",
         "Timestamptz"
       ]
     },
@@ -217,5 +218,5 @@
       false
     ]
   },
-  "hash": "75ae0cd2b91628f7ddfd57cbca4d106eccaeeef8b2b7f63e1a843e7bea317fb5"
+  "hash": "e71c1bf9012bc4ce78e0223520dd09117211fbe3556d0f87df71346ccd6420d9"
 }

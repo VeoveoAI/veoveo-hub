@@ -17,5 +17,5 @@ SELECT
     r.data_labels,
     r.expires_at
 FROM gateway.task_route AS r
-JOIN identity.principal AS p ON p.id = r.owner
-WHERE r.server = $1 AND r.source_task_id = $2 AND r.owner = $3 AND r.profile = $4
+JOIN identity.principal AS p ON p.id = r.owner AND p.tenant = r.tenant
+WHERE r.server = $1 AND r.source_task_id = $2 AND r.owner = $3 AND r.profile = $4 AND r.tenant = $5

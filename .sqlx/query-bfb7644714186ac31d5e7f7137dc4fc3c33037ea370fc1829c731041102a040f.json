@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    r.id,\n    r.tenant AS \"tenant: TenantId\",\n    r.owner AS \"owner: PrincipalId\",\n    r.work_context AS \"work_context: WorkContextId\",\n    r.profile,\n    r.server,\n    r.source_task_id,\n    r.authority_digest,\n    p.principal_key AS owner_key,\n    r.owner_kind AS \"owner_kind: PrincipalKind\",\n    r.owner_issuer,\n    r.owner_subject,\n    r.invocation_mode,\n    r.initiator,\n    r.delegation_id,\n    r.data_labels,\n    r.expires_at\nFROM gateway.task_route AS r\nJOIN identity.principal AS p ON p.id = r.owner\nWHERE r.server = $1 AND r.source_task_id = $2 AND r.owner = $3 AND r.profile = $4\n",
+  "query": "SELECT\n    r.id,\n    r.tenant AS \"tenant: TenantId\",\n    r.owner AS \"owner: PrincipalId\",\n    r.work_context AS \"work_context: WorkContextId\",\n    r.profile,\n    r.server,\n    r.source_task_id,\n    r.authority_digest,\n    p.principal_key AS owner_key,\n    r.owner_kind AS \"owner_kind: PrincipalKind\",\n    r.owner_issuer,\n    r.owner_subject,\n    r.invocation_mode,\n    r.initiator,\n    r.delegation_id,\n    r.data_labels,\n    r.expires_at\nFROM gateway.task_route AS r\nJOIN identity.principal AS p ON p.id = r.owner AND p.tenant = r.tenant\nWHERE r.server = $1 AND r.source_task_id = $2 AND r.owner = $3 AND r.profile = $4 AND r.tenant = $5\n",
   "describe": {
     "columns": [
       {
@@ -196,7 +196,8 @@
         "Text",
         "Text",
         "Uuid",
-        "Text"
+        "Text",
+        "Uuid"
       ]
     },
     "nullable": [
@@ -219,5 +220,5 @@
       false
     ]
   },
-  "hash": "bb41adf92a08dec804068976717675240180637c9ad500ec4a10afd35e6f4c92"
+  "hash": "bfb7644714186ac31d5e7f7137dc4fc3c33037ea370fc1829c731041102a040f"
 }

@@ -1,3 +1,4 @@
+-- veoveo: scan (kernel.instance has no index on login; it holds one row per running process of the installation)
 SELECT
     r.server,
     r.orphaned_at,

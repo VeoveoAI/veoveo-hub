@@ -36,7 +36,10 @@ route. A retry after the route is gone meets an upstream Task whose own retentio
 ended, unless the Task named no `ttl` and outlived the seven days, in which case the
 retry records a new route.
 
-Reads, updates, cancellations and listeners match recorded ownership before checking
+Every lookup names the tenant: a public identifier is read only in the caller's tenant,
+and a projection reads its source tuple in the draft's tenant, with the owner's
+identity row in the same tenant. Reads, updates, cancellations and listeners then
+match recorded ownership before checking
 current profile exposure and policy. Ownership is the principal key, kind, issuer and
 subject, the invocation provenance with its initiator and delegation identity, and
 the admitted data labels. The route separately binds tenant, Work Context and profile.

@@ -15,6 +15,11 @@ fn draft() -> GatewayTaskRouteDraft {
     }
 }
 
+/// The tenant of [`draft`]'s route.
+fn input_tenant() -> veoveo_types::TenantId {
+    draft().tenant
+}
+
 /// Task routes reference the Work Context the active configuration defines.
 async fn database() -> fixture::TestDb {
     let db = fixture::TestDb::new().await;
@@ -47,7 +52,15 @@ async fn concurrent_projection_and_retry_reuse_one_route_without_extending_reten
     let (same, retained) = right.create_task_route(retry).await.unwrap();
     assert_eq!(&same, canonical);
     assert_eq!(retained.expires_at, route.expires_at);
-    assert!(left.task_route(canonical).await.unwrap().is_some());
+    assert!(
+        left.task_route(canonical, &input_tenant())
+            .await
+            .unwrap()
+            .is_some()
+    );
+    // A lookup reads only the caller's tenant.
+    let other = veoveo_types::TenantId::parse("other-tenant").unwrap();
+    assert!(left.task_route(canonical, &other).await.unwrap().is_none());
     let routes = sqlx::query_file_scalar!("src/state/task_routes/tests/count.sql")
         .fetch_one(db.a.pool())
         .await
@@ -69,7 +82,11 @@ async fn changed_authority_or_expired_routes_cannot_be_rebound_by_an_upstream_re
     labels.ownership.data_labels.clear();
     for altered in [work_context, authority, labels] {
         assert!(state.create_task_route(altered).await.is_err());
-        let current = state.task_route(&canonical).await.unwrap().unwrap();
+        let current = state
+            .task_route(&canonical, &input_tenant())
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(current.authority_digest, original.authority_digest);
         assert_eq!(current.expires_at, original.expires_at);
     }
@@ -82,7 +99,13 @@ async fn changed_authority_or_expired_routes_cannot_be_rebound_by_an_upstream_re
     .await
     .unwrap();
     assert!(state.create_task_route(input.clone()).await.is_err());
-    assert!(state.task_route(&canonical).await.unwrap().is_none());
+    assert!(
+        state
+            .task_route(&canonical, &input_tenant())
+            .await
+            .unwrap()
+            .is_none()
+    );
     let mut another = input.clone();
     another.server = ServerSlug::parse("another-server").unwrap();
     let (independent, _) = state.create_task_route(another).await.unwrap();
@@ -127,7 +150,13 @@ async fn retention_deletes_expired_routes_in_batches_and_keeps_live_ones() {
         .await
         .unwrap();
     assert_eq!(routes, 1);
-    assert!(state.task_route(&live).await.unwrap().is_some());
+    assert!(
+        state
+            .task_route(&live, &input_tenant())
+            .await
+            .unwrap()
+            .is_some()
+    );
 }
 
 #[tokio::test]
@@ -136,7 +165,11 @@ async fn stored_routes_keep_their_owner_provenance_and_labels() {
     let state = GatewayState::new(db.a.clone());
     let subject = crate::mcp::task_ownership_tests::subject();
     let (canonical, created) = state.create_task_route(draft()).await.unwrap();
-    let read = state.task_route(&canonical).await.unwrap().unwrap();
+    let read = state
+        .task_route(&canonical, &input_tenant())
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(read.ownership, created.ownership);
     assert!(read.ownership.allows(&subject.actor, &subject.authority));
     let mut unlabeled = subject.actor.clone();
