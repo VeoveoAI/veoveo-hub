@@ -15,8 +15,8 @@ use super::{
     config::{BearerToken, JwtAuthConfig},
     principal::principal_assurances,
     support::{
-        AuthError, allowed_algorithms_for_header, ensure_jwt_crypto_provider, unix_timestamp,
-        validate_jwk_algorithm,
+        AuthError, allowed_algorithms_for_header, ensure_jwt_crypto_provider, is_access_token_type,
+        unix_timestamp, validate_jwk_algorithm,
     },
     verified::VerifiedAccessToken,
 };
@@ -49,6 +49,11 @@ impl JwtVerifier {
     pub fn verify(&self, token: &BearerToken) -> Result<VerifiedAccessToken, AuthError> {
         ensure_jwt_crypto_provider();
         let header = decode_header(token.as_str()).map_err(AuthError::Jwt)?;
+        // RFC 9068 §4: an access token's `typ` is `at+jwt`, which RFC 7515 §4.1.9 lets
+        // a producer spell as the full media type.
+        if !header.typ.as_deref().is_some_and(is_access_token_type) {
+            return Err(AuthError::UnsupportedTokenType);
+        }
         if !self.config.algorithms.contains(&header.alg) {
             return Err(AuthError::DisallowedAlgorithm(header.alg));
         }

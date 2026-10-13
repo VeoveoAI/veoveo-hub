@@ -6,6 +6,7 @@
 |---|---|
 | OAuth 2.0, RFC 6749 | Authorization code with PKCE, refresh, client credentials and the ID-JAG grant, for clients the installation configures |
 | JWT assertions, RFC 7523 | `private_key_jwt` client authentication and identity assertion grants |
+| JWT access tokens, RFC 9068 | Every caller access token: the hosted authorization server's carry `typ` `at+jwt`, and profile authentication accepts no other type |
 | JWT, RFC 7519, and JWS, RFC 7515 | Access tokens the hosted authorization server signs with Ed25519 (`EdDSA`, RFC 8037); identity provider and client tokens in RS, PS, ES or EdDSA algorithms |
 | JWK Thumbprint, RFC 7638 | The `kid` of the hosted authorization server's key, which the configuration repeats as `accessTokenKeyId` |
 | Token revocation, RFC 7009, and OAuth security BCP, RFC 9700 | Refresh-family rotation, replay detection and revocation |
@@ -19,12 +20,15 @@ defined by core's [server registration protocol](https://github.com/VeoveoAI/veo
 
 The hosted authorization server's issuer is `{issuer}/oauth`. It signs access tokens
 with the Ed25519 PKCS#8 key the configuration names as `accessTokenSigningKey`. The
-token header carries the key's RFC 7638 thumbprint as `kid`, and startup refuses a
-configuration whose `accessTokenKeyId` differs from it. `/oauth/jwks.json` publishes
-the public key, and the Gateway verifies its own tokens with the same key.
+token header carries `typ` `at+jwt`, as RFC 9068 §2.1 requires, and the key's RFC 7638
+thumbprint as `kid`; startup refuses a configuration whose `accessTokenKeyId` differs
+from the thumbprint. `/oauth/jwks.json` publishes the public key, and the Gateway
+verifies its own tokens with the same key.
 
-Verification requires the signed `exp` to be in the future; clock-skew tolerance never
-extends it. An expired bearer receives HTTP 401 with the profile's challenge before any
+Profile authentication follows RFC 9068 §4 for every authorization server a profile
+names: a token whose `typ` is neither `at+jwt` nor `application/at+jwt` is refused
+before its signature is checked. Verification requires the signed `exp` to be in the
+future; clock-skew tolerance never extends it. An expired bearer receives HTTP 401 with the profile's challenge before any
 upstream discovery, and the denial is recorded as an authentication event.
 
 ## Sessions

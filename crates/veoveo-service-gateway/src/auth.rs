@@ -160,7 +160,7 @@ XVKygdRdax3xMB3Eld5rlIDwzX09ARHrm8badXtrF0NhQPYZVbax8rpJGcgEFPgXEJJ71w==
 
     fn signed_raw_claims(raw: &str) -> BearerToken {
         use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-        let header = serde_json::json!({"alg":"RS256","typ":"JWT","kid":"test-key"});
+        let header = serde_json::json!({"alg":"RS256","typ":"at+jwt","kid":"test-key"});
         let message = format!(
             "{}.{}",
             URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header).unwrap()),
@@ -311,7 +311,24 @@ XVKygdRdax3xMB3Eld5rlIDwzX09ARHrm8badXtrF0NhQPYZVbax8rpJGcgEFPgXEJJ71w==
         session_family: Option<&str>,
         exp: u64,
     ) -> BearerToken {
+        token_with_type(
+            scope,
+            principal_assurances,
+            session_family,
+            exp,
+            Some("at+jwt"),
+        )
+    }
+
+    fn token_with_type(
+        scope: &str,
+        principal_assurances: Vec<&str>,
+        session_family: Option<&str>,
+        exp: u64,
+        typ: Option<&str>,
+    ) -> BearerToken {
         let mut header = Header::new(Algorithm::RS256);
+        header.typ = typ.map(str::to_owned);
         header.kid = Some("test-key".to_string());
         let encoding_key = rsa_encoding_key();
         let token = encode(
@@ -583,6 +600,43 @@ XVKygdRdax3xMB3Eld5rlIDwzX09ARHrm8badXtrF0NhQPYZVbax8rpJGcgEFPgXEJJ71w==
             verified.access_token.expires_at.timestamp(),
             (now + 120) as i64
         );
+    }
+
+    #[test]
+    fn access_tokens_require_the_rfc_9068_type() {
+        let verifier = verifier(&["operator:use"]);
+        let exp = 4_102_444_800;
+        for typ in [
+            "at+jwt",
+            "AT+JWT",
+            "application/at+jwt",
+            "Application/AT+JWT",
+        ] {
+            verifier
+                .verify(&token_with_type(
+                    "operator:use",
+                    vec![],
+                    None,
+                    exp,
+                    Some(typ),
+                ))
+                .unwrap_or_else(|error| panic!("`{typ}` rejected: {error}"));
+        }
+        for typ in [
+            None,
+            Some("JWT"),
+            Some("jwt"),
+            Some("application/jwt"),
+            Some("at+jwt2"),
+        ] {
+            assert!(
+                matches!(
+                    verifier.verify(&token_with_type("operator:use", vec![], None, exp, typ)),
+                    Err(AuthError::UnsupportedTokenType)
+                ),
+                "{typ:?} admitted"
+            );
+        }
     }
 
     #[test]

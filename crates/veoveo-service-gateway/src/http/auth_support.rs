@@ -231,8 +231,11 @@ impl AccessTokenSigningKey {
         self.public.kid().as_str().to_owned()
     }
 
+    /// The JOSE header of an RFC 9068 access token: `typ` `at+jwt` (§2.1), `alg`
+    /// `EdDSA` and the key's thumbprint as `kid`.
     pub fn header(&self) -> Header {
         let mut header = Header::new(Algorithm::EdDSA);
+        header.typ = Some(veoveo_mcp_contract::ACCESS_TOKEN_TYPE.to_owned());
         header.kid = Some(self.key_id());
         header
     }

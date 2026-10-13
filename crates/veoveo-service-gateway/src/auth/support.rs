@@ -13,11 +13,16 @@ pub enum AuthError {
     InvalidAuthorizationHeader,
     InvalidAuthorizationScheme,
     InvalidBearerToken,
+    /// The JOSE `typ` does not name an RFC 9068 access token.
+    UnsupportedTokenType,
     SymmetricAlgorithmNotAllowed(Algorithm),
     MissingKeyId,
     UnknownKeyId(String),
     DisallowedAlgorithm(Algorithm),
-    JwkAlgorithmMismatch { token: Algorithm, jwk: KeyAlgorithm },
+    JwkAlgorithmMismatch {
+        token: Algorithm,
+        jwk: KeyAlgorithm,
+    },
     MissingRequiredScope,
     InvalidClientAssertion,
     InvalidClientAssertionAudience,
@@ -31,7 +36,10 @@ pub enum AuthError {
     MissingIdentityAssertionResource,
     InvalidIdentityAssertionResource,
     MissingIdentityAssertionScope,
-    InvalidTimestamp { claim: &'static str, value: u64 },
+    InvalidTimestamp {
+        claim: &'static str,
+        value: u64,
+    },
     Extension(veoveo_types::ExtensionError),
     Claim(veoveo_types::IdentifierError),
     Jwt(jsonwebtoken::errors::Error),
@@ -44,6 +52,9 @@ impl fmt::Display for AuthError {
             Self::InvalidAuthorizationHeader => write!(f, "invalid Authorization header"),
             Self::InvalidAuthorizationScheme => write!(f, "Authorization scheme must be Bearer"),
             Self::InvalidBearerToken => write!(f, "invalid bearer token"),
+            Self::UnsupportedTokenType => {
+                write!(f, "JWT type must be at+jwt (RFC 9068)")
+            }
             Self::SymmetricAlgorithmNotAllowed(algorithm) => {
                 write!(f, "symmetric JWT algorithm `{algorithm:?}` is not allowed")
             }
@@ -102,6 +113,18 @@ impl fmt::Display for AuthError {
 }
 
 impl std::error::Error for AuthError {}
+
+/// Whether a JOSE `typ` names an RFC 9068 access token: `at+jwt`, or its full media
+/// type `application/at+jwt`, compared without regard to case as media types are.
+pub(super) fn is_access_token_type(typ: &str) -> bool {
+    let typ = typ
+        .get(..APPLICATION_PREFIX.len())
+        .filter(|prefix| prefix.eq_ignore_ascii_case(APPLICATION_PREFIX))
+        .map_or(typ, |_| &typ[APPLICATION_PREFIX.len()..]);
+    typ.eq_ignore_ascii_case(veoveo_mcp_contract::ACCESS_TOKEN_TYPE)
+}
+
+const APPLICATION_PREFIX: &str = "application/";
 
 pub(super) fn is_symmetric_algorithm(algorithm: Algorithm) -> bool {
     matches!(

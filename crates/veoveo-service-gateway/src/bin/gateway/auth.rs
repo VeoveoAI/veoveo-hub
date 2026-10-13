@@ -96,6 +96,9 @@ mod tests {
         assert_eq!(public["alg"], "EdDSA");
         assert_eq!(public["kid"], key.key_id().as_str());
         assert!(public.get("d").is_none());
-        assert_eq!(key.header().kid.as_deref(), Some(key.key_id().as_str()));
+        let header = key.header();
+        assert_eq!(header.kid.as_deref(), Some(key.key_id().as_str()));
+        assert_eq!(header.typ.as_deref(), Some("at+jwt"));
+        assert_eq!(header.alg, jsonwebtoken::Algorithm::EdDSA);
     }
 }
