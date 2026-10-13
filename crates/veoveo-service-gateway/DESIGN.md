@@ -175,8 +175,8 @@ takes three rollouts, each complete on every replica before the next begins:
 2. Make B the signing key and A the verification key. Replicas of either rollout
    publish both keys, so a server verifies a token from any of them, and a server that
    meets B's `kid` for the first time finds it at `jwks_uri`.
-3. Once the last replica that signed with A has run for 15 minutes on B, the longest
-   lifetime of a forwarded token, remove the verification key.
+3. When 15 minutes, the longest lifetime of a forwarded token, have passed since the
+   last replica stopped signing with A, remove the verification key.
 
 ## Upstream Transport
 
