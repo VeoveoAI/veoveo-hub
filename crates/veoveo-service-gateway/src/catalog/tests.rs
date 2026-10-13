@@ -467,6 +467,37 @@ fn builds_authorization_server_metadata_for_profile() {
 }
 
 #[test]
+fn authorization_server_metadata_states_every_member_with_a_default() {
+    let metadata = crate::AuthorizationServerMetadata {
+        issuer: "https://veoveo.example/oauth".to_owned(),
+        authorization_endpoint: None,
+        token_endpoint: "https://veoveo.example/oauth/token".to_owned(),
+        revocation_endpoint: None,
+        jwks_uri: None,
+        scopes_supported: Vec::new(),
+        response_types_supported: Vec::new(),
+        grant_types_supported: Vec::new(),
+        code_challenge_methods_supported: Vec::new(),
+        token_endpoint_auth_methods_supported: Vec::new(),
+        token_endpoint_auth_signing_alg_values_supported: Vec::new(),
+        revocation_endpoint_auth_methods_supported: Vec::new(),
+        authorization_grant_profiles_supported: Vec::new(),
+    };
+    // RFC 8414 §2: `response_types_supported` is required, and an absent grant type or
+    // token endpoint authentication method list means its default.
+    assert_eq!(
+        serde_json::to_value(metadata).unwrap(),
+        serde_json::json!({
+            "issuer": "https://veoveo.example/oauth",
+            "token_endpoint": "https://veoveo.example/oauth/token",
+            "response_types_supported": [],
+            "grant_types_supported": [],
+            "token_endpoint_auth_methods_supported": []
+        })
+    );
+}
+
+#[test]
 fn protected_resource_metadata_includes_policy_required_scopes() {
     let mut policy = policy();
     policy.rules.push(PolicyRule {

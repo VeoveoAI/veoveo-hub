@@ -36,13 +36,18 @@ pub struct AuthorizationServerMetadata {
     pub jwks_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub scopes_supported: Vec<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// RFC 8414 §2 requires the member; an authorization server without an
+    /// authorization endpoint lists no response type.
+    #[serde(default)]
     pub response_types_supported: Vec<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Always present: RFC 8414 §2 reads an absent member as `authorization_code`
+    /// and `implicit`.
+    #[serde(default)]
     pub grant_types_supported: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub code_challenge_methods_supported: Vec<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Always present: RFC 8414 §2 reads an absent member as `client_secret_basic`.
+    #[serde(default)]
     pub token_endpoint_auth_methods_supported: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub token_endpoint_auth_signing_alg_values_supported: Vec<String>,
