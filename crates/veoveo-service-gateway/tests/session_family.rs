@@ -176,6 +176,7 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
                 .await
                 .unwrap()
         );
+        assert!(!second.session_compromised(&token).await.unwrap());
         match ending {
             "logout" => {
                 first
@@ -224,7 +225,27 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
                 .await
                 .unwrap()
         );
+        // A running Task stops acting for the caller only after a replay (D37): a logout,
+        // an expiry or a removed family leaves its delegation in place.
+        assert_eq!(
+            second.session_compromised(&token).await.unwrap(),
+            ending == "replay",
+            "{ending}"
+        );
     }
+    // A caller without a browser session has nothing to compromise.
+    let service: AccessTokenSubject = serde_json::from_value(serde_json::json!({
+        "issuer": "https://veoveo.example",
+        "subject": "service",
+        "oauth_client_id": "service",
+        "audience": "https://veoveo.example/mcp/operator",
+        "work_context": "mission",
+        "invocation_mode": "automated",
+        "issued_at": Utc::now(),
+        "expires_at": Utc::now() + TimeDelta::minutes(15)
+    }))
+    .unwrap();
+    assert!(!first.session_compromised(&service).await.unwrap());
 }
 
 fn audit(

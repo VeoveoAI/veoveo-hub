@@ -49,6 +49,28 @@ impl GatewayState {
     }
 }
 
+impl GatewayState {
+    /// Whether the login session a caller authenticated with was revoked because one of
+    /// its refresh tokens was replayed, which suggests the session was stolen. A running
+    /// Task stops acting for such a caller; a logout or a session that simply expired
+    /// leaves its Tasks' delegation in place.
+    pub async fn session_compromised(&self, token: &AccessTokenSubject) -> Result<bool> {
+        let Some(family_id) = &token.session_family else {
+            return Ok(false);
+        };
+        let family = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            self.store.refresh_family(family_id),
+        )
+        .await
+        .context("session revocation read deadline")?
+        .context("failed to read the caller's session family")?;
+        Ok(family.is_some_and(|family| {
+            family.revocation == Some(crate::store::RefreshRevocation::TokenReplay)
+        }))
+    }
+}
+
 /// The members of a family the session decision reads.
 #[derive(Serialize)]
 struct SessionView<'a> {

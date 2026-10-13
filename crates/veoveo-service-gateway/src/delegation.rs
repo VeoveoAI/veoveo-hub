@@ -514,6 +514,20 @@ impl DelegationService {
                         format!("Task {task} has ended"),
                     ));
                 }
+                if self
+                    .inner
+                    .gateway
+                    .session_compromised(&delegation.caller.request_context.access_token)
+                    .await
+                    .map_err(TokenExchangeRefusal::unavailable)?
+                {
+                    return Err(TokenExchangeRefusal::new(
+                        InvalidGrant,
+                        format!(
+                            "Task {task} no longer acts for its caller: the caller's session was revoked after a refresh token was replayed"
+                        ),
+                    ));
+                }
                 Ok(Subject {
                     kind: ExchangeSubjectKind::Task,
                     caller: delegation.caller,
@@ -635,6 +649,20 @@ impl DelegationService {
             {
                 Ok(true) => {}
                 Ok(false) => return ExchangedAdmission::Refused("the delegating Task has ended"),
+                Err(error) => return ExchangedAdmission::Unavailable(error),
+            }
+            match self
+                .inner
+                .gateway
+                .session_compromised(&identity.caller.request_context.access_token)
+                .await
+            {
+                Ok(false) => {}
+                Ok(true) => {
+                    return ExchangedAdmission::Refused(
+                        "the caller's session was revoked after a refresh token was replayed",
+                    );
+                }
                 Err(error) => return ExchangedAdmission::Unavailable(error),
             }
         }
