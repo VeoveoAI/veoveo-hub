@@ -21,8 +21,8 @@ veoveo-task-runtime = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "
 veoveo-test-fixtures = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "f685fbfd3d28a477d35f77cee3feacc8787772ac" }
 veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "f685fbfd3d28a477d35f77cee3feacc8787772ac" }
 # veoveo-sdk-rust, pinned to one revision for the library and its test server.
-veoveo-sdk-rust = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "8cc3235fe03a8463bef57c661ae0b8a1a99a2715" }
-veoveo-sdk-rust-fixture = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "8cc3235fe03a8463bef57c661ae0b8a1a99a2715" }
+veoveo-sdk-rust = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "5165538fb8534cac227168a598798ea952c1da95" }
+veoveo-sdk-rust-fixture = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "5165538fb8534cac227168a598798ea952c1da95" }
 
 aws-lc-rs = "1.18.0"
 anyhow = "=1.0.104"

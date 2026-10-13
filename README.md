@@ -10,7 +10,7 @@ The [crate design](crates/veoveo-service-gateway/DESIGN.md) describes the Gatewa
 builds on [veoveo-core](https://github.com/VeoveoAI/veoveo-core) for the database
 kernel, identity, Tasks and the audit envelope, and on
 [veoveo-sdk-rust](https://github.com/VeoveoAI/veoveo-sdk-rust) for MCP, the forwarded
-token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/8cc3235fe03a8463bef57c661ae0b8a1a99a2715/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
+token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5165538fb8534cac227168a598798ea952c1da95/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
 every server follows. The Gateway owns its control plane, its policy evaluator and the
 `gateway` database schema.
 

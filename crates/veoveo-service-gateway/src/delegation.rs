@@ -1,7 +1,7 @@
 //! Calls between servers: the RFC 8693 token exchange a registered server performs to
 //! call other servers for its caller, and the admission of the token it receives at a
 //! profile. The protocol is the SDK's
-//! [calls between servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/8cc3235fe03a8463bef57c661ae0b8a1a99a2715/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers).
+//! [calls between servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5165538fb8534cac227168a598798ea952c1da95/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers).
 use std::{collections::BTreeSet, sync::Arc};
 
 use anyhow::Context;
