@@ -229,8 +229,9 @@ server's schema as its group role and holds the server's kernel instance, role
 decisions by risk, refusal of undeclared resources, the permissions each forwarded
 token carries, that three housekeeping rounds leave a live registration's row version
 unchanged, that deregistration drops a registration's login, and that a process that
-ends without deregistering loses its registration and login after the grace period. The fixture server verifies every forwarded token with the keys it reads from
-the issuer's `jwks_uri`, which equal those of its registration response.
+ends without deregistering loses its registration and login after the grace period.
+The fixture server verifies every forwarded token with the keys it reads from the
+issuer's `jwks_uri`, which equal those of its registration response.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed
@@ -240,12 +241,13 @@ signed, revoked or under-scoped token. It follows the protected resource's RFC 9
 metadata to its authorization server's RFC 8414 metadata, checks each issuer, endpoint
 and member §2 requires, verifies an issued token with the key at `jwks_uri`, and
 compares the forwarded-token JWK Set with the configured key and the RFC 7638
-thumbprint of each `kid`. `tests/mcp_lifecycle.rs` checks the advertised version and
-resource capabilities, the answers to `resources/subscribe` under `2026-07-28` and
-under `2025-11-25`, and the acknowledgement of a `subscriptions/listen` filter. Unit
-and database tests cover the catalog,
-policy adapter, discovery cache, Task routes, refresh families, session binding, audit
-readers and the control store.
+thumbprint of each `kid`.
+
+`tests/mcp_lifecycle.rs` checks the advertised version and resource capabilities, the
+answers to `resources/subscribe` under `2026-07-28` and under `2025-11-25`, and the
+acknowledgement of a `subscriptions/listen` filter. Unit and database tests cover the
+catalog, policy adapter, discovery cache, Task routes, refresh families, session
+binding, audit readers and the control store.
 
 ## Contract Compliance
 
