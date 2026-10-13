@@ -273,7 +273,9 @@ impl AuditCommand {
                         if block.head.sequence > expected.sequence {
                             break;
                         }
-                        let members = store.block_records(&scope, &block).await?;
+                        // Verification checks the chain over records as stored, so it needs
+                        // no owner's target codec or detail declaration.
+                        let members = store.stored_block_records(&scope, &block).await?;
                         for finding in verifier.verify(&block, &members)? {
                             eprintln!("{finding:?}");
                             findings += 1;
