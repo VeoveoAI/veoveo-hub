@@ -16,7 +16,7 @@ use veoveo_gateway_contract::SecretPurpose;
 use veoveo_mcp_contract::{GatewayInternalSigningKey, TokenIssuer};
 use veoveo_mcp_ext_registration::{
     AccessTokenTrust, ClientInformation, ClientMetadata, ClientRegistrationRequest,
-    ClientUpdateRequest, DatabaseGrant, DatabaseIdentifier, DatabaseUrl, Ed25519JwkSet,
+    ClientUpdateRequest, DatabaseGrant, DatabaseIdentifier, DatabaseUrl, Ed25519Jwk, Ed25519JwkSet,
     RegistrationAccessToken, RegistrationErrorCode, ResourceIndicator, SoftwareStatement,
     statement::verify_statement,
 };
@@ -47,6 +47,26 @@ pub struct RegistrationIdentity {
     pub issuer: TokenIssuer,
     /// The key that signs forwarded access tokens.
     pub signing_key: GatewayInternalSigningKey,
+    /// A public key published beside the signing key's and never used to sign: the
+    /// next key before a rotation, or the previous one until its tokens expire.
+    pub verification_key: Option<Ed25519Jwk>,
+}
+
+impl RegistrationIdentity {
+    /// The keys servers verify forwarded tokens with: the signing key's public half
+    /// first, then the verification key. Each `kid` is an RFC 7638 thumbprint.
+    pub fn access_token_keys(&self) -> anyhow::Result<Ed25519JwkSet> {
+        let signing = self.signing_key.verification_key();
+        let mut keys = vec![signing];
+        if let Some(verification) = self.verification_key {
+            anyhow::ensure!(
+                verification.kid() != signing.kid(),
+                "the forwarded token verification key must differ from the signing key"
+            );
+            keys.push(verification);
+        }
+        Ok(Ed25519JwkSet::new(keys)?)
+    }
 }
 
 #[derive(Clone)]
@@ -90,6 +110,7 @@ impl RegistrationService {
         registration_endpoint.set_path("/oauth/register");
         let mut jwks_uri = issuer_url;
         jwks_uri.set_path(JWKS_PATH);
+        let access_token_keys = identity.access_token_keys()?;
         Ok(Self {
             inner: Arc::new(Inner {
                 store: RegistrationStore::new(store),
@@ -98,9 +119,7 @@ impl RegistrationService {
                 issuer: identity.issuer,
                 registration_endpoint,
                 jwks_uri,
-                access_token_keys: Ed25519JwkSet::new(vec![
-                    identity.signing_key.verification_key(),
-                ])?,
+                access_token_keys,
                 database,
                 grace,
                 live: parking_lot::RwLock::new(LiveRegistrations::default()),
@@ -530,6 +549,33 @@ mod tests {
         let login = registration_login(&ServerSchema::new(&short).unwrap(), &client_id).unwrap();
         assert!(login.as_str().starts_with("time_zones_"));
         assert!(DatabaseIdentifier::new(login.as_str()).is_ok());
+    }
+
+    #[test]
+    fn a_verification_key_is_published_after_the_signing_key_and_never_equals_it() {
+        use veoveo_mcp_ext_registration::statement::ServerKeyPair;
+        let signing_pair = ServerKeyPair::generate().unwrap();
+        let signing_key = GatewayInternalSigningKey::new(signing_pair.pkcs8_der()).unwrap();
+        let next = Ed25519Jwk::new(*ServerKeyPair::generate().unwrap().public_key());
+        let identity = |verification_key| RegistrationIdentity {
+            issuer: TokenIssuer::parse("https://gateway.example").unwrap(),
+            signing_key: signing_key.clone(),
+            verification_key,
+        };
+        let alone = serde_json::to_value(identity(None).access_token_keys().unwrap()).unwrap();
+        assert_eq!(alone["keys"].as_array().unwrap().len(), 1);
+        assert_eq!(alone["keys"][0]["kid"], signing_key.key_id());
+        let both = serde_json::to_value(identity(Some(next)).access_token_keys().unwrap()).unwrap();
+        assert_eq!(
+            both["keys"],
+            serde_json::json!([signing_key.verification_key(), next])
+        );
+        assert!(both["keys"][1].get("d").is_none());
+        assert!(
+            identity(Some(signing_key.verification_key()))
+                .access_token_keys()
+                .is_err()
+        );
     }
 
     #[test]

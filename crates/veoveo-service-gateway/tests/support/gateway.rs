@@ -30,6 +30,16 @@ impl Gateway {
     /// Generate a local installation in `directory` and start the Gateway on `db`. A
     /// registration without a live process lasts `registration_grace`.
     pub async fn start(directory: &Path, db: &TestDb, registration_grace: Duration) -> Self {
+        Self::start_with(directory, db, registration_grace, &[]).await
+    }
+
+    /// [`Self::start`] with additional `VEOVEO_*` settings.
+    pub async fn start_with(
+        directory: &Path,
+        db: &TestDb,
+        registration_grace: Duration,
+        settings: &[(&str, String)],
+    ) -> Self {
         let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
             .unwrap()
             .local_addr()
@@ -65,6 +75,7 @@ impl Gateway {
                 registration_grace.as_secs().to_string(),
             )
             .envs(secrets.iter().cloned())
+            .envs(settings.iter().map(|(name, value)| (*name, value)))
             .stdin(Stdio::null())
             .stdout(output.try_clone().unwrap())
             .stderr(output)

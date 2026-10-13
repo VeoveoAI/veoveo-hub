@@ -57,6 +57,7 @@ pub(super) struct ServeConfig {
     pub(super) server_database: ServerDatabase,
     pub(super) registration_grace: std::time::Duration,
     pub(super) forwarded_token_key_b64: SecretString,
+    pub(super) forwarded_token_verification_key_b64: Option<SecretString>,
     pub(super) refresh_delivery_cipher: RefreshTokenDeliveryCipher,
     pub(super) refresh_delivery_window: GatewayRefreshDeliveryWindow,
     pub(super) allow_loopback_hosts: bool,
@@ -76,6 +77,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         server_database,
         registration_grace,
         forwarded_token_key_b64,
+        forwarded_token_verification_key_b64,
         refresh_delivery_cipher,
         refresh_delivery_window,
         allow_loopback_hosts,
@@ -101,6 +103,15 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             .decode(forwarded_token_key_b64.expose_secret().trim())
             .context("the forwarded token key must be base64-encoded Ed25519 PKCS#8 DER")?,
     )?;
+    // Only the public half of the verification key outlives this statement.
+    let verification_key = forwarded_token_verification_key_b64
+        .map(|key| {
+            let der = BASE64_STANDARD.decode(key.expose_secret().trim()).context(
+                "the forwarded token verification key must be base64-encoded Ed25519 PKCS#8 DER",
+            )?;
+            Ok::<_, anyhow::Error>(GatewayInternalSigningKey::new(der)?.verification_key())
+        })
+        .transpose()?;
     let deployment = PublicDeployment::new(&issuer)?;
     let issuer = TokenIssuer::parse(deployment.base_url())?;
     let internal_token_issuer =
@@ -122,6 +133,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         RegistrationIdentity {
             issuer,
             signing_key,
+            verification_key,
         },
         server_database,
         registration_grace,

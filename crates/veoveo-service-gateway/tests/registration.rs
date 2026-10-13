@@ -21,6 +21,7 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use chrono::{DateTime, Utc};
 use gateway::Gateway;
 use rmcp::{
@@ -35,8 +36,8 @@ use rmcp::{
 use secrecy::SecretString;
 use veoveo_mcp_contract::{GatewayInternalIdentity, GatewayInternalTokenVerifier};
 use veoveo_mcp_ext_registration::{
-    AccessTokenTrust, AuthorizationDeclaration, ClientMetadata, DatabaseGrant, Ed25519JwkSet,
-    RegistrationDeclaration, RegistrationErrorCode, ServerEndpoint, ServerVersion,
+    AccessTokenTrust, AuthorizationDeclaration, ClientMetadata, DatabaseGrant, Ed25519Jwk,
+    Ed25519JwkSet, RegistrationDeclaration, RegistrationErrorCode, ServerEndpoint, ServerVersion,
     client::{ClientError, RegistrationClient},
     statement::ServerKeyPair,
 };
@@ -63,7 +64,28 @@ async fn qualify() {
     let _ = rustls::crypto::ring::default_provider().install_default();
     let directory = tempfile::tempdir().unwrap();
     let db = TestDb::new().await;
-    let gateway = Gateway::start(directory.path(), &db, Duration::from_secs(GRACE_SECONDS)).await;
+    // A rotation's next key: published for verification, never used to sign.
+    let next_key = ServerKeyPair::generate().unwrap();
+    let gateway = Gateway::start_with(
+        directory.path(),
+        &db,
+        Duration::from_secs(GRACE_SECONDS),
+        &[(
+            "VEOVEO_FORWARDED_TOKEN_VERIFICATION_KEY_B64",
+            BASE64_STANDARD.encode(next_key.pkcs8_der()),
+        )],
+    )
+    .await;
+    let signing_key_id = Ed25519Jwk::new(
+        *ServerKeyPair::from_pkcs8_der(
+            &BASE64_STANDARD
+                .decode(gateway.secret("VEOVEO_FORWARDED_TOKEN_KEY_B64"))
+                .unwrap(),
+        )
+        .unwrap()
+        .public_key(),
+    )
+    .kid();
     let registration_secret = gateway.secret("VEOVEO_REGISTRATION_SECRET");
     let http = reqwest::Client::new();
     let slug = ServerSlug::parse("observatory").unwrap();
@@ -117,6 +139,22 @@ async fn qualify() {
     // names, so the fixture verifies every forwarded token with the published set.
     let published = published_keys(&http, &gateway).await;
     assert_eq!(published, registration.access_tokens().jwks);
+    assert_eq!(
+        serde_json::to_value(&published).unwrap()["keys"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|key| key["kid"].as_str().unwrap().to_owned())
+            .collect::<Vec<_>>(),
+        [
+            signing_key_id.as_str().to_owned(),
+            Ed25519Jwk::new(*next_key.public_key())
+                .kid()
+                .as_str()
+                .to_owned()
+        ],
+        "the set publishes the signing key, then the verification key"
+    );
     let fixture = Fixture::default();
     *fixture.verifier.lock().unwrap() = Some(
         GatewayInternalTokenVerifier::from_access_tokens(
@@ -191,6 +229,11 @@ async fn qualify() {
     assert!(read(&admin, CONTRACT).await.is_ok());
     assert!(read(&member, DOCUMENTS).await.is_err());
     assert!(read(&admin, DOCUMENTS).await.is_err());
+    assert_eq!(
+        *fixture.key_ids.lock().unwrap(),
+        BTreeSet::from([signing_key_id.as_str().to_owned()]),
+        "every forwarded token is signed by the signing key alone"
+    );
     let forwarded = fixture.forwarded.lock().unwrap().clone();
     let member_permissions = forwarded
         .iter()
@@ -406,6 +449,8 @@ fn registration_client(
 struct Fixture {
     verifier: Arc<Mutex<Option<GatewayInternalTokenVerifier>>>,
     forwarded: Arc<Mutex<Vec<GatewayInternalIdentity>>>,
+    /// The `kid` of every verified token.
+    key_ids: Arc<Mutex<BTreeSet<String>>>,
 }
 
 async fn authenticate(
@@ -420,17 +465,20 @@ async fn authenticate(
         .and_then(|value| value.strip_prefix("Bearer "))
         .map(str::to_owned);
     let verified = bearer.and_then(|bearer| {
-        fixture
+        let identity = fixture
             .verifier
             .lock()
             .unwrap()
             .as_ref()
-            .and_then(|verifier| verifier.verify(&bearer).ok())
+            .and_then(|verifier| verifier.verify(&bearer).ok())?;
+        let key_id = jsonwebtoken::decode_header(&bearer).ok()?.kid?;
+        Some((identity, key_id))
     });
-    let Some(identity) = verified else {
+    let Some((identity, key_id)) = verified else {
         return StatusCode::UNAUTHORIZED.into_response();
     };
     fixture.forwarded.lock().unwrap().push(identity);
+    fixture.key_ids.lock().unwrap().insert(key_id);
     request
         .extensions_mut()
         .insert(FixtureGrants(BTreeSet::from([

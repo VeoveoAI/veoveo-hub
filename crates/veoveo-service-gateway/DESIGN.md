@@ -52,6 +52,7 @@ login. The other commands are `validate`, `resolve-secret`, `audit` and
 | `VEOVEO_SERVER_DATABASE_URL` | The database URL registration grants name, when servers reach it at another address; by default the Gateway's own URL without its user |
 | `VEOVEO_REGISTRATION_GRACE_SECONDS` | How long a registration may go without a live process before the Gateway removes it, 60 seconds by default |
 | `VEOVEO_FORWARDED_TOKEN_KEY_B64` | Ed25519 PKCS#8 key that signs forwarded tokens |
+| `VEOVEO_FORWARDED_TOKEN_VERIFICATION_KEY_B64` | Optional Ed25519 PKCS#8 key whose public half is published beside the signing key's and which never signs; the Gateway keeps only that public half |
 | `VEOVEO_REFRESH_DELIVERY_KEY_B64` | 32-byte key for refresh successor envelopes |
 | `VEOVEO_AUDIT_SIGNING_KEY_B64`, `VEOVEO_AUDIT_RETENTION_DAYS`, `VEOVEO_AUDIT_EXPORT_CONFIG` | Audit sealing, retention and export |
 | `VEOVEO_ARTIFACT_SERVICE_URL` | The Artifact service; without it the Gateway serves no Artifact routes |
@@ -163,10 +164,19 @@ Set lists the same keys: the public half of each forwarded-token key, with its R
 server that meets a `kid` outside its registered keys reads the set again from there.
 The set is served with `Cache-Control: no-cache`, so every read reaches the Gateway.
 
-`VEOVEO_FORWARDED_TOKEN_KEY_B64` names one key, so the set holds one key and a rotation
-drains: every replica stops, and every replica then starts with the new key. Tokens
-signed by the old key are verified when they arrive, and none remains in flight once
-the old replicas have stopped.
+The set lists the key `VEOVEO_FORWARDED_TOKEN_KEY_B64` names, which signs every
+forwarded token, and then the public half of
+`VEOVEO_FORWARDED_TOKEN_VERIFICATION_KEY_B64` when that is set. Startup refuses a
+verification key equal to the signing key. A rolling rotation from key A to key B
+takes three rollouts, each complete on every replica before the next begins:
+
+1. Keep A as the signing key and set B as the verification key. Every replica then
+   publishes A and B.
+2. Make B the signing key and A the verification key. Replicas of either rollout
+   publish both keys, so a server verifies a token from any of them, and a server that
+   meets B's `kid` for the first time finds it at `jwks_uri`.
+3. Once the last replica that signed with A has run for 15 minutes on B, the longest
+   lifetime of a forwarded token, remove the verification key.
 
 ## Upstream Transport
 
@@ -238,7 +248,9 @@ token carries, that three housekeeping rounds leave a live registration's row ve
 unchanged, that deregistration drops a registration's login, and that a process that
 ends without deregistering loses its registration and login after the grace period.
 The fixture server verifies every forwarded token with the keys it reads from the
-issuer's `jwks_uri`, which equal those of its registration response.
+issuer's `jwks_uri`, which equal those of its registration response. The Gateway runs
+with a verification key, so the test also checks that the set lists it after the
+signing key and that every forwarded token carries the signing key's `kid`.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed
@@ -268,5 +280,3 @@ binding, audit readers and the control store.
 - Readiness, registration internals and Artifact administration answer with RFC 9457
   problem details. Other administrative handlers still answer some errors with a
   status and no body.
-- The forwarded-token key set holds the single configured key, so it cannot publish
-  the outgoing key beside the incoming one, and a rotation drains every replica.

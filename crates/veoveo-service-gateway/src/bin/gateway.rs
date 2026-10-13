@@ -171,6 +171,15 @@ struct ServeArgs {
         hide_env_values = true
     )]
     forwarded_token_key_b64: RedactedSecret,
+    /// Base64 Ed25519 PKCS#8 key whose public half the Gateway publishes beside the
+    /// signing key and never signs with: the next key before a rotation, the previous
+    /// one after it. Only the public half is kept.
+    #[arg(
+        long = "forwarded-token-verification-key-b64",
+        env = "VEOVEO_FORWARDED_TOKEN_VERIFICATION_KEY_B64",
+        hide_env_values = true
+    )]
+    forwarded_token_verification_key_b64: Option<RedactedSecret>,
     /// Base64 32-byte key that encrypts refresh-token successor envelopes shared by
     /// Gateway replicas.
     #[arg(long, env = "VEOVEO_REFRESH_DELIVERY_KEY_B64", hide_env_values = true)]
@@ -291,6 +300,7 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         server_database_url,
         registration_grace_seconds,
         forwarded_token_key_b64,
+        forwarded_token_verification_key_b64,
         refresh_delivery_key_b64,
         refresh_delivery_window_seconds,
         allow_loopback_hosts,
@@ -341,6 +351,7 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         server_database,
         registration_grace: std::time::Duration::from_secs(registration_grace_seconds),
         forwarded_token_key_b64: forwarded_token_key_b64.0,
+        forwarded_token_verification_key_b64: forwarded_token_verification_key_b64.map(|key| key.0),
         refresh_delivery_cipher,
         refresh_delivery_window,
         allow_loopback_hosts,
@@ -398,6 +409,8 @@ mod tests {
             "gateway.json",
             "--forwarded-token-key-b64",
             "forwarded-token-secret",
+            "--forwarded-token-verification-key-b64",
+            "verification-key-secret",
             "--refresh-delivery-key-b64",
             "refresh-delivery-secret",
             "--audit-signing-key-b64",
@@ -410,6 +423,7 @@ mod tests {
         for secret in [
             "do-not-log",
             "forwarded-token-secret",
+            "verification-key-secret",
             "refresh-delivery-secret",
             "audit-signing-secret",
         ] {
