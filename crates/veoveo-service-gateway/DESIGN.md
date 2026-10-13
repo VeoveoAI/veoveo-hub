@@ -12,7 +12,7 @@ Neither its code nor its configuration names a server.
 |---|---|
 | MCP `2026-07-28`, Streamable HTTP | One endpoint per profile at `/mcp/{profile}`, aggregating tools, resources, resource templates, prompts, completions, Tasks and resource subscriptions of registered servers. `server/discover` lists `2026-07-28` as the only version, and another version is refused with `-32022`. The `resources.subscribe` capability declares `resourceSubscriptions` on `subscriptions/listen`; `resources/subscribe` and `resources/unsubscribe` are no methods of that version and answer `-32601` |
 | MCP Apps, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value |
-| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5165538fb8534cac227168a598798ea952c1da95/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
+| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5216efe847079c720282e934ab09417be1265266/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
 | JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `GatewayInternalTokenIssuer`; a call another server made names that server as the prior actor |
 | OAuth 2.0 Token Exchange, RFC 8693, with RFC 9396 token requests | `/oauth/token` with the `urn:ietf:params:oauth:grant-type:token-exchange` grant, for registered servers that declare uses; profile in [calls between servers](#calls-between-servers) |
 | OAuth 2.0, RFC 6749, and RFC 7523 | The hosted authorization server; see [token and session authority](src/auth/DESIGN.md) |
@@ -23,7 +23,8 @@ Neither its code nor its configuration names a server.
 | PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, then the Gateway's own `gateway` schema, applied at startup; `LISTEN` on the `gateway` channel for registration changes; one login role per registration |
 | OpenTelemetry | `service.name` is `veoveo-service-gateway` |
 | Veoveo installation configuration | `GatewayControlPlane` in `src/control_plane.rs`, read as JSON |
-| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/f685fbfd3d28a477d35f77cee3feacc8787772ac/platform/audit/contract/DESIGN.md) | Records name owner-declared classes: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Gateway's `gateway.*` classes, each with a closed JSON Schema stored in `audit.detail_type` |
+| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Gateway's `gateway.*` classes. The Gateway's records carry its own reason codes and name targets by URI |
+| [Veoveo usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/platform/usage/DESIGN.md), after FOCUS 1.4 with ISO 4217 currencies | The Gateway prepares the ledger's monthly partitions and serves daily totals across servers |
 
 ## Process
 
@@ -83,7 +84,7 @@ and `acceptance-admin`, that hold the `member` and `admin` roles.
 ## Server Registration
 
 `src/registration` implements the [server registration
-protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5165538fb8534cac227168a598798ea952c1da95/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
+protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5216efe847079c720282e934ab09417be1265266/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
 then the software statement against the pinned key and the endpoint URL. The slug
@@ -185,7 +186,7 @@ takes three rollouts, each complete on every replica before the next begins:
 ## Calls Between Servers
 
 `src/delegation.rs` implements the exchange of the SDK's [calls between
-servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5165538fb8534cac227168a598798ea952c1da95/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers)
+servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5216efe847079c720282e934ab09417be1265266/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers)
 and the admission of the tokens it issues. A registered server authenticates at
 `/oauth/token` with an RFC 7523 assertion signed by the key its registration pinned;
 the Gateway records the assertion's `jti` with the other replay identifiers. The
@@ -199,7 +200,11 @@ caller in `delegated_caller`: the OAuth client, actor, invocation authority and 
 context the Gateway authenticated. A Task another server's call created keeps none, so
 a delegation never extends past one calling server. The exchange reads the route by
 server and Task identifier, and core's `tasks.task` for that server must hold the Task
-as queued, running or waiting in the caller's tenant.
+as queued, running or waiting in the caller's tenant. A Task stops acting for a caller
+whose browser session the Gateway revoked because one of its refresh tokens was
+replayed: the exchange is refused with `invalid_grant` and a Task-bound token is no
+longer admitted. A logout, a session that expired or a caller without a session
+leaves the delegation in place until the Task ends.
 
 The token carries the requested permissions that the server declared and the caller
 holds now: the installation's roles and overrides are evaluated again at each
@@ -220,8 +225,75 @@ Task. Every policy decision for that subject, for tool calls, resource reads and
 subscriptions alike, narrows the role-granted permissions to the token's, so a target
 the token does not carry is denied as a missing permission. The forwarded token names
 the calling server as the prior actor and, for a Task subject, the calling server's
-Task as `acting_task`, by the identifier that server issued. `mcp.tool_admission` and
-`mcp.tool_completion` records name them as `acting_server` and `acting_task`.
+Task as `acting_task`, by the identifier that server issued. Every record of a
+delegated request names the calling server, and its Task when the identifier is a core
+Task identifier, in the envelope's `via`.
+
+## Audit Records
+
+The Gateway records with the installation's registry: the SDK's MCP classes, core's
+platform classes and its own `gateway.*` classes, each declared with its OCSF class.
+`gateway.authentication` maps to OCSF Authentication (3002), `gateway.token_exchange`
+to Authentication's Service Ticket Request (3002, 4), `gateway.account_change` to
+Account Change (3001), `gateway.registration` to Entity Management (3004),
+`gateway.task_status` to API Activity Read (6003, 2), and the administrative classes to
+API Activity (6003).
+
+A record's reason is a code the Gateway owns. A policy decision records its policy
+reason code, such as `missing_permission` or `unknown_tool`, and an authentication its
+authentication reason code, such as `invalid_bearer_token` or `refresh_token_replay`.
+A failed administrative operation records the failed step, such as
+`persist_jwt_revocation`, and a refused token exchange its OAuth error. Other outcomes
+use `GatewayReason`: `invalid_request`, `internal_failure`, `not_found`,
+`upstream_failure`, `upstream_denied`, `missing_scope`, `partition_denied`, `revoked`
+and `unavailable`. A successful action records no reason.
+
+Targets are URIs. The Gateway names what it owns in the `veoveo` scheme:
+`veoveo://gateway`, `veoveo://servers/{server}`, `veoveo://profiles/{profile}`,
+`veoveo://clients/{client}`, `veoveo://tenants/{tenant}/work-contexts/{context}` and
+`veoveo://audit/installation` or `veoveo://audit/tenants/{tenant}` for an audit
+partition. A resource is named by its own URI, a Task by core's UUID URN, and tools,
+resource templates, prompts, discovery and Task routes by the SDK's MCP targets. The
+details of caller records carry the invocation facts: the OAuth client, the principal
+that delegated to the actor, the policy revision, and the actor's scopes and data
+labels.
+
+## Usage
+
+The Gateway keeps core's usage ledger writable and readable across servers. At
+startup and then once a day it creates the ledger's monthly record partitions through
+three months ahead, retrying a failed attempt after a minute.
+
+`GET /admin/{profile}/usage/daily?scope=own|tenant&from=YYYY-MM-DD&to=YYYY-MM-DD`
+returns daily totals from `usage.daily` for the days from `from` up to `to`, at most
+366 days, by day, principal, server, kind and phase, with the money of usage that
+carries it:
+
+```json
+{
+  "rows": [
+    {
+      "day": "2026-10-13",
+      "principal": "https://gateway.example/oauth#acceptance-member",
+      "server": "media",
+      "kind": "media.generation",
+      "phase": "actual",
+      "quantity": "1",
+      "money": { "amount": "0.05", "currency": "USD" },
+      "records": 1
+    }
+  ],
+  "nextCursor": "eyJzY29wZSI6Im93biIs..."
+}
+```
+
+`scope=own`, the default, reads the caller's own totals in its tenant. `scope=tenant`
+reads every principal's in the caller's tenant and is an administrative read: the
+action policy decides `admin_read`, and the admission is recorded as the `usage_read`
+operation. A page holds up to `limit` rows, 100 by default and at most 1000, and
+`cursor` continues a page only for the scope, principal and days it came from. The
+Gateway reads the table directly as the installation owner; servers write the ledger
+through core's confined functions.
 
 ## Upstream Transport
 
@@ -252,7 +324,7 @@ The Gateway checks resource policy before it reads. The read handler commits one
 | `/.well-known/oauth-authorization-server/oauth`, `/.well-known/oauth-protected-resource/mcp/{profile}` | Hosted authorization server and protected resource metadata |
 | `/mcp/{profile}` | The profile's MCP endpoint |
 | `/console-api/{profile}/session` | Console session bootstrap |
-| `/admin/{profile}/...` | Configuration, audit, JWT revocation, Task cancellation and server health |
+| `/admin/{profile}/...` | Configuration, audit, JWT revocation, Task cancellation, server health and usage |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
@@ -282,7 +354,7 @@ builds SQL text. `.sqlx` also holds the metadata of the core crates' queries, be
 the check stage compiles them offline from an empty target directory.
 
 `tests/database_conformance.rs` holds the Gateway's own statements to core's
-[database rules](https://github.com/VeoveoAI/veoveo-core/blob/f685fbfd3d28a477d35f77cee3feacc8787772ac/docs/DATABASE.md#server-schema-rules)
+[database rules](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/docs/DATABASE.md#server-schema-rules)
 over the `gateway`, `identity` and `kernel` schemas. The fixture applies the Gateway's
 migrations as the installation owner after the kernel migrations, as startup does, and
 plans every statement as that owner. Refresh families and control-plane revisions are
@@ -328,8 +400,18 @@ delegated token, narrowing of a sensitive permission to the admin, a Ledger Task
 resolved through Relay's Task handle, a Relay Task that calls Ledger after the call
 that created it returned and is refused once it ended, the token endpoint's refusal of
 an undeclared use, another profile, another server's subject and a delegated subject,
-the audit records of exchanges and delegated admissions, and the refusal naming the
-missing permission once Ledger deregisters.
+the audit records of exchanges and delegated admissions with the calling server in
+`via`, the refusal of a Task whose caller's session was revoked for a replayed refresh
+token, and the refusal naming the missing permission once Ledger deregisters.
+`tests/session_family.rs` checks on real families that only a replay, and not a
+logout, an expiry or a removed family, ends a Task's delegation.
+
+`tests/usage.rs` starts the binary with an action policy that lets the administrator
+make administrative reads, waits for the partitions three months ahead, writes two
+servers' usage to the ledger and checks the member's own totals over two pages, the
+refused and recorded tenant read of the member, the administrator's tenant totals
+across both servers, and the refusal of a cursor from another view and of an empty
+range.
 
 `tests/mcp_lifecycle.rs` checks the advertised version and resource capabilities, the
 answers to `resources/subscribe` under `2026-07-28` and under `2025-11-25`, and the

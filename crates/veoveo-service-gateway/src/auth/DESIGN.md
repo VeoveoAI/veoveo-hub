@@ -15,7 +15,7 @@
 | PostgreSQL 18 | Refresh families, replay guards, JWT revocations and audit records shared by every replica, in the Gateway's `gateway` schema and core's `audit` schema |
 
 The forwarded tokens the Gateway sends to registered servers are a separate profile,
-defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5165538fb8534cac227168a598798ea952c1da95/crates/veoveo-sdk-rust/src/registration/DESIGN.md#forwarded-identity).
+defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5216efe847079c720282e934ab09417be1265266/crates/veoveo-sdk-rust/src/registration/DESIGN.md#forwarded-identity).
 
 ## Access Tokens
 
@@ -75,6 +75,12 @@ scope and lifetime. A missing, expired or revoked family denies the request; a
 database failure returns HTTP 503 within a five-second deadline. Logout and refresh
 replay revoke the family on every replica, which also denies its outstanding access
 tokens, as RFC 7009 §2.1 allows. The family predicate lives in `policy::session`.
+
+A Task a caller started keeps acting for that caller after a logout and after the
+family expires, until the Task ends. A family revoked because a refresh token was
+replayed, which suggests the session was stolen, also ends the delegation of the
+caller's running Tasks: `GatewayState::session_compromised` reads the family's
+revocation reason at each Task exchange and at each admission of a Task-bound token.
 
 Refresh tokens reference their family with `ON DELETE CASCADE`, so deleting a family
 removes its tokens in the same transaction. Revocation keeps the family until expiry

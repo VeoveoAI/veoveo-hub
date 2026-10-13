@@ -8,9 +8,9 @@ caller and the permissions granted. It knows no server until one registers.
 
 The [crate design](crates/veoveo-service-gateway/DESIGN.md) describes the Gateway. It
 builds on [veoveo-core](https://github.com/VeoveoAI/veoveo-core) for the database
-kernel, identity, Tasks and the audit envelope, and on
+kernel, identity, Tasks, the audit envelope and the usage ledger, and on
 [veoveo-sdk-rust](https://github.com/VeoveoAI/veoveo-sdk-rust) for MCP, the forwarded
-token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5165538fb8534cac227168a598798ea952c1da95/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
+token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5216efe847079c720282e934ab09417be1265266/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
 every server follows. The Gateway owns its control plane, its policy evaluator and the
 `gateway` database schema.
 
