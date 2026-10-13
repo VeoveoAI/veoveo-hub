@@ -12,16 +12,17 @@ Neither its code nor its configuration names a server.
 |---|---|
 | MCP `2026-07-28`, Streamable HTTP | One endpoint per profile at `/mcp/{profile}`, aggregating tools, resources, resource templates, prompts, completions, Tasks and resource subscriptions of registered servers. `server/discover` lists `2026-07-28` as the only version, and another version is refused with `-32022`. The `resources.subscribe` capability declares `resourceSubscriptions` on `subscriptions/listen`; `resources/subscribe` and `resources/unsubscribe` are no methods of that version and answer `-32601` |
 | MCP Apps, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value |
-| [Server registration protocol](https://github.com/VeoveoAI/veoveo-core/blob/main/mcp/ext-registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
-| JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by core's `GatewayInternalTokenIssuer` |
+| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5c6e1bafc4acd64df117c7ed92149b969619093a/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
+| JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `GatewayInternalTokenIssuer` |
 | OAuth 2.0, RFC 6749, and RFC 7523 | The hosted authorization server; see [token and session authority](src/auth/DESIGN.md) |
 | Authorization server metadata, RFC 8414 | `/.well-known/oauth-authorization-server` for the Gateway's issuer and `/.well-known/oauth-authorization-server/oauth` for the hosted authorization server; each names its `jwks_uri`, and `response_types_supported`, `grant_types_supported` and `token_endpoint_auth_methods_supported` are always present because §2 gives an absent member a default |
 | JWK Set, RFC 7517, and JWK Thumbprint, RFC 7638 | `/jwks.json` and `/oauth/jwks.json`, served as `application/jwk-set+json`: public Ed25519 keys whose `kid` is the RFC 7638 thumbprint |
 | Protected resource metadata, RFC 9728 | `/.well-known/oauth-protected-resource/mcp/{profile}` |
 | Problem details, RFC 9457 | HTTP API errors outside OAuth endpoints, typed `https://veoveo.ai/problems/<code>` |
-| PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, including `gateway`, applied at startup; `LISTEN` on the `gateway` channel for registration changes; one login role per registration |
+| PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, then the Gateway's own `gateway` schema, applied at startup; `LISTEN` on the `gateway` channel for registration changes; one login role per registration |
 | OpenTelemetry | `service.name` is `veoveo-service-gateway` |
-| Veoveo installation configuration | `GatewayControlPlane` from `veoveo-mcp-contract`, read as JSON |
+| Veoveo installation configuration | `GatewayControlPlane` in `src/control_plane.rs`, read as JSON |
+| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/7a6c210ff1f9ee9f5150c0a5d101afeb98d659da/platform/audit/contract/DESIGN.md) | Records name owner-declared classes: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Gateway's `gateway.*` classes, each with a closed JSON Schema stored in `audit.detail_type` |
 
 ## Process
 
@@ -29,17 +30,20 @@ Neither its code nor its configuration names a server.
 
 1. Connect to PostgreSQL with `VEOVEO_DATABASE_URL` and `VEOVEO_DATABASE_PASSWORD`,
    waiting up to `VEOVEO_DATABASE_WAIT_SECONDS` for the database to accept the login.
-2. Apply pending kernel migrations with `PlatformStore::migrate`. Replicas starting
-   together wait on the migrator's lock.
-3. Load the installation configuration from `VEOVEO_CONFIG` and publish it as the
+2. Apply pending kernel migrations, then the Gateway's own migrations of the `gateway`
+   schema, whose history is `gateway._sqlx_migrations`. Replicas starting together
+   wait on the migrators' locks.
+3. Record the audit classes the Gateway writes in `audit.detail_type`, before its first
+   audit record. Repeating a declaration changes nothing.
+4. Load the installation configuration from `VEOVEO_CONFIG` and publish it as the
    active revision when its digest differs from the active one. A replica that loses
    the publication to another one with the same file continues.
-4. Load the registrations, start the registration listener and the housekeeping loop,
+5. Load the registrations, start the registration listener and the housekeeping loop,
    and listen on `VEOVEO_LISTEN_ADDRESS`.
 
 The Gateway connects as the installation owner, a role that owns the database and has
-`CREATEROLE`, because it applies the kernel migrations and creates each registration's
-login. The other commands are `validate`, `resolve-secret`, `audit` and
+`CREATEROLE`, because it applies the kernel and Gateway migrations and creates each
+registration's login. The other commands are `validate`, `resolve-secret`, `audit` and
 `generate-local-installation`; `audit` reads the same database settings.
 
 | Variable | Meaning |
@@ -55,7 +59,6 @@ login. The other commands are `validate`, `resolve-secret`, `audit` and
 | `VEOVEO_FORWARDED_TOKEN_VERIFICATION_KEY_B64` | Optional Ed25519 PKCS#8 key whose public half is published beside the signing key's and which never signs; the Gateway keeps only that public half |
 | `VEOVEO_REFRESH_DELIVERY_KEY_B64` | 32-byte key for refresh successor envelopes |
 | `VEOVEO_AUDIT_SIGNING_KEY_B64`, `VEOVEO_AUDIT_RETENTION_DAYS`, `VEOVEO_AUDIT_EXPORT_CONFIG` | Audit sealing, retention and export |
-| `VEOVEO_ARTIFACT_SERVICE_URL` | The Artifact service; without it the Gateway serves no Artifact routes |
 | `VEOVEO_ALLOW_LOOPBACK_HOSTS` | Accept loopback `Host` headers beside the issuer's host |
 
 The configuration's `secrets` section names the remaining secrets, such as the
@@ -79,12 +82,13 @@ and `acceptance-admin`, that hold the `member` and `admin` roles.
 ## Server Registration
 
 `src/registration` implements the [server registration
-protocol](https://github.com/VeoveoAI/veoveo-core/blob/main/mcp/ext-registration/DESIGN.md)
+protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5c6e1bafc4acd64df117c7ed92149b969619093a/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
-then the software statement against the pinned key and the endpoint URL.
+then the software statement against the pinned key and the endpoint URL. The slug
+`gateway` names the Gateway's own schema and is refused with `invalid_client_metadata`.
 
-| Table in core's `gateway` schema | Holds |
+| Table in the `gateway` schema | Holds |
 |---|---|
 | `namespace_claim` | One row per slug: the RFC 7638 thumbprint of the pinned key |
 | `registration` | One row per registration: client identifier, metadata, software statement, SHA-256 digest of the registration access token, its login, and `orphaned_at`, when housekeeping found that login without a live process, which is NULL while it holds one |
@@ -140,13 +144,12 @@ each page uses the caller's current admission on any replica.
 
 ## Authorization
 
-`veoveo_policy::decide` makes every decision. A registered server's tools, resources,
-templates, prompts and Tasks are decided by installation roles over that server's
-declared permissions, following the [policy
-design](https://github.com/VeoveoAI/veoveo-core/blob/main/platform/policy/DESIGN.md#registered-server-decisions).
-A role grants a permission only when it allows its access kind and every one of its
-risks. A target the server did not declare is denied. The Gateway's own actions,
-Artifacts and usage are decided by the configuration's policy rules.
+`policy::decide` in `src/policy` makes every decision. A registered server's tools,
+resources, templates, prompts and Tasks are decided by installation roles over that
+server's declared permissions. A role grants a permission only when it allows its
+access kind and every one of its risks. A target the server did not declare is denied.
+The Gateway's own administrative actions are decided by the configuration's policy
+rules.
 
 ## Forwarded Identity
 
@@ -181,9 +184,9 @@ takes three rollouts, each complete on every replica before the next begins:
 ## Upstream Transport
 
 The workspace pins RMCP 3.5.0 from `VeoveoAI/rust-sdk` at
-`917e7914c93975fc1eddbff8792f1e2de933bc17`. The fork exposes HTTP rejection status and
-body through `StreamableHttpError::HttpResponse` and keeps exact Task subscription
-filters. Upstream discovery has a ten-second deadline and one retry after a transport
+`917e7914c93975fc1eddbff8792f1e2de933bc17`, the revision `veoveo-sdk-rust` pins. The fork
+exposes HTTP rejection status and body through `StreamableHttpError::HttpResponse` and
+keeps exact Task subscription filters. Upstream discovery has a ten-second deadline and one retry after a transport
 failure; authorization challenges, malformed responses and MCP errors fail at once,
 and no mutation is retried.
 
@@ -192,10 +195,8 @@ values. Upstream MCP errors keep their code, message and data. A non-success HTT
 response without an MCP error keeps its status, and an unexpected redirect becomes
 HTTP 502 without its location.
 
-The Gateway checks resource policy before it reads. A read that declares the
-`ai.veoveo/knowledge-source` extension carries its observation, which the Gateway
-verifies against the member URI, the returned bytes and the server. The handler commits
-one audit record before it returns a result; a failed commit prevents delivery.
+The Gateway checks resource policy before it reads. The read handler commits one
+`mcp.read` audit record before it returns a result; a failed commit prevents delivery.
 
 ## HTTP Surface
 
@@ -209,25 +210,26 @@ one audit record before it returns a result; a failed commit prevents delivery.
 | `/.well-known/oauth-authorization-server/oauth`, `/.well-known/oauth-protected-resource/mcp/{profile}` | Hosted authorization server and protected resource metadata |
 | `/mcp/{profile}` | The profile's MCP endpoint |
 | `/console-api/{profile}/session` | Console session bootstrap |
-| `/admin/{profile}/...` | Configuration, audit, JWT revocation, Task cancellation, server health and, with an Artifact service, Artifact administration |
-| `/artifacts/{profile}/...` | Artifact download and resumable upload, with an Artifact service |
+| `/admin/{profile}/...` | Configuration, audit, JWT revocation, Task cancellation and server health |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
 ## Persistence
 
-The `gateway` schema belongs to core: its migration ships with the kernel migrations in
-`veoveo-platform-store`, which the Gateway applies at startup. With the store's
-`gateway` feature the Gateway reads and writes its OAuth state, refresh families,
-revocations, replay identifiers, control-plane revisions and Artifact upload authority
-through the store's typed API. Refresh rotation and control-plane publication commit
-their audit records in the same transaction through the Audit API's transactional
-append; an audit record that cannot commit rolls the change back.
+The Gateway owns the `gateway` schema. Its migrations in `migrations/` run after core's
+kernel migrations and record their history in `gateway._sqlx_migrations`, as
+`sqlx.toml` declares. `src/store` reads and writes the schema through `GatewayStore`:
+OAuth requests and codes, refresh families, JWT revocations, replay identifiers and
+control-plane revisions. A publication also writes the identity rows of the Work
+Contexts it defines in core's `identity` schema. Refresh rotation and control-plane
+publication commit their audit records in the same transaction through the audit
+envelope's transactional append; an audit record that cannot commit rolls the change
+back.
 
 Every replica runs an hourly retention pass that deletes expired authorization
 requests and codes, JWT revocations, replay identifiers, refresh tokens and families
 and Task routes, and a pass every minute that clears ended refresh delivery
-envelopes. Each prune goes through the store's batched API: one statement changes at
+envelopes. Each prune goes through core's batched maintenance: one statement changes at
 most 1,000 rows in its own transaction, skipping rows another replica holds, and the
 prune repeats it until a statement changes fewer.
 
@@ -238,7 +240,7 @@ builds SQL text. `.sqlx` also holds the metadata of the core crates' queries, be
 the check stage compiles them offline from an empty target directory.
 
 `tests/database_conformance.rs` holds the Gateway's own statements to core's
-[database rules](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/DATABASE.md#server-schema-rules)
+[database rules](https://github.com/VeoveoAI/veoveo-core/blob/7a6c210ff1f9ee9f5150c0a5d101afeb98d659da/docs/DATABASE.md#server-schema-rules)
 over the `gateway`, `identity` and `kernel` schemas, planned as the installation owner.
 A Task route lookup names the caller's tenant. Registration housekeeping and
 reconciliation read every registration and every process instance of the installation
@@ -247,9 +249,10 @@ by design, and each such statement carries a `-- veoveo:` marker with its reason
 ## Qualification
 
 `tests/registration.rs` starts the binary against a fresh PostgreSQL database with a
-generated local installation, registers core's modular fixture server with core's
-registration client and calls the Gateway as both acceptance callers. It checks the
-pinned namespace, the initial access token, the database grant, which migrates the
+generated local installation, registers the SDK's Observatory fixture server with the
+SDK's registration client and calls the Gateway as both acceptance callers. It checks the
+pinned namespace, the refusal of the slug `gateway`, the initial access token, the
+database grant, which migrates the
 server's schema as its group role and holds the server's kernel instance, role
 decisions by risk, refusal of undeclared resources, the permissions each forwarded
 token carries, that three housekeeping rounds leave a live registration's row version
@@ -273,8 +276,8 @@ thumbprint of each `kid`.
 `tests/mcp_lifecycle.rs` checks the advertised version and resource capabilities, the
 answers to `resources/subscribe` under `2026-07-28` and under `2025-11-25`, and the
 acknowledgement of a `subscriptions/listen` filter. Unit and database tests cover the
-catalog, policy adapter, discovery cache, Task routes, refresh families, session
-binding, audit readers and the control store.
+catalog, policy evaluator, discovery cache, Task routes, refresh families, session
+binding, the audit vocabulary and readers, and the control store.
 
 ## Contract Compliance
 
@@ -285,6 +288,8 @@ binding, audit readers and the control store.
 - Servers are reached at their registered endpoint; dial-in is not implemented.
 - Concrete resources a server adds at run time appear in `resources/list` after the
   next catalog generation; templates and reads are always current.
-- Readiness, registration internals and Artifact administration answer with RFC 9457
-  problem details. Other administrative handlers still answer some errors with a
+- `tests/database_conformance.rs` is ignored: core's conformance fixture applies only
+  the kernel migrations, so checking the `gateway` schema needs an option in core to
+  apply an owner's migrations as the installation owner.
+- Readiness and registration internals answer with RFC 9457 problem details. Other administrative handlers still answer some errors with a
   status and no body.

@@ -7,7 +7,7 @@
 | HTTP, RFC 9110 | Profile-scoped authenticated JSON reads, POST view admission and streaming JSON Lines export; responses use `no-store` |
 | Server-Sent Events | Partition-filtered notifications and `Last-Event-ID` recovery through sealed block sequences |
 | PostgreSQL 18 through core's `AuditStore` | Parameterized SQL filtering and keyset pagination, partition-scoped change streams on the `audit` channel, exact-record access receipts |
-| Veoveo audit contract | Owner-defined scope, actor and target types, closed record summaries, queries and export framing |
+| Veoveo audit envelope | Owner-declared classes and targets admitted through the Gateway's audit registry, closed record summaries, queries and export framing |
 
 `/admin/{profile}/console/audit` provides partitions, views, records, summary, stream
 and export routes. The audit scope is checked on the acting principal. Its tenant
@@ -15,9 +15,9 @@ selects a tenant partition, while installation reads also require an administrat
 or auditor role. Requests recheck token expiry, session validity and JWT revocation.
 The browser's navigation hint never authorizes a request.
 
-Opening a view commits one access record and returns its ID with a fifteen-minute
+Opening a view commits one `audit.view` record and returns its ID with a fifteen-minute
 lifetime. Pages, daily summaries and the event stream reference that record. Store
-checks its actor, profile, selected partition, activity and age in SQL. A missing or
+checks its actor, selected partition, class and age in SQL. A missing or
 expired receipt returns 410. The receipt is an identifier, not a credential, and
 does not replace current authorization. Stream reconnects reuse the receipt.
 
@@ -33,7 +33,7 @@ the browser obtains rows from the authorized page endpoint. Catalog changes, tok
 expiry and the fifteen-minute connection limit close the stream. Each connection
 holds a shared Console stream slot, limited to three per principal and sixteen total.
 
-Export commits an access marker and waits up to ten seconds for sealing. Store then
+Export commits an `audit.export` marker and waits up to ten seconds for sealing. Store then
 captures the partition checkpoint and retention anchor in one transaction. The
 download reads that retained interval in block commit order and applies content
 filters in SQL. Its page cursor, page size and display order do not truncate or order

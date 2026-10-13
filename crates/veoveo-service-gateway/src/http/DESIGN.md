@@ -11,8 +11,8 @@
 
 ## Profile Authentication
 
-`authenticate_profile` admits every route under `/mcp/{profile}`, `/admin/{profile}`,
-`/artifacts/{profile}` and `/console-api/{profile}`. It reads the profile from the
+`authenticate_profile` admits every route under `/mcp/{profile}`, `/admin/{profile}` and
+`/console-api/{profile}`. It reads the profile from the
 registered `{profile}` segment of the matched route and its raw spelling in the
 original URI, so an encoded alias fails before bearer verification. Catalog
 replacement changes the next request's authentication and policy through the shared

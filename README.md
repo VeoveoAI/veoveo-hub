@@ -6,11 +6,13 @@ prompts require. The Gateway authenticates callers, grants permissions through t
 installation's roles, and forwards each request with an access token that names the
 caller and the permissions granted. It knows no server until one registers.
 
-The [crate design](crates/veoveo-service-gateway/DESIGN.md) describes the Gateway.
-Registration, the forwarded token and the policy evaluator are defined in
-[veoveo-core](https://github.com/VeoveoAI/veoveo-core), whose
-[server registration protocol](https://github.com/VeoveoAI/veoveo-core/blob/main/mcp/ext-registration/DESIGN.md)
-every server follows.
+The [crate design](crates/veoveo-service-gateway/DESIGN.md) describes the Gateway. It
+builds on [veoveo-core](https://github.com/VeoveoAI/veoveo-core) for the database
+kernel, identity, Tasks and the audit envelope, and on
+[veoveo-sdk-rust](https://github.com/VeoveoAI/veoveo-sdk-rust) for MCP, the forwarded
+token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5c6e1bafc4acd64df117c7ed92149b969619093a/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
+every server follows. The Gateway owns its control plane, its policy evaluator and the
+`gateway` database schema.
 
 ## Gate
 
@@ -39,10 +41,12 @@ Tests that need a database start a private PostgreSQL cluster per test process f
 PostgreSQL 18 programs on `PATH`; the `dev` image installs the PGDG `postgresql-18`
 18.6 packages, and on macOS Homebrew's `postgresql@18` provides the same programs.
 Queries are checked at compile time against the metadata in `.sqlx`, which also holds
-the queries of the core crates the check stage compiles. After changing a query or the
-core pin, apply core's kernel migrations to a scratch database and run
+the queries of the core crates the check stage compiles. After changing a query or a
+pin, apply core's kernel migrations and then the Gateway's own migrations in
+`crates/veoveo-service-gateway/migrations` to a scratch database, and run
 `cargo sqlx prepare --workspace -- --all-targets --all-features` against it with an
-empty `CARGO_TARGET_DIR`, so every core query is compiled and recorded.
+empty `CARGO_TARGET_DIR`, so every core query is compiled and recorded. The check stage
+does the same before `cargo sqlx prepare --check`.
 
 ## Local Launch
 
@@ -50,8 +54,9 @@ A local installation runs PostgreSQL 18 from
 [veoveo-template-installation](https://github.com/VeoveoAI/veoveo-template-installation)
 on the host, the Gateway in `vv-srv-gateway` on port 8080 and each server in its own
 environment. The Gateway connects as the installation owner, a role that owns the
-installation database and may create roles, and applies the kernel migrations at
-startup. Start PostgreSQL first, then build the Gateway and generate its installation
+installation database and may create roles. At startup it applies core's kernel
+migrations, then its own migrations of the `gateway` schema, and records the audit
+classes it writes in `audit.detail_type`. Start PostgreSQL first, then build the Gateway and generate its installation
 once:
 
 ```sh

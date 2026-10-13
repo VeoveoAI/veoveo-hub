@@ -12,10 +12,10 @@
 | JWK Thumbprint, RFC 7638 | The `kid` of the hosted authorization server's key, which the configuration repeats as `accessTokenKeyId` |
 | Token revocation, RFC 7009, and OAuth security BCP, RFC 9700 | Refresh-family rotation, replay detection and revocation |
 | Veoveo access token claims | Collision-resistant names under `https://veoveo.ai/claims/`: `principal`, `principal-display-name`, `principal-kind`, `session-family`, `work-context`, `invocation-mode`, `initiator`, `delegation`, `tenant`, `data-labels` and `principal-assurances`; `managed-execution` is reserved and never accepted from a token |
-| PostgreSQL 18 | Refresh families, replay guards, JWT revocations and audit records shared by every replica, in core's `gateway` and `audit` schemas |
+| PostgreSQL 18 | Refresh families, replay guards, JWT revocations and audit records shared by every replica, in the Gateway's `gateway` schema and core's `audit` schema |
 
 The forwarded tokens the Gateway sends to registered servers are a separate profile,
-defined by core's [server registration protocol](https://github.com/VeoveoAI/veoveo-core/blob/main/mcp/ext-registration/DESIGN.md#forwarded-identity).
+defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5c6e1bafc4acd64df117c7ed92149b969619093a/crates/veoveo-sdk-rust/src/registration/DESIGN.md#forwarded-identity).
 
 ## Access Tokens
 
@@ -71,8 +71,7 @@ and checks its authorization server, profile, client, Work Context, principal, t
 scope and lifetime. A missing, expired or revoked family denies the request; a
 database failure returns HTTP 503 within a five-second deadline. Logout and refresh
 replay revoke the family on every replica, which also denies its outstanding access
-tokens, as RFC 7009 §2.1 allows. The family predicate lives in core's
-`veoveo_policy::session`.
+tokens, as RFC 7009 §2.1 allows. The family predicate lives in `policy::session`.
 
 Refresh tokens reference their family with `ON DELETE CASCADE`, so deleting a family
 removes its tokens in the same transaction. Revocation keeps the family until expiry
