@@ -36,6 +36,16 @@ pub(crate) struct GatewayTaskRouteDraft {
     pub authority_digest: Sha256Digest,
     pub ownership: GatewayTaskOwnership,
     pub ttl_ms: Option<u64>,
+    /// The caller a Task of a server with declared uses acts for while it runs.
+    pub delegated_caller: Option<veoveo_sdk_rust::DelegatedCaller>,
+}
+
+/// The caller one server's Task acts for, on the profile that created it.
+#[derive(Clone, Debug)]
+pub struct TaskDelegation {
+    pub profile: GatewayProfileId,
+    pub caller: veoveo_sdk_rust::DelegatedCaller,
+    pub expires_at: DateTime<Utc>,
 }
 
 /// The actor and provenance that created a Task. Later access must present the same
@@ -241,6 +251,12 @@ impl GatewayState {
             .iter()
             .map(ToString::to_string)
             .collect::<Vec<_>>();
+        let delegated_caller = draft
+            .delegated_caller
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .context("failed to encode the Task's delegated caller")?;
         sqlx::query_file!(
             "src/state/task_routes/create.sql",
             id.as_str(),
@@ -260,6 +276,7 @@ impl GatewayState {
             &data_labels,
             now,
             expires_at,
+            delegated_caller,
         )
         .execute(self.store.platform().pool())
         .await
@@ -290,6 +307,62 @@ impl GatewayState {
         .context("failed to read the task route")?
         .map(GatewayTaskRoute::try_from)
         .transpose()
+    }
+
+    /// The caller `server`'s Task `source_task_id` acts for, while its route lives.
+    pub async fn task_delegation(
+        &self,
+        server: &ServerSlug,
+        source_task_id: &str,
+    ) -> Result<Option<TaskDelegation>> {
+        let rows = sqlx::query_file!(
+            "src/state/task_routes/delegation.sql",
+            server.as_str(),
+            source_task_id,
+            Utc::now(),
+        )
+        .fetch_all(self.store.platform().pool())
+        .await
+        .context("failed to read the Task's delegation")?;
+        let mut rows = rows.into_iter();
+        let (Some(row), None) = (rows.next(), rows.next()) else {
+            // No live route, or an identifier two routes name, delegates nothing.
+            return Ok(None);
+        };
+        Ok(Some(TaskDelegation {
+            profile: GatewayProfileId::parse(row.profile)?,
+            caller: serde_json::from_value(row.delegated_caller)
+                .context("the stored delegated caller does not decode")?,
+            expires_at: row.expires_at,
+        }))
+    }
+
+    /// Whether `server`'s Task in core's Task runtime is queued, running or waiting for
+    /// `caller`. An identifier that is no runtime Task identifier names no live Task.
+    pub async fn task_live(
+        &self,
+        server: &ServerSlug,
+        source_task_id: &str,
+        caller: &veoveo_sdk_rust::DelegatedCaller,
+    ) -> Result<bool> {
+        let Ok(task) = uuid::Uuid::parse_str(source_task_id) else {
+            return Ok(false);
+        };
+        // The runtime keys a Task by its owner's tenant claim, or `installation`.
+        let tenant = caller
+            .actor
+            .tenant
+            .as_ref()
+            .map_or("installation", |tenant| tenant.as_str());
+        sqlx::query_file_scalar!(
+            "src/state/task_routes/task_live.sql",
+            server.as_str(),
+            task,
+            tenant
+        )
+        .fetch_one(self.store.platform().pool())
+        .await
+        .context("failed to read the Task's status")
     }
 
     async fn task_route_for_source(

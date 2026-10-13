@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Whether one server's Task in core's Task runtime still runs in the caller's tenant. A\n-- Task waiting for its cancellation to settle no longer acts for its caller.\nSELECT EXISTS (\n    SELECT 1 FROM tasks.task\n    WHERE server = $1 AND id = $2 AND tenant = $3 AND status IN ('queued', 'running', 'waiting')\n) AS \"live!\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "live!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d5bbf1c9b1f692d95c5bdfbe5adee6c006819e94b6fca3cbc769b4dd38b8d06f"
+}

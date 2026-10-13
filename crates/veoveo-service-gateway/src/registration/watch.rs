@@ -34,6 +34,17 @@ pub(crate) struct LiveRegistrations {
 }
 
 impl RegistrationService {
+    /// The registered metadata of a live registration, by its client identifier. Every
+    /// live registration of a server authenticates, not only the one that routes.
+    pub fn registered_client(&self, client_id: &OAuthClientId) -> Option<ClientMetadata> {
+        self.inner
+            .live
+            .read()
+            .rows
+            .get(client_id)
+            .map(|row| row.metadata.clone())
+    }
+
     /// Reload every registration and route to the newest of each server.
     pub async fn refresh(&self) -> anyhow::Result<()> {
         let rows = self.inner.store.registrations().await?;

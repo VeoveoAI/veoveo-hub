@@ -527,6 +527,7 @@ impl GatewayMcp {
                     &subject.authority,
                 ),
                 ttl_ms: created.task.ttl_ms,
+                delegated_caller: None,
             })
             .await
             .map_err(|error| {

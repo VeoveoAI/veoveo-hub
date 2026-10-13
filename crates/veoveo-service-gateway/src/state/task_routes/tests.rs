@@ -12,6 +12,7 @@ fn draft() -> GatewayTaskRouteDraft {
         authority_digest: Sha256Digest::from_bytes([0xa; 32]),
         ownership: GatewayTaskOwnership::from_invocation(&subject.actor, &subject.authority),
         ttl_ms: Some(60_000),
+        delegated_caller: None,
     }
 }
 
