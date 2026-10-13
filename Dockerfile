@@ -36,6 +36,20 @@ WORKDIR /home/sandbox/src
 COPY --chown=sandbox:sandbox . .
 
 FROM source AS check
+# The committed .sqlx query metadata must match the Gateway's queries against the kernel
+# migrations of the pinned veoveo-core checkout.
+RUN cargo fetch --locked \
+    && store="$(echo /usr/local/cargo/git/checkouts/veoveo-core-*/*/platform/store)" \
+    && initdb --pgdata /tmp/sqlx/data --username postgres --auth=trust --no-instructions --no-sync \
+    && pg_ctl start --pgdata /tmp/sqlx/data --wait --silent \
+        --options "-c listen_addresses=127.0.0.1 -c unix_socket_directories=/tmp/sqlx -c fsync=off" \
+    && createdb --host 127.0.0.1 --username postgres veoveo \
+    && DATABASE_URL=postgres://postgres@127.0.0.1/veoveo cargo sqlx migrate run \
+        --source "${store}/migrations" --config "${store}/sqlx.toml" \
+    && DATABASE_URL=postgres://postgres@127.0.0.1/veoveo cargo sqlx prepare --workspace --check \
+        -- --all-targets --all-features \
+    && pg_ctl stop --pgdata /tmp/sqlx/data --mode fast --wait --silent \
+    && rm -rf /tmp/sqlx
 RUN cargo fmt --check \
     && cargo clippy --locked --all-targets --all-features -- -D warnings \
     && cargo deny --locked check \
