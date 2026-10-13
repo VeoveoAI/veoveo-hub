@@ -144,17 +144,6 @@ impl GatewayState {
             .await
             .context("required audit commit failed")
     }
-    pub async fn record_indexing_audit(
-        &self,
-        read: veoveo_audit_contract::IndexingRead,
-    ) -> Result<()> {
-        let _timer = StageTimer::start(RequestStage::Audit);
-        self.audit_writer()
-            .await
-            .record_indexing(read)
-            .await
-            .context("required indexing audit commit failed")
-    }
 }
 
 /// Audit records that commit in the same transaction as a Gateway state change. A

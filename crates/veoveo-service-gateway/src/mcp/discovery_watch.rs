@@ -75,7 +75,6 @@ impl GatewayMcp {
             .catalog()
             .profile_server(&self.profile_id, &key.server)
             .ok_or_else(|| mcp_internal("unknown catalog server"))?;
-        let indexing = false;
         let filter = catalog_change_filter(&manifest.capabilities);
         if filter.tools_list_changed.is_none()
             && filter.resources_list_changed.is_none()
@@ -109,7 +108,7 @@ impl GatewayMcp {
             let mut generation = self.catalog.subscribe();
             let (connection, mut subscription) = tokio::time::timeout(OPEN_DEADLINE, async {
                 let connection = self.upstream(&key.server, downstream, subject).await.map_err(super::http_response::RequestError::into_protocol)?;
-                let subscription = open_catalog_subscription(&connection.peer, &filter, indexing).await?;
+                let subscription = open_catalog_subscription(&connection.peer, &filter).await?;
                 Ok::<_,McpError>((connection, subscription))
             }).await.map_err(|_| mcp_internal("catalog subscription open deadline exceeded"))??;
             if *generation.borrow_and_update() != key.catalog_generation { return Err(mcp_internal("catalog changed while opening subscription")); }
@@ -164,19 +163,10 @@ impl GatewayMcp {
 pub(super) async fn open_catalog_subscription(
     peer: &Peer<RoleClient>,
     filter: &SubscriptionFilter,
-    indexing: bool,
 ) -> Result<Subscription, McpError> {
-    let mut subscription = peer.listen(filter.clone()).await.map_err(upstream_error)?;
+    let subscription = peer.listen(filter.clone()).await.map_err(upstream_error)?;
     if subscription.acknowledged() != filter {
         return Err(mcp_internal("upstream narrowed its catalog subscription"));
-    }
-    let source = peer
-        .peer_info()
-        .is_some_and(|info| veoveo_mcp_ext_knowledge::client::supports(&info.capabilities));
-    // K07's initial notification establishes observation for every caller. Leaving
-    // it queued races the first catalog fetch and invalidates unrelated callers.
-    if indexing || source {
-        super::subscriptions::wait_for_source_baseline(&mut subscription, filter).await?;
     }
     Ok(subscription)
 }

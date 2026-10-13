@@ -1,11 +1,10 @@
 use super::*;
 use rmcp::model::ErrorCode;
-use veoveo_mcp_ext_knowledge::{DocumentId, docs};
-use veoveo_types::ResourceScheme;
+use veoveo_types::{ResourceScheme, ResourceUri};
 
 fn template(index: usize) -> ResourceTemplate {
     let scheme = ResourceScheme::parse(format!("fixture{index:03}")).unwrap();
-    ResourceTemplate::new(docs::member_template(&scheme).to_string(), "Document")
+    ResourceTemplate::new(format!("{scheme}://docs/{{doc_id}}"), "Document")
 }
 
 fn continuation<T>(page: &Page<T>) -> PaginatedRequestParams {
@@ -86,16 +85,7 @@ fn each_surface_keeps_its_typed_identity_in_the_cursor() {
         .map(|i| Prompt::new(format!("prompt{i:03}"), None::<String>, None))
         .collect();
     let resources = (0..101)
-        .map(|i| {
-            Resource::new(
-                docs::member_uri(
-                    &"fixture".parse().unwrap(),
-                    &DocumentId::parse(format!("d{i:03}")).unwrap(),
-                )
-                .to_string(),
-                "Fixture",
-            )
-        })
+        .map(|i| Resource::new(format!("fixture://docs/d{i:03}"), "Fixture"))
         .collect();
     let tool_page = page::<Tool>(tools, None).unwrap();
     let prompt_page = page::<Prompt>(prompts, None).unwrap();
@@ -111,7 +101,7 @@ fn each_surface_keeps_its_typed_identity_in_the_cursor() {
     );
     assert_eq!(
         decode::<Resource>(resource_page.next_cursor.as_ref().unwrap()).unwrap(),
-        docs::member_uri(&"fixture".parse().unwrap(), &"d099".parse().unwrap())
+        ResourceUri::new("fixture://docs/d099").unwrap()
     );
     assert_eq!(
         decode::<ResourceTemplate>(template_page.next_cursor.as_ref().unwrap())

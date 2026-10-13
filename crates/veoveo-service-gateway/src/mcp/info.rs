@@ -50,7 +50,6 @@ impl GatewayMcp {
             JsonObject::new(),
         );
         capabilities.extensions = Some(extensions);
-        veoveo_mcp_ext_knowledge::server::declare(&mut capabilities);
 
         let mut info = ServerConfig::default();
         info.capabilities = capabilities;

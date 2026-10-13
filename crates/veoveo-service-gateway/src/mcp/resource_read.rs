@@ -1,4 +1,5 @@
-//! Resource delivery commits a validated source observation before returning content.
+//! Resource delivery rechecks authority on every read and commits its audit record
+//! before returning content.
 use super::http_response::RequestError;
 use super::{GatewayMcp, discovery::DiscoveryCacheKey};
 use crate::{
@@ -10,44 +11,25 @@ use crate::{
 };
 use rmcp::{
     ServiceError,
-    model::{
-        CacheScope, ClientCapabilities, ErrorData as McpError, ReadResourceRequestParams,
-        ReadResourceResult, ServerResult,
-    },
-    service::{Peer, PeerRequestOptions, RequestContext, RoleClient, RoleServer},
+    model::{CacheScope, ErrorData as McpError, ReadResourceRequestParams, ReadResourceResult},
+    service::{Peer, RequestContext, RoleClient, RoleServer},
 };
-use veoveo_audit_contract::{
-    AuditDetail, AuditOutcome, AuditReadMethod, AuditReason, AuditTarget, KnowledgeReadStatus,
-};
+use veoveo_audit_contract::{AuditDetail, AuditOutcome, AuditReadMethod, AuditReason, AuditTarget};
 use veoveo_gateway_contract::GatewayDiscoverySurface;
 use veoveo_mcp_contract::{GatewayResourceProjection, parse_gateway_task_resource_uri};
-use veoveo_mcp_ext_knowledge::{self as knowledge, Observation, Revision};
 
 impl GatewayMcp {
     async fn finish_resource_read(
         &self,
         subject: &AuthenticatedSubject,
         projection: &GatewayResourceProjection,
-        result: Result<(ReadResourceResult, Option<Observation>), RequestError>,
+        result: Result<ReadResourceResult, RequestError>,
     ) -> Result<ReadResourceResult, RequestError> {
         let ordinary = || AuditDetail::Read {
             method: AuditReadMethod::ResourceRead,
         };
         let (detail, outcome, reason) = match &result {
-            Ok((_, Some(observation))) => (
-                AuditDetail::KnowledgeRead {
-                    member: projection.gateway_uri.clone(),
-                    observation: Some(Box::new(observation.into())),
-                    status: if observation.not_modified() {
-                        KnowledgeReadStatus::NotModified
-                    } else {
-                        KnowledgeReadStatus::Read
-                    },
-                },
-                AuditOutcome::Succeeded,
-                AuditReason::Accepted,
-            ),
-            Ok((_, None)) => (ordinary(), AuditOutcome::Succeeded, AuditReason::Accepted),
+            Ok(_) => (ordinary(), AuditOutcome::Succeeded, AuditReason::Accepted),
             Err(error) if error.protocol().code == rmcp::model::ErrorCode::INVALID_REQUEST => {
                 (ordinary(), AuditOutcome::Denied, AuditReason::PolicyDenied)
             }
@@ -81,7 +63,7 @@ impl GatewayMcp {
             .record_audit(draft)
             .await
             .map_err(|_| mcp_internal("required resource read audit unavailable"))?;
-        result.map(|(result, _)| result)
+        result
     }
     pub(super) async fn handle_read_resource(
         &self,
@@ -97,27 +79,8 @@ impl GatewayMcp {
         let projection = self.project_resource_for_upstream(&request.uri)?;
         let subject = self.admit_resource_read(&context, &projection).await?;
         let result = async {
-            if context
-                .meta
-                .contains_key(veoveo_mcp_ext_knowledge::INDEXING_READ_KEY)
-            {
-                return Err(crate::mcp_support::mcp_invalid_request(
-                    "indexing reads are not available",
-                )
-                .into());
-            }
-            let declaring_caller = knowledge::server::requested(Some(&context.meta))
-                .map_err(|_| mcp_invalid_params("invalid knowledge capability"))?;
-            let condition = knowledge::server::condition(Some(&context.meta))
-                .map_err(|_| mcp_invalid_params("invalid knowledge read condition"))?;
-            // The canonical request context owns metadata. Caller-supplied provenance
-            // is never forwarded to a source or accepted as an observation.
+            // The canonical request context owns metadata.
             request.meta = Some(context.meta.clone());
-            request
-                .meta
-                .as_mut()
-                .expect("assigned metadata")
-                .remove(knowledge::OBSERVATION_KEY);
             let snapshot = self.catalog.snapshot();
             let catalog = snapshot.catalog();
             let manifest = catalog
@@ -195,23 +158,19 @@ impl GatewayMcp {
                 upstream_uri,
             };
             request.uri = projection.upstream_uri.to_string();
-            let (mut result, observation) = self
+            let mut result = self
                 .idempotent_upstream_request(
                     &projection.server,
                     context.peer.clone(),
                     &subject,
                     |upstream| {
                         let request = request.clone();
-                        let revision = condition.as_ref().map(|c| c.if_none_match.clone());
-                        let projection = projection.clone();
-                        async move {
-                            read_upstream(upstream, request, &projection, revision.as_ref()).await
-                        }
+                        async move { read_upstream(upstream, request).await }
                     },
                 )
                 .await?;
-            prepare_delivery(&mut result, &projection, declaring_caller)?;
-            Ok((result, observation))
+            prepare_delivery(&mut result, &projection)?;
+            Ok(result)
         }
         .await;
         self.finish_resource_read(&subject, &projection, result)
@@ -222,67 +181,20 @@ impl GatewayMcp {
 fn prepare_delivery(
     result: &mut ReadResourceResult,
     projection: &GatewayResourceProjection,
-    declaring_caller: bool,
 ) -> Result<(), McpError> {
     project_read_resource_result(result, projection)?;
     // SDK read caches key by URI only. Every delivered read must recheck
-    // authority and commit its own observation before it reaches a caller.
+    // authority and commit its own audit record before it reaches a caller.
     result.ttl_ms = Some(0);
     result.cache_scope = Some(CacheScope::Private);
-    if !declaring_caller && let Some(meta) = result.meta.as_mut() {
-        meta.remove(knowledge::OBSERVATION_KEY);
-    }
     Ok(())
 }
 
 async fn read_upstream(
     upstream: Peer<RoleClient>,
     request: ReadResourceRequestParams,
-    projection: &GatewayResourceProjection,
-    revision: Option<&Revision>,
-) -> Result<(ReadResourceResult, Option<Observation>), ServiceError> {
-    let declared = upstream
-        .peer_info()
-        .is_some_and(|info| knowledge::client::supports(&info.capabilities));
-    let result = if declared {
-        let (request, options) = knowledge::client::read_request(
-            request,
-            ClientCapabilities::default(),
-            revision,
-            PeerRequestOptions::default(),
-        );
-        match upstream
-            .send_request_with_option(request, options)
-            .await?
-            .await_response()
-            .await?
-        {
-            ServerResult::ReadResourceResult(result) => result,
-            _ => return Err(ServiceError::UnexpectedResponse),
-        }
-    } else {
-        upstream.read_resource(request).await?
-    };
-    let observation = validate_source_read(&result, projection, revision, declared)
-        .map_err(ServiceError::McpError)?;
-    Ok((result, observation))
-}
-
-fn validate_source_read(
-    result: &ReadResourceResult,
-    projection: &GatewayResourceProjection,
-    revision: Option<&Revision>,
-    declared: bool,
-) -> Result<Option<Observation>, McpError> {
-    let observation = knowledge::client::validate_read(result, &projection.upstream_uri, revision)
-        .map_err(|_| mcp_internal("invalid upstream knowledge observation"))?;
-    if observation
-        .as_ref()
-        .is_some_and(|o| !declared || o.collection().server() != &projection.server)
-    {
-        return Err(mcp_internal("upstream knowledge collection owner mismatch"));
-    }
-    Ok(observation)
+) -> Result<ReadResourceResult, ServiceError> {
+    upstream.read_resource(request).await
 }
 
 #[cfg(test)]

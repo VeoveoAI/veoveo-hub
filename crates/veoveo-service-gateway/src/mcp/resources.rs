@@ -391,41 +391,18 @@ impl GatewayMcp {
         let manifest = catalog
             .server(server_slug)
             .ok_or_else(|| mcp_internal(format!("unknown profile server `{server_slug}`")))?;
-        let (upstream_templates, knowledge_source) = self
+        let upstream_templates = self
             .idempotent_upstream_request(
                 server_slug,
                 context.peer.clone(),
                 subject,
-                |upstream| async move {
-                    let declared = upstream.peer_info().is_some_and(|info| {
-                        veoveo_mcp_ext_knowledge::client::supports(&info.capabilities)
-                    });
-                    Ok((upstream.list_all_resource_templates().await?, declared))
-                },
+                |upstream| async move { upstream.list_all_resource_templates().await },
             )
             .await
             .map_err(RequestError::into_protocol)?;
         let mut templates = Vec::with_capacity(upstream_templates.len());
         let mut targets = Vec::with_capacity(upstream_templates.len());
         for mut template in upstream_templates {
-            if let Some(descriptor) = veoveo_mcp_ext_knowledge::client::collection(&template)
-                .map_err(|_| mcp_internal("invalid upstream knowledge declaration"))?
-            {
-                let root = veoveo_mcp_ext_knowledge::enumeration_uri(&descriptor, None)
-                    .map_err(|_| mcp_internal("invalid upstream knowledge enumeration"))?;
-                if !knowledge_source
-                    || descriptor.collection().server() != server_slug
-                    || root
-                        .components()
-                        .map_err(|_| mcp_internal("invalid knowledge resource scheme"))?
-                        .scheme()
-                        != manifest.uri_scheme.as_str()
-                {
-                    return Err(mcp_internal(
-                        "upstream knowledge declaration does not match its discovered owner",
-                    ));
-                }
-            }
             project_resource_template_uri(manifest, &mut template)?;
             targets.push(resource_template_policy_target(
                 server_slug.clone(),

@@ -23,10 +23,8 @@ veoveo-audit.workspace = true
 veoveo-audit-contract = { workspace = true, features = ["postgres"] }
 veoveo-gateway-contract.workspace = true
 veoveo-http.workspace = true
-veoveo-knowledge-contract.workspace = true
 veoveo-mcp-ext-apps.workspace = true
 veoveo-mcp-contract = { workspace = true, features = ["runtime"] }
-veoveo-mcp-ext-knowledge = { workspace = true, features = ["mcp"] }
 veoveo-mcp-ext-registration.workspace = true
 veoveo-oauth-client.workspace = true
 veoveo-platform-store = { workspace = true, features = ["gateway"] }
