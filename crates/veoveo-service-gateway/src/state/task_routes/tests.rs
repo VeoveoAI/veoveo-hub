@@ -94,6 +94,43 @@ async fn changed_authority_or_expired_routes_cannot_be_rebound_by_an_upstream_re
 }
 
 #[tokio::test]
+async fn retention_deletes_expired_routes_in_batches_and_keeps_live_ones() {
+    let db = database().await;
+    let state = GatewayState::new(db.a.clone());
+    let mut expired = Vec::new();
+    for index in 0..3 {
+        let mut input = draft();
+        input.source_task_id = format!("expired-task/{index}");
+        expired.push(state.create_task_route(input).await.unwrap().0);
+    }
+    let mut live = draft();
+    live.source_task_id = "live-task".into();
+    let (live, _) = state.create_task_route(live).await.unwrap();
+    for canonical in &expired {
+        sqlx::query_file!(
+            "src/state/task_routes/tests/expire.sql",
+            canonical.as_str(),
+            Utc::now() - TimeDelta::seconds(1),
+        )
+        .execute(db.a.pool())
+        .await
+        .unwrap();
+    }
+    let batch = veoveo_platform_store::MaintenanceBatch::new(2).unwrap();
+    let pruned = state
+        .prune_expired_task_routes(Utc::now(), batch)
+        .await
+        .unwrap();
+    assert_eq!((pruned.rows, pruned.batches), (3, 2));
+    let routes = sqlx::query_file_scalar!("src/state/task_routes/tests/count.sql")
+        .fetch_one(db.a.pool())
+        .await
+        .unwrap();
+    assert_eq!(routes, 1);
+    assert!(state.task_route(&live).await.unwrap().is_some());
+}
+
+#[tokio::test]
 async fn stored_routes_keep_their_owner_provenance_and_labels() {
     let db = database().await;
     let state = GatewayState::new(db.a.clone());

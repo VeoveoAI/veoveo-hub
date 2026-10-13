@@ -214,6 +214,13 @@ through the store's typed API. Refresh rotation and control-plane publication co
 their audit records in the same transaction through the Audit API's transactional
 append; an audit record that cannot commit rolls the change back.
 
+Every replica runs an hourly retention pass that deletes expired authorization
+requests and codes, JWT revocations, replay identifiers, refresh tokens and families
+and Task routes, and a pass every minute that clears ended refresh delivery
+envelopes. Each prune goes through the store's batched API: one statement changes at
+most 1,000 rows in its own transaction, skipping rows another replica holds, and the
+prune repeats it until a statement changes fewer.
+
 The Gateway's own statements, for registrations and Task routes, are `.sql` files
 beside the modules that run them, checked at compile time through sqlx's `query_file!`
 macros against the metadata in `.sqlx`; tests keep theirs under `tests/`. No Rust code

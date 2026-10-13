@@ -6,7 +6,7 @@
 |---|---|
 | MCP 2026-07-28 Tasks extension | Opaque canonical Task identifiers projected from upstream CreateTaskResult |
 | Veoveo invocation authority | Stable tenant, actual actor, Work Context, profile and invocation provenance; every use checks current policy and retained data labels |
-| PostgreSQL 18 | `gateway.task_route` in core's `gateway` schema, read and written through checked sqlx queries beside `task_routes.rs` |
+| PostgreSQL 18 | `gateway.task_route` in core's `gateway` schema, read and written through checked sqlx queries beside `task_routes.rs` and pruned through core's `PlatformStore::prune_task_routes` |
 | Veoveo `gtr_` route identifiers | 32 random bytes encoded as base64url without padding; identifiers convey no access authority |
 
 `task_routes.rs` owns the mapping between an upstream Task and its public gateway
@@ -24,12 +24,17 @@ An upstream tool retry can return its original Task. Gateway projection returns 
 Task's existing public route, including across replicas and fresh authentication.
 It preserves the original creation time and expiry. Competing projections insert with
 `ON CONFLICT DO NOTHING` and then read the one route the source tuple holds; no lookup
-redispatches the upstream tool. An expired mapping is not recreated or extended by a
-retry.
+redispatches the upstream tool. A retry neither extends nor recreates an expired
+route that retention has not yet deleted.
 
-Route rows survive expiry because the retained source tuple prevents a later retry
-from renewing retention or changing authority. Access still requires an unexpired
-mapping and current authorization.
+A route lives for the upstream Task's own `ttl`, or seven days when the Task names
+none, and access requires an unexpired route and current authorization. Every replica's
+hourly retention pass deletes the routes that have expired, at most 1,000 per
+statement in expiry order and each statement its own transaction, until a statement
+deletes fewer. A retry inside the route's lifetime therefore meets the original
+route. A retry after the route is gone meets an upstream Task whose own retention has
+ended, unless the Task named no `ttl` and outlived the seven days, in which case the
+retry records a new route.
 
 Reads, updates, cancellations and listeners match recorded ownership before checking
 current profile exposure and policy. Ownership is the principal key, kind, issuer and

@@ -5,14 +5,19 @@ use veoveo_mcp_contract::{
     GatewayAuthorizationCodeRecord, GatewayAuthorizationRequest, GatewayJwtRevocation,
     GatewayProfileId, JwtId, OAuthAuthorizationCode, OAuthClientId, OAuthStateValue, TokenIssuer,
 };
-use veoveo_platform_store::gateway::{ReplayIdentifier, ReplayKind};
+use veoveo_platform_store::{
+    MaintenanceBatch, Pruned,
+    gateway::{ReplayIdentifier, ReplayKind},
+};
 
 use super::GatewayState;
 
+/// The expired replay identifiers one retention pass deleted, by the token kind that
+/// carried them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GatewayReplayRetentionSummary {
-    pub client_assertion_jtis_deleted: u64,
-    pub id_jag_jtis_deleted: u64,
+    pub client_assertion_jtis: Pruned,
+    pub id_jag_jtis: Pruned,
 }
 
 impl GatewayState {
@@ -36,9 +41,14 @@ impl GatewayState {
             .context("failed to read gateway JWT revocation")
     }
 
-    pub async fn prune_expired_jwt_revocations(&self, now: DateTime<Utc>) -> Result<u64> {
+    /// Delete the revocations of expired tokens, one short transaction per batch.
+    pub async fn prune_expired_jwt_revocations(
+        &self,
+        now: DateTime<Utc>,
+        batch: MaintenanceBatch,
+    ) -> Result<Pruned> {
         self.platform
-            .prune_jwt_revocations(now)
+            .prune_jwt_revocations(now, batch)
             .await
             .context("failed to prune expired gateway JWT revocations")
     }
@@ -85,23 +95,25 @@ impl GatewayState {
         .await
     }
 
+    /// Delete expired replay identifiers of each kind, one short transaction per batch.
     pub async fn prune_expired_replay_ids(
         &self,
         now: DateTime<Utc>,
+        batch: MaintenanceBatch,
     ) -> Result<GatewayReplayRetentionSummary> {
-        let client_assertion_jtis_deleted = self
+        let client_assertion_jtis = self
             .platform
-            .prune_replay_ids(ReplayKind::ClientAssertion, now)
+            .prune_replay_ids(ReplayKind::ClientAssertion, now, batch)
             .await
             .context("failed to prune client assertion replay identifiers")?;
-        let id_jag_jtis_deleted = self
+        let id_jag_jtis = self
             .platform
-            .prune_replay_ids(ReplayKind::IdJag, now)
+            .prune_replay_ids(ReplayKind::IdJag, now, batch)
             .await
             .context("failed to prune ID-JAG replay identifiers")?;
         Ok(GatewayReplayRetentionSummary {
-            client_assertion_jtis_deleted,
-            id_jag_jtis_deleted,
+            client_assertion_jtis,
+            id_jag_jtis,
         })
     }
 
@@ -147,9 +159,14 @@ impl GatewayState {
             .context("failed to consume OAuth authorization code")
     }
 
-    pub async fn prune_expired_authorization_records(&self, now: DateTime<Utc>) -> Result<u64> {
+    /// Delete expired authorization requests and codes, one short transaction per batch.
+    pub async fn prune_expired_authorization_records(
+        &self,
+        now: DateTime<Utc>,
+        batch: MaintenanceBatch,
+    ) -> Result<Pruned> {
         self.platform
-            .prune_authorization_records(now)
+            .prune_authorization_records(now, batch)
             .await
             .context("failed to prune expired OAuth authorization records")
     }

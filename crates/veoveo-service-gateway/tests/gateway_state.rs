@@ -1,6 +1,7 @@
 use std::{collections::BTreeSet, num::NonZeroU32, time::Duration};
 use veoveo_audit_contract::*;
 use veoveo_gateway_contract::AuthorizationServerId;
+use veoveo_platform_store::{MaintenanceBatch, Pruned};
 use veoveo_test_fixtures::store as fixture;
 
 use chrono::{SubsecRound, TimeDelta, Utc};
@@ -141,9 +142,10 @@ async fn gateway_correctness_state_is_shared_and_single_use_across_replicas() {
         );
         assert_eq!(
             first
-                .prune_expired_jwt_revocations(now + TimeDelta::hours(2))
+                .prune_expired_jwt_revocations(now + TimeDelta::hours(2), MaintenanceBatch::DEFAULT)
                 .await
-                .unwrap(),
+                .unwrap()
+                .rows,
             1
         );
 
@@ -317,13 +319,15 @@ async fn gateway_correctness_state_is_shared_and_single_use_across_replicas() {
             audit_count(&first, &principal, AuditClass::Authentication).await,
             3
         );
+        // A batch of one row makes each prune repeat until a batch falls short.
+        let one = MaintenanceBatch::new(1).unwrap();
         let delivery_retention = second
-            .prune_expired_refresh_tokens(now + TimeDelta::seconds(7))
+            .prune_expired_refresh_tokens(now + TimeDelta::seconds(7), one)
             .await
             .unwrap();
-        assert_eq!(delivery_retention.delivery_envelopes_deleted, 1);
-        assert_eq!(delivery_retention.tokens_deleted, 0);
-        assert_eq!(delivery_retention.families_deleted, 0);
+        assert_eq!(delivery_retention.delivery_envelopes_cleared.rows, 1);
+        assert_eq!(delivery_retention.tokens_deleted.rows, 0);
+        assert_eq!(delivery_retention.families_deleted.rows, 0);
         let retained_tokens = sqlx::query_file!("tests/gateway_state/stored_tokens.sql")
             .fetch_all(first.platform_store().pool())
             .await
@@ -335,11 +339,17 @@ async fn gateway_correctness_state_is_shared_and_single_use_across_replicas() {
         );
 
         let refresh_retention = second
-            .prune_expired_refresh_tokens(now + TimeDelta::days(8))
+            .prune_expired_refresh_tokens(now + TimeDelta::days(8), one)
             .await
             .unwrap();
-        assert_eq!(refresh_retention.tokens_deleted, 2);
-        assert_eq!(refresh_retention.families_deleted, 1);
+        assert_eq!(
+            refresh_retention.tokens_deleted,
+            Pruned {
+                rows: 2,
+                batches: 3
+            }
+        );
+        assert_eq!(refresh_retention.families_deleted.rows, 1);
     })
     .await
     .expect(

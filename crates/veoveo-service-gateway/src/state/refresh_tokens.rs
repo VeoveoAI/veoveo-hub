@@ -18,9 +18,12 @@ use veoveo_mcp_contract::{
     GatewayProfileId, GatewayRefreshFamilyId, GatewayRefreshGrant, OAuthClientId,
     OAuthRefreshToken, Principal, PrincipalDisplayName,
 };
-use veoveo_platform_store::gateway::{
-    NewRefreshFamily, NewRefreshToken, RefreshBinding, RefreshDeliveryEnvelope, RefreshFamily,
-    RefreshPrincipal, RefreshRetention, RefreshRotation,
+use veoveo_platform_store::{
+    MaintenanceBatch, Pruned,
+    gateway::{
+        NewRefreshFamily, NewRefreshToken, RefreshBinding, RefreshDeliveryEnvelope, RefreshFamily,
+        RefreshPrincipal, RefreshRetention, RefreshRotation,
+    },
 };
 use veoveo_types::{ScopeName, Sha256Digest, WorkContextId};
 
@@ -382,22 +385,27 @@ impl GatewayState {
         }
     }
 
+    /// Clear ended delivery envelopes, then delete expired tokens and families, one
+    /// short transaction per batch.
     pub async fn prune_expired_refresh_tokens(
         &self,
         now: DateTime<Utc>,
+        batch: MaintenanceBatch,
     ) -> Result<RefreshRetention> {
         self.platform
-            .prune_refresh_state(now)
+            .prune_refresh_state(now, batch)
             .await
             .context("failed to prune expired gateway refresh-token state")
     }
 
+    /// Clear delivery envelopes whose window ended, one short transaction per batch.
     pub async fn clear_expired_refresh_delivery_envelopes(
         &self,
         now: DateTime<Utc>,
-    ) -> Result<u64> {
+        batch: MaintenanceBatch,
+    ) -> Result<Pruned> {
         self.platform
-            .clear_refresh_delivery_envelopes(now)
+            .clear_refresh_delivery_envelopes(now, batch)
             .await
             .context("failed to clear expired gateway refresh delivery envelopes")
     }

@@ -174,6 +174,19 @@ impl RouteIdentity {
 }
 
 impl GatewayState {
+    /// Delete the routes that expired at or before `now`, one short transaction per
+    /// batch. Replicas that run it at once take different routes.
+    pub async fn prune_expired_task_routes(
+        &self,
+        now: DateTime<Utc>,
+        batch: veoveo_platform_store::MaintenanceBatch,
+    ) -> Result<veoveo_platform_store::Pruned> {
+        self.platform
+            .prune_task_routes(now, batch)
+            .await
+            .context("failed to prune expired Task routes")
+    }
+
     /// Record the public route of an upstream Task, or return the route an earlier or
     /// concurrent projection of the same Task recorded. A retry never extends the
     /// original expiry or changes its authority; a mismatching or expired route is
