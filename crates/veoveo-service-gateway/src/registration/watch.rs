@@ -45,6 +45,40 @@ impl RegistrationService {
         Ok(())
     }
 
+    /// Reload the one registration a change names, or forget it when its row is gone,
+    /// and route again.
+    pub(super) async fn reload(&self, client_id: &OAuthClientId) -> anyhow::Result<()> {
+        let row = self.inner.store.registration(client_id).await?;
+        {
+            let mut live = self.inner.live.write();
+            match row {
+                Some(row) => live.rows.insert(client_id.clone(), row),
+                None => live.rows.remove(client_id),
+            };
+        }
+        self.route();
+        Ok(())
+    }
+
+    /// Apply one notification: a change that names its registration reloads that row,
+    /// and a reconciliation or a change without a usable key reloads every row.
+    async fn apply(&self, signal: ChangeSignal) -> anyhow::Result<()> {
+        match signal {
+            ChangeSignal::Changed(change) if change.table == REGISTRATION_TABLE => {
+                match change
+                    .key
+                    .as_deref()
+                    .and_then(|key| OAuthClientId::parse(key).ok())
+                {
+                    Some(client_id) => self.reload(&client_id).await,
+                    None => self.refresh().await,
+                }
+            }
+            ChangeSignal::Changed(_) => Ok(()),
+            ChangeSignal::Reconcile => self.refresh().await,
+        }
+    }
+
     /// Route to the newest registration of each slug.
     fn route(&self) {
         let mut live = self.inner.live.write();
@@ -121,8 +155,8 @@ impl RegistrationService {
             .collect())
     }
 
-    /// Follow registration changes until `stop` fires. The stream asks for a reload
-    /// once subscribed and after every reconnection.
+    /// Follow registration changes until `stop` fires. The stream asks for a full
+    /// reload once subscribed and after every reconnection.
     pub fn spawn_watcher(&self, stop: CancellationToken) -> tokio::task::JoinHandle<()> {
         let service = self.clone();
         tokio::spawn(async move {
@@ -136,17 +170,16 @@ impl RegistrationService {
                     () = stop.cancelled() => return,
                     signal = changes.next() => signal,
                 };
-                let reload = match signal {
-                    Some(Ok(ChangeSignal::Reconcile)) => true,
-                    Some(Ok(ChangeSignal::Changed(change))) => change.table == REGISTRATION_TABLE,
+                match signal {
+                    Some(Ok(signal)) => {
+                        if let Err(error) = service.apply(signal).await {
+                            tracing::error!("registration reload failed: {error:#}");
+                        }
+                    }
                     Some(Err(error)) => {
                         tracing::warn!("registration notifications interrupted: {error}");
-                        false
                     }
                     None => return,
-                };
-                if reload && let Err(error) = service.refresh().await {
-                    tracing::error!("registration reload failed: {error:#}");
                 }
             }
         })

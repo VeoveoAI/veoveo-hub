@@ -207,7 +207,7 @@ impl RegistrationService {
             Pin::Held => {}
         }
         self.audit(&slug, RegistrationActivity::Register).await?;
-        self.refresh().await?;
+        self.reload(&client_id).await?;
         tracing::info!(server = %slug, client_id = %client_id, %login, "server registered");
         let database = DatabaseGrant {
             url: self.inner.database.url.clone(),
@@ -297,7 +297,7 @@ impl RegistrationService {
                 return Err(RegistrationError::Unauthorized { token_sent: true });
             }
             self.audit(&slug, RegistrationActivity::Update).await?;
-            self.refresh().await?;
+            self.reload(&registration.client_id).await?;
         }
         self.information(
             registration.client_id,
@@ -319,7 +319,7 @@ impl RegistrationService {
         if let Some(ended) = self.inner.store.deregister(&registration.client_id).await? {
             self.ended(&ended, RegistrationActivity::Deregister).await?;
         }
-        self.refresh().await?;
+        self.reload(&registration.client_id).await?;
         Ok(())
     }
 

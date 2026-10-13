@@ -111,8 +111,9 @@ and drops their logins in the same transaction. Each claim, registration, declar
 update, deregistration and removal writes an audit record.
 
 Every replica listens on the `gateway` channel. A row inserted or deleted, or a
-metadata change, wakes it to reload the registrations, and so does every reconnection
-of the listener, because PostgreSQL does not replay notifications. Liveness stamps wake
+metadata change, wakes it to reload the one registration the notification names by
+its client identifier. Every reconnection of the listener reloads all of them, because
+PostgreSQL does not replay notifications. Liveness stamps wake
 no one. A replica routes each slug to its newest registration and replaces the catalog
 only when the routed set or a declaration changes, so discovery caches stay intact
 otherwise. Requests in flight finish on the catalog snapshot they started with. Server
