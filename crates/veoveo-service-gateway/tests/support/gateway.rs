@@ -30,15 +30,17 @@ impl Gateway {
     /// Generate a local installation in `directory` and start the Gateway on `db`. A
     /// registration without a live process lasts `registration_grace`.
     pub async fn start(directory: &Path, db: &TestDb, registration_grace: Duration) -> Self {
-        Self::start_with(directory, db, registration_grace, &[]).await
+        Self::start_with(directory, db, registration_grace, &[], |_| {}).await
     }
 
-    /// [`Self::start`] with additional `VEOVEO_*` settings.
+    /// [`Self::start`] with additional `VEOVEO_*` settings, after `configure` changes the
+    /// generated installation configuration.
     pub async fn start_with(
         directory: &Path,
         db: &TestDb,
         registration_grace: Duration,
         settings: &[(&str, String)],
+        configure: impl FnOnce(&mut serde_json::Value),
     ) -> Self {
         let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
             .unwrap()
@@ -47,6 +49,14 @@ impl Gateway {
             .port();
         let base = format!("http://127.0.0.1:{port}");
         let installation = veoveo_service_gateway::local::generate(directory, &base).unwrap();
+        let mut config: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&installation.config).unwrap()).unwrap();
+        configure(&mut config);
+        std::fs::write(
+            &installation.config,
+            serde_json::to_vec_pretty(&config).unwrap(),
+        )
+        .unwrap();
         let secrets: Vec<(String, String)> = std::fs::read_to_string(&installation.secrets)
             .unwrap()
             .lines()

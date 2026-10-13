@@ -47,9 +47,10 @@ Errors carry the codes of RFC 6749 §5.2 and RFC 8707 §2, with HTTP 400 and
 
 | Request | `error` |
 |---|---|
-| Not one form, a repeated parameter or no `grant_type` | `invalid_request` |
+| Not one form, a repeated parameter, no `grant_type`, or a `work_context` the caller may not act in | `invalid_request` |
 | An unknown client, or an assertion that is malformed, wrongly signed, expired, replayed or addressed elsewhere | `invalid_client` |
-| An authenticated client that may not use the grant | `unauthorized_client` |
+| An authenticated client that may not use the grant, whose own authority is unavailable, or that may not act in its default Work Context | `unauthorized_client` |
+| An authorization code or identity assertion whose principal may not act in the Work Context it binds | `invalid_grant` |
 | A grant the resource does not support | `unsupported_grant_type` |
 | A resource that is unknown or that the client may not request | `invalid_target` |
 | A scope the client may not request | `invalid_scope` |

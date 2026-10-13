@@ -13,7 +13,7 @@ use crate::{
     audit::{AuthAuditRecord, auth_audit_error_response, record_id_jag_auth_audit},
     http_util::{
         TokenResponse, allowed_gateway_jwt_algorithms, load_jwks, oauth_error_response,
-        token_response,
+        token_response, work_context_refused,
     },
     oauth_grants::{TokenRequest, scopes::id_jag_token_scopes},
     runtime::{AppState, current_http_client},
@@ -434,10 +434,10 @@ pub(crate) async fn token_endpoint_id_jag(
         catalog.work_context_membership(&client_id, &work_context, &verified_id_jag.principal)
     {
         tracing::warn!("rejected Work Context selection: {err}");
-        return oauth_error_response(
-            StatusCode::FORBIDDEN,
-            "access_denied",
-            "Work Context membership is required",
+        return work_context_refused(
+            request.work_context.is_some(),
+            "invalid_grant",
+            "the asserted principal is no member of the client's default Work Context",
         );
     }
     let delegation_id = match DelegationId::parse(verified_id_jag.jwt_id.as_str()) {

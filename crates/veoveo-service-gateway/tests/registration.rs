@@ -74,6 +74,7 @@ async fn qualify() {
             "VEOVEO_FORWARDED_TOKEN_VERIFICATION_KEY_B64",
             BASE64_STANDARD.encode(next_key.pkcs8_der()),
         )],
+        |_| {},
     )
     .await;
     let signing_key_id = Ed25519Jwk::new(

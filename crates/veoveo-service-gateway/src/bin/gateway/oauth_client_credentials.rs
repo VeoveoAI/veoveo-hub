@@ -14,7 +14,7 @@ use crate::{
     audit::{AuthAuditRecord, auth_audit_error_response, record_token_auth_audit},
     http_util::{
         TokenResponse, allowed_gateway_jwt_algorithms, load_jwks, oauth_error_response,
-        token_response,
+        token_response, work_context_refused,
     },
     oauth::ResolvedOAuthResource,
     oauth_grants::{TokenRequest, requested_client_credentials_scopes},
@@ -412,20 +412,23 @@ pub(super) async fn token_endpoint_client_credentials(
             );
         }
     };
+    // RFC 6749 §5.2 defines no `access_denied` for the token endpoint. A client whose
+    // own authority cannot act is unauthorized for the grant; a Work Context it asked
+    // for and may not act in is an invalid request.
     if let Err(error) = effective.apply_service_roles(&mut service_principal) {
         tracing::warn!(%error, "managed service roles are unavailable");
         return oauth_error_response(
-            StatusCode::FORBIDDEN,
-            "access_denied",
-            "client authority is unavailable",
+            StatusCode::BAD_REQUEST,
+            "unauthorized_client",
+            "the client's authority is unavailable",
         );
     }
     if let Err(err) = effective.membership(catalog, &work_context, &service_principal) {
         tracing::warn!("rejected Work Context selection: {err}");
-        return oauth_error_response(
-            StatusCode::FORBIDDEN,
-            "access_denied",
-            "Work Context membership is required",
+        return work_context_refused(
+            request.work_context.is_some(),
+            "unauthorized_client",
+            "the client is no member of its default Work Context",
         );
     }
 
@@ -433,9 +436,9 @@ pub(super) async fn token_endpoint_client_credentials(
         Ok(binding) => binding,
         Err(_) => {
             return oauth_error_response(
-                StatusCode::FORBIDDEN,
-                "access_denied",
-                "client authority is unavailable",
+                StatusCode::BAD_REQUEST,
+                "unauthorized_client",
+                "the client's authority is unavailable",
             );
         }
     };

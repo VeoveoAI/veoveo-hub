@@ -368,10 +368,12 @@ pub(super) async fn token_endpoint_authorization_code(
         {
             return auth_audit_error_response(err);
         }
+        // The code binds its Work Context, so a principal no longer in it holds an
+        // invalid grant (RFC 6749 §5.2).
         return oauth_error_response(
-            StatusCode::FORBIDDEN,
-            "access_denied",
-            "Work Context membership is required",
+            StatusCode::BAD_REQUEST,
+            "invalid_grant",
+            "the code's principal is no member of its Work Context",
         );
     }
     let refresh = if client.grant_types.contains(&OAuthGrantType::RefreshToken) {

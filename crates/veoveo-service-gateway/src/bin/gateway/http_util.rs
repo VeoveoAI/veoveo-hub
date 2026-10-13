@@ -224,6 +224,25 @@ pub(super) fn oauth_error_response(
         .into_response()
 }
 
+/// RFC 6749 §5.2 for a Work Context the caller may not act in: `invalid_request` when the
+/// request named it in `work_context`, otherwise the grant's own code for the client's
+/// or the grant's default Work Context.
+pub(super) fn work_context_refused(
+    requested: bool,
+    default_error: &'static str,
+    default_description: &'static str,
+) -> axum::response::Response {
+    if requested {
+        oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "invalid_request",
+            "the caller may not act in the requested work_context",
+        )
+    } else {
+        oauth_error_response(StatusCode::BAD_REQUEST, default_error, default_description)
+    }
+}
+
 pub(super) async fn load_jwks(http: &reqwest::Client, jwks: &JwksSource) -> anyhow::Result<JwkSet> {
     match jwks {
         JwksSource::Remote { jwks_uri } => fetch_jwks(http, jwks_uri.as_str()).await,

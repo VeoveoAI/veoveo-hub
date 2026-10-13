@@ -29,6 +29,8 @@ use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::OAuthClientId;
 
 const DEADLINE: Duration = Duration::from_secs(120);
+/// A client the token endpoint test adds to the installation outside every Work Context.
+const UNAFFILIATED: &str = "unaffiliated-caller";
 
 /// One running Gateway. Fields drop in order, so the process ends before its database.
 struct Installation {
@@ -39,11 +41,23 @@ struct Installation {
 
 impl Installation {
     async fn start() -> Self {
+        Self::configured(|_| {}).await
+    }
+
+    /// A Gateway on an installation `configure` changed.
+    async fn configured(configure: impl FnOnce(&mut Value)) -> Self {
         let _ = rustls::crypto::ring::default_provider().install_default();
         let _ = jsonwebtoken::crypto::aws_lc::DEFAULT_PROVIDER.install_default();
         let directory = tempfile::tempdir().unwrap();
         let db = TestDb::new().await;
-        let gateway = Gateway::start(directory.path(), &db, Duration::from_secs(60)).await;
+        let gateway = Gateway::start_with(
+            directory.path(),
+            &db,
+            Duration::from_secs(60),
+            &[],
+            configure,
+        )
+        .await;
         Self {
             gateway,
             db,
@@ -60,7 +74,15 @@ async fn token_endpoint_errors_carry_the_codes_their_rfcs_define() {
 }
 
 async fn token_endpoint_errors() {
-    let local = Installation::start().await;
+    // A client with the member's key that no Work Context admits.
+    let local = Installation::configured(|config| {
+        let clients = config["oauthClients"].as_array_mut().unwrap();
+        let mut unaffiliated = clients[0].clone();
+        unaffiliated["id"] = json!(UNAFFILIATED);
+        unaffiliated["displayName"] = json!("Caller outside every Work Context");
+        clients.push(unaffiliated);
+    })
+    .await;
     let gateway = &local.gateway;
     let http = reqwest::Client::new();
     let member = gateway.caller("member");
@@ -151,6 +173,26 @@ async fn token_endpoint_errors() {
         &http,
         &fresh().without("grant_type"),
         "invalid_request",
+    )
+    .await;
+
+    // RFC 6749 §5.2 defines no `access_denied` for the token endpoint: a Work Context the
+    // request names and the client may not act in is an invalid request, and a client
+    // that may act in no Work Context is unauthorized for the grant.
+    expect_oauth_error(
+        gateway,
+        &http,
+        &fresh().with("work_context", "elsewhere"),
+        "invalid_request",
+    )
+    .await;
+    let unaffiliated = OAuthClientId::parse(UNAFFILIATED).unwrap();
+    let assertion = signer.assertion(&unaffiliated, &endpoint).unwrap();
+    expect_oauth_error(
+        gateway,
+        &http,
+        &gateway.client_credentials(&unaffiliated, assertion.expose_secret()),
+        "unauthorized_client",
     )
     .await;
 
