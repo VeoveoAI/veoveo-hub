@@ -29,8 +29,8 @@ use rmcp::{
         CallToolRequestParams, CallToolResponse, CancelTaskParams, CompleteRequestParams,
         CompleteResult, ErrorData as McpError, GetPromptRequestParams, GetTaskParams,
         GetTaskResult, ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult,
-        ListToolsResult, PaginatedRequestParams, ReadResourceRequestParams, ReadResourceResponse,
-        ServerConfig, SubscriptionFilter, UpdateTaskParams,
+        ListToolsResult, PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams,
+        ReadResourceResponse, ServerConfig, SubscriptionFilter, UpdateTaskParams,
     },
     service::{
         Peer, RequestContext, RoleClient, RoleServer, RunningService, ServiceError,
@@ -246,6 +246,12 @@ fn discovery_authorization_fingerprint(
 impl ServerHandler for GatewayMcp {
     fn get_info(&self) -> ServerConfig {
         self.handle_get_info()
+    }
+
+    /// The Gateway serves the `2026-07-28` lifecycle only: every request carries its
+    /// own protocol metadata, so no older version's session methods apply.
+    fn supported_protocol_versions(&self) -> std::borrow::Cow<'static, [ProtocolVersion]> {
+        veoveo_mcp_contract::final_protocol_versions()
     }
 
     async fn list_tools(

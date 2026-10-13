@@ -10,7 +10,7 @@ Neither its code nor its configuration names a server.
 
 | Standard | Profile |
 |---|---|
-| MCP `2026-07-28`, Streamable HTTP | One endpoint per profile at `/mcp/{profile}`, aggregating tools, resources, resource templates, prompts, completions, Tasks and resource subscriptions of registered servers |
+| MCP `2026-07-28`, Streamable HTTP | One endpoint per profile at `/mcp/{profile}`, aggregating tools, resources, resource templates, prompts, completions, Tasks and resource subscriptions of registered servers. `server/discover` lists `2026-07-28` as the only version, and another version is refused with `-32022`. The `resources.subscribe` capability declares `resourceSubscriptions` on `subscriptions/listen`; `resources/subscribe` and `resources/unsubscribe` are no methods of that version and answer `-32601` |
 | MCP Apps, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value |
 | [Server registration protocol](https://github.com/VeoveoAI/veoveo-core/blob/main/mcp/ext-registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
 | JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by core's `GatewayInternalTokenIssuer` |
@@ -237,7 +237,10 @@ signed, revoked or under-scoped token. It follows the protected resource's RFC 9
 metadata to its authorization server's RFC 8414 metadata, checks each issuer, endpoint
 and member §2 requires, verifies an issued token with the key at `jwks_uri`, and
 compares the forwarded-token JWK Set with the configured key and the RFC 7638
-thumbprint of each `kid`. Unit and database tests cover the catalog,
+thumbprint of each `kid`. `tests/mcp_lifecycle.rs` checks the advertised version and
+resource capabilities, the answers to `resources/subscribe` under `2026-07-28` and
+under `2025-11-25`, and the acknowledgement of a `subscriptions/listen` filter. Unit
+and database tests cover the catalog,
 policy adapter, discovery cache, Task routes, refresh families, session binding, audit
 readers and the control store.
 

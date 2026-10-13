@@ -13,11 +13,11 @@ use base64::{
     engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD},
 };
 use chrono::{TimeDelta, Utc};
-use gateway::{Gateway, TokenForm};
+use gateway::{DISCOVER, Gateway, TokenForm};
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use reqwest::{
     StatusCode,
-    header::{ACCEPT, AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, WWW_AUTHENTICATE},
+    header::{CACHE_CONTROL, CONTENT_TYPE, WWW_AUTHENTICATE},
 };
 use serde_json::{Value, json};
 use sha2::Digest as _;
@@ -195,21 +195,23 @@ async fn bearer_challenges() {
     let member = gateway.caller("member");
     let token = gateway.access_token(&http, member).await;
 
-    let discovered = mcp(&http, gateway, Some(&bearer(&token)), DISCOVER).await;
+    let discovered = gateway.mcp(&http, Some(&bearer(&token)), DISCOVER).await;
     assert_eq!(discovered.status(), StatusCode::OK);
 
     // RFC 6750 §3.1: a request without bearer credentials receives no error code.
-    expect_challenge(gateway, mcp(&http, gateway, None, DISCOVER).await, None).await;
+    expect_challenge(gateway, gateway.mcp(&http, None, DISCOVER).await, None).await;
     let basic = format!("Basic {}", STANDARD.encode("member:password"));
     expect_challenge(
         gateway,
-        mcp(&http, gateway, Some(&basic), DISCOVER).await,
+        gateway.mcp(&http, Some(&basic), DISCOVER).await,
         None,
     )
     .await;
     expect_challenge(
         gateway,
-        mcp(&http, gateway, Some("Bearer two tokens"), DISCOVER).await,
+        gateway
+            .mcp(&http, Some("Bearer two tokens"), DISCOVER)
+            .await,
         Some(("invalid_request", StatusCode::BAD_REQUEST)),
     )
     .await;
@@ -241,7 +243,7 @@ async fn bearer_challenges() {
             forger.with_key(&EncodingKey::from_ed_der(other_key.pkcs8_der())),
         ),
     ] {
-        let response = mcp(&http, gateway, Some(&authorization), DISCOVER).await;
+        let response = gateway.mcp(&http, Some(&authorization), DISCOVER).await;
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "{case}");
         expect_challenge(
             gateway,
@@ -255,7 +257,7 @@ async fn bearer_challenges() {
     let unscoped = forger.sign(|claims| claims["scope"] = json!("audit:read"));
     expect_challenge(
         gateway,
-        mcp(&http, gateway, Some(&unscoped), DISCOVER).await,
+        gateway.mcp(&http, Some(&unscoped), DISCOVER).await,
         Some(("insufficient_scope", StatusCode::FORBIDDEN)),
     )
     .await;
@@ -277,11 +279,11 @@ async fn bearer_challenges() {
         .unwrap();
     expect_challenge(
         gateway,
-        mcp(&http, gateway, Some(&bearer(&revoked)), DISCOVER).await,
+        gateway.mcp(&http, Some(&bearer(&revoked)), DISCOVER).await,
         Some(("invalid_token", StatusCode::UNAUTHORIZED)),
     )
     .await;
-    let still_valid = mcp(&http, gateway, Some(&bearer(&token)), DISCOVER).await;
+    let still_valid = gateway.mcp(&http, Some(&bearer(&token)), DISCOVER).await;
     assert_eq!(still_valid.status(), StatusCode::OK);
 }
 
@@ -503,53 +505,6 @@ fn public_ed25519_keys(set: &Value) -> Vec<Value> {
         assert_eq!(key["kid"], thumbprint.as_str());
     }
     keys
-}
-
-const DISCOVER: Mcp = Mcp {
-    method: "server/discover",
-    uri: None,
-    version: "2026-07-28",
-};
-
-/// One MCP request, with the HTTP headers and `_meta` members of its version.
-#[derive(Clone, Copy)]
-struct Mcp {
-    method: &'static str,
-    uri: Option<&'static str>,
-    version: &'static str,
-}
-
-async fn mcp(
-    http: &reqwest::Client,
-    gateway: &Gateway,
-    authorization: Option<&str>,
-    request: Mcp,
-) -> reqwest::Response {
-    let mut params = json!({
-        "_meta": {
-            "io.modelcontextprotocol/protocolVersion": request.version,
-            "io.modelcontextprotocol/clientInfo": { "name": "oauth-qualification", "version": "0.1.0" },
-            "io.modelcontextprotocol/clientCapabilities": {}
-        }
-    });
-    let mut builder = http
-        .post(&gateway.installation.resource)
-        .header(CONTENT_TYPE, "application/json")
-        .header(ACCEPT, "application/json, text/event-stream")
-        .header("MCP-Protocol-Version", request.version)
-        .header("Mcp-Method", request.method);
-    if let Some(uri) = request.uri {
-        params["uri"] = json!(uri);
-        builder = builder.header("Mcp-Name", uri);
-    }
-    if let Some(authorization) = authorization {
-        builder = builder.header(AUTHORIZATION, authorization);
-    }
-    builder
-        .json(&json!({ "jsonrpc": "2.0", "id": 1, "method": request.method, "params": params }))
-        .send()
-        .await
-        .unwrap()
 }
 
 fn bearer(token: &str) -> String {

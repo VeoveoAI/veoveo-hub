@@ -181,6 +181,49 @@ impl Gateway {
         (status, headers, body)
     }
 
+    /// Send one JSON-RPC request to the local profile's MCP endpoint, with the HTTP
+    /// headers and request `_meta` its protocol version requires.
+    pub async fn mcp(
+        &self,
+        http: &reqwest::Client,
+        authorization: Option<&str>,
+        request: Mcp,
+    ) -> reqwest::Response {
+        let mut params = serde_json::json!({
+            "_meta": {
+                "io.modelcontextprotocol/protocolVersion": request.version,
+                "io.modelcontextprotocol/clientInfo": { "name": "gateway-qualification", "version": "0.1.0" },
+                "io.modelcontextprotocol/clientCapabilities": {}
+            }
+        });
+        let mut builder = http
+            .post(&self.installation.resource)
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .header(
+                reqwest::header::ACCEPT,
+                "application/json, text/event-stream",
+            )
+            .header("MCP-Protocol-Version", request.version)
+            .header("Mcp-Method", request.method);
+        if let Some(uri) = request.uri {
+            params["uri"] = serde_json::json!(uri);
+            builder = builder.header("Mcp-Name", uri);
+        }
+        if let Some(authorization) = authorization {
+            builder = builder.header(reqwest::header::AUTHORIZATION, authorization);
+        }
+        builder
+            .json(&serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": request.method,
+                "params": params
+            }))
+            .send()
+            .await
+            .unwrap()
+    }
+
     /// An access token for `caller` from an RFC 7523 client-credentials exchange.
     pub async fn access_token(&self, http: &reqwest::Client, caller: &LocalCaller) -> String {
         let client = Self::client(caller);
@@ -205,6 +248,25 @@ impl Drop for Gateway {
             );
         }
     }
+}
+
+/// The MCP protocol version the Gateway serves.
+pub const MCP_VERSION: &str = "2026-07-28";
+
+/// `server/discover`, the 2026-07-28 lifecycle request.
+pub const DISCOVER: Mcp = Mcp {
+    method: "server/discover",
+    uri: None,
+    version: MCP_VERSION,
+};
+
+/// One MCP request: its method, the resource URI it names, and the protocol version
+/// it declares.
+#[derive(Clone, Copy)]
+pub struct Mcp {
+    pub method: &'static str,
+    pub uri: Option<&'static str>,
+    pub version: &'static str,
 }
 
 /// The parameters of one token request, in the order they are sent.
