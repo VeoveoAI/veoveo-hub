@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- One page of a tenant's daily usage totals for the days in [$3, $4), in day,\n-- principal, server, kind, phase and currency order, after the position $5..$10 when\n-- one is given. $2 limits the page to one principal's totals.\nSELECT\n    day AS \"day!\",\n    principal AS \"principal!\",\n    source AS \"source!\",\n    kind AS \"kind!\",\n    phase AS \"phase!\",\n    currency AS \"currency!\",\n    quantity::text AS \"quantity!\",\n    amount::text AS \"amount!\",\n    records AS \"records!\"\nFROM usage.daily\nWHERE tenant = $1\n    AND ($2::text IS NULL OR principal = $2)\n    AND day >= $3 AND day < $4\n    AND ($5::date IS NULL\n        OR (day, principal, source, kind, phase, currency) > ($5, $6, $7, $8, $9, $10))\nORDER BY day, principal, source, kind, phase, currency\nLIMIT $11\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day!",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "usage.daily",
+            "name": "day"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "principal!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "usage.daily",
+            "name": "principal"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "source!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "usage.daily",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "usage.daily",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "phase!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "usage.daily",
+            "name": "phase"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "usage.daily",
+            "name": "currency"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "quantity!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "amount!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "records!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "usage.daily",
+            "name": "records"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Date",
+        "Date",
+        "Date",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "8742063f8585175733833c8070f81f041b7781d14466c801915ea56a226e6410"
+}

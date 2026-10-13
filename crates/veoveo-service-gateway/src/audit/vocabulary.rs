@@ -47,6 +47,7 @@ pub enum AdministrativeOperation {
     JwtPrune,
     ServerHealth,
     TaskCancel,
+    UsageRead,
 }
 
 /// Whether an administrative operation reads or changes state.

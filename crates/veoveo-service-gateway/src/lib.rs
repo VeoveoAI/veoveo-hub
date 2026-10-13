@@ -25,6 +25,7 @@ pub mod store;
 #[cfg(test)]
 mod test_store;
 mod tool_name;
+pub mod usage;
 
 pub use auth::{
     AuthError, AuthenticatedSubject, BearerToken, ClientAssertionConfig, ClientAssertionVerifier,

@@ -40,7 +40,7 @@ use super::{
     runtime::{
         AdminState, AppState, DynamicMcpState, ProfileAuthState, ProfileMcpService, Readiness,
         build_http_client, current_catalog, spawn_authorization_retention_gc_loop,
-        spawn_refresh_delivery_gc_loop,
+        spawn_refresh_delivery_gc_loop, spawn_usage_partition_loop,
     },
 };
 
@@ -257,7 +257,11 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             "/admin/{profile}/tasks/{server}/{task_id}/cancel",
             post(cancel_task),
         )
-        .route("/admin/{profile}/server-health", get(read_server_health));
+        .route("/admin/{profile}/server-health", get(read_server_health))
+        .route(
+            "/admin/{profile}/usage/daily",
+            get(super::admin::daily_usage),
+        );
     router = router.merge(
         admin_router
             .with_state(admin_state)
@@ -298,6 +302,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     let authorization_gc =
         spawn_authorization_retention_gc_loop(gateway_state.clone(), ct.child_token());
     let refresh_gc = spawn_refresh_delivery_gc_loop(gateway_state.clone(), ct.child_token());
+    let usage_partitions = spawn_usage_partition_loop(gateway_state.clone(), ct.child_token());
     let serving = std::future::IntoFuture::into_future(
         axum::serve(
             listener,
@@ -335,6 +340,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     let cleanup = tokio::time::timeout(std::time::Duration::from_secs(15), async {
         authorization_gc.await?;
         refresh_gc.await?;
+        usage_partitions.await?;
         registration_watcher.await?;
         registration_housekeeping.await?;
         Ok::<(), tokio::task::JoinError>(())

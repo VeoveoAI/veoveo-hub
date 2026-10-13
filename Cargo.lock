@@ -4398,6 +4398,8 @@ dependencies = [
  "veoveo-task-runtime",
  "veoveo-test-fixtures",
  "veoveo-types",
+ "veoveo-usage",
+ "veoveo-usage-contract",
  "zeroize",
 ]
 

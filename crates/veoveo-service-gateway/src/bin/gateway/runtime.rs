@@ -152,6 +152,31 @@ pub(super) fn spawn_authorization_retention_gc_loop(
     })
 }
 
+/// Keep the usage ledger's monthly record partitions three months ahead: at startup,
+/// then once a day, and a minute after a failure.
+pub(super) fn spawn_usage_partition_loop(
+    gateway_state: GatewayState,
+    stop: CancellationToken,
+) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        loop {
+            let pause = match gateway_state.prepare_usage_partitions().await {
+                Ok(created) => {
+                    if created > 0 {
+                        tracing::info!(created, "usage ledger partitions prepared");
+                    }
+                    Duration::from_secs(24 * 60 * 60)
+                }
+                Err(err) => {
+                    tracing::error!("usage ledger partition preparation failed: {err:#}");
+                    Duration::from_secs(60)
+                }
+            };
+            tokio::select! { _ = tokio::time::sleep(pause) => {}, _ = stop.cancelled() => return }
+        }
+    })
+}
+
 pub(super) fn spawn_refresh_delivery_gc_loop(
     gateway_state: GatewayState,
     stop: CancellationToken,
