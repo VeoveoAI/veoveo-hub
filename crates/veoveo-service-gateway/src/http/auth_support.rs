@@ -16,7 +16,7 @@ use axum::{
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use jsonwebtoken::{Algorithm, EncodingKey, Header, jwk::JwkSet};
 use std::time::Instant;
-use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditReason, AuditRequest, AuditTarget};
+use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditRequest, AuditTarget};
 use veoveo_sdk_rust::GatewayProfileId;
 use veoveo_sdk_rust::ProtectedResourceId;
 pub async fn record_auth_audit(
@@ -59,21 +59,26 @@ pub async fn record_resource_auth_audit(
     let detail = crate::audit::gateway_audit().detail(&Authentication {
         activity: AuthenticationActivity::CredentialDenial,
         method: AuthMethod::BearerJwt,
-        reason,
+        duration_ms: u64::try_from(started_at.elapsed().as_millis())?,
         session_family: subject.and_then(|subject| subject.access_token.session_family.clone()),
+        client: subject.map(|subject| subject.access_token.oauth_client_id.clone()),
+        scopes: subject
+            .map(|subject| subject.actor.scopes.clone())
+            .unwrap_or_default(),
+        data_labels: subject
+            .map(|subject| subject.actor.data_labels.clone())
+            .unwrap_or_default(),
     })?;
-    let mut draft = AuditDraft::builder(
-        request,
-        target.audit_target()?,
-        detail,
-        AuditOutcome::Denied,
-        authentication_reason(outcome, reason),
-    )
-    .latency_ms(u64::try_from(started_at.elapsed().as_millis())?);
+    let mut draft =
+        AuditDraft::builder(request, detail, AuditOutcome::Denied).target(target.audit_target()?);
+    if let Some(reason) = crate::audit::authentication_reason(reason) {
+        draft = draft.reason(reason);
+    }
     if let Some(subject) = subject {
-        draft = draft
-            .actor(subject.audit_actor()?)
-            .authority(subject.audit_authority());
+        draft = draft.actor(subject.audit_actor());
+        if let Some(via) = subject.audit_via() {
+            draft = draft.via(via);
+        }
     }
     gateway_state.record_audit(draft.build()?).await
 }
@@ -87,10 +92,8 @@ pub struct AuthAuditTarget<'a> {
 impl AuthAuditTarget<'_> {
     pub fn audit_target(self) -> anyhow::Result<AuditTarget> {
         match self.profile {
-            Some(profile) => crate::audit::gateway_audit().profile(profile.clone()),
-            None => Ok(AuditTarget::Resource {
-                uri: veoveo_types::ResourceUri::new(self.protected_resource.to_string())?,
-            }),
+            Some(profile) => crate::audit::profile_target(profile),
+            None => crate::audit::protected_resource_target(self.protected_resource),
         }
     }
 }
@@ -108,27 +111,6 @@ pub fn audit_request() -> AuditRequest {
     crate::request_observation::RequestObservation::current()
         .map(|request| request.audit)
         .unwrap_or_else(AuditRequest::background)
-}
-pub fn authentication_reason(outcome: AuthOutcome, reason: AuthReasonCode) -> AuditReason {
-    if outcome == AuthOutcome::Allow && reason == AuthReasonCode::RefreshTokenRevoked {
-        return AuditReason::Accepted;
-    }
-    match reason {
-        AuthReasonCode::AuthAllow | AuthReasonCode::RefreshTokenDuplicateDelivery => {
-            AuditReason::Accepted
-        }
-        AuthReasonCode::RefreshTokenReplay
-        | AuthReasonCode::ClientAssertionReplay
-        | AuthReasonCode::IdentityAssertionReplay => AuditReason::Replay,
-        AuthReasonCode::RefreshTokenRevoked | AuthReasonCode::TokenRevoked => AuditReason::Revoked,
-        AuthReasonCode::MissingAuthorizationHeader => AuditReason::Unauthenticated,
-        AuthReasonCode::PolicyDenied | AuthReasonCode::InvalidScope => AuditReason::PolicyDenied,
-        AuthReasonCode::IdentityProviderUnavailable
-        | AuthReasonCode::AuthorizationServerUnavailable
-        | AuthReasonCode::TokenSigningKeyUnavailable
-        | AuthReasonCode::AuthStateUnavailable => AuditReason::Unavailable,
-        _ => AuditReason::InvalidCredential,
-    }
 }
 pub fn auth_audit_error_response(err: anyhow::Error) -> Response {
     tracing::error!("failed to record gateway auth audit event: {err:#}");

@@ -1,18 +1,17 @@
 use std::{sync::Arc, time::Instant};
-use veoveo_audit_contract::{
-    AuditActor, AuditAuthority, AuditDraft, AuditOutcome, AuditPrincipalKind,
-};
+use veoveo_audit_contract::{AuditActor, AuditDraft, AuditOutcome, AuditPrincipalKind};
 pub(super) use veoveo_service_gateway::audit::{AdminOperationFailure, AdministrativeOperation};
 use veoveo_service_gateway::audit::{Authentication, AuthenticationActivity, gateway_audit};
+use veoveo_service_gateway::audit::{authentication_reason, client_target, profile_target};
 use veoveo_service_gateway::contract::GatewayAction;
 pub(super) use veoveo_service_gateway::http::action_audit::{
     AdminAuthorizationRequest, AdminOperationAuditRecord, AdminOperationStatus,
     authorize_gateway_action, record_gateway_operation_audit,
 };
+use veoveo_service_gateway::http::auth_support::audit_request;
 pub(super) use veoveo_service_gateway::http::auth_support::{
     AuthAuditTarget, auth_audit_error_response, internal_error_response,
 };
-use veoveo_service_gateway::http::auth_support::{audit_request, authentication_reason};
 
 use axum::response::Response;
 use sha2::{Digest, Sha256};
@@ -175,30 +174,17 @@ fn authentication_draft(
         _ if method == AuthMethod::RefreshToken => AuthenticationActivity::Refresh,
         _ => AuthenticationActivity::Issue,
     };
-    let audit = gateway_audit();
     let audit_target = match (target.profile, record.client_id) {
-        (Some(profile), _) => audit.profile(profile.clone())?,
-        (None, Some(client)) => audit.client(client.clone())?,
+        (Some(profile), _) => profile_target(profile)?,
+        (None, Some(client)) => client_target(client)?,
         (None, None) => target.audit_target()?,
     };
-    let detail = audit.detail(&Authentication {
+    let detail = gateway_audit().detail(&Authentication {
         activity,
         method,
-        reason: record.reason,
+        duration_ms: u64::try_from(record.started_at.elapsed().as_millis())?,
         session_family: None,
-    })?;
-    let mut draft = AuditDraft::builder(
-        audit_request(),
-        audit_target,
-        detail,
-        if allowed {
-            AuditOutcome::Succeeded
-        } else {
-            AuditOutcome::Denied
-        },
-        authentication_reason(record.outcome, record.reason),
-    )
-    .authority(AuditAuthority {
+        client: record.client_id.cloned(),
         scopes: record
             .principal
             .map(|principal| principal.scopes.clone())
@@ -207,9 +193,20 @@ fn authentication_draft(
             .principal
             .map(|principal| principal.data_labels.clone())
             .unwrap_or_default(),
-        ..Default::default()
-    })
-    .latency_ms(u64::try_from(record.started_at.elapsed().as_millis())?);
+    })?;
+    let mut draft = AuditDraft::builder(
+        audit_request(),
+        detail,
+        if allowed {
+            AuditOutcome::Success
+        } else {
+            AuditOutcome::Denied
+        },
+    )
+    .target(audit_target);
+    if let Some(reason) = authentication_reason(record.reason) {
+        draft = draft.reason(reason);
+    }
     if let Some(principal) = record.principal {
         draft = draft.actor(AuditActor {
             principal: principal.id.clone(),
@@ -218,8 +215,7 @@ fn authentication_draft(
                 veoveo_sdk_rust::PrincipalKind::Service => AuditPrincipalKind::Service,
             },
             tenant: principal.tenant.clone(),
-            oauth_client: record.client_id.cloned(),
-            delegating_principal: None,
+            work_context: None,
         });
     } else if allowed
         && let (Some(server), Some(client)) = (record.authorization_server, record.client_id)
@@ -228,8 +224,7 @@ fn authentication_draft(
             principal: PrincipalId::parse(format!("{}#{}", server.issuer, client))?,
             kind: AuditPrincipalKind::Service,
             tenant: None,
-            oauth_client: Some(client.clone()),
-            delegating_principal: None,
+            work_context: None,
         });
     }
     Ok(draft.build()?)
@@ -238,7 +233,6 @@ fn authentication_draft(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use veoveo_audit_contract::AuditReason;
     use veoveo_sdk_rust::ProtectedResourceId;
 
     #[test]
@@ -251,17 +245,15 @@ mod tests {
         .unwrap();
         let resource = ProtectedResourceId::parse("https://gateway.example/mcp/operator").unwrap();
         let profile = GatewayProfileId::parse("operator").unwrap();
-        for (outcome, expected_outcome, expected_reason, activity) in [
+        for (outcome, expected_outcome, activity) in [
             (
                 AuthOutcome::Allow,
-                AuditOutcome::Succeeded,
-                AuditReason::Accepted,
+                AuditOutcome::Success,
                 AuthenticationActivity::Revoke,
             ),
             (
                 AuthOutcome::Deny,
                 AuditOutcome::Denied,
-                AuditReason::Revoked,
                 AuthenticationActivity::CredentialDenial,
             ),
         ] {
@@ -282,21 +274,18 @@ mod tests {
             )
             .unwrap();
             assert_eq!(draft.outcome(), expected_outcome);
-            assert_eq!(draft.reason(), expected_reason);
             assert_eq!(
-                gateway_audit()
-                    .registry()
-                    .read::<Authentication>(draft.class(), draft.detail())
-                    .unwrap(),
-                Authentication {
-                    activity,
-                    method: AuthMethod::RefreshToken,
-                    reason: AuthReasonCode::RefreshTokenRevoked,
-                    session_family: None,
-                }
+                draft.reason().map(|reason| reason.as_str()),
+                Some("refresh_token_revoked")
             );
-            assert_eq!(draft.authority().scopes, principal.scopes);
-            assert_eq!(draft.authority().data_labels, principal.data_labels);
+            let detail = gateway_audit()
+                .registry()
+                .read::<Authentication>(draft.class(), draft.detail())
+                .unwrap();
+            assert_eq!(detail.activity, activity);
+            assert_eq!(detail.method, AuthMethod::RefreshToken);
+            assert_eq!(detail.scopes, principal.scopes);
+            assert_eq!(detail.data_labels, principal.data_labels);
         }
     }
 
@@ -323,10 +312,12 @@ mod tests {
         assert!(draft.actor().is_none());
         assert_eq!(draft.outcome(), AuditOutcome::Denied);
         assert_eq!(
-            draft.target(),
-            &veoveo_audit_contract::AuditTarget::Resource {
-                uri: veoveo_types::ResourceUri::new(resource.to_string()).unwrap(),
-            }
+            draft.target().map(|target| target.as_str()),
+            Some("https://gateway.example/fixture-ingest")
+        );
+        assert_eq!(
+            draft.reason().map(|reason| reason.as_str()),
+            Some("missing_authorization_header")
         );
     }
 }

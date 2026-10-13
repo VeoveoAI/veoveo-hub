@@ -61,14 +61,11 @@ pub(crate) fn decode_query(input: &str, registry: &AuditRegistry) -> Result<Audi
 
 #[cfg(test)]
 mod tests {
-    use super::super::fixture_target::{SensorAuditTarget, SensorId, register_audit_target};
     use super::*;
     use axum::{extract::Query, http::Uri};
 
     fn fixture_registry() -> AuditRegistry {
-        let mut builder = AuditRegistry::builder();
-        register_audit_target(&mut builder).unwrap();
-        builder.build()
+        AuditRegistry::platform()
     }
 
     fn request_query(input: &str) -> String {
@@ -83,11 +80,10 @@ mod tests {
     }
 
     #[test]
-    fn audit_request_queries_admit_registered_owner_targets_and_reject_invalid_payloads() {
+    fn audit_request_queries_admit_uri_targets_and_reject_invalid_ones() {
         let registry = fixture_registry();
-        let registration = registry.registration::<SensorAuditTarget>().unwrap();
-        let sensor = SensorId::new();
-        let target = registry.target(SensorAuditTarget { sensor }).unwrap();
+        let target =
+            AuditTarget::parse(format!("sensor://sensors/{}", uuid::Uuid::now_v7())).unwrap();
         let mut query = AuditQuery::new(AuditPartition::Installation);
         query.target = Some(target.clone());
         let input = serde_json::to_string(&query).unwrap();
@@ -96,21 +92,13 @@ mod tests {
         let admitted = decode_query(&extracted, &registry).unwrap();
         assert_eq!(admitted.partition, AuditPartition::Installation);
         assert_eq!(admitted.target.as_ref(), Some(&target));
-        assert_eq!(
-            registration
-                .get(&registry, admitted.target.as_ref().unwrap())
-                .unwrap()
-                .sensor,
-            sensor
-        );
-        assert!(decode_query(&extracted, &AuditRegistry::platform()).is_err());
 
         let target_json = serde_json::to_string(&target).unwrap();
         for invalid in [
-            String::from(r#"{"kind":"sensor","sensor":"invalid"}"#),
-            String::from(r#"{"kind":"unregistered_owner"}"#),
-            format!(r#"{{"kind":"sensor","sensor":"{sensor}","sensor":"{sensor}"}}"#),
-            format!(r#"{{"kind":"sensor","sensor":"{sensor}","extra":true}}"#),
+            String::from(r#""a relative/path""#),
+            String::from(r#""""#),
+            String::from(r#"{"kind":"sensor"}"#),
+            format!(r#""sensor://{}""#, "s".repeat(2048)),
         ] {
             let input = input.replace(&target_json, &invalid);
             assert!(

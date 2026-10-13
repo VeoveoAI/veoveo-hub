@@ -178,6 +178,40 @@ pub enum PolicyReasonCode {
     MissingPermission,
 }
 
+impl PolicyReasonCode {
+    /// The code's wire spelling, which audit records carry as their reason.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::PolicyAllow => "policy_allow",
+            Self::PolicyDeny => "policy_deny",
+            Self::UnknownProfile => "unknown_profile",
+            Self::UnknownServer => "unknown_server",
+            Self::UnknownTool => "unknown_tool",
+            Self::UnknownResource => "unknown_resource",
+            Self::UnknownPrompt => "unknown_prompt",
+            Self::UnknownTask => "unknown_task",
+            Self::UnknownPrincipal => "unknown_principal",
+            Self::UnknownScope => "unknown_scope",
+            Self::UnknownDataLabel => "unknown_data_label",
+            Self::UnknownTenant => "unknown_tenant",
+            Self::UnknownTokenIssuer => "unknown_token_issuer",
+            Self::MissingPrincipal => "missing_principal",
+            Self::MissingTenant => "missing_tenant",
+            Self::MissingGroup => "missing_group",
+            Self::MissingRole => "missing_role",
+            Self::MissingScope => "missing_scope",
+            Self::MissingDataLabel => "missing_data_label",
+            Self::MissingPrincipalAssurance => "missing_principal_assurance",
+            Self::TokenAudienceMismatch => "token_audience_mismatch",
+            Self::TokenExpired => "token_expired",
+            Self::TokenNotYetValid => "token_not_yet_valid",
+            Self::ReplayDetected => "replay_detected",
+            Self::UndeclaredTarget => "undeclared_target",
+            Self::MissingPermission => "missing_permission",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(
     rename_all = "snake_case",

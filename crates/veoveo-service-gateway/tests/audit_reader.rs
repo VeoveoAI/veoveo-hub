@@ -10,7 +10,7 @@ use database::TestDb;
 use veoveo_audit::AuditStore;
 use veoveo_audit_contract::{
     AuditDetailType, AuditDraft, AuditOutcome, AuditPartition, AuditQuery, AuditReadScope,
-    AuditReason, AuditRegistry, AuditRequest, AuditTarget, AuditTransactionWrite,
+    AuditRegistry, AuditRequest, AuditTarget, AuditTransactionWrite,
 };
 use veoveo_service_gateway::GatewayState;
 use veoveo_types::ServerSlug;
@@ -42,11 +42,10 @@ async fn the_reader_reads_records_of_classes_a_server_declared() {
 
         let record = AuditDraft::builder(
             AuditRequest::background(),
-            AuditTarget::Installation,
             registry.detail(&Moved { count: 1 }).unwrap(),
-            AuditOutcome::Succeeded,
-            AuditReason::Accepted,
+            AuditOutcome::Success,
         )
+        .target(AuditTarget::parse("inventory://items/1").unwrap())
         .build()
         .unwrap();
         let mut transaction = inventory.platform().pool().begin().await.unwrap();

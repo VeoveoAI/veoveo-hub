@@ -230,11 +230,11 @@ fn revocation_audit_target(
     request: &GatewayJwtRevocationRequest,
 ) -> anyhow::Result<veoveo_audit_contract::AuditTarget> {
     use veoveo_types::{ResourceUriBuilder, UriSegment};
-    Ok(veoveo_audit_contract::AuditTarget::Resource {
-        uri: ResourceUriBuilder::new("veoveo://jwt-revocations")?
+    veoveo_service_gateway::audit::resource_target(
+        &ResourceUriBuilder::new("veoveo://jwt-revocations")?
             .segment(UriSegment::new(request.profile.to_string())?)
             .query_pair("issuer", request.issuer.as_str())?
             .query_pair("jwt_id", request.jwt_id.as_str())?
             .build()?,
-    })
+    )
 }

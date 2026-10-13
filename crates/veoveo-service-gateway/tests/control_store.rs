@@ -201,10 +201,9 @@ fn audit_context() -> veoveo_audit_contract::AuditContext {
             principal: PrincipalId::parse("integration-admin").unwrap(),
             kind: veoveo_audit_contract::AuditPrincipalKind::Service,
             tenant: None,
-            oauth_client: None,
-            delegating_principal: None,
+            work_context: None,
         },
-        authority: Default::default(),
+        via: None,
         request: veoveo_audit_contract::AuditRequest::background(),
     }
 }

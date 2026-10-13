@@ -1,7 +1,7 @@
 use super::http_response::RequestError;
 use crate::contract::GatewayAction;
 use std::{borrow::Cow, time::Instant};
-use veoveo_audit_contract::{AuditOutcome, AuditReason};
+use veoveo_audit_contract::AuditOutcome;
 use veoveo_sdk_rust::GatewayDiscoveryMetadata;
 use veoveo_sdk_rust::audit::{ToolCompletion, ToolResultKind};
 use veoveo_sdk_rust::gateway::GatewayDiscoveryDegradation;
@@ -468,28 +468,31 @@ impl GatewayMcp {
             result: result_kind,
             duration_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or((1u64 << 53) - 1),
             error_code: mcp_error_code,
-            acting_server: subject.acting_server().cloned(),
-            acting_task: subject.acting_task().cloned(),
+            invocation: Some(subject.audit_invocation()),
         };
-        let draft = audit
-            .tool(projection.server, projection.tool)
-            .and_then(|target| Ok((target, audit.detail(&completion)?)))
-            .and_then(|(target, detail)| {
-                subject.audit_draft(
-                    target,
-                    detail,
-                    if failed {
-                        AuditOutcome::Failed
-                    } else {
-                        AuditOutcome::Succeeded
-                    },
-                    if failed {
-                        AuditReason::UpstreamFailure
-                    } else {
-                        AuditReason::Accepted
-                    },
-                )
-            });
+        let draft = veoveo_sdk_rust::audit::McpTarget::Tool {
+            server: projection.server,
+            tool: projection.tool,
+        }
+        .audit_target()
+        .map_err(anyhow::Error::from)
+        .and_then(|target| Ok((target, audit.detail(&completion)?)))
+        .and_then(|(target, detail)| {
+            let draft = subject.audit_draft(
+                detail,
+                if failed {
+                    AuditOutcome::Failure
+                } else {
+                    AuditOutcome::Success
+                },
+            );
+            let draft = if failed {
+                draft.reason(crate::audit::GatewayReason::UpstreamFailure.into())
+            } else {
+                draft
+            };
+            Ok(draft.target(target).build()?)
+        });
         match draft {
             Ok(draft) => {
                 self.state

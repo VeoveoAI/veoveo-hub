@@ -121,7 +121,7 @@ async fn qualify() {
     ));
     let page = reader.page(&scope, &query).await.unwrap();
     assert_eq!(page.records.len(), 1);
-    assert_eq!(page.records[0].draft.outcome(), AuditOutcome::Succeeded);
+    assert_eq!(page.records[0].draft.outcome(), AuditOutcome::Success);
     let draft = &page.records[0].draft;
     assert_eq!(
         reader
@@ -129,7 +129,8 @@ async fn qualify() {
             .read::<Read>(draft.class(), draft.detail())
             .unwrap(),
         Read {
-            method: McpReadMethod::ResourceRead
+            method: McpReadMethod::ResourceRead,
+            invocation: Some(subject.audit_invocation()),
         }
     );
     denied.store(true, Ordering::SeqCst);
@@ -157,7 +158,10 @@ async fn qualify() {
         .unwrap_err();
     let page = reader.page(&scope, &query).await.unwrap();
     assert_eq!(page.records.len(), 3);
-    assert_eq!(page.records[2].draft.reason(), AuditReason::NotFound);
+    assert_eq!(
+        page.records[2].draft.reason().map(|reason| reason.as_str()),
+        Some("not_found")
+    );
     denied.store(false, Ordering::SeqCst);
     state
         .audit_writer()

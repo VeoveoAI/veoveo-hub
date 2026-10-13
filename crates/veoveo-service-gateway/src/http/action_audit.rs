@@ -11,7 +11,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use std::{sync::Arc, time::Instant};
-use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditReason, AuditTarget};
+use veoveo_audit_contract::{AuditOutcome, AuditTarget};
 use veoveo_sdk_rust::GatewayProfileId;
 pub struct AdminAuthorizationRequest {
     pub audit_target: Option<AuditTarget>,
@@ -51,12 +51,11 @@ pub async fn authorize_gateway_action(
             access: administrative_access(catalog.registry(), &request.action)
                 .map_err(|error| Box::new(internal_error_response(error)))?,
             target: request.audit_target.unwrap_or(
-                crate::audit::policy_audit_target(catalog.registry(), &request.target)
+                crate::audit::owner_policy_target(catalog.registry(), &request.target)
                     .map_err(|error| Box::new(internal_error_response(error)))?,
             ),
             decision: decision.clone(),
             operation: request.operation,
-            started_at: request.started_at,
         },
     )
     .await
@@ -82,7 +81,6 @@ struct AdminAuditRecord {
     target: AuditTarget,
     decision: PolicyDecision,
     operation: AdministrativeOperation,
-    started_at: Instant,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -109,26 +107,39 @@ pub async fn record_gateway_operation_audit(
     target: PolicyTarget,
     record: AdminOperationAuditRecord,
 ) -> anyhow::Result<()> {
-    let (outcome, reason) = match record.status {
-        AdminOperationStatus::Succeeded => (AuditOutcome::Succeeded, AuditReason::Accepted),
-        AdminOperationStatus::Rejected => (AuditOutcome::Failed, AuditReason::InvalidRequest),
-        AdminOperationStatus::Failed => (AuditOutcome::Failed, AuditReason::InternalFailure),
+    use crate::audit::{GatewayReason, code_reason};
+    let (outcome, reason) = match (record.status, record.failure) {
+        (AdminOperationStatus::Succeeded, _) => (AuditOutcome::Success, None),
+        (AdminOperationStatus::Rejected, Some(failure))
+        | (AdminOperationStatus::Failed, Some(failure)) => {
+            (AuditOutcome::Failure, Some(code_reason(failure)))
+        }
+        (AdminOperationStatus::Rejected, None) => (
+            AuditOutcome::Failure,
+            Some(GatewayReason::InvalidRequest.into()),
+        ),
+        (AdminOperationStatus::Failed, None) => (
+            AuditOutcome::Failure,
+            Some(GatewayReason::InternalFailure.into()),
+        ),
     };
     let target = match record.audit_target {
         Some(target) => target,
-        None => crate::audit::policy_audit_target(catalog.registry(), &target)?,
+        None => crate::audit::owner_policy_target(catalog.registry(), &target)?,
     };
     let detail = crate::audit::gateway_audit().detail(&AdminCompletion {
         profile: profile.id.clone(),
         operation: record.operation,
         access: administrative_access(catalog.registry(), &record.action)?,
-        failure: record.failure,
+        duration_ms: u64::try_from(record.started_at.elapsed().as_millis())?,
+        invocation: subject.audit_invocation(),
     })?;
-    let draft = AuditDraft::builder(subject.audit.clone(), target, detail, outcome, reason)
-        .actor(subject.audit_actor()?)
-        .authority(subject.audit_authority())
-        .latency_ms(u64::try_from(record.started_at.elapsed().as_millis())?)
-        .build()?;
+    let draft = subject.audit_draft(detail, outcome).target(target);
+    let draft = match reason {
+        Some(reason) => draft.reason(reason),
+        None => draft,
+    }
+    .build()?;
     gateway.audit_writer().await.record_completion(draft).await;
     Ok(())
 }
@@ -164,21 +175,9 @@ async fn record_admin_audit(
         profile: profile.id.clone(),
         operation: record.operation,
         access: record.access,
+        invocation: subject.audit_invocation(),
     })?;
-    let draft = AuditDraft::builder(
-        subject.audit.clone(),
-        record.target,
-        detail,
-        if record.decision.effect == PolicyEffect::Allow {
-            AuditOutcome::Allowed
-        } else {
-            AuditOutcome::Denied
-        },
-        crate::audit::policy_reason(record.decision.reason),
-    )
-    .actor(subject.audit_actor()?)
-    .authority(subject.audit_authority())
-    .latency_ms(u64::try_from(record.started_at.elapsed().as_millis())?)
-    .build()?;
+    let draft =
+        crate::audit::policy_draft(subject, record.target, detail, &record.decision).build()?;
     gateway.record_audit(draft).await
 }

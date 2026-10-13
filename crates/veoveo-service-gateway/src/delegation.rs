@@ -7,7 +7,7 @@ use std::{collections::BTreeSet, sync::Arc};
 use anyhow::Context;
 use chrono::{DateTime, TimeDelta, Utc};
 use serde::Deserialize;
-use veoveo_audit_contract::{AuditOutcome, AuditReason, AuditTarget};
+use veoveo_audit_contract::AuditOutcome;
 use veoveo_sdk_rust::{
     ActingServer, DelegatedCaller, ExchangeGrant, ExchangedTokenVerifier, GatewayInternalIdentity,
     GatewayInternalTokenIssuer, GatewayInternalTokenVerifier, GatewayInternalTrustBundle,
@@ -555,10 +555,9 @@ impl DelegationService {
                     subject: Some(subject.kind),
                     requested: *requested,
                     granted: u32::try_from(response.permissions().len()).unwrap_or(u32::MAX),
-                    refusal: None,
                 },
-                AuditOutcome::Allowed,
-                AuditReason::Accepted,
+                AuditOutcome::Success,
+                None,
             ),
             Err(refused) => {
                 let (refusal, subject, requested) = &**refused;
@@ -568,40 +567,36 @@ impl DelegationService {
                         subject: subject.as_ref().map(|subject| subject.kind),
                         requested: *requested,
                         granted: 0,
-                        refusal: refusal.audit_refusal(),
                     },
-                    AuditOutcome::Denied,
                     match refusal.error {
-                        TokenErrorCode::ServerError => AuditReason::Unavailable,
-                        TokenErrorCode::InvalidTarget => AuditReason::UnknownServer,
-                        _ => AuditReason::PolicyDenied,
+                        TokenErrorCode::ServerError => AuditOutcome::Failure,
+                        _ => AuditOutcome::Denied,
                     },
+                    refusal.audit_refusal(),
                 )
             }
         };
         let draft = (|| {
             let detail = gateway_audit().detail(&detail)?;
-            let target = AuditTarget::Server {
-                server: server.clone(),
-            };
-            match subject {
-                Some(subject) => subject_of(&subject.caller, None).audit_draft(
-                    target,
-                    detail,
-                    audit_outcome,
-                    reason,
-                ),
-                None => Ok(veoveo_audit_contract::AuditDraft::builder(
+            let target = crate::audit::server_target(server)?;
+            let draft = match subject {
+                Some(subject) => {
+                    subject_of(&subject.caller, None).audit_draft(detail, audit_outcome)
+                }
+                None => veoveo_audit_contract::AuditDraft::builder(
                     crate::request_observation::RequestObservation::current()
                         .map(|request| request.audit)
                         .unwrap_or_else(veoveo_audit_contract::AuditRequest::background),
-                    target,
                     detail,
                     audit_outcome,
-                    reason,
-                )
-                .build()?),
+                ),
             }
+            .target(target);
+            let draft = match reason {
+                Some(reason) => draft.reason(crate::audit::code_reason(reason)),
+                None => draft,
+            };
+            anyhow::Ok(draft.build()?)
         })();
         let recorded = match draft {
             Ok(draft) => self.inner.gateway.record_audit(draft).await,

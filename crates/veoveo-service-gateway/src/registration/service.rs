@@ -10,7 +10,7 @@ use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
 use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
-use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditReason, AuditRequest, AuditTarget};
+use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditRequest};
 use veoveo_platform_store::{LoginName, ServerSchema};
 use veoveo_sdk_rust::registration::{
     AccessTokenTrust, ClientInformation, ClientMetadata, ClientRegistrationRequest,
@@ -457,13 +457,10 @@ impl RegistrationService {
     ) -> anyhow::Result<()> {
         let draft = AuditDraft::builder(
             AuditRequest::background(),
-            AuditTarget::Server {
-                server: server.clone(),
-            },
             gateway_audit().detail(&Registration { activity })?,
-            AuditOutcome::Succeeded,
-            AuditReason::Accepted,
+            AuditOutcome::Success,
         )
+        .target(crate::audit::server_target(server)?)
         .build()?;
         self.inner.gateway.record_audit(draft).await
     }

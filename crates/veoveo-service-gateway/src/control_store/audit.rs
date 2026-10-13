@@ -1,11 +1,9 @@
 //! The activated revision and each changed Work Context share one commit.
-use crate::audit::{AccountActivity, AccountChange, gateway_audit};
+use crate::audit::{AccountActivity, AccountChange, gateway_audit, work_context_target};
 use crate::control_plane::WorkContextDefinition;
 use anyhow::Result;
 use std::collections::BTreeMap;
-use veoveo_audit_contract::{
-    AuditContext, AuditOutcome, AuditReason, AuditRegistry, AuditTarget, AuditTransactionWrite,
-};
+use veoveo_audit_contract::{AuditContext, AuditOutcome, AuditRegistry, AuditTransactionWrite};
 
 pub(super) fn changes(
     registry: &AuditRegistry,
@@ -28,29 +26,29 @@ pub(super) fn changes(
             Some(old) if *old == *value => continue,
             Some(_) => AccountActivity::Update,
         };
-        records.push(context.draft(
-            AuditTarget::WorkContext {
-                tenant: value.tenant.clone(),
-                context: value.id.clone(),
-            },
-            gateway_audit().detail(&AccountChange { activity })?,
-            AuditOutcome::Succeeded,
-            AuditReason::Accepted,
-        )?);
+        records.push(
+            context
+                .draft(
+                    gateway_audit().detail(&AccountChange { activity })?,
+                    AuditOutcome::Success,
+                )
+                .target(work_context_target(&value.tenant, &value.id)?)
+                .build()?,
+        );
     }
     for (key, value) in &before {
         if !after.contains_key(key) {
-            records.push(context.draft(
-                AuditTarget::WorkContext {
-                    tenant: value.tenant.clone(),
-                    context: value.id.clone(),
-                },
-                gateway_audit().detail(&AccountChange {
-                    activity: AccountActivity::Delete,
-                })?,
-                AuditOutcome::Succeeded,
-                AuditReason::Accepted,
-            )?);
+            records.push(
+                context
+                    .draft(
+                        gateway_audit().detail(&AccountChange {
+                            activity: AccountActivity::Delete,
+                        })?,
+                        AuditOutcome::Success,
+                    )
+                    .target(work_context_target(&value.tenant, &value.id)?)
+                    .build()?,
+            );
         }
     }
     Ok(AuditTransactionWrite::batch(registry, records)?)

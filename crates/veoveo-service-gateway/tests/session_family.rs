@@ -238,33 +238,30 @@ fn audit(
     } else {
         AuthenticationActivity::Refresh
     };
-    let audit = gateway_audit();
-    AuditDraft::builder(
+    let mut draft = AuditDraft::builder(
         AuditRequest::background(),
-        audit.profile(profile.clone()).unwrap(),
-        audit
+        gateway_audit()
             .detail(&Authentication {
                 activity,
                 method: AuthMethod::RefreshToken,
-                reason,
+                duration_ms: 0,
                 session_family: None,
+                client: None,
+                scopes: principal.scopes.clone(),
+                data_labels: principal.data_labels.clone(),
             })
             .unwrap(),
-        AuditOutcome::Allowed,
-        AuditReason::Accepted,
+        AuditOutcome::Success,
     )
+    .target(veoveo_service_gateway::audit::profile_target(profile).unwrap())
     .actor(AuditActor {
         principal: principal.id.clone(),
         kind: AuditPrincipalKind::User,
         tenant: principal.tenant.clone(),
-        oauth_client: None,
-        delegating_principal: None,
-    })
-    .authority(AuditAuthority {
-        scopes: principal.scopes.clone(),
-        data_labels: principal.data_labels.clone(),
-        ..Default::default()
-    })
-    .build()
-    .unwrap()
+        work_context: None,
+    });
+    if let Some(reason) = veoveo_service_gateway::audit::authentication_reason(reason) {
+        draft = draft.reason(reason);
+    }
+    draft.build().unwrap()
 }

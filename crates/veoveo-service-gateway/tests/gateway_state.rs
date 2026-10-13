@@ -14,7 +14,7 @@ use veoveo_sdk_rust::{
 use veoveo_service_gateway::audit::{
     Authentication, AuthenticationActivity, TaskStatusRead, gateway_audit,
 };
-use veoveo_service_gateway::contract::{AuthMethod, AuthReasonCode};
+use veoveo_service_gateway::contract::AuthMethod;
 use veoveo_service_gateway::contract::{
     OAuthAuthorizationCode, OAuthRedirectUri, OAuthStateValue, OidcClientRegistrationId, OidcNonce,
     PkceCodeChallenge, PkceCodeChallengeMethod, PkceCodeVerifier, PrincipalDisplayName,
@@ -724,29 +724,17 @@ fn fixture_draft(
     principal: &Principal,
     detail: AuditDetail,
 ) -> AuditDraft {
-    AuditDraft::builder(
-        AuditRequest::background(),
-        gateway_audit().profile(profile.clone()).unwrap(),
-        detail,
-        AuditOutcome::Allowed,
-        AuditReason::Accepted,
-    )
-    .actor(AuditActor {
-        principal: principal.id.clone(),
-        kind: AuditPrincipalKind::User,
-        tenant: principal.tenant.clone(),
-        oauth_client: None,
-        delegating_principal: None,
-    })
-    .authority(AuditAuthority {
-        scopes: principal.scopes.clone(),
-        data_labels: principal.data_labels.clone(),
-        ..Default::default()
-    })
-    .occurred_at(timestamp)
-    .latency_ms(1)
-    .build()
-    .unwrap()
+    AuditDraft::builder(AuditRequest::background(), detail, AuditOutcome::Success)
+        .target(veoveo_service_gateway::audit::profile_target(profile).unwrap())
+        .actor(AuditActor {
+            principal: principal.id.clone(),
+            kind: AuditPrincipalKind::User,
+            tenant: principal.tenant.clone(),
+            work_context: None,
+        })
+        .occurred_at(timestamp)
+        .build()
+        .unwrap()
 }
 fn policy_draft(
     _label: &str,
@@ -758,7 +746,7 @@ fn policy_draft(
         timestamp,
         profile,
         principal,
-        gateway_audit().detail(&TaskStatusRead {}).unwrap(),
+        gateway_audit().detail(&TaskStatusRead::default()).unwrap(),
     )
 }
 fn auth_draft(
@@ -775,8 +763,11 @@ fn auth_draft(
             .detail(&Authentication {
                 activity: AuthenticationActivity::Refresh,
                 method: AuthMethod::RefreshToken,
-                reason: AuthReasonCode::AuthAllow,
+                duration_ms: 1,
                 session_family: None,
+                client: None,
+                scopes: principal.scopes.clone(),
+                data_labels: principal.data_labels.clone(),
             })
             .unwrap(),
     )
@@ -794,31 +785,32 @@ fn duplicate_refresh_detail() -> AuditDetail {
         .detail(&Authentication {
             activity: AuthenticationActivity::DuplicateRefresh,
             method: AuthMethod::RefreshToken,
-            reason: AuthReasonCode::RefreshTokenDuplicateDelivery,
+            duration_ms: 1,
             session_family: None,
+            client: None,
+            scopes: Default::default(),
+            data_labels: Default::default(),
         })
         .unwrap()
 }
-/// The same record identity and detail with a different latency. Only authentication
-/// drafts are conflicted here.
+/// The same record identity with a different duration in its detail. Only
+/// authentication drafts are conflicted here.
 fn conflicting_draft(draft: &AuditDraft) -> AuditDraft {
     let audit = gateway_audit();
-    let detail = audit
+    let mut detail = audit
         .registry()
         .read::<Authentication>(draft.class(), draft.detail())
         .unwrap();
+    detail.duration_ms = 99;
     AuditDraft::builder(
         draft.request().clone(),
-        draft.target().clone(),
         audit.detail(&detail).unwrap(),
         draft.outcome(),
-        draft.reason(),
     )
+    .target(draft.target().unwrap().clone())
     .identity(draft.id())
     .actor(draft.actor().unwrap().clone())
-    .authority(draft.authority().clone())
     .occurred_at(draft.occurred_at())
-    .latency_ms(99)
     .build()
     .unwrap()
 }

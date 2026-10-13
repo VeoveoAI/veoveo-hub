@@ -7,7 +7,7 @@ use rmcp::{
     model::ErrorData as McpError,
     service::{RequestContext, RoleServer},
 };
-use veoveo_audit_contract::{AuditOutcome, AuditReason};
+use veoveo_audit_contract::AuditOutcome;
 use veoveo_platform_store::{
     deterministic_principal_id, deterministic_tenant_id, deterministic_work_context_id,
 };
@@ -273,24 +273,10 @@ impl GatewayMcp {
         if action != GatewayAction::TasksGet || decision.effect != PolicyEffect::Allow {
             let detail = crate::audit::mcp_action_detail(action, subject)
                 .map_err(|_| mcp_internal("action requires its domain audit producer"))?;
-            let allowed = decision.effect == PolicyEffect::Allow;
-            let target = crate::audit::mcp_audit_target(&target)
+            let target = crate::audit::policy_target(&target)
                 .map_err(|_| mcp_internal("invalid audit target"))?;
-            let draft = subject
-                .audit_draft(
-                    target,
-                    detail,
-                    if allowed {
-                        AuditOutcome::Allowed
-                    } else {
-                        AuditOutcome::Denied
-                    },
-                    if allowed {
-                        AuditReason::Accepted
-                    } else {
-                        crate::audit::policy_reason(decision.reason)
-                    },
-                )
+            let draft = crate::audit::policy_draft(subject, target, detail, &decision)
+                .build()
                 .map_err(|_| mcp_internal("invalid audit attribution"))?;
             self.state.record_audit(draft).await.map_err(|_| {
                 mcp_internal("The gateway couldn't commit the audit record. Try again shortly.")
@@ -381,19 +367,25 @@ impl GatewayMcp {
             .map_err(|_| mcp_internal("invalid catalog identity"))?;
         let visible_digest = veoveo_types::Sha256Digest::from_bytes(Sha256::digest(bytes).into());
         let audit = crate::audit::gateway_audit();
-        let target = audit
-            .discovery(None, collection)
-            .map_err(|_| mcp_internal("invalid discovery target"))?;
+        let target = veoveo_sdk_rust::audit::McpTarget::Discovery {
+            server: None,
+            collection,
+        }
+        .audit_target()
+        .map_err(|_| mcp_internal("invalid discovery target"))?;
         let detail = audit
             .detail(&veoveo_sdk_rust::audit::Discovery {
                 collection,
                 visible,
                 denied,
                 visible_digest,
+                invocation: Some(subject.audit_invocation()),
             })
             .map_err(|_| mcp_internal("invalid discovery detail"))?;
         let draft = subject
-            .audit_draft(target, detail, AuditOutcome::Allowed, AuditReason::Accepted)
+            .audit_draft(detail, AuditOutcome::Success)
+            .target(target)
+            .build()
             .map_err(|_| mcp_internal("invalid discovery attribution"))?;
         self.state
             .record_audit(draft)
@@ -487,18 +479,19 @@ impl GatewayMcp {
         target: PolicyTarget,
         reason: PolicyReasonCode,
     ) -> Result<(), McpError> {
-        let target = crate::audit::mcp_audit_target(&target)
+        let target = crate::audit::policy_target(&target)
             .map_err(|_| mcp_internal("invalid audit target"))?;
         let detail = crate::audit::mcp_action_detail(action, subject)
             .map_err(|_| mcp_internal("action requires its domain audit producer"))?;
         let draft = subject
-            .audit_draft(
-                target,
-                detail,
-                AuditOutcome::Denied,
-                crate::audit::policy_reason(reason),
-            )
-            .map_err(|_| mcp_internal("invalid denial attribution"))?;
+            .audit_draft(detail, AuditOutcome::Denied)
+            .target(target);
+        let draft = match crate::audit::policy_reason(reason) {
+            Some(reason) => draft.reason(reason),
+            None => draft,
+        }
+        .build()
+        .map_err(|_| mcp_internal("invalid denial attribution"))?;
         self.state
             .record_audit(draft)
             .await

@@ -92,10 +92,9 @@ pub(super) async fn publish(
             principal,
             kind: AuditPrincipalKind::Service,
             tenant: None,
-            oauth_client: None,
-            delegating_principal: None,
+            work_context: None,
         },
-        authority: Default::default(),
+        via: None,
         request: AuditRequest::background(),
     };
     match control_store.record_revision(&revision, &context).await {

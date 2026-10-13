@@ -284,10 +284,7 @@ pub(crate) async fn update_control_plane(
         tenant: subject.actor.tenant.clone(),
         control_plane,
     };
-    let audit_context = match subject.audit_context() {
-        Ok(context) => context,
-        Err(error) => return internal_error_response(error),
-    };
+    let audit_context = subject.audit_context();
     if let Err(err) = state
         .control_store
         .record_revision(&revision, &audit_context)

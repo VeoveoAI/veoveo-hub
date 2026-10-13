@@ -111,6 +111,7 @@ fn request_identity(headers: &HeaderMap, source_ip: Option<IpAddr>) -> (AuditReq
             trace_id: AuditTraceId::parse(trace).expect("SDK generates valid trace identity"),
             span_id: AuditSpanId::parse(span).expect("UUID version bits make this span nonzero"),
             source_ip,
+            task: None,
         },
         flags,
     )

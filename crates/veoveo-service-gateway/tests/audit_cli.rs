@@ -163,19 +163,16 @@ async fn qualify(db: &TestDb, attack: Attack) {
         audit
             .detail(&veoveo_sdk_rust::audit::Read {
                 method: veoveo_sdk_rust::audit::McpReadMethod::ResourceRead,
+                invocation: None,
             })
             .unwrap(),
         audit
-            .detail(&veoveo_service_gateway::audit::TaskStatusRead {})
+            .detail(&veoveo_service_gateway::audit::TaskStatusRead::default())
             .unwrap(),
     ] {
-        let mut builder = AuditDraft::builder(
-            AuditRequest::background(),
-            AuditTarget::Installation,
-            detail,
-            AuditOutcome::Allowed,
-            AuditReason::Accepted,
-        );
+        let mut builder =
+            AuditDraft::builder(AuditRequest::background(), detail, AuditOutcome::Success)
+                .target(veoveo_service_gateway::audit::gateway_target().unwrap());
         if matches!(attack, Attack::BackdatedInsert) && !ids.is_empty() {
             builder = builder.occurred_at(Utc::now() - TimeDelta::days(1));
         }

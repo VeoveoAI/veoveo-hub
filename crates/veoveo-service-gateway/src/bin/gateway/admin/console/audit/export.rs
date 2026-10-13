@@ -32,18 +32,13 @@ pub(crate) async fn export_audit(
         return StatusCode::TOO_MANY_REQUESTS.into_response();
     };
     let store = reader;
-    let marker = match veoveo_service_gateway::audit::gateway_audit()
-        .detail(&platform::AuditExport {})
-        .and_then(|detail| {
-            subject.audit_draft(
-                AuditTarget::AuditLog {
-                    partition: query.partition.clone(),
-                },
-                detail,
-                AuditOutcome::Allowed,
-                AuditReason::Accepted,
-            )
-        }) {
+    let marker = match super::partition_draft(
+        &subject,
+        &platform::AuditExport {},
+        &query.partition,
+        AuditOutcome::Success,
+        None,
+    ) {
         Ok(draft) => draft,
         Err(_) => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
     };

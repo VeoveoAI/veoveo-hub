@@ -1,6 +1,10 @@
 //! Gateway-owned conversion from admitted identity and policy into audit records.
+mod reasons;
+mod targets;
 mod vocabulary;
 
+pub use reasons::*;
+pub use targets::*;
 pub use vocabulary::*;
 
 use crate::{
@@ -10,8 +14,9 @@ use crate::{
 use anyhow::{Context, Result};
 use veoveo_audit_contract::*;
 use veoveo_sdk_rust::PrincipalKind;
+use veoveo_sdk_rust::audit::AuditInvocation;
 
-use crate::control_plane::{PolicyDecision, PolicyEffect, PolicyReasonCode, PolicyTarget};
+use crate::control_plane::{PolicyDecision, PolicyEffect, PolicyTarget};
 
 impl AuthenticatedSubject {
     /// The registered server that made this call for the caller, if another server did.
@@ -28,87 +33,57 @@ impl AuthenticatedSubject {
             .and_then(|delegation| delegation.task.as_ref())
     }
 
-    pub fn audit_context(&self) -> Result<AuditContext> {
-        Ok(AuditContext {
-            actor: self.audit_actor()?,
-            authority: self.audit_authority(),
-            request: self.audit.clone(),
-        })
-    }
-    pub fn audit_actor(&self) -> Result<AuditActor> {
-        Ok(AuditActor {
+    /// The actor a record names: the principal the request acts as, in its tenant and
+    /// Work Context.
+    pub fn audit_actor(&self) -> AuditActor {
+        AuditActor {
             principal: self.actor.id.clone(),
             kind: match self.actor.kind {
                 PrincipalKind::User => AuditPrincipalKind::User,
                 PrincipalKind::Service => AuditPrincipalKind::Service,
             },
             tenant: self.actor.tenant.clone(),
-            oauth_client: Some(self.access_token.oauth_client_id.clone()),
-            delegating_principal: (self.principal.id != self.actor.id)
-                .then(|| self.principal.id.clone()),
+            work_context: Some(self.authority.work_context.clone()),
+        }
+    }
+
+    /// The server that acted for the caller, and its Task when the Task's identifier is a
+    /// core Task identifier.
+    pub fn audit_via(&self) -> Option<AuditVia> {
+        self.acting_server().map(|server| AuditVia {
+            server: server.clone(),
+            task: self
+                .acting_task()
+                .and_then(|task| veoveo_types::TaskId::parse(task.as_str()).ok()),
         })
     }
-    pub fn audit_authority(&self) -> AuditAuthority {
-        AuditAuthority {
-            work_context: Some(self.authority.work_context.clone()),
-            policy_revision: Some(self.authority.policy_revision.clone()),
+
+    /// The invocation facts a record's detail carries beside the envelope.
+    pub fn audit_invocation(&self) -> AuditInvocation {
+        AuditInvocation {
+            oauth_client: self.access_token.oauth_client_id.clone(),
+            delegating_principal: (self.principal.id != self.actor.id)
+                .then(|| self.principal.id.clone()),
+            policy_revision: self.authority.policy_revision.clone(),
             scopes: self.actor.scopes.clone(),
             data_labels: self.actor.data_labels.clone(),
         }
     }
-    pub fn audit_draft(
-        &self,
-        target: AuditTarget,
-        detail: AuditDetail,
-        outcome: AuditOutcome,
-        reason: AuditReason,
-    ) -> Result<AuditDraft> {
-        Ok(
-            AuditDraft::builder(self.audit.clone(), target, detail, outcome, reason)
-                .actor(self.audit_actor()?)
-                .authority(self.audit_authority())
-                .build()?,
-        )
+
+    pub fn audit_context(&self) -> AuditContext {
+        AuditContext {
+            actor: self.audit_actor(),
+            via: self.audit_via(),
+            request: self.audit.clone(),
+        }
+    }
+
+    /// A record of this caller's request, its actor and acting server, with `detail`.
+    pub fn audit_draft(&self, detail: AuditDetail, outcome: AuditOutcome) -> AuditDraftBuilder {
+        self.audit_context().draft(detail, outcome)
     }
 }
-/// MCP projections use typed resource addresses. Domain-only policy targets are
-/// recorded by their producer with its own target, never erased to a gateway label.
-pub fn mcp_audit_target(target: &PolicyTarget) -> Result<AuditTarget> {
-    let audit = gateway_audit();
-    Ok(match target {
-        PolicyTarget::Gateway => AuditTarget::Installation,
-        PolicyTarget::Server { server } => AuditTarget::Server {
-            server: server.clone(),
-        },
-        PolicyTarget::Tool { server, tool } => audit.tool(server.clone(), tool.clone())?,
-        PolicyTarget::Resource { uri, .. } => AuditTarget::Resource { uri: uri.clone() },
-        PolicyTarget::ResourceTemplate { server, uri } => {
-            audit.resource_template(server.clone(), uri.clone())?
-        }
-        PolicyTarget::Prompt { server, prompt } => audit.prompt(server.clone(), prompt.clone())?,
-        PolicyTarget::Task { server, task_id } => {
-            audit.task_route(server.clone(), task_id.clone())?
-        }
-        PolicyTarget::PlatformTask { task_id, .. } => AuditTarget::Task { task: *task_id },
-        PolicyTarget::Owner(_) => anyhow::bail!("owner target audit requires its catalog registry"),
-        PolicyTarget::Unadmitted(_) => {
-            anyhow::bail!("unadmitted owner policy target cannot produce audit authority")
-        }
-    })
-}
-/// Owner targets expose an audit resource only through their admitted catalog binding.
-pub fn policy_audit_target(
-    registry: &crate::contract::CatalogRegistry,
-    target: &PolicyTarget,
-) -> Result<AuditTarget> {
-    if let PolicyTarget::Owner(target) = target {
-        registry.check_target(target)?;
-        return Ok(AuditTarget::Resource {
-            uri: target.audit().uri.clone(),
-        });
-    }
-    mcp_audit_target(target)
-}
+
 impl GatewayState {
     pub fn set_audit_health(&self, health: veoveo_audit::AuditHealth) -> Result<()> {
         self.audit_health
@@ -172,53 +147,52 @@ pub fn mcp_action_detail(
     use veoveo_audit_contract::platform::{TaskCancel, TaskUpdate};
     use veoveo_sdk_rust::audit::{McpReadMethod, Read, ToolAdmission};
     let audit = gateway_audit();
-    let read = |method| audit.detail(&Read { method });
+    let invocation = Some(subject.audit_invocation());
+    let read = |method| {
+        audit.detail(&Read {
+            method,
+            invocation: invocation.clone(),
+        })
+    };
     match action {
         GatewayAction::ToolsCall => audit.detail(&ToolAdmission {
-            acting_server: subject.acting_server().cloned(),
-            acting_task: subject.acting_task().cloned(),
+            invocation: invocation.clone(),
         }),
         GatewayAction::ResourcesRead => read(McpReadMethod::ResourceRead),
         GatewayAction::PromptsGet => read(McpReadMethod::PromptGet),
         GatewayAction::CompletionComplete => read(McpReadMethod::Completion),
         GatewayAction::SubscriptionsListen => read(McpReadMethod::Subscription),
-        GatewayAction::TasksGet => audit.detail(&TaskStatusRead {}),
+        GatewayAction::TasksGet => audit.detail(&TaskStatusRead {
+            invocation: invocation.clone(),
+        }),
         GatewayAction::TasksUpdate => audit.detail(&TaskUpdate {}),
         GatewayAction::TasksCancel => audit.detail(&TaskCancel {}),
         _ => anyhow::bail!("action `{action:?}` requires its own audit producer"),
     }
 }
 
-/// The audit reason for a policy decision. An unknown profile, tool or prompt is a
-/// target the caller named that does not exist.
-pub fn policy_reason(reason: PolicyReasonCode) -> AuditReason {
-    match reason {
-        PolicyReasonCode::PolicyAllow => AuditReason::Accepted,
-        PolicyReasonCode::PolicyDeny
-        | PolicyReasonCode::MissingPermission
-        | PolicyReasonCode::UndeclaredTarget => AuditReason::PolicyDenied,
-        PolicyReasonCode::UnknownProfile
-        | PolicyReasonCode::UnknownTool
-        | PolicyReasonCode::UnknownPrompt => AuditReason::NotFound,
-        PolicyReasonCode::UnknownServer => AuditReason::UnknownServer,
-        PolicyReasonCode::UnknownResource => AuditReason::UnknownResource,
-        PolicyReasonCode::UnknownTask => AuditReason::UnknownTask,
-        PolicyReasonCode::UnknownPrincipal => AuditReason::UnknownPrincipal,
-        PolicyReasonCode::UnknownScope => AuditReason::UnknownScope,
-        PolicyReasonCode::UnknownDataLabel => AuditReason::UnknownDataLabel,
-        PolicyReasonCode::UnknownTenant => AuditReason::UnknownTenant,
-        PolicyReasonCode::UnknownTokenIssuer => AuditReason::UnknownTokenIssuer,
-        PolicyReasonCode::MissingPrincipal => AuditReason::MissingPrincipal,
-        PolicyReasonCode::MissingTenant => AuditReason::MissingTenant,
-        PolicyReasonCode::MissingGroup => AuditReason::MissingGroup,
-        PolicyReasonCode::MissingRole => AuditReason::MissingRole,
-        PolicyReasonCode::MissingScope => AuditReason::MissingScope,
-        PolicyReasonCode::MissingDataLabel => AuditReason::MissingDataLabel,
-        PolicyReasonCode::MissingPrincipalAssurance => AuditReason::MissingPrincipalAssurance,
-        PolicyReasonCode::TokenAudienceMismatch => AuditReason::TokenAudienceMismatch,
-        PolicyReasonCode::TokenExpired => AuditReason::ExpiredCredential,
-        PolicyReasonCode::TokenNotYetValid => AuditReason::TokenNotYetValid,
-        PolicyReasonCode::ReplayDetected => AuditReason::Replay,
+/// The outcome of a policy decision.
+pub fn policy_outcome(decision: &PolicyDecision) -> AuditOutcome {
+    if decision.effect == PolicyEffect::Allow {
+        AuditOutcome::Success
+    } else {
+        AuditOutcome::Denied
+    }
+}
+
+/// A record of a policy decision about `target`, carrying the decision's reason code.
+pub fn policy_draft(
+    subject: &AuthenticatedSubject,
+    target: AuditTarget,
+    detail: AuditDetail,
+    decision: &PolicyDecision,
+) -> AuditDraftBuilder {
+    let draft = subject
+        .audit_draft(detail, policy_outcome(decision))
+        .target(target);
+    match policy_reason(decision.reason) {
+        Some(reason) => draft.reason(reason),
+        None => draft,
     }
 }
 
@@ -230,17 +204,7 @@ impl GatewayState {
         detail: AuditDetail,
         decision: &PolicyDecision,
     ) -> Result<()> {
-        let allowed = decision.effect == PolicyEffect::Allow;
-        let draft = subject.audit_draft(
-            mcp_audit_target(target)?,
-            detail,
-            if allowed {
-                AuditOutcome::Allowed
-            } else {
-                AuditOutcome::Denied
-            },
-            policy_reason(decision.reason),
-        )?;
+        let draft = policy_draft(subject, policy_target(target)?, detail, decision).build()?;
         self.record_audit(draft).await
     }
 }

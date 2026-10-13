@@ -15,7 +15,7 @@ use rmcp::{
     model::{CacheScope, ErrorData as McpError, ReadResourceRequestParams, ReadResourceResult},
     service::{Peer, RequestContext, RoleClient, RoleServer},
 };
-use veoveo_audit_contract::{AuditOutcome, AuditReason, AuditTarget};
+use veoveo_audit_contract::AuditOutcome;
 use veoveo_sdk_rust::audit::{McpReadMethod, Read};
 use veoveo_sdk_rust::gateway::GatewayDiscoverySurface;
 use veoveo_sdk_rust::parse_gateway_task_resource_uri;
@@ -27,34 +27,35 @@ impl GatewayMcp {
         projection: &GatewayResourceProjection,
         result: Result<ReadResourceResult, RequestError>,
     ) -> Result<ReadResourceResult, RequestError> {
+        use crate::audit::GatewayReason;
         let (outcome, reason) = match &result {
-            Ok(_) => (AuditOutcome::Succeeded, AuditReason::Accepted),
+            Ok(_) => (AuditOutcome::Success, None),
             Err(error) if error.protocol().code == rmcp::model::ErrorCode::INVALID_REQUEST => {
-                (AuditOutcome::Denied, AuditReason::PolicyDenied)
+                (AuditOutcome::Denied, Some(GatewayReason::UpstreamDenied))
             }
             Err(error) if error.protocol().code == rmcp::model::ErrorCode::INVALID_PARAMS => {
-                (AuditOutcome::Failed, AuditReason::InvalidRequest)
+                (AuditOutcome::Failure, Some(GatewayReason::InvalidRequest))
             }
             Err(error) if error.protocol().code == rmcp::model::ErrorCode::RESOURCE_NOT_FOUND => {
-                (AuditOutcome::Failed, AuditReason::NotFound)
+                (AuditOutcome::Failure, Some(GatewayReason::NotFound))
             }
-            Err(_) => (AuditOutcome::Failed, AuditReason::UpstreamFailure),
+            Err(_) => (AuditOutcome::Failure, Some(GatewayReason::UpstreamFailure)),
         };
         let detail = crate::audit::gateway_audit()
             .detail(&Read {
                 method: McpReadMethod::ResourceRead,
+                invocation: Some(subject.audit_invocation()),
             })
             .map_err(|_| mcp_internal("invalid resource read audit detail"))?;
-        let draft = subject
-            .audit_draft(
-                AuditTarget::Resource {
-                    uri: projection.gateway_uri.clone(),
-                },
-                detail,
-                outcome,
-                reason,
-            )
-            .map_err(|_| mcp_internal("invalid resource read audit attribution"))?;
+        let target = crate::audit::resource_target(&projection.gateway_uri)
+            .map_err(|_| mcp_internal("invalid resource read audit target"))?;
+        let draft = subject.audit_draft(detail, outcome).target(target);
+        let draft = match reason {
+            Some(reason) => draft.reason(reason.into()),
+            None => draft,
+        }
+        .build()
+        .map_err(|_| mcp_internal("invalid resource read audit attribution"))?;
         self.state
             .record_audit(draft)
             .await

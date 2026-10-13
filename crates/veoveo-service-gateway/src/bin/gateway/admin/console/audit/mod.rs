@@ -1,8 +1,6 @@
 //! Audit-specific reads never enter the installation snapshot or its global feed.
 use veoveo_http::RequestJson;
 mod export;
-#[cfg(test)]
-mod fixture_target;
 mod model;
 mod stream;
 pub(crate) use export::export_audit;
@@ -21,6 +19,7 @@ use std::time::Duration;
 use veoveo_audit_contract::*;
 use veoveo_sdk_rust::GatewayProfileId;
 use veoveo_service_gateway::AuthenticatedSubject;
+use veoveo_service_gateway::audit::{GatewayReason, audit_partition_target};
 use veoveo_types::ScopeDefinition;
 
 const READ_DEADLINE: Duration = Duration::from_secs(10);
@@ -34,18 +33,15 @@ pub(crate) async fn open_view(
     if let Err(response) = admit(&state, &profile, &subject, &partition).await {
         return *response;
     }
-    let draft = match veoveo_service_gateway::audit::gateway_audit()
-        .detail(&platform::AuditView {})
-        .and_then(|detail| {
-            subject.audit_draft(
-                AuditTarget::AuditLog {
-                    partition: partition.clone(),
-                },
-                detail,
-                AuditOutcome::Allowed,
-                AuditReason::Accepted,
-            )
-        }) {
+    let draft = match partition_draft(
+        &subject,
+        &platform::AuditView {
+            partition: partition.clone(),
+        },
+        &partition,
+        AuditOutcome::Success,
+        None,
+    ) {
         Ok(draft) => draft,
         Err(_) => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
     };
@@ -163,27 +159,24 @@ pub(super) async fn admit(
 ) -> Result<AuditReadScope, Box<Response>> {
     let admitted = scope(subject);
     let reason = if !subject.actor.scopes.contains(AuditScope::Read.name()) {
-        Some(AuditReason::MissingScope)
+        Some(GatewayReason::MissingScope)
     } else if !admitted.permits(partition) {
-        Some(AuditReason::PolicyDenied)
+        Some(GatewayReason::PartitionDenied)
     } else if !current(state, profile, subject).await {
-        Some(AuditReason::Revoked)
+        Some(GatewayReason::Revoked)
     } else {
         None
     };
     if let Some(reason) = reason {
-        let record = veoveo_service_gateway::audit::gateway_audit()
-            .detail(&platform::AuditView {})
-            .and_then(|detail| {
-                subject.audit_draft(
-                    AuditTarget::AuditLog {
-                        partition: partition.clone(),
-                    },
-                    detail,
-                    AuditOutcome::Denied,
-                    reason,
-                )
-            });
+        let record = partition_draft(
+            subject,
+            &platform::AuditView {
+                partition: partition.clone(),
+            },
+            partition,
+            AuditOutcome::Denied,
+            Some(reason),
+        );
         let record =
             record.map_err(|_| Box::new(StatusCode::SERVICE_UNAVAILABLE.into_response()))?;
         if state.gateway_state.record_audit(record).await.is_err() {
@@ -192,6 +185,25 @@ pub(super) async fn admit(
         return Err(Box::new(StatusCode::FORBIDDEN.into_response()));
     }
     Ok(admitted)
+}
+
+/// A record of `subject` opening a view of, or exporting, one audit partition.
+pub(super) fn partition_draft<T: AuditDetailType>(
+    subject: &AuthenticatedSubject,
+    detail: &T,
+    partition: &AuditPartition,
+    outcome: AuditOutcome,
+    reason: Option<GatewayReason>,
+) -> anyhow::Result<AuditDraft> {
+    let detail = veoveo_service_gateway::audit::gateway_audit().detail(detail)?;
+    let draft = subject
+        .audit_draft(detail, outcome)
+        .target(audit_partition_target(partition)?);
+    Ok(match reason {
+        Some(reason) => draft.reason(reason.into()),
+        None => draft,
+    }
+    .build()?)
 }
 
 pub(crate) async fn partitions(

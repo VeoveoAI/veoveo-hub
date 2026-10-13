@@ -555,14 +555,14 @@ async fn qualify() {
     .unwrap();
     assert!(exchanges >= 6, "{exchanges} exchange records");
     let acting: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM audit.record WHERE class = 'mcp.tool_admission' AND draft #>> '{detail,acting_server}' = 'relay'",
+        "SELECT count(*) FROM audit.record WHERE class = 'mcp.tool_admission' AND draft #>> '{via,server}' = 'relay'",
     )
     .fetch_one(db.a.pool())
     .await
     .unwrap();
     assert!(acting >= 3, "{acting} delegated admissions");
     let from_tasks: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM audit.record WHERE class IN ('mcp.tool_admission', 'mcp.tool_completion') AND draft #>> '{detail,acting_task}' = $1",
+        "SELECT count(*) FROM audit.record WHERE class IN ('mcp.tool_admission', 'mcp.tool_completion') AND draft #>> '{via,task}' = $1",
     )
     .bind(&source)
     .fetch_one(db.a.pool())

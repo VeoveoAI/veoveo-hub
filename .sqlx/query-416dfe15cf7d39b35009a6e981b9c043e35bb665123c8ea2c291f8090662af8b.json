@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE audit.record\nSET draft = jsonb_set(draft, '{detail,method}', '\"prompt_get\"')\nWHERE id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "416dfe15cf7d39b35009a6e981b9c043e35bb665123c8ea2c291f8090662af8b"
+}

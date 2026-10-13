@@ -1,26 +1,43 @@
-//! The Gateway's audit vocabulary: the classes it declares under the owner `gateway`, its
-//! profile and client targets, and the installation registry that joins them with the
-//! MCP vocabulary of `veoveo-sdk-rust` and the platform classes of core. One registry
-//! serves the whole process, so every target a registration builds belongs to it.
+//! The Gateway's audit vocabulary: the classes it declares under the owner `gateway`,
+//! each with the OCSF class it maps to, and the installation registry that joins them
+//! with the MCP vocabulary of `veoveo-sdk-rust` and the platform classes of core.
 use std::sync::{Arc, LazyLock};
 
 use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 use veoveo_audit_contract::{
-    AuditDetail, AuditDetailDeclaration, AuditDetailType, AuditRegistry, AuditRegistryBuilder,
-    AuditTarget, AuditTargetOwner, AuditTargetRegistration,
+    AuditDetail, AuditDetailDeclaration, AuditDetailType, AuditOcsfClass, AuditRegistry,
+    AuditRegistryBuilder,
 };
-use veoveo_sdk_rust::audit::{
-    DiscoveryKind, DiscoveryTarget, McpAuditTargets, PromptTarget, ResourceTemplateTarget,
-    TaskRouteTarget, ToolTarget,
-};
-use veoveo_sdk_rust::{
-    CanonicalTaskId, GatewayProfileId, GatewayRefreshFamilyId, LocalToolName, PromptName,
-};
-use veoveo_types::{OAuthClientId, ResourceTemplateUri, ServerSlug};
+use veoveo_sdk_rust::GatewayProfileId;
+use veoveo_sdk_rust::GatewayRefreshFamilyId;
+use veoveo_sdk_rust::audit::AuditInvocation;
+use veoveo_types::{DataLabelId, OAuthClientId, ScopeName};
 
-use crate::contract::{AuthMethod, AuthReasonCode};
+use crate::contract::AuthMethod;
+
+/// OCSF Account Change (3001) with an activity this class does not fix.
+const OCSF_ACCOUNT_CHANGE: AuditOcsfClass = AuditOcsfClass {
+    class_uid: 3001,
+    activity_id: 99,
+};
+/// OCSF Authentication (3002) with an activity this class does not fix.
+const OCSF_AUTHENTICATION: AuditOcsfClass = AuditOcsfClass {
+    class_uid: 3002,
+    activity_id: 99,
+};
+/// OCSF Authentication (3002), Service Ticket Request (4): a token for another service.
+const OCSF_SERVICE_TICKET: AuditOcsfClass = AuditOcsfClass {
+    class_uid: 3002,
+    activity_id: 4,
+};
+/// OCSF Entity Management (3004) with an activity this class does not fix.
+const OCSF_ENTITY_MANAGEMENT: AuditOcsfClass = AuditOcsfClass {
+    class_uid: 3004,
+    activity_id: 99,
+};
 
 /// An administrative operation of the Gateway's admin API.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, veoveo_types::Vocabulary)]
@@ -116,36 +133,49 @@ pub struct AdminAdmission {
     pub profile: GatewayProfileId,
     pub operation: AdministrativeOperation,
     pub access: AdministrativeAccess,
+    pub invocation: AuditInvocation,
 }
 impl AuditDetailType for AdminAdmission {
     const CLASS: &'static str = "gateway.admin_admission";
 }
 
-/// An admitted administrative operation finished: class `gateway.admin_completion`.
+/// An admitted administrative operation finished: class `gateway.admin_completion`. A
+/// failure's reason is the record's reason code.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AdminCompletion {
     pub profile: GatewayProfileId,
     pub operation: AdministrativeOperation,
     pub access: AdministrativeAccess,
-    pub failure: Option<AdminOperationFailure>,
+    pub duration_ms: u64,
+    pub invocation: AuditInvocation,
 }
 impl AuditDetailType for AdminCompletion {
     const CLASS: &'static str = "gateway.admin_completion";
 }
 
 /// A token was issued, refreshed, revoked or refused: class `gateway.authentication`.
-/// The session family names the refresh-token family a browser session renews.
+/// The record's reason is the authentication reason code. The session family names the
+/// refresh-token family a browser session renews, the client, scopes and data labels
+/// are the authenticated caller's, and the duration is how long the decision took.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Authentication {
     pub activity: AuthenticationActivity,
     pub method: AuthMethod,
-    pub reason: AuthReasonCode,
+    pub duration_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub session_family: Option<GatewayRefreshFamilyId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client: Option<OAuthClientId>,
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub scopes: BTreeSet<ScopeName>,
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub data_labels: BTreeSet<DataLabelId>,
 }
 impl AuditDetailType for Authentication {
     const CLASS: &'static str = "gateway.authentication";
+    const OCSF: AuditOcsfClass = OCSF_AUTHENTICATION;
 }
 
 /// A control-plane publication created, changed or deleted an identity record: class
@@ -157,6 +187,7 @@ pub struct AccountChange {
 }
 impl AuditDetailType for AccountChange {
     const CLASS: &'static str = "gateway.account_change";
+    const OCSF: AuditOcsfClass = OCSF_ACCOUNT_CHANGE;
 }
 
 /// A server registration step: class `gateway.registration`.
@@ -167,11 +198,13 @@ pub struct Registration {
 }
 impl AuditDetailType for Registration {
     const CLASS: &'static str = "gateway.registration";
+    const OCSF: AuditOcsfClass = OCSF_ENTITY_MANAGEMENT;
 }
 
 /// A registered server exchanged a token to call other servers for its caller, or was
 /// refused: class `gateway.token_exchange`. The record's actor is the caller once the
-/// subject is known, and its target the server that asked.
+/// subject is known, its target the server that asked, and a refusal's reason the OAuth
+/// error.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct TokenExchange {
@@ -179,193 +212,59 @@ pub struct TokenExchange {
     /// How many permissions the server requested, and how many the token carries.
     pub requested: u32,
     pub granted: u32,
-    pub refusal: Option<ExchangeRefusal>,
 }
 impl AuditDetailType for TokenExchange {
     const CLASS: &'static str = "gateway.token_exchange";
+    const OCSF: AuditOcsfClass = OCSF_SERVICE_TICKET;
 }
 
 /// A caller read the status of a Task the Gateway routes: class `gateway.task_status`.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct TaskStatusRead {}
+pub struct TaskStatusRead {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub invocation: Option<AuditInvocation>,
+}
 impl AuditDetailType for TaskStatusRead {
     const CLASS: &'static str = "gateway.task_status";
+    const OCSF: AuditOcsfClass = AuditOcsfClass::api_activity(2);
 }
 
-/// Target `{"kind":"profile","profile":…}`: a Gateway profile.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProfileTarget {
-    pub profile: GatewayProfileId,
-}
-
-/// Target `{"kind":"client","client":…}`: a registered OAuth client.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ClientTarget {
-    pub client: OAuthClientId,
-}
-
-/// The wire shape of the Gateway's targets: a closed object tagged by `kind`.
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
-enum TargetWire {
-    Profile { profile: GatewayProfileId },
-    Client { client: OAuthClientId },
-}
-
-impl Serialize for ProfileTarget {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        TargetWire::Profile {
-            profile: self.profile.clone(),
-        }
-        .serialize(serializer)
-    }
-}
-impl<'de> Deserialize<'de> for ProfileTarget {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        match TargetWire::deserialize(deserializer)? {
-            TargetWire::Profile { profile } => Ok(Self { profile }),
-            TargetWire::Client { .. } => Err(serde::de::Error::custom(
-                "expected a Gateway audit target of kind `profile`",
-            )),
-        }
-    }
-}
-impl Serialize for ClientTarget {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        TargetWire::Client {
-            client: self.client.clone(),
-        }
-        .serialize(serializer)
-    }
-}
-impl<'de> Deserialize<'de> for ClientTarget {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        match TargetWire::deserialize(deserializer)? {
-            TargetWire::Client { client } => Ok(Self { client }),
-            TargetWire::Profile { .. } => Err(serde::de::Error::custom(
-                "expected a Gateway audit target of kind `client`",
-            )),
-        }
-    }
-}
-
-#[derive(JsonSchema)]
-#[allow(dead_code, reason = "Only the target schema reads this field set")]
-struct ProfileFields {
-    profile: GatewayProfileId,
-}
-
-#[derive(JsonSchema)]
-#[allow(dead_code, reason = "Only the target schema reads this field set")]
-struct ClientFields {
-    /// Core's audit target schemas admit no `not` keyword, which the identifier's own
-    /// schema uses, so the target declares the client as a non-empty string. Decoding
-    /// still admits it through `OAuthClientId`.
-    #[schemars(with = "String", length(min = 1))]
-    client: OAuthClientId,
-}
-
-/// A target's schema: its fields inlined, the constant `kind` discriminator, and no
-/// further properties.
-fn tagged_schema<F: JsonSchema>(kind: &str) -> schemars::Schema {
-    let mut schema = schemars::generate::SchemaSettings::draft2020_12()
-        .with(|settings| settings.inline_subschemas = true)
-        .into_generator()
-        .into_root_schema_for::<F>();
-    let object = schema.as_object_mut().expect("target fields are an object");
-    object
-        .entry("properties")
-        .or_insert_with(|| serde_json::json!({}))
-        .as_object_mut()
-        .expect("target properties")
-        .insert(
-            "kind".into(),
-            serde_json::json!({"type": "string", "const": kind}),
-        );
-    object
-        .entry("required")
-        .or_insert_with(|| serde_json::json!([]))
-        .as_array_mut()
-        .expect("target required fields")
-        .push(serde_json::json!("kind"));
-    object.insert(
-        "additionalProperties".into(),
-        serde_json::Value::Bool(false),
-    );
-    schema
-}
-
-impl JsonSchema for ProfileTarget {
-    fn schema_name() -> std::borrow::Cow<'static, str> {
-        "GatewayProfileTarget".into()
-    }
-    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        tagged_schema::<ProfileFields>(Self::KIND)
-    }
-}
-impl JsonSchema for ClientTarget {
-    fn schema_name() -> std::borrow::Cow<'static, str> {
-        "GatewayClientTarget".into()
-    }
-    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        tagged_schema::<ClientFields>(Self::KIND)
-    }
-}
-
-impl AuditTargetOwner for ProfileTarget {
-    const KIND: &'static str = "profile";
-}
-impl AuditTargetOwner for ClientTarget {
-    const KIND: &'static str = "client";
-}
-
-/// The installation's audit registry and the target registrations the Gateway records
-/// with.
+/// The installation's audit registry the Gateway records with.
 pub struct GatewayAudit {
     registry: Arc<AuditRegistry>,
-    mcp: McpAuditTargets,
-    profile: AuditTargetRegistration<ProfileTarget>,
-    client: AuditTargetRegistration<ClientTarget>,
 }
 
 static GATEWAY_AUDIT: LazyLock<GatewayAudit> = LazyLock::new(|| {
     GatewayAudit::build(AuditRegistry::builder()).expect("the Gateway's audit vocabulary is closed")
 });
 
-/// The process's audit registry and target registrations.
+/// The process's audit registry.
 pub fn gateway_audit() -> &'static GatewayAudit {
     &GATEWAY_AUDIT
 }
 
 impl GatewayAudit {
-    /// Join the MCP vocabulary and the Gateway's classes and targets to `builder`.
+    /// Join the MCP vocabulary and the Gateway's classes to `builder`.
     pub fn build(mut builder: AuditRegistryBuilder) -> Result<Self> {
-        let mcp = veoveo_sdk_rust::audit::register(&mut builder)?;
+        veoveo_sdk_rust::audit::register(&mut builder)?;
         Self::declare(&mut builder)?;
-        let profile = builder.register_target()?;
-        let client = builder.register_target()?;
         Ok(Self {
             registry: Arc::new(builder.build()),
-            mcp,
-            profile,
-            client,
         })
     }
 
     /// A registry for reading every owner's records: the Gateway's own vocabulary, then
     /// each class stored in `audit.detail_type` that it does not declare itself. The
     /// Gateway's own declaration wins over a stored one of the same class, and a stored
-    /// declaration the registry cannot admit, such as a malformed schema, is skipped so it
-    /// cannot stop the Gateway from reading the rest.
+    /// declaration the registry cannot admit is skipped so it cannot stop the Gateway
+    /// from reading the rest.
     pub fn reader_registry(
         stored: impl IntoIterator<Item = AuditDetailDeclaration>,
     ) -> Result<Arc<AuditRegistry>> {
         let mut builder = AuditRegistry::builder();
         veoveo_sdk_rust::audit::register(&mut builder)?;
         Self::declare(&mut builder)?;
-        builder.register_target::<ProfileTarget>()?;
-        builder.register_target::<ClientTarget>()?;
         for declaration in stored {
             let class = declaration.class().clone();
             if let Err(error) = builder.declaration(declaration) {
@@ -393,61 +292,6 @@ impl GatewayAudit {
     /// Admit a detail against its class's declaration.
     pub fn detail<T: AuditDetailType>(&self, value: &T) -> Result<AuditDetail> {
         Ok(self.registry.detail(value)?)
-    }
-
-    pub fn tool(&self, server: ServerSlug, tool: LocalToolName) -> Result<AuditTarget> {
-        Ok(self
-            .mcp
-            .tool
-            .target(&self.registry, ToolTarget { server, tool })?)
-    }
-
-    pub fn resource_template(
-        &self,
-        server: ServerSlug,
-        uri: ResourceTemplateUri,
-    ) -> Result<AuditTarget> {
-        Ok(self
-            .mcp
-            .resource_template
-            .target(&self.registry, ResourceTemplateTarget { server, uri })?)
-    }
-
-    pub fn prompt(&self, server: ServerSlug, prompt: PromptName) -> Result<AuditTarget> {
-        Ok(self
-            .mcp
-            .prompt
-            .target(&self.registry, PromptTarget { server, prompt })?)
-    }
-
-    pub fn discovery(
-        &self,
-        server: Option<ServerSlug>,
-        collection: DiscoveryKind,
-    ) -> Result<AuditTarget> {
-        Ok(self
-            .mcp
-            .discovery
-            .target(&self.registry, DiscoveryTarget { server, collection })?)
-    }
-
-    pub fn task_route(&self, server: ServerSlug, route: CanonicalTaskId) -> Result<AuditTarget> {
-        Ok(self
-            .mcp
-            .task_route
-            .target(&self.registry, TaskRouteTarget { server, route })?)
-    }
-
-    pub fn profile(&self, profile: GatewayProfileId) -> Result<AuditTarget> {
-        Ok(self
-            .profile
-            .target(&self.registry, ProfileTarget { profile })?)
-    }
-
-    pub fn client(&self, client: OAuthClientId) -> Result<AuditTarget> {
-        Ok(self
-            .client
-            .target(&self.registry, ClientTarget { client })?)
     }
 }
 
@@ -489,21 +333,19 @@ mod tests {
     }
 
     #[test]
-    fn profile_and_client_targets_round_trip_through_the_registry() {
-        let audit = gateway_audit();
-        let profile = audit
-            .profile(GatewayProfileId::parse("operator").unwrap())
-            .unwrap();
-        assert_eq!(
-            serde_json::to_value(&profile).unwrap(),
-            serde_json::json!({"kind": "profile", "profile": "operator"})
-        );
-        let client = audit
-            .client(OAuthClientId::parse("console").unwrap())
-            .unwrap();
-        assert_eq!(
-            serde_json::to_value(&client).unwrap(),
-            serde_json::json!({"kind": "client", "client": "console"})
-        );
+    fn each_gateway_class_names_its_ocsf_class() {
+        assert_eq!(Authentication::OCSF.class_uid, 3002);
+        assert_eq!(TokenExchange::OCSF, OCSF_SERVICE_TICKET);
+        assert_eq!(AccountChange::OCSF.class_uid, 3001);
+        assert_eq!(Registration::OCSF.class_uid, 3004);
+        assert_eq!(TaskStatusRead::OCSF, AuditOcsfClass::api_activity(2));
+        assert_eq!(AdminAdmission::OCSF, AuditOcsfClass::API_ACTIVITY_OTHER);
+        let declared: Vec<_> = gateway_audit()
+            .registry()
+            .declarations()
+            .filter(|declaration| declaration.class().owner() == "gateway")
+            .map(|declaration| declaration.ocsf().class_uid)
+            .collect();
+        assert_eq!(declared.len(), 7);
     }
 }

@@ -53,9 +53,12 @@ pub(super) struct ReadArgs {
     class: Option<AuditClass>,
     #[arg(long, value_parser=parse_outcome)]
     outcome: Option<AuditOutcome>,
-    /// One typed AuditTarget JSON object.
+    /// A reason code, read within each record's source.
+    #[arg(long, value_parser=parse_reason)]
+    reason: Option<AuditReason>,
+    /// The absolute URI a record names as its target.
     #[arg(long, value_parser=parse_target)]
-    target: Option<String>,
+    target: Option<AuditTarget>,
     #[arg(long, default_value="100", value_parser=clap::value_parser!(u16).range(1..=1000))]
     limit: u16,
 }
@@ -67,12 +70,11 @@ fn parse_outcome(input: &str) -> Result<AuditOutcome, String> {
     serde_json::from_value(serde_json::Value::String(input.to_owned()))
         .map_err(|error| error.to_string())
 }
-fn parse_target(input: &str) -> Result<String, String> {
-    if input.len() > 16_384 {
-        return Err("audit target exceeds 16 KiB".into());
-    }
-    // Admission uses the exact registry shared with the Store connection.
-    Ok(input.to_owned())
+fn parse_reason(input: &str) -> Result<AuditReason, String> {
+    AuditReason::parse(input).map_err(|error| error.to_string())
+}
+fn parse_target(input: &str) -> Result<AuditTarget, String> {
+    AuditTarget::parse(input).map_err(|error| error.to_string())
 }
 #[derive(Debug, Subcommand)]
 pub(super) enum AuditCommand {
@@ -142,26 +144,22 @@ async fn connect(
     // The DB-authenticated operator is installation-scoped, including when the
     // selected read partition is a tenant. No CLI argument claims a tenant actor.
     let detail = match method {
-        ReadKind::View => store.registry().detail(&platform::AuditView {})?,
+        ReadKind::View => store.registry().detail(&platform::AuditView {
+            partition: partition.partition(),
+        })?,
         ReadKind::Export => store.registry().detail(&platform::AuditExport {})?,
     };
-    let draft = AuditDraft::builder(
-        AuditRequest::background(),
-        AuditTarget::AuditLog {
-            partition: partition.partition(),
-        },
-        detail,
-        AuditOutcome::Allowed,
-        AuditReason::Accepted,
-    )
-    .actor(AuditActor {
-        principal,
-        kind: AuditPrincipalKind::Service,
-        tenant: None,
-        oauth_client: None,
-        delegating_principal: None,
-    })
-    .build()?;
+    let draft = AuditDraft::builder(AuditRequest::background(), detail, AuditOutcome::Success)
+        .target(veoveo_service_gateway::audit::audit_partition_target(
+            &partition.partition(),
+        )?)
+        .actor(AuditActor {
+            principal,
+            kind: AuditPrincipalKind::Service,
+            tenant: None,
+            work_context: None,
+        })
+        .build()?;
     let marker = draft.id();
     store.append(&[draft]).await?;
     if method == ReadKind::Export {
@@ -274,7 +272,7 @@ impl AuditCommand {
                             break;
                         }
                         // Verification checks the chain over records as stored, so it needs
-                        // no owner's target codec or detail declaration.
+                        // no owner's detail declaration.
                         let members = store.stored_block_records(&scope, &block).await?;
                         for finding in verifier.verify(&block, &members)? {
                             eprintln!("{finding:?}");
@@ -339,11 +337,8 @@ async fn read(args: ReadArgs, export: bool) -> anyhow::Result<()> {
     query.until = args.until;
     query.class = args.class;
     query.outcome = args.outcome;
-    query.target = args
-        .target
-        .as_deref()
-        .map(|input| store.registry().decoder().from_str(input))
-        .transpose()?;
+    query.reason = args.reason;
+    query.target = args.target;
     query.actor = args.actor;
     query.trace = args.trace;
     query.limit = args.limit;
