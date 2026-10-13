@@ -33,7 +33,9 @@ pub fn channel() -> Channel {
 
 /// The `gateway` schema migrations. Their history lives in `gateway._sqlx_migrations`,
 /// as `sqlx.toml` declares.
-pub static MIGRATOR: Migrator = sqlx::migrate!();
+pub fn migrator() -> Migrator {
+    sqlx::migrate!()
+}
 
 /// The Gateway's statements over core's connection pool.
 #[derive(Clone, Debug)]
@@ -57,7 +59,7 @@ impl GatewayStore {
     /// Apply core's kernel migrations, then the Gateway's own.
     pub async fn migrate(&self) -> Result<(), GatewayStoreError> {
         self.platform.migrate().await?;
-        MIGRATOR.run(self.pool()).await?;
+        migrator().run(self.pool()).await?;
         Ok(())
     }
 }

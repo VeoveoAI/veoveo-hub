@@ -241,7 +241,11 @@ the check stage compiles them offline from an empty target directory.
 
 `tests/database_conformance.rs` holds the Gateway's own statements to core's
 [database rules](https://github.com/VeoveoAI/veoveo-core/blob/dd7394ee566bf2a325a3eb2715e1645b27a6f0de/docs/DATABASE.md#server-schema-rules)
-over the `gateway`, `identity` and `kernel` schemas, planned as the installation owner.
+over the `gateway`, `identity` and `kernel` schemas. The fixture applies the Gateway's
+migrations as the installation owner after the kernel migrations, as startup does, and
+plans every statement as that owner. Refresh families and control-plane revisions are
+read without a tenant predicate: a family is addressed by its identifier or a token
+digest, and a revision configures the whole installation.
 A Task route lookup names the caller's tenant. Registration housekeeping and
 reconciliation read every registration and every process instance of the installation
 by design, and each such statement carries a `-- veoveo:` marker with its reason.
@@ -288,8 +292,5 @@ binding, the audit vocabulary and readers, and the control store.
 - Servers are reached at their registered endpoint; dial-in is not implemented.
 - Concrete resources a server adds at run time appear in `resources/list` after the
   next catalog generation; templates and reads are always current.
-- `tests/database_conformance.rs` is ignored: core's conformance fixture applies only
-  the kernel migrations, so checking the `gateway` schema needs an option in core to
-  apply an owner's migrations as the installation owner.
 - Readiness and registration internals answer with RFC 9457 problem details. Other administrative handlers still answer some errors with a
   status and no body.
