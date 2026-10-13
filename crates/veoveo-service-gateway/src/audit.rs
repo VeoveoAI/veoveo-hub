@@ -14,6 +14,13 @@ use veoveo_sdk_rust::PrincipalKind;
 use crate::control_plane::{PolicyDecision, PolicyEffect, PolicyReasonCode, PolicyTarget};
 
 impl AuthenticatedSubject {
+    /// The registered server that made this call for the caller, if another server did.
+    pub fn acting_server(&self) -> Option<&veoveo_types::ServerSlug> {
+        self.delegation
+            .as_ref()
+            .map(|delegation| &delegation.acting_server.server)
+    }
+
     pub fn audit_context(&self) -> Result<AuditContext> {
         Ok(AuditContext {
             actor: self.audit_actor()?,
@@ -150,14 +157,19 @@ impl crate::store::TransactionAppend for AuditAppend {
 /// The audit detail of an MCP request the Gateway admits or refuses: the MCP vocabulary
 /// for tool calls and reads, core's Task classes for Task changes, and the Gateway's
 /// own class for Task status reads. Other actions have their own producers.
-pub fn mcp_action_detail(action: crate::contract::GatewayAction) -> Result<AuditDetail> {
+pub fn mcp_action_detail(
+    action: crate::contract::GatewayAction,
+    subject: &AuthenticatedSubject,
+) -> Result<AuditDetail> {
     use crate::contract::GatewayAction;
     use veoveo_audit_contract::platform::{TaskCancel, TaskUpdate};
     use veoveo_sdk_rust::audit::{McpReadMethod, Read, ToolAdmission};
     let audit = gateway_audit();
     let read = |method| audit.detail(&Read { method });
     match action {
-        GatewayAction::ToolsCall => audit.detail(&ToolAdmission::default()),
+        GatewayAction::ToolsCall => audit.detail(&ToolAdmission {
+            acting_server: subject.acting_server().cloned(),
+        }),
         GatewayAction::ResourcesRead => read(McpReadMethod::ResourceRead),
         GatewayAction::PromptsGet => read(McpReadMethod::PromptGet),
         GatewayAction::CompletionComplete => read(McpReadMethod::Completion),

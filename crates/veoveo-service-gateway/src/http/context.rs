@@ -12,6 +12,8 @@ pub struct ProfileAuthState {
     pub gateway_state: GatewayState,
     pub deployment: PublicDeployment,
     pub auth_http: SharedHttpClient,
+    /// Admits the tokens registered servers exchange to call other servers.
+    pub delegation: crate::delegation::DelegationService,
 }
 
 use crate::control_plane::ResourceAuthorizationServer;

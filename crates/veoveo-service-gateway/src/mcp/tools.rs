@@ -468,7 +468,7 @@ impl GatewayMcp {
             result: result_kind,
             duration_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or((1u64 << 53) - 1),
             error_code: mcp_error_code,
-            acting_server: None,
+            acting_server: subject.acting_server().cloned(),
         };
         let draft = audit
             .tool(projection.server, projection.tool)
@@ -513,6 +513,21 @@ impl GatewayMcp {
         let authority_digest = veoveo_types::Sha256Digest::from_bytes(
             invocation_authorization_fingerprint(&subject.actor, &subject.authority)?,
         );
+        // A server that calls other servers may call them from this Task for its caller.
+        // A Task another server's call created delegates nothing further.
+        let uses_others = self
+            .catalog
+            .current()
+            .server(server)
+            .is_some_and(|registered| !registered.authorization.uses.is_empty());
+        let delegated_caller = (uses_others && subject.delegation.is_none()).then(|| {
+            veoveo_sdk_rust::DelegatedCaller {
+                client: subject.access_token.oauth_client_id.clone(),
+                actor: subject.actor.clone(),
+                authority: subject.authority.clone(),
+                request_context: subject.request_context(),
+            }
+        });
         let (canonical, _) = self
             .state
             .create_task_route(GatewayTaskRouteDraft {
@@ -527,7 +542,7 @@ impl GatewayMcp {
                     &subject.authority,
                 ),
                 ttl_ms: created.task.ttl_ms,
-                delegated_caller: None,
+                delegated_caller,
             })
             .await
             .map_err(|error| {

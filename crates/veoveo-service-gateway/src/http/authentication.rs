@@ -5,6 +5,7 @@ use super::auth_support::{
 use super::{ProfileAuthState, current_catalog, current_http_client, public_authorization_server};
 use crate::contract::{AuthOutcome, AuthReasonCode};
 use crate::control_plane::ResourceAuthorizationServer;
+use crate::delegation::ExchangedAdmission;
 use crate::{
     AuthError, AuthenticatedSubject, BearerError, BearerToken, GatewayCatalog, JwtAuthConfig,
     JwtVerifier, problem::Problem,
@@ -120,6 +121,36 @@ pub async fn authenticate_profile(
             return bearer_challenge(&state, profile, error, "invalid authorization header");
         }
     };
+
+    // A registered server calling another server presents the token the Gateway issued
+    // it in a token exchange. The Gateway admits it whatever authorization servers the
+    // profile names.
+    match state.delegation.admit(token.as_str(), profile).await {
+        ExchangedAdmission::NotExchanged => {}
+        ExchangedAdmission::Admitted(subject) => {
+            return admit_exchanged(&state, profile, *subject, request, next, started_at).await;
+        }
+        ExchangedAdmission::Refused(reason) => {
+            tracing::warn!(profile = %profile.id, reason, "rejected an exchanged token");
+            if let Err(err) = record_auth_audit(
+                &state,
+                profile,
+                AuthOutcome::Deny,
+                AuthReasonCode::InvalidBearerToken,
+                None,
+                started_at,
+            )
+            .await
+            {
+                return auth_audit_error_response(err);
+            }
+            return bearer_challenge(&state, profile, Some(BearerError::InvalidToken), reason);
+        }
+        ExchangedAdmission::Unavailable(error) => {
+            tracing::error!(%error, "failed to judge an exchanged token");
+            return StatusCode::SERVICE_UNAVAILABLE.into_response();
+        }
+    }
 
     let http = current_http_client(&state.auth_http);
     let jwks = match load_resource_authorization_jwks(
@@ -376,6 +407,38 @@ pub async fn authenticate_profile(
         return auth_audit_error_response(err);
     }
 
+    request
+        .extensions_mut()
+        .insert::<AuthenticatedSubject>(subject);
+    next.run(request).await
+}
+
+/// Admit the subject of an exchanged token: its caller as the Gateway authenticated it
+/// for the call that reached the calling server, narrowed to the token's permissions.
+async fn admit_exchanged(
+    state: &ProfileAuthState,
+    profile: &crate::control_plane::GatewayProfile,
+    subject: AuthenticatedSubject,
+    mut request: Request,
+    next: Next,
+    started_at: Instant,
+) -> axum::response::Response {
+    if let Err(err) = sync_principal_directory(state, &subject).await {
+        tracing::error!(%err, principal = %subject.principal.id, "failed to synchronize a delegated caller");
+        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+    }
+    if let Err(err) = record_auth_audit(
+        state,
+        profile,
+        AuthOutcome::Allow,
+        AuthReasonCode::AuthAllow,
+        Some(&subject),
+        started_at,
+    )
+    .await
+    {
+        return auth_audit_error_response(err);
+    }
     request
         .extensions_mut()
         .insert::<AuthenticatedSubject>(subject);

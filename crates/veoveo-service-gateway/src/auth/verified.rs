@@ -23,6 +23,9 @@ pub struct AuthenticatedSubject {
     pub actor: Principal,
     pub principal_display_name: Option<PrincipalDisplayName>,
     pub authority: InvocationAuthority,
+    /// The registered server that made this call for the caller, with the permissions
+    /// its exchanged token carries; absent for a caller's own call.
+    pub delegation: Option<crate::delegation::SubjectDelegation>,
 }
 
 impl AuthenticatedSubject {

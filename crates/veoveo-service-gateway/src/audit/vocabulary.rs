@@ -89,6 +89,26 @@ pub enum RegistrationActivity {
     Expire,
 }
 
+/// What a registered server presented as the subject of a token exchange.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, veoveo_types::Vocabulary)]
+pub enum ExchangeSubjectKind {
+    /// The forwarded token of a call the server is handling.
+    Request,
+    /// One of the server's Tasks.
+    Task,
+}
+
+/// Why the Gateway refused a token exchange, as its OAuth error names it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, veoveo_types::Vocabulary)]
+pub enum ExchangeRefusal {
+    InvalidRequest,
+    UnauthorizedClient,
+    InvalidGrant,
+    InvalidTarget,
+    InvalidAuthorizationDetails,
+    ServerError,
+}
+
 /// The admin API admitted or refused an operation: class `gateway.admin_admission`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -147,6 +167,22 @@ pub struct Registration {
 }
 impl AuditDetailType for Registration {
     const CLASS: &'static str = "gateway.registration";
+}
+
+/// A registered server exchanged a token to call other servers for its caller, or was
+/// refused: class `gateway.token_exchange`. The record's actor is the caller once the
+/// subject is known, and its target the server that asked.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TokenExchange {
+    pub subject: Option<ExchangeSubjectKind>,
+    /// How many permissions the server requested, and how many the token carries.
+    pub requested: u32,
+    pub granted: u32,
+    pub refusal: Option<ExchangeRefusal>,
+}
+impl AuditDetailType for TokenExchange {
+    const CLASS: &'static str = "gateway.token_exchange";
 }
 
 /// A caller read the status of a Task the Gateway routes: class `gateway.task_status`.
@@ -346,6 +382,7 @@ impl GatewayAudit {
         builder.declare::<AccountChange>()?;
         builder.declare::<Registration>()?;
         builder.declare::<TaskStatusRead>()?;
+        builder.declare::<TokenExchange>()?;
         Ok(())
     }
 
@@ -437,7 +474,8 @@ mod tests {
                 "admin_completion",
                 "authentication",
                 "registration",
-                "task_status"
+                "task_status",
+                "token_exchange"
             ]
         );
         assert!(

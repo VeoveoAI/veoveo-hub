@@ -128,6 +128,12 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         registration_grace,
     )?;
     registrations.refresh().await?;
+    let delegation = veoveo_service_gateway::delegation::DelegationService::new(
+        registrations.clone(),
+        catalog.clone(),
+        gateway_state.clone(),
+        internal_token_issuer.clone(),
+    )?;
     let registration_watcher = registrations.spawn_watcher(ct.child_token());
     let registration_housekeeping = registrations.spawn_housekeeping(ct.child_token());
     let state = AppState {
@@ -137,6 +143,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         public_base_url: deployment.base_url().to_string(),
         refresh_delivery_cipher,
         refresh_delivery_window,
+        delegation: delegation.clone(),
     };
 
     // Probes reach the process by any address, so they skip Host validation.
@@ -166,6 +173,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         gateway_state: gateway_state.clone(),
         deployment: deployment.clone(),
         auth_http: http.clone(),
+        delegation,
     };
     let mcp_state = DynamicMcpState {
         catalog: catalog.clone(),

@@ -55,6 +55,11 @@ pub(super) async fn token_endpoint(
             "the token request must be one application/x-www-form-urlencoded form with a grant_type and each parameter once",
         );
     };
+    // A registered server exchanging a token authenticates with its pinned key, not as
+    // a configured OAuth client.
+    if request.grant_type == veoveo_sdk_rust::calls::TOKEN_EXCHANGE_GRANT_TYPE {
+        return token_exchange(&state, request).await;
+    }
     let catalog = current_catalog(&state.catalog);
     let Some(client_id) = requesting_client(&request) else {
         return *invalid_client();
@@ -163,6 +168,42 @@ pub(super) async fn token_endpoint(
         started_at,
     )
     .await
+}
+
+/// RFC 8693 token exchange for a call between registered servers.
+async fn token_exchange(state: &AppState, request: TokenRequest) -> axum::response::Response {
+    use axum::{
+        Json,
+        http::header::{CACHE_CONTROL, PRAGMA},
+        response::IntoResponse,
+    };
+    let named = request.client_id.trim();
+    let exchange = veoveo_service_gateway::delegation::TokenExchangeRequest {
+        client_id: (!named.is_empty()).then(|| named.to_owned()),
+        client_assertion_type: request.client_assertion_type,
+        client_assertion: request.client_assertion,
+        subject_token: request.subject_token,
+        subject_token_type: request.subject_token_type,
+        resource: request.resource,
+        authorization_details: request.authorization_details,
+        requested_token_type: request.requested_token_type,
+        actor_token: request.actor_token,
+        audience: request.audience,
+        scope: request.scope,
+    };
+    let no_store = [(CACHE_CONTROL, "no-store"), (PRAGMA, "no-cache")];
+    match state.delegation.exchange(exchange).await {
+        Ok(issued) => (StatusCode::OK, no_store, Json(issued)).into_response(),
+        Err(refusal) => {
+            let status = match refusal.error {
+                veoveo_sdk_rust::calls::TokenErrorCode::ServerError => {
+                    StatusCode::SERVICE_UNAVAILABLE
+                }
+                _ => StatusCode::BAD_REQUEST,
+            };
+            (status, no_store, Json(refusal.response())).into_response()
+        }
+    }
 }
 
 /// The client a token request names in `client_id`, or, without one, the client its

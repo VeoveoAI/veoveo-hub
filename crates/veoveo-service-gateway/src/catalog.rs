@@ -559,6 +559,7 @@ impl GatewayCatalog {
                 output_policy: context.output_policy.clone(),
                 provenance,
             },
+            delegation: None,
         })
     }
 

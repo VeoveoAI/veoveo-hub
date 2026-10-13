@@ -43,6 +43,7 @@ pub(crate) fn subject() -> AuthenticatedSubject {
         actor,
         principal_display_name: None,
         authority,
+        delegation: None,
     }
 }
 

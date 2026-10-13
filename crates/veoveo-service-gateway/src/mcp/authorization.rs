@@ -271,7 +271,7 @@ impl GatewayMcp {
             .await?;
         // Owned task status is a polling protocol. Its denials are still records.
         if action != GatewayAction::TasksGet || decision.effect != PolicyEffect::Allow {
-            let detail = crate::audit::mcp_action_detail(action)
+            let detail = crate::audit::mcp_action_detail(action, subject)
                 .map_err(|_| mcp_internal("action requires its domain audit producer"))?;
             let allowed = decision.effect == PolicyEffect::Allow;
             let target = crate::audit::mcp_audit_target(&target)
@@ -344,6 +344,21 @@ impl GatewayMcp {
         if !managed_admitted {
             decision.effect = PolicyEffect::Deny;
             decision.reason = PolicyReasonCode::PolicyDeny;
+        }
+        // A call another server made carries at most the permissions its exchanged
+        // token holds.
+        if let Some(delegation) = &subject.delegation
+            && decision.effect == PolicyEffect::Allow
+        {
+            decision.granted = delegation.narrow(std::mem::take(&mut decision.granted));
+            let carried = match &decision.permission {
+                Some(required) => delegation.permissions.contains(required),
+                None => !decision.granted.is_empty(),
+            };
+            if !carried {
+                decision.effect = PolicyEffect::Deny;
+                decision.reason = PolicyReasonCode::MissingPermission;
+            }
         }
         Ok(decision)
     }
@@ -474,7 +489,7 @@ impl GatewayMcp {
     ) -> Result<(), McpError> {
         let target = crate::audit::mcp_audit_target(&target)
             .map_err(|_| mcp_internal("invalid audit target"))?;
-        let detail = crate::audit::mcp_action_detail(action)
+        let detail = crate::audit::mcp_action_detail(action, subject)
             .map_err(|_| mcp_internal("action requires its domain audit producer"))?;
         let draft = subject
             .audit_draft(

@@ -465,7 +465,8 @@ async fn metadata() {
     )
     .unwrap();
 
-    // The Gateway's own issuer: registration, and the keys of the tokens it forwards.
+    // The Gateway's own issuer: registration, the token exchange of calls between
+    // servers, and the keys of the tokens it forwards.
     let own = document(
         &http,
         &format!("{base}/.well-known/oauth-authorization-server"),
@@ -477,8 +478,20 @@ async fn metadata() {
         own["registration_endpoint"],
         format!("{base}/oauth/register")
     );
+    assert_eq!(own["token_endpoint"], format!("{base}/oauth/token"));
     assert_eq!(own["response_types_supported"], json!([]));
-    assert_eq!(own["grant_types_supported"], json!([]));
+    assert_eq!(
+        own["grant_types_supported"],
+        json!(["urn:ietf:params:oauth:grant-type:token-exchange"])
+    );
+    assert_eq!(
+        own["token_endpoint_auth_methods_supported"],
+        json!(["private_key_jwt"])
+    );
+    assert_eq!(
+        own["token_endpoint_auth_signing_alg_values_supported"],
+        json!(["EdDSA"])
+    );
     assert_eq!(own["jwks_uri"], format!("{base}/jwks.json"));
     let forwarded = document(
         &http,

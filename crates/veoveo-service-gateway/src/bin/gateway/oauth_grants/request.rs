@@ -28,4 +28,16 @@ pub(crate) struct TokenRequest {
     pub(crate) client_assertion: Option<String>,
     #[serde(default)]
     pub(crate) assertion: Option<String>,
+    #[serde(default)]
+    pub(crate) subject_token: Option<String>,
+    #[serde(default)]
+    pub(crate) subject_token_type: Option<String>,
+    #[serde(default)]
+    pub(crate) authorization_details: Option<String>,
+    #[serde(default)]
+    pub(crate) requested_token_type: Option<String>,
+    #[serde(default)]
+    pub(crate) actor_token: Option<String>,
+    #[serde(default)]
+    pub(crate) audience: Option<String>,
 }

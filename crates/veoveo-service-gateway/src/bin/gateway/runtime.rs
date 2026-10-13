@@ -30,6 +30,8 @@ pub(super) struct AppState {
     pub(super) public_base_url: String,
     pub(super) refresh_delivery_cipher: RefreshTokenDeliveryCipher,
     pub(super) refresh_delivery_window: GatewayRefreshDeliveryWindow,
+    /// The token exchange of calls between registered servers.
+    pub(super) delegation: veoveo_service_gateway::delegation::DelegationService,
 }
 
 pub(super) use veoveo_service_gateway::http::ProfileAuthState;

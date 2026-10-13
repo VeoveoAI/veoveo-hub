@@ -17,17 +17,21 @@ use super::{RegistrationService, service::Bearer, service::JWKS_PATH};
 pub const JWK_SET_MEDIA_TYPE: &str = "application/jwk-set+json";
 
 /// RFC 8414 metadata of the Gateway's own issuer. Registered servers read
-/// `registration_endpoint` here; their forwarded tokens carry this `issuer` and verify
-/// with the keys at `jwks_uri`.
+/// `registration_endpoint` here and exchange tokens to call each other at
+/// `token_endpoint`; their forwarded tokens carry this `issuer` and verify with the keys
+/// at `jwks_uri`.
 #[derive(Serialize)]
 struct IssuerMetadata {
     issuer: String,
     jwks_uri: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     registration_endpoint: Option<String>,
-    /// Servers register without grant or response types.
+    token_endpoint: String,
+    /// Servers use no authorization endpoint, and only the RFC 8693 grant.
     response_types_supported: [&'static str; 0],
-    grant_types_supported: [&'static str; 0],
+    grant_types_supported: [&'static str; 1],
+    token_endpoint_auth_methods_supported: [&'static str; 1],
+    token_endpoint_auth_signing_alg_values_supported: [&'static str; 1],
 }
 
 pub fn router(service: RegistrationService) -> Router {
@@ -49,8 +53,11 @@ async fn metadata(State(service): State<RegistrationService>) -> Json<IssuerMeta
         registration_endpoint: service
             .enabled()
             .then(|| service.registration_endpoint().to_string()),
+        token_endpoint: service.token_endpoint().to_string(),
         response_types_supported: [],
-        grant_types_supported: [],
+        grant_types_supported: [veoveo_sdk_rust::calls::TOKEN_EXCHANGE_GRANT_TYPE],
+        token_endpoint_auth_methods_supported: ["private_key_jwt"],
+        token_endpoint_auth_signing_alg_values_supported: ["EdDSA"],
     })
 }
 

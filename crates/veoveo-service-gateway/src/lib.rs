@@ -4,6 +4,7 @@ mod catalog_admission;
 mod catalog_registry;
 pub mod contract;
 pub mod control_plane;
+pub mod delegation;
 pub mod http;
 pub use catalog_admission::GatewayCatalogAdmission;
 pub use catalog_registry::{audit_registry, kernel_catalog_registry};

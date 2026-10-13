@@ -134,6 +134,13 @@ impl RegistrationService {
         &self.inner.registration_endpoint
     }
 
+    /// The token endpoint where registered servers exchange tokens (RFC 8693).
+    pub fn token_endpoint(&self) -> url::Url {
+        let mut endpoint = self.inner.registration_endpoint.clone();
+        endpoint.set_path("/oauth/token");
+        endpoint
+    }
+
     /// The RFC 8414 `jwks_uri` of the Gateway's issuer, which publishes
     /// [`Self::access_token_keys`].
     pub fn jwks_uri(&self) -> &url::Url {
