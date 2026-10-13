@@ -157,7 +157,7 @@ pub fn mcp_action_detail(action: crate::contract::GatewayAction) -> Result<Audit
     let audit = gateway_audit();
     let read = |method| audit.detail(&Read { method });
     match action {
-        GatewayAction::ToolsCall => audit.detail(&ToolAdmission {}),
+        GatewayAction::ToolsCall => audit.detail(&ToolAdmission::default()),
         GatewayAction::ResourcesRead => read(McpReadMethod::ResourceRead),
         GatewayAction::PromptsGet => read(McpReadMethod::PromptGet),
         GatewayAction::CompletionComplete => read(McpReadMethod::Completion),

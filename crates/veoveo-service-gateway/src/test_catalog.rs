@@ -50,6 +50,7 @@ pub fn registered_server(slug: &str, endpoint: &str) -> crate::registration::Reg
             veoveo_sdk_rust::registration::AuthorizationDeclaration {
                 permissions: Vec::new(),
                 requirements: Default::default(),
+                uses: Vec::new(),
             },
         ),
         capabilities: Default::default(),

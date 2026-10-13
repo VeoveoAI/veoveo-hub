@@ -104,6 +104,7 @@ mod tests {
                 permission("time.exports.read", Access::Read, &[Risk::Sensitive]),
             ],
             requirements: Requirements::default(),
+            uses: Vec::new(),
         }
     }
 

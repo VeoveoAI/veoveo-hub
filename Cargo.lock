@@ -1600,15 +1600,6 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
@@ -2367,7 +2358,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
  "heck",
- "itertools 0.14.0",
+ "itertools 0.10.5",
  "log",
  "multimap",
  "once_cell",
@@ -2387,7 +2378,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -2400,7 +2391,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b570b25f7617e43d59005d0990ccb79e950a423952cea19671b7a876da390adf"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -3476,9 +3467,9 @@ dependencies = [
 
 [[package]]
 name = "sse-stream"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c123f296ade4ec4b8b0f6162116e6629f5146922ca5ab40ca9d3c2e73ab4761e"
+checksum = "c25ac7aff0abd1dbc474536e40416e1102c7dd9bfba0b9861c6d357f835dcfb4"
 dependencies = [
  "bytes",
  "futures-util",
@@ -4284,7 +4275,7 @@ dependencies = [
 [[package]]
 name = "veoveo-sdk-rust"
 version = "0.1.0"
-source = "git+https://github.com/VeoveoAI/veoveo-sdk-rust?rev=c9742c0b624c55e47f0d336cc7fd200676226304#c9742c0b624c55e47f0d336cc7fd200676226304"
+source = "git+https://github.com/VeoveoAI/veoveo-sdk-rust?rev=4f2773f5959bd58473831bd06a6ee02d6254fdfd#4f2773f5959bd58473831bd06a6ee02d6254fdfd"
 dependencies = [
  "anyhow",
  "aws-lc-rs",
@@ -4306,6 +4297,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.0",
+ "sse-stream",
  "thiserror 2.0.21",
  "tokio",
  "tokio-util",
@@ -4324,15 +4316,24 @@ dependencies = [
 [[package]]
 name = "veoveo-sdk-rust-fixture"
 version = "0.1.0"
-source = "git+https://github.com/VeoveoAI/veoveo-sdk-rust?rev=c9742c0b624c55e47f0d336cc7fd200676226304#c9742c0b624c55e47f0d336cc7fd200676226304"
+source = "git+https://github.com/VeoveoAI/veoveo-sdk-rust?rev=4f2773f5959bd58473831bd06a6ee02d6254fdfd#4f2773f5959bd58473831bd06a6ee02d6254fdfd"
 dependencies = [
+ "anyhow",
  "axum",
+ "chrono",
+ "futures",
+ "parking_lot",
  "rmcp",
  "schemars",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "uuid",
  "veoveo-sdk-rust",
+ "veoveo-task-runtime",
  "veoveo-types",
 ]
 

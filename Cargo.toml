@@ -21,8 +21,8 @@ veoveo-task-runtime = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "
 veoveo-test-fixtures = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "f685fbfd3d28a477d35f77cee3feacc8787772ac" }
 veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "f685fbfd3d28a477d35f77cee3feacc8787772ac" }
 # veoveo-sdk-rust, pinned to one revision for the library and its test server.
-veoveo-sdk-rust = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "c9742c0b624c55e47f0d336cc7fd200676226304" }
-veoveo-sdk-rust-fixture = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "c9742c0b624c55e47f0d336cc7fd200676226304" }
+veoveo-sdk-rust = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "4f2773f5959bd58473831bd06a6ee02d6254fdfd" }
+veoveo-sdk-rust-fixture = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "4f2773f5959bd58473831bd06a6ee02d6254fdfd" }
 
 aws-lc-rs = "1.18.0"
 anyhow = "=1.0.104"
@@ -51,7 +51,8 @@ secrecy = "0.10.3"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
 sha2 = "=0.11.0"
-sse-stream = "=0.2.5"
+# The 0.2 line, whose `Sse` type rmcp 3.5.0's transport exposes.
+sse-stream = "=0.2.6"
 # PostgreSQL 18 through sqlx, with the version and Rustls backend veoveo-core pins.
 sqlx = { version = "=0.9.0", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls-ring-native-roots", "uuid", "chrono", "json", "macros"] }
 thiserror = "=2.0.21"

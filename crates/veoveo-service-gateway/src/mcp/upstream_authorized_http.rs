@@ -118,6 +118,7 @@ impl GatewayAuthorizedHttpClient {
                 authority: self.authority.clone(),
                 permissions: self.permissions.clone(),
                 request_context: Some(self.request_context.clone()),
+                acting_server: None,
                 expires_at,
             })
             .map(|issued| issued.bearer_token)
@@ -299,6 +300,7 @@ mod tests {
                 veoveo_sdk_rust::registration::AuthorizationDeclaration {
                     permissions: Vec::new(),
                     requirements: Default::default(),
+                    uses: Vec::new(),
                 },
             ),
             capabilities: Default::default(),

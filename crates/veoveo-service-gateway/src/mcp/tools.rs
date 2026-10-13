@@ -468,6 +468,7 @@ impl GatewayMcp {
             result: result_kind,
             duration_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or((1u64 << 53) - 1),
             error_code: mcp_error_code,
+            acting_server: None,
         };
         let draft = audit
             .tool(projection.server, projection.tool)
