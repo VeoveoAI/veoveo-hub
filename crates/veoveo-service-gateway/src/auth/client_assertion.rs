@@ -1,5 +1,6 @@
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use jsonwebtoken::{DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
-use veoveo_mcp_contract::JwtId;
+use veoveo_mcp_contract::{JwtId, OAuthClientId};
 
 use super::{
     claims::ClientAssertionClaims,
@@ -10,6 +11,29 @@ use super::{
     },
     verified::VerifiedClientAssertion,
 };
+
+/// The client an RFC 7523 client assertion names in `sub` (§3 item 2), read without
+/// verification so that a token request may omit `client_id` (RFC 7521 §4.2). The
+/// verifier then checks the assertion against that client's keys, and requires `iss`
+/// and `sub` to name it.
+pub fn asserted_client(assertion: &str) -> Option<OAuthClientId> {
+    #[derive(serde::Deserialize)]
+    struct Subject {
+        sub: String,
+    }
+    let mut segments = assertion.split('.');
+    let (Some(_), Some(payload), Some(_), None) = (
+        segments.next(),
+        segments.next(),
+        segments.next(),
+        segments.next(),
+    ) else {
+        return None;
+    };
+    let payload = URL_SAFE_NO_PAD.decode(payload).ok()?;
+    let subject: Subject = serde_json::from_slice(&payload).ok()?;
+    OAuthClientId::parse(subject.sub).ok()
+}
 
 #[derive(Debug, Clone)]
 pub struct ClientAssertionVerifier {

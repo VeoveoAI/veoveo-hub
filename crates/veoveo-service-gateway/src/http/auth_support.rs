@@ -1,5 +1,7 @@
 use super::ProfileAuthState;
-use crate::{AuthenticatedSubject, GatewayState, www_authenticate_challenge};
+use crate::{
+    AuthenticatedSubject, BearerError, GatewayState, problem::Problem, www_authenticate_challenge,
+};
 use crate::{GatewayCatalog, GatewaySecretResolver};
 use anyhow::Context;
 use axum::{
@@ -140,9 +142,14 @@ pub fn internal_error_response(err: impl std::fmt::Display) -> Response {
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
-pub fn unauthorized(
+/// The profile's RFC 6750 §3 bearer challenge: HTTP 401 without an error code when
+/// the request carries no bearer credential, 400 for `invalid_request`, 401 for
+/// `invalid_token` and 403 for `insufficient_scope`. It names the RFC 9728 metadata of
+/// the profile's MCP resource and the scopes the profile requires.
+pub fn bearer_challenge(
     state: &ProfileAuthState,
     profile: &GatewayProfile,
+    error: Option<BearerError>,
     reason: &'static str,
 ) -> Response {
     let metadata_url = format!(
@@ -150,20 +157,30 @@ pub fn unauthorized(
         state.deployment.base_url(),
         profile.id
     );
-    let challenge = www_authenticate_challenge(&metadata_url, &profile.required_scopes);
+    let challenge = www_authenticate_challenge(&metadata_url, &profile.required_scopes, error);
     let Ok(challenge) = HeaderValue::from_str(&challenge) else {
         return StatusCode::INTERNAL_SERVER_ERROR.into_response();
     };
-
     let mut headers = HeaderMap::new();
     headers.insert(WWW_AUTHENTICATE, challenge);
     tracing::debug!(profile = %profile.id, reason, "gateway authorization challenge");
-    (
-        StatusCode::UNAUTHORIZED,
-        headers,
-        "authorization required for gateway profile",
-    )
-        .into_response()
+    let problem = match error {
+        None => Problem::new(StatusCode::UNAUTHORIZED, "unauthorized", "Unauthorized"),
+        Some(BearerError::InvalidRequest) => Problem::new(
+            StatusCode::BAD_REQUEST,
+            "invalid-request",
+            "Invalid request",
+        ),
+        Some(BearerError::InvalidToken) => {
+            Problem::new(StatusCode::UNAUTHORIZED, "invalid-token", "Invalid token")
+        }
+        Some(BearerError::InsufficientScope) => Problem::new(
+            StatusCode::FORBIDDEN,
+            "insufficient-scope",
+            "Insufficient scope",
+        ),
+    };
+    (headers, problem.detail(reason)).into_response()
 }
 pub async fn load_jwks(http: &reqwest::Client, jwks: &JwksSource) -> anyhow::Result<JwkSet> {
     match jwks {

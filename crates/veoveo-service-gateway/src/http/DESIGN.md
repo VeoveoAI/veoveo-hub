@@ -5,7 +5,9 @@
 | Standard | Profile |
 |---|---|
 | HTTP, RFC 9110 | Axum request admission for every profile-scoped route |
-| Bearer tokens, RFC 6750 | Profile JWT authentication with current invocation authority, session and revocation checks; a 401 carries the profile's `WWW-Authenticate: Bearer` challenge with its RFC 9728 resource metadata URL |
+| Bearer tokens, RFC 6750 | Profile JWT authentication from the `Authorization` header only, with current invocation authority, session and revocation checks, and the §3 `WWW-Authenticate: Bearer` challenge |
+| Protected resource metadata, RFC 9728 | Every challenge names the profile's metadata URL in `resource_metadata` (§5.1) |
+| Problem details, RFC 9457 | The body of every challenge and of an unavailable authorization server |
 
 ## Profile Authentication
 
@@ -20,3 +22,16 @@ Authentication records credential denials before dispatch. A verified bearer res
 the caller's OAuth client, Work Context and invocation authority, synchronizes the
 principal into the platform directory and continues with an `AuthenticatedSubject`.
 The middleware fails closed when the audit writer or the database is unavailable.
+
+A denial answers with the profile's challenge, which names `resource_metadata` and
+the profile's required scopes in `scope`:
+
+| Request | Status | `error` |
+|---|---|---|
+| No `Authorization` header, or a scheme other than `Bearer` | 401 | none, as RFC 6750 §3.1 asks |
+| A bearer credential that is not an RFC 6750 `b64token` | 400 | `invalid_request` |
+| A token that fails verification: malformed, wrongly typed or signed, expired, for another issuer or audience, revoked, or with a revoked session or authority | 401 | `invalid_token` |
+| A valid token without every scope the profile requires | 403 | `insufficient_scope` |
+
+When the keys of the profile's authorization server cannot be loaded, the answer is
+HTTP 503, because the token was never judged.

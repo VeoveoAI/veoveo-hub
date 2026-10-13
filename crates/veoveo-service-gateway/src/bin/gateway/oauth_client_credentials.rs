@@ -5,6 +5,7 @@ use chrono::Utc;
 use veoveo_mcp_contract::{
     AuthOutcome, AuthReasonCode, OAuthClientAuthMethod, OAuthGrantType, ResourceAuthorizationServer,
 };
+use veoveo_oauth_client::CLIENT_ASSERTION_TYPE;
 use veoveo_service_gateway::oauth_clients::EffectiveOAuthClient;
 use veoveo_service_gateway::{ClientAssertionConfig, ClientAssertionVerifier, GatewayCatalog};
 use veoveo_types::WorkContextId;
@@ -23,9 +24,6 @@ use crate::{
         issue_client_credentials_access_token,
     },
 };
-
-const CLIENT_ASSERTION_TYPE_JWT_BEARER: &str =
-    "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
 
 pub(super) async fn token_endpoint_client_credentials(
     state: &AppState,
@@ -67,9 +65,6 @@ pub(super) async fn token_endpoint_client_credentials(
             .allowed_resources
             .contains(resource.protected_resource())
         || !client
-            .grant_types
-            .contains(&OAuthGrantType::ClientCredentials)
-        || !client
             .auth_methods
             .contains(&OAuthClientAuthMethod::PrivateKeyJwt)
     {
@@ -90,13 +85,13 @@ pub(super) async fn token_endpoint_client_credentials(
             return auth_audit_error_response(err);
         }
         return oauth_error_response(
-            StatusCode::UNAUTHORIZED,
+            StatusCode::BAD_REQUEST,
             "invalid_client",
             "client authentication failed",
         );
     }
 
-    if request.client_assertion_type.as_deref() != Some(CLIENT_ASSERTION_TYPE_JWT_BEARER) {
+    if request.client_assertion_type.as_deref() != Some(CLIENT_ASSERTION_TYPE) {
         if let Err(err) = record_token_auth_audit(
             &state.gateway_state,
             resource.audit_target(),
@@ -114,7 +109,7 @@ pub(super) async fn token_endpoint_client_credentials(
             return auth_audit_error_response(err);
         }
         return oauth_error_response(
-            StatusCode::UNAUTHORIZED,
+            StatusCode::BAD_REQUEST,
             "invalid_client",
             "client authentication failed",
         );
@@ -137,7 +132,7 @@ pub(super) async fn token_endpoint_client_credentials(
             return auth_audit_error_response(err);
         }
         return oauth_error_response(
-            StatusCode::UNAUTHORIZED,
+            StatusCode::BAD_REQUEST,
             "invalid_client",
             "client authentication failed",
         );
@@ -192,7 +187,7 @@ pub(super) async fn token_endpoint_client_credentials(
                     return auth_audit_error_response(err);
                 }
                 return oauth_error_response(
-                    StatusCode::UNAUTHORIZED,
+                    StatusCode::BAD_REQUEST,
                     "invalid_client",
                     "client authentication failed",
                 );
@@ -252,7 +247,7 @@ pub(super) async fn token_endpoint_client_credentials(
                     return auth_audit_error_response(err);
                 }
                 return oauth_error_response(
-                    StatusCode::UNAUTHORIZED,
+                    StatusCode::BAD_REQUEST,
                     "invalid_client",
                     "client authentication failed",
                 );
@@ -293,7 +288,7 @@ pub(super) async fn token_endpoint_client_credentials(
                 return auth_audit_error_response(err);
             }
             return oauth_error_response(
-                StatusCode::UNAUTHORIZED,
+                StatusCode::BAD_REQUEST,
                 "invalid_client",
                 "client authentication failed",
             );
@@ -318,6 +313,34 @@ pub(super) async fn token_endpoint_client_credentials(
             }
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
+    }
+
+    // RFC 6749 §5.2: an authenticated client without this grant is unauthorized.
+    if !client
+        .grant_types
+        .contains(&OAuthGrantType::ClientCredentials)
+    {
+        if let Err(err) = record_token_auth_audit(
+            &state.gateway_state,
+            resource.audit_target(),
+            AuthAuditRecord {
+                authorization_server: Some(authorization_server),
+                client_id: Some(&client_id),
+                principal: None,
+                outcome: AuthOutcome::Deny,
+                reason: AuthReasonCode::UnsupportedGrantType,
+                started_at,
+            },
+        )
+        .await
+        {
+            return auth_audit_error_response(err);
+        }
+        return oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "unauthorized_client",
+            "the client may not use the client_credentials grant",
+        );
     }
 
     let supported_scopes = resource.supported_scopes(catalog);

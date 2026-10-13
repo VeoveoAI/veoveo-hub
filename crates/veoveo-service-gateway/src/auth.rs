@@ -14,7 +14,7 @@ pub use access_token::{
     ACCESS_TOKEN_CORE_CLAIMS, JwtVerifier, access_token_extension_registry_builder,
     validate_access_token_extensions, validate_access_token_registry,
 };
-pub use client_assertion::ClientAssertionVerifier;
+pub use client_assertion::{ClientAssertionVerifier, asserted_client};
 pub use config::{
     BearerToken, ClientAssertionConfig, IdJagConfig, JwtAuthConfig, OidcIdTokenConfig,
 };
@@ -521,9 +521,30 @@ XVKygdRdax3xMB3Eld5rlIDwzX09ARHrm8badXtrF0NhQPYZVbax8rpJGcgEFPgXEJJ71w==
         let token = BearerToken::from_authorization_header("Bearer abc.def.ghi").unwrap();
         assert_eq!(format!("{token:?}"), "BearerToken([REDACTED])");
         assert!(!format!("{token:?}").contains("abc.def.ghi"));
-        assert!(BearerToken::from_authorization_header("Basic abc").is_err());
-        assert!(BearerToken::from_authorization_header("Bearer").is_err());
-        assert!(BearerToken::from_authorization_header("Bearer abc def").is_err());
+        for header in ["bearer  a-b_c~d+e/f.g==", "BEARER x"] {
+            assert!(
+                BearerToken::from_authorization_header(header).is_ok(),
+                "{header}"
+            );
+        }
+        for header in ["Basic abc", "Basic", "Bearerabc", ""] {
+            assert!(matches!(
+                BearerToken::from_authorization_header(header),
+                Err(AuthError::InvalidAuthorizationScheme)
+            ));
+        }
+        for header in [
+            "Bearer",
+            "Bearer ",
+            "Bearer abc def",
+            "Bearer =",
+            "Bearer a=b",
+        ] {
+            assert!(matches!(
+                BearerToken::from_authorization_header(header),
+                Err(AuthError::InvalidBearerToken)
+            ));
+        }
     }
 
     #[test]

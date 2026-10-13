@@ -154,7 +154,7 @@ pub(crate) async fn authorize_endpoint(
                 return auth_audit_error_response(err);
             }
             return oauth_error_response(
-                StatusCode::UNAUTHORIZED,
+                StatusCode::BAD_REQUEST,
                 "invalid_client",
                 "client is not allowed for this gateway profile",
             );
@@ -178,7 +178,7 @@ pub(crate) async fn authorize_endpoint(
             return auth_audit_error_response(err);
         }
         return oauth_error_response(
-            StatusCode::UNAUTHORIZED,
+            StatusCode::BAD_REQUEST,
             "invalid_client",
             "client is not allowed for this gateway profile",
         );
@@ -201,7 +201,7 @@ pub(crate) async fn authorize_endpoint(
             return auth_audit_error_response(err);
         }
         return oauth_error_response(
-            StatusCode::UNAUTHORIZED,
+            StatusCode::BAD_REQUEST,
             "invalid_client",
             "client is not allowed for this gateway profile",
         );

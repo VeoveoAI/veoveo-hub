@@ -349,17 +349,50 @@ impl GatewayCatalog {
     }
 }
 
-pub fn www_authenticate_challenge(metadata_url: &str, scopes: &[ScopeName]) -> String {
+/// An error code of an RFC 6750 §3.1 bearer challenge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BearerError {
+    /// The request's credentials are malformed.
+    InvalidRequest,
+    /// The access token is malformed, expired, revoked or otherwise invalid.
+    InvalidToken,
+    /// The access token lacks a scope the resource requires.
+    InsufficientScope,
+}
+
+impl BearerError {
+    /// The `error` attribute value RFC 6750 §3.1 registers.
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::InvalidRequest => "invalid_request",
+            Self::InvalidToken => "invalid_token",
+            Self::InsufficientScope => "insufficient_scope",
+        }
+    }
+}
+
+/// An RFC 6750 §3 `Bearer` challenge naming the protected resource's RFC 9728
+/// metadata and the scopes it requires. A request without credentials receives no
+/// error code (RFC 6750 §3.1).
+pub fn www_authenticate_challenge(
+    metadata_url: &str,
+    scopes: &[ScopeName],
+    error: Option<BearerError>,
+) -> String {
+    let mut challenge = String::from("Bearer ");
+    if let Some(error) = error {
+        challenge.push_str(&format!(r#"error="{}", "#, error.code()));
+    }
+    challenge.push_str(&format!(r#"resource_metadata="{metadata_url}""#));
     let scope = scopes
         .iter()
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(" ");
-    if scope.is_empty() {
-        format!(r#"Bearer resource_metadata="{metadata_url}""#)
-    } else {
-        format!(r#"Bearer resource_metadata="{metadata_url}", scope="{scope}""#)
+    if !scope.is_empty() {
+        challenge.push_str(&format!(r#", scope="{scope}""#));
     }
+    challenge
 }
 
 fn authorization_extensions(

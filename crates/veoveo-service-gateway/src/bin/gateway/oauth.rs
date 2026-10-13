@@ -2,12 +2,17 @@ use std::time::Instant;
 use veoveo_gateway_contract::ProtectedResourceDescriptor;
 use veoveo_gateway_contract::{AuthorizationServerId, ProtectedResourceId};
 
-use axum::{Form, extract::State, http::StatusCode};
+use axum::{
+    Form,
+    extract::{State, rejection::FormRejection},
+    http::StatusCode,
+};
 use std::collections::BTreeSet;
 
 use veoveo_mcp_contract::{
     AuthOutcome, AuthReasonCode, GatewayProfile, OAuthClientId, OAuthClientRegistration,
 };
+use veoveo_oauth_client::CLIENT_ASSERTION_TYPE;
 use veoveo_service_gateway::GatewayCatalog;
 use veoveo_types::ScopeName;
 
@@ -37,14 +42,23 @@ const JWT_BEARER_GRANT_TYPE: &str = "urn:ietf:params:oauth:grant-type:jwt-bearer
 
 pub(super) async fn token_endpoint(
     State(state): State<AppState>,
-    Form(request): Form<TokenRequest>,
+    request: Result<Form<TokenRequest>, FormRejection>,
 ) -> axum::response::Response {
     let started_at = Instant::now();
-    let catalog = current_catalog(&state.catalog);
-    let client_id = match OAuthClientId::parse(request.client_id.trim()) {
-        Ok(id) => id,
-        Err(_) => return *invalid_client(),
+    // RFC 6749 §5.2: a body that is not one form with each parameter once, or that
+    // lacks `grant_type`, is an invalid request.
+    let Ok(Form(mut request)) = request else {
+        return oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "invalid_request",
+            "the token request must be one application/x-www-form-urlencoded form with a grant_type and each parameter once",
+        );
     };
+    let catalog = current_catalog(&state.catalog);
+    let Some(client_id) = requesting_client(&request) else {
+        return *invalid_client();
+    };
+    request.client_id = client_id.to_string();
     let effective = match state
         .gateway_state
         .effective_oauth_client(&catalog, &client_id)
@@ -148,6 +162,24 @@ pub(super) async fn token_endpoint(
         started_at,
     )
     .await
+}
+
+/// The client a token request names in `client_id`, or, without one, the client its
+/// RFC 7523 assertion names (RFC 7521 §4.2). The grant authenticates that client.
+fn requesting_client(request: &TokenRequest) -> Option<OAuthClientId> {
+    let named = request.client_id.trim();
+    if !named.is_empty() {
+        return OAuthClientId::parse(named).ok();
+    }
+    match (
+        request.client_assertion_type.as_deref(),
+        request.client_assertion.as_deref(),
+    ) {
+        (Some(CLIENT_ASSERTION_TYPE), Some(assertion)) => {
+            veoveo_service_gateway::auth::asserted_client(assertion)
+        }
+        _ => None,
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -284,12 +316,17 @@ fn resolve_client_resource<'a>(
             })?
         }
     };
+    // RFC 8707 §2: a resource the client may not request is an invalid target.
     if &client.authorization_server != resource.authorization_server()
         || !client
             .allowed_resources
             .contains(resource.protected_resource())
     {
-        return Err(invalid_client());
+        return Err(Box::new(oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "invalid_target",
+            "the client may not request this resource",
+        )));
     }
     Ok(resource)
 }
@@ -310,9 +347,9 @@ fn resolve_registered_resource<'a>(
 
 fn invalid_client() -> Box<axum::response::Response> {
     Box::new(oauth_error_response(
-        StatusCode::UNAUTHORIZED,
+        StatusCode::BAD_REQUEST,
         "invalid_client",
-        "client is not registered for this protected resource",
+        "the installation registers no such client",
     ))
 }
 

@@ -75,7 +75,7 @@ pub(crate) async fn token_endpoint_id_jag(
                 return auth_audit_error_response(err);
             }
             return oauth_error_response(
-                StatusCode::UNAUTHORIZED,
+                StatusCode::BAD_REQUEST,
                 "invalid_client",
                 "client authentication failed",
             );
@@ -99,7 +99,7 @@ pub(crate) async fn token_endpoint_id_jag(
             return auth_audit_error_response(err);
         }
         return oauth_error_response(
-            StatusCode::UNAUTHORIZED,
+            StatusCode::BAD_REQUEST,
             "invalid_client",
             "client authentication failed",
         );
@@ -130,7 +130,7 @@ pub(crate) async fn token_endpoint_id_jag(
             return auth_audit_error_response(err);
         }
         return oauth_error_response(
-            StatusCode::UNAUTHORIZED,
+            StatusCode::BAD_REQUEST,
             "invalid_client",
             "client authentication failed",
         );
@@ -229,7 +229,7 @@ pub(crate) async fn token_endpoint_id_jag(
                 return auth_audit_error_response(err);
             }
             return oauth_error_response(
-                StatusCode::UNAUTHORIZED,
+                StatusCode::BAD_REQUEST,
                 "invalid_grant",
                 "identity assertion could not be validated",
             );
@@ -288,7 +288,7 @@ pub(crate) async fn token_endpoint_id_jag(
                 return auth_audit_error_response(err);
             }
             return oauth_error_response(
-                StatusCode::UNAUTHORIZED,
+                StatusCode::BAD_REQUEST,
                 "invalid_grant",
                 "identity assertion could not be validated",
             );
@@ -317,7 +317,7 @@ pub(crate) async fn token_endpoint_id_jag(
             return auth_audit_error_response(err);
         }
         return oauth_error_response(
-            StatusCode::UNAUTHORIZED,
+            StatusCode::BAD_REQUEST,
             "invalid_grant",
             "identity assertion could not be validated",
         );
@@ -357,7 +357,7 @@ pub(crate) async fn token_endpoint_id_jag(
                 return auth_audit_error_response(err);
             }
             return oauth_error_response(
-                StatusCode::UNAUTHORIZED,
+                StatusCode::BAD_REQUEST,
                 "invalid_grant",
                 "identity assertion has already been used",
             );

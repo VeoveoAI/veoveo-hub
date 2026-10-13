@@ -1,8 +1,12 @@
 use serde::Deserialize;
 
+/// An RFC 6749 §4 token request. `client_id` is empty when an RFC 7523 client
+/// assertion identifies the client instead (RFC 7521 §4.2); the token endpoint fills it
+/// from the assertion before a grant reads it.
 #[derive(Deserialize)]
 pub(crate) struct TokenRequest {
     pub(crate) grant_type: String,
+    #[serde(default)]
     pub(crate) client_id: String,
     #[serde(default)]
     pub(crate) scope: Option<String>,

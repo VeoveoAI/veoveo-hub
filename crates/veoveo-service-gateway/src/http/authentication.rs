@@ -1,10 +1,11 @@
 use super::auth_support::{
     allowed_gateway_jwt_algorithms, auth_audit_error_response,
-    authorization_server_jwks_from_signing_key, load_jwks, record_auth_audit, unauthorized,
+    authorization_server_jwks_from_signing_key, bearer_challenge, load_jwks, record_auth_audit,
 };
 use super::{ProfileAuthState, current_catalog, current_http_client, public_authorization_server};
 use crate::{
-    AuthError, AuthenticatedSubject, BearerToken, GatewayCatalog, JwtAuthConfig, JwtVerifier,
+    AuthError, AuthenticatedSubject, BearerError, BearerToken, GatewayCatalog, JwtAuthConfig,
+    JwtVerifier, problem::Problem,
 };
 use axum::{
     extract::{MatchedPath, OriginalUri, Request, State},
@@ -72,14 +73,10 @@ pub async fn authenticate_profile(
         {
             return auth_audit_error_response(err);
         }
-        return unauthorized(&state, profile, "unknown authorization server");
+        return bearer_challenge(&state, profile, None, "unknown authorization server");
     };
 
-    let Some(header) = request
-        .headers()
-        .get(AUTHORIZATION)
-        .and_then(|value| value.to_str().ok())
-    else {
+    let Some(header) = request.headers().get(AUTHORIZATION) else {
         if let Err(err) = record_auth_audit(
             &state,
             profile,
@@ -92,9 +89,13 @@ pub async fn authenticate_profile(
         {
             return auth_audit_error_response(err);
         }
-        return unauthorized(&state, profile, "missing authorization header");
+        return bearer_challenge(&state, profile, None, "missing authorization header");
     };
-    let token = match BearerToken::from_authorization_header(header) {
+    let token = match header
+        .to_str()
+        .map_err(|_| AuthError::InvalidAuthorizationHeader)
+        .and_then(BearerToken::from_authorization_header)
+    {
         Ok(token) => token,
         Err(err) => {
             tracing::warn!("rejected gateway request: {err}");
@@ -110,7 +111,13 @@ pub async fn authenticate_profile(
             {
                 return auth_audit_error_response(err);
             }
-            return unauthorized(&state, profile, "invalid authorization header");
+            // RFC 6750 §3.1: an unsupported scheme carries no bearer credential, and
+            // a malformed bearer credential is an invalid request.
+            let error = match err {
+                AuthError::InvalidAuthorizationScheme => None,
+                _ => Some(BearerError::InvalidRequest),
+            };
+            return bearer_challenge(&state, profile, error, "invalid authorization header");
         }
     };
 
@@ -138,7 +145,15 @@ pub async fn authenticate_profile(
             {
                 return auth_audit_error_response(err);
             }
-            return unauthorized(&state, profile, "authorization server unavailable");
+            // The token was not judged, so the answer names the unavailable keys
+            // instead of challenging the caller.
+            return Problem::new(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "authorization-server-unavailable",
+                "Authorization server unavailable",
+            )
+            .detail("the keys of the profile's authorization server cannot be loaded")
+            .into_response();
         }
     };
     let auth_config = match JwtAuthConfig::new(
@@ -179,19 +194,27 @@ pub async fn authenticate_profile(
         Ok(verified) => verified,
         Err(err) => {
             tracing::warn!("rejected gateway token: {err}");
-            if let Err(err) = record_auth_audit(
-                &state,
-                profile,
-                AuthOutcome::Deny,
-                AuthReasonCode::InvalidBearerToken,
-                None,
-                started_at,
-            )
-            .await
+            // The verifier checks scope after the signature and every other claim, so
+            // only a valid token lacks scope.
+            let (reason, error, detail) = match err {
+                AuthError::MissingRequiredScope => (
+                    AuthReasonCode::InvalidScope,
+                    BearerError::InsufficientScope,
+                    "the access token lacks a scope the profile requires",
+                ),
+                _ => (
+                    AuthReasonCode::InvalidBearerToken,
+                    BearerError::InvalidToken,
+                    "invalid bearer token",
+                ),
+            };
+            if let Err(err) =
+                record_auth_audit(&state, profile, AuthOutcome::Deny, reason, None, started_at)
+                    .await
             {
                 return auth_audit_error_response(err);
             }
-            return unauthorized(&state, profile, "invalid bearer token");
+            return bearer_challenge(&state, profile, Some(error), detail);
         }
     };
     let subject = match state
@@ -214,7 +237,12 @@ pub async fn authenticate_profile(
             {
                 return auth_audit_error_response(err);
             }
-            return unauthorized(&state, profile, "invalid invocation authority");
+            return bearer_challenge(
+                &state,
+                profile,
+                Some(BearerError::InvalidToken),
+                "invalid invocation authority",
+            );
         }
     };
     match state
@@ -232,7 +260,12 @@ pub async fn authenticate_profile(
             let (reason, response) = match outcome {
                 Ok(false) => (
                     AuthReasonCode::TokenRevoked,
-                    unauthorized(&state, profile, "session revoked or expired"),
+                    bearer_challenge(
+                        &state,
+                        profile,
+                        Some(BearerError::InvalidToken),
+                        "session revoked or expired",
+                    ),
                 ),
                 Err(error) => {
                     tracing::error!(%error, "failed to read current access-token session");
@@ -288,7 +321,12 @@ pub async fn authenticate_profile(
                 {
                     return auth_audit_error_response(err);
                 }
-                return unauthorized(&state, profile, "token revoked");
+                return bearer_challenge(
+                    &state,
+                    profile,
+                    Some(BearerError::InvalidToken),
+                    "token revoked",
+                );
             }
             Ok(None) => {}
             Err(err) => {

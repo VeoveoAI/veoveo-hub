@@ -39,7 +39,7 @@ pub use mcp::{
     upstream_client_builder,
 };
 pub use metadata::{
-    AuthorizationExtensionMetadata, AuthorizationServerMetadata, GatewayMetadataError,
+    AuthorizationExtensionMetadata, AuthorizationServerMetadata, BearerError, GatewayMetadataError,
     ProtectedResourceMetadata, www_authenticate_challenge,
 };
 pub use policy::{PolicyRequest, mcp_method_name, resource_scheme_from_uri};

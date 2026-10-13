@@ -174,14 +174,17 @@ impl std::fmt::Debug for BearerToken {
 }
 
 impl BearerToken {
+    /// Admit RFC 6750 §2.1 credentials, `Bearer 1*SP b64token`, with the scheme
+    /// compared without regard to case. Another scheme is
+    /// [`AuthError::InvalidAuthorizationScheme`]; a bearer credential that is not a
+    /// `b64token` is [`AuthError::InvalidBearerToken`].
     pub fn from_authorization_header(value: &str) -> Result<Self, AuthError> {
-        let Some((scheme, token)) = value.split_once(' ') else {
-            return Err(AuthError::InvalidAuthorizationHeader);
-        };
+        let (scheme, credentials) = value.split_once(' ').unwrap_or((value, ""));
         if !scheme.eq_ignore_ascii_case("bearer") {
             return Err(AuthError::InvalidAuthorizationScheme);
         }
-        if token.is_empty() || token.chars().any(char::is_whitespace) {
+        let token = credentials.trim_start_matches(' ');
+        if !is_b64token(token) {
             return Err(AuthError::InvalidBearerToken);
         }
         Ok(Self(token.to_string()))
@@ -190,4 +193,13 @@ impl BearerToken {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+}
+
+/// RFC 6750 §2.1: `b64token = 1*( ALPHA / DIGIT / "-" / "." / "_" / "~" / "+" / "/" ) *"="`.
+fn is_b64token(value: &str) -> bool {
+    let body = value.trim_end_matches('=');
+    !body.is_empty()
+        && body
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b"-._~+/".contains(&byte))
 }

@@ -213,8 +213,15 @@ server's schema as its group role and holds the server's kernel instance, role
 decisions by risk, refusal of undeclared resources, the permissions each forwarded
 token carries, that deregistration drops a registration's login, and that a process
 that ends without deregistering loses its registration and login after the grace
-period. Unit and database tests cover the catalog, policy adapter, discovery cache,
-Task routes, refresh families, session binding, audit readers and the control store.
+period.
+
+`tests/oauth.rs` starts the binary the same way and checks over HTTP the token
+endpoint's error code for a wrongly signed, expired, replayed or misaddressed
+assertion, an unknown client, resource or scope and an unsupported grant, and the MCP
+endpoint's challenge for a missing, malformed, expired, misaddressed, mistyped, wrongly
+signed, revoked or under-scoped token. Unit and database tests cover the catalog,
+policy adapter, discovery cache, Task routes, refresh families, session binding, audit
+readers and the control store.
 
 ## Contract Compliance
 

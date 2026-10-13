@@ -93,7 +93,7 @@ pub(super) async fn token_endpoint_authorization_code(
                 return auth_audit_error_response(err);
             }
             return oauth_error_response(
-                StatusCode::UNAUTHORIZED,
+                StatusCode::BAD_REQUEST,
                 "invalid_client",
                 "client authentication failed",
             );
@@ -117,7 +117,7 @@ pub(super) async fn token_endpoint_authorization_code(
             return auth_audit_error_response(err);
         }
         return oauth_error_response(
-            StatusCode::UNAUTHORIZED,
+            StatusCode::BAD_REQUEST,
             "invalid_client",
             "client authentication failed",
         );
@@ -140,7 +140,7 @@ pub(super) async fn token_endpoint_authorization_code(
             return auth_audit_error_response(err);
         }
         return oauth_error_response(
-            StatusCode::UNAUTHORIZED,
+            StatusCode::BAD_REQUEST,
             "invalid_client",
             "client authentication failed",
         );

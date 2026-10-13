@@ -3,7 +3,7 @@ use veoveo_gateway_contract::ProtectedResourceId;
 
 use axum::{
     Form,
-    extract::State,
+    extract::{State, rejection::FormRejection},
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
@@ -34,9 +34,17 @@ pub(crate) struct RefreshRevocationForm {
 
 pub(crate) async fn revoke_refresh_token(
     State(state): State<AppState>,
-    Form(form): Form<RefreshRevocationForm>,
+    form: Result<Form<RefreshRevocationForm>, FormRejection>,
 ) -> Response {
     let started_at = Instant::now();
+    // RFC 7009 §2.2.1 answers with the errors of RFC 6749 §5.2.
+    let Ok(Form(form)) = form else {
+        return oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "invalid_request",
+            "the revocation request must be one application/x-www-form-urlencoded form with a token and a client_id",
+        );
+    };
     let catalog = current_catalog(&state.catalog);
     let profile =
         match resolve_oauth_profile(&catalog, form.client_id.as_str(), form.resource.as_deref()) {
@@ -253,7 +261,7 @@ async fn invalid_client_response(
         return auth_audit_error_response(error);
     }
     oauth_error_response(
-        StatusCode::UNAUTHORIZED,
+        StatusCode::BAD_REQUEST,
         "invalid_client",
         "client is not permitted to revoke this refresh token",
     )

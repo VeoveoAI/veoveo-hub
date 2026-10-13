@@ -5,7 +5,8 @@
 | Standard | Profile |
 |---|---|
 | OAuth 2.0, RFC 6749 | Authorization code with PKCE, refresh, client credentials and the ID-JAG grant, for clients the installation configures |
-| JWT assertions, RFC 7523 | `private_key_jwt` client authentication and identity assertion grants |
+| JWT assertions, RFC 7521 and RFC 7523 | `private_key_jwt` client authentication and identity assertion grants |
+| Resource indicators, RFC 8707 | `resource` names the protected resource a token is for |
 | JWT access tokens, RFC 9068 | Every caller access token: the hosted authorization server's carry `typ` `at+jwt`, and profile authentication accepts no other type |
 | JWT, RFC 7519, and JWS, RFC 7515 | Access tokens the hosted authorization server signs with Ed25519 (`EdDSA`, RFC 8037); identity provider and client tokens in RS, PS, ES or EdDSA algorithms |
 | JWK Thumbprint, RFC 7638 | The `kid` of the hosted authorization server's key, which the configuration repeats as `accessTokenKeyId` |
@@ -28,8 +29,34 @@ verifies its own tokens with the same key.
 Profile authentication follows RFC 9068 §4 for every authorization server a profile
 names: a token whose `typ` is neither `at+jwt` nor `application/at+jwt` is refused
 before its signature is checked. Verification requires the signed `exp` to be in the
-future; clock-skew tolerance never extends it. An expired bearer receives HTTP 401 with the profile's challenge before any
-upstream discovery, and the denial is recorded as an authentication event.
+future; clock-skew tolerance never extends it. An expired bearer receives HTTP 401
+with the profile's challenge before any upstream discovery, and the denial is recorded
+as an authentication event.
+
+## Token Endpoint
+
+`/oauth/token` reads one `application/x-www-form-urlencoded` form. A client that
+authenticates with an RFC 7523 assertion may omit `client_id`, as RFC 7521 §4.2
+allows: the assertion's `sub` names the client, and verification against that
+client's keys requires `iss` and `sub` to name it. An assertion authenticates once:
+its `jti` is recorded on every replica until the assertion expires. Its `aud` is the
+token endpoint URL.
+
+Errors carry the codes of RFC 6749 §5.2 and RFC 8707 §2, with HTTP 400 and
+`Cache-Control: no-store`:
+
+| Request | `error` |
+|---|---|
+| Not one form, a repeated parameter or no `grant_type` | `invalid_request` |
+| An unknown client, or an assertion that is malformed, wrongly signed, expired, replayed or addressed elsewhere | `invalid_client` |
+| An authenticated client that may not use the grant | `unauthorized_client` |
+| A grant the resource does not support | `unsupported_grant_type` |
+| A resource that is unknown or that the client may not request | `invalid_target` |
+| A scope the client may not request | `invalid_scope` |
+
+The token and revocation endpoints accept no HTTP authentication scheme, so
+`invalid_client` keeps the 400 of RFC 6749 §5.2. A 401 would have to carry a challenge
+for such a scheme.
 
 ## Sessions
 

@@ -23,7 +23,7 @@ use veoveo_types::{
 use veoveo_types::{WorkContextMembershipLevel, WorkContextOutputPolicy};
 
 use super::*;
-use crate::{PolicyRequest, www_authenticate_challenge};
+use crate::{BearerError, PolicyRequest, www_authenticate_challenge};
 
 fn identity_provider() -> IdentityProvider {
     IdentityProvider {
@@ -524,14 +524,20 @@ fn gateway_policy_rules_require_their_groups() {
 
 #[test]
 fn builds_www_authenticate_challenge_with_scope() {
-    let challenge = www_authenticate_challenge(
-        "https://veoveo.example/.well-known/oauth-protected-resource/mcp/operator",
-        &[ScopeName::parse("operator:use").unwrap()],
-    );
+    let metadata = "https://veoveo.example/.well-known/oauth-protected-resource/mcp/operator";
+    let scopes = [ScopeName::parse("operator:use").unwrap()];
 
     assert_eq!(
-        challenge,
+        www_authenticate_challenge(metadata, &scopes, None),
         "Bearer resource_metadata=\"https://veoveo.example/.well-known/oauth-protected-resource/mcp/operator\", scope=\"operator:use\""
+    );
+    assert_eq!(
+        www_authenticate_challenge(metadata, &scopes, Some(BearerError::InvalidToken)),
+        "Bearer error=\"invalid_token\", resource_metadata=\"https://veoveo.example/.well-known/oauth-protected-resource/mcp/operator\", scope=\"operator:use\""
+    );
+    assert_eq!(
+        www_authenticate_challenge(metadata, &[], Some(BearerError::InsufficientScope)),
+        "Bearer error=\"insufficient_scope\", resource_metadata=\"https://veoveo.example/.well-known/oauth-protected-resource/mcp/operator\""
     );
 }
 
