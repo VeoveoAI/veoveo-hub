@@ -33,8 +33,8 @@ use rmcp::{
 use secrecy::SecretString;
 use veoveo_mcp_contract::{GatewayInternalIdentity, GatewayInternalTokenVerifier};
 use veoveo_mcp_ext_registration::{
-    AuthorizationDeclaration, ClientMetadata, DatabaseGrant, RegistrationDeclaration,
-    RegistrationErrorCode, ServerEndpoint, ServerVersion,
+    AccessTokenTrust, AuthorizationDeclaration, ClientMetadata, DatabaseGrant, Ed25519JwkSet,
+    RegistrationDeclaration, RegistrationErrorCode, ServerEndpoint, ServerVersion,
     client::{ClientError, RegistrationClient},
     statement::ServerKeyPair,
 };
@@ -111,10 +111,17 @@ async fn qualify() {
     assert_eq!(server.current_servers().await.unwrap(), ["observatory"]);
     let instance = Instance::start(&server, &slug).await.unwrap();
 
+    // The issuer's RFC 8414 `jwks_uri` publishes the keys the registration response
+    // names, so the fixture verifies every forwarded token with the published set.
+    let published = published_keys(&http, &gateway).await;
+    assert_eq!(published, registration.access_tokens().jwks);
     let fixture = Fixture::default();
     *fixture.verifier.lock().unwrap() = Some(
         GatewayInternalTokenVerifier::from_access_tokens(
-            registration.access_tokens(),
+            &AccessTokenTrust {
+                jwks: published,
+                ..registration.access_tokens().clone()
+            },
             slug.clone(),
         )
         .unwrap(),
@@ -257,6 +264,28 @@ async fn qualify() {
     member.cancel().await.unwrap();
     admin.cancel().await.unwrap();
     drop(gateway);
+}
+
+/// The forwarded-token keys at the `jwks_uri` of the Gateway issuer's metadata.
+async fn published_keys(http: &reqwest::Client, gateway: &Gateway) -> Ed25519JwkSet {
+    let metadata: serde_json::Value = http
+        .get(format!(
+            "{}/.well-known/oauth-authorization-server",
+            gateway.base
+        ))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    http.get(metadata["jwks_uri"].as_str().unwrap())
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap()
 }
 
 async fn read(

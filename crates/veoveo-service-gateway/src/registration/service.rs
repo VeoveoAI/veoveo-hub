@@ -37,6 +37,9 @@ pub struct ServerDatabase {
     pub url: DatabaseUrl,
 }
 
+/// The path of the Gateway issuer's JWK Set, below the issuer's origin.
+pub(super) const JWKS_PATH: &str = "/jwks.json";
+
 /// The Gateway's identity as an authorization server.
 #[derive(Debug, Clone)]
 pub struct RegistrationIdentity {
@@ -57,6 +60,7 @@ pub(super) struct Inner {
     pub(super) gateway: GatewayState,
     pub(super) issuer: TokenIssuer,
     pub(super) registration_endpoint: url::Url,
+    pub(super) jwks_uri: url::Url,
     pub(super) access_token_keys: Ed25519JwkSet,
     pub(super) database: ServerDatabase,
     /// How long a registration may go without a live kernel instance of its login.
@@ -84,6 +88,8 @@ impl RegistrationService {
         let issuer_url = url::Url::parse(identity.issuer.as_str())?;
         let mut registration_endpoint = issuer_url.clone();
         registration_endpoint.set_path("/oauth/register");
+        let mut jwks_uri = issuer_url;
+        jwks_uri.set_path(JWKS_PATH);
         Ok(Self {
             inner: Arc::new(Inner {
                 store: RegistrationStore::new(store),
@@ -91,6 +97,7 @@ impl RegistrationService {
                 gateway,
                 issuer: identity.issuer,
                 registration_endpoint,
+                jwks_uri,
                 access_token_keys: Ed25519JwkSet::new(vec![
                     identity.signing_key.verification_key(),
                 ])?,
@@ -108,6 +115,19 @@ impl RegistrationService {
     /// The RFC 7591 registration endpoint.
     pub fn registration_endpoint(&self) -> &url::Url {
         &self.inner.registration_endpoint
+    }
+
+    /// The RFC 8414 `jwks_uri` of the Gateway's issuer, which publishes
+    /// [`Self::access_token_keys`].
+    pub fn jwks_uri(&self) -> &url::Url {
+        &self.inner.jwks_uri
+    }
+
+    /// The public keys that verify forwarded access tokens, which every registration
+    /// response names in `veoveo_access_tokens`. Each `kid` is the key's RFC 7638
+    /// thumbprint, and no private member is present.
+    pub fn access_token_keys(&self) -> &Ed25519JwkSet {
+        &self.inner.access_token_keys
     }
 
     /// The RFC 7592 client configuration endpoint of one registration.

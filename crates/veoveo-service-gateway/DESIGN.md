@@ -15,7 +15,8 @@ Neither its code nor its configuration names a server.
 | [Server registration protocol](https://github.com/VeoveoAI/veoveo-core/blob/main/mcp/ext-registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
 | JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by core's `GatewayInternalTokenIssuer` |
 | OAuth 2.0, RFC 6749, and RFC 7523 | The hosted authorization server; see [token and session authority](src/auth/DESIGN.md) |
-| Authorization server metadata, RFC 8414 | `/.well-known/oauth-authorization-server` for the Gateway's issuer and `/.well-known/oauth-authorization-server/oauth` for the hosted authorization server |
+| Authorization server metadata, RFC 8414 | `/.well-known/oauth-authorization-server` for the Gateway's issuer and `/.well-known/oauth-authorization-server/oauth` for the hosted authorization server; each names its `jwks_uri`, and `response_types_supported`, `grant_types_supported` and `token_endpoint_auth_methods_supported` are always present because §2 gives an absent member a default |
+| JWK Set, RFC 7517, and JWK Thumbprint, RFC 7638 | `/jwks.json` and `/oauth/jwks.json`, served as `application/jwk-set+json`: public Ed25519 keys whose `kid` is the RFC 7638 thumbprint |
 | Protected resource metadata, RFC 9728 | `/.well-known/oauth-protected-resource/mcp/{profile}` |
 | Problem details, RFC 9457 | HTTP API errors outside OAuth endpoints, typed `https://veoveo.ai/problems/<code>` |
 | PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, including `gateway`, applied at startup; `LISTEN` on the `gateway` channel for registration changes; one login role per registration |
@@ -153,6 +154,17 @@ seconds and a `subscriptions/listen` token at most 15 minutes, never longer than
 caller's own token. The server verifies them with the keys its registration response
 names in `veoveo_access_tokens`.
 
+The issuer's RFC 8414 metadata names `{issuer}/jwks.json` as its `jwks_uri`. That JWK
+Set lists the same keys: the public half of each forwarded-token key, with its RFC
+7638 thumbprint as `kid`, `alg` `EdDSA` and `use` `sig`, and no private member. A
+server that meets a `kid` outside its registered keys reads the set again from there.
+The set is served with `Cache-Control: no-cache`, so every read reaches the Gateway.
+
+`VEOVEO_FORWARDED_TOKEN_KEY_B64` names one key, so the set holds one key and a rotation
+drains: every replica stops, and every replica then starts with the new key. Tokens
+signed by the old key are verified when they arrive, and none remains in flight once
+the old replicas have stopped.
+
 ## Upstream Transport
 
 The workspace pins RMCP 3.5.0 from `VeoveoAI/rust-sdk` at
@@ -177,7 +189,8 @@ one audit record before it returns a result; a failed commit prevents delivery.
 | Route | Purpose |
 |---|---|
 | `GET /livez`, `GET /readyz` | Process liveness, and readiness once the audit service runs; both skip `Host` validation |
-| `GET /.well-known/oauth-authorization-server` | RFC 8414 metadata of the Gateway's issuer, with `registration_endpoint` when registration is configured |
+| `GET /.well-known/oauth-authorization-server` | RFC 8414 metadata of the Gateway's issuer, with `jwks_uri` and, when registration is configured, `registration_endpoint` |
+| `GET /jwks.json` | The keys that verify forwarded tokens |
 | `POST /oauth/register`, `GET`/`PUT`/`DELETE /oauth/register/{client_id}` | Server registration |
 | `/oauth/authorize`, `/oauth/callback`, `/oauth/token`, `/oauth/revoke`, `/oauth/jwks.json` | Hosted authorization server |
 | `/.well-known/oauth-authorization-server/oauth`, `/.well-known/oauth-protected-resource/mcp/{profile}` | Hosted authorization server and protected resource metadata |
@@ -213,13 +226,18 @@ server's schema as its group role and holds the server's kernel instance, role
 decisions by risk, refusal of undeclared resources, the permissions each forwarded
 token carries, that deregistration drops a registration's login, and that a process
 that ends without deregistering loses its registration and login after the grace
-period.
+period. The fixture server verifies every forwarded token with the keys it reads from
+the issuer's `jwks_uri`, which equal those of its registration response.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed
 assertion, an unknown client, resource or scope and an unsupported grant, and the MCP
 endpoint's challenge for a missing, malformed, expired, misaddressed, mistyped, wrongly
-signed, revoked or under-scoped token. Unit and database tests cover the catalog,
+signed, revoked or under-scoped token. It follows the protected resource's RFC 9728
+metadata to its authorization server's RFC 8414 metadata, checks each issuer, endpoint
+and member §2 requires, verifies an issued token with the key at `jwks_uri`, and
+compares the forwarded-token JWK Set with the configured key and the RFC 7638
+thumbprint of each `kid`. Unit and database tests cover the catalog,
 policy adapter, discovery cache, Task routes, refresh families, session binding, audit
 readers and the control store.
 
@@ -235,3 +253,5 @@ readers and the control store.
 - Readiness, registration internals and Artifact administration answer with RFC 9457
   problem details. Other administrative handlers still answer some errors with a
   status and no body.
+- The forwarded-token key set holds the single configured key, so it cannot publish
+  the outgoing key beside the incoming one, and a rotation drains every replica.

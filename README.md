@@ -105,7 +105,8 @@ other environments reach it at `http://host.openshell.internal:8080`:
 |---|---|
 | `/livez` | HTTP 204 while the process runs |
 | `/readyz` | HTTP 200 once the audit service is ready |
-| `/.well-known/oauth-authorization-server` | RFC 8414 metadata with `registration_endpoint` |
+| `/.well-known/oauth-authorization-server` | RFC 8414 metadata with `registration_endpoint` and `jwks_uri` |
+| `/jwks.json` | The keys that verify the tokens the Gateway forwards to servers |
 | `/oauth/token` | Client-credentials tokens for the profile `local` |
 | `/mcp/local` | The MCP endpoint of every registered server |
 

@@ -1,6 +1,7 @@
 //! Runs the Gateway binary against a disposable PostgreSQL database and checks over
 //! HTTP that its token endpoint answers with the error codes of RFC 6749, RFC 7523 and
-//! RFC 8707, and that its MCP endpoint challenges as RFC 6750 and RFC 9728 define.
+//! RFC 8707, that its MCP endpoint challenges as RFC 6750 and RFC 9728 define, and that
+//! its RFC 8414 and RFC 9728 metadata names each issuer, endpoint and key.
 
 #[path = "support/gateway.rs"]
 mod gateway;
@@ -19,8 +20,9 @@ use reqwest::{
     header::{ACCEPT, AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, WWW_AUTHENTICATE},
 };
 use serde_json::{Value, json};
+use sha2::Digest as _;
 use veoveo_mcp_contract::{GatewayJwtRevocation, GatewayProfileId, JwtId, TokenIssuer};
-use veoveo_mcp_ext_registration::statement::ServerKeyPair;
+use veoveo_mcp_ext_registration::{Ed25519Jwk, statement::ServerKeyPair};
 use veoveo_oauth_client::{ClientAssertionKeyId, ClientAssertionSigner};
 use veoveo_service_gateway::GatewayState;
 use veoveo_test_fixtures::store::TestDb;
@@ -323,6 +325,184 @@ async fn expect_challenge(
     );
     let problem: Value = response.json().await.unwrap();
     assert_eq!(problem["status"], status.as_u16());
+}
+
+#[tokio::test]
+async fn metadata_names_each_issuer_its_endpoints_and_keys() {
+    tokio::time::timeout(DEADLINE, metadata())
+        .await
+        .expect("the metadata checks exceeded two minutes");
+}
+
+async fn metadata() {
+    let local = Installation::start().await;
+    let gateway = &local.gateway;
+    let http = reqwest::Client::new();
+    let base = gateway.base.as_str();
+    let resource = url::Url::parse(&gateway.installation.resource).unwrap();
+
+    // RFC 9728 §3: the protected resource's metadata lives at the well-known URI formed
+    // from its identifier and names that identifier (§3.3).
+    let protected = document(
+        &http,
+        &well_known(&resource, "oauth-protected-resource"),
+        "application/json",
+    )
+    .await;
+    assert_eq!(protected["resource"], resource.as_str());
+    assert_eq!(protected["bearer_methods_supported"], json!(["header"]));
+    assert!(
+        protected["scopes_supported"]
+            .as_array()
+            .unwrap()
+            .contains(&json!(gateway.installation.scope))
+    );
+    let issuer = format!("{base}/oauth");
+    assert_eq!(protected["authorization_servers"], json!([issuer]));
+
+    // RFC 8414 §3: the authorization server's metadata lives at the well-known URI
+    // formed from its issuer and names that issuer (§3.3).
+    let server = document(
+        &http,
+        &well_known(
+            &url::Url::parse(&issuer).unwrap(),
+            "oauth-authorization-server",
+        ),
+        "application/json",
+    )
+    .await;
+    assert_eq!(server["issuer"], issuer.as_str());
+    assert_eq!(
+        server["token_endpoint"],
+        gateway.installation.token_endpoint
+    );
+    assert_eq!(
+        server["grant_types_supported"],
+        json!(["client_credentials"])
+    );
+    assert_eq!(
+        server["token_endpoint_auth_methods_supported"],
+        json!(["private_key_jwt"])
+    );
+    assert!(
+        server["token_endpoint_auth_signing_alg_values_supported"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("RS256"))
+    );
+    // §2 requires the member; no grant of this server uses an authorization endpoint.
+    assert_eq!(server["response_types_supported"], json!([]));
+    assert!(server.get("authorization_endpoint").is_none());
+    // No client of the local installation holds a refresh token, so none revokes one.
+    assert!(server.get("revocation_endpoint").is_none());
+    assert!(server.get("registration_endpoint").is_none());
+
+    // `jwks_uri` holds the public key that verifies the tokens this server issues.
+    let keys = document(
+        &http,
+        server["jwks_uri"].as_str().unwrap(),
+        veoveo_service_gateway::registration::JWK_SET_MEDIA_TYPE,
+    )
+    .await;
+    let token = gateway.access_token(&http, gateway.caller("member")).await;
+    let key_id = jsonwebtoken::decode_header(&token).unwrap().kid.unwrap();
+    let jwk = public_ed25519_keys(&keys)
+        .into_iter()
+        .find(|jwk| jwk["kid"] == key_id.as_str())
+        .expect("the token's key is published");
+    let mut validation = jsonwebtoken::Validation::new(Algorithm::EdDSA);
+    validation.set_issuer(&[issuer.as_str()]);
+    validation.set_audience(&[resource.as_str()]);
+    jsonwebtoken::decode::<Value>(
+        &token,
+        &jsonwebtoken::DecodingKey::from_jwk(&serde_json::from_value(jwk).unwrap()).unwrap(),
+        &validation,
+    )
+    .unwrap();
+
+    // The Gateway's own issuer: registration, and the keys of the tokens it forwards.
+    let own = document(
+        &http,
+        &format!("{base}/.well-known/oauth-authorization-server"),
+        "application/json",
+    )
+    .await;
+    assert_eq!(own["issuer"], base);
+    assert_eq!(
+        own["registration_endpoint"],
+        format!("{base}/oauth/register")
+    );
+    assert_eq!(own["response_types_supported"], json!([]));
+    assert_eq!(own["grant_types_supported"], json!([]));
+    assert_eq!(own["jwks_uri"], format!("{base}/jwks.json"));
+    let forwarded = document(
+        &http,
+        own["jwks_uri"].as_str().unwrap(),
+        veoveo_service_gateway::registration::JWK_SET_MEDIA_TYPE,
+    )
+    .await;
+    let signing = ServerKeyPair::from_pkcs8_der(
+        &STANDARD
+            .decode(gateway.secret("VEOVEO_FORWARDED_TOKEN_KEY_B64"))
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        public_ed25519_keys(&forwarded),
+        [json!(Ed25519Jwk::new(*signing.public_key()))]
+    );
+
+    // RFC 7591 §3 with RFC 6750 §3: registration takes the registration secret as its
+    // initial access token.
+    let refused = http
+        .post(own["registration_endpoint"].as_str().unwrap())
+        .json(&json!({}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(refused.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(refused.headers()[WWW_AUTHENTICATE], "Bearer");
+}
+
+/// RFC 8414 §3.1 and RFC 9728 §3.1: the well-known URI string goes between the host and
+/// the path of the identifier.
+fn well_known(identifier: &url::Url, name: &str) -> String {
+    let mut url = identifier.clone();
+    url.set_path(&format!(
+        "/.well-known/{name}{}",
+        identifier.path().trim_end_matches('/')
+    ));
+    url.to_string()
+}
+
+/// A JSON document served with HTTP 200 and `media_type`.
+async fn document(http: &reqwest::Client, url: &str, media_type: &str) -> Value {
+    let response = http.get(url).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK, "{url}");
+    assert_eq!(response.headers()[CONTENT_TYPE], media_type, "{url}");
+    response.json().await.unwrap()
+}
+
+/// The keys of an RFC 7517 JWK Set, each a public Ed25519 signing key whose `kid` is its
+/// RFC 7638 thumbprint.
+fn public_ed25519_keys(set: &Value) -> Vec<Value> {
+    let keys = set["keys"].as_array().unwrap().clone();
+    assert!(!keys.is_empty());
+    for key in &keys {
+        assert_eq!(key["kty"], "OKP");
+        assert_eq!(key["crv"], "Ed25519");
+        assert_eq!(key["alg"], "EdDSA");
+        assert_eq!(key["use"], "sig");
+        assert!(key.get("d").is_none(), "a JWK Set publishes no private key");
+        // RFC 7638 §3.2: the required members in lexicographic order, without spaces.
+        let canonical = format!(
+            r#"{{"crv":"Ed25519","kty":"OKP","x":"{}"}}"#,
+            key["x"].as_str().unwrap()
+        );
+        let thumbprint = URL_SAFE_NO_PAD.encode(sha2::Sha256::digest(canonical.as_bytes()));
+        assert_eq!(key["kid"], thumbprint.as_str());
+    }
+    keys
 }
 
 const DISCOVER: Mcp = Mcp {

@@ -69,7 +69,10 @@ pub(super) async fn authorization_server_jwks(
             }
         };
     let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    headers.insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static(veoveo_service_gateway::registration::JWK_SET_MEDIA_TYPE),
+    );
     headers.insert(
         CACHE_CONTROL,
         HeaderValue::from_static("public, max-age=300, must-revalidate"),

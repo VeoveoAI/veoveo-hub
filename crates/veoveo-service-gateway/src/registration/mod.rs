@@ -16,7 +16,7 @@ use axum::{
 };
 use veoveo_mcp_ext_registration::{RegistrationErrorCode, RegistrationErrorResponse};
 
-pub use endpoint::router;
+pub use endpoint::{JWK_SET_MEDIA_TYPE, router};
 pub use service::{RegistrationIdentity, RegistrationService, ServerDatabase};
 pub use snapshot::{RegisteredServer, RegistrationSnapshot, ServerCapabilities};
 pub use watch::HOUSEKEEPING_INTERVAL;
