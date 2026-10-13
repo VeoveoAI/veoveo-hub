@@ -64,6 +64,20 @@ impl GatewayState {
         &self.audit
     }
 
+    /// The audit log as a reader of every owner's records sees it, with a registry built
+    /// from the classes stored in `audit.detail_type`. Registered servers declare classes
+    /// while the Gateway runs, so each read that may meet another owner's record builds
+    /// its reader again.
+    pub async fn audit_reader(&self) -> Result<veoveo_audit::AuditStore> {
+        let stored = veoveo_audit::AuditStore::declarations(self.platform_store())
+            .await
+            .context("read the stored audit class declarations")?;
+        Ok(veoveo_audit::AuditStore::new(
+            self.platform_store().clone(),
+            crate::audit::GatewayAudit::reader_registry(stored)?,
+        ))
+    }
+
     /// Admit one audit draft for a write that commits with other state.
     pub(crate) fn audit_write(
         &self,

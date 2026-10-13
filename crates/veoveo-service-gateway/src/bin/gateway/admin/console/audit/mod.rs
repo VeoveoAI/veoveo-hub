@@ -220,10 +220,10 @@ pub(crate) async fn records(
     Extension(subject): Extension<AuthenticatedSubject>,
     Query(parameters): Query<AuditViewParameters>,
 ) -> Response {
-    let query = match model::decode_query(
-        &parameters.query,
-        state.gateway_state.audit_store().registry(),
-    ) {
+    let Ok(reader) = state.gateway_state.audit_reader().await else {
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    };
+    let query = match model::decode_query(&parameters.query, reader.registry()) {
         Ok(query) => query,
         Err(error) => return (StatusCode::BAD_REQUEST, error).into_response(),
     };
@@ -242,12 +242,7 @@ pub(crate) async fn records(
         Ok(scope) => scope,
         Err(response) => return *response,
     };
-    match tokio::time::timeout(
-        READ_DEADLINE,
-        state.gateway_state.audit_store().page(&scope, &query),
-    )
-    .await
-    {
+    match tokio::time::timeout(READ_DEADLINE, reader.page(&scope, &query)).await {
         Ok(Ok(page)) => (
             [(header::CACHE_CONTROL, "no-store")],
             Json(AuditSummaryPage {

@@ -131,9 +131,13 @@ async fn connect(
 ) -> anyhow::Result<AuditStore> {
     let config = store.into_config()?;
     let principal = PrincipalId::parse(config.username())?;
+    // The operator reads every owner's records, so the registry holds every class stored
+    // in audit.detail_type as well as the Gateway's own.
+    let platform = PlatformStore::connect(config).await?;
+    let stored = AuditStore::declarations(&platform).await?;
     let store = AuditStore::new(
-        PlatformStore::connect(config).await?,
-        veoveo_service_gateway::audit_registry(),
+        platform,
+        veoveo_service_gateway::audit::GatewayAudit::reader_registry(stored)?,
     );
     // The DB-authenticated operator is installation-scoped, including when the
     // selected read partition is a tenant. No CLI argument claims a tenant actor.

@@ -54,7 +54,9 @@ pub(crate) async fn stream_audit(
     let Some(slot) = state.console_stream.acquire(subject.principal.id.as_str()) else {
         return StatusCode::TOO_MANY_REQUESTS.into_response();
     };
-    let store = state.gateway_state.audit_store().clone();
+    let Ok(store) = state.gateway_state.audit_reader().await else {
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    };
     let subscriptions = tokio::time::timeout(READ_DEADLINE, async {
         Ok::<_, veoveo_audit::AuditStoreError>((
             store.live(&scope, &partition).await?,

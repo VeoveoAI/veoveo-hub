@@ -8,8 +8,8 @@ use anyhow::Result;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use veoveo_audit_contract::{
-    AuditDetail, AuditDetailType, AuditRegistry, AuditRegistryBuilder, AuditTarget,
-    AuditTargetOwner, AuditTargetRegistration,
+    AuditDetail, AuditDetailDeclaration, AuditDetailType, AuditRegistry, AuditRegistryBuilder,
+    AuditTarget, AuditTargetOwner, AuditTargetRegistration,
 };
 use veoveo_sdk_rust::audit::{
     DiscoveryKind, DiscoveryTarget, McpAuditTargets, PromptTarget, ResourceTemplateTarget,
@@ -315,6 +315,28 @@ impl GatewayAudit {
             profile,
             client,
         })
+    }
+
+    /// A registry for reading every owner's records: the Gateway's own vocabulary, then
+    /// each class stored in `audit.detail_type` that it does not declare itself. The
+    /// Gateway's own declaration wins over a stored one of the same class, and a stored
+    /// declaration the registry cannot admit, such as a malformed schema, is skipped so it
+    /// cannot stop the Gateway from reading the rest.
+    pub fn reader_registry(
+        stored: impl IntoIterator<Item = AuditDetailDeclaration>,
+    ) -> Result<Arc<AuditRegistry>> {
+        let mut builder = AuditRegistry::builder();
+        veoveo_sdk_rust::audit::register(&mut builder)?;
+        Self::declare(&mut builder)?;
+        builder.register_target::<ProfileTarget>()?;
+        builder.register_target::<ClientTarget>()?;
+        for declaration in stored {
+            let class = declaration.class().clone();
+            if let Err(error) = builder.declaration(declaration) {
+                tracing::warn!(%class, %error, "audit reader skips a stored class declaration");
+            }
+        }
+        Ok(Arc::new(builder.build()))
     }
 
     fn declare(builder: &mut AuditRegistryBuilder) -> Result<()> {
