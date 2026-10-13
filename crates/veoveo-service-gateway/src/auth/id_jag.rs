@@ -2,9 +2,7 @@ use std::collections::BTreeSet;
 
 use chrono::Utc;
 use jsonwebtoken::{DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
-use veoveo_mcp_contract::{
-    JwtId, OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject,
-};
+use veoveo_sdk_rust::{JwtId, OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject};
 use veoveo_types::{DataLabelId, GroupId, PrincipalId, RoleId, TenantId};
 
 use super::{

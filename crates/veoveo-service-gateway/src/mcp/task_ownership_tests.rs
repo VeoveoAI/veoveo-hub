@@ -1,9 +1,10 @@
 //! Durable-route authorization against an isolated store and the current policy catalog.
 use std::collections::BTreeSet;
-use veoveo_gateway_contract::ProtectedResourceId;
+use veoveo_sdk_rust::ProtectedResourceId;
 
+use crate::control_plane::GatewayControlPlane;
 use chrono::{TimeDelta, Utc};
-use veoveo_mcp_contract::{AccessTokenSubject, GatewayControlPlane, OAuthClientId};
+use veoveo_sdk_rust::{AccessTokenSubject, OAuthClientId};
 use veoveo_types::{
     DataLabelId, DelegationId, InvocationMode, InvocationProvenance, PrincipalId, ScopeName,
     TenantId,
@@ -21,9 +22,8 @@ pub(crate) fn subject() -> AuthenticatedSubject {
     actor.data_labels.insert(DataLabelId::parse("cui").unwrap());
     AuthenticatedSubject {
         extensions: Default::default(),
-        audit: veoveo_mcp_contract::audit::AuditRequest::background(),
+        audit: veoveo_audit_contract::AuditRequest::background(),
         access_token: AccessTokenSubject {
-            managed_execution: None,
             issuer: actor.issuer.clone(),
             subject: actor.subject.clone(),
             oauth_client_id: OAuthClientId::parse("workspace").unwrap(),

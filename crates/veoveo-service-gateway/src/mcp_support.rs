@@ -1,42 +1,16 @@
-use veoveo_gateway_contract::GatewayAction;
-
+use crate::control_plane::{GatewayResourceProjection, PolicyTarget};
 use rmcp::model::{
     CallToolResult, ContentBlock, ErrorData as McpError, ReadResourceResult, Resource,
     ResourceContents, ResourceTemplate, ServerResult, Tool,
 };
 use serde_json::Value;
-use veoveo_gateway_contract::GatewayToolName;
-use veoveo_mcp_contract::{GatewayResourceProjection, PolicyTarget, ServerResourceUri, ServerSlug};
+use veoveo_sdk_rust::ServerSlug;
+use veoveo_sdk_rust::gateway::GatewayToolName;
 use veoveo_types::{ResourceTemplateUri, ResourceUri};
 
 use crate::registration::RegisteredServer;
 
 use crate::GatewayCatalog;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ResourceReadKind {
-    General,
-    Artifact,
-    Usage,
-}
-
-fn resource_read_kind(uri: &str) -> ResourceReadKind {
-    match ServerResourceUri::parse(uri) {
-        Ok(ServerResourceUri::Artifact { .. }) => ResourceReadKind::Artifact,
-        Ok(ServerResourceUri::UsageRoot { .. } | ServerResourceUri::UsageTask { .. }) => {
-            ResourceReadKind::Usage
-        }
-        Ok(_) | Err(_) => ResourceReadKind::General,
-    }
-}
-
-pub(crate) fn resource_read_action(uri: &str) -> GatewayAction {
-    match resource_read_kind(uri) {
-        ResourceReadKind::Artifact => GatewayAction::ArtifactRead,
-        ResourceReadKind::Usage => GatewayAction::UsageRead,
-        ResourceReadKind::General => GatewayAction::ResourcesRead,
-    }
-}
 
 pub(crate) fn gateway_resource_uri(uri: &str) -> Result<ResourceUri, McpError> {
     ResourceUri::new(uri.to_string())
@@ -137,7 +111,7 @@ fn project_app_resource_metadata(
 ) -> Result<(), McpError> {
     let Some(uri) = meta
         .0
-        .get_mut(veoveo_mcp_ext_apps::UI_META_KEY)
+        .get_mut(veoveo_sdk_rust::apps::UI_META_KEY)
         .and_then(|ui| ui.get_mut("resourceUri"))
     else {
         return Ok(());
@@ -199,17 +173,7 @@ pub(crate) fn resource_policy_target(
     uri: &str,
 ) -> Result<PolicyTarget, McpError> {
     let uri = gateway_resource_uri(uri)?;
-    Ok(match resource_read_kind(uri.as_str()) {
-        ResourceReadKind::Artifact => PolicyTarget::Artifact {
-            server,
-            artifact_uri: uri,
-        },
-        ResourceReadKind::Usage => PolicyTarget::Usage {
-            server,
-            usage_uri: uri,
-        },
-        ResourceReadKind::General => PolicyTarget::Resource { server, uri },
-    })
+    Ok(PolicyTarget::Resource { server, uri })
 }
 
 pub(crate) fn parse_gateway_tool(

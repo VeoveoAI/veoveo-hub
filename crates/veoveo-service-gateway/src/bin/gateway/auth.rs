@@ -11,7 +11,7 @@ use axum::{
     },
     response::IntoResponse,
 };
-use veoveo_mcp_contract::GatewayProfileId;
+use veoveo_sdk_rust::GatewayProfileId;
 pub(super) async fn protected_resource_metadata(
     State(state): State<AppState>,
     AxumPath(profile): AxumPath<String>,

@@ -6,8 +6,8 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use secrecy::{ExposeSecret, SecretString};
 use sqlx::types::Json;
-use veoveo_mcp_ext_registration::{ClientMetadata, SoftwareStatement};
 use veoveo_platform_store::{LoginName, PlatformStore};
+use veoveo_sdk_rust::registration::{ClientMetadata, SoftwareStatement};
 use veoveo_types::{OAuthClientId, ServerSlug, Sha256Digest};
 
 /// One registration as the service reads it back.

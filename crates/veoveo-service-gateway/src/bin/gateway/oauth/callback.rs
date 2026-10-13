@@ -1,5 +1,5 @@
 use std::time::Instant;
-use veoveo_gateway_contract::SecretPurpose;
+use veoveo_service_gateway::contract::SecretPurpose;
 
 use axum::{
     extract::{Query, State},
@@ -8,9 +8,9 @@ use axum::{
 };
 use chrono::{TimeDelta, Utc};
 use serde::Deserialize;
-use veoveo_mcp_contract::{
-    AuthOutcome, AuthReasonCode, GatewayAuthorizationCodeRecord, OAuthStateValue,
-};
+use veoveo_service_gateway::contract::OAuthStateValue;
+use veoveo_service_gateway::contract::{AuthOutcome, AuthReasonCode};
+use veoveo_service_gateway::control_plane::GatewayAuthorizationCodeRecord;
 use veoveo_service_gateway::{GatewaySecretResolver, OidcIdTokenConfig, OidcIdTokenVerifier};
 
 use crate::{

@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
-use veoveo_mcp_contract::PrincipalKind;
+use veoveo_sdk_rust::PrincipalKind;
 use veoveo_types::{InvocationMode, ScopeName};
 
 use super::AuthError;
@@ -20,7 +20,7 @@ pub(super) struct JwtClaimsWire {
     pub(super) client_id: String,
     #[serde(default)]
     #[serde(rename = "https://veoveo.ai/claims/session-family")]
-    pub(super) session_family: Option<veoveo_mcp_contract::GatewayRefreshFamilyId>,
+    pub(super) session_family: Option<veoveo_sdk_rust::GatewayRefreshFamilyId>,
     #[serde(rename = "https://veoveo.ai/claims/work-context")]
     pub(super) work_context: String,
     #[serde(rename = "https://veoveo.ai/claims/invocation-mode")]

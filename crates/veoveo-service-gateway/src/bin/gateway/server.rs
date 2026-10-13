@@ -16,7 +16,7 @@ use secrecy::{ExposeSecret, SecretString};
 use tokio_util::sync::CancellationToken;
 use tower::ServiceExt;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
-use veoveo_mcp_contract::{
+use veoveo_sdk_rust::{
     GatewayInternalSigningKey, GatewayInternalTokenIssuer, GatewayProfileId, PublicDeployment,
     ServerSlug, TokenIssuer, public_allowed_hosts,
 };
@@ -381,8 +381,8 @@ fn build_profile_mcp_service(
     );
     let mcp_service = StreamableHttpService::new(
         move || Ok(gateway_mcp.clone()),
-        veoveo_mcp_contract::stateless_session_manager(),
-        veoveo_mcp_contract::canonical_streamable_http_server_config()
+        veoveo_sdk_rust::stateless_session_manager(),
+        veoveo_sdk_rust::canonical_streamable_http_server_config()
             .with_allowed_hosts(state.allowed_hosts.iter().cloned())
             .with_cancellation_token(state.cancellation_token.child_token()),
     );
@@ -390,7 +390,7 @@ fn build_profile_mcp_service(
         .route_service("/", mcp_service.clone())
         .route_service("/{*path}", mcp_service)
         .layer(middleware::from_fn(
-            veoveo_mcp_contract::enforce_serialized_mcp_response,
+            veoveo_sdk_rust::enforce_serialized_mcp_response,
         ))
         .layer(middleware::from_fn(
             veoveo_service_gateway::mcp::http_response::preserve_upstream_http_rejection,

@@ -1,11 +1,13 @@
 use super::http_response::RequestError;
+use crate::contract::GatewayAction;
 use std::{borrow::Cow, time::Instant};
-use veoveo_audit_contract::{AuditDetail, AuditOutcome, AuditReason, AuditTarget, ToolResultKind};
-use veoveo_gateway_contract::GatewayAction;
-use veoveo_gateway_contract::GatewayDiscoveryDegradation;
-use veoveo_gateway_contract::{GatewayDiscoveryFailure, GatewayDiscoverySurface};
-use veoveo_mcp_contract::GatewayDiscoveryMetadata;
+use veoveo_audit_contract::{AuditOutcome, AuditReason};
+use veoveo_sdk_rust::GatewayDiscoveryMetadata;
+use veoveo_sdk_rust::audit::{ToolCompletion, ToolResultKind};
+use veoveo_sdk_rust::gateway::GatewayDiscoveryDegradation;
+use veoveo_sdk_rust::gateway::{GatewayDiscoveryFailure, GatewayDiscoverySurface};
 
+use crate::control_plane::DiscoveryFailureMode;
 use futures::{StreamExt, stream};
 use rmcp::{
     model::{
@@ -16,9 +18,7 @@ use rmcp::{
     service::{Peer, PeerRequestOptions, RequestContext, RoleClient, RoleServer},
 };
 use serde_json::Value;
-use veoveo_mcp_contract::{
-    DiscoveryFailureMode, LocalToolName, related_task_meta, sanitized_request_meta,
-};
+use veoveo_sdk_rust::{LocalToolName, related_task_meta, sanitized_request_meta};
 
 use crate::{
     AuthenticatedSubject,
@@ -41,8 +41,8 @@ use super::{
 // Select before any watch, cache or upstream work, using the same catalog epoch.
 fn tool_servers(
     catalog: &crate::GatewayCatalog,
-    profile: &veoveo_mcp_contract::GatewayProfileId,
-) -> Vec<veoveo_mcp_contract::ServerSlug> {
+    profile: &veoveo_sdk_rust::GatewayProfileId,
+) -> Vec<veoveo_sdk_rust::ServerSlug> {
     catalog
         .profile_servers(profile)
         .into_iter()
@@ -71,7 +71,7 @@ impl GatewayMcp {
                 self.available_tools(context, subject.clone()).await?;
             self.record_discovery(
                 &subject,
-                veoveo_audit_contract::DiscoveryKind::Tools,
+                veoveo_sdk_rust::audit::DiscoveryKind::Tools,
                 tools.iter().map(|tool| tool.name.to_string()).collect(),
                 denied,
             )
@@ -81,7 +81,7 @@ impl GatewayMcp {
                 tools: page.items,
                 next_cursor: page.next_cursor,
                 result_type: Some(rmcp::model::ResultType::COMPLETE),
-                ttl_ms: Some(veoveo_mcp_contract::PRIVATE_CATALOG_TTL_MS),
+                ttl_ms: Some(veoveo_sdk_rust::PRIVATE_CATALOG_TTL_MS),
                 cache_scope: Some(rmcp::model::CacheScope::Private),
                 meta: degradation.into_meta(),
             });
@@ -156,7 +156,7 @@ impl GatewayMcp {
         )?;
         self.record_discovery(
             &subject,
-            veoveo_audit_contract::DiscoveryKind::Tools,
+            veoveo_sdk_rust::audit::DiscoveryKind::Tools,
             tools.iter().map(|tool| tool.name.to_string()).collect(),
             denied,
         )
@@ -166,7 +166,7 @@ impl GatewayMcp {
             tools: page.items,
             next_cursor: page.next_cursor,
             result_type: Some(rmcp::model::ResultType::COMPLETE),
-            ttl_ms: Some(veoveo_mcp_contract::PRIVATE_CATALOG_TTL_MS),
+            ttl_ms: Some(veoveo_sdk_rust::PRIVATE_CATALOG_TTL_MS),
             cache_scope: Some(rmcp::model::CacheScope::Private),
             meta: degradation.into_meta(),
         })
@@ -274,7 +274,7 @@ impl GatewayMcp {
     async fn discover_tools_for_server(
         &self,
         catalog: &crate::GatewayCatalog,
-        server_slug: &veoveo_mcp_contract::ServerSlug,
+        server_slug: &veoveo_sdk_rust::ServerSlug,
         context: &RequestContext<RoleServer>,
         subject: &crate::AuthenticatedSubject,
     ) -> Result<AdmittedCatalog<rmcp::model::Tool>, McpError> {
@@ -298,7 +298,7 @@ impl GatewayMcp {
             let local_tool = LocalToolName::parse(tool.name.as_ref()).map_err(|err| {
                 mcp_internal(format!("upstream exposed invalid tool name: {err}"))
             })?;
-            targets.push(veoveo_mcp_contract::PolicyTarget::Tool {
+            targets.push(crate::control_plane::PolicyTarget::Tool {
                 server: server_slug.clone(),
                 tool: local_tool.clone(),
             });
@@ -463,29 +463,31 @@ impl GatewayMcp {
             result_kind,
             ToolResultKind::ErrorResult | ToolResultKind::ProtocolError
         );
-        let draft = subject.audit_draft(
-            &self.profile_id,
-            AuditTarget::Tool {
-                server: projection.server,
-                tool: projection.tool,
-            },
-            AuditDetail::ToolCompletion {
-                result: result_kind,
-                duration_ms: u64::try_from(started.elapsed().as_millis())
-                    .unwrap_or((1u64 << 53) - 1),
-                error_code: mcp_error_code,
-            },
-            if failed {
-                AuditOutcome::Failed
-            } else {
-                AuditOutcome::Succeeded
-            },
-            if failed {
-                AuditReason::UpstreamFailure
-            } else {
-                AuditReason::Accepted
-            },
-        );
+        let audit = crate::audit::gateway_audit();
+        let completion = ToolCompletion {
+            result: result_kind,
+            duration_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or((1u64 << 53) - 1),
+            error_code: mcp_error_code,
+        };
+        let draft = audit
+            .tool(projection.server, projection.tool)
+            .and_then(|target| Ok((target, audit.detail(&completion)?)))
+            .and_then(|(target, detail)| {
+                subject.audit_draft(
+                    target,
+                    detail,
+                    if failed {
+                        AuditOutcome::Failed
+                    } else {
+                        AuditOutcome::Succeeded
+                    },
+                    if failed {
+                        AuditReason::UpstreamFailure
+                    } else {
+                        AuditReason::Accepted
+                    },
+                )
+            });
         match draft {
             Ok(draft) => {
                 self.state
@@ -504,7 +506,7 @@ impl GatewayMcp {
     async fn project_created_task(
         &self,
         subject: &AuthenticatedSubject,
-        server: &veoveo_mcp_contract::ServerSlug,
+        server: &veoveo_sdk_rust::ServerSlug,
         mut created: CreateTaskResult,
     ) -> Result<CreateTaskResult, McpError> {
         let authority_digest = veoveo_types::Sha256Digest::from_bytes(

@@ -1,9 +1,9 @@
 //! The Gateway's own catalog declarations. Servers contribute their actions, targets and
 //! configuration sections through registration, so the Gateway compiles in only its
 //! kernel vocabulary.
+use crate::contract::{CatalogRegistry, CatalogRegistryBuilder, GatewayAction};
 use std::sync::Arc;
-use veoveo_audit_contract::AuditTargetRegistry;
-use veoveo_gateway_contract::{CatalogRegistry, CatalogRegistryBuilder, GatewayAction};
+use veoveo_audit_contract::AuditRegistry;
 use veoveo_types::{ExtensionError, ExtensionName};
 
 /// The catalog registry with the kernel sections, extension groups and actions only.
@@ -35,8 +35,6 @@ pub fn kernel_catalog_registry() -> Result<CatalogRegistry, ExtensionError> {
             "prompt",
             "task",
             "platform_task",
-            "artifact",
-            "usage",
         ]
         .into_iter()
         .map(ExtensionName::parse)
@@ -46,7 +44,8 @@ pub fn kernel_catalog_registry() -> Result<CatalogRegistry, ExtensionError> {
     builder.build()
 }
 
-/// Audit read codecs for the kernel targets; owners add theirs through registration.
-pub fn kernel_audit_target_registry() -> Arc<AuditTargetRegistry> {
-    Arc::new(AuditTargetRegistry::builder().build())
+/// The installation's audit registry: core's platform classes, the MCP vocabulary and
+/// the Gateway's own classes and targets.
+pub fn audit_registry() -> Arc<AuditRegistry> {
+    crate::audit::gateway_audit().registry().clone()
 }

@@ -1,13 +1,13 @@
+use crate::contract::AuthorizationServerId;
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt,
 };
-use veoveo_gateway_contract::AuthorizationServerId;
 
+use crate::contract::{OAuthClientAuthMethod, OAuthGrantType};
+use crate::control_plane::{AuthMode, GatewayProfile, JwksSource};
 use serde::{Deserialize, Serialize};
-use veoveo_mcp_contract::{
-    AuthMode, GatewayProfile, GatewayProfileId, JwksSource, OAuthClientAuthMethod, OAuthGrantType,
-};
+use veoveo_sdk_rust::GatewayProfileId;
 use veoveo_types::{ScopeDefinition, ScopeName};
 
 use crate::GatewayCatalog;

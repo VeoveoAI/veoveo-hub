@@ -1,6 +1,6 @@
 use std::fs;
 
-use veoveo_mcp_contract::GatewayControlPlane;
+use veoveo_service_gateway::control_plane::GatewayControlPlane;
 
 const CORE_CONTROL_PLANES: [&str; 1] = ["testdata/gateway.json"];
 

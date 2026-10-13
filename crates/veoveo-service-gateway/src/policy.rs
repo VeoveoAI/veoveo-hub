@@ -1,19 +1,34 @@
-//! Gateway composition over the shared current-policy evaluator.
-use crate::GatewayCatalog;
-use veoveo_mcp_contract::{
-    DataLabelDefinition, GatewayProfile, GatewayProfileId, InstallationAuthorization,
-    PolicyDecision, PolicySet, ServerSlug, TenantDefinition,
+//! Authorization decisions over the Gateway's catalog: installation roles and grants
+//! over registered servers' declared permissions, policy rules and session freshness.
+//! Authentication and durable freshness are callers' responsibilities.
+mod catalog;
+mod evaluation;
+mod grants;
+pub mod session;
+
+pub use catalog::{PolicyCatalog, PolicyCatalogView};
+pub use evaluation::{
+    PolicyRequest, RuleMatchDetail, RuleOutcome, assemble_rule_outcome, decide, intersects,
+    mcp_method_name, principal_rule_conditions, remember_strongest_missing_requirement,
+    resource_scheme_from_uri, strongest_missing_rule_detail,
 };
-use veoveo_mcp_ext_registration::AuthorizationDeclaration;
-pub(crate) use veoveo_policy::resource_scheme_from_uri as resource_scheme;
-pub use veoveo_policy::{PolicyRequest, mcp_method_name, resource_scheme_from_uri};
+pub use grants::{granted_permissions, held_roles};
+
+use crate::GatewayCatalog;
+use crate::control_plane::{
+    DataLabelDefinition, GatewayProfile, InstallationAuthorization, PolicyDecision, PolicySet,
+    TenantDefinition,
+};
+pub(crate) use evaluation::resource_scheme_from_uri as resource_scheme;
+use veoveo_sdk_rust::registration::AuthorizationDeclaration;
+use veoveo_sdk_rust::{GatewayProfileId, ServerSlug};
 use veoveo_types::{DataLabelId, PolicyVersion, TenantId};
 
-impl veoveo_policy::PolicyCatalogView for GatewayCatalog {
-    fn registry(&self) -> &veoveo_gateway_contract::CatalogRegistry {
+impl PolicyCatalogView for GatewayCatalog {
+    fn registry(&self) -> &crate::contract::CatalogRegistry {
         self.registry()
     }
-    fn sections(&self) -> &veoveo_gateway_contract::AdmittedCatalogSections {
+    fn sections(&self) -> &crate::contract::AdmittedCatalogSections {
         self.sections()
     }
     fn profile(&self, id: &GatewayProfileId) -> Option<&GatewayProfile> {
@@ -41,6 +56,6 @@ impl GatewayCatalog {
         let _timing = crate::request_observation::StageTimer::start(
             crate::request_observation::RequestStage::Policy,
         );
-        veoveo_policy::decide(self, request)
+        decide(self, request)
     }
 }

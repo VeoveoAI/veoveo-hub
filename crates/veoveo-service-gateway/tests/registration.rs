@@ -1,5 +1,5 @@
-//! Runs the Gateway binary against a disposable PostgreSQL database, registers core's
-//! modular fixture server through the RFC 7591 flow with core's registration client,
+//! Runs the Gateway binary against a disposable PostgreSQL database, registers the SDK's
+//! Observatory fixture server through the RFC 7591 flow with the SDK's registration client,
 //! and checks the role decisions, the namespace pin, the database grant, that a live
 //! registration costs no writes while idle, and the end of a registration from the
 //! server's and a caller's side.
@@ -34,15 +34,15 @@ use rmcp::{
     },
 };
 use secrecy::SecretString;
-use veoveo_mcp_contract::{GatewayInternalIdentity, GatewayInternalTokenVerifier};
-use veoveo_mcp_ext_registration::{
+use veoveo_platform_store::{Instance, PlatformStore, StoreConfig};
+use veoveo_sdk_rust::registration::{
     AccessTokenTrust, AuthorizationDeclaration, ClientMetadata, DatabaseGrant, Ed25519Jwk,
     Ed25519JwkSet, RegistrationDeclaration, RegistrationErrorCode, ServerEndpoint, ServerVersion,
     client::{ClientError, RegistrationClient},
     statement::ServerKeyPair,
 };
-use veoveo_modular_fixture_mcp::mcp::{FixtureGrants, ObservatoryMcp};
-use veoveo_platform_store::{Instance, PlatformStore, StoreConfig};
+use veoveo_sdk_rust::{GatewayInternalIdentity, GatewayInternalTokenVerifier};
+use veoveo_sdk_rust_fixture::mcp::{FixtureGrants, ObservatoryMcp};
 use veoveo_service_gateway::{local::LocalCaller, registration::HOUSEKEEPING_INTERVAL};
 use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::{ResourceScheme, ServerSlug};
@@ -118,10 +118,15 @@ async fn qualify() {
         .clone();
     assert!(grant.username.as_str().starts_with("observatory_"));
     let server = connect(&grant).await;
-    server
-        .migrate_server(&slug, sqlx::migrate!("tests/registration/migrations"))
-        .await
-        .unwrap();
+    // Loaded at runtime: `sqlx::migrate!` would apply this crate's `sqlx.toml`, which
+    // names the Gateway's own history table, to a server's migrations.
+    let migrator = sqlx::migrate::Migrator::new(std::path::Path::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/registration/migrations"
+    )))
+    .await
+    .unwrap();
+    server.migrate_server(&slug, migrator).await.unwrap();
     let access = sqlx::query_file!(
         "tests/registration/table_access.sql",
         grant.username.as_str(),
@@ -171,8 +176,8 @@ async fn qualify() {
     tokio::spawn(async move {
         let service = StreamableHttpService::new(
             || Ok(ObservatoryMcp),
-            veoveo_mcp_contract::stateless_session_manager(),
-            veoveo_mcp_contract::canonical_streamable_http_server_config(),
+            veoveo_sdk_rust::stateless_session_manager(),
+            veoveo_sdk_rust::canonical_streamable_http_server_config(),
         );
         let router = Router::new()
             .nest_service("/observatory/mcp", service)
@@ -483,7 +488,7 @@ async fn authenticate(
     request
         .extensions_mut()
         .insert(FixtureGrants(BTreeSet::from([
-            veoveo_modular_fixture_mcp::contract::ObservatoryScope::Read.into(),
+            veoveo_sdk_rust_fixture::contract::ObservatoryScope::Read.into(),
         ])));
     next.run(request).await
 }

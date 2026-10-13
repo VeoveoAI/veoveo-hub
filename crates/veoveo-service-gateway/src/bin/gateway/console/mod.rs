@@ -1,5 +1,5 @@
-use veoveo_gateway_contract::ConsoleBootstrap;
-use veoveo_gateway_contract::GatewayAction;
+use veoveo_service_gateway::contract::ConsoleBootstrap;
+use veoveo_service_gateway::contract::GatewayAction;
 mod presentation;
 
 use crate::runtime::SharedCatalog;
@@ -10,7 +10,8 @@ use axum::{
     response::{IntoResponse, Response},
 };
 pub(crate) use presentation::presentation;
-use veoveo_mcp_contract::{GatewayProfileId, PolicyEffect, PolicyTarget, TraceId};
+use veoveo_sdk_rust::GatewayProfileId;
+use veoveo_service_gateway::control_plane::{PolicyEffect, PolicyTarget, TraceId};
 use veoveo_service_gateway::{AuthenticatedSubject, PolicyRequest};
 use veoveo_types::ScopeDefinition;
 
@@ -57,7 +58,7 @@ pub(crate) async fn bootstrap(
             can_read_audit: subject
                 .actor
                 .scopes
-                .contains(veoveo_mcp_contract::audit::AuditScope::Read.name()),
+                .contains(veoveo_audit_contract::AuditScope::Read.name()),
         }),
     )
         .into_response()

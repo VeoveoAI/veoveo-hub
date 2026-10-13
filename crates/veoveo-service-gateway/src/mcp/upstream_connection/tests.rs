@@ -61,8 +61,8 @@ impl Fixture {
         let source = Source(mutations.clone());
         let service = StreamableHttpService::new(
             move || Ok(source.clone()),
-            veoveo_mcp_contract::stateless_session_manager(),
-            veoveo_mcp_contract::canonical_streamable_http_server_config(),
+            veoveo_sdk_rust::stateless_session_manager(),
+            veoveo_sdk_rust::canonical_streamable_http_server_config(),
         );
         let count = attempts.clone();
         let router = Router::new().nest_service("/mcp", service).layer(

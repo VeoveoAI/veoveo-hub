@@ -5,8 +5,8 @@ use chrono::Utc;
 use parking_lot::RwLock;
 use serde::Serialize;
 use tokio_util::sync::CancellationToken;
-use veoveo_mcp_contract::{GatewayInternalTokenIssuer, GatewayProfileId};
 use veoveo_platform_store::MaintenanceBatch;
+use veoveo_sdk_rust::{GatewayInternalTokenIssuer, GatewayProfileId};
 use veoveo_service_gateway::{
     GatewayCatalog, GatewayCatalogHandle, GatewayControlStore, GatewayRefreshDeliveryWindow,
     GatewayState, GatewayUpstreamHttpClientPool, RefreshTokenDeliveryCipher,

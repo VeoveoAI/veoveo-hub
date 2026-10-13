@@ -3,6 +3,8 @@ use super::auth_support::{
     authorization_server_jwks_from_signing_key, bearer_challenge, load_jwks, record_auth_audit,
 };
 use super::{ProfileAuthState, current_catalog, current_http_client, public_authorization_server};
+use crate::contract::{AuthOutcome, AuthReasonCode};
+use crate::control_plane::ResourceAuthorizationServer;
 use crate::{
     AuthError, AuthenticatedSubject, BearerError, BearerToken, GatewayCatalog, JwtAuthConfig,
     JwtVerifier, problem::Problem,
@@ -16,10 +18,8 @@ use axum::{
 use chrono::Utc;
 use jsonwebtoken::jwk::JwkSet;
 use std::time::Instant;
-use veoveo_mcp_contract::{
-    AuthOutcome, AuthReasonCode, GatewayProfileId, PrincipalKind, ResourceAuthorizationServer,
-};
 use veoveo_platform_store::PrincipalKind as StorePrincipalKind;
+use veoveo_sdk_rust::{GatewayProfileId, PrincipalKind};
 
 /// Capture the raw spelling at the registered named profile position. Decoded
 /// path extractors cannot establish whether the caller submitted an encoded alias.

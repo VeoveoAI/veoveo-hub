@@ -8,10 +8,12 @@ use axum::{
 use chrono::{TimeDelta, Utc};
 use serde::Deserialize;
 use url::Url;
-use veoveo_mcp_contract::{
-    AuthMode, AuthOutcome, AuthReasonCode, GatewayAuthorizationRequest, OAuthClientId,
+use veoveo_sdk_rust::OAuthClientId;
+use veoveo_service_gateway::contract::{AuthOutcome, AuthReasonCode};
+use veoveo_service_gateway::contract::{
     OAuthRedirectUri, OAuthStateValue, PkceCodeChallenge, PkceCodeChallengeMethod,
 };
+use veoveo_service_gateway::control_plane::{AuthMode, GatewayAuthorizationRequest};
 use veoveo_types::WorkContextId;
 
 use crate::{

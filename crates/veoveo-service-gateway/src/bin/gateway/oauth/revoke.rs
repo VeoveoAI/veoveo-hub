@@ -1,5 +1,5 @@
 use std::time::Instant;
-use veoveo_gateway_contract::ProtectedResourceId;
+use veoveo_sdk_rust::ProtectedResourceId;
 
 use axum::{
     Form,
@@ -9,9 +9,11 @@ use axum::{
 };
 use chrono::Utc;
 use serde::Deserialize;
-use veoveo_mcp_contract::{
-    AuthOutcome, AuthReasonCode, GatewayProfile, GatewayRefreshRevocationRequest,
-    OAuthClientAuthMethod, OAuthClientId, OAuthGrantType, OAuthRefreshToken, OAuthTokenTypeHint,
+use veoveo_sdk_rust::OAuthClientId;
+use veoveo_service_gateway::contract::{AuthOutcome, AuthReasonCode};
+use veoveo_service_gateway::contract::{OAuthClientAuthMethod, OAuthGrantType};
+use veoveo_service_gateway::control_plane::{
+    GatewayProfile, GatewayRefreshRevocationRequest, OAuthRefreshToken, OAuthTokenTypeHint,
     ResourceAuthorizationServer,
 };
 
@@ -273,7 +275,7 @@ async fn record_revocation_audit(
     profile: &GatewayProfile,
     authorization_server: &ResourceAuthorizationServer,
     client_id: Option<&OAuthClientId>,
-    principal: Option<&veoveo_mcp_contract::Principal>,
+    principal: Option<&veoveo_sdk_rust::Principal>,
     outcome: AuthOutcome,
     reason: AuthReasonCode,
     started_at: Instant,

@@ -1,15 +1,14 @@
 use std::collections::BTreeSet;
-use veoveo_gateway_contract::ProtectedResourceId;
+use veoveo_sdk_rust::ProtectedResourceId;
 
 use anyhow::anyhow;
 use chrono::{TimeDelta, Utc};
 use jsonwebtoken::encode;
 use serde::Serialize;
-use veoveo_mcp_contract::{
-    JwtId, OAuthClientId, Principal, PrincipalDisplayName, PrincipalKind,
-    ResourceAuthorizationServer, TokenSubject,
-};
+use veoveo_sdk_rust::{JwtId, OAuthClientId, Principal, PrincipalKind, TokenSubject};
 use veoveo_service_gateway::GatewayCatalog;
+use veoveo_service_gateway::contract::PrincipalDisplayName;
+use veoveo_service_gateway::control_plane::ResourceAuthorizationServer;
 use veoveo_types::{InvocationProvenance, PrincipalId, ScopeName, TenantId, WorkContextId};
 
 pub(super) const ACCESS_TOKEN_TTL_SECONDS: i64 = 15 * 60;
@@ -28,7 +27,7 @@ struct AccessTokenClaims {
     client_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "https://veoveo.ai/claims/session-family")]
-    session_family: Option<veoveo_mcp_contract::GatewayRefreshFamilyId>,
+    session_family: Option<veoveo_sdk_rust::GatewayRefreshFamilyId>,
     #[serde(rename = "https://veoveo.ai/claims/work-context")]
     work_context: String,
     #[serde(rename = "https://veoveo.ai/claims/invocation-mode")]
@@ -66,7 +65,7 @@ struct AccessTokenClaims {
 #[derive(Debug, Clone)]
 pub(super) struct AccessTokenInvocation {
     pub(super) extensions: veoveo_types::AdmittedExtensions,
-    pub(super) session_family: Option<veoveo_mcp_contract::GatewayRefreshFamilyId>,
+    pub(super) session_family: Option<veoveo_sdk_rust::GatewayRefreshFamilyId>,
     pub(super) work_context: WorkContextId,
     pub(super) provenance: InvocationProvenance,
 }
@@ -235,9 +234,7 @@ pub(super) async fn issue_access_token(
                     .assurances
                     .iter()
                     .map(|assurance| match assurance {
-                        veoveo_mcp_contract::PrincipalAssurance::UsPerson => {
-                            "us_person".to_string()
-                        }
+                        veoveo_sdk_rust::PrincipalAssurance::UsPerson => "us_person".to_string(),
                     })
                     .collect::<Vec<_>>()
             })

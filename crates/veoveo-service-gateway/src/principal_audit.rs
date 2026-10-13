@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use veoveo_mcp_contract::{Principal, PrincipalAssurance, PrincipalKind};
+use veoveo_sdk_rust::{Principal, PrincipalAssurance, PrincipalKind};
 
 pub fn principal_audit_metadata(principal: &Principal) -> BTreeMap<String, String> {
     let mut metadata = BTreeMap::new();
@@ -69,7 +69,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     use chrono::Utc;
-    use veoveo_mcp_contract::{
+    use veoveo_sdk_rust::{
         Principal, PrincipalAssurance, PrincipalKind, TokenIssuer, TokenSubject,
     };
     use veoveo_types::{DataLabelId, GroupId, PrincipalId, RoleId, ScopeName};

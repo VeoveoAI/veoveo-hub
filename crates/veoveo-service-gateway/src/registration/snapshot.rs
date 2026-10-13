@@ -1,7 +1,7 @@
 //! The registered servers one catalog generation routes to.
 
 use std::{collections::BTreeMap, sync::Arc};
-use veoveo_mcp_ext_registration::{AuthorizationDeclaration, ServerEndpoint, ServerVersion};
+use veoveo_sdk_rust::registration::{AuthorizationDeclaration, ServerEndpoint, ServerVersion};
 use veoveo_types::{OAuthClientId, ResourceScheme, ServerSlug};
 
 /// The MCP surfaces the Gateway queries on a server, derived from its declaration: a

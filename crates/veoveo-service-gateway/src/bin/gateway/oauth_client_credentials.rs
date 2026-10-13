@@ -2,10 +2,10 @@ use std::time::Instant;
 
 use axum::{http::StatusCode, response::IntoResponse};
 use chrono::Utc;
-use veoveo_mcp_contract::{
-    AuthOutcome, AuthReasonCode, OAuthClientAuthMethod, OAuthGrantType, ResourceAuthorizationServer,
-};
 use veoveo_oauth_client::CLIENT_ASSERTION_TYPE;
+use veoveo_service_gateway::contract::{AuthOutcome, AuthReasonCode};
+use veoveo_service_gateway::contract::{OAuthClientAuthMethod, OAuthGrantType};
+use veoveo_service_gateway::control_plane::ResourceAuthorizationServer;
 use veoveo_service_gateway::oauth_clients::EffectiveOAuthClient;
 use veoveo_service_gateway::{ClientAssertionConfig, ClientAssertionVerifier, GatewayCatalog};
 use veoveo_types::WorkContextId;

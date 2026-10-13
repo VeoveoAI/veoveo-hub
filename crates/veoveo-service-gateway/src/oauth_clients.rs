@@ -1,11 +1,12 @@
 //! OAuth registration resolution and contributed current-authority policy.
+use crate::contract::PolicyAction;
+use crate::control_plane::{OAuthClientRegistration, PolicyTarget};
 use crate::{AuthenticatedSubject, GatewayCatalog, GatewayState, VerifiedAccessToken};
 use anyhow::{Context, Result, ensure};
 use futures::future::BoxFuture;
 use jsonwebtoken::jwk::JwkSet;
 use std::{fmt::Debug, sync::Arc};
-use veoveo_gateway_contract::PolicyAction;
-use veoveo_mcp_contract::{OAuthClientId, OAuthClientRegistration, PolicyTarget, Principal};
+use veoveo_sdk_rust::{OAuthClientId, Principal};
 use veoveo_types::{WorkContextId, WorkContextMembershipLevel};
 
 pub trait OAuthClientResolver: Debug + Send + Sync {
@@ -95,10 +96,6 @@ pub trait OAuthClientAuthority: Debug + Send + Sync {
         principal: &Principal,
     ) -> Result<WorkContextMembershipLevel>;
     fn token_extensions(&self) -> Result<veoveo_types::AdmittedExtensions>;
-    fn execution_attribution(
-        &self,
-        verified: &VerifiedAccessToken,
-    ) -> Result<Option<veoveo_audit_contract::AuditManagedExecution>>;
     fn apply_service_roles(&self, principal: &mut Principal) -> Result<()>;
     fn validate_token(&self, verified: &VerifiedAccessToken) -> Result<()>;
     fn action_admitted(
@@ -264,10 +261,7 @@ impl GatewayState {
         };
         match &client.authority {
             Some(authority) => authority.action_admitted(catalog, subject, action.into(), target),
-            None => {
-                Ok(subject.extensions.is_empty()
-                    && subject.access_token.managed_execution.is_none())
-            }
+            None => Ok(subject.extensions.is_empty()),
         }
     }
     pub async fn resolve_authenticated_subject(
@@ -293,12 +287,10 @@ impl GatewayState {
         match &client.authority {
             Some(authority) => {
                 authority.validate_token(&verified)?;
-                verified.access_token.managed_execution =
-                    authority.execution_attribution(&verified)?;
                 client.apply_service_roles(&mut verified.principal)?;
             }
             None => ensure!(
-                verified.extensions.is_empty() && verified.access_token.managed_execution.is_none(),
+                verified.extensions.is_empty(),
                 "OAuth token registration source mismatch"
             ),
         }
@@ -329,12 +321,6 @@ mod owner_tests {
         }
         fn token_extensions(&self) -> Result<veoveo_types::AdmittedExtensions> {
             Ok(Default::default())
-        }
-        fn execution_attribution(
-            &self,
-            _: &VerifiedAccessToken,
-        ) -> Result<Option<veoveo_audit_contract::AuditManagedExecution>> {
-            Ok(None)
         }
         fn apply_service_roles(&self, _: &mut Principal) -> Result<()> {
             Ok(())

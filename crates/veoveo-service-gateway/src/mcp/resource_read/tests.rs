@@ -81,7 +81,7 @@ async fn every_read_is_audited_before_delivery_and_fails_when_the_writer_stops()
 async fn qualify() {
     let db = crate::test_store::TestDb::new().await;
     // A second pool reads what the Gateway's writer committed.
-    let reader = veoveo_audit::AuditStore::new(db.b.clone(), crate::kernel_audit_target_registry());
+    let reader = veoveo_audit::AuditStore::new(db.b.clone(), crate::audit_registry());
     let state = crate::GatewayState::new(db.a.clone())
         .bind_token_extensions(Default::default())
         .unwrap()
@@ -122,12 +122,16 @@ async fn qualify() {
     let page = reader.page(&scope, &query).await.unwrap();
     assert_eq!(page.records.len(), 1);
     assert_eq!(page.records[0].draft.outcome(), AuditOutcome::Succeeded);
-    assert!(matches!(
-        page.records[0].draft.detail(),
-        AuditDetail::Read {
-            method: AuditReadMethod::ResourceRead
+    let draft = &page.records[0].draft;
+    assert_eq!(
+        reader
+            .registry()
+            .read::<Read>(draft.class(), draft.detail())
+            .unwrap(),
+        Read {
+            method: McpReadMethod::ResourceRead
         }
-    ));
+    );
     denied.store(true, Ordering::SeqCst);
     let denial = read_upstream(client.peer().clone(), params())
         .await

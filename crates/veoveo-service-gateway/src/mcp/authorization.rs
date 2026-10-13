@@ -1,19 +1,17 @@
+use crate::contract::GatewayAction;
+use crate::control_plane::{
+    GatewayResourceProjection, OAuthClientRegistration, OAuthClientSurface, PolicyDecision,
+    PolicyEffect, PolicyReasonCode, PolicyTarget, TraceId,
+};
 use rmcp::{
     model::ErrorData as McpError,
     service::{RequestContext, RoleServer},
 };
-use veoveo_audit_contract::{
-    AuditDetail, AuditOutcome, AuditReadMethod, AuditReason, TaskActivity,
-};
-use veoveo_gateway_contract::GatewayAction;
-use veoveo_mcp_contract::{
-    CanonicalTaskId, GatewayResourceProjection, LocalToolName, OAuthClientRegistration,
-    OAuthClientSurface, PolicyDecision, PolicyEffect, PolicyReasonCode, PolicyTarget, PromptName,
-    ServerSlug, TraceId,
-};
+use veoveo_audit_contract::{AuditOutcome, AuditReason};
 use veoveo_platform_store::{
     deterministic_principal_id, deterministic_tenant_id, deterministic_work_context_id,
 };
+use veoveo_sdk_rust::{CanonicalTaskId, LocalToolName, PromptName, ServerSlug};
 
 use crate::{
     AuthenticatedSubject, PolicyRequest,
@@ -273,40 +271,13 @@ impl GatewayMcp {
             .await?;
         // Owned task status is a polling protocol. Its denials are still records.
         if action != GatewayAction::TasksGet || decision.effect != PolicyEffect::Allow {
-            let detail = match action {
-                GatewayAction::ToolsCall => AuditDetail::ToolAdmission,
-                GatewayAction::ResourcesRead | GatewayAction::ArtifactRead => AuditDetail::Read {
-                    method: AuditReadMethod::ResourceRead,
-                },
-                GatewayAction::PromptsGet => AuditDetail::Read {
-                    method: AuditReadMethod::PromptGet,
-                },
-                GatewayAction::CompletionComplete => AuditDetail::Read {
-                    method: AuditReadMethod::Completion,
-                },
-                GatewayAction::SubscriptionsListen => AuditDetail::Read {
-                    method: AuditReadMethod::Subscription,
-                },
-                GatewayAction::TasksGet => AuditDetail::Read {
-                    method: AuditReadMethod::Status,
-                },
-                GatewayAction::TasksUpdate => AuditDetail::Task {
-                    activity: TaskActivity::Update,
-                },
-                GatewayAction::TasksCancel => AuditDetail::Task {
-                    activity: TaskActivity::Cancel,
-                },
-                GatewayAction::UsageRead => AuditDetail::Read {
-                    method: AuditReadMethod::Usage,
-                },
-                _ => return Err(mcp_internal("action requires its domain audit producer")),
-            };
+            let detail = crate::audit::mcp_action_detail(action)
+                .map_err(|_| mcp_internal("action requires its domain audit producer"))?;
             let allowed = decision.effect == PolicyEffect::Allow;
             let target = crate::audit::mcp_audit_target(&target)
                 .map_err(|_| mcp_internal("invalid audit target"))?;
             let draft = subject
                 .audit_draft(
-                    &self.profile_id,
                     target,
                     detail,
                     if allowed {
@@ -380,12 +351,11 @@ impl GatewayMcp {
     pub(super) async fn record_discovery(
         &self,
         subject: &AuthenticatedSubject,
-        collection: veoveo_audit_contract::DiscoveryKind,
+        collection: veoveo_sdk_rust::audit::DiscoveryKind,
         mut identities: Vec<String>,
         denied: u32,
     ) -> Result<(), McpError> {
         use sha2::{Digest, Sha256};
-        use veoveo_audit_contract::AuditTarget;
         identities.sort();
         let visible = identities
             .len()
@@ -395,22 +365,20 @@ impl GatewayMcp {
         let bytes = serde_json::to_vec(&identities)
             .map_err(|_| mcp_internal("invalid catalog identity"))?;
         let visible_digest = veoveo_types::Sha256Digest::from_bytes(Sha256::digest(bytes).into());
+        let audit = crate::audit::gateway_audit();
+        let target = audit
+            .discovery(None, collection)
+            .map_err(|_| mcp_internal("invalid discovery target"))?;
+        let detail = audit
+            .detail(&veoveo_sdk_rust::audit::Discovery {
+                collection,
+                visible,
+                denied,
+                visible_digest,
+            })
+            .map_err(|_| mcp_internal("invalid discovery detail"))?;
         let draft = subject
-            .audit_draft(
-                &self.profile_id,
-                AuditTarget::Discovery {
-                    server: None,
-                    collection,
-                },
-                AuditDetail::Discovery {
-                    collection,
-                    visible,
-                    denied,
-                    visible_digest,
-                },
-                AuditOutcome::Allowed,
-                AuditReason::Accepted,
-            )
+            .audit_draft(target, detail, AuditOutcome::Allowed, AuditReason::Accepted)
             .map_err(|_| mcp_internal("invalid discovery attribution"))?;
         self.state
             .record_audit(draft)
@@ -449,15 +417,15 @@ impl GatewayMcp {
         self.authorize(context, action, target).await
     }
 
-    /// A successful read is recorded with its returned observation by the read
-    /// handler. Denials commit here, before any upstream request.
+    /// The read handler records a successful read. Denials commit here, before any
+    /// upstream request.
     pub(super) async fn admit_resource_read(
         &self,
         context: &RequestContext<RoleServer>,
         projection: &GatewayResourceProjection,
     ) -> Result<AuthenticatedSubject, McpError> {
         let subject = self.authenticated(context)?;
-        let action = crate::mcp_support::resource_read_action(projection.gateway_uri.as_str());
+        let action = GatewayAction::ResourcesRead;
         let target =
             resource_policy_target(projection.server.clone(), projection.gateway_uri.as_str())?;
         let decision = self
@@ -506,18 +474,10 @@ impl GatewayMcp {
     ) -> Result<(), McpError> {
         let target = crate::audit::mcp_audit_target(&target)
             .map_err(|_| mcp_internal("invalid audit target"))?;
-        let detail = match action {
-            GatewayAction::ToolsCall => AuditDetail::ToolAdmission,
-            GatewayAction::ResourcesRead | GatewayAction::ArtifactRead => AuditDetail::Read {
-                method: AuditReadMethod::ResourceRead,
-            },
-            _ => AuditDetail::Read {
-                method: AuditReadMethod::Status,
-            },
-        };
+        let detail = crate::audit::mcp_action_detail(action)
+            .map_err(|_| mcp_internal("action requires its domain audit producer"))?;
         let draft = subject
             .audit_draft(
-                &self.profile_id,
                 target,
                 detail,
                 AuditOutcome::Denied,
@@ -612,8 +572,6 @@ fn policy_denial_message(decision: &PolicyDecision) -> String {
         PolicyTarget::Prompt { server, prompt } => format!("use prompt `{prompt}` on `{server}`"),
         PolicyTarget::Task { task_id, .. } => format!("access task `{task_id}`"),
         PolicyTarget::PlatformTask { task_id, .. } => format!("access task `{task_id}`"),
-        PolicyTarget::Artifact { artifact_uri, .. } => format!("access `{artifact_uri}`"),
-        PolicyTarget::Usage { usage_uri, .. } => format!("read `{usage_uri}`"),
         PolicyTarget::Server { server } => format!("use the `{server}` server"),
         PolicyTarget::Gateway | PolicyTarget::Owner(_) | PolicyTarget::Unadmitted(_) => {
             "make this request".to_owned()
@@ -653,7 +611,6 @@ fn policy_denial_message(decision: &PolicyDecision) -> String {
         | PolicyReasonCode::UnknownResource
         | PolicyReasonCode::UnknownPrompt
         | PolicyReasonCode::UnknownTask
-        | PolicyReasonCode::UnknownArtifact
         | PolicyReasonCode::UndeclaredTarget => " It isn't available in this profile.",
         PolicyReasonCode::MissingPermission => {
             " Your roles don't grant the permission this requires."
@@ -665,11 +622,11 @@ fn policy_denial_message(decision: &PolicyDecision) -> String {
 
 #[cfg(test)]
 mod tests {
-    use veoveo_gateway_contract::GatewayAction;
-    use veoveo_mcp_contract::{
-        GatewayProfileId, LocalToolName, OAuthClientSurface, PolicyDecision, PolicyReasonCode,
-        PolicyTarget, ServerSlug, TraceId,
+    use crate::contract::GatewayAction;
+    use crate::control_plane::{
+        OAuthClientSurface, PolicyDecision, PolicyReasonCode, PolicyTarget, TraceId,
     };
+    use veoveo_sdk_rust::{GatewayProfileId, LocalToolName, ServerSlug};
 
     use super::{client_surface_allows_task_projection, policy_denial_message};
 

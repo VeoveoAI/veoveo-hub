@@ -1,4 +1,5 @@
 use super::http_response::RequestError;
+use crate::contract::GatewayAction;
 use rmcp::{
     model::{
         ErrorData as McpError, ListResourceTemplatesResult, ListResourcesResult,
@@ -7,11 +8,10 @@ use rmcp::{
     },
     service::{RequestContext, RoleServer},
 };
-use veoveo_gateway_contract::GatewayAction;
-use veoveo_gateway_contract::GatewayDiscoveryDegradation;
-use veoveo_gateway_contract::{GatewayDiscoveryFailure, GatewayDiscoverySurface};
-use veoveo_mcp_contract::GatewayDiscoveryMetadata;
-use veoveo_mcp_contract::{
+use veoveo_sdk_rust::GatewayDiscoveryMetadata;
+use veoveo_sdk_rust::gateway::GatewayDiscoveryDegradation;
+use veoveo_sdk_rust::gateway::{GatewayDiscoveryFailure, GatewayDiscoverySurface};
+use veoveo_sdk_rust::{
     GATEWAY_TASK_RESOURCE_TEMPLATE, GatewayTaskStatus, GatewayTaskStatusDocument,
 };
 
@@ -37,7 +37,7 @@ impl GatewayMcp {
             self.available_resources(context, subject.clone()).await?;
         self.record_discovery(
             &subject,
-            veoveo_audit_contract::DiscoveryKind::Resources,
+            veoveo_sdk_rust::audit::DiscoveryKind::Resources,
             resources
                 .iter()
                 .map(|resource| resource.uri.clone())
@@ -50,7 +50,7 @@ impl GatewayMcp {
             resources: page.items,
             next_cursor: page.next_cursor,
             result_type: Some(rmcp::model::ResultType::COMPLETE),
-            ttl_ms: Some(veoveo_mcp_contract::PRIVATE_CATALOG_TTL_MS),
+            ttl_ms: Some(veoveo_sdk_rust::PRIVATE_CATALOG_TTL_MS),
             cache_scope: Some(rmcp::model::CacheScope::Private),
             meta: degradation.into_meta(),
         })
@@ -170,7 +170,7 @@ impl GatewayMcp {
     pub(super) async fn discover_resources_for_server(
         &self,
         catalog: &crate::GatewayCatalog,
-        server_slug: &veoveo_mcp_contract::ServerSlug,
+        server_slug: &veoveo_sdk_rust::ServerSlug,
         context: &RequestContext<RoleServer>,
         subject: &crate::AuthenticatedSubject,
     ) -> Result<AdmittedCatalog<DiscoveredResource>, McpError> {
@@ -251,7 +251,7 @@ impl GatewayMcp {
         }
         self.record_discovery(
             &subject,
-            veoveo_audit_contract::DiscoveryKind::ResourceTemplates,
+            veoveo_sdk_rust::audit::DiscoveryKind::ResourceTemplates,
             templates
                 .iter()
                 .map(|template| template.uri_template.clone())
@@ -264,7 +264,7 @@ impl GatewayMcp {
             resource_templates: page.items,
             next_cursor: page.next_cursor,
             result_type: Some(rmcp::model::ResultType::COMPLETE),
-            ttl_ms: Some(veoveo_mcp_contract::PRIVATE_CATALOG_TTL_MS),
+            ttl_ms: Some(veoveo_sdk_rust::PRIVATE_CATALOG_TTL_MS),
             cache_scope: Some(rmcp::model::CacheScope::Private),
             meta: degradation.into_meta(),
         })
@@ -384,7 +384,7 @@ impl GatewayMcp {
     async fn discover_resource_templates_for_server(
         &self,
         catalog: &crate::GatewayCatalog,
-        server_slug: &veoveo_mcp_contract::ServerSlug,
+        server_slug: &veoveo_sdk_rust::ServerSlug,
         context: &RequestContext<RoleServer>,
         subject: &crate::AuthenticatedSubject,
     ) -> Result<AdmittedCatalog<ResourceTemplate>, McpError> {

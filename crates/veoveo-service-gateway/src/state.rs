@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
 use veoveo_platform_store::{PlatformStore, StoreConfig};
 
+use crate::store::GatewayStore;
+
 mod auth_state;
 mod refresh_tokens;
 mod session;
@@ -21,7 +23,7 @@ pub(crate) use task_routes::{GatewayTaskOwnership, GatewayTaskRouteDraft};
 #[derive(Debug, Clone)]
 pub struct GatewayState {
     pub(crate) token_extensions: Option<veoveo_types::ExtensionRegistry>,
-    pub(super) platform: PlatformStore,
+    pub(super) store: GatewayStore,
     pub(crate) audit: veoveo_audit::AuditStore,
     pub(crate) audit_writer: std::sync::Arc<tokio::sync::OnceCell<veoveo_audit::AuditWriter>>,
     pub(crate) audit_health: std::sync::Arc<std::sync::OnceLock<veoveo_audit::AuditHealth>>,
@@ -32,11 +34,8 @@ pub struct GatewayState {
 impl GatewayState {
     pub fn new(platform: PlatformStore) -> Self {
         Self {
-            audit: veoveo_audit::AuditStore::new(
-                platform.clone(),
-                crate::kernel_audit_target_registry(),
-            ),
-            platform,
+            audit: veoveo_audit::AuditStore::new(platform.clone(), crate::audit_registry()),
+            store: GatewayStore::new(platform),
             audit_writer: Default::default(),
             audit_health: Default::default(),
             oauth_client_resolver: None,
@@ -52,7 +51,12 @@ impl GatewayState {
     }
 
     pub fn platform_store(&self) -> &PlatformStore {
-        &self.platform
+        self.store.platform()
+    }
+
+    /// The Gateway's statements over the installation database.
+    pub fn gateway_store(&self) -> &GatewayStore {
+        &self.store
     }
 
     /// The audit log, read and written with the installation's target registry.
@@ -66,8 +70,8 @@ impl GatewayState {
         draft: &veoveo_audit_contract::AuditDraft,
     ) -> Result<crate::audit::AuditAppend> {
         Ok(crate::audit::AuditAppend::new(
-            veoveo_audit_contract::AuditTransactionWrite::new(self.audit.targets(), draft.clone())
-                .context("audit draft is outside the installation's target registry")?,
+            veoveo_audit_contract::AuditTransactionWrite::new(self.audit.registry(), draft.clone())
+                .context("audit draft is outside the installation's audit registry")?,
         ))
     }
 }

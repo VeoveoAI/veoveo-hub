@@ -24,7 +24,12 @@ fn input_tenant() -> veoveo_types::TenantId {
 async fn database() -> fixture::TestDb {
     let db = fixture::TestDb::new().await;
     let input = draft();
-    crate::test_catalog::publish_work_context(&db.a, &input.tenant, &input.work_context).await;
+    crate::test_catalog::publish_work_context(
+        &crate::store::GatewayStore::new(db.a.clone()),
+        &input.tenant,
+        &input.work_context,
+    )
+    .await;
     db
 }
 

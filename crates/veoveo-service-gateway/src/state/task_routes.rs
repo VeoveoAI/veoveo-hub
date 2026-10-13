@@ -5,11 +5,11 @@ use std::collections::BTreeSet;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, TimeDelta, Utc};
-use veoveo_mcp_contract::{CanonicalTaskId, GatewayProfileId, Principal, ServerSlug};
 use veoveo_platform_store::{
     PrincipalId, PrincipalKind, TenantId, WorkContextId, deterministic_principal_id,
     deterministic_tenant_id, deterministic_work_context_id,
 };
+use veoveo_sdk_rust::{CanonicalTaskId, GatewayProfileId, Principal, ServerSlug};
 use veoveo_types::{
     DataLabelId, DelegationId, InvocationAuthority, InvocationProvenance, Sha256Digest,
     TokenIssuer, TokenSubject,
@@ -55,8 +55,8 @@ impl GatewayTaskOwnership {
         Self {
             principal: actor.id.clone(),
             kind: match actor.kind {
-                veoveo_mcp_contract::PrincipalKind::User => PrincipalKind::User,
-                veoveo_mcp_contract::PrincipalKind::Service => PrincipalKind::Service,
+                veoveo_sdk_rust::PrincipalKind::User => PrincipalKind::User,
+                veoveo_sdk_rust::PrincipalKind::Service => PrincipalKind::Service,
             },
             issuer: actor.issuer.clone(),
             subject: actor.subject.clone(),
@@ -181,7 +181,7 @@ impl GatewayState {
         now: DateTime<Utc>,
         batch: veoveo_platform_store::MaintenanceBatch,
     ) -> Result<veoveo_platform_store::Pruned> {
-        self.platform
+        self.store
             .prune_task_routes(now, batch)
             .await
             .context("failed to prune expired Task routes")
@@ -216,7 +216,8 @@ impl GatewayState {
             return reusable(route, &draft, &identity, now);
         }
         let ownership = &draft.ownership;
-        self.platform
+        self.store
+            .platform()
             .ensure_identity(
                 draft.tenant.as_str(),
                 ownership.principal.as_str(),
@@ -260,7 +261,7 @@ impl GatewayState {
             now,
             expires_at,
         )
-        .execute(self.platform.pool())
+        .execute(self.store.platform().pool())
         .await
         .context("failed to record the task route")?;
         let route = self
@@ -284,7 +285,7 @@ impl GatewayState {
             tenant as TenantId,
             Utc::now(),
         )
-        .fetch_optional(self.platform.pool())
+        .fetch_optional(self.store.platform().pool())
         .await
         .context("failed to read the task route")?
         .map(GatewayTaskRoute::try_from)
@@ -305,7 +306,7 @@ impl GatewayState {
             draft.profile.as_str(),
             identity.tenant as TenantId,
         )
-        .fetch_optional(self.platform.pool())
+        .fetch_optional(self.store.platform().pool())
         .await
         .context("failed to read the task route of the upstream Task")?
         .map(GatewayTaskRoute::try_from)

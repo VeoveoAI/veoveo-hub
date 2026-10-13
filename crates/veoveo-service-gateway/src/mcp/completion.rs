@@ -1,10 +1,11 @@
 use super::http_response::RequestError;
+use crate::contract::GatewayAction;
+use crate::control_plane::PolicyTarget;
 use rmcp::{
     model::{CompleteRequestParams, CompleteResult, Reference},
     service::{RequestContext, RoleServer},
 };
-use veoveo_gateway_contract::GatewayAction;
-use veoveo_mcp_contract::{PolicyTarget, PromptName};
+use veoveo_sdk_rust::PromptName;
 
 use crate::mcp_support::{
     mcp_invalid_params, mcp_invalid_request, resource_template_policy_target,

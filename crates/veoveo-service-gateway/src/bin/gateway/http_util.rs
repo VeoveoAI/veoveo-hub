@@ -19,11 +19,12 @@ use jsonwebtoken::{Algorithm, jwk::JwkSet};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use url::Url;
-use veoveo_mcp_contract::{
-    JwksSource, OAuthAuthorizationCode, OAuthRedirectUri, OAuthStateValue, OidcClientAuthMethod,
-    OidcNonce, PkceCodeChallenge, PkceCodeVerifier,
-};
 use veoveo_service_gateway::ResolvedSecretString;
+use veoveo_service_gateway::contract::{
+    OAuthAuthorizationCode, OAuthRedirectUri, OAuthStateValue, OidcNonce, PkceCodeChallenge,
+    PkceCodeVerifier,
+};
+use veoveo_service_gateway::control_plane::{JwksSource, OidcClientAuthMethod};
 use veoveo_types::ScopeName;
 
 #[derive(Serialize)]

@@ -2,24 +2,27 @@ pub mod auth;
 mod catalog;
 mod catalog_admission;
 mod catalog_registry;
+pub mod contract;
+pub mod control_plane;
 pub mod http;
 pub use catalog_admission::GatewayCatalogAdmission;
-pub use catalog_registry::{kernel_audit_target_registry, kernel_catalog_registry};
+pub use catalog_registry::{audit_registry, kernel_catalog_registry};
 mod control_store;
 pub mod local;
 pub mod mcp;
 mod mcp_support;
 mod metadata;
 pub mod oauth_clients;
-mod policy;
+pub mod policy;
 mod principal_audit;
 pub mod problem;
 pub mod registration;
 pub mod request_observation;
 pub mod secrets;
 pub mod state;
+pub mod store;
 #[cfg(test)]
-use veoveo_test_fixtures::store as test_store;
+mod test_store;
 mod tool_name;
 
 pub use auth::{

@@ -39,7 +39,7 @@ use rmcp::{
     transport::streamable_http_client::StreamableHttpClientTransportConfig,
 };
 use sha2::{Digest, Sha256};
-use veoveo_mcp_contract::{GatewayInternalTokenIssuer, GatewayProfileId, Principal, ServerSlug};
+use veoveo_sdk_rust::{GatewayInternalTokenIssuer, GatewayProfileId, Principal, ServerSlug};
 use veoveo_types::InvocationAuthority;
 
 use crate::{
@@ -116,7 +116,7 @@ impl GatewayMcp {
             .ok_or_else(|| mcp_invalid_params(format!("unknown upstream server `{server_slug}`")))?
             .clone();
         let http_client = self.upstream_http.client().await?;
-        let permissions = veoveo_policy::granted_permissions(
+        let permissions = crate::policy::granted_permissions(
             &snapshot.catalog().control_plane().authorization,
             &server.authorization,
             &subject.principal,
@@ -233,12 +233,8 @@ fn discovery_authorization_fingerprint(
 ) -> Result<[u8; 32], McpError> {
     let authority = invocation_authorization_fingerprint(&subject.actor, &subject.authority)?;
     Ok(Sha256::digest(
-        serde_json::to_vec(&(
-            authority,
-            &subject.access_token.oauth_client_id,
-            &subject.access_token.managed_execution,
-        ))
-        .map_err(|_| mcp_internal("failed to fingerprint discovery authority"))?,
+        serde_json::to_vec(&(authority, &subject.access_token.oauth_client_id))
+            .map_err(|_| mcp_internal("failed to fingerprint discovery authority"))?,
     )
     .into())
 }
@@ -251,7 +247,7 @@ impl ServerHandler for GatewayMcp {
     /// The Gateway serves the `2026-07-28` lifecycle only: every request carries its
     /// own protocol metadata, so no older version's session methods apply.
     fn supported_protocol_versions(&self) -> std::borrow::Cow<'static, [ProtocolVersion]> {
-        veoveo_mcp_contract::final_protocol_versions()
+        veoveo_sdk_rust::final_protocol_versions()
     }
 
     async fn list_tools(
@@ -421,7 +417,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     use chrono::Utc;
-    use veoveo_mcp_contract::{PrincipalKind, TokenIssuer, TokenSubject};
+    use veoveo_sdk_rust::{PrincipalKind, TokenIssuer, TokenSubject};
     use veoveo_types::{
         AccessSubject, InvocationProvenance, PolicyVersion, PrincipalId, RoleId, ScopeName,
         TenantId, WorkContextId,
@@ -504,34 +500,5 @@ mod tests {
     fn application_upstream_error_is_not_retried() {
         let error = ServiceError::McpError(McpError::internal_error("application failure", None));
         assert!(!recoverable_upstream_connection_error(&error));
-    }
-}
-
-#[cfg(test)]
-mod execution_fingerprint_tests {
-    use super::*;
-    #[test]
-    fn gateway_attested_execution_epochs_fence_discovery_reuse() {
-        let mut subject = super::task_ownership_tests::subject();
-        let baseline = discovery_authorization_fingerprint(&subject).unwrap();
-        subject.access_token.managed_execution =
-            Some(veoveo_audit_contract::AuditManagedExecution {
-                instance: veoveo_types::AgentManagedInstanceId::parse("fixture-agent").unwrap(),
-                generation: std::num::NonZeroU64::new(1).unwrap(),
-                dispatch_epoch: std::num::NonZeroU64::new(2).unwrap(),
-                episode: None,
-            });
-        let attributed = discovery_authorization_fingerprint(&subject).unwrap();
-        assert_ne!(baseline, attributed);
-        subject
-            .access_token
-            .managed_execution
-            .as_mut()
-            .unwrap()
-            .dispatch_epoch = std::num::NonZeroU64::new(3).unwrap();
-        assert_ne!(
-            attributed,
-            discovery_authorization_fingerprint(&subject).unwrap()
-        );
     }
 }

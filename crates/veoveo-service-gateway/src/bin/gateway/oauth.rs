@@ -1,6 +1,7 @@
 use std::time::Instant;
-use veoveo_gateway_contract::ProtectedResourceDescriptor;
-use veoveo_gateway_contract::{AuthorizationServerId, ProtectedResourceId};
+use veoveo_sdk_rust::ProtectedResourceId;
+use veoveo_service_gateway::contract::AuthorizationServerId;
+use veoveo_service_gateway::contract::ProtectedResourceDescriptor;
 
 use axum::{
     Form,
@@ -9,11 +10,11 @@ use axum::{
 };
 use std::collections::BTreeSet;
 
-use veoveo_mcp_contract::{
-    AuthOutcome, AuthReasonCode, GatewayProfile, OAuthClientId, OAuthClientRegistration,
-};
 use veoveo_oauth_client::CLIENT_ASSERTION_TYPE;
+use veoveo_sdk_rust::OAuthClientId;
 use veoveo_service_gateway::GatewayCatalog;
+use veoveo_service_gateway::contract::{AuthOutcome, AuthReasonCode};
+use veoveo_service_gateway::control_plane::{GatewayProfile, OAuthClientRegistration};
 use veoveo_types::ScopeName;
 
 use crate::{
@@ -221,7 +222,7 @@ impl<'a> ResolvedOAuthResource<'a> {
         match self {
             Self::Profile(profile) => profile
                 .auth_modes
-                .contains(&veoveo_mcp_contract::AuthMode::OAuthClientCredentials),
+                .contains(&veoveo_service_gateway::control_plane::AuthMode::OAuthClientCredentials),
             Self::Contributed(_) => true,
         }
     }
@@ -240,7 +241,7 @@ impl<'a> ResolvedOAuthResource<'a> {
 async fn unsupported_resource_grant(
     state: &AppState,
     resource: ResolvedOAuthResource<'_>,
-    authorization_server: &veoveo_mcp_contract::ResourceAuthorizationServer,
+    authorization_server: &veoveo_service_gateway::control_plane::ResourceAuthorizationServer,
     started_at: Instant,
 ) -> axum::response::Response {
     if let Err(err) = record_token_auth_audit(

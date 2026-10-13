@@ -1,14 +1,14 @@
 //! The activated revision and each changed Work Context share one commit.
+use crate::audit::{AccountActivity, AccountChange, gateway_audit};
+use crate::control_plane::WorkContextDefinition;
 use anyhow::Result;
 use std::collections::BTreeMap;
 use veoveo_audit_contract::{
-    AccountActivity, AuditContext, AuditDetail, AuditOutcome, AuditReason, AuditTarget,
-    AuditTransactionWrite,
+    AuditContext, AuditOutcome, AuditReason, AuditRegistry, AuditTarget, AuditTransactionWrite,
 };
-use veoveo_mcp_contract::WorkContextDefinition;
 
 pub(super) fn changes(
-    registry: &veoveo_audit_contract::AuditTargetRegistry,
+    registry: &AuditRegistry,
     before: &[WorkContextDefinition],
     after: &[WorkContextDefinition],
     context: &AuditContext,
@@ -33,7 +33,7 @@ pub(super) fn changes(
                 tenant: value.tenant.clone(),
                 context: value.id.clone(),
             },
-            AuditDetail::AccountChange { activity },
+            gateway_audit().detail(&AccountChange { activity })?,
             AuditOutcome::Succeeded,
             AuditReason::Accepted,
         )?);
@@ -45,9 +45,9 @@ pub(super) fn changes(
                     tenant: value.tenant.clone(),
                     context: value.id.clone(),
                 },
-                AuditDetail::AccountChange {
+                gateway_audit().detail(&AccountChange {
                     activity: AccountActivity::Delete,
-                },
+                })?,
                 AuditOutcome::Succeeded,
                 AuditReason::Accepted,
             )?);

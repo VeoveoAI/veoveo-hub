@@ -1,17 +1,26 @@
+#[path = "support/database.rs"]
+mod database;
+use database as fixture;
 use std::{collections::BTreeSet, num::NonZeroU32, time::Duration};
 use veoveo_audit_contract::*;
-use veoveo_gateway_contract::AuthorizationServerId;
 use veoveo_platform_store::{MaintenanceBatch, Pruned};
-use veoveo_test_fixtures::store as fixture;
+use veoveo_service_gateway::contract::AuthorizationServerId;
 
 use chrono::{SubsecRound, TimeDelta, Utc};
 use futures::future::join_all;
-use veoveo_mcp_contract::{
-    AuthMethod, AuthReasonCode, GatewayAuthorizationCodeRecord, GatewayAuthorizationRequest,
-    GatewayJwtRevocation, GatewayProfileId, JwtId, OAuthAuthorizationCode, OAuthClientId,
-    OAuthRedirectUri, OAuthStateValue, OidcClientRegistrationId, OidcNonce, PkceCodeChallenge,
-    PkceCodeChallengeMethod, PkceCodeVerifier, Principal, PrincipalDisplayName, PrincipalKind,
-    TokenIssuer, TokenSubject,
+use veoveo_sdk_rust::{
+    GatewayProfileId, JwtId, OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject,
+};
+use veoveo_service_gateway::audit::{
+    Authentication, AuthenticationActivity, TaskStatusRead, gateway_audit,
+};
+use veoveo_service_gateway::contract::{AuthMethod, AuthReasonCode};
+use veoveo_service_gateway::contract::{
+    OAuthAuthorizationCode, OAuthRedirectUri, OAuthStateValue, OidcClientRegistrationId, OidcNonce,
+    PkceCodeChallenge, PkceCodeChallengeMethod, PkceCodeVerifier, PrincipalDisplayName,
+};
+use veoveo_service_gateway::control_plane::{
+    GatewayAuthorizationCodeRecord, GatewayAuthorizationRequest, GatewayJwtRevocation,
 };
 use veoveo_service_gateway::{
     GatewayRefreshDeliveryWindow, GatewayRefreshExchange, GatewayRefreshIssueRequest,
@@ -49,7 +58,7 @@ async fn concurrent_gateway_audit_writes_retry_transaction_conflicts() {
         }
 
         assert_eq!(
-            audit_count(&state, &principal, AuditClass::ApiActivity).await,
+            audit_count(&state, &principal, TaskStatusRead::CLASS).await,
             12
         );
     })
@@ -312,11 +321,11 @@ async fn gateway_correctness_state_is_shared_and_single_use_across_replicas() {
         let auth = auth_draft("auth-current", now, &profile, &principal);
         second.record_audit(auth).await.unwrap();
         assert_eq!(
-            audit_count(&second, &principal, AuditClass::ApiActivity).await,
+            audit_count(&second, &principal, TaskStatusRead::CLASS).await,
             1
         );
         assert_eq!(
-            audit_count(&first, &principal, AuditClass::Authentication).await,
+            audit_count(&first, &principal, Authentication::CLASS).await,
             3
         );
         // A batch of one row makes each prune repeat until a batch falls short.
@@ -717,9 +726,7 @@ fn fixture_draft(
 ) -> AuditDraft {
     AuditDraft::builder(
         AuditRequest::background(),
-        AuditTarget::Profile {
-            profile: profile.clone(),
-        },
+        gateway_audit().profile(profile.clone()).unwrap(),
         detail,
         AuditOutcome::Allowed,
         AuditReason::Accepted,
@@ -729,12 +736,9 @@ fn fixture_draft(
         kind: AuditPrincipalKind::User,
         tenant: principal.tenant.clone(),
         oauth_client: None,
-        session_family: None,
         delegating_principal: None,
-        managed_agent: None,
     })
     .authority(AuditAuthority {
-        profile: Some(profile.clone()),
         scopes: principal.scopes.clone(),
         data_labels: principal.data_labels.clone(),
         ..Default::default()
@@ -754,9 +758,7 @@ fn policy_draft(
         timestamp,
         profile,
         principal,
-        AuditDetail::Read {
-            method: AuditReadMethod::Status,
-        },
+        gateway_audit().detail(&TaskStatusRead {}).unwrap(),
     )
 }
 fn auth_draft(
@@ -769,11 +771,14 @@ fn auth_draft(
         timestamp,
         profile,
         principal,
-        AuditDetail::Authentication {
-            activity: AuthenticationActivity::Refresh,
-            method: AuthMethod::RefreshToken,
-            reason: AuthReasonCode::AuthAllow,
-        },
+        gateway_audit()
+            .detail(&Authentication {
+                activity: AuthenticationActivity::Refresh,
+                method: AuthMethod::RefreshToken,
+                reason: AuthReasonCode::AuthAllow,
+                session_family: None,
+            })
+            .unwrap(),
     )
 }
 fn redelivery_draft(
@@ -782,22 +787,30 @@ fn redelivery_draft(
     profile: &GatewayProfileId,
     principal: &Principal,
 ) -> AuditDraft {
-    fixture_draft(
-        timestamp,
-        profile,
-        principal,
-        AuditDetail::Authentication {
+    fixture_draft(timestamp, profile, principal, duplicate_refresh_detail())
+}
+fn duplicate_refresh_detail() -> AuditDetail {
+    gateway_audit()
+        .detail(&Authentication {
             activity: AuthenticationActivity::DuplicateRefresh,
             method: AuthMethod::RefreshToken,
             reason: AuthReasonCode::RefreshTokenDuplicateDelivery,
-        },
-    )
+            session_family: None,
+        })
+        .unwrap()
 }
+/// The same record identity and detail with a different latency. Only authentication
+/// drafts are conflicted here.
 fn conflicting_draft(draft: &AuditDraft) -> AuditDraft {
+    let audit = gateway_audit();
+    let detail = audit
+        .registry()
+        .read::<Authentication>(draft.class(), draft.detail())
+        .unwrap();
     AuditDraft::builder(
         draft.request().clone(),
         draft.target().clone(),
-        draft.detail().clone(),
+        audit.detail(&detail).unwrap(),
         draft.outcome(),
         draft.reason(),
     )
@@ -809,10 +822,10 @@ fn conflicting_draft(draft: &AuditDraft) -> AuditDraft {
     .build()
     .unwrap()
 }
-async fn audit_count(state: &GatewayState, principal: &Principal, class: AuditClass) -> usize {
+async fn audit_count(state: &GatewayState, principal: &Principal, class: &str) -> usize {
     let scope = AuditReadScope::new(principal.tenant.clone(), principal.tenant.is_none());
     let mut query = AuditQuery::new(scope.partitions().into_iter().next().unwrap());
-    query.class = Some(class);
+    query.class = Some(AuditClass::parse(class).unwrap());
     query.limit = 1000;
     let page = state.audit_store().page(&scope, &query).await.unwrap();
     assert!(page.next.is_none(), "fixture exceeds its audit page");

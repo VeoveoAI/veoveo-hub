@@ -1,5 +1,5 @@
 #[cfg(test)]
-use veoveo_gateway_contract::ProtectedResourceId;
+use veoveo_sdk_rust::ProtectedResourceId;
 mod access_token;
 mod claims;
 mod client_assertion;
@@ -28,15 +28,15 @@ pub use verified::{
 
 #[cfg(test)]
 mod tests {
+    use crate::contract::OidcNonce;
+    use crate::control_plane::OidcClientId;
     use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
     use jsonwebtoken::{
         Algorithm, EncodingKey, Header, encode,
         jwk::{Jwk, JwkSet},
     };
     use serde::Serialize;
-    use veoveo_mcp_contract::{
-        OAuthClientId, OidcClientId, OidcNonce, PrincipalAssurance, TokenIssuer,
-    };
+    use veoveo_sdk_rust::{OAuthClientId, PrincipalAssurance, TokenIssuer};
     use veoveo_types::{DataLabelId, InvocationMode, ScopeName};
 
     use super::*;
@@ -223,7 +223,6 @@ XVKygdRdax3xMB3Eld5rlIDwzX09ARHrm8badXtrF0NhQPYZVbax8rpJGcgEFPgXEJJ71w==
             verified.extensions.get(&key).unwrap().unwrap().value.get(),
             7
         );
-        assert!(verified.access_token.managed_execution.is_none());
         for extra in [
             r#""independent_counter":null"#,
             r#""independent_counter":{"value":0}"#,
@@ -876,10 +875,10 @@ XVKygdRdax3xMB3Eld5rlIDwzX09ARHrm8badXtrF0NhQPYZVbax8rpJGcgEFPgXEJJ71w==
 
     #[test]
     fn verifies_entra_oidc_aliases() {
-        let claim_mapping = veoveo_mcp_contract::IdentityProviderClaimMapping {
-            subject: veoveo_mcp_contract::IdentityProviderSubjectClaim::Oid,
-            tenant: Some(veoveo_mcp_contract::IdentityProviderTenantClaimMapping {
-                claim: veoveo_mcp_contract::IdentityProviderTenantClaim::Tid,
+        let claim_mapping = crate::control_plane::IdentityProviderClaimMapping {
+            subject: crate::control_plane::IdentityProviderSubjectClaim::Oid,
+            tenant: Some(crate::control_plane::IdentityProviderTenantClaimMapping {
+                claim: crate::control_plane::IdentityProviderTenantClaim::Tid,
                 values: std::collections::BTreeMap::from([(
                     "tenant-a".to_string(),
                     veoveo_types::TenantId::parse("tenant-a").unwrap(),

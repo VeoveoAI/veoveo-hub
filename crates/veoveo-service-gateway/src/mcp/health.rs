@@ -1,4 +1,4 @@
-pub use veoveo_gateway_contract::GatewayServerHealthState;
+pub use crate::contract::GatewayServerHealthState;
 
 use chrono::{DateTime, Utc};
 

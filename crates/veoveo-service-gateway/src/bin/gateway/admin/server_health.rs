@@ -1,6 +1,6 @@
 //! Per-server health for operators and tools. A registered server is healthy while
 //! its registration's login holds a live kernel instance.
-use veoveo_gateway_contract::{GatewayAction, ServerHealthEntry, ServerHealthReport};
+use veoveo_service_gateway::contract::{GatewayAction, ServerHealthEntry, ServerHealthReport};
 
 use std::time::Instant;
 
@@ -10,7 +10,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use veoveo_mcp_contract::audit::AdministrativeOperation;
+use veoveo_service_gateway::audit::AdministrativeOperation;
 use veoveo_service_gateway::{AuthenticatedSubject, GatewayServerHealth};
 use veoveo_types::ServerSlug;
 
@@ -72,7 +72,7 @@ fn report<'a>(
 mod tests {
     use chrono::Utc;
     use std::collections::BTreeMap;
-    use veoveo_gateway_contract::GatewayServerHealthState;
+    use veoveo_service_gateway::contract::GatewayServerHealthState;
 
     use super::*;
 

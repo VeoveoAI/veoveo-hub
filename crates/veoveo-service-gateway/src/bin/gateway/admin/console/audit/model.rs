@@ -1,5 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize, de::DeserializeOwned};
-use veoveo_mcp_contract::audit::*;
+use veoveo_audit_contract::*;
 
 /// A typed JSON value encoded in one URL query component. The parser never accepts
 /// open metadata; the owning audit contract validates every nested field.
@@ -49,10 +49,7 @@ pub(crate) struct AuditViewParameters {
     pub query: String,
     pub view: AuditRecordId,
 }
-pub(crate) fn decode_query(
-    input: &str,
-    registry: &AuditTargetRegistry,
-) -> Result<AuditQuery, String> {
+pub(crate) fn decode_query(input: &str, registry: &AuditRegistry) -> Result<AuditQuery, String> {
     if input.len() > 16_384 {
         return Err("audit query exceeds 16 KiB".into());
     }
@@ -68,8 +65,8 @@ mod tests {
     use super::*;
     use axum::{extract::Query, http::Uri};
 
-    fn fixture_registry() -> AuditTargetRegistry {
-        let mut builder = AuditTargetRegistry::builder();
+    fn fixture_registry() -> AuditRegistry {
+        let mut builder = AuditRegistry::builder();
         register_audit_target(&mut builder).unwrap();
         builder.build()
     }
@@ -106,7 +103,7 @@ mod tests {
                 .sensor,
             sensor
         );
-        assert!(decode_query(&extracted, &AuditTargetRegistry::empty()).is_err());
+        assert!(decode_query(&extracted, &AuditRegistry::platform()).is_err());
 
         let target_json = serde_json::to_string(&target).unwrap();
         for invalid in [

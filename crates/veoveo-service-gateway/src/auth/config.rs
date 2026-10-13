@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
-use veoveo_gateway_contract::ProtectedResourceId;
+use veoveo_sdk_rust::ProtectedResourceId;
 
+use crate::contract::OidcNonce;
+use crate::control_plane::{IdentityProviderClaimMapping, OidcClientId};
 use jsonwebtoken::Algorithm;
-use veoveo_mcp_contract::{
-    IdentityProviderClaimMapping, OAuthClientId, OidcClientId, OidcNonce, TokenIssuer,
-};
+use veoveo_sdk_rust::{OAuthClientId, TokenIssuer};
 use veoveo_types::ScopeName;
 
 use super::support::{AuthError, is_symmetric_algorithm};

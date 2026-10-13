@@ -30,7 +30,7 @@ fn new_servers_before_the_boundary_do_not_repeat_a_declared_collection() {
     // This is the installed failure mechanism: an insertion moves the old
     // offset onto the final member of the preceding page.
     let old_request = PaginatedRequestParams::default().with_cursor(Some("v1:100".into()));
-    let old = veoveo_mcp_contract::paginate(changed.clone(), Some(&old_request), 100).unwrap();
+    let old = veoveo_sdk_rust::paginate(changed.clone(), Some(&old_request), 100).unwrap();
     assert_eq!(old.items[0].uri_template, template(99).uri_template);
 
     let second = page(changed.clone(), Some(&request)).unwrap();

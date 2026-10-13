@@ -1,18 +1,19 @@
 #[path = "support/catalog_admission.rs"]
 mod catalog_admission;
+#[path = "support/database.rs"]
+mod database;
+use database as fixture;
 use std::collections::BTreeSet;
-use veoveo_test_fixtures::store as fixture;
 
 use chrono::{SubsecRound, Utc};
-use sqlx::types::Json;
-use veoveo_audit_contract::AuditDetail;
 
-use veoveo_mcp_contract::{
-    GatewayControlPlane, GatewayControlPlaneRevision, GatewayControlPlaneRevisionId,
-    GatewayControlPlaneRevisionSource, OAuthClientId, PolicySet, TenantDefinition,
-    WorkContextDefinition, WorkContextMembershipRule,
-};
 use veoveo_platform_store::{PlatformStore, deterministic_tenant_id};
+use veoveo_sdk_rust::OAuthClientId;
+use veoveo_service_gateway::control_plane::{
+    GatewayControlPlane, GatewayControlPlaneRevision, GatewayControlPlaneRevisionId,
+    GatewayControlPlaneRevisionSource, PolicySet, TenantDefinition, WorkContextDefinition,
+    WorkContextMembershipRule,
+};
 use veoveo_service_gateway::{GatewayControlStore, is_revision_conflict};
 use veoveo_types::{AccessSubject, GroupId, PolicyVersion, PrincipalId, TenantId, WorkContextId};
 use veoveo_types::{WorkContextMembershipLevel, WorkContextOutputPolicy};
@@ -140,7 +141,7 @@ async fn publication() {
     );
     assert_eq!(
         account_activities(&db.a).await,
-        ["account_create", "account_delete"],
+        ["create", "delete"],
         "failed re-publication must not re-audit a deleted Work Context"
     );
 }
@@ -187,14 +188,11 @@ async fn active_object_count(store: &PlatformStore) -> i64 {
         .unwrap()
 }
 
-async fn account_activities(store: &PlatformStore) -> Vec<&'static str> {
+async fn account_activities(store: &PlatformStore) -> Vec<String> {
     sqlx::query_file_scalar!("tests/control_store/account_details.sql")
         .fetch_all(store.pool())
         .await
         .unwrap()
-        .into_iter()
-        .map(|detail| detail.0.activity())
-        .collect()
 }
 
 fn audit_context() -> veoveo_audit_contract::AuditContext {
@@ -204,9 +202,7 @@ fn audit_context() -> veoveo_audit_contract::AuditContext {
             kind: veoveo_audit_contract::AuditPrincipalKind::Service,
             tenant: None,
             oauth_client: None,
-            session_family: None,
             delegating_principal: None,
-            managed_agent: None,
         },
         authority: Default::default(),
         request: veoveo_audit_contract::AuditRequest::background(),

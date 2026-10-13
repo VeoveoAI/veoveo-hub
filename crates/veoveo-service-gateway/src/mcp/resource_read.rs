@@ -2,6 +2,7 @@
 //! before returning content.
 use super::http_response::RequestError;
 use super::{GatewayMcp, discovery::DiscoveryCacheKey};
+use crate::control_plane::GatewayResourceProjection;
 use crate::{
     AuthenticatedSubject,
     mcp_support::{
@@ -14,9 +15,10 @@ use rmcp::{
     model::{CacheScope, ErrorData as McpError, ReadResourceRequestParams, ReadResourceResult},
     service::{Peer, RequestContext, RoleClient, RoleServer},
 };
-use veoveo_audit_contract::{AuditDetail, AuditOutcome, AuditReadMethod, AuditReason, AuditTarget};
-use veoveo_gateway_contract::GatewayDiscoverySurface;
-use veoveo_mcp_contract::{GatewayResourceProjection, parse_gateway_task_resource_uri};
+use veoveo_audit_contract::{AuditOutcome, AuditReason, AuditTarget};
+use veoveo_sdk_rust::audit::{McpReadMethod, Read};
+use veoveo_sdk_rust::gateway::GatewayDiscoverySurface;
+use veoveo_sdk_rust::parse_gateway_task_resource_uri;
 
 impl GatewayMcp {
     async fn finish_resource_read(
@@ -25,33 +27,27 @@ impl GatewayMcp {
         projection: &GatewayResourceProjection,
         result: Result<ReadResourceResult, RequestError>,
     ) -> Result<ReadResourceResult, RequestError> {
-        let ordinary = || AuditDetail::Read {
-            method: AuditReadMethod::ResourceRead,
-        };
-        let (detail, outcome, reason) = match &result {
-            Ok(_) => (ordinary(), AuditOutcome::Succeeded, AuditReason::Accepted),
+        let (outcome, reason) = match &result {
+            Ok(_) => (AuditOutcome::Succeeded, AuditReason::Accepted),
             Err(error) if error.protocol().code == rmcp::model::ErrorCode::INVALID_REQUEST => {
-                (ordinary(), AuditOutcome::Denied, AuditReason::PolicyDenied)
+                (AuditOutcome::Denied, AuditReason::PolicyDenied)
             }
-            Err(error) if error.protocol().code == rmcp::model::ErrorCode::INVALID_PARAMS => (
-                ordinary(),
-                AuditOutcome::Failed,
-                AuditReason::InvalidRequest,
-            ),
+            Err(error) if error.protocol().code == rmcp::model::ErrorCode::INVALID_PARAMS => {
+                (AuditOutcome::Failed, AuditReason::InvalidRequest)
+            }
             Err(error) if error.protocol().code == rmcp::model::ErrorCode::RESOURCE_NOT_FOUND => {
-                (ordinary(), AuditOutcome::Failed, AuditReason::NotFound)
+                (AuditOutcome::Failed, AuditReason::NotFound)
             }
-            Err(_) => (
-                ordinary(),
-                AuditOutcome::Failed,
-                AuditReason::UpstreamFailure,
-            ),
+            Err(_) => (AuditOutcome::Failed, AuditReason::UpstreamFailure),
         };
+        let detail = crate::audit::gateway_audit()
+            .detail(&Read {
+                method: McpReadMethod::ResourceRead,
+            })
+            .map_err(|_| mcp_internal("invalid resource read audit detail"))?;
         let draft = subject
             .audit_draft(
-                &self.profile_id,
                 AuditTarget::Resource {
-                    server: projection.server.clone(),
                     uri: projection.gateway_uri.clone(),
                 },
                 detail,

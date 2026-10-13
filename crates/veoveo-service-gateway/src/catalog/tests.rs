@@ -1,20 +1,26 @@
-use std::collections::BTreeSet;
-use veoveo_gateway_contract::{
-    AuthorizationServerId, GatewayAction, ProtectedResourceId, SecretLocator, SecretOwner,
-    SecretPurpose, SecretReference, SecretReferenceId, SecretSource,
+use crate::contract::{
+    AuthorizationServerId, GatewayAction, SecretLocator, SecretOwner, SecretPurpose,
+    SecretReference, SecretReferenceId, SecretSource,
 };
+use std::collections::BTreeSet;
+use veoveo_sdk_rust::ProtectedResourceId;
 
+use crate::contract::{
+    OAuthClientAuthMethod, OAuthGrantType, OAuthRedirectUri, OidcClientRegistrationId,
+};
+use crate::control_plane::{
+    AuthMode, DataLabelDefinition, DiscoveryFailureMode, HttpsUrl, IdentityProvider,
+    IdentityProviderId, IdentityProviderOidcClientRegistration, JwksSource,
+    MCP_ENTERPRISE_MANAGED_AUTHORIZATION_EXTENSION, MCP_OAUTH_CLIENT_CREDENTIALS_EXTENSION,
+    OAuthClientRegistration, OAuthClientSurface, OAuthEndpointUrl, OidcClientAuthMethod,
+    OidcClientId, PolicyEffect, PolicyReasonCode, PolicyRule, PolicyRuleId, PolicyTarget,
+    ResourceAuthorizationServer, TenantDefinition, TraceId, WorkContextDefinition,
+    WorkContextMembershipRule,
+};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
-use veoveo_mcp_contract::{
-    AuthMode, CanonicalTaskId, DataLabelDefinition, DiscoveryFailureMode, HttpsUrl,
-    IdentityProvider, IdentityProviderId, IdentityProviderOidcClientRegistration, JwksSource,
-    JwtId, MCP_ENTERPRISE_MANAGED_AUTHORIZATION_EXTENSION, MCP_OAUTH_CLIENT_CREDENTIALS_EXTENSION,
-    OAuthClientAuthMethod, OAuthClientId, OAuthClientRegistration, OAuthClientSurface,
-    OAuthEndpointUrl, OAuthGrantType, OAuthRedirectUri, OidcClientAuthMethod, OidcClientId,
-    OidcClientRegistrationId, PolicyEffect, PolicyReasonCode, PolicyRule, PolicyRuleId,
-    PolicyTarget, Principal, PrincipalKind, ResourceAuthorizationServer, TenantDefinition,
-    TokenIssuer, TokenSubject, TraceId, WorkContextDefinition, WorkContextMembershipRule,
+use veoveo_sdk_rust::{
+    CanonicalTaskId, JwtId, OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject,
 };
 use veoveo_types::{
     AccessSubject, DataLabelId, GroupId, InvocationMode, PrincipalId, RoleId, ScopeName, TenantId,
@@ -32,7 +38,7 @@ fn identity_provider() -> IdentityProvider {
         jwks: JwksSource::Remote {
             jwks_uri: HttpsUrl::new("https://idp.example.com/.well-known/jwks.json").unwrap(),
         },
-        claim_mapping: veoveo_mcp_contract::IdentityProviderClaimMapping::default(),
+        claim_mapping: crate::control_plane::IdentityProviderClaimMapping::default(),
         trusted_certificate_authorities: Vec::new(),
         authorization_endpoint: Some(
             OAuthEndpointUrl::new("https://idp.example.com/oauth2/authorize").unwrap(),
@@ -94,7 +100,7 @@ fn policy() -> PolicySet {
     PolicySet {
         version: PolicyVersion::parse("2026-07-02").unwrap(),
         rules: vec![PolicyRule {
-            id: veoveo_mcp_contract::PolicyRuleId::parse("allow_admin_read").unwrap(),
+            id: crate::control_plane::PolicyRuleId::parse("allow_admin_read").unwrap(),
             effect: PolicyEffect::Allow,
             actions: BTreeSet::from([GatewayAction::AdminRead.into()]),
             profiles: BTreeSet::from([GatewayProfileId::parse("default").unwrap()]),
@@ -186,7 +192,6 @@ fn profile() -> GatewayProfile {
         protected_resource: ProtectedResourceId::parse("https://veoveo.example/mcp/operator")
             .unwrap(),
         policy_version: PolicyVersion::parse("2026-07-02").unwrap(),
-        artifact_upload: None,
         auth_modes: BTreeSet::from([
             AuthMode::EnterpriseManagedAuthorization,
             AuthMode::OAuthClientCredentials,

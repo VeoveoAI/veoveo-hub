@@ -1,8 +1,8 @@
 use std::fmt;
 
 use anyhow::Result;
-use veoveo_gateway_contract::GatewayToolName;
-use veoveo_mcp_contract::{LocalToolName, ServerSlug};
+use veoveo_sdk_rust::gateway::GatewayToolName;
+use veoveo_sdk_rust::{LocalToolName, ServerSlug};
 
 use crate::GatewayCatalog;
 
@@ -43,7 +43,7 @@ pub enum GatewayNameError {
     InvalidNamespaceShape(GatewayToolName),
     InvalidServerSlug(veoveo_types::IdentifierError),
     InvalidLocalToolName(veoveo_types::IdentifierError),
-    InvalidProjectedToolName(veoveo_gateway_contract::GatewayToolNameError),
+    InvalidProjectedToolName(veoveo_sdk_rust::gateway::GatewayToolNameError),
 }
 
 impl fmt::Display for GatewayNameError {

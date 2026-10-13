@@ -1,15 +1,14 @@
 mod audit;
 use crate::GatewayCatalogAdmission;
 
-use anyhow::{Context, Result};
-use serde::Serialize;
-use veoveo_mcp_contract::{
+use crate::control_plane::{
     GatewayControlPlane, GatewayControlPlaneRevision, GatewayControlPlaneRevisionId,
 };
-use veoveo_platform_store::{
-    PlatformStore, StoreConfig, StoreError,
-    gateway::{ControlObject, ControlPublication},
-};
+use anyhow::{Context, Result};
+use serde::Serialize;
+use veoveo_platform_store::{PlatformStore, StoreConfig};
+
+use crate::store::{ControlObject, ControlPublication, GatewayStore, GatewayStoreError};
 use veoveo_types::{ExtensionName, TenantId};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -27,15 +26,15 @@ pub fn new_gateway_control_plane_revision_id() -> Result<GatewayControlPlaneRevi
 /// after this one was built.
 pub fn is_revision_conflict(error: &anyhow::Error) -> bool {
     matches!(
-        error.downcast_ref::<StoreError>(),
-        Some(StoreError::ControlRevisionChanged | StoreError::ControlRevisionExists)
+        error.downcast_ref::<GatewayStoreError>(),
+        Some(GatewayStoreError::ControlRevisionChanged | GatewayStoreError::ControlRevisionExists)
     )
 }
 
 #[derive(Debug, Clone)]
 pub struct GatewayControlStore {
     admission: GatewayCatalogAdmission,
-    platform: PlatformStore,
+    store: GatewayStore,
 }
 
 impl GatewayControlStore {
@@ -44,7 +43,7 @@ impl GatewayControlStore {
         admission: GatewayCatalogAdmission,
     ) -> Self {
         Self {
-            platform,
+            store: GatewayStore::new(platform),
             admission,
         }
     }
@@ -54,7 +53,7 @@ impl GatewayControlStore {
             .await
             .context("failed to connect to the platform database")?;
         Ok(Self {
-            platform,
+            store: GatewayStore::new(platform),
             admission,
         })
     }
@@ -66,7 +65,7 @@ impl GatewayControlStore {
     pub async fn load_active_revision(&self) -> Result<Option<GatewayControlPlaneRevision>> {
         self.admission.ensure_bound()?;
         let revision = self
-            .platform
+            .store
             .active_control_revision()
             .await
             .context("failed to read the active gateway control-plane revision")?;
@@ -92,7 +91,7 @@ impl GatewayControlStore {
 
     /// Publish a revision and make it active, in one transaction with its audit records.
     /// A revision that another publication replaced first fails with
-    /// [`StoreError::ControlRevisionChanged`].
+    /// [`GatewayStoreError::ControlRevisionChanged`].
     pub async fn record_revision(
         &self,
         revision: &GatewayControlPlaneRevision,
@@ -104,7 +103,7 @@ impl GatewayControlStore {
     }
 
     /// Publish `revision` as the successor of `previous`, the revision its author based
-    /// it on. The publication fails with [`StoreError::ControlRevisionChanged`] when
+    /// it on. The publication fails with [`GatewayStoreError::ControlRevisionChanged`] when
     /// `previous` is no longer active.
     pub async fn record_revision_on(
         &self,
@@ -117,7 +116,7 @@ impl GatewayControlStore {
             .validate(&revision.control_plane)
             .context("refusing to persist invalid gateway control plane")?;
         let audit = crate::audit::AuditAppend::new(audit::changes(
-            &crate::kernel_audit_target_registry(),
+            &crate::audit_registry(),
             previous.as_ref().map_or(&[], |revision| {
                 revision.control_plane.work_contexts.as_slice()
             }),
@@ -125,7 +124,7 @@ impl GatewayControlStore {
             context,
         )?);
         let objects = control_plane_objects(&revision.control_plane, &sections)?;
-        self.platform
+        self.store
             .publish_control_revision(
                 ControlPublication {
                     revision,
@@ -139,13 +138,13 @@ impl GatewayControlStore {
     }
 
     pub fn platform_store(&self) -> &PlatformStore {
-        &self.platform
+        self.store.platform()
     }
 }
 
 fn control_plane_objects(
     control_plane: &GatewayControlPlane,
-    sections: &veoveo_gateway_contract::AdmittedCatalogSections,
+    sections: &crate::contract::AdmittedCatalogSections,
 ) -> Result<Vec<ControlObject>> {
     let mut objects = Vec::new();
     for identity_provider in &control_plane.identity_providers {

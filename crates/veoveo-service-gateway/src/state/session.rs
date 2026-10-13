@@ -1,16 +1,16 @@
 //! Current browser-family binding for signed access tokens. Never cache positive results.
 use std::collections::BTreeSet;
 
+use crate::contract::AuthorizationServerId;
+use crate::store::RefreshFamily;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use veoveo_gateway_contract::AuthorizationServerId;
-use veoveo_mcp_contract::{AccessTokenSubject, GatewayProfileId, OAuthClientId, Principal};
-use veoveo_platform_store::gateway::RefreshFamily;
+use veoveo_sdk_rust::{AccessTokenSubject, GatewayProfileId, OAuthClientId, Principal};
 use veoveo_types::{PrincipalId, ScopeName, TenantId, WorkContextId};
 
 use super::GatewayState;
-use veoveo_policy::session::{SessionFamilyAuthority, SessionRequest};
+use crate::policy::session::{SessionFamilyAuthority, SessionRequest};
 
 impl GatewayState {
     /// Unbound service/exchange tokens use their existing token authority. They do
@@ -27,7 +27,7 @@ impl GatewayState {
         };
         let family = tokio::time::timeout(
             std::time::Duration::from_secs(5),
-            self.platform.refresh_family(family_id),
+            self.store.refresh_family(family_id),
         )
         .await
         .context("access-token session read deadline")?

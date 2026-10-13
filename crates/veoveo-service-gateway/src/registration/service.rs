@@ -3,24 +3,22 @@
 
 use std::{sync::Arc, time::Duration};
 
+use crate::audit::{Registration, RegistrationActivity, gateway_audit};
+use crate::contract::SecretPurpose;
 use anyhow::Context;
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
 use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
-use veoveo_audit_contract::{
-    AuditDetail, AuditDraft, AuditOutcome, AuditReason, AuditRequest, AuditTarget,
-    RegistrationActivity,
-};
-use veoveo_gateway_contract::SecretPurpose;
-use veoveo_mcp_contract::{GatewayInternalSigningKey, TokenIssuer};
-use veoveo_mcp_ext_registration::{
+use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditReason, AuditRequest, AuditTarget};
+use veoveo_platform_store::{LoginName, ServerSchema};
+use veoveo_sdk_rust::registration::{
     AccessTokenTrust, ClientInformation, ClientMetadata, ClientRegistrationRequest,
     ClientUpdateRequest, DatabaseGrant, DatabaseIdentifier, DatabaseUrl, Ed25519Jwk, Ed25519JwkSet,
     RegistrationAccessToken, RegistrationErrorCode, ResourceIndicator, SoftwareStatement,
     statement::verify_statement,
 };
-use veoveo_platform_store::{LoginName, ServerSchema};
+use veoveo_sdk_rust::{GatewayInternalSigningKey, TokenIssuer};
 use veoveo_types::{OAuthClientId, Sha256Digest};
 
 use super::{
@@ -103,7 +101,7 @@ impl RegistrationService {
         database: ServerDatabase,
         grace: Duration,
     ) -> anyhow::Result<Self> {
-        veoveo_mcp_ext_registration::issuer_url(&identity.issuer)
+        veoveo_sdk_rust::registration::issuer_url(&identity.issuer)
             .context("the Gateway issuer must be an https URL, or http on a local host")?;
         let issuer_url = url::Url::parse(identity.issuer.as_str())?;
         let mut registration_endpoint = issuer_url.clone();
@@ -449,7 +447,7 @@ impl RegistrationService {
             AuditTarget::Server {
                 server: server.clone(),
             },
-            AuditDetail::Registration { activity },
+            gateway_audit().detail(&Registration { activity })?,
             AuditOutcome::Succeeded,
             AuditReason::Accepted,
         )
@@ -490,7 +488,7 @@ fn decode<T: serde::de::DeserializeOwned>(body: &[u8]) -> Result<T, Registration
     })
 }
 
-fn invalid_metadata(error: veoveo_mcp_ext_registration::DeclarationError) -> RegistrationError {
+fn invalid_metadata(error: veoveo_sdk_rust::registration::DeclarationError) -> RegistrationError {
     RegistrationError::rejected(
         RegistrationErrorCode::InvalidClientMetadata,
         error.to_string(),
@@ -553,7 +551,7 @@ mod tests {
 
     #[test]
     fn a_verification_key_is_published_after_the_signing_key_and_never_equals_it() {
-        use veoveo_mcp_ext_registration::statement::ServerKeyPair;
+        use veoveo_sdk_rust::registration::statement::ServerKeyPair;
         let signing_pair = ServerKeyPair::generate().unwrap();
         let signing_key = GatewayInternalSigningKey::new(signing_pair.pkcs8_der()).unwrap();
         let next = Ed25519Jwk::new(*ServerKeyPair::generate().unwrap().public_key());

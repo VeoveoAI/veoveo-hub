@@ -1,4 +1,9 @@
 use super::ProfileAuthState;
+use crate::audit::{Authentication, AuthenticationActivity};
+use crate::contract::SecretPurpose;
+use crate::contract::{AuthMethod, AuthOutcome, AuthReasonCode};
+use crate::control_plane::GatewayProfile;
+use crate::control_plane::{JwksSource, ResourceAuthorizationServer};
 use crate::{
     AuthenticatedSubject, BearerError, GatewayState, problem::Problem, www_authenticate_challenge,
 };
@@ -11,15 +16,9 @@ use axum::{
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use jsonwebtoken::{Algorithm, EncodingKey, Header, jwk::JwkSet};
 use std::time::Instant;
-use veoveo_gateway_contract::{ProtectedResourceId, SecretPurpose};
-use veoveo_mcp_contract::{
-    AuthMethod, AuthOutcome, AuthReasonCode, GatewayProfile, GatewayProfileId,
-    audit::{
-        AuditDetail, AuditDraft, AuditOutcome, AuditReason, AuditRequest, AuditTarget,
-        AuthenticationActivity,
-    },
-};
-use veoveo_mcp_contract::{JwksSource, ResourceAuthorizationServer};
+use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditReason, AuditRequest, AuditTarget};
+use veoveo_sdk_rust::GatewayProfileId;
+use veoveo_sdk_rust::ProtectedResourceId;
 pub async fn record_auth_audit(
     state: &ProfileAuthState,
     profile: &GatewayProfile,
@@ -57,23 +56,24 @@ pub async fn record_resource_auth_audit(
     let request = subject
         .map(|subject| subject.audit.clone())
         .unwrap_or_else(audit_request);
+    let detail = crate::audit::gateway_audit().detail(&Authentication {
+        activity: AuthenticationActivity::CredentialDenial,
+        method: AuthMethod::BearerJwt,
+        reason,
+        session_family: subject.and_then(|subject| subject.access_token.session_family.clone()),
+    })?;
     let mut draft = AuditDraft::builder(
         request,
         target.audit_target()?,
-        AuditDetail::Authentication {
-            activity: AuthenticationActivity::CredentialDenial,
-            method: AuthMethod::BearerJwt,
-            reason,
-        },
+        detail,
         AuditOutcome::Denied,
         authentication_reason(outcome, reason),
     )
     .latency_ms(u64::try_from(started_at.elapsed().as_millis())?);
     if let Some(subject) = subject {
-        draft = draft.actor(subject.audit_actor()?);
-        if let Some(profile) = target.profile {
-            draft = draft.authority(subject.audit_authority(profile));
-        }
+        draft = draft
+            .actor(subject.audit_actor()?)
+            .authority(subject.audit_authority());
     }
     gateway_state.record_audit(draft.build()?).await
 }
@@ -86,14 +86,12 @@ pub struct AuthAuditTarget<'a> {
 
 impl AuthAuditTarget<'_> {
     pub fn audit_target(self) -> anyhow::Result<AuditTarget> {
-        Ok(match self.profile {
-            Some(profile) => AuditTarget::Profile {
-                profile: profile.clone(),
-            },
-            None => AuditTarget::PlatformResource {
+        match self.profile {
+            Some(profile) => crate::audit::gateway_audit().profile(profile.clone()),
+            None => Ok(AuditTarget::Resource {
                 uri: veoveo_types::ResourceUri::new(self.protected_resource.to_string())?,
-            },
-        })
+            }),
+        }
     }
 }
 
@@ -225,7 +223,7 @@ pub async fn authorization_server_jwks_from_signing_key(
 /// `accessTokenKeyId`.
 pub struct AccessTokenSigningKey {
     encoding: EncodingKey,
-    public: veoveo_mcp_ext_registration::Ed25519Jwk,
+    public: veoveo_sdk_rust::registration::Ed25519Jwk,
 }
 
 impl AccessTokenSigningKey {
@@ -234,13 +232,13 @@ impl AccessTokenSigningKey {
         let der = BASE64_STANDARD
             .decode(value.trim())
             .context("the access token signing key must be base64-encoded Ed25519 PKCS#8 DER")?;
-        let pair = veoveo_mcp_ext_registration::statement::ServerKeyPair::from_pkcs8_der(&der)
+        let pair = veoveo_sdk_rust::registration::statement::ServerKeyPair::from_pkcs8_der(&der)
             .map_err(|_| {
                 anyhow::anyhow!("the access token signing key is not an Ed25519 PKCS#8 key")
             })?;
         Ok(Self {
             encoding: EncodingKey::from_ed_der(&der),
-            public: veoveo_mcp_ext_registration::Ed25519Jwk::new(*pair.public_key()),
+            public: veoveo_sdk_rust::registration::Ed25519Jwk::new(*pair.public_key()),
         })
     }
 
@@ -252,7 +250,7 @@ impl AccessTokenSigningKey {
     /// `EdDSA` and the key's thumbprint as `kid`.
     pub fn header(&self) -> Header {
         let mut header = Header::new(Algorithm::EdDSA);
-        header.typ = Some(veoveo_mcp_contract::ACCESS_TOKEN_TYPE.to_owned());
+        header.typ = Some(veoveo_sdk_rust::ACCESS_TOKEN_TYPE.to_owned());
         header.kid = Some(self.key_id());
         header
     }
@@ -262,7 +260,7 @@ impl AccessTokenSigningKey {
     }
 
     pub fn jwks(&self) -> anyhow::Result<JwkSet> {
-        let keys = veoveo_mcp_ext_registration::Ed25519JwkSet::new(vec![self.public])?;
+        let keys = veoveo_sdk_rust::registration::Ed25519JwkSet::new(vec![self.public])?;
         Ok(serde_json::from_value(serde_json::to_value(keys)?)?)
     }
 }

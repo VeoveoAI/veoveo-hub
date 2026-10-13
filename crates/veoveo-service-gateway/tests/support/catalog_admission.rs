@@ -1,8 +1,8 @@
 //! The Gateway's kernel catalog registry and admission binding for integration tests.
 #![allow(dead_code, reason = "Each integration test uses part of the fixture")]
 use std::sync::OnceLock;
-use veoveo_gateway_contract::CatalogRegistry;
 use veoveo_service_gateway::GatewayCatalogAdmission;
+use veoveo_service_gateway::contract::CatalogRegistry;
 
 pub fn fresh_registry() -> CatalogRegistry {
     veoveo_service_gateway::kernel_catalog_registry().unwrap()

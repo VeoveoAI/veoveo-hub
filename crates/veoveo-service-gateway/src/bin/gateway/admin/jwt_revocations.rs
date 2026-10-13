@@ -1,7 +1,7 @@
 use std::time::Instant;
-use veoveo_gateway_contract::GatewayAction;
 use veoveo_http::RequestJson;
-use veoveo_mcp_contract::audit::AdministrativeOperation;
+use veoveo_service_gateway::audit::AdministrativeOperation;
+use veoveo_service_gateway::contract::GatewayAction;
 
 use axum::{
     Json,
@@ -10,11 +10,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::Utc;
-use veoveo_mcp_contract::{
+use veoveo_service_gateway::AuthenticatedSubject;
+use veoveo_service_gateway::control_plane::{
     GatewayJwtRevocation, GatewayJwtRevocationAdminStatus, GatewayJwtRevocationApplyResult,
     GatewayJwtRevocationPruneResult, GatewayJwtRevocationRequest,
 };
-use veoveo_service_gateway::AuthenticatedSubject;
 
 use crate::{
     admin::admin_profile_id,
@@ -45,7 +45,7 @@ pub(crate) async fn revoke_jwt(
         subject,
         crate::audit::AdminAuthorizationRequest {
             action: GatewayAction::AdminWrite.into(),
-            target: veoveo_mcp_contract::PolicyTarget::Gateway,
+            target: veoveo_service_gateway::control_plane::PolicyTarget::Gateway,
             audit_target: Some(revocation_target.clone()),
             operation: AdministrativeOperation::JwtRevoke,
             started_at,
@@ -228,9 +228,9 @@ pub(crate) async fn prune_jwt_revocations(
 
 fn revocation_audit_target(
     request: &GatewayJwtRevocationRequest,
-) -> anyhow::Result<veoveo_mcp_contract::audit::AuditTarget> {
+) -> anyhow::Result<veoveo_audit_contract::AuditTarget> {
     use veoveo_types::{ResourceUriBuilder, UriSegment};
-    Ok(veoveo_mcp_contract::audit::AuditTarget::PlatformResource {
+    Ok(veoveo_audit_contract::AuditTarget::Resource {
         uri: ResourceUriBuilder::new("veoveo://jwt-revocations")?
             .segment(UriSegment::new(request.profile.to_string())?)
             .query_pair("issuer", request.issuer.as_str())?

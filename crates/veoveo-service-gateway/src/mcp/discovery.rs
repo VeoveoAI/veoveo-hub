@@ -1,9 +1,10 @@
 use std::{collections::BTreeMap, time::Duration};
-use veoveo_gateway_contract::GatewayDiscoveryDegradation;
-use veoveo_gateway_contract::{
+use veoveo_sdk_rust::gateway::GatewayDiscoveryDegradation;
+use veoveo_sdk_rust::gateway::{
     GatewayDiscoveryFailure, GatewayDiscoveryFailureCode, GatewayDiscoverySurface,
 };
 
+use crate::control_plane::DiscoveryFailureMode;
 use rmcp::ErrorData as McpError;
 use rmcp::model::{Prompt, Resource, ResourceTemplate, Tool};
 use tokio::{
@@ -11,7 +12,7 @@ use tokio::{
     time::Instant,
 };
 use uuid::Uuid;
-use veoveo_mcp_contract::{DiscoveryFailureMode, ServerSlug};
+use veoveo_sdk_rust::ServerSlug;
 use veoveo_types::{PrincipalId, ResourceUri};
 
 pub(super) const MAX_CONCURRENT_DISCOVERY: usize = 8;
@@ -192,7 +193,7 @@ impl<T: Clone + PartialEq> SurfaceCache<T> {
             }
             state.failed.insert(
                 fetch.key.clone(),
-                Instant::now() + Duration::from_millis(veoveo_mcp_contract::PRIVATE_CATALOG_TTL_MS),
+                Instant::now() + Duration::from_millis(veoveo_sdk_rust::PRIVATE_CATALOG_TTL_MS),
             );
             false
         }

@@ -21,10 +21,11 @@ use reqwest::{
 };
 use serde_json::{Value, json};
 use sha2::Digest as _;
-use veoveo_mcp_contract::{GatewayJwtRevocation, GatewayProfileId, JwtId, TokenIssuer};
-use veoveo_mcp_ext_registration::{Ed25519Jwk, statement::ServerKeyPair};
 use veoveo_oauth_client::{ClientAssertionKeyId, ClientAssertionSigner};
+use veoveo_sdk_rust::registration::{Ed25519Jwk, statement::ServerKeyPair};
+use veoveo_sdk_rust::{GatewayProfileId, JwtId, TokenIssuer};
 use veoveo_service_gateway::GatewayState;
+use veoveo_service_gateway::control_plane::GatewayJwtRevocation;
 use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::OAuthClientId;
 

@@ -1,18 +1,18 @@
 use super::auth_support::internal_error_response;
+use crate::audit::{
+    AdminAdmission, AdminCompletion, AdminOperationFailure, AdministrativeAccess,
+    AdministrativeOperation,
+};
+use crate::contract::{ActionAccess, GatewayAction, PolicyAction};
+use crate::control_plane::{GatewayProfile, PolicyDecision, PolicyEffect, PolicyTarget, TraceId};
 use crate::{AuthenticatedSubject, GatewayCatalog, GatewayState, PolicyRequest};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 use std::{sync::Arc, time::Instant};
-use veoveo_gateway_contract::{ActionAccess, GatewayAction, PolicyAction};
-pub use veoveo_mcp_contract::audit::{AdminOperationFailure, AdministrativeOperation};
-use veoveo_mcp_contract::{
-    GatewayProfile, GatewayProfileId, PolicyDecision, PolicyEffect, PolicyTarget, TraceId,
-    audit::{
-        AdministrativeAccess, AuditDetail, AuditDraft, AuditOutcome, AuditReason, AuditTarget,
-    },
-};
+use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditReason, AuditTarget};
+use veoveo_sdk_rust::GatewayProfileId;
 pub struct AdminAuthorizationRequest {
     pub audit_target: Option<AuditTarget>,
     pub action: PolicyAction,
@@ -118,33 +118,27 @@ pub async fn record_gateway_operation_audit(
         Some(target) => target,
         None => crate::audit::policy_audit_target(catalog.registry(), &target)?,
     };
-    let draft = AuditDraft::builder(
-        subject.audit.clone(),
-        target,
-        AuditDetail::AdminCompletion {
-            operation: record.operation,
-            access: administrative_access(catalog.registry(), &record.action)?,
-            failure: record.failure,
-        },
-        outcome,
-        reason,
-    )
-    .actor(subject.audit_actor()?)
-    .authority(subject.audit_authority(&profile.id))
-    .latency_ms(u64::try_from(record.started_at.elapsed().as_millis())?)
-    .build()?;
+    let detail = crate::audit::gateway_audit().detail(&AdminCompletion {
+        profile: profile.id.clone(),
+        operation: record.operation,
+        access: administrative_access(catalog.registry(), &record.action)?,
+        failure: record.failure,
+    })?;
+    let draft = AuditDraft::builder(subject.audit.clone(), target, detail, outcome, reason)
+        .actor(subject.audit_actor()?)
+        .authority(subject.audit_authority())
+        .latency_ms(u64::try_from(record.started_at.elapsed().as_millis())?)
+        .build()?;
     gateway.audit_writer().await.record_completion(draft).await;
     Ok(())
 }
 
 fn administrative_access(
-    registry: &veoveo_gateway_contract::CatalogRegistry,
+    registry: &crate::contract::CatalogRegistry,
     action: &PolicyAction,
 ) -> anyhow::Result<AdministrativeAccess> {
     Ok(match action {
-        PolicyAction::Kernel(GatewayAction::AdminRead | GatewayAction::ArtifactRead) => {
-            AdministrativeAccess::Read
-        }
+        PolicyAction::Kernel(GatewayAction::AdminRead) => AdministrativeAccess::Read,
         PolicyAction::Kernel(_) => AdministrativeAccess::Write,
         PolicyAction::Registered(handle) => {
             registry.check_action(handle)?;
@@ -166,13 +160,15 @@ async fn record_admin_audit(
     subject: &AuthenticatedSubject,
     record: AdminAuditRecord,
 ) -> anyhow::Result<()> {
+    let detail = crate::audit::gateway_audit().detail(&AdminAdmission {
+        profile: profile.id.clone(),
+        operation: record.operation,
+        access: record.access,
+    })?;
     let draft = AuditDraft::builder(
         subject.audit.clone(),
         record.target,
-        AuditDetail::AdminAdmission {
-            operation: record.operation,
-            access: record.access,
-        },
+        detail,
         if record.decision.effect == PolicyEffect::Allow {
             AuditOutcome::Allowed
         } else {
@@ -181,7 +177,7 @@ async fn record_admin_audit(
         crate::audit::policy_reason(record.decision.reason),
     )
     .actor(subject.audit_actor()?)
-    .authority(subject.audit_authority(&profile.id))
+    .authority(subject.audit_authority())
     .latency_ms(u64::try_from(record.started_at.elapsed().as_millis())?)
     .build()?;
     gateway.record_audit(draft).await

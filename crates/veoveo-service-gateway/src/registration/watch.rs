@@ -4,12 +4,12 @@
 
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
+use crate::audit::RegistrationActivity;
 use chrono::{TimeDelta, Utc};
 use futures::StreamExt;
 use tokio_util::sync::CancellationToken;
-use veoveo_audit_contract::RegistrationActivity;
-use veoveo_mcp_ext_registration::ClientMetadata;
-use veoveo_platform_store::{ChangeSignal, Channel};
+use veoveo_platform_store::ChangeSignal;
+use veoveo_sdk_rust::registration::ClientMetadata;
 use veoveo_types::{OAuthClientId, ServerSlug};
 
 use super::{
@@ -166,7 +166,7 @@ impl RegistrationService {
                 .inner
                 .store
                 .platform()
-                .listen(vec![Channel::GATEWAY]);
+                .listen(vec![crate::store::channel()]);
             loop {
                 let signal = tokio::select! {
                     () = stop.cancelled() => return,

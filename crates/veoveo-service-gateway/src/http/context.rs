@@ -1,8 +1,8 @@
+use crate::contract::CertificateAuthoritySource;
 use crate::{GatewayCatalog, GatewayCatalogHandle, GatewayState};
 use parking_lot::RwLock;
 use std::sync::Arc;
-use veoveo_gateway_contract::CertificateAuthoritySource;
-use veoveo_mcp_contract::PublicDeployment;
+use veoveo_sdk_rust::PublicDeployment;
 
 pub type SharedHttpClient = Arc<RwLock<reqwest::Client>>;
 
@@ -14,8 +14,8 @@ pub struct ProfileAuthState {
     pub auth_http: SharedHttpClient,
 }
 
+use crate::control_plane::ResourceAuthorizationServer;
 use anyhow::Context;
-use veoveo_mcp_contract::ResourceAuthorizationServer;
 const GATEWAY_AUTH_HTTP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 pub fn current_catalog(catalog: &crate::GatewayCatalogHandle) -> Arc<GatewayCatalog> {
     catalog.current()

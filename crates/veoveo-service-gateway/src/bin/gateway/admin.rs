@@ -10,7 +10,7 @@ mod server_health;
 #[path = "admin/tasks.rs"]
 mod tasks;
 
-use veoveo_mcp_contract::GatewayProfileId;
+use veoveo_sdk_rust::GatewayProfileId;
 
 pub(super) use control_plane::{read_control_plane, update_control_plane};
 pub(super) use jwt_revocations::{prune_jwt_revocations, revoke_jwt};

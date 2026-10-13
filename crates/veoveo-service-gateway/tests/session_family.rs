@@ -1,9 +1,15 @@
-use veoveo_test_fixtures::store as fixture;
+#[path = "support/database.rs"]
+mod database;
+use database as fixture;
 
 use chrono::{SubsecRound, TimeDelta, Utc};
 use std::{collections::BTreeSet, num::NonZeroU32};
-use veoveo_gateway_contract::{AuthorizationServerId, ProtectedResourceId};
-use veoveo_mcp_contract::*;
+use veoveo_sdk_rust::ProtectedResourceId;
+use veoveo_sdk_rust::*;
+use veoveo_service_gateway::audit::{Authentication, AuthenticationActivity, gateway_audit};
+use veoveo_service_gateway::contract::{
+    AuthMethod, AuthReasonCode, AuthorizationServerId, PrincipalDisplayName,
+};
 use veoveo_service_gateway::{
     GatewayRefreshDeliveryWindow, GatewayRefreshExchange, GatewayRefreshIssueRequest,
     GatewayRefreshRotationRequest, GatewayState, RefreshTokenDeliveryCipher,
@@ -52,7 +58,6 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
             .await
             .unwrap();
         let token = AccessTokenSubject {
-            managed_execution: None,
             issuer: TokenIssuer::parse("https://veoveo.example").unwrap(),
             subject: principal.subject.clone(),
             oauth_client_id: client.clone(),
@@ -233,16 +238,18 @@ fn audit(
     } else {
         AuthenticationActivity::Refresh
     };
+    let audit = gateway_audit();
     AuditDraft::builder(
         AuditRequest::background(),
-        AuditTarget::Profile {
-            profile: profile.clone(),
-        },
-        AuditDetail::Authentication {
-            activity,
-            method: AuthMethod::RefreshToken,
-            reason,
-        },
+        audit.profile(profile.clone()).unwrap(),
+        audit
+            .detail(&Authentication {
+                activity,
+                method: AuthMethod::RefreshToken,
+                reason,
+                session_family: None,
+            })
+            .unwrap(),
         AuditOutcome::Allowed,
         AuditReason::Accepted,
     )
@@ -251,12 +258,9 @@ fn audit(
         kind: AuditPrincipalKind::User,
         tenant: principal.tenant.clone(),
         oauth_client: None,
-        session_family: None,
         delegating_principal: None,
-        managed_agent: None,
     })
     .authority(AuditAuthority {
-        profile: Some(profile.clone()),
         scopes: principal.scopes.clone(),
         data_labels: principal.data_labels.clone(),
         ..Default::default()

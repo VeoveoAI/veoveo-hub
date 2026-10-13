@@ -2,9 +2,11 @@ use std::time::Instant;
 
 use axum::{http::StatusCode, response::IntoResponse};
 use chrono::Utc;
-use veoveo_mcp_contract::{
-    AuthOutcome, AuthReasonCode, GatewayProfile, OAuthClientAuthMethod, OAuthClientId,
-    OAuthGrantType, OAuthRefreshToken, PrincipalKind, ResourceAuthorizationServer,
+use veoveo_sdk_rust::{OAuthClientId, PrincipalKind};
+use veoveo_service_gateway::contract::{AuthOutcome, AuthReasonCode};
+use veoveo_service_gateway::contract::{OAuthClientAuthMethod, OAuthGrantType};
+use veoveo_service_gateway::control_plane::{
+    GatewayProfile, OAuthRefreshToken, ResourceAuthorizationServer,
 };
 use veoveo_service_gateway::{
     GatewayCatalog, GatewayRefreshExchange, GatewayRefreshRotationRequest,
@@ -360,7 +362,7 @@ async fn invalid_refresh_response(
     profile: &GatewayProfile,
     authorization_server: &ResourceAuthorizationServer,
     client_id: Option<&OAuthClientId>,
-    principal: Option<&veoveo_mcp_contract::Principal>,
+    principal: Option<&veoveo_sdk_rust::Principal>,
     reason: AuthReasonCode,
     started_at: Instant,
 ) -> axum::response::Response {

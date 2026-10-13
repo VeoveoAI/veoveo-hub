@@ -1,7 +1,7 @@
 //! A fixture owner Audit target. Audit tests use it to exercise owner registration
 //! without depending on any domain crate.
 use veoveo_audit_contract::{
-    AuditTargetError, AuditTargetOwner, AuditTargetRegistration, AuditTargetRegistryBuilder,
+    AuditRegistryBuilder, AuditTargetError, AuditTargetOwner, AuditTargetRegistration,
 };
 
 #[derive(
@@ -61,9 +61,9 @@ impl AuditTargetOwner for SensorAuditTarget {
 }
 
 pub fn register_audit_target(
-    builder: &mut AuditTargetRegistryBuilder,
+    builder: &mut AuditRegistryBuilder,
 ) -> Result<AuditTargetRegistration<SensorAuditTarget>, AuditTargetError> {
-    builder.register::<SensorAuditTarget>()
+    builder.register_target::<SensorAuditTarget>()
 }
 
 fn audit_target_schema(schema: &mut schemars::Schema) {

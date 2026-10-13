@@ -13,11 +13,11 @@ use rmcp::{
 use sse_stream::Sse;
 use std::collections::BTreeSet;
 use thiserror::Error;
-use veoveo_mcp_contract::{
+use veoveo_sdk_rust::registration::ResourceIndicator;
+use veoveo_sdk_rust::{
     ForwardedRequest, GatewayInternalTokenIssuer, GatewayProfileId, GatewayRequestContext,
     InternalTokenError, Principal, ServerSlug,
 };
-use veoveo_mcp_ext_registration::ResourceIndicator;
 use veoveo_types::{InvocationAuthority, OAuthClientId, PermissionName};
 
 const INTERNAL_REQUEST_TOKEN_TTL_SECONDS: i64 = 60;
@@ -261,9 +261,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-    use veoveo_mcp_contract::{
-        GatewayInternalSigningKey, PrincipalKind, TokenIssuer, TokenSubject,
-    };
+    use veoveo_sdk_rust::{GatewayInternalSigningKey, PrincipalKind, TokenIssuer, TokenSubject};
     use veoveo_types::{
         AccessSubject, InvocationProvenance, PolicyVersion, PrincipalId, ScopeName, TenantId,
         WorkContextId,
@@ -291,14 +289,14 @@ mod tests {
         crate::registration::RegisteredServer {
             slug: ServerSlug::parse("upstream-b").unwrap(),
             uri_scheme: veoveo_types::ResourceScheme::parse("upstream-b").unwrap(),
-            endpoint: veoveo_mcp_ext_registration::ServerEndpoint::new(
+            endpoint: veoveo_sdk_rust::registration::ServerEndpoint::new(
                 url::Url::parse(TEST_RESOURCE).unwrap(),
             )
             .unwrap(),
-            version: veoveo_mcp_ext_registration::ServerVersion::new("0.1.0".to_owned()).unwrap(),
+            version: veoveo_sdk_rust::registration::ServerVersion::new("0.1.0".to_owned()).unwrap(),
             client_id: OAuthClientId::parse("upstream-b-0001").unwrap(),
             authorization: std::sync::Arc::new(
-                veoveo_mcp_ext_registration::AuthorizationDeclaration {
+                veoveo_sdk_rust::registration::AuthorizationDeclaration {
                     permissions: Vec::new(),
                     requirements: Default::default(),
                 },
@@ -350,20 +348,18 @@ mod tests {
             &registered_server(),
             &crate::AuthenticatedSubject {
                 extensions: Default::default(),
-                audit: veoveo_mcp_contract::audit::AuditRequest::background(),
-                access_token: veoveo_mcp_contract::AccessTokenSubject {
-                    managed_execution: None,
+                audit: veoveo_audit_contract::AuditRequest::background(),
+                access_token: veoveo_sdk_rust::AccessTokenSubject {
                     issuer: actor.issuer.clone(),
                     subject: actor.subject.clone(),
-                    oauth_client_id: veoveo_mcp_contract::OAuthClientId::parse("console").unwrap(),
+                    oauth_client_id: veoveo_sdk_rust::OAuthClientId::parse("console").unwrap(),
                     session_family: Some(
-                        veoveo_mcp_contract::GatewayRefreshFamilyId::parse(
+                        veoveo_sdk_rust::GatewayRefreshFamilyId::parse(
                             uuid::Uuid::now_v7().to_string(),
                         )
                         .unwrap(),
                     ),
-                    audience: veoveo_gateway_contract::ProtectedResourceId::parse("operator")
-                        .unwrap(),
+                    audience: veoveo_sdk_rust::ProtectedResourceId::parse("operator").unwrap(),
                     work_context: authority.work_context.clone(),
                     invocation_mode: veoveo_types::InvocationMode::Direct,
                     initiator: Some(actor.id.clone()),
@@ -415,19 +411,19 @@ mod tests {
             SubscriptionsListenRequestParams,
         };
         use tokio::sync::mpsc;
-        use veoveo_mcp_contract::{
+        use veoveo_sdk_rust::{
             GatewayInternalIdentity, GatewayInternalTokenVerifier, GatewayInternalTrustBundle,
         };
 
         tokio::time::timeout(std::time::Duration::from_secs(10), async {
             let verifier = GatewayInternalTokenVerifier::new(
                 TokenIssuer::parse(TEST_ISSUER).unwrap(),
-                veoveo_mcp_contract::TokenAudience {
+                veoveo_sdk_rust::TokenAudience {
                     server: ServerSlug::parse("upstream-b").unwrap(),
                     resource: ResourceIndicator::parse(TEST_RESOURCE).unwrap(),
                 },
                 GatewayInternalTrustBundle::from_key_set(
-                    &veoveo_mcp_ext_registration::Ed25519JwkSet::new(vec![
+                    &veoveo_sdk_rust::registration::Ed25519JwkSet::new(vec![
                         signing_key().verification_key(),
                     ])
                     .unwrap(),

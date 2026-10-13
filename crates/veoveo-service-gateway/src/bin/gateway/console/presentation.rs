@@ -1,7 +1,8 @@
 use chrono::Utc;
-use veoveo_gateway_contract::{ConsoleInstallation, ConsoleSession, ConsoleTenant};
-use veoveo_mcp_contract::{GatewayControlPlane, PrincipalDisplayName};
 use veoveo_service_gateway::AuthenticatedSubject;
+use veoveo_service_gateway::contract::PrincipalDisplayName;
+use veoveo_service_gateway::contract::{ConsoleInstallation, ConsoleSession, ConsoleTenant};
+use veoveo_service_gateway::control_plane::GatewayControlPlane;
 use veoveo_types::TenantId;
 
 pub(crate) fn presentation(
@@ -114,7 +115,7 @@ fn compact_principal_label(subject: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use veoveo_mcp_contract::PrincipalDisplayName;
+    use veoveo_service_gateway::contract::PrincipalDisplayName;
 
     use super::console_display_name;
 

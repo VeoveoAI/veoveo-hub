@@ -1,7 +1,7 @@
 use rmcp::model::{
     ExtensionCapabilities, Implementation, JsonObject, ServerCapabilities, ServerConfig,
 };
-use veoveo_mcp_contract::ServerSlug;
+use veoveo_sdk_rust::ServerSlug;
 
 use super::GatewayMcp;
 

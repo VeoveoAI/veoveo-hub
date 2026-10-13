@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use rmcp::model::ProgressToken;
 use tokio::sync::RwLock;
-use veoveo_mcp_contract::{GatewayProfileId, ServerSlug};
+use veoveo_sdk_rust::{GatewayProfileId, ServerSlug};
 use veoveo_types::PrincipalId;
 
 #[derive(Debug, Clone, Default)]

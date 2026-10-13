@@ -1,14 +1,15 @@
 use std::time::Instant;
-use veoveo_gateway_contract::GatewayAction;
-use veoveo_mcp_contract::audit::AdministrativeOperation;
+use veoveo_service_gateway::audit::AdministrativeOperation;
+use veoveo_service_gateway::contract::GatewayAction;
 
 use axum::{
     extract::{Extension, Path as AxumPath, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use veoveo_mcp_contract::{GatewayProfile, PolicyTarget, ServerSlug};
+use veoveo_sdk_rust::ServerSlug;
 use veoveo_service_gateway::AuthenticatedSubject;
+use veoveo_service_gateway::control_plane::{GatewayProfile, PolicyTarget};
 use veoveo_task_runtime::{TaskError, TaskOwner, TaskRuntime};
 use veoveo_types::TaskId;
 
@@ -92,14 +93,15 @@ pub(crate) async fn cancel_task(
     let owner = TaskOwner {
         principal_key: subject.principal.id.clone(),
         principal_kind: match subject.principal.kind {
-            veoveo_mcp_contract::PrincipalKind::User => veoveo_task_runtime::PrincipalKind::User,
-            veoveo_mcp_contract::PrincipalKind::Service => {
-                veoveo_task_runtime::PrincipalKind::Service
-            }
+            veoveo_sdk_rust::PrincipalKind::User => veoveo_task_runtime::PrincipalKind::User,
+            veoveo_sdk_rust::PrincipalKind::Service => veoveo_task_runtime::PrincipalKind::Service,
         },
         issuer: subject.principal.issuer.clone(),
         subject: subject.principal.subject.clone(),
-        profile: profile_id.clone(),
+        surface: match veoveo_task_runtime::TaskSurface::parse(profile_id.as_str()) {
+            Ok(surface) => surface,
+            Err(error) => return internal_error_response(error),
+        },
         tenant_key: subject.principal.tenant.clone(),
         data_labels: subject.principal.data_labels.clone(),
         authority: subject.authority.clone(),

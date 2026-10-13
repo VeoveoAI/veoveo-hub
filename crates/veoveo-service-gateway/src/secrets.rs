@@ -1,7 +1,7 @@
-use std::{collections::BTreeMap, env, error::Error, fmt, num::NonZeroU64, time::Duration};
 #[cfg(test)]
-use veoveo_gateway_contract::{SecretLocator, SecretOwner};
-use veoveo_gateway_contract::{SecretPurpose, SecretReference, SecretReferenceId, SecretSource};
+use crate::contract::{SecretLocator, SecretOwner};
+use crate::contract::{SecretPurpose, SecretReference, SecretReferenceId, SecretSource};
+use std::{collections::BTreeMap, env, error::Error, fmt, num::NonZeroU64, time::Duration};
 
 use secrecy::{ExposeSecret, SecretString};
 use serde_json::Value;

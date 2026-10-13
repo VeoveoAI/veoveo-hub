@@ -14,7 +14,7 @@ use axum::{
     http::{StatusCode, header},
     response::{IntoResponse, Response},
 };
-use veoveo_mcp_ext_registration::{RegistrationErrorCode, RegistrationErrorResponse};
+use veoveo_sdk_rust::registration::{RegistrationErrorCode, RegistrationErrorResponse};
 
 pub use endpoint::{JWK_SET_MEDIA_TYPE, router};
 pub use service::{RegistrationIdentity, RegistrationService, ServerDatabase};

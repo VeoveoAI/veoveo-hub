@@ -1,4 +1,6 @@
 use super::http_response::RequestError;
+use crate::contract::GatewayAction;
+use crate::control_plane::DiscoveryFailureMode;
 use futures::{StreamExt, stream};
 use rmcp::{
     model::{
@@ -7,10 +9,9 @@ use rmcp::{
     },
     service::{RequestContext, RoleServer},
 };
-use veoveo_gateway_contract::GatewayAction;
-use veoveo_gateway_contract::GatewayDiscoverySurface;
-use veoveo_mcp_contract::GatewayDiscoveryMetadata;
-use veoveo_mcp_contract::{DiscoveryFailureMode, PromptName, ServerSlug};
+use veoveo_sdk_rust::GatewayDiscoveryMetadata;
+use veoveo_sdk_rust::gateway::GatewayDiscoverySurface;
+use veoveo_sdk_rust::{PromptName, ServerSlug};
 
 use crate::{
     AuthenticatedSubject,
@@ -91,7 +92,7 @@ impl GatewayMcp {
         ensure_unique_prompts(&prompts)?;
         self.record_discovery(
             &subject,
-            veoveo_audit_contract::DiscoveryKind::Prompts,
+            veoveo_sdk_rust::audit::DiscoveryKind::Prompts,
             prompts.iter().map(|prompt| prompt.name.clone()).collect(),
             denied,
         )
@@ -101,7 +102,7 @@ impl GatewayMcp {
             prompts: page.items,
             next_cursor: page.next_cursor,
             result_type: Some(rmcp::model::ResultType::COMPLETE),
-            ttl_ms: Some(veoveo_mcp_contract::PRIVATE_CATALOG_TTL_MS),
+            ttl_ms: Some(veoveo_sdk_rust::PRIVATE_CATALOG_TTL_MS),
             cache_scope: Some(rmcp::model::CacheScope::Private),
             meta: degradation.into_meta(),
         })
@@ -160,7 +161,7 @@ impl GatewayMcp {
         let targets = upstream
             .iter()
             .map(|prompt| {
-                Ok(veoveo_mcp_contract::PolicyTarget::Prompt {
+                Ok(crate::control_plane::PolicyTarget::Prompt {
                     server: server_slug.clone(),
                     prompt: PromptName::parse(prompt.name.clone())
                         .map_err(|_| mcp_internal("upstream exposed invalid prompt name"))?,

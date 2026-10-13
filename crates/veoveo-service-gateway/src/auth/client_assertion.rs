@@ -1,6 +1,6 @@
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use jsonwebtoken::{DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
-use veoveo_mcp_contract::{JwtId, OAuthClientId};
+use veoveo_sdk_rust::{JwtId, OAuthClientId};
 
 use super::{
     claims::ClientAssertionClaims,

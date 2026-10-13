@@ -1,6 +1,12 @@
+use crate::contract::AuthorizationServerId;
 use std::{collections::BTreeSet, num::NonZeroU32, sync::Arc};
-use veoveo_gateway_contract::AuthorizationServerId;
 
+use crate::contract::PrincipalDisplayName;
+use crate::control_plane::{GatewayRefreshGrant, OAuthRefreshToken};
+use crate::store::{
+    NewRefreshFamily, NewRefreshToken, RefreshBinding, RefreshDeliveryEnvelope, RefreshFamily,
+    RefreshPrincipal, RefreshRetention, RefreshRotation,
+};
 use anyhow::{Context, Result, anyhow};
 use base64::{
     Engine as _,
@@ -14,17 +20,8 @@ use chrono::{DateTime, TimeDelta, Utc};
 use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
-use veoveo_mcp_contract::{
-    GatewayProfileId, GatewayRefreshFamilyId, GatewayRefreshGrant, OAuthClientId,
-    OAuthRefreshToken, Principal, PrincipalDisplayName,
-};
-use veoveo_platform_store::{
-    MaintenanceBatch, Pruned,
-    gateway::{
-        NewRefreshFamily, NewRefreshToken, RefreshBinding, RefreshDeliveryEnvelope, RefreshFamily,
-        RefreshPrincipal, RefreshRetention, RefreshRotation,
-    },
-};
+use veoveo_platform_store::{MaintenanceBatch, Pruned};
+use veoveo_sdk_rust::{GatewayProfileId, GatewayRefreshFamilyId, OAuthClientId, Principal};
 use veoveo_types::{ScopeName, Sha256Digest, WorkContextId};
 
 use super::GatewayState;
@@ -181,7 +178,7 @@ impl GatewayState {
         now: DateTime<Utc>,
     ) -> Result<Option<GatewayRefreshGrant>> {
         let Some((current, family)) = self
-            .platform
+            .store
             .refresh_grant(&refresh_token_digest(token))
             .await
             .context("failed to read gateway refresh-token grant")?
@@ -212,7 +209,7 @@ impl GatewayState {
         now: DateTime<Utc>,
     ) -> Result<Option<GatewayRefreshGrant>> {
         Ok(self
-            .platform
+            .store
             .revoke_refresh_family(
                 &refresh_token_digest(token),
                 RefreshBinding {
@@ -268,7 +265,7 @@ impl GatewayState {
             expires_at,
             delivery: None,
         };
-        self.platform
+        self.store
             .create_refresh_family(&family, &first)
             .await
             .context("failed to create gateway refresh-token family")?;
@@ -297,7 +294,7 @@ impl GatewayState {
     ) -> Result<GatewayRefreshExchange> {
         let digest = refresh_token_digest(token);
         let Some((current, family)) = self
-            .platform
+            .store
             .refresh_grant(&digest)
             .await
             .context("failed to read gateway refresh-token grant")?
@@ -339,7 +336,7 @@ impl GatewayState {
             delivery: Some(delivery),
         };
         let rotation = self
-            .platform
+            .store
             .rotate_refresh_token(
                 &digest,
                 &replacement,
@@ -392,7 +389,7 @@ impl GatewayState {
         now: DateTime<Utc>,
         batch: MaintenanceBatch,
     ) -> Result<RefreshRetention> {
-        self.platform
+        self.store
             .prune_refresh_state(now, batch)
             .await
             .context("failed to prune expired gateway refresh-token state")
@@ -404,7 +401,7 @@ impl GatewayState {
         now: DateTime<Utc>,
         batch: MaintenanceBatch,
     ) -> Result<Pruned> {
-        self.platform
+        self.store
             .clear_refresh_delivery_envelopes(now, batch)
             .await
             .context("failed to clear expired gateway refresh delivery envelopes")

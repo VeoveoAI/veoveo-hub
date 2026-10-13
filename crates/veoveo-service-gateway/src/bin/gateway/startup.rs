@@ -1,14 +1,17 @@
-//! Startup: the platform database, the kernel migrations and the installation
-//! configuration. Registered servers apply their own migrations.
+//! Startup: the platform database, the kernel and Gateway migrations, the audit class
+//! declarations and the installation configuration. Registered servers apply their own
+//! migrations.
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, ensure};
 use chrono::Utc;
-use veoveo_mcp_contract::{
-    GatewayControlPlaneRevision, GatewayControlPlaneRevisionSource,
-    audit::{AuditActor, AuditContext, AuditPrincipalKind, AuditRequest},
-};
+use veoveo_audit::AuditStore;
+use veoveo_audit_contract::{AuditActor, AuditContext, AuditPrincipalKind, AuditRequest};
 use veoveo_platform_store::{PlatformStore, StoreConfig};
+use veoveo_service_gateway::control_plane::{
+    GatewayControlPlaneRevision, GatewayControlPlaneRevisionSource,
+};
+use veoveo_service_gateway::store::GatewayStore;
 use veoveo_service_gateway::{
     GatewayCatalog, GatewayControlStore, new_gateway_control_plane_revision_id,
 };
@@ -41,13 +44,19 @@ pub(super) async fn connect(config: StoreConfig, wait: Duration) -> anyhow::Resu
     }
 }
 
-/// Apply pending kernel migrations. Concurrent replicas wait on the migrator's lock.
+/// Apply pending kernel and Gateway migrations, then record the audit classes the
+/// Gateway records, before its first audit record. Concurrent replicas wait on the
+/// migrators' locks, and repeating a declaration changes nothing.
 pub(super) async fn migrate(store: &PlatformStore) -> anyhow::Result<()> {
-    store
+    GatewayStore::new(store.clone())
         .migrate()
         .await
-        .context("apply the kernel migrations")?;
-    tracing::info!("kernel schema is current");
+        .context("apply the kernel and Gateway migrations")?;
+    AuditStore::new(store.clone(), veoveo_service_gateway::audit_registry())
+        .declare()
+        .await
+        .context("declare the Gateway's audit classes")?;
+    tracing::info!("kernel and Gateway schemas are current");
     Ok(())
 }
 
@@ -84,9 +93,7 @@ pub(super) async fn publish(
             kind: AuditPrincipalKind::Service,
             tenant: None,
             oauth_client: None,
-            session_family: None,
             delegating_principal: None,
-            managed_agent: None,
         },
         authority: Default::default(),
         request: AuditRequest::background(),

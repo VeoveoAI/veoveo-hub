@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Instant};
-use veoveo_gateway_contract::GatewayAction;
 use veoveo_http::RequestJson;
-use veoveo_mcp_contract::audit::AdministrativeOperation;
+use veoveo_service_gateway::audit::AdministrativeOperation;
+use veoveo_service_gateway::contract::GatewayAction;
 
 use axum::{
     Json,
@@ -11,7 +11,7 @@ use axum::{
 };
 use chrono::Utc;
 use serde::Serialize;
-use veoveo_mcp_contract::{
+use veoveo_service_gateway::control_plane::{
     GatewayControlPlane, GatewayControlPlaneRevision, GatewayControlPlaneRevisionId,
     GatewayControlPlaneRevisionSource,
 };
@@ -284,7 +284,7 @@ pub(crate) async fn update_control_plane(
         tenant: subject.actor.tenant.clone(),
         control_plane,
     };
-    let audit_context = match subject.audit_context(&profile_id) {
+    let audit_context = match subject.audit_context() {
         Ok(context) => context,
         Err(error) => return internal_error_response(error),
     };

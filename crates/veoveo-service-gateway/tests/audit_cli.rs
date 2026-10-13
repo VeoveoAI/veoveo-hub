@@ -1,6 +1,8 @@
 //! Public verification against records an administrator tampered with in a fresh
 //! PostgreSQL database.
-use veoveo_test_fixtures::store::TestDb;
+#[path = "support/database.rs"]
+mod database;
+use database::TestDb;
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 use chrono::{TimeDelta, Utc};
@@ -46,10 +48,7 @@ fn decode_verification_report(bytes: &[u8]) -> VerificationReport {
 
 /// The audit log of a fresh database, read and written as the installation owner.
 fn audit(db: &TestDb) -> AuditStore {
-    AuditStore::new(
-        db.a.clone(),
-        veoveo_service_gateway::kernel_audit_target_registry(),
-    )
+    AuditStore::new(db.a.clone(), veoveo_service_gateway::audit_registry())
 }
 
 async fn verify(db: &TestDb, key: &AuditSigningKey) -> Output {
@@ -117,7 +116,7 @@ async fn qualify_export(db: &TestDb) {
         .unwrap()
         .lines()
         .map(|line| {
-            veoveo_service_gateway::kernel_audit_target_registry()
+            veoveo_service_gateway::audit_registry()
                 .decoder()
                 .from_str(line)
                 .expect("every stdout line must be audit JSONL")
@@ -159,11 +158,21 @@ async fn qualify(db: &TestDb, attack: Attack) {
     let scope = AuditReadScope::new(None, true);
     let partition = AuditPartition::Installation;
     let mut ids = Vec::new();
-    for method in [AuditReadMethod::ResourceRead, AuditReadMethod::Status] {
+    let audit = veoveo_service_gateway::audit::gateway_audit();
+    for detail in [
+        audit
+            .detail(&veoveo_sdk_rust::audit::Read {
+                method: veoveo_sdk_rust::audit::McpReadMethod::ResourceRead,
+            })
+            .unwrap(),
+        audit
+            .detail(&veoveo_service_gateway::audit::TaskStatusRead {})
+            .unwrap(),
+    ] {
         let mut builder = AuditDraft::builder(
             AuditRequest::background(),
             AuditTarget::Installation,
-            AuditDetail::Read { method },
+            detail,
             AuditOutcome::Allowed,
             AuditReason::Accepted,
         );

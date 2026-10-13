@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use veoveo_mcp_contract::PrincipalAssurance;
+use veoveo_sdk_rust::PrincipalAssurance;
 
 use super::{claims::StringListClaim, support::AuthError};
 

@@ -121,7 +121,7 @@ pub(super) fn is_access_token_type(typ: &str) -> bool {
         .get(..APPLICATION_PREFIX.len())
         .filter(|prefix| prefix.eq_ignore_ascii_case(APPLICATION_PREFIX))
         .map_or(typ, |_| &typ[APPLICATION_PREFIX.len()..]);
-    typ.eq_ignore_ascii_case(veoveo_mcp_contract::ACCESS_TOKEN_TYPE)
+    typ.eq_ignore_ascii_case(veoveo_sdk_rust::ACCESS_TOKEN_TYPE)
 }
 
 const APPLICATION_PREFIX: &str = "application/";

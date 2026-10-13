@@ -1,14 +1,13 @@
+use crate::contract::AuthorizationServerId;
+use crate::contract::{OAuthAuthorizationCode, OAuthStateValue};
+use crate::control_plane::{
+    GatewayAuthorizationCodeRecord, GatewayAuthorizationRequest, GatewayJwtRevocation,
+};
+use crate::store::{ReplayIdentifier, ReplayKind};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use veoveo_gateway_contract::AuthorizationServerId;
-use veoveo_mcp_contract::{
-    GatewayAuthorizationCodeRecord, GatewayAuthorizationRequest, GatewayJwtRevocation,
-    GatewayProfileId, JwtId, OAuthAuthorizationCode, OAuthClientId, OAuthStateValue, TokenIssuer,
-};
-use veoveo_platform_store::{
-    MaintenanceBatch, Pruned,
-    gateway::{ReplayIdentifier, ReplayKind},
-};
+use veoveo_platform_store::{MaintenanceBatch, Pruned};
+use veoveo_sdk_rust::{GatewayProfileId, JwtId, OAuthClientId, TokenIssuer};
 
 use super::GatewayState;
 
@@ -22,7 +21,7 @@ pub struct GatewayReplayRetentionSummary {
 
 impl GatewayState {
     pub async fn record_jwt_revocation(&self, revocation: &GatewayJwtRevocation) -> Result<()> {
-        self.platform
+        self.store
             .record_jwt_revocation(revocation)
             .await
             .context("failed to persist gateway JWT revocation")
@@ -35,7 +34,7 @@ impl GatewayState {
         jwt_id: &JwtId,
         now: DateTime<Utc>,
     ) -> Result<Option<GatewayJwtRevocation>> {
-        self.platform
+        self.store
             .jwt_revocation(profile, issuer, jwt_id, now)
             .await
             .context("failed to read gateway JWT revocation")
@@ -47,7 +46,7 @@ impl GatewayState {
         now: DateTime<Utc>,
         batch: MaintenanceBatch,
     ) -> Result<Pruned> {
-        self.platform
+        self.store
             .prune_jwt_revocations(now, batch)
             .await
             .context("failed to prune expired gateway JWT revocations")
@@ -102,12 +101,12 @@ impl GatewayState {
         batch: MaintenanceBatch,
     ) -> Result<GatewayReplayRetentionSummary> {
         let client_assertion_jtis = self
-            .platform
+            .store
             .prune_replay_ids(ReplayKind::ClientAssertion, now, batch)
             .await
             .context("failed to prune client assertion replay identifiers")?;
         let id_jag_jtis = self
-            .platform
+            .store
             .prune_replay_ids(ReplayKind::IdJag, now, batch)
             .await
             .context("failed to prune ID-JAG replay identifiers")?;
@@ -121,7 +120,7 @@ impl GatewayState {
         &self,
         request: &GatewayAuthorizationRequest,
     ) -> Result<()> {
-        self.platform
+        self.store
             .record_authorization_request(request)
             .await
             .context("failed to persist OAuth authorization request")
@@ -132,7 +131,7 @@ impl GatewayState {
         idp_state: &OAuthStateValue,
         now: DateTime<Utc>,
     ) -> Result<Option<GatewayAuthorizationRequest>> {
-        self.platform
+        self.store
             .consume_authorization_request(idp_state, now)
             .await
             .context("failed to consume OAuth authorization request")
@@ -142,7 +141,7 @@ impl GatewayState {
         &self,
         code: &GatewayAuthorizationCodeRecord,
     ) -> Result<()> {
-        self.platform
+        self.store
             .record_authorization_code(code)
             .await
             .context("failed to persist OAuth authorization code")
@@ -153,7 +152,7 @@ impl GatewayState {
         code: &OAuthAuthorizationCode,
         now: DateTime<Utc>,
     ) -> Result<Option<GatewayAuthorizationCodeRecord>> {
-        self.platform
+        self.store
             .consume_authorization_code(code, now)
             .await
             .context("failed to consume OAuth authorization code")
@@ -165,7 +164,7 @@ impl GatewayState {
         now: DateTime<Utc>,
         batch: MaintenanceBatch,
     ) -> Result<Pruned> {
-        self.platform
+        self.store
             .prune_authorization_records(now, batch)
             .await
             .context("failed to prune expired OAuth authorization records")
@@ -176,7 +175,7 @@ impl GatewayState {
         identifier: ReplayIdentifier<'_>,
         now: DateTime<Utc>,
     ) -> Result<bool> {
-        self.platform
+        self.store
             .claim_replay_id(identifier, now)
             .await
             .context("failed to atomically register gateway replay identifier")

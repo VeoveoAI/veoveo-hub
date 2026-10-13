@@ -18,7 +18,8 @@ use axum::{
 use chrono::Utc;
 use model::{AuditParameters, AuditViewParameters, ViewParameters};
 use std::time::Duration;
-use veoveo_mcp_contract::{GatewayProfileId, audit::*};
+use veoveo_audit_contract::*;
+use veoveo_sdk_rust::GatewayProfileId;
 use veoveo_service_gateway::AuthenticatedSubject;
 use veoveo_types::ScopeDefinition;
 
@@ -33,17 +34,18 @@ pub(crate) async fn open_view(
     if let Err(response) = admit(&state, &profile, &subject, &partition).await {
         return *response;
     }
-    let draft = match subject.audit_draft(
-        &profile,
-        AuditTarget::AuditLog {
-            partition: partition.clone(),
-        },
-        AuditDetail::Read {
-            method: AuditReadMethod::AuditView,
-        },
-        AuditOutcome::Allowed,
-        AuditReason::Accepted,
-    ) {
+    let draft = match veoveo_service_gateway::audit::gateway_audit()
+        .detail(&platform::AuditView {})
+        .and_then(|detail| {
+            subject.audit_draft(
+                AuditTarget::AuditLog {
+                    partition: partition.clone(),
+                },
+                detail,
+                AuditOutcome::Allowed,
+                AuditReason::Accepted,
+            )
+        }) {
         Ok(draft) => draft,
         Err(_) => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
     };
@@ -78,7 +80,6 @@ pub(super) async fn admit_view(
             partition,
             &actor_partition,
             &subject.actor.id,
-            profile,
             view,
         ),
     )
@@ -171,17 +172,18 @@ pub(super) async fn admit(
         None
     };
     if let Some(reason) = reason {
-        let record = subject.audit_draft(
-            profile,
-            AuditTarget::AuditLog {
-                partition: partition.clone(),
-            },
-            AuditDetail::Read {
-                method: AuditReadMethod::AuditView,
-            },
-            AuditOutcome::Denied,
-            reason,
-        );
+        let record = veoveo_service_gateway::audit::gateway_audit()
+            .detail(&platform::AuditView {})
+            .and_then(|detail| {
+                subject.audit_draft(
+                    AuditTarget::AuditLog {
+                        partition: partition.clone(),
+                    },
+                    detail,
+                    AuditOutcome::Denied,
+                    reason,
+                )
+            });
         let record =
             record.map_err(|_| Box::new(StatusCode::SERVICE_UNAVAILABLE.into_response()))?;
         if state.gateway_state.record_audit(record).await.is_err() {
@@ -220,7 +222,7 @@ pub(crate) async fn records(
 ) -> Response {
     let query = match model::decode_query(
         &parameters.query,
-        state.gateway_state.audit_store().targets(),
+        state.gateway_state.audit_store().registry(),
     ) {
         Ok(query) => query,
         Err(error) => return (StatusCode::BAD_REQUEST, error).into_response(),

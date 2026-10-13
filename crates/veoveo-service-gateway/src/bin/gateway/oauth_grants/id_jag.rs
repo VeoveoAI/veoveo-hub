@@ -2,9 +2,11 @@ use std::time::Instant;
 
 use axum::{http::StatusCode, response::IntoResponse};
 use chrono::Utc;
-use veoveo_mcp_contract::{
-    AuthMode, AuthOutcome, AuthReasonCode, GatewayProfile, OAuthClientAuthMethod, OAuthClientId,
-    OAuthGrantType, PrincipalKind, ResourceAuthorizationServer,
+use veoveo_sdk_rust::{OAuthClientId, PrincipalKind};
+use veoveo_service_gateway::contract::{AuthOutcome, AuthReasonCode};
+use veoveo_service_gateway::contract::{OAuthClientAuthMethod, OAuthGrantType};
+use veoveo_service_gateway::control_plane::{
+    AuthMode, GatewayProfile, ResourceAuthorizationServer,
 };
 use veoveo_service_gateway::{GatewayCatalog, IdJagConfig, IdJagVerifier};
 use veoveo_types::{DelegationId, InvocationProvenance, WorkContextId};

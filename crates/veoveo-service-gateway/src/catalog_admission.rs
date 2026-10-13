@@ -1,16 +1,16 @@
 //! Explicit owner admission bound before any catalog is admitted or published.
+use crate::control_plane::GatewayControlPlane;
 use anyhow::{Context, Result, ensure};
-use veoveo_mcp_contract::GatewayControlPlane;
 
 #[derive(Debug, Clone, Default)]
 pub struct GatewayCatalogAdmission {
-    registry: Option<veoveo_gateway_contract::CatalogRegistry>,
+    registry: Option<crate::contract::CatalogRegistry>,
 }
 impl GatewayCatalogAdmission {
     pub fn unbound() -> Self {
         Self::default()
     }
-    pub fn bind(mut self, registry: veoveo_gateway_contract::CatalogRegistry) -> Result<Self> {
+    pub fn bind(mut self, registry: crate::contract::CatalogRegistry) -> Result<Self> {
         ensure!(
             self.registry.is_none(),
             "gateway catalog admission already bound"
@@ -21,7 +21,7 @@ impl GatewayCatalogAdmission {
     pub fn ensure_bound(&self) -> Result<()> {
         self.registry().map(|_| ())
     }
-    pub fn registry(&self) -> Result<&veoveo_gateway_contract::CatalogRegistry> {
+    pub fn registry(&self) -> Result<&crate::contract::CatalogRegistry> {
         self.registry
             .as_ref()
             .context("gateway catalog admission is unbound; bind the installation catalog registry")
@@ -29,7 +29,7 @@ impl GatewayCatalogAdmission {
     pub fn validate(
         &self,
         control_plane: &GatewayControlPlane,
-    ) -> Result<veoveo_gateway_contract::AdmittedCatalogSections> {
+    ) -> Result<crate::contract::AdmittedCatalogSections> {
         Ok(control_plane.validate(self.registry()?)?)
     }
     pub(crate) fn same_binding(&self, other: &Self) -> bool {

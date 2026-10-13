@@ -6,7 +6,7 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-use veoveo_mcp_contract::{HostAuthority, host_authority_is_allowed, parse_request_host_authority};
+use veoveo_sdk_rust::{HostAuthority, host_authority_is_allowed, parse_request_host_authority};
 
 pub(super) type AllowedHosts = Arc<Vec<String>>;
 

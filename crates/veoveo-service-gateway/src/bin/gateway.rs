@@ -1,7 +1,7 @@
 use std::{
     convert::Infallible, fmt, fmt::Write as _, num::NonZeroU32, path::PathBuf, str::FromStr,
 };
-use veoveo_gateway_contract::{SecretPurpose, SecretReferenceId, SecretSource};
+use veoveo_service_gateway::contract::{SecretPurpose, SecretReferenceId, SecretSource};
 
 #[path = "gateway/bindings.rs"]
 mod bindings;
@@ -40,8 +40,8 @@ use clap::{Args as ClapArgs, Parser, Subcommand, ValueEnum};
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
-use veoveo_mcp_contract::{TelemetryGuard, init_server_telemetry};
 use veoveo_platform_store::StoreConfig;
+use veoveo_sdk_rust::{TelemetryGuard, init_server_telemetry};
 use veoveo_service_gateway::{
     GatewayCatalog, GatewayRefreshDeliveryWindow, GatewaySecretResolver, RefreshTokenDeliveryCipher,
 };
@@ -305,7 +305,7 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
     } = args;
     let store_config = database.into_config()?;
     let server_database = veoveo_service_gateway::registration::ServerDatabase {
-        url: veoveo_mcp_ext_registration::DatabaseUrl::new(
+        url: veoveo_sdk_rust::registration::DatabaseUrl::new(
             server_database_url.unwrap_or_else(|| store_config.url().clone()),
         )?,
     };

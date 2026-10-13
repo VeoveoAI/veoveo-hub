@@ -8,6 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::control_plane::GatewayControlPlane;
 use anyhow::{Context, Result};
 use aws_lc_rs::encoding::{AsDer, Pkcs8V1Der};
 use base64::{
@@ -20,8 +21,8 @@ use jsonwebtoken::{
 };
 use serde::Serialize;
 use serde_json::json;
-use veoveo_mcp_contract::{GatewayControlPlane, PublicDeployment};
-use veoveo_mcp_ext_registration::{Ed25519Jwk, Ed25519JwkSet, statement::ServerKeyPair};
+use veoveo_sdk_rust::PublicDeployment;
+use veoveo_sdk_rust::registration::{Ed25519Jwk, Ed25519JwkSet, statement::ServerKeyPair};
 use zeroize::Zeroizing;
 
 /// The profile every local caller uses.

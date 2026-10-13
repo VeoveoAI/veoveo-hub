@@ -14,7 +14,7 @@ pub(crate) async fn export_audit(
 ) -> Response {
     let mut query = match model::decode_query(
         &parameters.query,
-        state.gateway_state.audit_store().targets(),
+        state.gateway_state.audit_store().registry(),
     ) {
         Ok(query) => query,
         Err(error) => return (StatusCode::BAD_REQUEST, error).into_response(),
@@ -32,17 +32,18 @@ pub(crate) async fn export_audit(
         return StatusCode::TOO_MANY_REQUESTS.into_response();
     };
     let store = state.gateway_state.audit_store().clone();
-    let marker = match subject.audit_draft(
-        &profile,
-        AuditTarget::AuditLog {
-            partition: query.partition.clone(),
-        },
-        AuditDetail::Read {
-            method: AuditReadMethod::AuditExport,
-        },
-        AuditOutcome::Allowed,
-        AuditReason::Accepted,
-    ) {
+    let marker = match veoveo_service_gateway::audit::gateway_audit()
+        .detail(&platform::AuditExport {})
+        .and_then(|detail| {
+            subject.audit_draft(
+                AuditTarget::AuditLog {
+                    partition: query.partition.clone(),
+                },
+                detail,
+                AuditOutcome::Allowed,
+                AuditReason::Accepted,
+            )
+        }) {
         Ok(draft) => draft,
         Err(_) => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
     };

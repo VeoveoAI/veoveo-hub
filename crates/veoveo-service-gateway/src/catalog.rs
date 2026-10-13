@@ -1,19 +1,22 @@
+use crate::contract::{AuthorizationServerId, SecretReference, SecretReferenceId};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     path::Path,
     sync::Arc,
 };
-use veoveo_gateway_contract::{AuthorizationServerId, SecretReference, SecretReferenceId};
 
+use crate::contract::OidcClientRegistrationId;
+use crate::control_plane::{
+    DataLabelDefinition, GatewayControlPlane, GatewayProfile, IdentityProvider, IdentityProviderId,
+    OAuthClientRegistration, PolicySet, ResourceAuthorizationServer, TenantDefinition,
+    WorkContextDefinition,
+};
 use anyhow::{Context, Result};
 use parking_lot::RwLock;
 use sha2::{Digest, Sha256};
-use veoveo_mcp_contract::{
-    DataLabelDefinition, GatewayControlPlane, GatewayProfile, GatewayProfileId, IdentityProvider,
-    IdentityProviderId, OAuthClientId, OAuthClientRegistration, OidcClientRegistrationId,
-    PolicySet, Principal, PrincipalKind, ResourceAuthorizationServer, ServerSlug, TenantDefinition,
-    TokenSubject, WorkContextDefinition,
+use veoveo_sdk_rust::{
+    GatewayProfileId, OAuthClientId, Principal, PrincipalKind, ServerSlug, TokenSubject,
 };
 use veoveo_types::{
     DataLabelId, InvocationMode, InvocationProvenance, PolicyVersion, PrincipalId, TenantId,
@@ -176,7 +179,7 @@ pub struct GatewayCatalog {
     authorization_servers: BTreeMap<AuthorizationServerId, usize>,
     registrations: Arc<crate::registration::RegistrationSnapshot>,
     profiles: BTreeMap<GatewayProfileId, usize>,
-    sections: veoveo_gateway_contract::AdmittedCatalogSections,
+    sections: crate::contract::AdmittedCatalogSections,
     policies: BTreeMap<PolicyVersion, usize>,
     data_labels: BTreeMap<DataLabelId, usize>,
     tenants: BTreeMap<TenantId, usize>,
@@ -424,7 +427,7 @@ impl GatewayCatalog {
         &self,
         verified: VerifiedAccessToken,
     ) -> Result<AuthenticatedSubject, GatewayAuthorityError> {
-        if !verified.extensions.is_empty() || verified.access_token.managed_execution.is_some() {
+        if !verified.extensions.is_empty() {
             return Err(GatewayAuthorityError::ContributedTokenAuthority);
         }
         let client = self
@@ -586,7 +589,7 @@ impl GatewayCatalog {
     pub fn oidc_client(
         &self,
         client_id: &OidcClientRegistrationId,
-    ) -> Option<&veoveo_mcp_contract::IdentityProviderOidcClientRegistration> {
+    ) -> Option<&crate::control_plane::IdentityProviderOidcClientRegistration> {
         self.oidc_clients
             .get(client_id)
             .map(|index| &self.control_plane.oidc_clients[*index])
@@ -595,7 +598,7 @@ impl GatewayCatalog {
     pub fn profile_oidc_client(
         &self,
         profile: &GatewayProfile,
-    ) -> Option<&veoveo_mcp_contract::IdentityProviderOidcClientRegistration> {
+    ) -> Option<&crate::control_plane::IdentityProviderOidcClientRegistration> {
         self.control_plane.oidc_clients.iter().find(|client| {
             client.identity_provider == profile.identity_provider
                 && client.authorization_server == profile.authorization_server
@@ -627,18 +630,18 @@ impl GatewayCatalog {
         })
     }
 
-    pub fn registry(&self) -> &veoveo_gateway_contract::CatalogRegistry {
+    pub fn registry(&self) -> &crate::contract::CatalogRegistry {
         self.admission
             .registry()
             .expect("admitted catalog has a bound registry")
     }
-    pub fn sections(&self) -> &veoveo_gateway_contract::AdmittedCatalogSections {
+    pub fn sections(&self) -> &crate::contract::AdmittedCatalogSections {
         &self.sections
     }
     pub fn contributed_protected_resource(
         &self,
-        resource: &veoveo_gateway_contract::ProtectedResourceId,
-    ) -> Option<&veoveo_gateway_contract::ProtectedResourceDescriptor> {
+        resource: &veoveo_sdk_rust::ProtectedResourceId,
+    ) -> Option<&crate::contract::ProtectedResourceDescriptor> {
         self.sections
             .protected_resources()
             .iter()
@@ -700,7 +703,7 @@ impl GatewayCatalog {
     pub fn prompt_servers(
         &self,
         profile_id: &GatewayProfileId,
-        prompt: &veoveo_mcp_contract::PromptName,
+        prompt: &veoveo_sdk_rust::PromptName,
     ) -> Vec<&RegisteredServer> {
         self.profile_servers(profile_id)
             .into_iter()

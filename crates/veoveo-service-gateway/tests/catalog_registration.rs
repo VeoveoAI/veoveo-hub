@@ -1,7 +1,7 @@
 #[path = "support/catalog_admission.rs"]
 mod catalog_admission;
-use veoveo_mcp_contract::GatewayControlPlane;
 use veoveo_service_gateway::GatewayCatalog;
+use veoveo_service_gateway::control_plane::GatewayControlPlane;
 
 #[test]
 fn raw_duplicates_and_typed_core_collision_fail_before_canonicalization() {

@@ -1,10 +1,9 @@
 use std::collections::BTreeSet;
 
 use anyhow::anyhow;
-use veoveo_mcp_contract::{
-    GatewayProfile, OAuthClientAuthMethod, OAuthClientRegistration, OAuthGrantType,
-};
 use veoveo_service_gateway::GatewayCatalog;
+use veoveo_service_gateway::contract::{OAuthClientAuthMethod, OAuthGrantType};
+use veoveo_service_gateway::control_plane::{GatewayProfile, OAuthClientRegistration};
 use veoveo_types::ScopeName;
 
 pub(crate) fn requested_token_scopes(

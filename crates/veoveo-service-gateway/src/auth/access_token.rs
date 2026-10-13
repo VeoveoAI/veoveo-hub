@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 
+use crate::contract::PrincipalDisplayName;
 use chrono::Utc;
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
-use veoveo_mcp_contract::{
-    AccessTokenSubject, JwtId, OAuthClientId, Principal, PrincipalDisplayName, PrincipalKind,
-    TokenIssuer, TokenSubject,
+use veoveo_sdk_rust::{
+    AccessTokenSubject, JwtId, OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject,
 };
 use veoveo_types::{
     DataLabelId, DelegationId, GroupId, PrincipalId, RoleId, TenantId, WorkContextId,
@@ -105,7 +105,6 @@ impl JwtVerifier {
         let oauth_client_id =
             OAuthClientId::parse(claims.client_id.clone()).map_err(AuthError::Claim)?;
         let token_subject = AccessTokenSubject {
-            managed_execution: None,
             issuer: issuer.clone(),
             subject: subject.clone(),
             oauth_client_id,

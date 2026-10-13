@@ -1,11 +1,12 @@
 use std::collections::BTreeSet;
 
+use crate::contract::PrincipalDisplayName;
+use crate::control_plane::{
+    IdentityProviderSubjectClaim, IdentityProviderTenantClaim, IdentityProviderTenantClaimMapping,
+};
 use chrono::Utc;
 use jsonwebtoken::{DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
-use veoveo_mcp_contract::{
-    IdentityProviderSubjectClaim, IdentityProviderTenantClaim, IdentityProviderTenantClaimMapping,
-    Principal, PrincipalDisplayName, PrincipalKind, TokenIssuer, TokenSubject,
-};
+use veoveo_sdk_rust::{Principal, PrincipalKind, TokenIssuer, TokenSubject};
 use veoveo_types::{DataLabelId, GroupId, PrincipalId, RoleId, TenantId};
 
 use super::{

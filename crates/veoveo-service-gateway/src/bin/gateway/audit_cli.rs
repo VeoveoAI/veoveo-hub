@@ -117,25 +117,36 @@ pub(super) enum AuditCommand {
         clock_skew_seconds: u32,
     },
 }
+/// Whether a CLI read views records or exports them.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ReadKind {
+    View,
+    Export,
+}
+
 async fn connect(
     store: DatabaseArgs,
     partition: &PartitionArgs,
-    method: AuditReadMethod,
+    method: ReadKind,
 ) -> anyhow::Result<AuditStore> {
     let config = store.into_config()?;
     let principal = PrincipalId::parse(config.username())?;
     let store = AuditStore::new(
         PlatformStore::connect(config).await?,
-        veoveo_service_gateway::kernel_audit_target_registry(),
+        veoveo_service_gateway::audit_registry(),
     );
     // The DB-authenticated operator is installation-scoped, including when the
     // selected read partition is a tenant. No CLI argument claims a tenant actor.
+    let detail = match method {
+        ReadKind::View => store.registry().detail(&platform::AuditView {})?,
+        ReadKind::Export => store.registry().detail(&platform::AuditExport {})?,
+    };
     let draft = AuditDraft::builder(
         AuditRequest::background(),
         AuditTarget::AuditLog {
             partition: partition.partition(),
         },
-        AuditDetail::Read { method },
+        detail,
         AuditOutcome::Allowed,
         AuditReason::Accepted,
     )
@@ -144,14 +155,12 @@ async fn connect(
         kind: AuditPrincipalKind::Service,
         tenant: None,
         oauth_client: None,
-        session_family: None,
         delegating_principal: None,
-        managed_agent: None,
     })
     .build()?;
     let marker = draft.id();
     store.append(&[draft]).await?;
-    if method == AuditReadMethod::AuditExport {
+    if method == ReadKind::Export {
         tokio::time::timeout(
             std::time::Duration::from_secs(10),
             store.wait_sealed(
@@ -180,7 +189,7 @@ impl AuditCommand {
                 from,
                 until,
             } => {
-                let store = connect(store, &partition, AuditReadMethod::AuditView).await?;
+                let store = connect(store, &partition, ReadKind::View).await?;
                 let mut query = AuditDailyQuery {
                     partition: partition.partition(),
                     from: from
@@ -214,7 +223,7 @@ impl AuditCommand {
                 expected,
                 clock_skew_seconds,
             } => {
-                let store = connect(store, &partition, AuditReadMethod::AuditView).await?;
+                let store = connect(store, &partition, ReadKind::View).await?;
                 let selected = partition.partition();
                 let scope = partition.scope();
                 let mut keys = AuditKeyRing::default();
@@ -307,9 +316,9 @@ impl AuditCommand {
 }
 async fn read(args: ReadArgs, export: bool) -> anyhow::Result<()> {
     let method = if export {
-        AuditReadMethod::AuditExport
+        ReadKind::Export
     } else {
-        AuditReadMethod::AuditView
+        ReadKind::View
     };
     let store = connect(args.store, &args.partition, method).await?;
     let selected = args.partition.partition();
@@ -327,7 +336,7 @@ async fn read(args: ReadArgs, export: bool) -> anyhow::Result<()> {
     query.target = args
         .target
         .as_deref()
-        .map(|input| store.targets().decoder().from_str(input))
+        .map(|input| store.registry().decoder().from_str(input))
         .transpose()?;
     query.actor = args.actor;
     query.trace = args.trace;
