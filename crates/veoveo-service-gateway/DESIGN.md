@@ -86,7 +86,7 @@ then the software statement against the pinned key and the endpoint URL.
 | Table in core's `gateway` schema | Holds |
 |---|---|
 | `namespace_claim` | One row per slug: the RFC 7638 thumbprint of the pinned key |
-| `registration` | One row per registration: client identifier, metadata, software statement, SHA-256 digest of the registration access token, its login and when the Gateway last saw that login hold a live process |
+| `registration` | One row per registration: client identifier, metadata, software statement, SHA-256 digest of the registration access token, its login, and `orphaned_at`, when housekeeping found that login without a live process, which is NULL while it holds one |
 
 One transaction registers a server: it claims the namespace on the slug's first
 registration, or finds it pinned to the same key, calls `kernel.ensure_server` for the
@@ -105,20 +105,22 @@ Reads return the stored statement. A `DELETE` removes the row and drops the logi
 one transaction, and the registration access token then answers HTTP 401.
 
 A process can end without deregistering. Every replica's housekeeping loop runs every 5
-seconds: it stamps the registrations whose logins hold a live kernel instance, then
-removes the registrations whose logins held none for `VEOVEO_REGISTRATION_GRACE_SECONDS`
-and drops their logins in the same transaction. Each claim, registration, declaration
-update, deregistration and removal writes an audit record.
+seconds and writes only when a login's liveness changed. It sets `orphaned_at` on a
+registration whose login it first finds without a live kernel instance, clears it when
+an instance appears again, and removes the registrations orphaned for longer than
+`VEOVEO_REGISTRATION_GRACE_SECONDS`, dropping their logins in the same transaction. An
+installation whose servers keep their instances writes nothing while idle. Each claim,
+registration, declaration update, deregistration and removal writes an audit record.
 
 Every replica listens on the `gateway` channel. A row inserted or deleted, or a
 metadata change, wakes it to reload the one registration the notification names by
 its client identifier. Every reconnection of the listener reloads all of them, because
-PostgreSQL does not replay notifications. Liveness stamps wake
-no one. A replica routes each slug to its newest registration and replaces the catalog
-only when the routed set or a declaration changes, so discovery caches stay intact
-otherwise. Requests in flight finish on the catalog snapshot they started with. Server
-health comes from liveness: healthy while the routed registration's login holds a live
-instance, degraded until housekeeping removes it.
+PostgreSQL does not replay notifications. A change of `orphaned_at` wakes no one. A
+replica routes each slug to its newest registration and replaces the catalog only when
+the routed set or a declaration changes, so discovery caches stay intact otherwise.
+Requests in flight finish on the catalog snapshot they started with. Server health
+comes from liveness: healthy while the routed registration's login holds a live
+instance, degraded from `orphaned_at` until housekeeping removes it.
 
 ## Routing And Catalog
 
@@ -225,9 +227,9 @@ registration client and calls the Gateway as both acceptance callers. It checks 
 pinned namespace, the initial access token, the database grant, which migrates the
 server's schema as its group role and holds the server's kernel instance, role
 decisions by risk, refusal of undeclared resources, the permissions each forwarded
-token carries, that deregistration drops a registration's login, and that a process
-that ends without deregistering loses its registration and login after the grace
-period. The fixture server verifies every forwarded token with the keys it reads from
+token carries, that three housekeeping rounds leave a live registration's row version
+unchanged, that deregistration drops a registration's login, and that a process that
+ends without deregistering loses its registration and login after the grace period. The fixture server verifies every forwarded token with the keys it reads from
 the issuer's `jwks_uri`, which equal those of its registration response.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token

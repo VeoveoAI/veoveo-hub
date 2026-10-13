@@ -18,7 +18,7 @@ use super::{
 };
 use crate::{GatewayServerHealth, GatewayServerHealthState};
 
-/// How often a replica records which logins hold a live instance and collects the
+/// How often a replica checks which logins hold a live instance and collects the
 /// registrations that held none for the grace period.
 pub const HOUSEKEEPING_INTERVAL: Duration = Duration::from_secs(5);
 
@@ -109,8 +109,9 @@ impl RegistrationService {
         self.inner.catalog.replace_registrations(snapshot);
     }
 
-    /// Record live registrations and remove the ones whose logins held no live instance
-    /// for the grace period, with their logins.
+    /// Mark the registrations whose logins lost their live instance, clear the mark of
+    /// those that regained one, and remove the ones orphaned for the grace period with
+    /// their logins. A round in which no liveness changed writes nothing.
     pub async fn collect_abandoned(&self) -> anyhow::Result<()> {
         let now = Utc::now();
         let grace = TimeDelta::from_std(self.inner.grace)?;
@@ -121,7 +122,8 @@ impl RegistrationService {
     }
 
     /// Health of every routed server: healthy while its login holds a live kernel
-    /// instance, degraded until the grace period removes it.
+    /// instance, degraded since housekeeping found it without one until the grace period
+    /// removes it.
     pub async fn health(&self) -> anyhow::Result<BTreeMap<ServerSlug, GatewayServerHealth>> {
         let routed = self
             .inner
@@ -147,7 +149,7 @@ impl RegistrationService {
                 } else {
                     GatewayServerHealth {
                         state: GatewayServerHealthState::Degraded,
-                        checked_at: liveness.live_at,
+                        checked_at: liveness.orphaned_at.unwrap_or(now),
                     }
                 };
                 (liveness.server, health)

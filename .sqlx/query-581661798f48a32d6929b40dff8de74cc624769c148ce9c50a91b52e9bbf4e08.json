@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM gateway.registration AS r\nWHERE r.live_at < $1\n    AND NOT EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    )\nRETURNING r.client_id, r.server, r.login\n",
+  "query": "DELETE FROM gateway.registration AS r\nWHERE r.orphaned_at < $1\n    AND NOT EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    )\nRETURNING r.client_id, r.server, r.login\n",
   "describe": {
     "columns": [
       {
@@ -48,5 +48,5 @@
       false
     ]
   },
-  "hash": "4b1d83ceb1a4cae482d3f6aa65cedc94f3d607c594538f9ecf4d6206c8ea15ae"
+  "hash": "581661798f48a32d6929b40dff8de74cc624769c148ce9c50a91b52e9bbf4e08"
 }

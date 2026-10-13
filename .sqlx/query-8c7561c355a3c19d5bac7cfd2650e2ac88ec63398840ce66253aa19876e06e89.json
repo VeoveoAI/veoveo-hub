@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    r.server,\n    r.live_at,\n    EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    ) AS \"alive!\"\nFROM gateway.registration AS r\nWHERE r.client_id = ANY ($1)\n",
+  "query": "SELECT\n    r.server,\n    r.orphaned_at,\n    EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    ) AS \"alive!\"\nFROM gateway.registration AS r\nWHERE r.client_id = ANY ($1)\n",
   "describe": {
     "columns": [
       {
@@ -16,12 +16,12 @@
       },
       {
         "ordinal": 1,
-        "name": "live_at",
+        "name": "orphaned_at",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
             "table": "gateway.registration",
-            "name": "live_at"
+            "name": "orphaned_at"
           }
         }
       },
@@ -39,9 +39,9 @@
     },
     "nullable": [
       false,
-      false,
+      true,
       null
     ]
   },
-  "hash": "38abdb4e3822c774ed50db94fa79c15309704347342865dbfa1d3634608755b2"
+  "hash": "8c7561c355a3c19d5bac7cfd2650e2ac88ec63398840ce66253aa19876e06e89"
 }

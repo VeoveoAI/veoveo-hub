@@ -1,6 +1,6 @@
 SELECT
     r.server,
-    r.live_at,
+    r.orphaned_at,
     EXISTS (
         SELECT FROM kernel.instance AS i
         WHERE i.login = r.login::name AND kernel.instance_alive(i.id)

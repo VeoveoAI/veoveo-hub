@@ -1,7 +1,8 @@
 //! Runs the Gateway binary against a disposable PostgreSQL database, registers core's
 //! modular fixture server through the RFC 7591 flow with core's registration client,
-//! and checks the role decisions, the namespace pin, the database grant and the end of
-//! a registration from the server's and a caller's side.
+//! and checks the role decisions, the namespace pin, the database grant, that a live
+//! registration costs no writes while idle, and the end of a registration from the
+//! server's and a caller's side.
 
 #[path = "support/gateway.rs"]
 mod gateway;
@@ -20,6 +21,7 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use chrono::{DateTime, Utc};
 use gateway::Gateway;
 use rmcp::{
     ClientLifecycleMode, ClientServiceExt,
@@ -40,7 +42,7 @@ use veoveo_mcp_ext_registration::{
 };
 use veoveo_modular_fixture_mcp::mcp::{FixtureGrants, ObservatoryMcp};
 use veoveo_platform_store::{Instance, PlatformStore, StoreConfig};
-use veoveo_service_gateway::local::LocalCaller;
+use veoveo_service_gateway::{local::LocalCaller, registration::HOUSEKEEPING_INTERVAL};
 use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::{ResourceScheme, ServerSlug};
 
@@ -211,6 +213,26 @@ async fn qualify() {
                 .any(|permission| permission.as_str() == "observatory.contract.read")
     }));
 
+    // An idle installation writes nothing: once housekeeping has seen the server's
+    // instance, its rounds leave the live registration's row version as it is.
+    let settled = tokio::time::timeout(Duration::from_secs(20), async {
+        loop {
+            let rows = row_versions(&db).await;
+            if rows.iter().all(|(_, _, orphaned_at)| orphaned_at.is_none()) {
+                return rows;
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
+        }
+    })
+    .await
+    .expect("housekeeping keeps an orphan mark on a live registration");
+    tokio::time::sleep(HOUSEKEEPING_INTERVAL * 3 + Duration::from_secs(1)).await;
+    assert_eq!(
+        row_versions(&db).await,
+        settled,
+        "housekeeping wrote a live registration"
+    );
+
     // A second registration of the same server under the pinned key receives its own
     // login, and deregistration drops that login.
     let replica = registration_client(
@@ -311,6 +333,17 @@ async fn connect(grant: &DatabaseGrant) -> PlatformStore {
     try_connect(grant)
         .await
         .expect("the registration grant connects")
+}
+
+/// Each registration's client, row version and orphan mark.
+async fn row_versions(db: &TestDb) -> Vec<(String, String, Option<DateTime<Utc>>)> {
+    sqlx::query_file!("tests/registration/row_versions.sql")
+        .fetch_all(db.a.pool())
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|row| (row.client_id, row.version, row.orphaned_at))
+        .collect()
 }
 
 async fn role_exists(db: &TestDb, grant: &DatabaseGrant) -> bool {

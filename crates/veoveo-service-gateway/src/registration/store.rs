@@ -99,12 +99,12 @@ impl TryFrom<EndedRow> for EndedRegistration {
     }
 }
 
-/// Whether a registered server's login holds a live kernel instance, and when the
-/// Gateway last saw one.
+/// Whether a registered server's login holds a live kernel instance, and since when
+/// housekeeping has found it without one.
 #[derive(Clone, Debug)]
 pub(crate) struct Liveness {
     pub server: ServerSlug,
-    pub live_at: DateTime<Utc>,
+    pub orphaned_at: Option<DateTime<Utc>>,
     pub alive: bool,
 }
 
@@ -255,18 +255,23 @@ impl RegistrationStore {
         Ok(Some(ended))
     }
 
-    /// Record which registrations' logins hold a live kernel instance at `now`, then
-    /// remove the registrations whose logins held none since `stale_before`, with their
-    /// logins.
+    /// Record the registrations whose logins newly hold no live kernel instance as
+    /// orphaned at `now` and clear the mark of those that hold one again, then remove
+    /// the registrations orphaned before `stale_before`, with their logins. A
+    /// registration whose liveness did not change is not written.
     pub async fn collect(
         &self,
         now: DateTime<Utc>,
         stale_before: DateTime<Utc>,
     ) -> Result<Vec<EndedRegistration>> {
-        sqlx::query_file!("src/registration/store/stamp_live.sql", now)
+        sqlx::query_file!("src/registration/store/clear_orphaned.sql")
             .execute(self.store.pool())
             .await
-            .context("failed to record live registrations")?;
+            .context("failed to clear revived registrations")?;
+        sqlx::query_file!("src/registration/store/mark_orphaned.sql", now)
+            .execute(self.store.pool())
+            .await
+            .context("failed to mark orphaned registrations")?;
         let mut transaction = self.store.pool().begin().await?;
         let ended =
             sqlx::query_file_as!(EndedRow, "src/registration/store/collect.sql", stale_before,)
@@ -294,7 +299,7 @@ impl RegistrationStore {
             .map(|row| {
                 Ok(Liveness {
                     server: ServerSlug::parse(row.server)?,
-                    live_at: row.live_at,
+                    orphaned_at: row.orphaned_at,
                     alive: row.alive,
                 })
             })

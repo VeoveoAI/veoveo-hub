@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gateway.registration AS r\nSET orphaned_at = NULL\nWHERE r.orphaned_at IS NOT NULL\n    AND EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    )\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "849a50b7dc5911e7c8845df06d056bebfdbfb627624d07d91f648a81e677831e"
+}
