@@ -48,7 +48,7 @@ impl Gateway {
             .unwrap()
             .port();
         let base = format!("http://127.0.0.1:{port}");
-        let installation = veoveo_service_gateway::local::generate(directory, &base).unwrap();
+        let installation = veoveo_service_gateway::local::generate(directory, &base, None).unwrap();
         let mut config: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&installation.config).unwrap()).unwrap();
         configure(&mut config);

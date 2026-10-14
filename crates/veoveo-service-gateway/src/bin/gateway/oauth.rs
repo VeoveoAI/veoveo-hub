@@ -14,7 +14,9 @@ use veoveo_oauth_client::CLIENT_ASSERTION_TYPE;
 use veoveo_sdk_rust::OAuthClientId;
 use veoveo_service_gateway::GatewayCatalog;
 use veoveo_service_gateway::contract::{AuthOutcome, AuthReasonCode};
-use veoveo_service_gateway::control_plane::{GatewayProfile, OAuthClientRegistration};
+use veoveo_service_gateway::control_plane::{
+    GatewayProfile, LoreResource, OAuthClientRegistration,
+};
 use veoveo_types::ScopeName;
 
 use crate::{
@@ -228,13 +230,15 @@ fn requesting_client(request: &TokenRequest) -> Option<OAuthClientId> {
 pub(super) enum ResolvedOAuthResource<'a> {
     Profile(&'a GatewayProfile),
     Contributed(&'a ProtectedResourceDescriptor),
+    /// The installation's Lore server, whose tokens carry repository grants.
+    Lore(&'a LoreResource),
 }
 
 impl<'a> ResolvedOAuthResource<'a> {
     pub(super) fn profile(self) -> Option<&'a GatewayProfile> {
         match self {
             Self::Profile(profile) => Some(profile),
-            Self::Contributed(_) => None,
+            Self::Contributed(_) | Self::Lore(_) => None,
         }
     }
 
@@ -242,6 +246,7 @@ impl<'a> ResolvedOAuthResource<'a> {
         match self {
             Self::Profile(profile) => &profile.protected_resource,
             Self::Contributed(resource) => &resource.resource,
+            Self::Lore(lore) => &lore.resource,
         }
     }
 
@@ -249,6 +254,7 @@ impl<'a> ResolvedOAuthResource<'a> {
         match self {
             Self::Profile(profile) => &profile.authorization_server,
             Self::Contributed(resource) => &resource.authorization_server,
+            Self::Lore(lore) => &lore.authorization_server,
         }
     }
 
@@ -256,6 +262,7 @@ impl<'a> ResolvedOAuthResource<'a> {
         match self {
             Self::Profile(profile) => catalog.profile_supported_scopes(profile),
             Self::Contributed(resource) => resource.required_scopes.clone(),
+            Self::Lore(_) => BTreeSet::new(),
         }
     }
 
@@ -264,7 +271,7 @@ impl<'a> ResolvedOAuthResource<'a> {
             Self::Profile(profile) => profile
                 .auth_modes
                 .contains(&veoveo_service_gateway::control_plane::AuthMode::OAuthClientCredentials),
-            Self::Contributed(_) => true,
+            Self::Contributed(_) | Self::Lore(_) => true,
         }
     }
 
@@ -274,6 +281,10 @@ impl<'a> ResolvedOAuthResource<'a> {
             Self::Contributed(resource) => AuthAuditTarget {
                 profile: None,
                 protected_resource: &resource.resource,
+            },
+            Self::Lore(lore) => AuthAuditTarget {
+                profile: None,
+                protected_resource: &lore.resource,
             },
         }
     }
@@ -385,6 +396,15 @@ fn resolve_registered_resource<'a>(
                 .contributed_protected_resource(&ProtectedResourceId::parse(resource).ok()?)
                 .map(ResolvedOAuthResource::Contributed)
         })
+        .or_else(|| {
+            let resource = ProtectedResourceId::parse(resource).ok()?;
+            catalog
+                .control_plane()
+                .lore
+                .as_ref()
+                .filter(|lore| lore.resource == resource)
+                .map(ResolvedOAuthResource::Lore)
+        })
 }
 
 fn invalid_client() -> Box<axum::response::Response> {
@@ -402,10 +422,12 @@ pub(super) fn resolve_oauth_profile<'a>(
 ) -> Result<&'a GatewayProfile, Box<axum::response::Response>> {
     match resolve_oauth_resource(catalog, raw_client_id, raw_resource)? {
         ResolvedOAuthResource::Profile(profile) => Ok(profile),
-        ResolvedOAuthResource::Contributed(_) => Err(Box::new(oauth_error_response(
-            StatusCode::BAD_REQUEST,
-            "invalid_target",
-            "requested resource does not support interactive OAuth grants",
-        ))),
+        ResolvedOAuthResource::Contributed(_) | ResolvedOAuthResource::Lore(_) => {
+            Err(Box::new(oauth_error_response(
+                StatusCode::BAD_REQUEST,
+                "invalid_target",
+                "requested resource does not support interactive OAuth grants",
+            )))
+        }
     }
 }

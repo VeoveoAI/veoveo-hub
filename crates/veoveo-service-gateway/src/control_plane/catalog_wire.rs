@@ -23,6 +23,8 @@ struct ControlPlaneWire {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub secrets: Vec<SecretReference>,
     #[serde(default)]
+    pub lore: Option<LoreResource>,
+    #[serde(default)]
     pub metadata: Value,
 }
 impl<'de> Deserialize<'de> for GatewayControlPlane {
@@ -61,6 +63,7 @@ impl<'de> Deserialize<'de> for GatewayControlPlane {
             oauth_clients: wire.oauth_clients,
             oidc_clients: wire.oidc_clients,
             secrets: wire.secrets,
+            lore: wire.lore,
             metadata: wire.metadata,
         })
     }

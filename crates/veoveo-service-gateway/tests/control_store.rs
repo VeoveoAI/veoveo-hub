@@ -240,6 +240,7 @@ fn empty_control_plane() -> GatewayControlPlane {
         oauth_clients: Vec::new(),
         oidc_clients: Vec::new(),
         secrets: Vec::new(),
+        lore: None,
         metadata: serde_json::json!({}),
     }
 }

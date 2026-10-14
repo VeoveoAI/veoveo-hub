@@ -1,6 +1,9 @@
 //! A local installation: the configuration and secrets one Gateway needs on a single
 //! workstation. It names no server. Two client-credentials callers hold the `member`
-//! and `admin` roles, so acceptance checks can exercise both sides of every risk.
+//! and `admin` roles, so acceptance checks can exercise both sides of every risk. An
+//! installation that runs Lore also gets a Lore admin client, which reaches every
+//! repository as Lore's service account, and one client per environment, which reaches
+//! no repository until the installation grants it one.
 
 use std::{
     io::Write,
@@ -45,7 +48,43 @@ pub struct LocalInstallation {
     /// The scope callers request.
     pub scope: &'static str,
     pub callers: Vec<LocalCaller>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lore: Option<LocalLoreClients>,
 }
+
+/// The Lore server a local installation runs and the environments that use it.
+#[derive(Debug, Clone)]
+pub struct LocalLore {
+    /// The Lore server's URL, such as `lores://vv-lore.internal:41337`.
+    pub resource: String,
+    /// The runtime names of the environments, such as `vv-mcp-time`.
+    pub environments: Vec<String>,
+}
+
+/// The Lore clients [`generate`] wrote.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalLoreClients {
+    pub resource: String,
+    pub admin: LocalLoreClient,
+    pub environments: Vec<LocalLoreClient>,
+}
+
+/// One client-credentials client of the Lore resource.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalLoreClient {
+    /// The environment it serves; the admin client serves none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub environment: Option<String>,
+    pub client_id: String,
+    /// RSA private key, PKCS#8 PEM, readable only by its owner.
+    pub key: PathBuf,
+    pub key_id: String,
+}
+
+/// The Lore admin client's ID.
+pub const LORE_ADMIN_CLIENT: &str = "lore-admin";
 
 /// One client-credentials caller and the role the installation grants it.
 #[derive(Debug, Serialize)]
@@ -61,7 +100,11 @@ pub struct LocalCaller {
 
 /// Write a local installation for the Gateway at `issuer` into `directory`, which
 /// must exist. Existing files are never overwritten.
-pub fn generate(directory: &Path, issuer: &str) -> Result<LocalInstallation> {
+pub fn generate(
+    directory: &Path,
+    issuer: &str,
+    lore: Option<&LocalLore>,
+) -> Result<LocalInstallation> {
     let deployment = PublicDeployment::new(issuer)?;
     let base = deployment.base_url().trim_end_matches('/').to_owned();
     let directory = directory
@@ -82,18 +125,7 @@ pub fn generate(directory: &Path, issuer: &str) -> Result<LocalInstallation> {
         ("acceptance-member", "member"),
         ("acceptance-admin", "admin"),
     ] {
-        let (pem, jwk) = rsa_client_key()?;
-        let key_id = jwk
-            .common
-            .key_id
-            .clone()
-            .context("client key has a key id")?;
-        let key = path(&format!("{client_id}.pem"));
-        write_private(&key, pem.as_bytes())?;
-        write_json(
-            &path(&format!("{client_id}.jwks.json")),
-            &JwkSet { keys: vec![jwk] },
-        )?;
+        let (key, key_id) = client_key(&directory, client_id)?;
         callers.push(LocalCaller {
             client_id: client_id.to_owned(),
             role: role.to_owned(),
@@ -101,8 +133,30 @@ pub fn generate(directory: &Path, issuer: &str) -> Result<LocalInstallation> {
             key_id,
         });
     }
+    let lore = lore
+        .map(|lore| -> Result<LocalLoreClients> {
+            let client = |environment: Option<&String>, client_id: String| {
+                let (key, key_id) = client_key(&directory, &client_id)?;
+                anyhow::Ok(LocalLoreClient {
+                    environment: environment.cloned(),
+                    client_id,
+                    key,
+                    key_id,
+                })
+            };
+            Ok(LocalLoreClients {
+                resource: lore.resource.clone(),
+                admin: client(None, LORE_ADMIN_CLIENT.to_owned())?,
+                environments: lore
+                    .environments
+                    .iter()
+                    .map(|environment| client(Some(environment), format!("lore-{environment}")))
+                    .collect::<Result<_>>()?,
+            })
+        })
+        .transpose()?;
 
-    let config = configuration(&base, &directory, access_token_jwk, &callers)?;
+    let config = configuration(&base, &directory, access_token_jwk, &callers, lore.as_ref())?;
     let config_path = path("gateway.json");
     write_json(&config_path, &config)?;
 
@@ -128,7 +182,26 @@ pub fn generate(directory: &Path, issuer: &str) -> Result<LocalInstallation> {
         resource: format!("{base}/mcp/{LOCAL_PROFILE}"),
         scope: LOCAL_SCOPE,
         callers,
+        lore,
     })
+}
+
+/// Write a new RSA client key and its public JWK Set for `client_id`, and return the
+/// key's path and `kid`.
+fn client_key(directory: &Path, client_id: &str) -> Result<(PathBuf, String)> {
+    let (pem, jwk) = rsa_client_key()?;
+    let key_id = jwk
+        .common
+        .key_id
+        .clone()
+        .context("client key has a key id")?;
+    let key = directory.join(format!("{client_id}.pem"));
+    write_private(&key, pem.as_bytes())?;
+    write_json(
+        &directory.join(format!("{client_id}.jwks.json")),
+        &JwkSet { keys: vec![jwk] },
+    )?;
+    Ok((key, key_id))
 }
 
 fn configuration(
@@ -136,6 +209,7 @@ fn configuration(
     directory: &Path,
     access_token_jwk: Ed25519Jwk,
     callers: &[LocalCaller],
+    lore: Option<&LocalLoreClients>,
 ) -> Result<GatewayControlPlane> {
     let file = |name: &str| directory.join(name).display().to_string();
     let issuer = format!("{base}/oauth");
@@ -159,6 +233,31 @@ fn configuration(
             })
         })
         .collect();
+    let mut clients = clients;
+    if let Some(lore) = lore {
+        clients.extend(
+            std::iter::once(&lore.admin)
+                .chain(&lore.environments)
+                .map(|client| {
+                    json!({
+                        "id": client.client_id,
+                        "authorizationServer": "local",
+                        "defaultWorkContext": "local",
+                        "invocationMode": "automated",
+                        "displayName": match &client.environment {
+                            Some(environment) => format!("Lore client of the {environment} environment"),
+                            None => "Lore admin".to_owned(),
+                        },
+                        "allowedResources": [lore.resource],
+                        "grantTypes": ["client_credentials"],
+                        "authMethods": ["private_key_jwt"],
+                        "jwks": { "source": "file", "path": file(&format!("{}.jwks.json", client.client_id)) },
+                        "tenant": "local",
+                        "metadata": {}
+                    })
+                }),
+        );
+    }
     let grants: Vec<_> = callers
         .iter()
         .map(|caller| {
@@ -243,6 +342,25 @@ fn configuration(
         ],
         "metadata": {}
     });
+    let mut document = document;
+    if let Some(lore) = lore {
+        let environments = lore
+            .environments
+            .iter()
+            .map(|client| json!({ "client": client.client_id }));
+        document["lore"] = json!({
+            "resource": lore.resource,
+            "authorizationServer": "local",
+            "grants": std::iter::once(json!({
+                "client": lore.admin.client_id,
+                "allRepositories": true,
+                "actions": ["admin", "owner"],
+                "serviceAccount": true
+            }))
+            .chain(environments)
+            .collect::<Vec<_>>()
+        });
+    }
     Ok(serde_json::from_value(document)?)
 }
 
@@ -310,7 +428,7 @@ mod tests {
     fn a_local_installation_is_a_valid_configuration_without_servers() {
         let directory = tempfile::tempdir().unwrap();
         let installation =
-            generate(directory.path(), "http://host.openshell.internal:8080").unwrap();
+            generate(directory.path(), "http://vv-gateway.internal:8080", None).unwrap();
         let catalog =
             crate::GatewayCatalog::load_json(&installation.config, crate::test_catalog::binding())
                 .unwrap();
@@ -318,7 +436,7 @@ mod tests {
         assert!(catalog.control_plane().registration.is_some());
         assert_eq!(
             installation.token_endpoint,
-            "http://host.openshell.internal:8080/oauth/token"
+            "http://vv-gateway.internal:8080/oauth/token"
         );
         use std::os::unix::fs::PermissionsExt;
         for private in [&installation.secrets, &installation.callers[0].key] {
@@ -333,6 +451,48 @@ mod tests {
                 .unwrap(),
         )
         .unwrap();
-        assert!(generate(directory.path(), "http://host.openshell.internal:8080").is_err());
+        assert!(generate(directory.path(), "http://vv-gateway.internal:8080", None).is_err());
+    }
+
+    #[test]
+    fn a_local_installation_with_lore_grants_its_admin_every_repository() {
+        let directory = tempfile::tempdir().unwrap();
+        let lore = LocalLore {
+            resource: "lores://vv-lore.internal:41337".to_owned(),
+            environments: vec!["vv-mcp-time".to_owned(), "vv-mcp-media".to_owned()],
+        };
+        let installation = generate(
+            directory.path(),
+            "http://vv-gateway.internal:8080",
+            Some(&lore),
+        )
+        .unwrap();
+        let catalog =
+            crate::GatewayCatalog::load_json(&installation.config, crate::test_catalog::binding())
+                .unwrap();
+        let configured = catalog.control_plane().lore.as_ref().unwrap();
+        assert_eq!(
+            configured.resource.as_str(),
+            "lores://vv-lore.internal:41337"
+        );
+        let clients = installation.lore.as_ref().unwrap();
+        let admin = configured
+            .grant(&veoveo_sdk_rust::OAuthClientId::parse(LORE_ADMIN_CLIENT).unwrap())
+            .unwrap();
+        assert!(admin.all_repositories && admin.service_account);
+        for environment in &clients.environments {
+            let grant = configured
+                .grant(&veoveo_sdk_rust::OAuthClientId::parse(&environment.client_id).unwrap())
+                .unwrap();
+            assert!(grant.resource_grants().is_empty() && !grant.service_account);
+        }
+        assert_eq!(
+            clients
+                .environments
+                .iter()
+                .map(|client| client.client_id.as_str())
+                .collect::<Vec<_>>(),
+            ["lore-vv-mcp-time", "lore-vv-mcp-media"]
+        );
     }
 }

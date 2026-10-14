@@ -47,6 +47,8 @@ mod data_label;
 pub use data_label::*;
 mod tenant;
 pub use tenant::*;
+mod lore;
+pub use lore::*;
 mod branding;
 pub use branding::*;
 mod catalog_schema;
@@ -68,6 +70,7 @@ pub const GATEWAY_CORE_FIELDS: &[&str] = &[
     "oauthClients",
     "oidcClients",
     "secrets",
+    "lore",
     "metadata",
 ];
 
@@ -96,6 +99,9 @@ pub struct GatewayControlPlane {
     pub oidc_clients: Vec<IdentityProviderOidcClientRegistration>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub secrets: Vec<SecretReference>,
+    /// The installation's Lore server, when it runs one, and who may use it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lore: Option<LoreResource>,
     #[serde(default)]
     pub metadata: Value,
 }
@@ -379,6 +385,22 @@ impl GatewayControlPlane {
             }
         }
 
+        if let Some(lore) = &self.lore {
+            if !protected_resources.insert(lore.resource.clone()) {
+                return Err(GatewayControlPlaneError::DuplicateProtectedResource(
+                    lore.resource.clone(),
+                ));
+            }
+            lore.validate(
+                &self
+                    .authorization_servers
+                    .iter()
+                    .map(|server| &server.id)
+                    .collect(),
+                &self.oauth_clients,
+            )?;
+        }
+
         for policy in &self.policies {
             validate_policy_set(
                 policy,
@@ -471,6 +493,7 @@ impl GatewayControlPlane {
                 &contributed_resources,
                 &policy_by_id,
                 &secret_refs,
+                self.lore.as_ref(),
             )?;
             let Some(context) = work_contexts.get(&client.default_work_context) else {
                 return Err(GatewayControlPlaneError::UnknownOAuthClientWorkContext {

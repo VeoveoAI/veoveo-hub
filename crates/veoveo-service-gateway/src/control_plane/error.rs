@@ -36,6 +36,9 @@ pub enum GatewayControlPlaneError {
         context: WorkContextId,
         reason: String,
     },
+    InvalidLore {
+        reason: String,
+    },
     InvalidBranding {
         field: &'static str,
         reason: String,
@@ -316,6 +319,7 @@ impl fmt::Display for GatewayControlPlaneError {
             Self::InvalidWorkContext { context, reason } => {
                 write!(f, "invalid Work Context `{context}`: {reason}")
             }
+            Self::InvalidLore { reason } => write!(f, "invalid Lore resource: {reason}"),
             Self::InvalidBranding { field, reason } => {
                 write!(f, "installation branding `{field}` {reason}")
             }

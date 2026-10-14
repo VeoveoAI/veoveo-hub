@@ -164,6 +164,12 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             "/.well-known/oauth-authorization-server/oauth",
             get(authorization_server_metadata),
         )
+        // RFC 8414 §5: the same metadata where OpenID Connect Discovery clients read it,
+        // under the issuer. Lore reads the issuer and `jwks_uri` here.
+        .route(
+            "/oauth/.well-known/openid-configuration",
+            get(authorization_server_metadata),
+        )
         .route("/oauth/jwks.json", get(authorization_server_jwks))
         .with_state(state)
         .merge(registration::router(registrations.clone()));

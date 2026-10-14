@@ -315,6 +315,7 @@ fn catalog_with_profile_and_policy(profile: GatewayProfile, policy: PolicySet) -
             oauth_clients: oauth_clients(),
             oidc_clients: oidc_clients(),
             secrets: vec![signing_secret(), oidc_client_secret()],
+            lore: None,
             metadata: Value::Null,
         },
         crate::test_catalog::binding(),

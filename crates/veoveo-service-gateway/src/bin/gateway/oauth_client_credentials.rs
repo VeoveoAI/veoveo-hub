@@ -343,6 +343,19 @@ pub(super) async fn token_endpoint_client_credentials(
         );
     }
 
+    if let ResolvedOAuthResource::Lore(lore) = resource {
+        return crate::lore_tokens::lore_token_response(
+            state,
+            catalog,
+            lore,
+            authorization_server,
+            &client_id,
+            request.scope.as_deref(),
+            started_at,
+        )
+        .await;
+    }
+
     let supported_scopes = resource.supported_scopes(catalog);
     let scopes = match requested_client_credentials_scopes(
         &supported_scopes,

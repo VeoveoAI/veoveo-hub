@@ -132,6 +132,7 @@ fn control_plane_with_secrets(secrets: Vec<SecretReference>) -> GatewayControlPl
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets,
+        lore: None,
         metadata: Value::Null,
     }
 }
@@ -463,6 +464,7 @@ fn control_plane_validates_cross_references() {
             oidc_client_secret(),
             registration_secret(),
         ],
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -490,6 +492,7 @@ fn control_plane_rejects_unknown_identity_provider_reference() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -522,6 +525,7 @@ fn control_plane_rejects_unknown_authorization_server_reference() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -554,6 +558,7 @@ fn control_plane_rejects_authorization_server_unknown_identity_provider() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -586,6 +591,7 @@ fn control_plane_rejects_profile_without_auth_modes() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -620,6 +626,7 @@ fn control_plane_rejects_oidc_profile_without_browser_endpoints() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -654,6 +661,7 @@ fn control_plane_rejects_oidc_profile_without_browser_endpoints() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -691,6 +699,7 @@ fn control_plane_rejects_extension_auth_modes_without_matching_endpoints() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -737,6 +746,7 @@ fn control_plane_rejects_unknown_secret_owner_references() {
                 metadata: Value::Null,
             },
         ],
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -777,6 +787,7 @@ fn control_plane_rejects_unknown_secret_owner_references() {
                 metadata: Value::Null,
             },
         ],
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -807,6 +818,7 @@ fn control_plane_rejects_missing_oauth_client_for_auth_mode() {
         oauth_clients: vec![],
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -845,6 +857,7 @@ fn control_plane_allows_service_profile_before_durable_client_admission() {
         oauth_clients: vec![],
         oidc_clients: vec![],
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
     config
@@ -871,6 +884,7 @@ fn control_plane_rejects_missing_oidc_client_for_browser_auth() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: vec![],
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -905,6 +919,7 @@ fn control_plane_rejects_oidc_client_without_openid_scope() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: clients,
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -937,6 +952,7 @@ fn control_plane_rejects_public_client_credentials() {
         oauth_clients: clients,
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -969,6 +985,7 @@ fn control_plane_rejects_private_key_jwt_without_jwks() {
         oauth_clients: clients,
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -1007,6 +1024,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         oauth_clients: clients,
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -1036,6 +1054,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         oauth_clients: clients,
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -1066,6 +1085,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         oauth_clients: clients,
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -1100,6 +1120,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         oauth_clients: clients,
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -1134,6 +1155,7 @@ fn control_plane_rejects_oauth_client_missing_required_scope() {
         oauth_clients: clients,
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -1177,6 +1199,7 @@ fn control_plane_rejects_duplicate_tenants() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -1206,6 +1229,7 @@ fn control_plane_rejects_duplicate_policy_rule_ids() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -1238,6 +1262,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -1268,6 +1293,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 
@@ -1297,6 +1323,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
         oauth_clients: default_oauth_clients(),
         oidc_clients: default_oidc_clients(),
         secrets: default_secrets(),
+        lore: None,
         metadata: Value::Null,
     };
 

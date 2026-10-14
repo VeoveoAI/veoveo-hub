@@ -210,6 +210,7 @@ pub(super) fn validate_oauth_client_registration(
     >,
     policies: &BTreeMap<PolicyVersion, &PolicySet>,
     secrets: &BTreeMap<SecretReferenceId, &SecretReference>,
+    lore: Option<&super::LoreResource>,
 ) -> Result<(), GatewayControlPlaneError> {
     if !authorization_servers.contains_key(&client.authorization_server) {
         return Err(
@@ -274,6 +275,9 @@ pub(super) fn validate_oauth_client_registration(
                 }
             }
             (&resource.authorization_server, required_scopes)
+        } else if let Some(lore) = lore.filter(|lore| &lore.resource == resource_id) {
+            // Lore tokens carry repository grants and no scope.
+            (&lore.authorization_server, BTreeSet::new())
         } else {
             return Err(GatewayControlPlaneError::UnknownOAuthClientResource {
                 client: client.id.clone(),

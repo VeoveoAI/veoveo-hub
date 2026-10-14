@@ -121,7 +121,9 @@ other environments reach it at `http://host.openshell.internal:8080`:
 | `/readyz` | HTTP 200 once the audit service is ready |
 | `/.well-known/oauth-authorization-server` | RFC 8414 metadata with `registration_endpoint`, `token_endpoint` and `jwks_uri` |
 | `/jwks.json` | The keys that verify the tokens the Gateway forwards to servers |
-| `/oauth/token` | Client-credentials tokens for the profile `local`, and the token exchange a registered server performs to call other servers for its caller |
+| `/oauth/.well-known/openid-configuration` | The OAuth authorization server's RFC 8414 metadata, where OpenID Connect Discovery clients such as Lore read its issuer and `jwks_uri` |
+| `/oauth/jwks.json` | The keys that verify the authorization server's tokens, Lore tokens included |
+| `/oauth/token` | Client-credentials tokens for the profile `local` and for the installation's Lore server, and the token exchange a registered server performs to call other servers for its caller |
 | `/mcp/local` | The MCP endpoint of every registered server |
 
 A server registers at `/oauth/register` with the registration secret as its initial
@@ -135,6 +137,44 @@ with its key and naming its key identifier, at `/oauth/token` with
 `grant_type=client_credentials`, `resource=http://host.openshell.internal:8080/mcp/local`
 and `scope=mcp`. `acceptance-member` receives every permission without a risk, and
 `acceptance-admin` every permission.
+
+## Lore Tokens
+
+An installation that runs Lore names its server in the configuration's `lore` section:
+the server's URL, which Lore tokens carry as their audience, the authorization server
+that issues them, and one grant per client. A grant lists repository IDs or every
+repository, the privileged Lore actions (`admin`, `migrate`, `obliterate` and `owner`),
+and whether the client is a Lore service account, which Lore lets push to protected
+branches. Every client that lists the Lore server in its `allowedResources` holds one
+grant.
+
+```json
+"lore": {
+  "resource": "lores://vv-lore.internal:41337",
+  "authorizationServer": "local",
+  "grants": [
+    { "client": "lore-admin", "allRepositories": true, "actions": ["admin", "owner"], "serviceAccount": true },
+    { "client": "lore-vv-mcp-time", "repositories": ["01a1397efdb27152b7259d027ce59c45"] }
+  ]
+}
+```
+
+A client requests a Lore token at `/oauth/token` with its RFC 7523 assertion,
+`grant_type=client_credentials`, `resource` set to the Lore server and no scope. The
+token lives 15 minutes, and its `lore_resources` claim lists `urc-<repository ID>`, or
+`urc-*` for every repository, with the granted actions: the shape Lore's per-repository
+authorizer reads. Lore finds the issuer's keys through
+`/oauth/.well-known/openid-configuration`.
+
+`generate-local-installation` with `--lore-resource` and one `--lore-environment` per
+environment adds the Lore admin client `lore-admin`, granted every repository with
+`admin` and `owner` as a service account, and a client `lore-<environment>` for each
+environment, which reaches no repository until the installation grants it one.
+
+`lore-tokens` keeps the environments' token files current. It runs as root and, every
+ten minutes, requests a token for each `--target <client>=<file>` with the client's key
+from `--directory`, then replaces the file with one owned by root and readable only by
+`--group`. It prints no token.
 
 ## License
 
