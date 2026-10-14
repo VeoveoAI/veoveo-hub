@@ -2,7 +2,7 @@
 
 These rules apply to veoveo-service-gateway.
 
-- Use upstream runtimes such as OpenShell and PostgreSQL unmodified. Adapt through
+- Use upstream runtimes such as PostgreSQL and Keycloak unmodified. Adapt through
   supported configuration.
 - Every name, identifier, format, wire field and protocol element follows a published
   standard or core's [conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md).

@@ -27,15 +27,15 @@ and the `runtime` image. The same commands run inside the development environmen
 
 ```sh
 docker build --target dev -t veoveo-service-gateway:dev .
-openshell sandbox create --name vv-srv-gateway --from veoveo-service-gateway:dev \
-  --policy openshell/policy.yaml --env HOME=/sandbox --detach -- sleep infinity
 ```
 
-Sandbox names use the short form `vv-srv-gateway`, because OpenShell limits sandbox
-names to 19 characters. The environment's [policy](openshell/policy.yaml) lets the
-built binary reach a local installation's PostgreSQL at `host.openshell.internal:5432`
-and registered servers forwarded to the host on ports 8800 to 8809 of
-`host.openshell.internal`.
+A local installation from
+[veoveo-template-installation](https://github.com/VeoveoAI/veoveo-template-installation)
+runs this image, under its own layer, as the Compose service `vv-srv-gateway`. The
+environment works in the installation's Lore repository at `/sandbox/src`, keeps its
+state in `/sandbox`, and reaches PostgreSQL at `vv-postgres.internal:5432` and
+registered servers at their `.internal` names. Run the commands below from the
+installation's directory.
 
 Tests that need a database start a private PostgreSQL cluster per test process from the
 PostgreSQL 18 programs on `PATH`; the `dev` image installs the PGDG `postgresql-18`
@@ -55,65 +55,64 @@ does the same before `cargo sqlx prepare --check`.
 
 ## Local Launch
 
-A local installation runs PostgreSQL 18 from
-[veoveo-template-installation](https://github.com/VeoveoAI/veoveo-template-installation)
-on the host, the Gateway in `vv-srv-gateway` on port 8080 and each server in its own
-environment. The Gateway connects as the installation owner, a role that owns the
-installation database and may create roles. At startup it applies core's kernel
-migrations, then its own migrations of the `gateway` schema, and records the audit
-classes it writes in `audit.detail_type`. Start PostgreSQL first, then build the Gateway and generate its installation
-once:
+A local installation runs PostgreSQL 18, the Gateway in `vv-srv-gateway` on port 8080
+and each server in its own environment. The Gateway connects as the installation owner,
+a role that owns the installation database and may create roles. At startup it applies
+core's kernel migrations, then its own migrations of the `gateway` schema, and records
+the audit classes it writes in `audit.detail_type`. Start PostgreSQL first, then build
+the Gateway and generate its installation once, with a Lore client for each
+environment:
 
 ```sh
-openshell sandbox exec vv-srv-gateway -- bash -lc 'cd /sandbox/src \
+docker compose exec vv-srv-gateway bash -lc 'cd /sandbox/src \
   && cargo build --locked --target-dir /sandbox/target-serve --bin veoveo-service-gateway \
   && mkdir -p /sandbox/state/gateway \
   && /sandbox/target-serve/debug/veoveo-service-gateway generate-local-installation \
-       --directory /sandbox/state/gateway --issuer http://host.openshell.internal:8080'
+       --directory /sandbox/state/gateway --issuer http://vv-gateway.internal:8080 \
+       --lore-resource lores://vv-lore.internal:41337 \
+       --lore-environment vv-srv-gateway --lore-environment vv-mcp-time \
+       --lore-environment vv-mcp-artifact --lore-environment vv-mcp-media'
 ```
 
 The command writes into `/sandbox/state/gateway`:
 
 | File | Contents |
 |---|---|
-| `gateway.json` | The installation configuration: one profile, `local`, the `member` and `admin` roles, the registration secret reference, and two client-credentials callers |
+| `gateway.json` | The installation configuration: one profile, `local`, the `member` and `admin` roles, the registration secret reference, two client-credentials callers and the Lore resource with one grant per Lore client |
 | `gateway.env` | The generated secrets, mode 0600: forwarded-token, access-token, refresh-delivery and audit keys, and `VEOVEO_REGISTRATION_SECRET` |
 | `authorization-server.jwks.json` | The hosted authorization server's public key |
 | `acceptance-member.pem`, `acceptance-admin.pem` | RSA keys of the two callers, mode 0600, with their public `.jwks.json` |
+| `lore-admin.pem`, `lore-<environment>.pem` | RSA keys of the Lore clients, mode 0600, with their public `.jwks.json` |
 
-It prints the token endpoint, the profile's MCP endpoint, the scope and each caller's
-client identifier and key identifier, and no secret. Put the installation owner's
-password from the installation's `.env` into `/sandbox/state/database.env` as
+It prints the token endpoint, the profile's MCP endpoint, the scope and each client's
+identifier and key identifier, and no secret. Put the installation owner's password from
+the installation's `.env` into `/sandbox/state/database.env` as
 `VEOVEO_DATABASE_PASSWORD=...`.
 
-OpenShell pins every policy-listed executable path to the SHA-256 it first observes and
-denies the path once the file changes. The Gateway therefore runs from a
-content-addressed copy under `/sandbox/run`, which `openshell/policy.yaml` allows to
-reach PostgreSQL and registered servers, so every build gets a fresh path. The served
-binary builds into its own target directory, `/sandbox/target-serve`, apart from
-`target/`, where test builds enable test-only dependency features, so a test build is
-never installed. Start it in its own terminal and forward its port:
+The served binary builds into its own target directory, `/sandbox/target-serve`, apart
+from `target/`, where test builds enable test-only dependency features, so a test build
+is never served. Start it in its own terminal:
 
 ```sh
-openshell sandbox exec vv-srv-gateway -- bash -lc 'cd /sandbox/src \
+docker compose exec vv-srv-gateway bash -lc 'cd /sandbox/src \
   && cargo build --locked --target-dir /sandbox/target-serve --bin veoveo-service-gateway \
-  && bin=/sandbox/run/veoveo-service-gateway-$(sha256sum /sandbox/target-serve/debug/veoveo-service-gateway | cut -c1-16) \
-  && install -D -m 0755 /sandbox/target-serve/debug/veoveo-service-gateway "$bin" \
   && cd /sandbox/state/gateway && set -a && . ./gateway.env && . ../database.env && set +a \
-  && VEOVEO_ISSUER=http://host.openshell.internal:8080 \
+  && VEOVEO_ISSUER=http://vv-gateway.internal:8080 \
+     VEOVEO_LISTEN_ADDRESS=0.0.0.0:8080 \
+     VEOVEO_ALLOW_LOOPBACK_HOSTS=true \
      VEOVEO_CONFIG=/sandbox/state/gateway/gateway.json \
-     VEOVEO_DATABASE_URL=postgres://veoveo_owner@host.openshell.internal:5432/veoveo \
-     "$bin" serve'
-openshell forward start 8080 vv-srv-gateway -d
+     VEOVEO_DATABASE_URL=postgres://veoveo_owner@vv-postgres.internal:5432/veoveo \
+     exec /sandbox/target-serve/debug/veoveo-service-gateway serve'
 ```
 
 `VEOVEO_DATABASE_URL` names the host, the database and the installation owner, and
 never a password. Every registration grant names the same URL without its user, so a
-server environment reaches PostgreSQL at `host.openshell.internal:5432` too; set
+server environment reaches PostgreSQL at `vv-postgres.internal:5432` too; set
 `VEOVEO_SERVER_DATABASE_URL` when servers reach the database at another address.
 
-The Gateway listens on `127.0.0.1:8080` inside the environment. Through the forward,
-other environments reach it at `http://host.openshell.internal:8080`:
+The Gateway listens on port 8080 of its environment. Other environments reach it through
+the installation's edge at `http://vv-gateway.internal:8080`, and the host at
+`http://127.0.0.1:8080`:
 
 | URL | Answers |
 |---|---|
@@ -127,14 +126,14 @@ other environments reach it at `http://host.openshell.internal:8080`:
 | `/mcp/local` | The MCP endpoint of every registered server |
 
 A server registers at `/oauth/register` with the registration secret as its initial
-access token. An environment receives that secret through an OpenShell provider, so it
-holds only a placeholder that the proxy replaces on requests to the registration
-endpoint. The registration response grants the server its own PostgreSQL login; the
-server stays registered while that login holds a live kernel instance.
+access token. An environment holds only a placeholder, which the installation's edge
+replaces with the secret on `POST /oauth/register`. The registration response grants
+the server its own PostgreSQL login; the server stays registered while that login holds
+a live kernel instance.
 
 A caller obtains a token by presenting an RFC 7523 client assertion, signed
 with its key and naming its key identifier, at `/oauth/token` with
-`grant_type=client_credentials`, `resource=http://host.openshell.internal:8080/mcp/local`
+`grant_type=client_credentials`, `resource=http://vv-gateway.internal:8080/mcp/local`
 and `scope=mcp`. `acceptance-member` receives every permission without a risk, and
 `acceptance-admin` every permission.
 
