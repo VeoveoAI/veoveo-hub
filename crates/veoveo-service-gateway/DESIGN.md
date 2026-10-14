@@ -12,7 +12,7 @@ Neither its code nor its configuration names a server.
 |---|---|
 | MCP `2026-07-28`, Streamable HTTP | One endpoint per profile at `/mcp/{profile}`, aggregating tools, resources, resource templates, prompts, completions, Tasks and resource subscriptions of registered servers. `server/discover` lists `2026-07-28` as the only version, and another version is refused with `-32022`. The `resources.subscribe` capability declares `resourceSubscriptions` on `subscriptions/listen`; `resources/subscribe` and `resources/unsubscribe` are no methods of that version and answer `-32601` |
 | MCP Apps, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value |
-| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/02930e591be9602b34a9fddaf36bbb402c832b7a/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
+| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/9bf0a3a15dfcdd0ced3c0cf5764aae57b1d72c99/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
 | JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `GatewayInternalTokenIssuer`; a call another server made names that server as the prior actor |
 | OAuth 2.0 Token Exchange, RFC 8693, with RFC 9396 token requests | `/oauth/token` with the `urn:ietf:params:oauth:grant-type:token-exchange` grant, for registered servers that declare uses; profile in [calls between servers](#calls-between-servers) |
 | OAuth 2.0, RFC 6749, and RFC 7523 | The hosted authorization server; see [token and session authority](src/auth/DESIGN.md) |
@@ -91,7 +91,7 @@ and `acceptance-admin`, that hold the `member` and `admin` roles.
 ## Server Registration
 
 `src/registration` implements the [server registration
-protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/02930e591be9602b34a9fddaf36bbb402c832b7a/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
+protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/9bf0a3a15dfcdd0ced3c0cf5764aae57b1d72c99/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
 then the software statement against the pinned key and the endpoint URL. The slug
@@ -193,7 +193,7 @@ takes three rollouts, each complete on every replica before the next begins:
 ## Calls Between Servers
 
 `src/delegation.rs` implements the exchange of the SDK's [calls between
-servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/02930e591be9602b34a9fddaf36bbb402c832b7a/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers)
+servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/9bf0a3a15dfcdd0ced3c0cf5764aae57b1d72c99/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers)
 and the admission of the tokens it issues. A registered server authenticates at
 `/oauth/token` with an RFC 7523 assertion signed by the key its registration pinned;
 the Gateway records the assertion's `jti` with the other replay identifiers. The
