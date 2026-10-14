@@ -6,7 +6,8 @@
 version: 1
 filesystem_policy:
   include_workdir: true
-  read_only: [/bin, /usr, /lib, /lib64, /etc, /proc, /dev/urandom, /var/log]
+  # /opt/keycloak holds the Keycloak distribution the browser-session tests start.
+  read_only: [/bin, /usr, /lib, /lib64, /etc, /proc, /dev/urandom, /var/log, /opt/keycloak]
   read_write: [/tmp, /dev/null, /usr/local/rustup, /usr/local/cargo]
 network_policies:
   rust_toolchains:
