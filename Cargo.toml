@@ -12,19 +12,19 @@ publish = false
 
 [workspace.dependencies]
 # veoveo-core, pinned to one revision for every core crate.
-veoveo-audit = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "cec2f9fb2916b048dcebf46af4564d5dcf717614" }
-veoveo-audit-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "cec2f9fb2916b048dcebf46af4564d5dcf717614" }
-veoveo-http = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "cec2f9fb2916b048dcebf46af4564d5dcf717614" }
-veoveo-oauth-client = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "cec2f9fb2916b048dcebf46af4564d5dcf717614" }
-veoveo-platform-store = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "cec2f9fb2916b048dcebf46af4564d5dcf717614" }
-veoveo-task-runtime = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "cec2f9fb2916b048dcebf46af4564d5dcf717614" }
-veoveo-test-fixtures = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "cec2f9fb2916b048dcebf46af4564d5dcf717614" }
-veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "cec2f9fb2916b048dcebf46af4564d5dcf717614" }
-veoveo-usage = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "cec2f9fb2916b048dcebf46af4564d5dcf717614" }
-veoveo-usage-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "cec2f9fb2916b048dcebf46af4564d5dcf717614" }
+veoveo-audit = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "c0c8254f4a1f532a7c8bb5123639d9997700b105" }
+veoveo-audit-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "c0c8254f4a1f532a7c8bb5123639d9997700b105" }
+veoveo-http = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "c0c8254f4a1f532a7c8bb5123639d9997700b105" }
+veoveo-oauth-client = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "c0c8254f4a1f532a7c8bb5123639d9997700b105" }
+veoveo-platform-store = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "c0c8254f4a1f532a7c8bb5123639d9997700b105" }
+veoveo-task-runtime = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "c0c8254f4a1f532a7c8bb5123639d9997700b105" }
+veoveo-test-fixtures = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "c0c8254f4a1f532a7c8bb5123639d9997700b105" }
+veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "c0c8254f4a1f532a7c8bb5123639d9997700b105" }
+veoveo-usage = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "c0c8254f4a1f532a7c8bb5123639d9997700b105" }
+veoveo-usage-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "c0c8254f4a1f532a7c8bb5123639d9997700b105" }
 # veoveo-sdk-rust, pinned to one revision for the library and its test server.
-veoveo-sdk-rust = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "7446181806258d48a352ecdbd2bc00998d303701" }
-veoveo-sdk-rust-fixture = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "7446181806258d48a352ecdbd2bc00998d303701" }
+veoveo-sdk-rust = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "3ea1a32d9a818ca79a816e191dba1346a92cdf26" }
+veoveo-sdk-rust-fixture = { git = "https://github.com/VeoveoAI/veoveo-sdk-rust", rev = "3ea1a32d9a818ca79a816e191dba1346a92cdf26" }
 
 aws-lc-rs = "1.18.0"
 anyhow = "=1.0.104"

@@ -215,7 +215,7 @@ mod tests {
         OAuthEndpointUrl::new("https://idp.example.com/oauth/token").unwrap();
         OAuthEndpointUrl::new("http://localhost:8780/oauth/token").unwrap();
         OAuthEndpointUrl::new("http://127.0.0.1:8780/oauth/token").unwrap();
-        OAuthEndpointUrl::new("http://host.openshell.internal:8080/oauth/token").unwrap();
+        OAuthEndpointUrl::new("http://vv-gateway.internal:8080/oauth/token").unwrap();
 
         assert!(OAuthEndpointUrl::new("http://localhost/oauth/token").is_err());
         assert!(OAuthEndpointUrl::new("http://gateway:8780/oauth/token").is_err());
