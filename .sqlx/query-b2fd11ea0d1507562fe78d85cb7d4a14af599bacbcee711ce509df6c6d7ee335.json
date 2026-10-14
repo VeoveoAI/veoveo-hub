@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT server, orphaned_at\nFROM gateway.registration\nORDER BY server\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "server",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gateway.registration",
+            "name": "server"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "orphaned_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "gateway.registration",
+            "name": "orphaned_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "b2fd11ea0d1507562fe78d85cb7d4a14af599bacbcee711ce509df6c6d7ee335"
+}

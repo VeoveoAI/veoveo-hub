@@ -125,6 +125,16 @@ impl Gateway {
         );
     }
 
+    /// Whether the Gateway process is still running.
+    pub fn running(&mut self) -> bool {
+        self.child.try_wait().unwrap().is_none()
+    }
+
+    /// What the Gateway logged so far.
+    pub fn log(&self) -> String {
+        std::fs::read_to_string(&self.log).unwrap_or_default()
+    }
+
     /// A secret the installation generated, by its environment variable.
     pub fn secret(&self, name: &str) -> &str {
         self.secrets

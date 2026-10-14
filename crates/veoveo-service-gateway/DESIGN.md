@@ -43,6 +43,13 @@ Neither its code nor its configuration names a server.
 5. Load the registrations, start the registration listener and the housekeeping loop,
    and listen on `VEOVEO_LISTEN_ADDRESS`.
 
+While it serves, the Gateway holds a kernel instance of its own on the owner's login.
+Through it the Gateway acts on servers' Tasks for their owners, and it claims no Task
+work. When a lost connection ends the Gateway's database sessions, its pools open new
+connections, the registration listener reconnects and reloads every registration, and
+core's instance takes its lock back on a new connection, so the Gateway keeps serving
+without a restart.
+
 The Gateway connects as the installation owner, a role that owns the database and has
 `CREATEROLE`, because it applies the kernel and Gateway migrations and creates each
 registration's login. The other commands are `validate`, `resolve-secret`, `audit` and
@@ -419,6 +426,13 @@ outcome, reason and actor, including `refresh_token_revoked` for the logout,
 `invalid_bearer_token` for the refused token. `tests/session_family.rs` checks on real
 families that only a replay, and not a logout, an expiry or a removed family, ends a
 Task's delegation.
+
+`tests/database_reconnect.rs` registers the Ledger fixture, which holds a kernel instance
+on its own login, then ends every session of the installation owner's login, as a lost
+connection between the Gateway and PostgreSQL does. The Gateway keeps running, its
+kernel instance holds its lock again, readiness answers, a new token and a call to
+Ledger through the Gateway succeed, and past the grace period Ledger's registration
+carries no orphan mark.
 
 `tests/usage.rs` starts the binary with an action policy that lets the administrator
 make administrative reads, waits for the partitions three months ahead, writes two
