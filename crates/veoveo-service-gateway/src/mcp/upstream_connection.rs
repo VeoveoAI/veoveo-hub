@@ -20,14 +20,13 @@ const DISCOVERY_TIMEOUT: Duration = Duration::from_secs(10);
 /// The pause before the retry, so a server that is starting has a moment to listen.
 const RETRY_PAUSE: Duration = Duration::from_millis(200);
 
-/// Discover the upstream through `http`, retrying once after a transport failure.
-/// The retry goes through `fresh`, a client that opens a new connection for each
-/// request, so it never takes another idle pooled connection to a server that
-/// restarted behind its port forward.
+/// Discover the upstream, retrying once after a transport failure. The failure
+/// discards the server's pooled client, so the retry and every later request open new
+/// connections instead of taking another stale one from a server that restarted
+/// behind its port forward.
 pub(super) async fn discover<S: ClientHandler + Clone>(
     handler: S,
     http: GatewayAuthorizedHttpClient,
-    fresh: reqwest::Client,
     config: StreamableHttpClientTransportConfig,
 ) -> Result<RunningService<RoleClient, S>, RequestError> {
     let deadline = tokio::time::Instant::now() + DISCOVERY_TIMEOUT;
@@ -51,9 +50,9 @@ pub(super) async fn discover<S: ClientHandler + Clone>(
                 // Discover is read-only. No tool, Task or domain request has been
                 // dispatched, even when the caller intends a mutation afterward.
                 tracing::warn!(
-                    "retrying upstream discovery once on a new connection after a transport failure"
+                    "retrying upstream discovery once on new connections after a transport failure"
                 );
-                http = http.with_transport(fresh.clone());
+                http = http.reconnected().map_err(RequestError::from)?;
                 tokio::time::sleep_until((tokio::time::Instant::now() + RETRY_PAUSE).min(deadline))
                     .await;
             }

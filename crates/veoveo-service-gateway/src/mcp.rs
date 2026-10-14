@@ -115,7 +115,7 @@ impl GatewayMcp {
             .server(server_slug)
             .ok_or_else(|| mcp_invalid_params(format!("unknown upstream server `{server_slug}`")))?
             .clone();
-        let http_clients = self.upstream_http.clients().await?;
+        let transport = self.upstream_http.transport(server_slug)?;
         let mut permissions = crate::policy::granted_permissions(
             &snapshot.catalog().control_plane().authorization,
             &server.authorization,
@@ -125,7 +125,7 @@ impl GatewayMcp {
             permissions = delegation.narrow(permissions);
         }
         let authorized_http_client = GatewayAuthorizedHttpClient::new(
-            http_clients.pooled,
+            transport,
             self.internal_token_issuer.clone(),
             self.profile_id.clone(),
             &server,
@@ -145,7 +145,6 @@ impl GatewayMcp {
         let running = upstream_connection::discover(
             handler,
             authorized_http_client,
-            http_clients.fresh,
             upstream_transport_config(server.endpoint_url()),
         )
         .await?;

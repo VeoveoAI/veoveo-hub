@@ -1,30 +1,43 @@
-use std::sync::Arc;
+use std::{
+    collections::HashMap,
+    sync::{
+        Arc, Mutex, PoisonError,
+        atomic::{AtomicU64, Ordering},
+    },
+};
 
 use rmcp::model::ErrorData as McpError;
-use tokio::sync::OnceCell;
+use veoveo_sdk_rust::ServerSlug;
 
 use crate::mcp_support::mcp_internal;
 
 const UPSTREAM_CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
-/// The transport clients for gateway-to-server traffic.
+/// The transport clients for gateway-to-server traffic, one per registered server.
 ///
-/// Registered servers share one connection pool. Each request still carries its own
-/// short-lived access token, so the pool holds no authority. A second client keeps no
-/// idle connection, so each of its requests opens a new one. Discovery retries through
-/// it: when a server behind a port forward restarts, every idle pooled connection to it
-/// is as stale as the one that just failed.
-#[derive(Debug, Clone, Default)]
+/// Each server's client pools that server's connections. Each request still carries its
+/// own short-lived access token, so a pool holds no authority. A server reached through a
+/// port forward can restart while the forward keeps the Gateway's side of every pooled
+/// connection open; those connections look idle and fail only when the next request goes
+/// out. A connection-level failure therefore discards the server's client, and the next
+/// request opens new connections through a new one. Other servers keep their pools.
+#[derive(Debug, Clone)]
 pub struct GatewayUpstreamHttpClientPool {
-    pooled: Arc<OnceCell<reqwest::Client>>,
-    fresh: Arc<OnceCell<reqwest::Client>>,
+    servers: Arc<Mutex<HashMap<ServerSlug, Pooled>>>,
+    generations: Arc<AtomicU64>,
+    builder: fn() -> reqwest::ClientBuilder,
 }
 
-/// The shared pooled client, and the client whose every request opens a new connection.
-#[derive(Debug, Clone)]
-pub(super) struct UpstreamHttpClients {
-    pub(super) pooled: reqwest::Client,
-    pub(super) fresh: reqwest::Client,
+impl Default for GatewayUpstreamHttpClientPool {
+    fn default() -> Self {
+        Self::with_builder(upstream_client_builder)
+    }
+}
+
+#[derive(Debug)]
+struct Pooled {
+    generation: u64,
+    client: reqwest::Client,
 }
 
 impl GatewayUpstreamHttpClientPool {
@@ -32,29 +45,71 @@ impl GatewayUpstreamHttpClientPool {
         Self::default()
     }
 
-    pub(super) async fn clients(&self) -> Result<UpstreamHttpClients, McpError> {
-        Ok(UpstreamHttpClients {
-            pooled: built(&self.pooled, upstream_client_builder).await?,
-            fresh: built(&self.fresh, || {
-                upstream_client_builder().pool_max_idle_per_host(0)
-            })
-            .await?,
+    /// A pool whose clients come from `builder`.
+    pub(super) fn with_builder(builder: fn() -> reqwest::ClientBuilder) -> Self {
+        Self {
+            servers: Arc::default(),
+            generations: Arc::default(),
+            builder,
+        }
+    }
+
+    /// The current transport to `server`, building its client on first use.
+    pub(super) fn transport(&self, server: &ServerSlug) -> Result<UpstreamTransport, McpError> {
+        let mut servers = self.servers.lock().unwrap_or_else(PoisonError::into_inner);
+        if !servers.contains_key(server) {
+            let client = (self.builder)().build().map_err(|err| {
+                mcp_internal(format!("failed to build upstream HTTP client: {err}"))
+            })?;
+            let generation = self.generations.fetch_add(1, Ordering::Relaxed);
+            servers.insert(server.clone(), Pooled { generation, client });
+        }
+        let pooled = &servers[server];
+        Ok(UpstreamTransport {
+            pool: self.clone(),
+            server: server.clone(),
+            generation: pooled.generation,
+            client: pooled.client.clone(),
         })
+    }
+
+    /// Discard `server`'s client if it is still `generation`, so concurrent failures on
+    /// one generation discard it once and never a newer one.
+    fn discard(&self, server: &ServerSlug, generation: u64) {
+        let mut servers = self.servers.lock().unwrap_or_else(PoisonError::into_inner);
+        if servers
+            .get(server)
+            .is_some_and(|pooled| pooled.generation == generation)
+        {
+            servers.remove(server);
+        }
     }
 }
 
-async fn built(
-    client: &OnceCell<reqwest::Client>,
-    builder: impl FnOnce() -> reqwest::ClientBuilder,
-) -> Result<reqwest::Client, McpError> {
-    client
-        .get_or_try_init(|| async {
-            builder()
-                .build()
-                .map_err(|err| mcp_internal(format!("failed to build upstream HTTP client: {err}")))
-        })
-        .await
-        .cloned()
+/// One generation of a server's pooled client.
+#[derive(Debug, Clone)]
+pub(super) struct UpstreamTransport {
+    pool: GatewayUpstreamHttpClientPool,
+    server: ServerSlug,
+    generation: u64,
+    client: reqwest::Client,
+}
+
+impl UpstreamTransport {
+    pub(super) fn client(&self) -> &reqwest::Client {
+        &self.client
+    }
+
+    /// Stop reusing this generation's idle connections. The client closes them once
+    /// the requests still holding it end.
+    pub(super) fn discard(&self) {
+        self.pool.discard(&self.server, self.generation);
+    }
+
+    /// The server's current transport, after this one was discarded.
+    pub(super) fn current(&self) -> Result<Self, McpError> {
+        self.pool.transport(&self.server)
+    }
 }
 
 pub fn upstream_client_builder() -> reqwest::ClientBuilder {

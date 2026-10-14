@@ -307,12 +307,15 @@ through core's confined functions.
 The workspace pins RMCP 3.5.0 from `VeoveoAI/rust-sdk` at
 `917e7914c93975fc1eddbff8792f1e2de933bc17`, the revision `veoveo-sdk-rust` pins. The fork
 exposes HTTP rejection status and body through `StreamableHttpError::HttpResponse` and
-keeps exact Task subscription filters. Upstream discovery has a ten-second deadline,
-which covers both attempts, and one retry after a transport failure. The retry waits
-200 ms and goes through a second client that keeps no idle connection, so it opens a
-new one: when a server restarts behind its port forward, every idle pooled connection
-to it fails as the first attempt's did. Authorization challenges, malformed responses
-and MCP errors fail at once, and no mutation is retried.
+keeps exact Task subscription filters. Each registered server has its own pooled HTTP
+client. A server can restart behind its port forward while the forward keeps the
+Gateway's side of every pooled connection open, so those connections fail only when the
+next request goes out. A request that fails in its connection, unsent or with its
+response broken off, therefore discards that server's client, and later requests open
+new connections through a new one. Other servers keep their pools. Upstream discovery
+has a ten-second deadline, which covers both attempts, and one retry after a transport
+failure, 200 ms later on the server's new client. Authorization challenges, malformed
+responses and MCP errors fail at once, and no mutation is retried.
 
 Structured results, resource contents and unknown metadata keep their upstream
 values. Upstream MCP errors keep their code, message and data. A non-success HTTP
@@ -448,8 +451,9 @@ range.
 answers to `resources/subscribe` under `2026-07-28` and under `2025-11-25`, and the
 acknowledgement of a `subscriptions/listen` filter. The upstream connection tests put a
 port forward in front of an upstream that restarts on the same port: the forward keeps
-the Gateway's pooled connections open and closes each without an answer, and the first
-discovery after the restart still succeeds through its retry. Unit and database tests cover the
+the Gateway's pooled connections open and closes each without an answer. Every
+discovery and tool call after the restart succeeds, only the first discovery's first
+attempt reaches a stale connection, and another server's pool keeps its connections. Unit and database tests cover the
 catalog, policy evaluator, discovery cache, Task routes, refresh families, session
 binding, the audit vocabulary and readers, and the control store.
 

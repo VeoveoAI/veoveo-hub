@@ -1,4 +1,5 @@
 use super::*;
+use crate::mcp::upstream_http::{GatewayUpstreamHttpClientPool, upstream_client_builder};
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
@@ -110,46 +111,37 @@ impl Fixture {
     }
 
     async fn connect(&self) -> Result<RunningService<RoleClient, ClientConfig>, RequestError> {
-        connect(&Clients::new(), &self.endpoint).await
+        connect(&pool(), "upstream-a", &self.endpoint).await
     }
 }
 
-/// The pooled and the connection-per-request clients, built as the Gateway builds them
-/// but without a proxy.
-struct Clients {
-    pooled: reqwest::Client,
-    fresh: reqwest::Client,
-}
-impl Clients {
-    fn new() -> Self {
-        let builder = || {
-            reqwest::Client::builder()
-                .no_proxy()
-                .connect_timeout(Duration::from_secs(2))
-        };
-        Self {
-            pooled: builder().build().unwrap(),
-            fresh: builder().pool_max_idle_per_host(0).build().unwrap(),
-        }
-    }
+/// The Gateway's per-server pool, with clients that bypass any proxy to reach loopback
+/// upstreams.
+fn pool() -> GatewayUpstreamHttpClientPool {
+    GatewayUpstreamHttpClientPool::with_builder(|| {
+        upstream_client_builder()
+            .no_proxy()
+            .connect_timeout(Duration::from_secs(2))
+    })
 }
 
 async fn connect(
-    clients: &Clients,
+    pool: &GatewayUpstreamHttpClientPool,
+    slug: &str,
     endpoint: &str,
 ) -> Result<RunningService<RoleClient, ClientConfig>, RequestError> {
+    let server = crate::test_catalog::registered_server(slug, endpoint);
     let http = GatewayAuthorizedHttpClient::new(
-        clients.pooled.clone(),
+        pool.transport(&server.slug).unwrap(),
         crate::test_catalog::token_issuer(),
         "workspace".parse().unwrap(),
-        &crate::test_catalog::registered_server("upstream-a", endpoint),
+        &server,
         &super::super::task_ownership_tests::subject(),
         Default::default(),
     );
     discover(
         ClientConfig::default(),
         http,
-        clients.fresh.clone(),
         StreamableHttpClientTransportConfig::with_uri(endpoint.to_owned()),
     )
     .await
@@ -267,29 +259,47 @@ async fn relay(
     answers.abort();
 }
 
-/// Serve an upstream on `listener`, counting the HTTP requests it receives.
-fn serve_upstream(
-    listener: TcpListener,
+/// An upstream serving on a listener, counting the HTTP requests and the tool calls it
+/// receives. Dropping it stops the server.
+struct Upstream {
     requests: Arc<AtomicUsize>,
-) -> tokio::task::JoinHandle<()> {
-    let source = Source(Arc::new(AtomicUsize::new(0)));
-    let service = StreamableHttpService::new(
-        move || Ok(source.clone()),
-        veoveo_sdk_rust::stateless_session_manager(),
-        veoveo_sdk_rust::canonical_streamable_http_server_config(),
-    );
-    let router = Router::new()
-        .nest_service("/mcp", service)
-        .layer(axum::middleware::from_fn(
-            move |request: axum::extract::Request, next: axum::middleware::Next| {
-                let requests = requests.clone();
-                async move {
-                    requests.fetch_add(1, Ordering::SeqCst);
-                    next.run(request).await
-                }
-            },
-        ));
-    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() })
+    mutations: Arc<AtomicUsize>,
+    task: tokio::task::JoinHandle<()>,
+}
+impl Drop for Upstream {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+impl Upstream {
+    fn serve(listener: TcpListener) -> Self {
+        let requests = Arc::new(AtomicUsize::new(0));
+        let mutations = Arc::new(AtomicUsize::new(0));
+        let source = Source(mutations.clone());
+        let service = StreamableHttpService::new(
+            move || Ok(source.clone()),
+            veoveo_sdk_rust::stateless_session_manager(),
+            veoveo_sdk_rust::canonical_streamable_http_server_config(),
+        );
+        let counted = requests.clone();
+        let router = Router::new()
+            .nest_service("/mcp", service)
+            .layer(axum::middleware::from_fn(
+                move |request: axum::extract::Request, next: axum::middleware::Next| {
+                    let counted = counted.clone();
+                    async move {
+                        counted.fetch_add(1, Ordering::SeqCst);
+                        next.run(request).await
+                    }
+                },
+            ));
+        let task = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+        Self {
+            requests,
+            mutations,
+            task,
+        }
+    }
 }
 
 /// Bind `address` again once the stopped server has released it.
@@ -303,49 +313,80 @@ async fn bind_again(address: std::net::SocketAddr) -> TcpListener {
     panic!("{address} stayed bound after its server stopped");
 }
 
+/// Leave `count` idle connections in `slug`'s pool through `endpoint`: concurrent requests
+/// answered in full.
+async fn pool_connections(
+    pool: &GatewayUpstreamHttpClientPool,
+    slug: &str,
+    endpoint: &str,
+    count: usize,
+) {
+    let transport = pool
+        .transport(&crate::test_catalog::registered_server(slug, endpoint).slug)
+        .unwrap();
+    futures::future::join_all((0..count).map(|_| async {
+        let response = transport.client().get(endpoint).send().await.unwrap();
+        response.bytes().await.unwrap();
+    }))
+    .await;
+}
+
 #[tokio::test]
-async fn the_first_discovery_after_an_upstream_restart_passes_its_stale_pooled_connections() {
+async fn after_an_upstream_restart_discovery_and_calls_succeed_and_other_pools_stay() {
     let _ = rustls::crypto::ring::default_provider().install_default();
     tokio::time::timeout(Duration::from_secs(30), async {
+        let pool = pool();
+
+        // `upstream-a` restarts behind its forward; `upstream-b` keeps running.
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let backend = listener.local_addr().unwrap();
-        let first = serve_upstream(listener, Arc::new(AtomicUsize::new(0)));
-        let forward = Forward::start(backend).await;
-        let clients = Clients::new();
+        let a_backend = listener.local_addr().unwrap();
+        let a_first = Upstream::serve(listener);
+        let a = Forward::start(a_backend).await;
+        let b_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let b_backend = b_listener.local_addr().unwrap();
+        let b_upstream = Upstream::serve(b_listener);
+        let b = Forward::start(b_backend).await;
 
-        // Concurrent requests answered in full leave several idle connections in the pool.
-        let request = || async {
-            let response = clients.pooled.get(&forward.endpoint).send().await.unwrap();
-            response.bytes().await.unwrap();
-        };
-        tokio::join!(request(), request(), request(), request());
-        let pooled = forward.accepted.load(Ordering::SeqCst);
-        assert!(pooled >= 2, "the pool holds {pooled} connection(s)");
+        pool_connections(&pool, "upstream-a", &a.endpoint, 4).await;
+        pool_connections(&pool, "upstream-b", &b.endpoint, 4).await;
+        let a_pooled = a.accepted.load(Ordering::SeqCst);
+        let b_pooled = b.accepted.load(Ordering::SeqCst);
+        assert!(
+            a_pooled >= 2,
+            "upstream-a's pool holds {a_pooled} connection(s)"
+        );
 
-        // The server restarts on the same port behind the forward.
-        first.abort();
-        let requests = Arc::new(AtomicUsize::new(0));
-        let _second = serve_upstream(bind_again(backend).await, requests.clone());
-        forward.restarts.fetch_add(1, Ordering::SeqCst);
+        drop(a_first);
+        let a_second = Upstream::serve(bind_again(a_backend).await);
+        a.restarts.fetch_add(1, Ordering::SeqCst);
 
-        connect(&clients, &forward.endpoint)
-            .await
-            .expect("the first discovery after the restart")
-            .cancel()
+        // Every discovery and every tool call after the restart succeeds.
+        const CALLS: usize = 4;
+        for call in 0..CALLS {
+            let client = connect(&pool, "upstream-a", &a.endpoint)
+                .await
+                .unwrap_or_else(|error| panic!("discovery {call} after the restart: {error:?}"));
+            client
+                .call_tool(CallToolRequestParams::new("mutate"))
+                .await
+                .unwrap_or_else(|error| panic!("tool call {call} after the restart: {error:?}"));
+            client.cancel().await.unwrap();
+        }
+        assert_eq!(a_second.mutations.load(Ordering::SeqCst), CALLS);
+        // Only the first discovery's first attempt reached a stale connection: its
+        // failure discarded the pool, so no later request took another.
+        assert_eq!(a.stale.load(Ordering::SeqCst), 1);
+        assert!(a_second.requests.load(Ordering::SeqCst) >= 2 * CALLS);
+
+        // upstream-b's pool is untouched: its next requests reuse its idle connections.
+        let client = connect(&pool, "upstream-b", &b.endpoint).await.unwrap();
+        client
+            .call_tool(CallToolRequestParams::new("mutate"))
             .await
             .unwrap();
-        assert!(
-            forward.stale.load(Ordering::SeqCst) >= 1,
-            "the first attempt took a stale pooled connection"
-        );
-        assert!(
-            forward.accepted.load(Ordering::SeqCst) > pooled,
-            "the retry opened a new connection"
-        );
-        assert!(
-            requests.load(Ordering::SeqCst) >= 1,
-            "the restarted server answered"
-        );
+        client.cancel().await.unwrap();
+        assert_eq!(b_upstream.mutations.load(Ordering::SeqCst), 1);
+        assert_eq!(b.accepted.load(Ordering::SeqCst), b_pooled);
     })
     .await
     .expect("restart recovery exceeded thirty seconds");

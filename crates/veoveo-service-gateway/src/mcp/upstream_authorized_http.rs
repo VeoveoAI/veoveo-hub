@@ -4,7 +4,7 @@ use axum::http::{HeaderName, HeaderValue};
 use chrono::{TimeDelta, Utc};
 use futures::stream::BoxStream;
 use rmcp::{
-    model::{ClientJsonRpcMessage, ClientRequest},
+    model::{ClientJsonRpcMessage, ClientRequest, ErrorData as McpError},
     transport::streamable_http_client::{
         AuthRequiredError, InsufficientScopeError, SseError, StreamableHttpClient,
         StreamableHttpError, StreamableHttpPostResponse,
@@ -20,6 +20,8 @@ use veoveo_sdk_rust::{
 };
 use veoveo_types::{InvocationAuthority, OAuthClientId, PermissionName};
 
+use super::upstream_http::UpstreamTransport;
+
 const INTERNAL_REQUEST_TOKEN_TTL_SECONDS: i64 = 60;
 const INTERNAL_SUBSCRIPTION_TOKEN_TTL_SECONDS: i64 = 15 * 60;
 
@@ -30,7 +32,7 @@ const INTERNAL_SUBSCRIPTION_TOKEN_TTL_SECONDS: i64 = 15 * 60;
 /// listener streams therefore never derive authority from connection locality.
 #[derive(Clone)]
 pub(super) struct GatewayAuthorizedHttpClient {
-    http: reqwest::Client,
+    http: UpstreamTransport,
     issuer: GatewayInternalTokenIssuer,
     profile: GatewayProfileId,
     server: ServerSlug,
@@ -60,7 +62,7 @@ impl GatewayAuthorizedHttpClient {
     /// `permissions` are the caller's permissions in `server`'s namespace, as the
     /// Gateway granted them; the server checks them again.
     pub(super) fn new(
-        http: reqwest::Client,
+        http: UpstreamTransport,
         issuer: GatewayInternalTokenIssuer,
         profile: GatewayProfileId,
         server: &crate::registration::RegisteredServer,
@@ -86,12 +88,28 @@ impl GatewayAuthorizedHttpClient {
         }
     }
 
-    /// The same authorization over another transport client.
-    pub(super) fn with_transport(&self, http: reqwest::Client) -> Self {
-        Self {
-            http,
+    /// The same authorization over a new client for the server, after a
+    /// connection-level failure showed its pooled connections are stale.
+    pub(super) fn reconnected(&self) -> Result<Self, McpError> {
+        self.http.discard();
+        Ok(Self {
+            http: self.http.current()?,
             ..self.clone()
+        })
+    }
+
+    /// Map a transport error, discarding the server's pooled client when the failure
+    /// lies in the connection: the request could not be sent or its response broke off.
+    fn transport_error(
+        &self,
+        error: StreamableHttpError<reqwest::Error>,
+    ) -> StreamableHttpError<GatewayAuthorizedHttpError> {
+        if let StreamableHttpError::Client(error) = &error
+            && (error.is_connect() || error.is_request() || error.is_body())
+        {
+            self.http.discard();
         }
+        map_reqwest_transport_error(error)
     }
 
     fn issue_bearer_token(&self) -> Result<String, GatewayAuthorizedHttpError> {
@@ -165,7 +183,7 @@ impl StreamableHttpClient for GatewayAuthorizedHttpClient {
             .issue_message_bearer_token(&message)
             .map_err(StreamableHttpError::Client)?;
         <reqwest::Client as StreamableHttpClient>::post_message(
-            &self.http,
+            self.http.client(),
             uri,
             message,
             session_id,
@@ -173,7 +191,7 @@ impl StreamableHttpClient for GatewayAuthorizedHttpClient {
             custom_headers,
         )
         .await
-        .map_err(map_reqwest_transport_error)
+        .map_err(|error| self.transport_error(error))
     }
 
     async fn delete_session(
@@ -187,14 +205,14 @@ impl StreamableHttpClient for GatewayAuthorizedHttpClient {
             .issue_bearer_token()
             .map_err(StreamableHttpError::Client)?;
         <reqwest::Client as StreamableHttpClient>::delete_session(
-            &self.http,
+            self.http.client(),
             uri,
             session_id,
             Some(bearer_token),
             custom_headers,
         )
         .await
-        .map_err(map_reqwest_transport_error)
+        .map_err(|error| self.transport_error(error))
     }
 
     async fn get_stream(
@@ -209,7 +227,7 @@ impl StreamableHttpClient for GatewayAuthorizedHttpClient {
             .issue_bearer_token()
             .map_err(StreamableHttpError::Client)?;
         <reqwest::Client as StreamableHttpClient>::get_stream(
-            &self.http,
+            self.http.client(),
             uri,
             session_id,
             last_event_id,
@@ -217,7 +235,7 @@ impl StreamableHttpClient for GatewayAuthorizedHttpClient {
             custom_headers,
         )
         .await
-        .map_err(map_reqwest_transport_error)
+        .map_err(|error| self.transport_error(error))
     }
 }
 
@@ -360,7 +378,9 @@ mod tests {
             },
         };
         GatewayAuthorizedHttpClient::new(
-            reqwest::Client::new(),
+            super::super::GatewayUpstreamHttpClientPool::new()
+                .transport(&registered_server().slug)
+                .unwrap(),
             issuer,
             GatewayProfileId::parse("operator").unwrap(),
             &registered_server(),
