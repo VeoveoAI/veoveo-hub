@@ -17,6 +17,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /var/log/apt /var/log/dpkg.log \
     && rustup component add clippy rustfmt
 ENV PATH=/usr/lib/postgresql/18/bin:${PATH}
+# OpenJDK 21 from Debian runs the Keycloak distribution below.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openjdk-21-jre-headless=21.0.12.1+1-1~deb13u1 \
+    && rm -rf /var/lib/apt/lists/* /var/log/apt /var/log/dpkg.log
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     cargo install --locked \
         cargo-nextest@0.9.148 \
@@ -29,7 +33,13 @@ COPY env/profile.d/rust.sh /etc/profile.d/rust.sh
 # A development environment installs toolchains, components and crates, so the sandbox user owns them.
 RUN useradd --create-home --uid 1000 --shell /bin/bash sandbox \
     && chown -R sandbox:sandbox /usr/local/rustup /usr/local/cargo
+# Keycloak 26.8.1, the OpenID provider browser-session tests log in through. Each test
+# process starts a private server from this distribution, built once here for an
+# in-memory database, as tests start PostgreSQL.
+COPY --from=quay.io/keycloak/keycloak:26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244 \
+    --chown=sandbox:sandbox /opt/keycloak /opt/keycloak
 USER sandbox
+RUN /opt/keycloak/bin/kc.sh build --db=dev-mem
 
 FROM dev AS source
 WORKDIR /home/sandbox/src

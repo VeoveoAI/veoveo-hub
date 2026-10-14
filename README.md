@@ -40,6 +40,11 @@ and registered servers forwarded to the host on ports 8800 to 8809 of
 Tests that need a database start a private PostgreSQL cluster per test process from the
 PostgreSQL 18 programs on `PATH`; the `dev` image installs the PGDG `postgresql-18`
 18.6 packages, and on macOS Homebrew's `postgresql@18` provides the same programs.
+The browser-session test logs a user in at a private Keycloak server it starts per test
+process. The `dev` image builds Keycloak 26.8.1 at `/opt/keycloak` for an in-memory
+database and runs it on Debian's OpenJDK 21. Elsewhere, `KEYCLOAK_HOME` names a
+distribution built the same way with `kc.sh build --db=dev-mem`, and Java 21 must be
+on `PATH`.
 Queries are checked at compile time against the metadata in `.sqlx`, which also holds
 the queries of the core crates the check stage compiles. After changing a query or a
 pin, apply core's kernel migrations and then the Gateway's own migrations in

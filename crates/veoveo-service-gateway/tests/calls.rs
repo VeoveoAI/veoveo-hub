@@ -333,64 +333,6 @@ async fn qualify() {
         "the Task's call is admitted and completed once"
     );
 
-    // D37: a running Task stops acting for a caller whose login session was revoked for
-    // a replayed refresh token. The Task is made live again and its stored caller bound
-    // to such a session; the session check runs before the token is issued. The session
-    // family tests cover logout and expiry leaving the delegation in place.
-    sqlx::query(
-        "UPDATE tasks.task SET status = 'waiting', status_message = 'Waiting', result = NULL, \
-         result_uri = NULL, completed_at = NULL WHERE server = 'relay' AND id = $1::uuid",
-    )
-    .bind(&source)
-    .execute(db.a.pool())
-    .await
-    .unwrap();
-    let family = uuid::Uuid::now_v7();
-    sqlx::query(
-        "INSERT INTO gateway.refresh_family (id, authorization_server, profile, oauth_client_id, \
-         work_context, principal_id, tenant, scopes, principal, principal_display_name, \
-         current_generation, issued_at, expires_at, revoked_at, revocation_reason) \
-         VALUES ($1, 'hosted', 'local', 'browser', 'development', 'browser-user', NULL, '{}', \
-         $2, 'Browser user', 0, now(), now() + interval '1 day', now(), 'token_replay')",
-    )
-    .bind(family)
-    .bind(json!({
-        "id": "browser-user",
-        "kind": "user",
-        "issuer": "https://idp.example",
-        "subject": "browser-user"
-    }))
-    .execute(db.a.pool())
-    .await
-    .unwrap();
-    sqlx::query(
-        "UPDATE gateway.task_route SET delegated_caller = jsonb_set(delegated_caller, \
-         '{request_context,access_token,session_family}', to_jsonb($1::text)) \
-         WHERE server = 'relay' AND source_task_id = $2",
-    )
-    .bind(family.to_string())
-    .bind(&source)
-    .execute(db.a.pool())
-    .await
-    .unwrap();
-    let stolen = relay_calls
-        .for_task_id(TaskId::parse(source.clone()).unwrap(), &profile)
-        .call(Inspect {})
-        .await;
-    match stolen {
-        Err(CallError::Refused {
-            error: TokenErrorCode::InvalidGrant,
-            description,
-        }) => assert!(
-            description
-                .as_deref()
-                .unwrap_or_default()
-                .contains("replayed"),
-            "{description:?}"
-        ),
-        other => panic!("a replayed session still delegates: {other:?}"),
-    }
-
     // Without Ledger, the refusal names the permission no server provides.
     ledger.client.deregister(ledger.registration).await.unwrap();
     let missing = tokio::time::timeout(Duration::from_secs(10), async {

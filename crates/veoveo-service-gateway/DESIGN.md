@@ -401,10 +401,24 @@ resolved through Relay's Task handle, a Relay Task that calls Ledger after the c
 that created it returned and is refused once it ended, the token endpoint's refusal of
 an undeclared use, another profile, another server's subject and a delegated subject,
 the audit records of exchanges and delegated admissions with the calling server in
-`via`, the refusal of a Task whose caller's session was revoked for a replayed refresh
-token, and the refusal naming the missing permission once Ledger deregisters.
-`tests/session_family.rs` checks on real families that only a replay, and not a
-logout, an expiry or a removed family, ends a Task's delegation.
+`via`, and the refusal naming the missing permission once Ledger deregisters.
+
+`tests/browser_session.rs` logs a user in at a private Keycloak 26.8.1 server through
+the authorization code flow with PKCE: the Gateway's authorization endpoint, Keycloak's
+login form, the Gateway's callback and the code exchange. It registers the Ledger and
+Relay fixtures and leaves Relay's `relay_later` Tasks unclaimed, so each stays live
+while the test acts for it. A Task created for the user's call exchanges and calls
+Ledger, and its route keeps the user's session family. After the user logs out, the
+Gateway refuses the browser's access and refresh tokens, while a fresh exchange for the
+Task succeeds and the Task-bound tokens are admitted. In a second session, presenting a
+consumed refresh token again after the delivery window revokes the session: the Task's
+exchange is refused with `invalid_grant`, and the Task-bound token issued before is
+refused at the MCP endpoint. The test checks each step's audit record by class,
+outcome, reason and actor, including `refresh_token_revoked` for the logout,
+`refresh_token_replay` for the replay, `invalid_grant` for the refused exchange and
+`invalid_bearer_token` for the refused token. `tests/session_family.rs` checks on real
+families that only a replay, and not a logout, an expiry or a removed family, ends a
+Task's delegation.
 
 `tests/usage.rs` starts the binary with an action policy that lets the administrator
 make administrative reads, waits for the partitions three months ahead, writes two
