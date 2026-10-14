@@ -12,19 +12,21 @@ Neither its code nor its configuration names a server.
 |---|---|
 | MCP `2026-07-28`, Streamable HTTP | One endpoint per profile at `/mcp/{profile}`, aggregating tools, resources, resource templates, prompts, completions, Tasks and resource subscriptions of registered servers. `server/discover` lists `2026-07-28` as the only version, and another version is refused with `-32022`. The `resources.subscribe` capability declares `resourceSubscriptions` on `subscriptions/listen`; `resources/subscribe` and `resources/unsubscribe` are no methods of that version and answer `-32601` |
 | MCP Apps, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value |
-| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/7446181806258d48a352ecdbd2bc00998d303701/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
+| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/3ea1a32d9a818ca79a816e191dba1346a92cdf26/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
 | JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `GatewayInternalTokenIssuer`; a call another server made names that server as the prior actor |
 | OAuth 2.0 Token Exchange, RFC 8693, with RFC 9396 token requests | `/oauth/token` with the `urn:ietf:params:oauth:grant-type:token-exchange` grant, for registered servers that declare uses; profile in [calls between servers](#calls-between-servers) |
 | OAuth 2.0, RFC 6749, and RFC 7523 | The hosted authorization server; see [token and session authority](src/auth/DESIGN.md) |
 | Authorization server metadata, RFC 8414 | `/.well-known/oauth-authorization-server` for the Gateway's issuer and `/.well-known/oauth-authorization-server/oauth` for the hosted authorization server; each names its `jwks_uri`, and `response_types_supported`, `grant_types_supported` and `token_endpoint_auth_methods_supported` are always present because §2 gives an absent member a default |
+| OpenID Connect Discovery 1.0 metadata location, by RFC 8414 §5 | The hosted authorization server's RFC 8414 metadata also at `/oauth/.well-known/openid-configuration`, for clients such as Lore that read the issuer and `jwks_uri` there. The Gateway issues no ID tokens at that issuer and claims no OpenID Provider conformance |
+| Lore v0.10.1 per-repository authorization | Lore access tokens: RFC 9068 tokens for the Lore server's URL, issued by the hosted authorization server, whose `lore_resources` claim lists entries `{"resource_id", "permission"}` in the shape Lore's `ResourceGrantsAuthorizer` reads with its default `urc-{id}` template, and whose `is_service_account` marks Lore's service accounts; profile in [Lore tokens](#lore-tokens) |
 | JWK Set, RFC 7517, and JWK Thumbprint, RFC 7638 | `/jwks.json` and `/oauth/jwks.json`, served as `application/jwk-set+json`: public Ed25519 keys whose `kid` is the RFC 7638 thumbprint |
 | Protected resource metadata, RFC 9728 | `/.well-known/oauth-protected-resource/mcp/{profile}` |
 | Problem details, RFC 9457 | HTTP API errors outside OAuth endpoints, typed `https://veoveo.ai/problems/<code>` |
 | PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, then the Gateway's own `gateway` schema, applied at startup; `LISTEN` on the `gateway` channel for registration changes; one login role per registration |
 | OpenTelemetry | `service.name` is `veoveo-service-gateway` |
 | Veoveo installation configuration | `GatewayControlPlane` in `src/control_plane.rs`, read as JSON |
-| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/cec2f9fb2916b048dcebf46af4564d5dcf717614/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Gateway's `gateway.*` classes. The Gateway's records carry its own reason codes and name targets by URI |
-| [Veoveo usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/cec2f9fb2916b048dcebf46af4564d5dcf717614/platform/usage/DESIGN.md), after FOCUS 1.4 with ISO 4217 currencies | The Gateway prepares the ledger's monthly partitions and serves daily totals across servers |
+| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/c0c8254f4a1f532a7c8bb5123639d9997700b105/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Gateway's `gateway.*` classes. The Gateway's records carry its own reason codes and name targets by URI |
+| [Veoveo usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/c0c8254f4a1f532a7c8bb5123639d9997700b105/platform/usage/DESIGN.md), after FOCUS 1.4 with ISO 4217 currencies | The Gateway prepares the ledger's monthly partitions and serves daily totals across servers |
 
 ## Process
 
@@ -84,14 +86,21 @@ own actions, and two sections for registered servers:
   roles to groups or principals, and overrides that add a risk to or deny a permission;
 - `registration`: the secret reference of the registration secret.
 
+An installation that runs Lore adds a third, `lore`: the Lore server's URL, the
+authorization server that issues its tokens, and each client's repository grants
+([Lore tokens](#lore-tokens)).
+
 `generate-local-installation` writes a complete local installation: the
 configuration, its secrets, and two client-credentials callers, `acceptance-member`
-and `acceptance-admin`, that hold the `member` and `admin` roles.
+and `acceptance-admin`, that hold the `member` and `admin` roles. With
+`--lore-resource` and one `--lore-environment` per environment it also writes the Lore
+admin client `lore-admin` and a client `lore-<environment>` for each environment, each
+with its own RSA key.
 
 ## Server Registration
 
 `src/registration` implements the [server registration
-protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/7446181806258d48a352ecdbd2bc00998d303701/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
+protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/3ea1a32d9a818ca79a816e191dba1346a92cdf26/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
 then the software statement against the pinned key and the endpoint URL. The slug
@@ -193,7 +202,7 @@ takes three rollouts, each complete on every replica before the next begins:
 ## Calls Between Servers
 
 `src/delegation.rs` implements the exchange of the SDK's [calls between
-servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/7446181806258d48a352ecdbd2bc00998d303701/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers)
+servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/3ea1a32d9a818ca79a816e191dba1346a92cdf26/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers)
 and the admission of the tokens it issues. A registered server authenticates at
 `/oauth/token` with an RFC 7523 assertion signed by the key its registration pinned;
 the Gateway records the assertion's `jti` with the other replay identifiers. The
@@ -235,6 +244,71 @@ the calling server as the prior actor and, for a Task subject, the calling serve
 Task as `acting_task`, by the identifier that server issued. Every record of a
 delegated request names the calling server, and its Task when the identifier is a core
 Task identifier, in the envelope's `via`.
+
+## Lore Tokens
+
+An installation that runs Lore lets the Gateway issue its tokens (D43). Lore's
+per-repository authorizer stores no grants: it admits each request by the grants in the
+token, so the installation decides access in one place, the `lore` section, and the
+Lore server enforces it.
+
+```json
+"lore": {
+  "resource": "lores://vv-lore.internal:41337",
+  "authorizationServer": "local",
+  "grants": [
+    { "client": "lore-admin", "allRepositories": true, "actions": ["admin", "owner"], "serviceAccount": true },
+    { "client": "lore-vv-mcp-time", "repositories": ["01a13b7920487df18f60ee47a4b23f6f"] }
+  ]
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `resource` | The Lore server's URL, a protected resource of the installation and the tokens' audience |
+| `authorizationServer` | The hosted authorization server that issues the tokens |
+| `grants[].client` | An OAuth client of that authorization server |
+| `grants[].repositories` | Lore repository IDs, 32 lowercase hexadecimal digits; empty until the installation creates the repositories |
+| `grants[].allRepositories` | Every repository, present and future; a grant names repositories or every repository, never both |
+| `grants[].actions` | The privileged actions Lore checks: `admin`, `migrate`, `obliterate` and `owner`. Reading and pushing unprotected branches need none |
+| `grants[].serviceAccount` | Marks a Lore service account, which Lore lets push to protected branches |
+
+Validation admits the section only when its resource differs from every profile's and
+contributed resource, its authorization server exists, each client holds one grant,
+and every grant's client belongs to that authorization server and lists the resource in
+its `allowedResources`. A client that lists the resource holds a grant, so client
+validation admits the resource without scopes.
+
+A client requests a token at `/oauth/token` with `grant_type=client_credentials`, its
+RFC 7523 assertion, `resource` set to the Lore server and no scope; a scope fails with
+`invalid_scope`. Client authentication, assertion replay and the grant-type check are
+those of every client-credentials request. The token is an RFC 9068 access token signed
+with the authorization server's Ed25519 key, with `typ` `at+jwt`, that lives 15 minutes
+and carries only what Lore reads:
+
+| Claim | Value |
+|---|---|
+| `iss` | The authorization server's issuer |
+| `sub`, `client_id` | The client's ID, which Lore records as the identity of its commits |
+| `aud` | The Lore server's URL |
+| `iat`, `nbf`, `exp`, `jti` | Issue time, the same not-before time, 15 minutes later, and a fresh UUID |
+| `lore_resources` | One entry per granted repository, `{"resource_id": "urc-<repository ID>", "permission": [<actions>]}`, or one `urc-*` entry for every repository |
+| `is_service_account` | `true` for a service account; absent otherwise |
+
+Lore finds the keys through the issuer's OpenID discovery location,
+`/oauth/.well-known/openid-configuration`, which serves the authorization server's RFC
+8414 metadata. Its server configuration names that issuer, the Lore URL as audience,
+`jwt_typ = "at+jwt"` and `resource_claim = "lore_resources"`. Each issued or refused
+Lore token request writes the authorization audit record every token request writes,
+with the reasons `auth_allow`, `invalid_scope`, `invalid_client` for a client the
+section no longer grants, and `token_signing_key_unavailable`.
+
+`lore-tokens` keeps environment token files current for an installation that never
+gives an environment its client key. It runs as root, reads each client's key and key
+ID from the `generate-local-installation` directory, and for each
+`--target <client>=<file>` requests a token every ten minutes, or 15 seconds after a
+round with a failure. It replaces the file in one rename with one owned by root,
+readable by `--group` and mode 0640, in a directory of mode 0750, and prints no token.
 
 ## Audit Records
 
@@ -334,7 +408,7 @@ The Gateway checks resource policy before it reads. The read handler commits one
 | `GET /jwks.json` | The keys that verify forwarded tokens |
 | `POST /oauth/register`, `GET`/`PUT`/`DELETE /oauth/register/{client_id}` | Server registration |
 | `/oauth/authorize`, `/oauth/callback`, `/oauth/token`, `/oauth/revoke`, `/oauth/jwks.json` | Hosted authorization server |
-| `/.well-known/oauth-authorization-server/oauth`, `/.well-known/oauth-protected-resource/mcp/{profile}` | Hosted authorization server and protected resource metadata |
+| `/.well-known/oauth-authorization-server/oauth`, `/oauth/.well-known/openid-configuration`, `/.well-known/oauth-protected-resource/mcp/{profile}` | Hosted authorization server metadata at its RFC 8414 and OpenID discovery locations, and protected resource metadata |
 | `/mcp/{profile}` | The profile's MCP endpoint |
 | `/console-api/{profile}/session` | Console session bootstrap |
 | `/admin/{profile}/...` | Configuration, audit, JWT revocation, Task cancellation, server health and usage |
@@ -367,7 +441,7 @@ builds SQL text. `.sqlx` also holds the metadata of the core crates' queries, be
 the check stage compiles them offline from an empty target directory.
 
 `tests/database_conformance.rs` holds the Gateway's own statements to core's
-[database rules](https://github.com/VeoveoAI/veoveo-core/blob/cec2f9fb2916b048dcebf46af4564d5dcf717614/docs/DATABASE.md#server-schema-rules)
+[database rules](https://github.com/VeoveoAI/veoveo-core/blob/c0c8254f4a1f532a7c8bb5123639d9997700b105/docs/DATABASE.md#server-schema-rules)
 over the `gateway`, `identity` and `kernel` schemas. The fixture applies the Gateway's
 migrations as the installation owner after the kernel migrations, as startup does, and
 plans every statement as that owner. Refresh families and control-plane revisions are
@@ -405,6 +479,17 @@ metadata to its authorization server's RFC 8414 metadata, checks each issuer, en
 and member §2 requires, verifies an issued token with the key at `jwks_uri`, and
 compares the forwarded-token JWK Set with the configured key and the RFC 7638
 thumbprint of each `kid`.
+
+`tests/lore_tokens.rs` starts the binary with a `lore` section that grants the member
+one repository and the admin every repository as a service account. It reads the
+issuer's OpenID discovery document and the key set it names, verifies each Lore token's
+type, signature, issuer and audience against those keys, and checks the member's
+`lore_resources`, the admin's `urc-*` entry with its actions and `is_service_account`,
+the refusal of a scope, and that the same client's MCP token carries no Lore grant.
+Unit tests cover the grant shapes, repository ID and action admission, the generated
+Lore clients and the refresher's target syntax. Stock Lore v0.10.1 cloned a granted
+repository and answered "Not found" for another with tokens of this shape on
+October 14.
 
 `tests/calls.rs` registers the SDK's Ledger and Relay fixture servers, Relay with a
 durable Task on its own login, and checks calls between them as both acceptance
