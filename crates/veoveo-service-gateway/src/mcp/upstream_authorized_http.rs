@@ -86,6 +86,14 @@ impl GatewayAuthorizedHttpClient {
         }
     }
 
+    /// The same authorization over another transport client.
+    pub(super) fn with_transport(&self, http: reqwest::Client) -> Self {
+        Self {
+            http,
+            ..self.clone()
+        }
+    }
+
     fn issue_bearer_token(&self) -> Result<String, GatewayAuthorizedHttpError> {
         self.issue_bearer_token_until(
             Utc::now() + TimeDelta::seconds(INTERNAL_REQUEST_TOKEN_TTL_SECONDS),

@@ -14,7 +14,10 @@ use rmcp::{
     service::{RequestContext, RoleServer},
     transport::streamable_http_server::StreamableHttpService,
 };
-use tokio::{io::AsyncReadExt, net::TcpListener};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpListener,
+};
 
 #[derive(Clone)]
 struct Source(Arc<AtomicUsize>);
@@ -107,26 +110,49 @@ impl Fixture {
     }
 
     async fn connect(&self) -> Result<RunningService<RoleClient, ClientConfig>, RequestError> {
-        let issuer = crate::test_catalog::token_issuer();
-        let http = GatewayAuthorizedHttpClient::new(
+        connect(&Clients::new(), &self.endpoint).await
+    }
+}
+
+/// The pooled and the connection-per-request clients, built as the Gateway builds them
+/// but without a proxy.
+struct Clients {
+    pooled: reqwest::Client,
+    fresh: reqwest::Client,
+}
+impl Clients {
+    fn new() -> Self {
+        let builder = || {
             reqwest::Client::builder()
                 .no_proxy()
                 .connect_timeout(Duration::from_secs(2))
-                .build()
-                .unwrap(),
-            issuer,
-            "workspace".parse().unwrap(),
-            &crate::test_catalog::registered_server("upstream-a", &self.endpoint),
-            &super::super::task_ownership_tests::subject(),
-            Default::default(),
-        );
-        discover(
-            ClientConfig::default(),
-            http,
-            StreamableHttpClientTransportConfig::with_uri(self.endpoint.clone()),
-        )
-        .await
+        };
+        Self {
+            pooled: builder().build().unwrap(),
+            fresh: builder().pool_max_idle_per_host(0).build().unwrap(),
+        }
     }
+}
+
+async fn connect(
+    clients: &Clients,
+    endpoint: &str,
+) -> Result<RunningService<RoleClient, ClientConfig>, RequestError> {
+    let http = GatewayAuthorizedHttpClient::new(
+        clients.pooled.clone(),
+        crate::test_catalog::token_issuer(),
+        "workspace".parse().unwrap(),
+        &crate::test_catalog::registered_server("upstream-a", endpoint),
+        &super::super::task_ownership_tests::subject(),
+        Default::default(),
+    );
+    discover(
+        ClientConfig::default(),
+        http,
+        clients.fresh.clone(),
+        StreamableHttpClientTransportConfig::with_uri(endpoint.to_owned()),
+    )
+    .await
 }
 
 #[tokio::test]
@@ -160,4 +186,167 @@ async fn discovery_recovers_one_disconnect_without_repeating_domain_mutations() 
     })
     .await
     .expect("discovery recovery matrix exceeded thirty seconds");
+}
+
+/// A port forward in front of an upstream, as an installation reaches its servers. The
+/// forward keeps the Gateway's side of each connection open when the server behind it
+/// stops: a connection opened before a restart reads its next request and closes
+/// without an answer, because the server it reached is gone.
+struct Forward {
+    endpoint: String,
+    accepted: Arc<AtomicUsize>,
+    stale: Arc<AtomicUsize>,
+    restarts: Arc<AtomicUsize>,
+    task: tokio::task::JoinHandle<()>,
+}
+impl Drop for Forward {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+impl Forward {
+    async fn start(backend: std::net::SocketAddr) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let endpoint = format!("http://{}/mcp", listener.local_addr().unwrap());
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let stale = Arc::new(AtomicUsize::new(0));
+        let restarts = Arc::new(AtomicUsize::new(0));
+        let task = tokio::spawn({
+            let (accepted, stale, restarts) = (accepted.clone(), stale.clone(), restarts.clone());
+            async move {
+                loop {
+                    let (client, _) = listener.accept().await.unwrap();
+                    accepted.fetch_add(1, Ordering::SeqCst);
+                    tokio::spawn(relay(client, backend, restarts.clone(), stale.clone()));
+                }
+            }
+        });
+        Self {
+            endpoint,
+            accepted,
+            stale,
+            restarts,
+            task,
+        }
+    }
+}
+
+async fn relay(
+    client: tokio::net::TcpStream,
+    backend: std::net::SocketAddr,
+    restarts: Arc<AtomicUsize>,
+    stale: Arc<AtomicUsize>,
+) {
+    let Ok(upstream) = tokio::net::TcpStream::connect(backend).await else {
+        return;
+    };
+    let opened = restarts.load(Ordering::SeqCst);
+    let (mut client_read, mut client_write) = client.into_split();
+    let (mut upstream_read, mut upstream_write) = upstream.into_split();
+    // The answers stop when the server goes, but the Gateway's side stays open: the
+    // task hands back its write half, which closes only when the relay ends.
+    let answers = tokio::spawn(async move {
+        let _ = tokio::io::copy(&mut upstream_read, &mut client_write).await;
+        client_write
+    });
+    let mut bytes = [0; 8192];
+    while let Ok(read) = client_read.read(&mut bytes).await {
+        if read == 0 {
+            break;
+        }
+        if restarts.load(Ordering::SeqCst) != opened {
+            // The server this connection reached is gone: the request goes unanswered
+            // and the connection closes.
+            stale.fetch_add(1, Ordering::SeqCst);
+            break;
+        }
+        if upstream_write.write_all(&bytes[..read]).await.is_err() {
+            break;
+        }
+    }
+    answers.abort();
+}
+
+/// Serve an upstream on `listener`, counting the HTTP requests it receives.
+fn serve_upstream(
+    listener: TcpListener,
+    requests: Arc<AtomicUsize>,
+) -> tokio::task::JoinHandle<()> {
+    let source = Source(Arc::new(AtomicUsize::new(0)));
+    let service = StreamableHttpService::new(
+        move || Ok(source.clone()),
+        veoveo_sdk_rust::stateless_session_manager(),
+        veoveo_sdk_rust::canonical_streamable_http_server_config(),
+    );
+    let router = Router::new()
+        .nest_service("/mcp", service)
+        .layer(axum::middleware::from_fn(
+            move |request: axum::extract::Request, next: axum::middleware::Next| {
+                let requests = requests.clone();
+                async move {
+                    requests.fetch_add(1, Ordering::SeqCst);
+                    next.run(request).await
+                }
+            },
+        ));
+    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() })
+}
+
+/// Bind `address` again once the stopped server has released it.
+async fn bind_again(address: std::net::SocketAddr) -> TcpListener {
+    for _ in 0..100 {
+        if let Ok(listener) = TcpListener::bind(address).await {
+            return listener;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    panic!("{address} stayed bound after its server stopped");
+}
+
+#[tokio::test]
+async fn the_first_discovery_after_an_upstream_restart_passes_its_stale_pooled_connections() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    tokio::time::timeout(Duration::from_secs(30), async {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let backend = listener.local_addr().unwrap();
+        let first = serve_upstream(listener, Arc::new(AtomicUsize::new(0)));
+        let forward = Forward::start(backend).await;
+        let clients = Clients::new();
+
+        // Concurrent requests answered in full leave several idle connections in the pool.
+        let request = || async {
+            let response = clients.pooled.get(&forward.endpoint).send().await.unwrap();
+            response.bytes().await.unwrap();
+        };
+        tokio::join!(request(), request(), request(), request());
+        let pooled = forward.accepted.load(Ordering::SeqCst);
+        assert!(pooled >= 2, "the pool holds {pooled} connection(s)");
+
+        // The server restarts on the same port behind the forward.
+        first.abort();
+        let requests = Arc::new(AtomicUsize::new(0));
+        let _second = serve_upstream(bind_again(backend).await, requests.clone());
+        forward.restarts.fetch_add(1, Ordering::SeqCst);
+
+        connect(&clients, &forward.endpoint)
+            .await
+            .expect("the first discovery after the restart")
+            .cancel()
+            .await
+            .unwrap();
+        assert!(
+            forward.stale.load(Ordering::SeqCst) >= 1,
+            "the first attempt took a stale pooled connection"
+        );
+        assert!(
+            forward.accepted.load(Ordering::SeqCst) > pooled,
+            "the retry opened a new connection"
+        );
+        assert!(
+            requests.load(Ordering::SeqCst) >= 1,
+            "the restarted server answered"
+        );
+    })
+    .await
+    .expect("restart recovery exceeded thirty seconds");
 }
