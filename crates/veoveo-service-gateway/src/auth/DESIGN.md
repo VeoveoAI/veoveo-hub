@@ -15,7 +15,7 @@
 | PostgreSQL 18 | Refresh families, replay guards, JWT revocations and audit records shared by every replica, in the Gateway's `gateway` schema and core's `audit` schema |
 
 The forwarded tokens the Gateway sends to registered servers are a separate profile,
-defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/5216efe847079c720282e934ab09417be1265266/crates/veoveo-sdk-rust/src/registration/DESIGN.md#forwarded-identity).
+defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/67314b4913e16a86cff6cb2558507f818227a79f/crates/veoveo-sdk-rust/src/registration/DESIGN.md#forwarded-identity).
 
 ## Access Tokens
 
