@@ -66,9 +66,9 @@ once:
 
 ```sh
 openshell sandbox exec vv-srv-gateway -- bash -lc 'cd /sandbox/src \
-  && cargo build --locked --bin veoveo-service-gateway \
+  && cargo build --locked --target-dir /sandbox/target-serve --bin veoveo-service-gateway \
   && mkdir -p /sandbox/state/gateway \
-  && target/debug/veoveo-service-gateway generate-local-installation \
+  && /sandbox/target-serve/debug/veoveo-service-gateway generate-local-installation \
        --directory /sandbox/state/gateway --issuer http://host.openshell.internal:8080'
 ```
 
@@ -89,14 +89,16 @@ password from the installation's `.env` into `/sandbox/state/database.env` as
 OpenShell pins every policy-listed executable path to the SHA-256 it first observes and
 denies the path once the file changes. The Gateway therefore runs from a
 content-addressed copy under `/sandbox/run`, which `openshell/policy.yaml` allows to
-reach PostgreSQL and registered servers, so every build gets a fresh path. Start it in
-its own terminal and forward its port:
+reach PostgreSQL and registered servers, so every build gets a fresh path. The served
+binary builds into its own target directory, `/sandbox/target-serve`, apart from
+`target/`, where test builds enable test-only dependency features, so a test build is
+never installed. Start it in its own terminal and forward its port:
 
 ```sh
 openshell sandbox exec vv-srv-gateway -- bash -lc 'cd /sandbox/src \
-  && cargo build --locked --bin veoveo-service-gateway \
-  && bin=/sandbox/run/veoveo-service-gateway-$(sha256sum target/debug/veoveo-service-gateway | cut -c1-16) \
-  && install -D -m 0755 target/debug/veoveo-service-gateway "$bin" \
+  && cargo build --locked --target-dir /sandbox/target-serve --bin veoveo-service-gateway \
+  && bin=/sandbox/run/veoveo-service-gateway-$(sha256sum /sandbox/target-serve/debug/veoveo-service-gateway | cut -c1-16) \
+  && install -D -m 0755 /sandbox/target-serve/debug/veoveo-service-gateway "$bin" \
   && cd /sandbox/state/gateway && set -a && . ./gateway.env && . ../database.env && set +a \
   && VEOVEO_ISSUER=http://host.openshell.internal:8080 \
      VEOVEO_CONFIG=/sandbox/state/gateway/gateway.json \
