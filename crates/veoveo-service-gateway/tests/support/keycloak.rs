@@ -78,6 +78,9 @@ impl TestKeycloak {
                     dir.path().join("tls.key").display()
                 ))
                 .arg(format!("--hostname={base}"))
+                // A single-node test server needs no cluster; OpenShell refuses IPv6 binds.
+                .arg("--cache=local")
+                .env("JAVA_OPTS_APPEND", "-Djava.net.preferIPv4Stack=true")
                 .env("KC_BOOTSTRAP_ADMIN_USERNAME", ADMIN)
                 .env("KC_BOOTSTRAP_ADMIN_PASSWORD", &admin_password)
                 .stdin(Stdio::null())
