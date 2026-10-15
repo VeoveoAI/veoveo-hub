@@ -1,7 +1,5 @@
-//! `lore-tokens`: keeps each environment's Lore token file current. For every Lore
-//! client it requests a client-credentials token with the client's own key and replaces
-//! the environment's token file, owned by root and readable only by the group the
-//! setgid Lore client runs as. The environments never hold the keys.
+//! Refresh Lore credentials in trusted storage. Envoy SDS output lets the proxy
+//! authenticate repository requests without giving credentials to development agents.
 
 use std::{
     io::Write as _,
@@ -11,7 +9,7 @@ use std::{
 };
 
 use anyhow::{Context as _, Result, anyhow};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use veoveo_oauth::{CLIENT_ASSERTION_TYPE, ClientAssertionKeyId, ClientAssertionSigner};
 use veoveo_sdk_rust::OAuthClientId;
 use zeroize::Zeroizing;
@@ -20,6 +18,61 @@ use zeroize::Zeroizing;
 const RETRY: Duration = Duration::from_secs(15);
 /// The longest one token request may take.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
+
+#[derive(Debug, Clone, Copy, Default, clap::ValueEnum)]
+pub(super) enum LoreTokenFormat {
+    /// A raw token for existing trusted clients.
+    #[default]
+    Raw,
+    /// An Envoy filesystem SDS response; the secret name is the OAuth client ID.
+    EnvoySds,
+}
+
+#[derive(Serialize)]
+struct SecretResponse<'a> {
+    resources: [GenericSecret<'a>; 1],
+}
+
+#[derive(Serialize)]
+struct GenericSecret<'a> {
+    #[serde(rename = "@type")]
+    type_url: &'static str,
+    name: &'a str,
+    generic_secret: InlineSecret<'a>,
+}
+
+#[derive(Serialize)]
+struct InlineSecret<'a> {
+    secret: InlineString<'a>,
+}
+
+#[derive(Serialize)]
+struct InlineString<'a> {
+    inline_string: &'a str,
+}
+
+impl LoreTokenFormat {
+    fn encode(self, client: &OAuthClientId, token: &str) -> Result<Zeroizing<Vec<u8>>> {
+        match self {
+            Self::Raw => Ok(Zeroizing::new(token.as_bytes().to_vec())),
+            Self::EnvoySds => {
+                let authorization = Zeroizing::new(format!("Bearer {token}"));
+                let secret = SecretResponse {
+                    resources: [GenericSecret {
+                        type_url: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+                        name: client.as_str(),
+                        generic_secret: InlineSecret {
+                            secret: InlineString {
+                                inline_string: &authorization,
+                            },
+                        },
+                    }],
+                };
+                Ok(Zeroizing::new(serde_json::to_vec(&secret)?))
+            }
+        }
+    }
+}
 
 /// One Lore client and the token file it keeps current.
 #[derive(Debug, Clone)]
@@ -51,6 +104,7 @@ pub(super) struct LoreTokenRefresher {
     pub targets: Vec<LoreTokenTarget>,
     /// The group that reads the token files.
     pub group: u32,
+    pub format: LoreTokenFormat,
     pub interval: Duration,
 }
 
@@ -122,13 +176,13 @@ impl LoreTokenRefresher {
             .await?;
         let status = response.status();
         if !status.is_success() {
-            // An OAuth error body names the error and holds no token.
-            let body = response.text().await.unwrap_or_default();
-            return Err(anyhow!("the token endpoint answered {status}: {body}"));
+            // Do not log a response body: even a failing peer may echo credentials.
+            return Err(anyhow!("the token endpoint answered {status}"));
         }
         let token: TokenResponse = response.json().await?;
         let access_token = Zeroizing::new(token.access_token);
-        replace_token_file(&target.file, access_token.as_bytes(), self.group)?;
+        let encoded = self.format.encode(&target.client, &access_token)?;
+        replace_token_file(&target.file, &encoded, self.group)?;
         Ok(token.expires_in)
     }
 }
@@ -161,7 +215,12 @@ fn replace_token_file(file: &Path, token: &[u8], group: u32) -> Result<()> {
         .ok_or_else(|| anyhow!("{} has no directory", file.display()))?;
     std::os::unix::fs::chown(directory, Some(0), Some(group))?;
     std::fs::set_permissions(directory, std::fs::Permissions::from_mode(0o750))?;
-    let staged = directory.join(".token.next");
+    let mut staged_name = file
+        .file_name()
+        .ok_or_else(|| anyhow!("{} has no file name", file.display()))?
+        .to_os_string();
+    staged_name.push(".next");
+    let staged = directory.join(staged_name);
     let _ = std::fs::remove_file(&staged);
     let mut handle = std::fs::OpenOptions::new()
         .write(true)
@@ -173,6 +232,7 @@ fn replace_token_file(file: &Path, token: &[u8], group: u32) -> Result<()> {
     std::os::unix::fs::chown(&staged, Some(0), Some(group))?;
     std::fs::set_permissions(&staged, std::fs::Permissions::from_mode(0o640))?;
     std::fs::rename(&staged, file)?;
+    std::fs::File::open(directory)?.sync_all()?;
     Ok(())
 }
 
@@ -182,11 +242,34 @@ mod tests {
 
     #[test]
     fn a_target_names_its_client_and_token_file() {
-        let target: LoreTokenTarget = "lore-vv-mcp-time=/tokens/vv-mcp-time/token"
+        let target: LoreTokenTarget = "lore-observatory=/tokens/observatory/token"
             .parse()
             .unwrap();
-        assert_eq!(target.client.as_str(), "lore-vv-mcp-time");
-        assert_eq!(target.file, Path::new("/tokens/vv-mcp-time/token"));
-        assert!("lore-vv-mcp-time".parse::<LoreTokenTarget>().is_err());
+        assert_eq!(target.client.as_str(), "lore-observatory");
+        assert_eq!(target.file, Path::new("/tokens/observatory/token"));
+        assert!("lore-observatory".parse::<LoreTokenTarget>().is_err());
+    }
+
+    #[test]
+    fn envoy_receives_a_named_bearer_secret_and_raw_remains_compatible() {
+        let client = OAuthClientId::parse("lore-observatory").unwrap();
+        let token = "fixture-token";
+        let encoded = LoreTokenFormat::EnvoySds.encode(&client, token).unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(value["resources"].as_array().unwrap().len(), 1);
+        let secret = &value["resources"][0];
+        assert_eq!(
+            secret["@type"],
+            "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
+        );
+        assert_eq!(secret["name"], "lore-observatory");
+        assert_eq!(
+            secret["generic_secret"]["secret"]["inline_string"],
+            "Bearer fixture-token"
+        );
+        assert_eq!(
+            &*LoreTokenFormat::Raw.encode(&client, token).unwrap(),
+            token.as_bytes()
+        );
     }
 }

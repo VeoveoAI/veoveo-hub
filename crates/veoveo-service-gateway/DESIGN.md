@@ -309,6 +309,13 @@ ID from the `generate-local-installation` directory, and for each
 `--target <client>=<file>` requests a token every ten minutes, or 15 seconds after a
 round with a failure. It replaces the file in one rename with one owned by root,
 readable by `--group` and mode 0640, in a directory of mode 0750, and prints no token.
+The default `--format raw` preserves that interface. `--format envoy-sds` instead
+serializes a complete Envoy generic-secret SDS response named by the OAuth client
+ID, containing the bearer authorization value. Syncing the replacement file before
+rename and its directory afterward gives the proxy a complete durable update. The
+proxy watches this SDS file rather than a separately referenced raw secret. Only
+trusted services mount the output; development clients receive neither tokens nor
+signing keys. Endpoint failures log their status without response bodies.
 
 ## Audit Records
 

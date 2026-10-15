@@ -156,9 +156,12 @@ enum Command {
         /// `<client-id>=<token file>`, once per environment.
         #[arg(long = "target", required = true)]
         targets: Vec<lore_refresh::LoreTokenTarget>,
-        /// The group that reads the token files: the setgid Lore client's group.
+        /// The trusted reader's group. Development agents must not share it.
         #[arg(long)]
         group: u32,
+        /// Publish raw tokens or an atomically replaced Envoy SDS response.
+        #[arg(long, value_enum, default_value = "raw")]
+        format: lore_refresh::LoreTokenFormat,
         /// Seconds between refreshes; shorter than the token's 15-minute lifetime.
         #[arg(long, default_value_t = 600)]
         interval_seconds: u64,
@@ -330,6 +333,7 @@ async fn main() -> anyhow::Result<()> {
             resource,
             targets,
             group,
+            format,
             interval_seconds,
         } => {
             lore_refresh::LoreTokenRefresher {
@@ -338,6 +342,7 @@ async fn main() -> anyhow::Result<()> {
                 resource,
                 targets,
                 group,
+                format,
                 interval: std::time::Duration::from_secs(interval_seconds),
             }
             .run()

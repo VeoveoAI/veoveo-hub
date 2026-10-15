@@ -175,6 +175,15 @@ ten minutes, requests a token for each `--target <client>=<file>` with the clien
 from `--directory`, then replaces the file with one owned by root and readable only by
 `--group`. It prints no token.
 
+For development agents, use `--format envoy-sds` and keep the output volume outside
+their containers. Each target becomes a complete Envoy filesystem SDS response with
+a generic secret named after the client ID and the value `Bearer <token>`. The file
+and its parent directory are synced around the atomic rename, so Envoy watches the
+SDS response itself for rotation. Only the trusted proxy reads these files; agents
+reach a fixed proxy route with no credential. The default `--format raw` preserves
+existing trusted-client installations. Error responses are reported by status only,
+so an upstream response cannot leak an echoed credential into logs.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
