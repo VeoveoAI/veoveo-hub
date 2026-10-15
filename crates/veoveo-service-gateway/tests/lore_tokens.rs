@@ -13,7 +13,7 @@ use gateway::Gateway;
 use jsonwebtoken::{DecodingKey, Validation, jwk::JwkSet};
 use reqwest::StatusCode;
 use serde_json::{Value, json};
-use veoveo_test_fixtures::store::TestDb;
+use veoveo_fixtures::store::TestDb;
 
 const DEADLINE: Duration = Duration::from_secs(120);
 const LORE: &str = "lores://vv-lore.internal:41337";

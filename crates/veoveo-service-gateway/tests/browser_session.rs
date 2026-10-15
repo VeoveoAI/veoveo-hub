@@ -25,6 +25,7 @@ use rmcp::model::{CallToolRequestParams, CallToolResponse};
 use serde_json::{Value, json};
 use servers::{exchange, hosted, mcp_client, serve};
 use sha2::{Digest, Sha256};
+use veoveo_fixtures::store::TestDb;
 use veoveo_sdk_rust::{
     GatewayProfileId,
     calls::{TASK_TOKEN_TYPE, TokenErrorCode},
@@ -38,7 +39,6 @@ use veoveo_sdk_rust_fixture::{
 };
 use veoveo_store::{Instance, PlatformStore, StoreConfig};
 use veoveo_task::TaskRuntime;
-use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::{ServerSlug, TaskId};
 
 const REALM: &str = "veoveo";

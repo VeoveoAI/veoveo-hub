@@ -34,6 +34,7 @@ use rmcp::{
     },
 };
 use secrecy::SecretString;
+use veoveo_fixtures::store::TestDb;
 use veoveo_sdk_rust::registration::{
     AccessTokenTrust, AuthorizationDeclaration, ClientMetadata, DatabaseGrant, Ed25519Jwk,
     Ed25519JwkSet, RegistrationDeclaration, RegistrationErrorCode, ServerEndpoint, ServerVersion,
@@ -44,7 +45,6 @@ use veoveo_sdk_rust::{GatewayInternalIdentity, GatewayInternalTokenVerifier};
 use veoveo_sdk_rust_fixture::mcp::{FixtureGrants, ObservatoryMcp};
 use veoveo_service_gateway::{local::LocalCaller, registration::HOUSEKEEPING_INTERVAL};
 use veoveo_store::{Instance, PlatformStore, StoreConfig};
-use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::{ResourceScheme, ServerSlug};
 
 const READING: &str = "observatory://reading/sensor-a";

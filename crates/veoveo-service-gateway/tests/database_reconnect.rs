@@ -21,10 +21,10 @@ use rmcp::{
     service::RunningService,
 };
 use servers::{hosted, mcp_client, serve};
+use veoveo_fixtures::store::TestDb;
 use veoveo_sdk_rust_fixture::ledger::{self, LedgerDomain, LedgerTasks};
 use veoveo_service_gateway::registration::HOUSEKEEPING_INTERVAL;
 use veoveo_store::{Instance, PlatformStore, StoreConfig};
-use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::ServerSlug;
 
 /// The grace period the Gateway gives a registration without a live process.

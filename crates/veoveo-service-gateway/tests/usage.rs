@@ -11,7 +11,7 @@ use std::time::Duration;
 use chrono::{TimeDelta, Utc};
 use gateway::Gateway;
 use serde_json::{Value, json};
-use veoveo_test_fixtures::store::TestDb;
+use veoveo_fixtures::store::TestDb;
 use veoveo_types::{PrincipalId, TenantId, WorkContextId};
 use veoveo_usage::UsageStore;
 use veoveo_usage_contract::{

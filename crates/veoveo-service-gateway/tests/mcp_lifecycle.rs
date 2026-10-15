@@ -17,7 +17,7 @@ use rmcp::{
     },
 };
 use serde_json::{Value, json};
-use veoveo_test_fixtures::store::TestDb;
+use veoveo_fixtures::store::TestDb;
 
 #[tokio::test]
 async fn resource_subscriptions_are_a_listen_filter() {

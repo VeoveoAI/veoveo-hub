@@ -70,7 +70,7 @@ zeroize.workspace = true
 veoveo-sdk-rust = { workspace = true, features = ["testing"] }
 veoveo-sdk-rust-fixture.workspace = true
 tempfile.workspace = true
-veoveo-test-fixtures = { workspace = true, features = ["store", "database-conformance"] }
+veoveo-fixtures = { workspace = true, features = ["store", "database-conformance"] }
 jsonschema.workspace = true
 rcgen.workspace = true
 schemars.workspace = true

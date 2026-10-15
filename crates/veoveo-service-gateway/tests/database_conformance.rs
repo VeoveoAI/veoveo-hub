@@ -4,7 +4,7 @@
 //! the installation owner after the kernel migrations, as the Gateway does at startup,
 //! and plans its queries as that owner.
 
-use veoveo_test_fixtures::database::Conformance;
+use veoveo_fixtures::database::Conformance;
 
 #[tokio::test]
 async fn gateway_queries_follow_the_database_rules() {
