@@ -245,11 +245,20 @@ CREATE TABLE gateway.task_route (
     data_labels text[] NOT NULL,
     created_at timestamptz NOT NULL,
     expires_at timestamptz NOT NULL,
+    -- A Task route of a server that calls other servers keeps the caller the Task acts
+    -- for: the client, actor, invocation authority and request context the Gateway
+    -- authenticated for the call that created the Task. A token exchange that names the
+    -- Task as its subject re-evaluates the installation's roles for this caller.
+    delegated_caller jsonb,
     UNIQUE (server, source_task_id, owner, profile),
     CHECK (created_at < expires_at),
     CHECK ((invocation_mode = 'automated') = (initiator IS NULL)),
     CHECK ((invocation_mode = 'delegated') = (delegation_id IS NOT NULL))
 );
+
+COMMENT ON COLUMN gateway.task_route.delegated_caller IS
+    'The caller a Task of a server with declared uses acts for while it runs; NULL for '
+    'every other route. It goes with its route.';
 
 -- Deleting a refresh token clears the replacement that names it. This index finds that
 -- predecessor without a scan of every token.
