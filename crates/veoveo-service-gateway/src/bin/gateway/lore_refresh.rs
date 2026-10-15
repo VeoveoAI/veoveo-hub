@@ -19,15 +19,6 @@ const RETRY: Duration = Duration::from_secs(15);
 /// The longest one token request may take.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
 
-#[derive(Debug, Clone, Copy, Default, clap::ValueEnum)]
-pub(super) enum LoreTokenFormat {
-    /// A raw token for existing trusted clients.
-    #[default]
-    Raw,
-    /// An Envoy filesystem SDS response; the secret name is the OAuth client ID.
-    EnvoySds,
-}
-
 #[derive(Serialize)]
 struct SecretResponse<'a> {
     resources: [GenericSecret<'a>; 1],
@@ -51,27 +42,20 @@ struct InlineString<'a> {
     inline_string: &'a str,
 }
 
-impl LoreTokenFormat {
-    fn encode(self, client: &OAuthClientId, token: &str) -> Result<Zeroizing<Vec<u8>>> {
-        match self {
-            Self::Raw => Ok(Zeroizing::new(token.as_bytes().to_vec())),
-            Self::EnvoySds => {
-                let authorization = Zeroizing::new(format!("Bearer {token}"));
-                let secret = SecretResponse {
-                    resources: [GenericSecret {
-                        type_url: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-                        name: client.as_str(),
-                        generic_secret: InlineSecret {
-                            secret: InlineString {
-                                inline_string: &authorization,
-                            },
-                        },
-                    }],
-                };
-                Ok(Zeroizing::new(serde_json::to_vec(&secret)?))
-            }
-        }
-    }
+fn encode_secret(client: &OAuthClientId, token: &str) -> Result<Zeroizing<Vec<u8>>> {
+    let authorization = Zeroizing::new(format!("Bearer {token}"));
+    let secret = SecretResponse {
+        resources: [GenericSecret {
+            type_url: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+            name: client.as_str(),
+            generic_secret: InlineSecret {
+                secret: InlineString {
+                    inline_string: &authorization,
+                },
+            },
+        }],
+    };
+    Ok(Zeroizing::new(serde_json::to_vec(&secret)?))
 }
 
 /// One Lore client and the token file it keeps current.
@@ -104,7 +88,6 @@ pub(super) struct LoreTokenRefresher {
     pub targets: Vec<LoreTokenTarget>,
     /// The group that reads the token files.
     pub group: u32,
-    pub format: LoreTokenFormat,
     pub interval: Duration,
 }
 
@@ -181,7 +164,7 @@ impl LoreTokenRefresher {
         }
         let token: TokenResponse = response.json().await?;
         let access_token = Zeroizing::new(token.access_token);
-        let encoded = self.format.encode(&target.client, &access_token)?;
+        let encoded = encode_secret(&target.client, &access_token)?;
         replace_token_file(&target.file, &encoded, self.group)?;
         Ok(token.expires_in)
     }
@@ -251,10 +234,10 @@ mod tests {
     }
 
     #[test]
-    fn envoy_receives_a_named_bearer_secret_and_raw_remains_compatible() {
+    fn envoy_receives_a_named_bearer_secret() {
         let client = OAuthClientId::parse("lore-observatory").unwrap();
         let token = "fixture-token";
-        let encoded = LoreTokenFormat::EnvoySds.encode(&client, token).unwrap();
+        let encoded = encode_secret(&client, token).unwrap();
         let value: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
         assert_eq!(value["resources"].as_array().unwrap().len(), 1);
         let secret = &value["resources"][0];
@@ -266,10 +249,6 @@ mod tests {
         assert_eq!(
             secret["generic_secret"]["secret"]["inline_string"],
             "Bearer fixture-token"
-        );
-        assert_eq!(
-            &*LoreTokenFormat::Raw.encode(&client, token).unwrap(),
-            token.as_bytes()
         );
     }
 }
