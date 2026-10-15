@@ -170,7 +170,7 @@ pub(crate) async fn prune_jwt_revocations(
     };
     let deleted = match state
         .gateway_state
-        .prune_expired_jwt_revocations(Utc::now(), veoveo_platform_store::MaintenanceBatch::DEFAULT)
+        .prune_expired_jwt_revocations(Utc::now(), veoveo_store::MaintenanceBatch::DEFAULT)
         .await
     {
         Ok(pruned) => pruned.rows,

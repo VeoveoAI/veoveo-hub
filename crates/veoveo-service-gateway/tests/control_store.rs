@@ -7,7 +7,6 @@ use std::collections::BTreeSet;
 
 use chrono::{SubsecRound, Utc};
 
-use veoveo_platform_store::{PlatformStore, deterministic_tenant_id};
 use veoveo_sdk_rust::OAuthClientId;
 use veoveo_service_gateway::control_plane::{
     GatewayControlPlane, GatewayControlPlaneRevision, GatewayControlPlaneRevisionId,
@@ -15,6 +14,7 @@ use veoveo_service_gateway::control_plane::{
     WorkContextMembershipRule,
 };
 use veoveo_service_gateway::{GatewayControlStore, is_revision_conflict};
+use veoveo_store::{PlatformStore, deterministic_tenant_id};
 use veoveo_types::{AccessSubject, GroupId, PolicyVersion, PrincipalId, TenantId, WorkContextId};
 use veoveo_types::{WorkContextMembershipLevel, WorkContextOutputPolicy};
 
@@ -101,7 +101,7 @@ async fn publication() {
     assert_eq!(context.output_policy.owner_key, "operations");
     assert_eq!(
         context.membership_for_oauth_client("automation"),
-        Some(veoveo_platform_store::WorkContextMembershipLevel::Contributor)
+        Some(veoveo_store::WorkContextMembershipLevel::Contributor)
     );
 
     let mut third_plane = second.control_plane.clone();

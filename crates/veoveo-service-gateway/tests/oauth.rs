@@ -21,7 +21,7 @@ use reqwest::{
 };
 use serde_json::{Value, json};
 use sha2::Digest as _;
-use veoveo_oauth_client::{ClientAssertionKeyId, ClientAssertionSigner};
+use veoveo_oauth::{ClientAssertionKeyId, ClientAssertionSigner};
 use veoveo_sdk_rust::registration::{Ed25519Jwk, statement::ServerKeyPair};
 use veoveo_sdk_rust::{GatewayProfileId, JwtId, TokenIssuer};
 use veoveo_service_gateway::GatewayState;

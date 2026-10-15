@@ -6,7 +6,7 @@ use crate::control_plane::{
 };
 use anyhow::{Context, Result};
 use serde::Serialize;
-use veoveo_platform_store::{PlatformStore, StoreConfig};
+use veoveo_store::{PlatformStore, StoreConfig};
 
 use crate::store::{ControlObject, ControlPublication, GatewayStore, GatewayStoreError};
 use veoveo_types::{ExtensionName, TenantId};

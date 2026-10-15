@@ -8,8 +8,8 @@ use crate::audit::RegistrationActivity;
 use chrono::{TimeDelta, Utc};
 use futures::StreamExt;
 use tokio_util::sync::CancellationToken;
-use veoveo_platform_store::ChangeSignal;
 use veoveo_sdk_rust::registration::ClientMetadata;
+use veoveo_store::ChangeSignal;
 use veoveo_types::{OAuthClientId, ServerSlug};
 
 use super::{

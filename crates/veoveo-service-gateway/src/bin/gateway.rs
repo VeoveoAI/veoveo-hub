@@ -44,11 +44,11 @@ use clap::{Args as ClapArgs, Parser, Subcommand, ValueEnum};
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
-use veoveo_platform_store::StoreConfig;
 use veoveo_sdk_rust::{TelemetryGuard, init_server_telemetry};
 use veoveo_service_gateway::{
     GatewayCatalog, GatewayRefreshDeliveryWindow, GatewaySecretResolver, RefreshTokenDeliveryCipher,
 };
+use veoveo_store::StoreConfig;
 
 fn install_rustls_provider() {
     let _ = rustls::crypto::ring::default_provider().install_default();

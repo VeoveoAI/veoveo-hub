@@ -9,7 +9,7 @@ use veoveo_audit::{
     integrity::{AuditKeyRing, AuditVerifier},
     *,
 };
-use veoveo_platform_store::PlatformStore;
+use veoveo_store::PlatformStore;
 use veoveo_types::{PrincipalId, TenantId};
 #[path = "audit_cli/keygen.rs"]
 mod keygen;

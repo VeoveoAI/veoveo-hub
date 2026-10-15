@@ -5,7 +5,7 @@ use veoveo_sdk_rust::JwtId;
 use veoveo_types::OAuthClientId;
 
 use super::{GatewayStore, GatewayStoreError};
-use veoveo_platform_store::{MaintenanceBatch, Pruned};
+use veoveo_store::{MaintenanceBatch, Pruned};
 
 /// What a replay identifier was carried by.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, veoveo_types::Vocabulary)]

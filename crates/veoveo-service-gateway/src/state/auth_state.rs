@@ -6,8 +6,8 @@ use crate::control_plane::{
 use crate::store::{ReplayIdentifier, ReplayKind};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use veoveo_platform_store::{MaintenanceBatch, Pruned};
 use veoveo_sdk_rust::{GatewayProfileId, JwtId, OAuthClientId, TokenIssuer};
+use veoveo_store::{MaintenanceBatch, Pruned};
 
 use super::GatewayState;
 

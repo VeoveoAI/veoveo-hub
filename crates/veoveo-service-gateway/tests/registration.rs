@@ -34,7 +34,6 @@ use rmcp::{
     },
 };
 use secrecy::SecretString;
-use veoveo_platform_store::{Instance, PlatformStore, StoreConfig};
 use veoveo_sdk_rust::registration::{
     AccessTokenTrust, AuthorizationDeclaration, ClientMetadata, DatabaseGrant, Ed25519Jwk,
     Ed25519JwkSet, RegistrationDeclaration, RegistrationErrorCode, ServerEndpoint, ServerVersion,
@@ -44,6 +43,7 @@ use veoveo_sdk_rust::registration::{
 use veoveo_sdk_rust::{GatewayInternalIdentity, GatewayInternalTokenVerifier};
 use veoveo_sdk_rust_fixture::mcp::{FixtureGrants, ObservatoryMcp};
 use veoveo_service_gateway::{local::LocalCaller, registration::HOUSEKEEPING_INTERVAL};
+use veoveo_store::{Instance, PlatformStore, StoreConfig};
 use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::{ResourceScheme, ServerSlug};
 
@@ -382,9 +382,7 @@ async fn read(
         .await
 }
 
-async fn try_connect(
-    grant: &DatabaseGrant,
-) -> Result<PlatformStore, veoveo_platform_store::StoreError> {
+async fn try_connect(grant: &DatabaseGrant) -> Result<PlatformStore, veoveo_store::StoreError> {
     let config = StoreConfig::builder(grant.url.as_str(), grant.password.clone())
         .username(grant.username.as_str())
         .max_connections(2)

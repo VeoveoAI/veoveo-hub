@@ -20,8 +20,8 @@ use chrono::{DateTime, TimeDelta, Utc};
 use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
-use veoveo_platform_store::{MaintenanceBatch, Pruned};
 use veoveo_sdk_rust::{GatewayProfileId, GatewayRefreshFamilyId, OAuthClientId, Principal};
+use veoveo_store::{MaintenanceBatch, Pruned};
 use veoveo_types::{ScopeName, Sha256Digest, WorkContextId};
 
 use super::GatewayState;

@@ -7,7 +7,6 @@ use anyhow::{Context, ensure};
 use chrono::Utc;
 use veoveo_audit::AuditStore;
 use veoveo_audit_contract::{AuditActor, AuditContext, AuditPrincipalKind, AuditRequest};
-use veoveo_platform_store::{PlatformStore, StoreConfig};
 use veoveo_service_gateway::control_plane::{
     GatewayControlPlaneRevision, GatewayControlPlaneRevisionSource,
 };
@@ -15,6 +14,7 @@ use veoveo_service_gateway::store::GatewayStore;
 use veoveo_service_gateway::{
     GatewayCatalog, GatewayControlStore, new_gateway_control_plane_revision_id,
 };
+use veoveo_store::{PlatformStore, StoreConfig};
 use veoveo_types::PrincipalId;
 
 /// The principal startup records as the publisher of the configuration file.

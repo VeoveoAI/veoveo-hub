@@ -12,7 +12,7 @@ use veoveo_types::{
 
 use super::{GatewayStore, GatewayStoreError};
 use super::{TransactionAppend, admitted};
-use veoveo_platform_store::{
+use veoveo_store::{
     EnterpriseId, GrantPermission, GrantSubjectKind, TenantId, WorkContextId,
     WorkContextMembershipLevel, deterministic_enterprise_id, deterministic_tenant_id,
     deterministic_work_context_id,

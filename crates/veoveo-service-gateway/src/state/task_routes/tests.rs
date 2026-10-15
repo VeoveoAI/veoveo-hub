@@ -145,7 +145,7 @@ async fn retention_deletes_expired_routes_in_batches_and_keeps_live_ones() {
         .await
         .unwrap();
     }
-    let batch = veoveo_platform_store::MaintenanceBatch::new(2).unwrap();
+    let batch = veoveo_store::MaintenanceBatch::new(2).unwrap();
     let pruned = state
         .prune_expired_task_routes(Utc::now(), batch)
         .await

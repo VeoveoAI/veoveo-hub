@@ -12,7 +12,7 @@ Neither its code nor its configuration names a server.
 |---|---|
 | MCP `2026-07-28`, Streamable HTTP | One endpoint per profile at `/mcp/{profile}`, aggregating tools, resources, resource templates, prompts, completions, Tasks and resource subscriptions of registered servers. `server/discover` lists `2026-07-28` as the only version, and another version is refused with `-32022`. The `resources.subscribe` capability declares `resourceSubscriptions` on `subscriptions/listen`; `resources/subscribe` and `resources/unsubscribe` are no methods of that version and answer `-32601` |
 | MCP Apps, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value |
-| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/e8b2dcc88985f29fc82f5b5c634d24f3142577c5/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
+| [Server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/7afb2e85dac6d4f17ab84f3ca7f8ddcd035af350/crates/veoveo-sdk-rust/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
 | JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `GatewayInternalTokenIssuer`; a call another server made names that server as the prior actor |
 | OAuth 2.0 Token Exchange, RFC 8693, with RFC 9396 token requests | `/oauth/token` with the `urn:ietf:params:oauth:grant-type:token-exchange` grant, for registered servers that declare uses; profile in [calls between servers](#calls-between-servers) |
 | OAuth 2.0, RFC 6749, and RFC 7523 | The hosted authorization server; see [token and session authority](src/auth/DESIGN.md) |
@@ -25,8 +25,8 @@ Neither its code nor its configuration names a server.
 | PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, then the Gateway's own `gateway` schema, applied at startup; `LISTEN` on the `gateway` channel for registration changes; one login role per registration |
 | OpenTelemetry | `service.name` is `veoveo-service-gateway` |
 | Veoveo installation configuration | `GatewayControlPlane` in `src/control_plane.rs`, read as JSON |
-| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/c0c8254f4a1f532a7c8bb5123639d9997700b105/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Gateway's `gateway.*` classes. The Gateway's records carry its own reason codes and name targets by URI |
-| [Veoveo usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/c0c8254f4a1f532a7c8bb5123639d9997700b105/platform/usage/DESIGN.md), after FOCUS 1.4 with ISO 4217 currencies | The Gateway prepares the ledger's monthly partitions and serves daily totals across servers |
+| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/af12a7f52e5e7a445bfc4dca7bac853d5c3bebc9/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Gateway's `gateway.*` classes. The Gateway's records carry its own reason codes and name targets by URI |
+| [Veoveo usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/af12a7f52e5e7a445bfc4dca7bac853d5c3bebc9/platform/usage/DESIGN.md), after FOCUS 1.4 with ISO 4217 currencies | The Gateway prepares the ledger's monthly partitions and serves daily totals across servers |
 
 ## Process
 
@@ -100,7 +100,7 @@ with its own RSA key.
 ## Server Registration
 
 `src/registration` implements the [server registration
-protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/e8b2dcc88985f29fc82f5b5c634d24f3142577c5/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
+protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/7afb2e85dac6d4f17ab84f3ca7f8ddcd035af350/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
 then the software statement against the pinned key and the endpoint URL. The slug
@@ -202,7 +202,7 @@ takes three rollouts, each complete on every replica before the next begins:
 ## Calls Between Servers
 
 `src/delegation.rs` implements the exchange of the SDK's [calls between
-servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/e8b2dcc88985f29fc82f5b5c634d24f3142577c5/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers)
+servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/7afb2e85dac6d4f17ab84f3ca7f8ddcd035af350/crates/veoveo-sdk-rust/src/registration/DESIGN.md#calls-between-servers)
 and the admission of the tokens it issues. A registered server authenticates at
 `/oauth/token` with an RFC 7523 assertion signed by the key its registration pinned;
 the Gateway records the assertion's `jti` with the other replay identifiers. The
@@ -441,7 +441,7 @@ builds SQL text. `.sqlx` also holds the metadata of the core crates' queries, be
 the check stage compiles them offline from an empty target directory.
 
 `tests/database_conformance.rs` holds the Gateway's own statements to core's
-[database rules](https://github.com/VeoveoAI/veoveo-core/blob/c0c8254f4a1f532a7c8bb5123639d9997700b105/docs/DATABASE.md#server-schema-rules)
+[database rules](https://github.com/VeoveoAI/veoveo-core/blob/af12a7f52e5e7a445bfc4dca7bac853d5c3bebc9/docs/DATABASE.md#server-schema-rules)
 over the `gateway`, `identity` and `kernel` schemas. The fixture applies the Gateway's
 migrations as the installation owner after the kernel migrations, as startup does, and
 plans every statement as that owner. Refresh families and control-plane revisions are

@@ -13,7 +13,7 @@ use veoveo_types::{OAuthClientId, ScopeName, Vocabulary, WorkContextId};
 
 use super::admitted;
 use super::{GatewayStore, GatewayStoreError};
-use veoveo_platform_store::{MaintenanceBatch, Pruned};
+use veoveo_store::{MaintenanceBatch, Pruned};
 
 impl GatewayStore {
     pub async fn record_authorization_request(

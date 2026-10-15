@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 
 use super::{GatewayStore, GatewayStoreError};
-use veoveo_platform_store::{MaintenanceBatch, Pruned};
+use veoveo_store::{MaintenanceBatch, Pruned};
 
 impl GatewayStore {
     /// Delete the Task routes that expired at or before `now`, in batches. The Gateway

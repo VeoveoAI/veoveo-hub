@@ -11,7 +11,7 @@ use std::{
 
 use secrecy::ExposeSecret;
 use tokio::process::{Child, Command};
-use veoveo_oauth_client::{CLIENT_ASSERTION_TYPE, ClientAssertionKeyId, ClientAssertionSigner};
+use veoveo_oauth::{CLIENT_ASSERTION_TYPE, ClientAssertionKeyId, ClientAssertionSigner};
 use veoveo_service_gateway::local::{LocalCaller, LocalInstallation};
 use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::OAuthClientId;

@@ -5,12 +5,12 @@ use chrono::Utc;
 use parking_lot::RwLock;
 use serde::Serialize;
 use tokio_util::sync::CancellationToken;
-use veoveo_platform_store::MaintenanceBatch;
 use veoveo_sdk_rust::{GatewayInternalTokenIssuer, GatewayProfileId};
 use veoveo_service_gateway::{
     GatewayCatalog, GatewayCatalogHandle, GatewayControlStore, GatewayRefreshDeliveryWindow,
     GatewayState, GatewayUpstreamHttpClientPool, RefreshTokenDeliveryCipher,
 };
+use veoveo_store::MaintenanceBatch;
 
 const REFRESH_DELIVERY_GC_INTERVAL: Duration = Duration::from_secs(60);
 /// The rows one retention statement deletes or clears.
@@ -45,7 +45,7 @@ pub(super) struct AdminState {
     pub(super) registrations: veoveo_service_gateway::registration::RegistrationService,
     pub(super) console_stream: crate::admin::ConsoleStreamLimits,
     /// This process's kernel instance, which also reaps the instances of ended processes.
-    pub(super) instance: Arc<veoveo_platform_store::Instance>,
+    pub(super) instance: Arc<veoveo_store::Instance>,
 }
 
 #[derive(Clone)]

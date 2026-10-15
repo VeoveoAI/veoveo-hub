@@ -2,10 +2,10 @@
 //! from the installation configuration; tokens carry no extension claims.
 use std::sync::Arc;
 
-use veoveo_platform_store::PlatformStore;
 use veoveo_service_gateway::{
     GatewayCatalogAdmission, GatewayState, oauth_clients::CatalogOAuthClientResolver,
 };
+use veoveo_store::PlatformStore;
 
 pub(super) fn catalog_admission() -> anyhow::Result<GatewayCatalogAdmission> {
     GatewayCatalogAdmission::unbound().bind(veoveo_service_gateway::kernel_catalog_registry()?)

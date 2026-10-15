@@ -21,7 +21,7 @@ pub use replay::{ReplayIdentifier, ReplayKind};
 use std::future::Future;
 
 use sqlx::{PgConnection, PgPool, migrate::Migrator};
-use veoveo_platform_store::{Channel, PlatformStore, StoreError};
+use veoveo_store::{Channel, PlatformStore, StoreError};
 
 /// The Gateway's schema. No registered server may take it as its slug.
 pub const SCHEMA: &str = "gateway";

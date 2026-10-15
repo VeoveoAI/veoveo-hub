@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use veoveo_platform_store::{PlatformStore, StoreConfig};
+use veoveo_store::{PlatformStore, StoreConfig};
 
 use crate::store::GatewayStore;
 

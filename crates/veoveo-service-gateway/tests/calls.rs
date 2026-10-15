@@ -24,7 +24,6 @@ use rmcp::{
 use serde_json::json;
 use servers::{decoded_claims, exchange, hosted, mcp_client, relay_call, serve};
 use tokio_util::sync::CancellationToken;
-use veoveo_platform_store::{Instance, PlatformStore, StoreConfig};
 use veoveo_sdk_rust::{
     GatewayProfileId,
     calls::{TokenErrorCode, ToolCall},
@@ -36,7 +35,8 @@ use veoveo_sdk_rust_fixture::{
     ledger::{self, LedgerDomain, LedgerTasks},
     relay::{self, RelayDomain, RelayTasks},
 };
-use veoveo_task_runtime::TaskRuntime;
+use veoveo_store::{Instance, PlatformStore, StoreConfig};
+use veoveo_task::TaskRuntime;
 use veoveo_test_fixtures::store::TestDb;
 use veoveo_types::{PermissionName, ServerSlug, TaskId};
 

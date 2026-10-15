@@ -20,10 +20,10 @@ path = "src/bin/gateway.rs"
 veoveo-audit.workspace = true
 veoveo-audit-contract = { workspace = true, features = ["postgres"] }
 veoveo-http.workspace = true
-veoveo-oauth-client.workspace = true
-veoveo-platform-store.workspace = true
+veoveo-oauth.workspace = true
+veoveo-store.workspace = true
 veoveo-sdk-rust.workspace = true
-veoveo-task-runtime.workspace = true
+veoveo-task.workspace = true
 veoveo-types.workspace = true
 veoveo-usage.workspace = true
 veoveo-usage-contract.workspace = true

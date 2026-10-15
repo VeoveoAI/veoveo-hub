@@ -84,7 +84,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     let gateway_state = crate::bindings::gateway_state(control_store.platform_store().clone())?;
     let audit_store = gateway_state.audit_store().clone();
     let instance = Arc::new(
-        veoveo_platform_store::Instance::start(
+        veoveo_store::Instance::start(
             gateway_state.platform_store(),
             &ServerSlug::parse("gateway")?,
         )

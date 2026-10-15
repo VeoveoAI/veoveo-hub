@@ -7,7 +7,7 @@ use veoveo_types::TokenIssuer;
 
 use super::admitted;
 use super::{GatewayStore, GatewayStoreError};
-use veoveo_platform_store::{MaintenanceBatch, Pruned};
+use veoveo_store::{MaintenanceBatch, Pruned};
 
 impl GatewayStore {
     /// Record a revocation, replacing an earlier one of the same token.

@@ -8,10 +8,10 @@ use rmcp::{
     service::{RequestContext, RoleServer},
 };
 use veoveo_audit_contract::AuditOutcome;
-use veoveo_platform_store::{
+use veoveo_sdk_rust::{CanonicalTaskId, LocalToolName, PromptName, ServerSlug};
+use veoveo_store::{
     deterministic_principal_id, deterministic_tenant_id, deterministic_work_context_id,
 };
-use veoveo_sdk_rust::{CanonicalTaskId, LocalToolName, PromptName, ServerSlug};
 
 use crate::{
     AuthenticatedSubject, PolicyRequest,

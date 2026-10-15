@@ -19,8 +19,8 @@ use axum::{
 use chrono::Utc;
 use jsonwebtoken::jwk::JwkSet;
 use std::time::Instant;
-use veoveo_platform_store::PrincipalKind as StorePrincipalKind;
 use veoveo_sdk_rust::{GatewayProfileId, PrincipalKind};
+use veoveo_store::PrincipalKind as StorePrincipalKind;
 
 /// Capture the raw spelling at the registered named profile position. Decoded
 /// path extractors cannot establish whether the caller submitted an encoded alias.
@@ -448,7 +448,7 @@ async fn admit_exchanged(
 async fn sync_principal_directory(
     state: &ProfileAuthState,
     subject: &AuthenticatedSubject,
-) -> Result<(), veoveo_platform_store::StoreError> {
+) -> Result<(), veoveo_store::StoreError> {
     let store = state.gateway_state.platform_store();
     let tenant = subject.authority.tenant.as_str();
     let principal = &subject.principal;

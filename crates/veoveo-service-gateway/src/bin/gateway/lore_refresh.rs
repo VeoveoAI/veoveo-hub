@@ -12,7 +12,7 @@ use std::{
 
 use anyhow::{Context as _, Result, anyhow};
 use serde::Deserialize;
-use veoveo_oauth_client::{CLIENT_ASSERTION_TYPE, ClientAssertionKeyId, ClientAssertionSigner};
+use veoveo_oauth::{CLIENT_ASSERTION_TYPE, ClientAssertionKeyId, ClientAssertionSigner};
 use veoveo_sdk_rust::OAuthClientId;
 use zeroize::Zeroizing;
 

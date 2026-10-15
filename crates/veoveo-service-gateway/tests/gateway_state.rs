@@ -3,8 +3,8 @@ mod database;
 use database as fixture;
 use std::{collections::BTreeSet, num::NonZeroU32, time::Duration};
 use veoveo_audit_contract::*;
-use veoveo_platform_store::{MaintenanceBatch, Pruned};
 use veoveo_service_gateway::contract::AuthorizationServerId;
+use veoveo_store::{MaintenanceBatch, Pruned};
 
 use chrono::{SubsecRound, TimeDelta, Utc};
 use futures::future::join_all;

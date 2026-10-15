@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use axum::{http::StatusCode, response::IntoResponse};
 use chrono::Utc;
-use veoveo_oauth_client::CLIENT_ASSERTION_TYPE;
+use veoveo_oauth::CLIENT_ASSERTION_TYPE;
 use veoveo_service_gateway::contract::{AuthOutcome, AuthReasonCode};
 use veoveo_service_gateway::contract::{OAuthClientAuthMethod, OAuthGrantType};
 use veoveo_service_gateway::control_plane::ResourceAuthorizationServer;

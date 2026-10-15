@@ -15,7 +15,7 @@ use veoveo_types::{OAuthClientId, ScopeName, Sha256Digest, WorkContextId};
 
 use super::{GatewayStore, GatewayStoreError};
 use super::{TransactionAppend, admitted, authorization::scopes};
-use veoveo_platform_store::{MaintenanceBatch, Pruned};
+use veoveo_store::{MaintenanceBatch, Pruned};
 
 /// Why a family stopped issuing access.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, veoveo_types::Vocabulary)]

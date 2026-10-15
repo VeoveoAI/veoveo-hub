@@ -11,7 +11,6 @@ use chrono::{DateTime, Utc};
 use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
 use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditRequest};
-use veoveo_platform_store::{LoginName, ServerSchema};
 use veoveo_sdk_rust::registration::{
     AccessTokenTrust, ClientInformation, ClientMetadata, ClientRegistrationRequest,
     ClientUpdateRequest, DatabaseGrant, DatabaseIdentifier, DatabaseUrl, Ed25519Jwk, Ed25519JwkSet,
@@ -19,6 +18,7 @@ use veoveo_sdk_rust::registration::{
     statement::verify_statement,
 };
 use veoveo_sdk_rust::{GatewayInternalSigningKey, TokenIssuer};
+use veoveo_store::{LoginName, ServerSchema};
 use veoveo_types::{OAuthClientId, Sha256Digest};
 
 use super::{
@@ -94,7 +94,7 @@ pub enum Bearer<'a> {
 
 impl RegistrationService {
     pub fn new(
-        store: veoveo_platform_store::PlatformStore,
+        store: veoveo_store::PlatformStore,
         catalog: GatewayCatalogHandle,
         gateway: GatewayState,
         identity: RegistrationIdentity,

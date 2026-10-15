@@ -5,11 +5,11 @@ use std::collections::BTreeSet;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, TimeDelta, Utc};
-use veoveo_platform_store::{
+use veoveo_sdk_rust::{CanonicalTaskId, GatewayProfileId, Principal, ServerSlug};
+use veoveo_store::{
     PrincipalId, PrincipalKind, TenantId, WorkContextId, deterministic_principal_id,
     deterministic_tenant_id, deterministic_work_context_id,
 };
-use veoveo_sdk_rust::{CanonicalTaskId, GatewayProfileId, Principal, ServerSlug};
 use veoveo_types::{
     DataLabelId, DelegationId, InvocationAuthority, InvocationProvenance, Sha256Digest,
     TokenIssuer, TokenSubject,
@@ -189,8 +189,8 @@ impl GatewayState {
     pub async fn prune_expired_task_routes(
         &self,
         now: DateTime<Utc>,
-        batch: veoveo_platform_store::MaintenanceBatch,
-    ) -> Result<veoveo_platform_store::Pruned> {
+        batch: veoveo_store::MaintenanceBatch,
+    ) -> Result<veoveo_store::Pruned> {
         self.store
             .prune_task_routes(now, batch)
             .await

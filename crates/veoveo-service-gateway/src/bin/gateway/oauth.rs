@@ -10,7 +10,7 @@ use axum::{
 };
 use std::collections::BTreeSet;
 
-use veoveo_oauth_client::CLIENT_ASSERTION_TYPE;
+use veoveo_oauth::CLIENT_ASSERTION_TYPE;
 use veoveo_sdk_rust::OAuthClientId;
 use veoveo_service_gateway::GatewayCatalog;
 use veoveo_service_gateway::contract::{AuthOutcome, AuthReasonCode};
