@@ -21,8 +21,6 @@ mod console;
 mod host;
 #[path = "gateway/http_util.rs"]
 mod http_util;
-#[path = "gateway/lore_refresh.rs"]
-mod lore_refresh;
 #[path = "gateway/lore_tokens.rs"]
 mod lore_tokens;
 #[path = "gateway/oauth.rs"]
@@ -139,31 +137,6 @@ enum Command {
         #[arg(long = "lore-environment", requires = "lore_resource")]
         lore_environments: Vec<String>,
     },
-    /// Keep each environment's Lore token file current with a token for its Lore
-    /// client, refreshed every `--interval-seconds`. Runs as root until stopped and
-    /// prints no token.
-    LoreTokens {
-        /// The directory `generate-local-installation` wrote, holding each Lore
-        /// client's key and JWK Set.
-        #[arg(long)]
-        directory: PathBuf,
-        /// The Gateway's token endpoint.
-        #[arg(long)]
-        token_endpoint: url::Url,
-        /// The Lore server, as the installation configures its resource.
-        #[arg(long)]
-        resource: String,
-        /// `<client-id>=<token file>`, once per environment.
-        #[arg(long = "target", required = true)]
-        targets: Vec<lore_refresh::LoreTokenTarget>,
-        /// The trusted reader's group. Development agents must not share it.
-        #[arg(long)]
-        group: u32,
-        /// Seconds between refreshes; shorter than the token's 15-minute lifetime.
-        #[arg(long, default_value_t = 600)]
-        interval_seconds: u64,
-    },
-    /// Read or verify one explicitly selected audit partition.
     Audit {
         #[command(subcommand)]
         command: Box<audit_cli::AuditCommand>,
@@ -323,25 +296,6 @@ async fn main() -> anyhow::Result<()> {
                 veoveo_service_gateway::local::generate(&directory, &issuer, lore.as_ref())?;
             println!("{}", serde_json::to_string_pretty(&installation)?);
             Ok(())
-        }
-        Command::LoreTokens {
-            directory,
-            token_endpoint,
-            resource,
-            targets,
-            group,
-            interval_seconds,
-        } => {
-            lore_refresh::LoreTokenRefresher {
-                directory,
-                token_endpoint,
-                resource,
-                targets,
-                group,
-                interval: std::time::Duration::from_secs(interval_seconds),
-            }
-            .run()
-            .await
         }
         Command::Audit { command } => command.run().await,
         Command::Serve(args) => serve(*args).await,

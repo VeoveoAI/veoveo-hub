@@ -170,17 +170,8 @@ environment adds the Lore admin client `lore-admin`, granted every repository wi
 `admin` and `owner` as a service account, and a client `lore-<environment>` for each
 environment, which reaches no repository until the installation grants it one.
 
-`lore-tokens` keeps the environments' token files current. It runs as root and, every
-ten minutes, requests a token for each `--target <client>=<file>` with the client's key
-from `--directory`, then replaces the file with one owned by root and readable only by
-`--group`. It prints no token.
-
-Keep the output volume outside development containers. Each target becomes a complete Envoy filesystem SDS response with
-a generic secret named after the client ID and the value `Bearer <token>`. The file
-and its parent directory are synced around the atomic rename, so Envoy watches the
-SDS response itself for rotation. Only the trusted proxy reads these files; agents
-reach a fixed proxy route with no credential. There is no raw-token output mode. Error responses are reported by status only,
-so an upstream response cannot leak an echoed credential into logs.
+Factory credential custody and renewal belong to OpenShell providers. The gateway
+no longer runs a Lore token-file or Envoy SDS worker.
 
 ## License
 
