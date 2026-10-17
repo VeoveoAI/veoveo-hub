@@ -2,13 +2,13 @@
 # Stages: dev is the development environment, check is the single gate, build compiles the
 # release binary, and runtime is the deployable image.
 
-ARG COMPONENT=veoveo-service-gateway
+ARG COMPONENT=veoveo-hub
 
 FROM rust:1.99.0-trixie@sha256:6ff07edce8775d0f64be7aba9197229407301bddf2054d62c27b541a6238a181 AS dev
 # PostgreSQL 18.6 from the PGDG repository, whose signing key Debian's postgresql-common
 # ships. Tests start their own clusters, so the packages create none.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates clang cmake git pkg-config procps postgresql-common \
+    && apt-get install -y --no-install-recommends ca-certificates clang cmake git protobuf-compiler pkg-config procps postgresql-common \
     && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
     && mkdir -p /etc/postgresql-common/createcluster.d \
     && printf 'create_main_cluster = false\n' > /etc/postgresql-common/createcluster.d/veoveo.conf \
@@ -46,11 +46,11 @@ WORKDIR /home/sandbox/src
 COPY --chown=sandbox:sandbox . .
 
 FROM source AS check
-# The committed .sqlx query metadata must match the Gateway's queries against the kernel
-# migrations of the pinned veoveo-core checkout followed by the Gateway's own migrations.
+# The committed .sqlx query metadata must match the Hub's queries against the kernel
+# migrations of the pinned veoveo-core checkout followed by the Hub's own migrations.
 RUN cargo fetch --locked \
     && store="$(echo /usr/local/cargo/git/checkouts/veoveo-core-*/*/platform/store)" \
-    && gateway=crates/veoveo-service-gateway \
+    && hub=crates/veoveo-hub \
     && initdb --pgdata /tmp/sqlx/data --username postgres --auth=trust --no-instructions --no-sync \
     && pg_ctl start --pgdata /tmp/sqlx/data --wait --silent \
         --options "-c listen_addresses=127.0.0.1 -c unix_socket_directories=/tmp/sqlx -c fsync=off" \
@@ -58,7 +58,7 @@ RUN cargo fetch --locked \
     && DATABASE_URL=postgres://postgres@127.0.0.1/veoveo cargo sqlx migrate run \
         --source "${store}/migrations" --config "${store}/sqlx.toml" \
     && DATABASE_URL=postgres://postgres@127.0.0.1/veoveo cargo sqlx migrate run \
-        --source "${gateway}/migrations" --config "${gateway}/sqlx.toml" \
+        --source "${hub}/migrations" --config "${hub}/sqlx.toml" \
     && DATABASE_URL=postgres://postgres@127.0.0.1/veoveo cargo sqlx prepare --workspace --check \
         -- --all-targets --all-features \
     && pg_ctl stop --pgdata /tmp/sqlx/data --mode fast --wait --silent \
@@ -82,12 +82,12 @@ RUN apt-get update \
     && useradd --system --uid 10001 --create-home --home-dir /var/lib/veoveo component \
     && mkdir -p /etc/veoveo \
     && chown -R component:component /etc/veoveo /var/lib/veoveo
-COPY --from=build /home/sandbox/component /usr/local/bin/veoveo-service-gateway
+COPY --from=build /home/sandbox/component /usr/local/bin/veoveo-hub
 USER component
 # A container listens on every interface; a sandbox keeps the loopback default.
 ENV VEOVEO_LISTEN_ADDRESS=0.0.0.0:8080
 EXPOSE 8080
-ENTRYPOINT ["/usr/local/bin/veoveo-service-gateway"]
+ENTRYPOINT ["/usr/local/bin/veoveo-hub"]
 CMD ["serve"]
-LABEL org.opencontainers.image.source="https://github.com/VeoveoAI/veoveo-service-gateway" \
+LABEL org.opencontainers.image.source="https://github.com/VeoveoAI/veoveo-hub" \
       org.opencontainers.image.licenses="Apache-2.0"

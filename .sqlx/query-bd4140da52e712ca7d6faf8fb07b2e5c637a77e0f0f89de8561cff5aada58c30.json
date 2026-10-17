@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Clear up to $2 delivery envelopes whose window ended at or before $1, earliest window\n-- first. Tokens another transaction holds wait for a later batch.\nUPDATE hub.refresh_token\nSET delivery_envelope = NULL, delivery_expires_at = NULL\nWHERE id IN (\n    SELECT id\n    FROM hub.refresh_token\n    WHERE delivery_expires_at <= $1\n    ORDER BY delivery_expires_at\n    LIMIT $2\n    FOR UPDATE SKIP LOCKED\n)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bd4140da52e712ca7d6faf8fb07b2e5c637a77e0f0f89de8561cff5aada58c30"
+}

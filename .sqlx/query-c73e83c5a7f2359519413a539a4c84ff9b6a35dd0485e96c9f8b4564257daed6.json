@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- veoveo: all tenants (a unit test counts every route of its own fixture database)\nSELECT count(*) AS \"count!\"\nFROM hub.task_route\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c73e83c5a7f2359519413a539a4c84ff9b6a35dd0485e96c9f8b4564257daed6"
+}

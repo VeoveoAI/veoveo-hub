@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM hub.refresh_family\nWHERE id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "63f96a8835ce1b1ccced4e57906720dfa3e611b444719dd0a4beb3c29c70eda5"
+}

@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The activities of the account changes the publications audited, in append order.\nSELECT draft #>> '{detail,activity}' AS \"activity!\"\nFROM audit.record\nWHERE class = 'hub.account_change'\nORDER BY sequence\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "activity!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5f259dbf69b835f80b32d7a519ce465ee207f5c7384bb96b4883ee19b81dfa49"
+}

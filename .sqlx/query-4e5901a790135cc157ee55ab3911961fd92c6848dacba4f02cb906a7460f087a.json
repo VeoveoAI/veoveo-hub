@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Delete up to $2 families that expired at or before $1, earliest first, with their\n-- tokens. A family that a rotation or revocation holds waits for a later batch.\nDELETE FROM hub.refresh_family\nWHERE id IN (\n    SELECT id\n    FROM hub.refresh_family\n    WHERE expires_at <= $1\n    ORDER BY expires_at\n    LIMIT $2\n    FOR UPDATE SKIP LOCKED\n)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4e5901a790135cc157ee55ab3911961fd92c6848dacba4f02cb906a7460f087a"
+}

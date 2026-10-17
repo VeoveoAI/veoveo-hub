@@ -1,0 +1,251 @@
+{
+  "identityProviders": [
+    {
+      "id": "enterprise",
+      "issuer": "https://idp.example.com",
+      "jwks": {
+        "source": "file",
+        "path": "configs/jwks.smoke.json"
+      },
+      "authorizationEndpoint": "https://idp.example.com/oauth2/authorize",
+      "tokenEndpoint": "https://idp.example.com/oauth2/token",
+      "enterpriseManagedAuthorizationEndpoint": "https://idp.example.com/oauth2/id-jag",
+      "metadata": {}
+    }
+  ],
+  "authorizationServers": [
+    {
+      "id": "veoveo",
+      "issuer": "https://hub.test",
+      "jwks": {
+        "source": "file",
+        "path": "configs/jwks.smoke.json"
+      },
+      "accessTokenKeyId": "test-key",
+      "accessTokenSigningKey": "veoveo_access_token_private_key",
+      "identityProvider": "enterprise",
+      "authorizationEndpoint": "https://veoveo.example/oauth/authorize",
+      "tokenEndpoint": "https://veoveo.example/oauth/token",
+      "metadata": {}
+    }
+  ],
+  "profiles": [
+    {
+      "id": "operator",
+      "identityProvider": "enterprise",
+      "authorizationServer": "veoveo",
+      "protectedResource": "https://hub.test/mcp/operator",
+      "policyVersion": "test-1",
+      "authModes": [
+        "enterprise_managed_authorization",
+        "oauth_client_credentials",
+        "oidc_authorization_code_pkce"
+      ],
+      "requiredScopes": [
+        "operator:use"
+      ],
+      "metadata": {}
+    }
+  ],
+  "policies": [
+    {
+      "version": "test-1",
+      "rules": []
+    }
+  ],
+  "dataLabels": [
+    {
+      "id": "cui",
+      "title": "Controlled Unclassified Information",
+      "regulated": true,
+      "metadata": {}
+    },
+    {
+      "id": "itar",
+      "title": "ITAR-controlled data",
+      "regulated": true,
+      "metadata": {}
+    },
+    {
+      "id": "pii",
+      "title": "Personally Identifiable Information",
+      "regulated": true,
+      "metadata": {}
+    }
+  ],
+  "tenants": [
+    {
+      "id": "test",
+      "title": "Hub test tenant"
+    }
+  ],
+  "workContexts": [
+    {
+      "id": "hub-test",
+      "tenant": "test",
+      "title": "Hub tests",
+      "policyRevision": "test-1",
+      "outputPolicy": {
+        "owner": {
+          "kind": "principal",
+          "id": "https://hub.test#alice"
+        }
+      },
+      "memberships": [
+        {
+          "level": "contributor",
+          "oauthClients": [
+            "console",
+            "service",
+            "delegated"
+          ]
+        }
+      ]
+    }
+  ],
+  "oauthClients": [
+    {
+      "id": "console",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "hub-test",
+      "invocationMode": "direct",
+      "displayName": "Veoveo Operator Local Client",
+      "clientSurface": "full_mcp",
+      "allowedResources": [
+        "https://hub.test/mcp/operator"
+      ],
+      "grantTypes": [
+        "authorization_code_pkce",
+        "refresh_token"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "allowedScopes": [
+        "operator:use"
+      ],
+      "metadata": {
+        "client_boundary": "local_public"
+      },
+      "redirectUris": [
+        "http://localhost:6274/oauth/callback",
+        "http://localhost:6274/oauth/callback/debug",
+        "http://127.0.0.1:6274/oauth/callback",
+        "http://127.0.0.1:6274/oauth/callback/debug",
+        "http://localhost:8789/callback",
+        "http://127.0.0.1:8789/callback",
+        "http://localhost:8789/oauth/callback",
+        "http://127.0.0.1:8789/oauth/callback"
+      ]
+    },
+    {
+      "id": "service",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "hub-test",
+      "invocationMode": "automated",
+      "displayName": "Veoveo Operator Service",
+      "clientSurface": "full_mcp",
+      "allowedResources": [
+        "https://hub.test/mcp/operator"
+      ],
+      "grantTypes": [
+        "client_credentials"
+      ],
+      "authMethods": [
+        "private_key_jwt"
+      ],
+      "allowedScopes": [
+        "operator:use"
+      ],
+      "metadata": {
+        "client_boundary": "operator_service"
+      },
+      "jwks": {
+        "source": "file",
+        "path": "configs/jwks.smoke.json"
+      },
+      "tenant": "test"
+    },
+    {
+      "id": "delegated",
+      "authorizationServer": "veoveo",
+      "defaultWorkContext": "hub-test",
+      "invocationMode": "delegated",
+      "displayName": "Operator Delegated Client",
+      "clientSurface": "full_mcp",
+      "allowedResources": [
+        "https://hub.test/mcp/operator"
+      ],
+      "grantTypes": [
+        "enterprise_managed_authorization"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "redirectUris": [
+        "http://localhost:8789/oauth/callback"
+      ],
+      "allowedScopes": [
+        "operator:use"
+      ],
+      "metadata": {
+        "client_boundary": "delegated"
+      }
+    }
+  ],
+  "oidcClients": [
+    {
+      "id": "enterprise",
+      "identityProvider": "enterprise",
+      "authorizationServer": "veoveo",
+      "allowedResources": [
+        "https://hub.test/mcp/operator"
+      ],
+      "clientId": "veoveo",
+      "redirectUri": "https://veoveo.example/oauth/callback",
+      "authMethod": "client_secret_post",
+      "credentialSecret": "enterprise_oidc_client_secret",
+      "scopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "metadata": {}
+    }
+  ],
+  "secrets": [
+    {
+      "id": "enterprise_oidc_client_secret",
+      "source": "env",
+      "purpose": "oauth_client_secret",
+      "locator": "VEOVEO_IDP_OIDC_CLIENT_SECRET",
+      "owner": {
+        "kind": "hub"
+      },
+      "metadata": {}
+    },
+    {
+      "id": "veoveo_access_token_private_key",
+      "source": "env",
+      "purpose": "jwks_private_key",
+      "locator": "VEOVEO_AUTHORIZATION_SERVER_PRIVATE_KEY_DER_B64",
+      "owner": {
+        "kind": "hub"
+      },
+      "metadata": {}
+    },
+    {
+      "id": "hub_internal_signing_private_key",
+      "source": "env",
+      "purpose": "hub_signing_key",
+      "locator": "VEOVEO_INTERNAL_SIGNING_KEY_DER_B64",
+      "owner": {
+        "kind": "hub"
+      },
+      "metadata": {}
+    }
+  ],
+  "metadata": {
+    "environment": "smoke"
+  }
+}

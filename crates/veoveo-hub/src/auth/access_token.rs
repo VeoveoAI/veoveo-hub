@@ -1,0 +1,258 @@
+use std::collections::BTreeSet;
+
+use crate::contract::PrincipalDisplayName;
+use chrono::Utc;
+use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
+use veoveo_hub_sdk::{
+    AccessTokenSubject, JwtId, OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject,
+};
+use veoveo_types::{
+    DataLabelId, DelegationId, GroupId, PrincipalId, RoleId, TenantId, WorkContextId,
+};
+
+use super::{
+    claims::{JwtClaims, StringListClaim},
+    config::{BearerToken, JwtAuthConfig},
+    principal::principal_assurances,
+    support::{
+        AuthError, allowed_algorithms_for_header, ensure_jwt_crypto_provider, is_access_token_type,
+        unix_timestamp, validate_jwk_algorithm,
+    },
+    verified::VerifiedAccessToken,
+};
+
+#[derive(Debug, Clone)]
+pub struct JwtVerifier {
+    config: JwtAuthConfig,
+    jwks: JwkSet,
+    extensions: Option<veoveo_types::ExtensionRegistry>,
+}
+
+impl JwtVerifier {
+    pub fn new(config: JwtAuthConfig, jwks: JwkSet) -> Self {
+        Self {
+            config,
+            jwks,
+            extensions: None,
+        }
+    }
+
+    pub fn with_extensions(
+        mut self,
+        registry: veoveo_types::ExtensionRegistry,
+    ) -> Result<Self, AuthError> {
+        validate_access_token_registry(&registry).map_err(AuthError::Extension)?;
+        self.extensions = Some(registry);
+        Ok(self)
+    }
+
+    pub fn verify(&self, token: &BearerToken) -> Result<VerifiedAccessToken, AuthError> {
+        ensure_jwt_crypto_provider();
+        let header = decode_header(token.as_str()).map_err(AuthError::Jwt)?;
+        // RFC 9068 §4: an access token's `typ` is `at+jwt`, which RFC 7515 §4.1.9 lets
+        // a producer spell as the full media type.
+        if !header.typ.as_deref().is_some_and(is_access_token_type) {
+            return Err(AuthError::UnsupportedTokenType);
+        }
+        if !self.config.algorithms.contains(&header.alg) {
+            return Err(AuthError::DisallowedAlgorithm(header.alg));
+        }
+        let key_id = header.kid.ok_or(AuthError::MissingKeyId)?;
+        let jwk = self
+            .jwks
+            .find(&key_id)
+            .ok_or_else(|| AuthError::UnknownKeyId(key_id.clone()))?;
+        validate_jwk_algorithm(jwk.common.key_algorithm, header.alg)?;
+        let key = DecodingKey::from_jwk(jwk).map_err(AuthError::Jwt)?;
+
+        let algorithms = self.allowed_algorithms_for_header(header.alg)?;
+        let mut validation = Validation::new(header.alg);
+        validation.algorithms = algorithms;
+        validation.validate_nbf = true;
+        validation.set_issuer(&[self.config.issuer.as_str()]);
+        validation.set_audience(&[self.config.audience.as_str()]);
+        validation.set_required_spec_claims(&["exp", "iss", "aud", "sub", "client_id"]);
+
+        let data =
+            decode::<JwtClaims>(token.as_str(), &key, &validation).map_err(AuthError::Jwt)?;
+        let claims = data.claims.0;
+        let extensions = self
+            .extensions
+            .as_ref()
+            .ok_or_else(|| {
+                AuthError::Extension(veoveo_types::ExtensionError::new(
+                    "JWT extension profile is unbound",
+                ))
+            })?
+            .admit(claims.extensions.clone())
+            .map_err(AuthError::Extension)?;
+        validate_access_token_extensions(&extensions).map_err(AuthError::Extension)?;
+        let expires_at = unix_timestamp(claims.exp, "exp")?;
+        // JWT leeway must not extend caller authority: downstream assertions cannot
+        // outlive this instant, including the exact expiration second.
+        if expires_at <= Utc::now() {
+            return Err(AuthError::Jwt(
+                jsonwebtoken::errors::ErrorKind::ExpiredSignature.into(),
+            ));
+        }
+        let scopes = claims.scopes()?;
+        if !self.config.required_scopes.is_subset(&scopes) {
+            return Err(AuthError::MissingRequiredScope);
+        }
+
+        let issuer = TokenIssuer::parse(claims.iss.clone()).map_err(AuthError::Claim)?;
+        let subject = TokenSubject::parse(claims.sub.clone()).map_err(AuthError::Claim)?;
+        let oauth_client_id =
+            OAuthClientId::parse(claims.client_id.clone()).map_err(AuthError::Claim)?;
+        let token_subject = AccessTokenSubject {
+            issuer: issuer.clone(),
+            subject: subject.clone(),
+            oauth_client_id,
+            session_family: claims.session_family,
+            audience: self.config.audience.clone(),
+            work_context: WorkContextId::parse(claims.work_context.clone())
+                .map_err(AuthError::Claim)?,
+            invocation_mode: claims.invocation_mode,
+            initiator: claims
+                .initiator
+                .map(PrincipalId::parse)
+                .transpose()
+                .map_err(AuthError::Claim)?,
+            delegation_id: claims
+                .delegation_id
+                .map(DelegationId::parse)
+                .transpose()
+                .map_err(AuthError::Claim)?,
+            scopes: scopes.clone(),
+            jwt_id: claims
+                .jti
+                .map(JwtId::parse)
+                .transpose()
+                .map_err(AuthError::Claim)?,
+            issued_at: unix_timestamp(claims.iat.unwrap_or(0), "iat")?,
+            not_before: claims
+                .nbf
+                .map(|value| unix_timestamp(value, "nbf"))
+                .transpose()?,
+            expires_at,
+        };
+        let principal = Principal {
+            id: PrincipalId::parse(claims.principal_id).map_err(AuthError::Claim)?,
+            kind: claims.principal_kind.unwrap_or(PrincipalKind::User),
+            issuer,
+            subject,
+            tenant: claims
+                .tenant
+                .map(TenantId::parse)
+                .transpose()
+                .map_err(AuthError::Claim)?,
+            groups: claims
+                .groups
+                .map(StringListClaim::into_values)
+                .unwrap_or_default()
+                .into_iter()
+                .map(GroupId::parse)
+                .collect::<Result<_, _>>()
+                .map_err(AuthError::Claim)?,
+            // Per-group roles are not asserted by the OAuth access token today;
+            // bare membership resolves to Read via Principal::group_memberships().
+            group_roles: BTreeSet::new(),
+            roles: claims
+                .roles
+                .map(StringListClaim::into_values)
+                .unwrap_or_default()
+                .into_iter()
+                .map(RoleId::parse)
+                .collect::<Result<_, _>>()
+                .map_err(AuthError::Claim)?,
+            scopes,
+            data_labels: claims
+                .data_labels
+                .map(StringListClaim::into_values)
+                .unwrap_or_default()
+                .into_iter()
+                .map(DataLabelId::parse)
+                .collect::<Result<_, _>>()
+                .map_err(AuthError::Claim)?,
+            assurances: principal_assurances(claims.principal_assurances)?,
+            authenticated_at: Some(Utc::now()),
+        };
+
+        Ok(VerifiedAccessToken {
+            extensions,
+            access_token: token_subject,
+            principal,
+            principal_display_name: claims
+                .principal_display_name
+                .map(PrincipalDisplayName::new)
+                .transpose()
+                .map_err(AuthError::Claim)?,
+        })
+    }
+
+    fn allowed_algorithms_for_header(
+        &self,
+        algorithm: Algorithm,
+    ) -> Result<Vec<Algorithm>, AuthError> {
+        allowed_algorithms_for_header(&self.config.algorithms, algorithm)
+    }
+}
+
+/// Every fixed public token field, plus internal attribution prohibited on public tokens.
+pub const ACCESS_TOKEN_CORE_CLAIMS: &[&str] = &[
+    "iss",
+    "sub",
+    "https://veoveo.ai/claims/principal",
+    "https://veoveo.ai/claims/principal-display-name",
+    "client_id",
+    "https://veoveo.ai/claims/session-family",
+    "https://veoveo.ai/claims/work-context",
+    "https://veoveo.ai/claims/invocation-mode",
+    "https://veoveo.ai/claims/initiator",
+    "https://veoveo.ai/claims/delegation",
+    "aud",
+    "exp",
+    "nbf",
+    "iat",
+    "jti",
+    "scope",
+    "scp",
+    "groups",
+    "roles",
+    "https://veoveo.ai/claims/tenant",
+    "https://veoveo.ai/claims/data-labels",
+    "https://veoveo.ai/claims/principal-assurances",
+    "https://veoveo.ai/claims/principal-kind",
+    "https://veoveo.ai/claims/managed-execution",
+];
+pub fn access_token_extension_registry_builder() -> veoveo_types::ExtensionRegistryBuilder {
+    veoveo_types::ExtensionRegistryBuilder::new(ACCESS_TOKEN_CORE_CLAIMS.iter().copied())
+}
+pub fn validate_access_token_extensions(
+    values: &veoveo_types::AdmittedExtensions,
+) -> Result<(), veoveo_types::ExtensionError> {
+    if values
+        .wire()
+        .keys()
+        .any(|name| ACCESS_TOKEN_CORE_CLAIMS.contains(&name.as_str()))
+    {
+        return Err(veoveo_types::ExtensionError::new(
+            "extension collides with a public token core claim",
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_access_token_registry(
+    registry: &veoveo_types::ExtensionRegistry,
+) -> Result<(), veoveo_types::ExtensionError> {
+    if registry
+        .reserved_names()
+        .any(|name| ACCESS_TOKEN_CORE_CLAIMS.contains(&name.as_str()))
+    {
+        return Err(veoveo_types::ExtensionError::new(
+            "extension registry reserves a public token core claim",
+        ));
+    }
+    Ok(())
+}

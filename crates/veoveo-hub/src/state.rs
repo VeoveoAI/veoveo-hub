@@ -1,0 +1,91 @@
+use anyhow::{Context, Result};
+use veoveo_store::{PlatformStore, StoreConfig};
+
+use crate::store::HubStore;
+
+mod auth_state;
+mod refresh_tokens;
+mod session;
+mod task_routes;
+
+pub use auth_state::HubReplayRetentionSummary;
+pub use refresh_tokens::{
+    HubRefreshDeliveryWindow, HubRefreshExchange, HubRefreshIssueRequest,
+    HubRefreshRotationRequest, IssuedHubRefreshToken, REFRESH_TOKEN_TTL_SECONDS,
+    RefreshTokenDeliveryCipher,
+};
+pub(crate) use task_routes::{HubTaskOwnership, HubTaskRouteDraft};
+
+/// Shared, installation-wide hub correctness state.
+///
+/// Clones may be used by independent hub replicas; PostgreSQL is the sole authority
+/// for replay, OAuth, revocation and audit data.
+#[derive(Debug, Clone)]
+pub struct HubState {
+    pub(crate) token_extensions: Option<veoveo_types::ExtensionRegistry>,
+    pub(super) store: HubStore,
+    pub(crate) audit: veoveo_audit::AuditStore,
+    pub(crate) audit_writer: std::sync::Arc<tokio::sync::OnceCell<veoveo_audit::AuditWriter>>,
+    pub(crate) audit_health: std::sync::Arc<std::sync::OnceLock<veoveo_audit::AuditHealth>>,
+    pub(crate) oauth_client_resolver:
+        Option<std::sync::Arc<dyn crate::oauth_clients::OAuthClientResolver>>,
+}
+
+impl HubState {
+    pub fn new(platform: PlatformStore) -> Self {
+        Self {
+            audit: veoveo_audit::AuditStore::new(platform.clone(), crate::audit_registry()),
+            store: HubStore::new(platform),
+            audit_writer: Default::default(),
+            audit_health: Default::default(),
+            oauth_client_resolver: None,
+            token_extensions: None,
+        }
+    }
+
+    pub async fn connect(config: StoreConfig) -> Result<Self> {
+        let platform = PlatformStore::connect(config)
+            .await
+            .context("failed to connect hub runtime state to PostgreSQL")?;
+        Ok(Self::new(platform))
+    }
+
+    pub fn platform_store(&self) -> &PlatformStore {
+        self.store.platform()
+    }
+
+    /// The Hub's statements over the installation database.
+    pub fn hub_store(&self) -> &HubStore {
+        &self.store
+    }
+
+    /// The audit log, read and written with the installation's target registry.
+    pub fn audit_store(&self) -> &veoveo_audit::AuditStore {
+        &self.audit
+    }
+
+    /// The audit log as a reader of every owner's records sees it, with a registry built
+    /// from the classes stored in `audit.detail_type`. Registered servers declare classes
+    /// while the Hub runs, so each read that may meet another owner's record builds
+    /// its reader again.
+    pub async fn audit_reader(&self) -> Result<veoveo_audit::AuditStore> {
+        let stored = veoveo_audit::AuditStore::declarations(self.platform_store())
+            .await
+            .context("read the stored audit class declarations")?;
+        Ok(veoveo_audit::AuditStore::new(
+            self.platform_store().clone(),
+            crate::audit::HubAudit::reader_registry(stored)?,
+        ))
+    }
+
+    /// Admit one audit draft for a write that commits with other state.
+    pub(crate) fn audit_write(
+        &self,
+        draft: &veoveo_audit_contract::AuditDraft,
+    ) -> Result<crate::audit::AuditAppend> {
+        Ok(crate::audit::AuditAppend::new(
+            veoveo_audit_contract::AuditTransactionWrite::new(self.audit.registry(), draft.clone())
+                .context("audit draft is outside the installation's audit registry")?,
+        ))
+    }
+}

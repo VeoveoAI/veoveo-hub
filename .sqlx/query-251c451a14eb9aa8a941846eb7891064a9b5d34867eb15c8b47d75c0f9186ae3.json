@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Publications serialize on the single pointer row.\nSELECT revision\nFROM hub.control_active\nFOR UPDATE\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.control_active",
+            "name": "revision"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "251c451a14eb9aa8a941846eb7891064a9b5d34867eb15c8b47d75c0f9186ae3"
+}

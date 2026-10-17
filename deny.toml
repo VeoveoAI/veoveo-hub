@@ -4,7 +4,17 @@
 all-features = true
 
 [advisories]
-ignore = []
+# Reviewed informational maintenance notice, not a claim that the graph is free of
+# vulnerabilities. The locked rustls-pemfile 2.2.0 dependency comes through
+# openshell-core from NVIDIA/OpenShell at 5a7728c304b5528e954e9ae900cf21f84e1a12b1.
+# It parses configured CA certificates into rustls-pki-types; RootCertStore validates
+# them. RustSec lists no patched version. Remove this exception when the pinned SDK
+# removes the dependency. cargo-deny 0.20.2 scopes this by advisory ID only, not caller.
+# https://rustsec.org/advisories/RUSTSEC-2025-0134.html
+ignore = [
+    { id = "RUSTSEC-2025-0134", reason = "Reviewed unmaintained rustls-pemfile 2.2.0 via pinned openshell-core (5a7728c304b5528e954e9ae900cf21f84e1a12b1); informational maintenance notice, no patched release. Remove when the SDK drops the dependency." },
+]
+unused-ignored-advisory = "deny"
 
 [licenses]
 # Licenses compatible with distributing an Apache-2.0 project. Add a license here only
@@ -36,6 +46,8 @@ allow-wildcard-paths = true
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# Official SDK repository only; Cargo.toml/lock retain the reviewed revision.
+allow-git = ["https://github.com/NVIDIA/OpenShell"]
 
 [sources.allow-org]
 github = ["VeoveoAI"]

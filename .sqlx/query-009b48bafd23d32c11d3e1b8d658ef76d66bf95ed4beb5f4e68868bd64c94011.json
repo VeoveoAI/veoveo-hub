@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    r.id,\n    r.digest,\n    r.source,\n    r.applied_at,\n    r.applied_by,\n    r.tenant,\n    r.control_plane AS \"control_plane: Json<HubControlPlane>\"\nFROM hub.control_active AS a\nJOIN hub.control_revision AS r ON r.id = a.revision\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.control_revision",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "digest",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.control_revision",
+            "name": "digest"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.control_revision",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "applied_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.control_revision",
+            "name": "applied_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "applied_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.control_revision",
+            "name": "applied_by"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "tenant",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.control_revision",
+            "name": "tenant"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "control_plane: Json<HubControlPlane>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.control_revision",
+            "name": "control_plane"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "009b48bafd23d32c11d3e1b8d658ef76d66bf95ed4beb5f4e68868bd64c94011"
+}

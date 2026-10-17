@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id AS \"id!\"\nFROM kernel.instance AS i\nWHERE i.server = 'hub' AND kernel.instance_alive(i.id)\nORDER BY i.id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "kernel.instance",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "72708b5852d2f7c6e3b64cfeb2b6beb6292b121a41b3c094c6eb03236594ed1b"
+}

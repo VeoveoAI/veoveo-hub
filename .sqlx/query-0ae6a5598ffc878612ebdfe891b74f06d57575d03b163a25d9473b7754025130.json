@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.control_active\nSET revision = $1, updated_at = $2\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0ae6a5598ffc878612ebdfe891b74f06d57575d03b163a25d9473b7754025130"
+}

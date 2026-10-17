@@ -1,0 +1,5 @@
+# Read by `sqlx::migrate!()` in this crate and by `cargo sqlx migrate --config`.
+# The Hub's migrations record their history in the hub schema.
+[migrate]
+table-name = "hub._sqlx_migrations"
+create-schemas = ["hub"]

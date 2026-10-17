@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"count!\"\nFROM hub.control_object AS o\nJOIN hub.control_active AS a ON a.revision = o.revision\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5d1c9038a2ad7efd96b8a4c4c76a670d65449442cd04749927c881c6e2911da6"
+}

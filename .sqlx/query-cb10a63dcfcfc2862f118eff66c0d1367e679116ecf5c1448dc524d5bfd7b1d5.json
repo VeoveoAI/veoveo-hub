@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.refresh_token (\n    id, family, token_digest, generation, issued_at, expires_at, delivery_envelope,\n    delivery_expires_at\n)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Timestamptz",
+        "Timestamptz",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cb10a63dcfcfc2862f118eff66c0d1367e679116ecf5c1448dc524d5bfd7b1d5"
+}

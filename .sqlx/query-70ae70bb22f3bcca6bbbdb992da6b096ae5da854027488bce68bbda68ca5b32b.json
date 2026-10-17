@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT key_thumbprint\nFROM hub.namespace_claim\nWHERE server = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key_thumbprint",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.namespace_claim",
+            "name": "key_thumbprint"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "70ae70bb22f3bcca6bbbdb992da6b096ae5da854027488bce68bbda68ca5b32b"
+}

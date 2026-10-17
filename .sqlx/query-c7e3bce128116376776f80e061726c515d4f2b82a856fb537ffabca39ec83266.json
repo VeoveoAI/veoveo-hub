@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT server, orphaned_at\nFROM hub.registration\nORDER BY server\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "server",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.registration",
+            "name": "server"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "orphaned_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.registration",
+            "name": "orphaned_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "c7e3bce128116376776f80e061726c515d4f2b82a856fb537ffabca39ec83266"
+}

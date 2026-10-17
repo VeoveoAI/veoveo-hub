@@ -1,18 +1,18 @@
-# veoveo-service-gateway
+# veoveo-hub
 
-veoveo-service-gateway is the Veoveo Gateway, the MCP entry point of an installation.
+veoveo-hub is the Veoveo Hub, the MCP entry point of an installation.
 MCP servers register with it and declare the permissions their tools, resources and
-prompts require. The Gateway authenticates callers, grants permissions through the
+prompts require. The Hub authenticates callers, grants permissions through the
 installation's roles, and forwards each request with an access token that names the
 caller and the permissions granted. It knows no server until one registers.
 
-The [crate design](crates/veoveo-service-gateway/DESIGN.md) describes the Gateway. It
+The [crate design](crates/veoveo-hub/DESIGN.md) describes the Hub. It
 builds on [veoveo-core](https://github.com/VeoveoAI/veoveo-core) for the database
 kernel, identity, Tasks, the audit envelope and the usage ledger, and on
-[veoveo-sdk-rust](https://github.com/VeoveoAI/veoveo-sdk-rust) for MCP, the forwarded
-token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/7446181806258d48a352ecdbd2bc00998d303701/crates/veoveo-sdk-rust/src/registration/DESIGN.md)
-every server follows. The Gateway owns its control plane, its policy evaluator and the
-`gateway` database schema.
+[veoveo-hub-sdk](https://github.com/VeoveoAI/veoveo-hub-sdk) for MCP, the forwarded
+token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/a1d9d653ae3d723821cdeeab92f4a67acdca39ce/crates/veoveo-hub-sdk/src/registration/DESIGN.md)
+every server follows. The Hub owns its control plane, its policy evaluator and the
+`hub` database schema.
 
 ## Gate
 
@@ -26,16 +26,18 @@ and the `runtime` image. The same commands run inside the development environmen
 ## Development Environment
 
 ```sh
-docker build --target dev -t veoveo-service-gateway:dev .
+docker build --target dev -t veoveo-hub:dev .
 ```
 
-A local installation from
-[veoveo-template-installation](https://github.com/VeoveoAI/veoveo-template-installation)
-runs this image, under its own layer, as the Compose service `vv-srv-gateway`. The
-environment works in the installation's Lore repository at `/sandbox/src`, keeps its
-state in `/sandbox`, and reaches PostgreSQL at `vv-postgres.internal:5432` and
-registered servers at their `.internal` names. Run the commands below from the
-installation's directory.
+Use this image as the component-owned toolchain environment. Installation factories
+and deployed services run through native OpenShell; the former Compose Hub service
+and application edge route are retired. See the installation's
+[native setup](../veoveo-template-installation/openshell/README.md) and the current
+[Hub/Time integration gates](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md#subsequent-adoption).
+That placement is not yet qualified for Hub + Time. Native upstream transport
+configuration is captured at startup. Catalog updates must keep `nativeUpstreams`
+unchanged; changing its gateway, trust, bearer selector or endpoint bindings requires
+a Hub restart.
 
 Tests that need a database start a private PostgreSQL cluster per test process from the
 PostgreSQL 18 programs on `PATH`; the `dev` image installs the PGDG `postgresql-18`
@@ -47,131 +49,90 @@ distribution built the same way with `kc.sh build --db=dev-mem`, and Java 21 mus
 on `PATH`.
 Queries are checked at compile time against the metadata in `.sqlx`, which also holds
 the queries of the core crates the check stage compiles. After changing a query or a
-pin, apply core's kernel migrations and then the Gateway's own migrations in
-`crates/veoveo-service-gateway/migrations` to a scratch database, and run
+pin, apply core's kernel migrations and then the Hub's own migrations in
+`crates/veoveo-hub/migrations` to a scratch database, and run
 `cargo sqlx prepare --workspace -- --all-targets --all-features` against it with an
 empty `CARGO_TARGET_DIR`, so every core query is compiled and recorded. The check stage
 does the same before `cargo sqlx prepare --check`.
 
-## Local Launch
+## Local Test Configuration
 
-A local installation runs PostgreSQL 18, the Gateway in `vv-srv-gateway` on port 8080
-and each server in its own environment. The Gateway connects as the installation owner,
-a role that owns the installation database and may create roles. At startup it applies
-core's kernel migrations, then its own migrations of the `gateway` schema, and records
-the audit classes it writes in `audit.detail_type`. Start PostgreSQL first, then build
-the Gateway and generate its installation once, with a Lore client for each
-environment:
+`generate-local-installation` creates a standalone hosted-MCP test configuration
+with two deterministic application callers. It does not provision OpenShell,
+IdP clients, Lore grants, DNS, ingress or a service deployment. Integration tests
+use it with disposable databases and manage their own Hub process. To generate a
+fixture manually from this repository:
 
 ```sh
-docker compose exec vv-srv-gateway bash -lc 'cd /sandbox/src \
-  && cargo build --locked --target-dir /sandbox/target-serve --bin veoveo-service-gateway \
-  && mkdir -p /sandbox/state/gateway \
-  && /sandbox/target-serve/debug/veoveo-service-gateway generate-local-installation \
-       --directory /sandbox/state/gateway --issuer http://vv-gateway.internal:8080 \
-       --lore-resource lores://vv-lore.internal:41337 \
-       --lore-environment vv-srv-gateway --lore-environment vv-mcp-time \
-       --lore-environment vv-mcp-artifact --lore-environment vv-mcp-media'
+cargo build --locked --bin veoveo-hub
+mkdir -p /tmp/veoveo-hub-fixture
+target/debug/veoveo-hub generate-local-installation \
+  --directory /tmp/veoveo-hub-fixture --issuer http://127.0.0.1:8080
 ```
 
-The command writes into `/sandbox/state/gateway`:
+The command writes into the selected existing directory and refuses to overwrite
+files:
 
 | File | Contents |
 |---|---|
-| `gateway.json` | The installation configuration: one profile, `local`, the `member` and `admin` roles, the registration secret reference, two client-credentials callers and the Lore resource with one grant per Lore client |
-| `gateway.env` | The generated secrets, mode 0600: forwarded-token, access-token, refresh-delivery and audit keys, and `VEOVEO_REGISTRATION_SECRET` |
+| `hub.json` | The installation configuration: one profile, `local`, the `member` and `admin` roles, the registration secret reference, two client-credentials callers |
+| `hub.env` | The generated secrets, mode 0600: forwarded-token, access-token, refresh-delivery and audit keys, and `VEOVEO_REGISTRATION_SECRET` |
 | `authorization-server.jwks.json` | The hosted authorization server's public key |
 | `acceptance-member.pem`, `acceptance-admin.pem` | RSA keys of the two callers, mode 0600, with their public `.jwks.json` |
-| `lore-admin.pem`, `lore-<environment>.pem` | RSA keys of the Lore clients, mode 0600, with their public `.jwks.json` |
 
 It prints the token endpoint, the profile's MCP endpoint, the scope and each client's
-identifier and key identifier, and no secret. Put the installation owner's password from
-the installation's `.env` into `/sandbox/state/database.env` as
-`VEOVEO_DATABASE_PASSWORD=...`.
+identifier and key identifier, and no secret. Test caller private keys stay with
+the test harness; factory callers use the SDK's environment-bearer input and native
+OpenShell credential mediation.
 
-The served binary builds into its own target directory, `/sandbox/target-serve`, apart
-from `target/`, where test builds enable test-only dependency features, so a test build
-is never served. Start it in its own terminal:
+## Runtime Contract
 
-```sh
-docker compose exec vv-srv-gateway bash -lc 'cd /sandbox/src \
-  && cargo build --locked --target-dir /sandbox/target-serve --bin veoveo-service-gateway \
-  && cd /sandbox/state/gateway && set -a && . ./gateway.env && . ../database.env && set +a \
-  && VEOVEO_ISSUER=http://vv-gateway.internal:8080 \
-     VEOVEO_LISTEN_ADDRESS=0.0.0.0:8080 \
-     VEOVEO_ALLOW_LOOPBACK_HOSTS=true \
-     VEOVEO_CONFIG=/sandbox/state/gateway/gateway.json \
-     VEOVEO_DATABASE_URL=postgres://veoveo_owner@vv-postgres.internal:5432/veoveo \
-     exec /sandbox/target-serve/debug/veoveo-service-gateway serve'
-```
+The Hub connects as the installation database owner, applies Core's kernel
+migrations and then its own `hub` migrations, and declares its audit classes.
+`VEOVEO_DATABASE_URL` names the host, database and user without a password;
+`VEOVEO_DATABASE_PASSWORD` supplies that trusted runtime credential separately.
+`VEOVEO_SERVER_DATABASE_URL` selects the database address issued to registrations
+when services reach it at a different address. Qualify real PostgreSQL session
+locks, notifications and reconnect from deployed sandboxes.
 
-`VEOVEO_DATABASE_URL` names the host, the database and the installation owner, and
-never a password. Every registration grant names the same URL without its user, so a
-server environment reaches PostgreSQL at `vv-postgres.internal:5432` too; set
-`VEOVEO_SERVER_DATABASE_URL` when servers reach the database at another address.
+The Hub application origin is installation-owned. Qualify native OpenShell
+`ServiceExposure` with `BearerPassthrough`, sandbox DNS/request authority and TLS
+verification before publishing application setup instructions. The current native
+upstream draft binds registered logical endpoints to approved workspaces,
+sandboxes and ports, using authenticated `ForwardTcp` beneath the existing HTTP
+client. It needs deployed streaming, cancellation, reconnect and management
+credential-renewal qualification. Keep native management authority with the trusted
+Hub. Do not use the retired Compose/Envoy Hub route as an ingress fallback.
 
-The Gateway listens on port 8080 of its environment. Other environments reach it through
-the installation's edge at `http://vv-gateway.internal:8080`, and the host at
-`http://127.0.0.1:8080`:
+The application routes are:
 
 | URL | Answers |
 |---|---|
 | `/livez` | HTTP 204 while the process runs |
 | `/readyz` | HTTP 200 once the audit service is ready |
 | `/.well-known/oauth-authorization-server` | RFC 8414 metadata with `registration_endpoint`, `token_endpoint` and `jwks_uri` |
-| `/jwks.json` | The keys that verify the tokens the Gateway forwards to servers |
-| `/oauth/.well-known/openid-configuration` | The OAuth authorization server's RFC 8414 metadata, where OpenID Connect Discovery clients such as Lore read its issuer and `jwks_uri` |
-| `/oauth/jwks.json` | The keys that verify the authorization server's tokens, Lore tokens included |
-| `/oauth/token` | Client-credentials tokens for the profile `local` and for the installation's Lore server, and the token exchange a registered server performs to call other servers for its caller |
+| `/jwks.json` | The keys that verify the tokens the Hub forwards to servers |
+| `/oauth/.well-known/openid-configuration` | The OAuth authorization server's RFC 8414 metadata, where OpenID Connect Discovery clients  read its issuer and `jwks_uri` |
+| `/oauth/jwks.json` | The keys that verify the authorization server's tokens |
+| `/oauth/token` | Client-credentials tokens for the profile `local`, and the token exchange a registered server performs to call other servers for its caller |
 | `/mcp/local` | The MCP endpoint of every registered server |
 
 A server registers at `/oauth/register` with the registration secret as its initial
-access token. An environment holds only a placeholder, which the installation's edge
-replaces with the secret on `POST /oauth/register`. The registration response grants
+access token. Native OpenShell policy/provider binding must limit bootstrap-secret
+mediation to that request. Preserve the SDK's subsequent registration credentials;
+they are not the bootstrap secret. The registration response grants
 the server its own PostgreSQL login; the server stays registered while that login holds
 a live kernel instance.
 
 A caller obtains a token by presenting an RFC 7523 client assertion, signed
 with its key and naming its key identifier, at `/oauth/token` with
-`grant_type=client_credentials`, `resource=http://vv-gateway.internal:8080/mcp/local`
+`grant_type=client_credentials`, `resource=http://127.0.0.1:8080/mcp/local`
 and `scope=mcp`. `acceptance-member` receives every permission without a risk, and
-`acceptance-admin` every permission.
+`acceptance-admin` every permission in that test configuration. External-issuer
+application tokens require the configured issuer/audience/claims and matching Hub
+catalog authority; the Hub does not mint tokens for an external authorization
+server. Lore credentials come directly from the installation IdP, never the Hub.
 
-## Lore Tokens
-
-An installation that runs Lore names its server in the configuration's `lore` section:
-the server's URL, which Lore tokens carry as their audience, the authorization server
-that issues them, and one grant per client. A grant lists repository IDs or every
-repository, the privileged Lore actions (`admin`, `migrate`, `obliterate` and `owner`),
-and whether the client is a Lore service account, which Lore lets push to protected
-branches. Every client that lists the Lore server in its `allowedResources` holds one
-grant.
-
-```json
-"lore": {
-  "resource": "lores://vv-lore.internal:41337",
-  "authorizationServer": "local",
-  "grants": [
-    { "client": "lore-admin", "allRepositories": true, "actions": ["admin", "owner"], "serviceAccount": true },
-    { "client": "lore-vv-mcp-time", "repositories": ["01a1397efdb27152b7259d027ce59c45"] }
-  ]
-}
-```
-
-A client requests a Lore token at `/oauth/token` with its RFC 7523 assertion,
-`grant_type=client_credentials`, `resource` set to the Lore server and no scope. The
-token lives 15 minutes, and its `lore_resources` claim lists `urc-<repository ID>`, or
-`urc-*` for every repository, with the granted actions: the shape Lore's per-repository
-authorizer reads. Lore finds the issuer's keys through
-`/oauth/.well-known/openid-configuration`.
-
-`generate-local-installation` with `--lore-resource` and one `--lore-environment` per
-environment adds the Lore admin client `lore-admin`, granted every repository with
-`admin` and `owner` as a service account, and a client `lore-<environment>` for each
-environment, which reaches no repository until the installation grants it one.
-
-Factory credential custody and renewal belong to OpenShell providers. The gateway
-no longer runs a Lore token-file or Envoy SDS worker.
 
 ## License
 

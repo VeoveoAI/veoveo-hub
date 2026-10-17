@@ -1,0 +1,425 @@
+use std::time::Instant;
+use veoveo_hub::contract::AuthorizationServerId;
+use veoveo_hub::contract::ProtectedResourceDescriptor;
+use veoveo_hub_sdk::ProtectedResourceId;
+
+use axum::{
+    Form,
+    extract::{State, rejection::FormRejection},
+    http::StatusCode,
+};
+use std::collections::BTreeSet;
+
+use veoveo_hub::HubCatalog;
+use veoveo_hub::contract::{AuthOutcome, AuthReasonCode};
+use veoveo_hub::control_plane::{HubProfile, OAuthClientRegistration};
+use veoveo_hub_sdk::OAuthClientId;
+use veoveo_oauth::CLIENT_ASSERTION_TYPE;
+use veoveo_types::ScopeName;
+
+use crate::{
+    audit::{AuthAuditRecord, AuthAuditTarget, auth_audit_error_response, record_token_auth_audit},
+    http_util::oauth_error_response,
+    oauth_client_credentials::token_endpoint_client_credentials,
+    oauth_grants::{
+        TokenRequest, token_endpoint_authorization_code, token_endpoint_id_jag,
+        token_endpoint_refresh_token,
+    },
+    runtime::{AppState, current_catalog},
+};
+
+#[path = "oauth/authorize.rs"]
+mod authorize;
+#[path = "oauth/callback.rs"]
+mod callback;
+#[path = "oauth/revoke.rs"]
+mod revoke;
+
+pub(super) use authorize::authorize_endpoint;
+pub(super) use callback::authorization_callback;
+pub(super) use revoke::revoke_refresh_token;
+
+const JWT_BEARER_GRANT_TYPE: &str = "urn:ietf:params:oauth:grant-type:jwt-bearer";
+
+pub(super) async fn token_endpoint(
+    State(state): State<AppState>,
+    request: Result<Form<TokenRequest>, FormRejection>,
+) -> axum::response::Response {
+    let started_at = Instant::now();
+    // RFC 6749 §5.2: a body that is not one form with each parameter once, or that
+    // lacks `grant_type`, is an invalid request.
+    let Ok(Form(mut request)) = request else {
+        return oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "invalid_request",
+            "the token request must be one application/x-www-form-urlencoded form with a grant_type and each parameter once",
+        );
+    };
+    // A registered server exchanging a token authenticates with its pinned key, not as
+    // a configured OAuth client.
+    if request.grant_type == veoveo_hub_sdk::calls::TOKEN_EXCHANGE_GRANT_TYPE {
+        return token_exchange(&state, request).await;
+    }
+    let catalog = current_catalog(&state.catalog);
+    let Some(client_id) = requesting_client(&request) else {
+        return *invalid_client();
+    };
+    request.client_id = client_id.to_string();
+    let effective = match state
+        .hub_state
+        .effective_oauth_client(&catalog, &client_id)
+        .await
+    {
+        Ok(Some(client)) => client,
+        Ok(None) => return *invalid_client(),
+        Err(error) => {
+            tracing::warn!(%error, "effective OAuth registration unavailable");
+            return *invalid_client();
+        }
+    };
+    let resource = match resolve_client_resource(
+        &catalog,
+        &effective.registration,
+        request.resource.as_deref(),
+    ) {
+        Ok(resource) => resource,
+        Err(response) => return *response,
+    };
+    let Some(authorization_server) = catalog.authorization_server(resource.authorization_server())
+    else {
+        if let Err(err) = record_token_auth_audit(
+            &state.hub_state,
+            resource.audit_target(),
+            AuthAuditRecord {
+                authorization_server: None,
+                client_id: None,
+                principal: None,
+                outcome: AuthOutcome::Deny,
+                reason: AuthReasonCode::UnknownAuthorizationServer,
+                started_at,
+            },
+        )
+        .await
+        {
+            return auth_audit_error_response(err);
+        }
+        return oauth_error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "server_error",
+            "authorization server is unavailable",
+        );
+    };
+
+    // Signing material alone cannot turn an external issuer into this endpoint.
+    let local_issuer = format!("{}/oauth", state.public_base_url.trim_end_matches('/'));
+    let local_token_endpoint = format!("{local_issuer}/token");
+    if authorization_server.access_token_signing_key.is_none()
+        || authorization_server.issuer.as_str() != local_issuer
+        || authorization_server.token_endpoint.as_str() != local_token_endpoint
+    {
+        return oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "unsupported_grant_type",
+            "this authorization server is external; request credentials from its token endpoint",
+        );
+    }
+
+    if request.grant_type == JWT_BEARER_GRANT_TYPE {
+        let Some(profile) = resource.profile() else {
+            return unsupported_resource_grant(&state, resource, authorization_server, started_at)
+                .await;
+        };
+        return token_endpoint_id_jag(
+            &state,
+            &catalog,
+            profile,
+            authorization_server,
+            request,
+            started_at,
+        )
+        .await;
+    }
+
+    if request.grant_type == "authorization_code" {
+        let Some(profile) = resource.profile() else {
+            return unsupported_resource_grant(&state, resource, authorization_server, started_at)
+                .await;
+        };
+        return token_endpoint_authorization_code(
+            &state,
+            &catalog,
+            profile,
+            authorization_server,
+            request,
+            started_at,
+        )
+        .await;
+    }
+
+    if request.grant_type == "refresh_token" {
+        let Some(profile) = resource.profile() else {
+            return unsupported_resource_grant(&state, resource, authorization_server, started_at)
+                .await;
+        };
+        return token_endpoint_refresh_token(
+            &state,
+            &catalog,
+            profile,
+            authorization_server,
+            request,
+            started_at,
+        )
+        .await;
+    }
+
+    token_endpoint_client_credentials(
+        &state,
+        &catalog,
+        resource,
+        authorization_server,
+        request,
+        effective,
+        started_at,
+    )
+    .await
+}
+
+/// RFC 8693 token exchange for a call between registered servers.
+async fn token_exchange(state: &AppState, request: TokenRequest) -> axum::response::Response {
+    use axum::{
+        Json,
+        http::header::{CACHE_CONTROL, PRAGMA},
+        response::IntoResponse,
+    };
+    let named = request.client_id.trim();
+    let exchange = veoveo_hub::delegation::TokenExchangeRequest {
+        client_id: (!named.is_empty()).then(|| named.to_owned()),
+        client_assertion_type: request.client_assertion_type,
+        client_assertion: request.client_assertion,
+        subject_token: request.subject_token,
+        subject_token_type: request.subject_token_type,
+        resource: request.resource,
+        authorization_details: request.authorization_details,
+        requested_token_type: request.requested_token_type,
+        actor_token: request.actor_token,
+        audience: request.audience,
+        scope: request.scope,
+    };
+    let no_store = [(CACHE_CONTROL, "no-store"), (PRAGMA, "no-cache")];
+    match state.delegation.exchange(exchange).await {
+        Ok(issued) => (StatusCode::OK, no_store, Json(issued)).into_response(),
+        Err(refusal) => {
+            let status = match refusal.error {
+                veoveo_hub_sdk::calls::TokenErrorCode::ServerError => {
+                    StatusCode::SERVICE_UNAVAILABLE
+                }
+                _ => StatusCode::BAD_REQUEST,
+            };
+            (status, no_store, Json(refusal.response())).into_response()
+        }
+    }
+}
+
+/// The client a token request names in `client_id`, or, without one, the client its
+/// RFC 7523 assertion names (RFC 7521 §4.2). The grant authenticates that client.
+fn requesting_client(request: &TokenRequest) -> Option<OAuthClientId> {
+    let named = request.client_id.trim();
+    if !named.is_empty() {
+        return OAuthClientId::parse(named).ok();
+    }
+    match (
+        request.client_assertion_type.as_deref(),
+        request.client_assertion.as_deref(),
+    ) {
+        (Some(CLIENT_ASSERTION_TYPE), Some(assertion)) => {
+            veoveo_hub::auth::asserted_client(assertion)
+        }
+        _ => None,
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum ResolvedOAuthResource<'a> {
+    Profile(&'a HubProfile),
+    Contributed(&'a ProtectedResourceDescriptor),
+}
+
+impl<'a> ResolvedOAuthResource<'a> {
+    pub(super) fn profile(self) -> Option<&'a HubProfile> {
+        match self {
+            Self::Profile(profile) => Some(profile),
+            Self::Contributed(_) => None,
+        }
+    }
+
+    pub(super) fn protected_resource(self) -> &'a ProtectedResourceId {
+        match self {
+            Self::Profile(profile) => &profile.protected_resource,
+            Self::Contributed(resource) => &resource.resource,
+        }
+    }
+
+    pub(super) fn authorization_server(self) -> &'a AuthorizationServerId {
+        match self {
+            Self::Profile(profile) => &profile.authorization_server,
+            Self::Contributed(resource) => &resource.authorization_server,
+        }
+    }
+
+    pub(super) fn supported_scopes(self, catalog: &HubCatalog) -> BTreeSet<ScopeName> {
+        match self {
+            Self::Profile(profile) => catalog.profile_supported_scopes(profile),
+            Self::Contributed(resource) => resource.required_scopes.clone(),
+        }
+    }
+
+    pub(super) fn supports_client_credentials(self) -> bool {
+        match self {
+            Self::Profile(profile) => profile
+                .auth_modes
+                .contains(&veoveo_hub::control_plane::AuthMode::OAuthClientCredentials),
+            Self::Contributed(_) => true,
+        }
+    }
+
+    pub(super) fn audit_target(self) -> AuthAuditTarget<'a> {
+        match self {
+            Self::Profile(profile) => AuthAuditTarget::from(profile),
+            Self::Contributed(resource) => AuthAuditTarget {
+                profile: None,
+                protected_resource: &resource.resource,
+            },
+        }
+    }
+}
+
+async fn unsupported_resource_grant(
+    state: &AppState,
+    resource: ResolvedOAuthResource<'_>,
+    authorization_server: &veoveo_hub::control_plane::ResourceAuthorizationServer,
+    started_at: Instant,
+) -> axum::response::Response {
+    if let Err(err) = record_token_auth_audit(
+        &state.hub_state,
+        resource.audit_target(),
+        AuthAuditRecord {
+            authorization_server: Some(authorization_server),
+            client_id: None,
+            principal: None,
+            outcome: AuthOutcome::Deny,
+            reason: AuthReasonCode::UnsupportedGrantType,
+            started_at,
+        },
+    )
+    .await
+    {
+        return auth_audit_error_response(err);
+    }
+    oauth_error_response(
+        StatusCode::BAD_REQUEST,
+        "unsupported_grant_type",
+        "grant type is not supported for this protected resource",
+    )
+}
+
+pub(super) fn resolve_oauth_resource<'a>(
+    catalog: &'a HubCatalog,
+    raw_client_id: &str,
+    raw_resource: Option<&str>,
+) -> Result<ResolvedOAuthResource<'a>, Box<axum::response::Response>> {
+    let client_id = OAuthClientId::parse(raw_client_id.trim()).map_err(|_| invalid_client())?;
+    let client = catalog
+        .oauth_client(&client_id)
+        .ok_or_else(invalid_client)?;
+    resolve_client_resource(catalog, client, raw_resource)
+}
+
+fn resolve_client_resource<'a>(
+    catalog: &'a HubCatalog,
+    client: &OAuthClientRegistration,
+    raw_resource: Option<&str>,
+) -> Result<ResolvedOAuthResource<'a>, Box<axum::response::Response>> {
+    let resource = match raw_resource
+        .map(str::trim)
+        .filter(|resource| !resource.is_empty())
+    {
+        Some(resource) => resolve_registered_resource(catalog, resource).ok_or_else(|| {
+            Box::new(oauth_error_response(
+                StatusCode::BAD_REQUEST,
+                "invalid_target",
+                "requested resource is not registered",
+            ))
+        })?,
+        None => {
+            if client.allowed_resources.len() != 1 {
+                return Err(Box::new(oauth_error_response(
+                    StatusCode::BAD_REQUEST,
+                    "invalid_request",
+                    "resource is required when an OAuth client can access multiple protected resources",
+                )));
+            }
+            let protected_resource = client
+                .allowed_resources
+                .iter()
+                .next()
+                .expect("one resource");
+            resolve_registered_resource(catalog, protected_resource.as_str()).ok_or_else(|| {
+                Box::new(oauth_error_response(
+                    StatusCode::BAD_REQUEST,
+                    "invalid_target",
+                    "OAuth client resource is not registered",
+                ))
+            })?
+        }
+    };
+    // RFC 8707 §2: a resource the client may not request is an invalid target.
+    if &client.authorization_server != resource.authorization_server()
+        || !client
+            .allowed_resources
+            .contains(resource.protected_resource())
+    {
+        return Err(Box::new(oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "invalid_target",
+            "the client may not request this resource",
+        )));
+    }
+    Ok(resource)
+}
+
+fn resolve_registered_resource<'a>(
+    catalog: &'a HubCatalog,
+    resource: &str,
+) -> Option<ResolvedOAuthResource<'a>> {
+    catalog
+        .profile_by_protected_resource(resource)
+        .map(ResolvedOAuthResource::Profile)
+        .or_else(|| {
+            catalog
+                .contributed_protected_resource(&ProtectedResourceId::parse(resource).ok()?)
+                .map(ResolvedOAuthResource::Contributed)
+        })
+}
+
+fn invalid_client() -> Box<axum::response::Response> {
+    Box::new(oauth_error_response(
+        StatusCode::BAD_REQUEST,
+        "invalid_client",
+        "the installation registers no such client",
+    ))
+}
+
+pub(super) fn resolve_oauth_profile<'a>(
+    catalog: &'a HubCatalog,
+    raw_client_id: &str,
+    raw_resource: Option<&str>,
+) -> Result<&'a HubProfile, Box<axum::response::Response>> {
+    match resolve_oauth_resource(catalog, raw_client_id, raw_resource)? {
+        ResolvedOAuthResource::Profile(profile) => Ok(profile),
+        ResolvedOAuthResource::Contributed(_) => Err(Box::new(oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "invalid_target",
+            "requested resource does not support interactive OAuth grants",
+        ))),
+    }
+}

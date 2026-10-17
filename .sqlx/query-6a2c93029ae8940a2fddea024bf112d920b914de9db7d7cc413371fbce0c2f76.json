@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.refresh_token\nSET consumed_at = $2, replacement = $3, delivery_envelope = NULL, delivery_expires_at = NULL\nWHERE id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6a2c93029ae8940a2fddea024bf112d920b914de9db7d7cc413371fbce0c2f76"
+}
