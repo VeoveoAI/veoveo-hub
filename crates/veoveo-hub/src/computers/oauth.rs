@@ -229,8 +229,8 @@ pub(super) async fn callback(
     };
     match finish(runtime, headers, callback).await {
         Ok(response) => response,
-        Err(_) => {
-            tracing::warn!("Computer callback refused or unavailable; reauthorization required");
+        Err(error) => {
+            tracing::warn!(error = %error, "Computer callback refused or unavailable; reauthorization required");
             unavailable()
         }
     }
