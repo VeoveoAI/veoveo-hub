@@ -19,7 +19,7 @@ use crate::control_plane::{
     DataLabelDefinition, HubProfile, InstallationAuthorization, PolicyDecision, PolicySet,
     TenantDefinition,
 };
-pub(crate) use evaluation::resource_scheme_from_uri as resource_scheme;
+pub(crate) use evaluation::{declared_route_access, resource_scheme_from_uri as resource_scheme};
 use veoveo_hub_sdk::registration::AuthorizationDeclaration;
 use veoveo_hub_sdk::{HubProfileId, ServerSlug};
 use veoveo_types::{DataLabelId, PolicyVersion, TenantId};

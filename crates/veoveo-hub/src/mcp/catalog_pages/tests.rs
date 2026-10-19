@@ -7,11 +7,11 @@ fn template(index: usize) -> ResourceTemplate {
     ResourceTemplate::new(format!("{scheme}://docs/{{doc_id}}"), "Document")
 }
 
-fn continuation<T>(page: &Page<T>) -> PaginatedRequestParams {
+fn continuation<T>(page: &CatalogPage<T>) -> PaginatedRequestParams {
     PaginatedRequestParams::default().with_cursor(page.next_cursor.clone())
 }
 
-fn template_ids(page: &Page<ResourceTemplate>) -> Vec<String> {
+fn template_ids(page: &CatalogPage<ResourceTemplate>) -> Vec<String> {
     page.items
         .iter()
         .map(|item| item.uri_template.clone())

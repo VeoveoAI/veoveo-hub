@@ -337,10 +337,12 @@ impl HubMcp {
             && decision.effect == PolicyEffect::Allow
         {
             decision.granted = delegation.narrow(std::mem::take(&mut decision.granted));
-            let carried = match &decision.permission {
-                Some(required) => delegation.permissions.contains(required),
-                None => !decision.granted.is_empty(),
-            };
+            let carried = delegation_carries(
+                crate::policy::declared_route_access(catalog.as_ref(), target),
+                target,
+                &delegation.permissions,
+                &decision.granted,
+            );
             if !carried {
                 decision.effect = PolicyEffect::Deny;
                 decision.reason = PolicyReasonCode::MissingPermission;
@@ -628,6 +630,29 @@ fn policy_denial_message(decision: &PolicyDecision) -> String {
     format!("You don't have permission to {action}.{detail}")
 }
 
+fn delegation_carries(
+    access: Option<&veoveo_hub_sdk::registration::RouteAccess>,
+    target: &PolicyTarget,
+    carried: &std::collections::BTreeSet<veoveo_types::PermissionName>,
+    narrowed: &std::collections::BTreeSet<veoveo_types::PermissionName>,
+) -> bool {
+    use veoveo_hub_sdk::registration::RouteAccess;
+    match access {
+        Some(RouteAccess::Authenticated) => true,
+        Some(RouteAccess::Permission(permission)) => carried.contains(permission),
+        None if matches!(
+            target,
+            PolicyTarget::Server { .. }
+                | PolicyTarget::Task { .. }
+                | PolicyTarget::PlatformTask { .. }
+        ) =>
+        {
+            !narrowed.is_empty()
+        }
+        None => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::contract::HubAction;
@@ -678,5 +703,42 @@ mod tests {
             OAuthClientSurface::ToolsCompat,
             true
         ));
+    }
+    #[test]
+    fn delegated_routes_require_only_their_declared_access_and_keep_server_boundaries() {
+        use std::collections::BTreeSet;
+        use veoveo_hub_sdk::registration::RouteAccess;
+        use veoveo_types::PermissionName;
+        let target = PolicyTarget::Tool {
+            server: ServerSlug::parse("upstream-a").unwrap(),
+            tool: LocalToolName::parse("route").unwrap(),
+        };
+        let permission = PermissionName::parse("upstream-a.records.read").unwrap();
+        let empty = BTreeSet::new();
+        let held = BTreeSet::from([permission.clone()]);
+        assert!(super::delegation_carries(
+            Some(&RouteAccess::Authenticated),
+            &target,
+            &empty,
+            &empty
+        ));
+        assert!(!super::delegation_carries(
+            Some(&RouteAccess::Permission(permission.clone())),
+            &target,
+            &empty,
+            &empty
+        ));
+        assert!(super::delegation_carries(
+            Some(&RouteAccess::Permission(permission)),
+            &target,
+            &held,
+            &held
+        ));
+        assert!(!super::delegation_carries(None, &target, &held, &held));
+        let server = PolicyTarget::Server {
+            server: ServerSlug::parse("upstream-a").unwrap(),
+        };
+        assert!(!super::delegation_carries(None, &server, &empty, &empty));
+        assert!(super::delegation_carries(None, &server, &held, &held));
     }
 }

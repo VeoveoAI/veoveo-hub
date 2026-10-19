@@ -6,7 +6,7 @@ use crate::control_plane::{
     PolicyTarget, TraceId,
 };
 use anyhow::Result;
-use veoveo_hub_sdk::registration::RequirementTarget;
+use veoveo_hub_sdk::registration::{RequirementTarget, RouteAccess};
 use veoveo_hub_sdk::{HubProfileId, McpMethodName, Principal};
 use veoveo_types::{PermissionName, PolicyVersion, ResourceScheme, ScopeName};
 
@@ -83,6 +83,17 @@ fn registered_target(
     }
 }
 
+/// Access for an explicit declared route, never the server/Task fallback.
+pub(crate) fn declared_route_access<'a>(
+    catalog: &'a impl PolicyCatalogView,
+    target: &PolicyTarget,
+) -> Option<&'a RouteAccess> {
+    let (server, Some(requirement)) = registered_target(target)? else {
+        return None;
+    };
+    catalog.server_authorization(server)?.access(requirement)
+}
+
 fn decide_server(
     catalog: &impl PolicyCatalogView,
     request: &PolicyRequest<'_>,
@@ -102,9 +113,12 @@ fn decide_server(
         declaration,
         request.principal,
     );
-    let required = match requirement {
-        Some(target) => match declaration.required(target) {
-            Some(required) => Some(required.permission.clone()),
+    let (required, allowed) = match requirement {
+        Some(target) => match declared_route_access(catalog, request.target) {
+            Some(RouteAccess::Authenticated) => (None, true),
+            Some(RouteAccess::Permission(permission)) => {
+                (Some(permission.clone()), granted.contains(permission))
+            }
             None => {
                 let reason = match target {
                     RequirementTarget::Tool(_) => PolicyReasonCode::UnknownTool,
@@ -116,11 +130,7 @@ fn decide_server(
                 return deny(request, reason, version);
             }
         },
-        None => None,
-    };
-    let allowed = match &required {
-        Some(permission) => granted.contains(permission),
-        None => !granted.is_empty(),
+        None => (None, !granted.is_empty()),
     };
     let mut decision = decision(
         request,

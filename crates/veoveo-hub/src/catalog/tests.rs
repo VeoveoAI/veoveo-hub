@@ -702,3 +702,81 @@ fn native_upstream_reload_accepts_unchanged_placement_and_keeps_registrations() 
         "changed"
     );
 }
+
+#[test]
+fn registered_authenticated_routes_keep_current_admission_and_task_boundaries() {
+    use veoveo_hub_sdk::{
+        LocalToolName, calls::ProviderContract, definition::CollectionTool, hosting::DomainServer,
+    };
+    use veoveo_hub_sdk_fixture::{
+        contract::{Observatory, ReadingsTool},
+        mcp::ObservatoryMcp,
+    };
+    let base = catalog();
+    let declaration = ObservatoryMcp::routes().authorization();
+    let catalog = crate::policy::PolicyCatalog::new(
+        base.control_plane().clone(),
+        crate::test_catalog::registry(),
+    )
+    .unwrap()
+    .with_server(Observatory::slug(), declaration);
+    let profile = HubProfileId::parse("default").unwrap();
+    let trace = TraceId::parse("authenticated-route").unwrap();
+    let caller = principal(&["operator:use"]);
+    let target = PolicyTarget::Tool {
+        server: Observatory::slug(),
+        tool: LocalToolName::parse(ReadingsTool::TOOL).unwrap(),
+    };
+    let request = |principal, target| PolicyRequest {
+        principal,
+        profile: &profile,
+        action: HubAction::ToolsCall.into(),
+        target,
+        trace_id: &trace,
+    };
+    let admitted = crate::policy::decide(&catalog, request(&caller, &target));
+    assert_eq!(admitted.effect, PolicyEffect::Allow);
+    assert!(admitted.granted.is_empty());
+    assert!(admitted.permission.is_none());
+    let missing_scope = principal(&[]);
+    assert_eq!(
+        crate::policy::decide(&catalog, request(&missing_scope, &target)).reason,
+        PolicyReasonCode::MissingScope
+    );
+    let unknown = PolicyTarget::Tool {
+        server: Observatory::slug(),
+        tool: LocalToolName::parse("undeclared").unwrap(),
+    };
+    assert_eq!(
+        crate::policy::decide(&catalog, request(&caller, &unknown)).reason,
+        PolicyReasonCode::UnknownTool
+    );
+    for (target, action) in [
+        (
+            PolicyTarget::Server {
+                server: Observatory::slug(),
+            },
+            HubAction::ResourcesList,
+        ),
+        (
+            PolicyTarget::PlatformTask {
+                server: Observatory::slug(),
+                task_id: veoveo_types::TaskId::new(),
+            },
+            HubAction::TasksGet,
+        ),
+    ] {
+        let denied = crate::policy::decide(
+            &catalog,
+            PolicyRequest {
+                principal: &caller,
+                profile: &profile,
+                action: action.into(),
+                target: &target,
+                trace_id: &trace,
+            },
+        );
+        assert_eq!(denied.effect, PolicyEffect::Deny);
+        assert_eq!(denied.reason, PolicyReasonCode::MissingPermission);
+    }
+}

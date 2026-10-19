@@ -157,7 +157,10 @@ each page uses the caller's current admission on any replica.
 `policy::decide` in `src/policy` makes every decision. A registered server's tools,
 resources, templates, prompts and Tasks are decided by installation roles over that
 server's declared permissions. A role grants a permission only when it allows its
-access kind and every one of its risks. A target the server did not declare is denied.
+access kind and every one of its risks. An explicitly declared `Authenticated`
+route needs current principal/profile admission and no additional permission; a target
+the server did not declare is denied. Server-wide and Task targets retain their
+requirement for at least one granted permission in that server's namespace.
 The Hub's own administrative actions are decided by the configuration's policy
 rules.
 
@@ -230,8 +233,11 @@ the profile's protected resource, whatever authorization servers the profile nam
 for a Task subject the Task must still run. The admitted subject is the caller, with
 its delegation: the acting server, the token's permissions and, for a Task subject, the
 Task. Every policy decision for that subject, for tool calls, resource reads and
-subscriptions alike, narrows the role-granted permissions to the token's, so a target
-the token does not carry is denied as a missing permission. The forwarded token names
+subscriptions alike, narrows the role-granted permissions to the token's. An
+explicit declared `Authenticated` route may carry zero permissions after current
+principal/profile and managed-client admission; undeclared targets remain denied,
+and server/Task targets retain the nonempty narrowed-grant requirement. A route whose
+required permission the token does not carry is denied as a missing permission. The forwarded token names
 the calling server as the prior actor and, for a Task subject, the calling server's
 Task as `acting_task`, by the identifier that server issued. Every record of a
 delegated request names the calling server, and its Task when the identifier is a core

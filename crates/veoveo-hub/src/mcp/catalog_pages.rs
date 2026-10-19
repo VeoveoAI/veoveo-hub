@@ -4,7 +4,7 @@ use rmcp::model::{
     ErrorData as McpError, PaginatedRequestParams, Prompt, Resource, ResourceTemplate, Tool,
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use veoveo_hub_sdk::Page;
+use veoveo_hub_sdk::CatalogPage;
 use veoveo_hub_sdk::PromptName;
 use veoveo_hub_sdk::hub::HubToolName;
 use veoveo_types::{ResourceTemplateUri, ResourceUri};
@@ -80,7 +80,7 @@ impl CatalogItem for ResourceTemplate {
 pub(super) fn page<T: CatalogItem>(
     items: Vec<T>,
     request: Option<&PaginatedRequestParams>,
-) -> Result<Page<T>, McpError> {
+) -> Result<CatalogPage<T>, McpError> {
     let after = request
         .and_then(|request| request.cursor.as_deref())
         .map(decode::<T>)
@@ -110,7 +110,7 @@ pub(super) fn page<T: CatalogItem>(
     } else {
         None
     };
-    Ok(Page {
+    Ok(CatalogPage {
         items: selected.into_iter().map(|(_, item)| item).collect(),
         next_cursor,
     })

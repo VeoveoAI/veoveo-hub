@@ -43,7 +43,7 @@ use veoveo_hub_sdk::registration::{
     statement::ServerKeyPair,
 };
 use veoveo_hub_sdk::{HubInternalIdentity, HubInternalTokenVerifier};
-use veoveo_hub_sdk_fixture::mcp::{FixtureGrants, ObservatoryMcp};
+use veoveo_hub_sdk_fixture::mcp::hosted as observatory;
 use veoveo_store::{Instance, PlatformStore, StoreConfig};
 use veoveo_types::{ResourceScheme, ServerSlug};
 
@@ -175,7 +175,7 @@ async fn qualify() {
     let served = fixture.clone();
     tokio::spawn(async move {
         let service = StreamableHttpService::new(
-            || Ok(ObservatoryMcp),
+            || Ok(observatory()),
             veoveo_hub_sdk::stateless_session_manager(),
             veoveo_hub_sdk::canonical_streamable_http_server_config(),
         );
@@ -431,11 +431,11 @@ fn registration_client(
         ],
         "requirements": {
             "resources": {
-                "observatory://readings": "observatory.readings.read",
-                "observatory://contract": "observatory.contract.read"
+                "observatory://readings": {"kind":"permission", "permission":"observatory.readings.read"},
+                "observatory://contract": {"kind":"permission", "permission":"observatory.contract.read"}
             },
             "resourceTemplates": {
-                "observatory://reading/{reading_id}": "observatory.readings.read"
+                "observatory://reading/{reading_id}": {"kind":"permission", "permission":"observatory.readings.read"}
             }
         }
     }))
@@ -494,7 +494,7 @@ fn hub_slug_client(
 }
 
 /// The fixture server verifies the Hub's forwarded token and records what it
-/// granted. A verified token stands in for the fixture's own read scope.
+/// granted. The native typed host admits the verified identity for each route.
 #[derive(Clone, Default)]
 struct Fixture {
     verifier: Arc<Mutex<Option<HubInternalTokenVerifier>>>,
@@ -527,13 +527,9 @@ async fn authenticate(
     let Some((identity, key_id)) = verified else {
         return StatusCode::UNAUTHORIZED.into_response();
     };
-    fixture.forwarded.lock().unwrap().push(identity);
+    fixture.forwarded.lock().unwrap().push(identity.clone());
     fixture.key_ids.lock().unwrap().insert(key_id);
-    request
-        .extensions_mut()
-        .insert(FixtureGrants(BTreeSet::from([
-            veoveo_hub_sdk_fixture::contract::ObservatoryScope::Read.into(),
-        ])));
+    request.extensions_mut().insert(identity);
     next.run(request).await
 }
 
