@@ -27,6 +27,7 @@ CREATE TABLE hub.computer_browser_session (
     created_at timestamptz NOT NULL
 );
 CREATE INDEX computer_browser_session_computer ON hub.computer_browser_session(computer_id);
+CREATE INDEX computer_browser_session_family ON hub.computer_browser_session(family_id);
 
 -- Single-use PKCE state bound to the browser that initiated login. The verifier is
 -- short-lived authorization request material, not an access or refresh grant.
@@ -37,3 +38,15 @@ CREATE TABLE hub.computer_login (
     expires_at timestamptz NOT NULL
 );
 CREATE INDEX computer_login_expiry ON hub.computer_login(expires_at);
+
+COMMENT ON TABLE hub.computer IS
+    'Retention: durable owner mapping for the life of the installation, unless '
+    'explicitly deleted; browser logout, family expiry and runtime loss do not remove it.';
+
+COMMENT ON TABLE hub.computer_browser_session IS
+    'Retention: until its native refresh family or Computer is deleted; foreign-key '
+    'cascades remove it. Expired or revoked families cannot authorize retained rows.';
+
+COMMENT ON TABLE hub.computer_login IS
+    'Retention: until consumed once by its initiating browser or expired; the Hub '
+    'prunes expired login state in batches.';

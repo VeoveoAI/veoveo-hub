@@ -1,1 +1,1 @@
-SELECT id, tenant, principal_id, workspace_request, template_request, model_provider_request, hub_provider_request, sandbox_request, handoff_id, configure_request, rotate_request, family_id, ready FROM hub.computer WHERE id = $1
+SELECT id, tenant, principal_id, workspace_request, template_request, model_provider_request, hub_provider_request, sandbox_request, handoff_id, configure_request, rotate_request, family_id, ready FROM hub.computer WHERE id = $1 AND tenant = $2 AND principal_id = $3

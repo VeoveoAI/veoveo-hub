@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Synthetic delivery envelopes exercise more than one native clearing batch.\n-- No credential is issued or decrypted by this fixture.\nINSERT INTO hub.refresh_token (\n    id, family, token_digest, generation, issued_at, expires_at,\n    delivery_envelope, delivery_expires_at\n)\nSELECT token.id, $2, 'sha256:' || lpad(to_hex(token.generation), 64, '0'),\n       token.generation, $3, $4, 'synthetic-delivery-fixture', $4\nFROM unnest($1::uuid[]) WITH ORDINALITY AS token(id, generation)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "60cc76dd4d9f526e7a6ba621d6126b8c34f6a77b97b1ec44335a139edd2a2bab"
+}

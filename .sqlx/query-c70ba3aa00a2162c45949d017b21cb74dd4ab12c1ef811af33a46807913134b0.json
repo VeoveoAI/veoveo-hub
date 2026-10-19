@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, tenant, principal_id, workspace_request, template_request, model_provider_request, hub_provider_request, sandbox_request, handoff_id, configure_request, rotate_request, family_id, ready FROM hub.computer WHERE id = $1\n",
+  "query": "SELECT id, tenant, principal_id, workspace_request, template_request, model_provider_request, hub_provider_request, sandbox_request, handoff_id, configure_request, rotate_request, family_id, ready FROM hub.computer WHERE id = $1 AND tenant = $2 AND principal_id = $3\n",
   "describe": {
     "columns": [
       {
@@ -149,7 +149,9 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Text",
+        "Text"
       ]
     },
     "nullable": [
@@ -168,5 +170,5 @@
       false
     ]
   },
-  "hash": "e935e04a2fc79a7c054842228917ed4160774ee6105529ecad837bf2b6ddb224"
+  "hash": "c70ba3aa00a2162c45949d017b21cb74dd4ab12c1ef811af33a46807913134b0"
 }

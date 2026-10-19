@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.computer SET ready = true, family_id = $2, handoff_id = NULL WHERE id = $1 AND tenant = $3 AND principal_id = $4\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b3fa523733ec5de9f135690b338c8de44ba66e106a4b6b19e4db07ad3deed614"
+}

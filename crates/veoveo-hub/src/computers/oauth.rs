@@ -409,7 +409,7 @@ async fn finish(
             let claim = worker_runtime
                 .hub
                 .hub_store()
-                .lock_computer_handoff(&computer.id, handoff)
+                .lock_computer_handoff(&computer, handoff)
                 .await?
                 .context("Computer handoff superseded")?;
             let current = worker_runtime.catalog.current();

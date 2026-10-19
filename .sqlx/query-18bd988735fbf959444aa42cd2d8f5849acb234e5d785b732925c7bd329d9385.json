@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Clear one bounded batch of this revoked family's successor deliveries. The\n-- caller retains the family lock and repeats until empty before audit/commit.\nUPDATE hub.refresh_token\nSET delivery_envelope = NULL, delivery_expires_at = NULL\nWHERE id IN (\n    SELECT id FROM hub.refresh_token\n    WHERE family = $1 AND delivery_envelope IS NOT NULL\n    ORDER BY generation\n    LIMIT 1000\n    FOR UPDATE\n)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "18bd988735fbf959444aa42cd2d8f5849acb234e5d785b732925c7bd329d9385"
+}

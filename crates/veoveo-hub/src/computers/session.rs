@@ -54,20 +54,16 @@ impl HubState {
         route: Option<&ComputerId>,
     ) -> Result<Option<BrowserSession>> {
         tokio::time::timeout(ADMISSION_READ_TIMEOUT, async {
-            let Some((computer, family_id)) = self.hub_store().computer_session(digest).await?
-            else {
+            let Some((computer, family)) = self.hub_store().computer_session(digest).await? else {
                 return Ok(None);
             };
             if !computer.ready
                 || computer.handoff.is_some()
-                || computer.family.as_ref() != Some(&family_id)
+                || computer.family.as_ref() != Some(&family.id)
                 || route.is_some_and(|id| id != &computer.id)
             {
                 return Ok(None);
             }
-            let Some(family) = self.hub_store().refresh_family(&family_id).await? else {
-                return Ok(None);
-            };
             self.admit_computer_family(catalog, config, computer, family)
                 .await
         })
@@ -193,7 +189,7 @@ mod tests {
             let computer = hub.hub_store().ensure_computer(principal.tenant.as_ref().unwrap(), &principal.id).await.unwrap();
             let pending = hub.hub_store().begin_computer_handoff(&computer).await.unwrap();
             let digest = Sha256Digest::from_bytes([42; 32]);
-            hub.hub_store().lock_computer_handoff(&computer.id, pending).await.unwrap().unwrap()
+            hub.hub_store().lock_computer_handoff(&computer, pending).await.unwrap().unwrap()
                 .complete(&issued.grant.family_id, &digest).await.unwrap();
             assert!(hub.computer_browser_session(&catalog, &config, &digest, None).await.unwrap().is_some());
             hub.revoke_refresh_token_family(&issued.token, &profile.authorization_server, &config.profile, &config.oauth_client, Utc::now()).await.unwrap();

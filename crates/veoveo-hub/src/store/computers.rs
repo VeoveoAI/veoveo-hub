@@ -5,7 +5,7 @@ use uuid::Uuid;
 use veoveo_hub_sdk::HubRefreshFamilyId;
 use veoveo_types::{PrincipalId, Sha256Digest, TenantId};
 
-use super::{HubStore, HubStoreError, admitted};
+use super::{HubStore, HubStoreError, RefreshFamily, admitted};
 use crate::{computers::ComputerId, contract::PkceCodeVerifier};
 
 #[derive(Clone, Debug)]
@@ -97,7 +97,9 @@ impl ComputerHandoff {
         sqlx::query_file!(
             "src/store/computers/complete.sql",
             self.computer.id.as_uuid(),
-            family.as_uuid()
+            family.as_uuid(),
+            self.computer.tenant.as_str(),
+            self.computer.principal.as_str()
         )
         .execute(&mut *self.transaction)
         .await?;
@@ -140,9 +142,18 @@ impl HubStore {
         if row.is_none() {
             return Ok(false);
         }
-        sqlx::query_file!("src/store/computers/clear_deliveries.sql", family.as_uuid())
-            .execute(&mut *transaction)
-            .await?;
+        // The family row remains locked through revocation, every bounded token
+        // batch and the audit. Do not commit with older successor deliveries left.
+        loop {
+            let cleared =
+                sqlx::query_file!("src/store/computers/clear_deliveries.sql", family.as_uuid())
+                    .execute(&mut *transaction)
+                    .await?
+                    .rows_affected();
+            if cleared == 0 {
+                break;
+            }
+        }
         audit.append(&mut transaction).await?;
         transaction.commit().await?;
         Ok(true)
@@ -176,12 +187,23 @@ impl HubStore {
         .await?
         .try_into()
     }
-    pub async fn computer(&self, id: &ComputerId) -> Result<Option<Computer>, HubStoreError> {
-        sqlx::query_file_as!(ComputerRow, "src/store/computers/read.sql", id.as_uuid())
-            .fetch_optional(self.pool())
-            .await?
-            .map(Computer::try_from)
-            .transpose()
+    pub async fn computer(
+        &self,
+        tenant: &TenantId,
+        principal: &PrincipalId,
+        id: &ComputerId,
+    ) -> Result<Option<Computer>, HubStoreError> {
+        sqlx::query_file_as!(
+            ComputerRow,
+            "src/store/computers/read.sql",
+            id.as_uuid(),
+            tenant.as_str(),
+            principal.as_str()
+        )
+        .fetch_optional(self.pool())
+        .await?
+        .map(Computer::try_from)
+        .transpose()
     }
     /// Autocommitted before any native call. Concurrent logins wait behind an active
     /// worker row lock; a crashed worker leaves this durable pending state intact.
@@ -202,15 +224,23 @@ impl HubStore {
     }
     pub async fn lock_computer_handoff(
         &self,
-        id: &ComputerId,
+        owner: &Computer,
         handoff: Uuid,
     ) -> Result<Option<ComputerHandoff>, HubStoreError> {
         let mut transaction = self.pool().begin().await?;
-        let computer: Computer =
-            sqlx::query_file_as!(ComputerRow, "src/store/computers/lock.sql", id.as_uuid())
-                .fetch_one(&mut *transaction)
-                .await?
-                .try_into()?;
+        let Some(row) = sqlx::query_file_as!(
+            ComputerRow,
+            "src/store/computers/lock.sql",
+            owner.id.as_uuid(),
+            owner.tenant.as_str(),
+            owner.principal.as_str()
+        )
+        .fetch_optional(&mut *transaction)
+        .await?
+        else {
+            return Ok(None);
+        };
+        let computer: Computer = row.try_into()?;
         if computer.handoff != Some(handoff) || computer.ready {
             return Ok(None);
         }
@@ -219,10 +249,13 @@ impl HubStore {
             transaction,
         }))
     }
+    /// Resolve the cookie's native family before selecting its tenant/principal's
+    /// Computer. Current client, membership, expiry and readiness admission still
+    /// belongs to BrowserSession construction.
     pub async fn computer_session(
         &self,
         digest: &Sha256Digest,
-    ) -> Result<Option<(Computer, HubRefreshFamilyId)>, HubStoreError> {
+    ) -> Result<Option<(Computer, RefreshFamily)>, HubStoreError> {
         let row = sqlx::query_file!("src/store/computers/session_read.sql", digest.as_str())
             .fetch_optional(self.pool())
             .await?;
@@ -237,7 +270,17 @@ impl HubStore {
             "computer_session.family_id",
             HubRefreshFamilyId::parse(row.family_id.to_string()),
         )?;
-        Ok(self.computer(&id).await?.map(|computer| (computer, family)))
+        let Some(family) = self.refresh_family(&family).await? else {
+            return Ok(None);
+        };
+        let principal = &family.principal.principal;
+        let Some(tenant) = principal.tenant.as_ref() else {
+            return Ok(None);
+        };
+        Ok(self
+            .computer(tenant, &principal.id, &id)
+            .await?
+            .map(|computer| (computer, family)))
     }
     pub async fn insert_computer_login(
         &self,
@@ -354,8 +397,35 @@ mod tests {
                 .unwrap();
             let digest = Sha256Digest::from_bytes([7; 32]);
             let first_id = first.begin_computer_handoff(&computer).await.unwrap();
+            for (tenant, principal) in [
+                (
+                    TenantId::parse("tenant-b").unwrap(),
+                    computer.principal.clone(),
+                ),
+                (computer.tenant.clone(), other.principal.clone()),
+            ] {
+                assert!(
+                    first
+                        .computer(&tenant, &principal, &computer.id)
+                        .await
+                        .unwrap()
+                        .is_none(),
+                    "a Computer identifier cannot bypass its tenant and principal"
+                );
+                let mut wrong_owner = computer.clone();
+                wrong_owner.tenant = tenant;
+                wrong_owner.principal = principal;
+                assert!(
+                    first
+                        .lock_computer_handoff(&wrong_owner, first_id)
+                        .await
+                        .unwrap()
+                        .is_none(),
+                    "custody cannot lock another owner even with the current handoff ID"
+                );
+            }
             let worker = first
-                .lock_computer_handoff(&computer.id, first_id)
+                .lock_computer_handoff(&computer, first_id)
                 .await
                 .unwrap()
                 .unwrap();
@@ -381,19 +451,23 @@ mod tests {
             );
             assert!(
                 first
-                    .lock_computer_handoff(&computer.id, first_id)
+                    .lock_computer_handoff(&computer, first_id)
                     .await
                     .unwrap()
                     .is_none()
             );
             drop(
                 first
-                    .lock_computer_handoff(&computer.id, next_id)
+                    .lock_computer_handoff(&computer, next_id)
                     .await
                     .unwrap()
                     .unwrap(),
             );
-            let pending = second.computer(&computer.id).await.unwrap().unwrap();
+            let pending = second
+                .computer(&computer.tenant, &computer.principal, &computer.id)
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(
                 pending.handoff,
                 Some(next_id),
@@ -417,7 +491,7 @@ mod tests {
             // Keep the old digest present to exercise stale-family refusal.
             let replacement_digest = Sha256Digest::from_bytes([8; 32]);
             first
-                .lock_computer_handoff(&computer.id, next_id)
+                .lock_computer_handoff(&computer, next_id)
                 .await
                 .unwrap()
                 .unwrap()
@@ -445,6 +519,20 @@ mod tests {
                     .await
                     .unwrap()
             );
+            // Synthetic stored envelopes cover two clearing batches. Audit
+            // rollback must retain all of them, and successful logout clears all.
+            let token_ids: Vec<_> = (0..1001).map(|_| Uuid::now_v7()).collect();
+            let now = Utc::now();
+            sqlx::query_file!(
+                "src/store/computers/tests/seed_deliveries.sql",
+                &token_ids,
+                replacement.grant.family_id.as_uuid(),
+                now,
+                now + TimeDelta::minutes(5)
+            )
+            .execute(first.pool())
+            .await
+            .unwrap();
             struct FailedAudit;
             impl super::super::TransactionAppend for FailedAudit {
                 async fn append(&self, _: &mut sqlx::PgConnection) -> Result<(), HubStoreError> {
@@ -458,6 +546,18 @@ mod tests {
                     .revoke_computer_session(&computer, &replacement.grant.family_id, &FailedAudit)
                     .await
                     .is_err()
+            );
+            assert_eq!(
+                sqlx::query_file!(
+                    "src/store/computers/tests/count_deliveries.sql",
+                    replacement.grant.family_id.as_uuid()
+                )
+                .fetch_one(second.pool())
+                .await
+                .unwrap()
+                .remaining,
+                1001,
+                "audit failure must roll back every envelope batch"
             );
             assert!(
                 second
@@ -474,6 +574,18 @@ mod tests {
                     .revoke_computer_session(&computer, &replacement.grant.family_id, &NoAudit)
                     .await
                     .unwrap()
+            );
+            assert_eq!(
+                sqlx::query_file!(
+                    "src/store/computers/tests/count_deliveries.sql",
+                    replacement.grant.family_id.as_uuid()
+                )
+                .fetch_one(second.pool())
+                .await
+                .unwrap()
+                .remaining,
+                0,
+                "logout must clear every envelope, including later batches"
             );
             assert_eq!(
                 second
