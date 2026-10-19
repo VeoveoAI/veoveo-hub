@@ -6,6 +6,9 @@
 #[path = "support/hub.rs"]
 mod hub;
 
+#[path = "mcp_lifecycle/subscription_end.rs"]
+mod subscription_end;
+
 use std::time::Duration;
 
 use hub::{DISCOVER, Hub, MCP_VERSION, Mcp};

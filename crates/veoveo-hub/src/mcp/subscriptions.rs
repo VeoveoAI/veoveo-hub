@@ -6,7 +6,7 @@ use crate::control_plane::DiscoveryFailureMode;
 use futures::{Stream, StreamExt, stream::SelectAll};
 use rmcp::{
     model::{ErrorData as McpError, ServerNotification, SubscriptionFilter},
-    service::{ServiceError, SubscriptionContext},
+    service::{ServiceError, SubscriptionContext, SubscriptionEnd},
 };
 use veoveo_hub_sdk::{CanonicalTaskId, ServerSlug};
 
@@ -25,8 +25,13 @@ struct UpstreamSubscriptionRoute {
 
 type RoutedNotificationStream = Pin<
     Box<
-        dyn Stream<Item = (ServerSlug, bool, Result<ServerNotification, ServiceError>)>
-            + Send
+        dyn Stream<
+                Item = (
+                    ServerSlug,
+                    bool,
+                    Result<Option<ServerNotification>, ServiceError>,
+                ),
+            > + Send
             + 'static,
     >,
 >;
@@ -223,7 +228,7 @@ impl HubMcp {
                     let Some(update) = update else { continue; };
                     let (server, _required, update) = update;
                     match update {
-                        Ok(mut notification) => {
+                        Ok(Some(mut notification)) => {
                             self.project_subscription_notification(
                                 &server,
                                 task_routes.get(&server),
@@ -233,12 +238,15 @@ impl HubMcp {
                                 mcp_internal(format!("failed to forward subscription notification: {error}"))
                             })?;
                         }
-                        Err(error) => {
+                        Ok(None) => {
                             // An established listener that loses its source cannot
                             // keep claiming a live catalog. Reconnect re-admits all
-                            // filters; initially unavailable servers remain isolated.
-                            return Err(upstream_error(error));
+                            // filters. Complete this listen normally so the client
+                            // can re-listen and read current state; an ended source
+                            // is not an upstream application error.
+                            return Ok(());
                         }
+                        Err(error) => return Err(upstream_error(error)),
                     }
                 }
                 change = discovery_changes.recv() => {
@@ -381,14 +389,28 @@ fn routed_notifications(
     server: ServerSlug,
     required: bool,
     mut subscription: rmcp::service::Subscription,
-) -> impl Stream<Item = (ServerSlug, bool, Result<ServerNotification, ServiceError>)> + Send + 'static
-{
+) -> impl Stream<
+    Item = (
+        ServerSlug,
+        bool,
+        Result<Option<ServerNotification>, ServiceError>,
+    ),
+> + Send
++ 'static {
     async_stream::stream! {
         loop {
             match subscription.next().await {
-                Ok(Some(notification)) => yield (server.clone(), required, Ok(notification)),
+                Ok(Some(notification)) => yield (server.clone(), required, Ok(Some(notification))),
                 Ok(None) => {
-                    yield (server.clone(), required, Err(ServiceError::TransportClosed));
+                    let reason = match subscription.end() {
+                        Some(SubscriptionEnd::Graceful(_)) => "graceful",
+                        Some(SubscriptionEnd::Abrupt) => "abrupt",
+                        Some(SubscriptionEnd::Cancelled) => "cancelled",
+                        Some(SubscriptionEnd::Lagged { .. }) => "lagged",
+                        _ => "unknown",
+                    };
+                    tracing::info!(%server, reason, "upstream subscription ended; completing downstream listen for re-subscription");
+                    yield (server.clone(), required, Ok(None));
                     break;
                 }
                 Err(error) => {

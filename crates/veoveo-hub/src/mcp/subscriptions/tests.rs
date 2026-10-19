@@ -59,7 +59,7 @@ async fn an_ended_catalog_source_reaches_the_downstream_reconnect_path() {
         .await
         .unwrap()
         .unwrap();
-    assert!(matches!(event.2, Err(ServiceError::TransportClosed)));
+    assert!(matches!(event.2, Ok(None)));
     let _ = client
         .close_with_timeout(std::time::Duration::from_secs(2))
         .await;
