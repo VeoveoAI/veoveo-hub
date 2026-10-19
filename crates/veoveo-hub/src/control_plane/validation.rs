@@ -355,7 +355,7 @@ pub(super) fn validate_oauth_client_registration(
             });
         };
         if secret.purpose != SecretPurpose::OAuthClientSecret
-            && secret.purpose != SecretPurpose::TokenExchangeCredential
+            && (hosted || secret.purpose != SecretPurpose::TokenExchangeCredential)
         {
             return Err(HubControlPlaneError::OAuthClientSecretPurposeMismatch {
                 client: client.id.clone(),

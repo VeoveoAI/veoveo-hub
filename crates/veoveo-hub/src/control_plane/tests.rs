@@ -1096,7 +1096,10 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
     ));
 
     let mut clients = default_oauth_clients();
-    clients[1].auth_methods = BTreeSet::from([OAuthClientAuthMethod::ClientSecretPost]);
+    clients[1].auth_methods = BTreeSet::from([
+        OAuthClientAuthMethod::PrivateKeyJwt,
+        OAuthClientAuthMethod::ClientSecretPost,
+    ]);
     clients[1].credential_secret =
         Some(SecretReferenceId::parse("enterprise_oidc_client_secret").unwrap());
     let config = HubControlPlane {
@@ -1121,7 +1124,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
 
     let err = config
         .validate(&crate::catalog_fixture::registry())
-        .expect_err("client credentials must use private-key JWT");
+        .expect_err("hosted client credentials must select one authentication method");
 
     assert!(matches!(
         err,
@@ -1658,21 +1661,57 @@ fn external_confidential_client_metadata_preserves_admission_constraints() {
 }
 
 #[test]
-fn hosted_client_credentials_still_require_private_key_jwt_and_caller_jwks() {
+fn hosted_client_credentials_require_the_selected_methods_authentication_material() {
     let registry = crate::catalog_fixture::registry();
     let mut config = control_plane_with_secrets(default_secrets());
     config.oauth_clients[1].auth_methods =
         BTreeSet::from([OAuthClientAuthMethod::ClientSecretPost]);
+    config.oauth_clients[1].jwks = None;
     assert!(matches!(
         config.validate(&registry),
-        Err(HubControlPlaneError::OAuthClientUnsupportedAuthConfiguration { .. })
+        Err(HubControlPlaneError::OAuthClientMissingCredentialSecret { .. })
     ));
+    config.oauth_clients[1].credential_secret = Some(SecretReferenceId::parse("absent").unwrap());
+    assert!(matches!(
+        config.validate(&registry),
+        Err(HubControlPlaneError::UnknownOAuthClientSecret { .. })
+    ));
+    config.oauth_clients[1].credential_secret =
+        Some(SecretReferenceId::parse("enterprise_oidc_client_secret").unwrap());
+    config
+        .validate(&registry)
+        .expect("explicit secret-post clients need their bound secret, not caller JWKS");
+
     config.oauth_clients[1].auth_methods = BTreeSet::from([OAuthClientAuthMethod::PrivateKeyJwt]);
-    config.oauth_clients[1].jwks = None;
+    config.oauth_clients[1].credential_secret = None;
     assert!(matches!(
         config.validate(&registry),
         Err(HubControlPlaneError::OAuthClientMissingJwks { .. })
     ));
+}
+
+#[test]
+fn hosted_secret_post_requires_the_runtime_client_secret_purpose() {
+    let registry = crate::catalog_fixture::registry();
+    let mut config = control_plane_with_secrets(default_secrets());
+    let mut secret = oidc_client_secret();
+    secret.id = SecretReferenceId::parse("service_client_secret").unwrap();
+    secret.purpose = SecretPurpose::TokenExchangeCredential;
+    config.oauth_clients[1].auth_methods =
+        BTreeSet::from([OAuthClientAuthMethod::ClientSecretPost]);
+    config.oauth_clients[1].credential_secret = Some(secret.id.clone());
+    config.secrets.push(secret);
+    assert!(matches!(
+        config.validate(&registry),
+        Err(HubControlPlaneError::OAuthClientSecretPurposeMismatch { .. })
+    ));
+
+    let server = &mut config.authorization_servers[0];
+    server.access_token_signing_key = None;
+    server.access_token_key_id = None;
+    config
+        .validate(&registry)
+        .expect("external issuer secret metadata retains its existing purpose contract");
 }
 
 #[test]

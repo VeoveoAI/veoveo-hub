@@ -23,9 +23,13 @@ An external authorization server omits the paired local signing fields. Its
 client-credentials registrations name the actual single confidential authentication
 method, such as `client_secret_post`; Hub admission needs no local client secret or
 caller JWKS. The external issuer owns authentication and renewal. Public clients,
-mixed grant shapes and mismatched resources/scopes remain invalid. Hosted clients
-retain the `private_key_jwt` and caller-JWKS requirements. Local issuance requires
-both configured signing authority and this Hub's own issuer and token endpoint;
+mixed grant shapes and mismatched resources/scopes remain invalid. Hosted
+client-credentials registrations select exactly one supported method:
+`private_key_jwt` with trusted caller JWKS, or `client_secret_post` with an explicit
+`OAuthClientSecret` reference resolved by the Hub. Missing secret bindings, wrong
+secret purposes and mixed methods are rejected during admission. Registered-server
+delegation retains its separate proof requirements. Local issuance requires both
+configured signing authority and this Hub's own issuer and token endpoint;
 leftover signing material cannot authorize an external issuer here.
 
 The hosted authorization server's issuer is `{issuer}/oauth`. It signs access tokens
