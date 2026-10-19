@@ -1,5 +1,5 @@
 //! Fixed native control-plane connection. No browser input selects a destination.
-use std::{sync::Arc, time::Duration};
+use std::{num::NonZeroUsize, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result, ensure};
 use openshell_sdk::{AuthConfig, ClientConfig, OpenShellClient, SdkError, raw::proto as p};
@@ -12,7 +12,6 @@ use tokio_stream::wrappers::ReceiverStream;
 use crate::control_plane::ComputerGateway;
 
 pub(super) const RPC_TIMEOUT: Duration = Duration::from_secs(30);
-const CONNECTIONS: usize = 64;
 const CHUNK: usize = 64 * 1024;
 
 /// Preserve native status for control flow without retaining provider text.
@@ -45,11 +44,8 @@ impl ForwardError {
     fn retryable(&self) -> bool {
         matches!(
             self,
-            Self::Refused(
-                tonic::Code::Unavailable
-                    | tonic::Code::DeadlineExceeded
-                    | tonic::Code::ResourceExhausted
-            ) | Self::Transport
+            Self::Refused(tonic::Code::Unavailable | tonic::Code::DeadlineExceeded)
+                | Self::Transport
                 | Self::Deadline
         )
     }
@@ -61,7 +57,7 @@ pub(super) struct Gateway {
     permits: Arc<Semaphore>,
 }
 impl Gateway {
-    pub async fn connect(config: &ComputerGateway) -> Result<Self> {
+    pub async fn connect(config: &ComputerGateway, limit: NonZeroUsize) -> Result<Self> {
         let bearer = std::env::var(&config.bearer_environment)
             .ok()
             .filter(|value| !value.trim().is_empty())
@@ -74,11 +70,11 @@ impl Gateway {
             .context("connect Computer gateway")?;
         Ok(Self {
             client,
-            permits: Arc::new(Semaphore::new(CONNECTIONS)),
+            permits: Arc::new(Semaphore::new(limit.get())),
         })
     }
 
-    /// Retry transient native connection failures and relay capacity under one bound.
+    /// Retry transient native listener failures only during cold startup.
     /// No HTTP bytes have been sent; forwarded requests are never retried here.
     /// The successful connection is returned for actual forwarding or closed by
     /// the provisioning caller; no HTTP/application health request is sent.
@@ -111,9 +107,10 @@ impl Gateway {
         workspace: String,
         port: u16,
     ) -> std::result::Result<(DuplexStream, tokio::task::JoinHandle<()>), ForwardError> {
-        let permit = tokio::time::timeout(RPC_TIMEOUT, self.permits.clone().acquire_owned())
-            .await
-            .map_err(|_| ForwardError::Capacity)?
+        let permit = self
+            .permits
+            .clone()
+            .try_acquire_owned()
             .map_err(|_| ForwardError::Capacity)?;
         let (caller, socket) = tokio::io::duplex(CHUNK);
         let client = self.client.clone();
@@ -180,12 +177,8 @@ impl Gateway {
 mod tests {
     use super::*;
     #[test]
-    fn forwarding_retry_uses_native_capacity_and_refuses_auth_or_configuration() {
-        for code in [
-            tonic::Code::Unavailable,
-            tonic::Code::DeadlineExceeded,
-            tonic::Code::ResourceExhausted,
-        ] {
+    fn listener_retry_refuses_authority_configuration_and_real_capacity_limits() {
+        for code in [tonic::Code::Unavailable, tonic::Code::DeadlineExceeded] {
             assert!(ForwardError::Refused(code).retryable());
         }
         for code in [
@@ -194,6 +187,7 @@ mod tests {
             tonic::Code::InvalidArgument,
             tonic::Code::NotFound,
             tonic::Code::FailedPrecondition,
+            tonic::Code::ResourceExhausted,
         ] {
             assert!(!ForwardError::Refused(code).retryable());
         }

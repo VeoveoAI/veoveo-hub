@@ -71,7 +71,7 @@ impl Provisioner {
                 .map_err(|_| anyhow::anyhow!("trusted Computer native policy admission failed"))?,
         )
         .context("canonicalize trusted Computer native policy")?;
-        let gateway = Gateway::connect(&config.gateway).await?;
+        let gateway = Gateway::connect(&config.gateway, config.forwarding_connection_limit).await?;
         let result = Self {
             gateway,
             config,

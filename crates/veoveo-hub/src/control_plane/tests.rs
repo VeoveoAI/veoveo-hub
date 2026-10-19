@@ -1729,6 +1729,19 @@ fn computer_bootstrap_admits_only_fixed_direct_clients_and_env_provider_seeds() 
         "hubProvider":{"profile":"computer-user", "credentialKey":"access_token"},
         "modelProvider":{"profile":"computer-model", "credentialKey":"api_key", "secret":"computer-model-seed"}
     })).unwrap();
+    assert_eq!(computers.forwarding_connection_limit.get(), 512);
+    let mut zero = serde_json::to_value(&computers).unwrap();
+    zero["forwardingConnectionLimit"] = serde_json::json!(0);
+    assert!(serde_json::from_value::<Computers>(zero).is_err());
+    let mut explicit = serde_json::to_value(&computers).unwrap();
+    explicit["forwardingConnectionLimit"] = serde_json::json!(768);
+    assert_eq!(
+        serde_json::from_value::<Computers>(explicit)
+            .unwrap()
+            .forwarding_connection_limit
+            .get(),
+        768
+    );
     plane.computers = Some(computers);
     plane.validate(&crate::catalog_fixture::registry()).unwrap();
     let mut bad = plane.clone();

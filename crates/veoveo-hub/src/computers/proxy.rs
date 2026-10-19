@@ -288,11 +288,7 @@ async fn stream(
         runtime
             .provisioner
             .gateway
-            .stream_when_ready(
-                session.computer().native_name(),
-                runtime.config.port,
-                super::gateway::RPC_TIMEOUT,
-            )
+            .stream(session.computer().native_name(), runtime.config.port)
             .await?
     };
     // A cold listener wait can outlast revocation/expiry. Re-admit before any

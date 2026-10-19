@@ -1,6 +1,6 @@
 //! Trusted installation inputs for private, owner-scoped native Computers.
 //! No browser request selects a gateway, image, provider profile or secret.
-use std::path::PathBuf;
+use std::{num::NonZeroUsize, path::PathBuf};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -26,6 +26,9 @@ pub struct Computers {
     pub work_context: WorkContextId,
     /// Native loopback destination inside each admitted sandbox.
     pub port: u16,
+    /// Global bound on simultaneous native Computer forwarding connections.
+    #[serde(default = "default_forwarding_connection_limit")]
+    pub forwarding_connection_limit: NonZeroUsize,
     pub hub_provider: ComputerRefreshProvider,
     pub model_provider: ComputerStaticProvider,
 }
@@ -63,6 +66,10 @@ pub struct ComputerStaticProvider {
     pub credential_key: String,
     /// Only a trusted Env ProviderApiKey reference is admitted for bootstrap.
     pub secret: SecretReferenceId,
+}
+
+fn default_forwarding_connection_limit() -> NonZeroUsize {
+    NonZeroUsize::new(512).unwrap()
 }
 
 impl Computers {
