@@ -1,5 +1,6 @@
 //! Durable owner mapping, single-use PKCE state and fail-closed custody transitions.
 use chrono::{DateTime, Utc};
+use sha2::{Digest, Sha256};
 use sqlx::{Postgres, Transaction};
 use uuid::Uuid;
 use veoveo_hub_sdk::HubRefreshFamilyId;
@@ -25,8 +26,21 @@ pub struct Computer {
     pub ready: bool,
 }
 impl Computer {
+    /// Native OpenShell DNS-routable workspace/sandbox names are limited to 19
+    /// characters. Keep the full ID in Hub ownership and the cloned base path.
     pub fn native_name(&self) -> String {
-        format!("computer-{}", self.id.as_uuid().simple())
+        const ALPHABET: &[u8; 32] = b"abcdefghijklmnopqrstuvwxyz234567";
+        let digest = Sha256::digest(self.id.as_uuid().as_bytes());
+        let mut name = String::with_capacity(19);
+        name.push('c');
+        // Encode the first 90 digest bits as 18 lowercase base32 characters.
+        for bit in (0..90).step_by(5) {
+            let byte = bit / 8;
+            let window = (u16::from(digest[byte]) << 8) | u16::from(digest[byte + 1]);
+            let index = usize::from((window >> (11 - bit % 8)) & 31);
+            name.push(char::from(ALPHABET[index]));
+        }
+        name
     }
     pub fn base_path(&self) -> String {
         format!("/computer/c/{}/", self.id)
@@ -366,13 +380,18 @@ mod tests {
                 .ensure_computer(principal.tenant.as_ref().unwrap(), &principal.id)
                 .await
                 .unwrap();
-            assert_eq!(
-                second
-                    .ensure_computer(&computer.tenant, &computer.principal)
-                    .await
-                    .unwrap()
-                    .id,
-                computer.id
+            let same = second
+                .ensure_computer(&computer.tenant, &computer.principal)
+                .await
+                .unwrap();
+            assert_eq!(same.id, computer.id);
+            assert_eq!(same.native_name(), computer.native_name());
+            assert_eq!(computer.native_name().len(), 19);
+            assert!(
+                computer
+                    .native_name()
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
             );
             let other = first
                 .ensure_computer(&computer.tenant, &PrincipalId::parse("other-user").unwrap())
