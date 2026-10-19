@@ -222,6 +222,7 @@ fn empty_control_plane() -> HubControlPlane {
     HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: Vec::new(),
         authorization_servers: Vec::new(),
         profiles: Vec::new(),

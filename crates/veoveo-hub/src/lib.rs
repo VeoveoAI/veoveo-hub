@@ -2,6 +2,7 @@ pub mod auth;
 mod catalog;
 mod catalog_admission;
 mod catalog_registry;
+pub mod computers;
 pub mod contract;
 pub mod control_plane;
 pub mod delegation;

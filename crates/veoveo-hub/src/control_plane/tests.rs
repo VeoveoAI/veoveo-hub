@@ -121,6 +121,7 @@ fn control_plane_with_secrets(secrets: Vec<SecretReference>) -> HubControlPlane 
     HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         profiles: vec![default_profile()],
@@ -459,6 +460,7 @@ fn control_plane_validates_cross_references() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: default_authorization(),
@@ -493,6 +495,7 @@ fn control_plane_rejects_unknown_identity_provider_reference() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -526,6 +529,7 @@ fn control_plane_rejects_unknown_authorization_server_reference() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -559,6 +563,7 @@ fn control_plane_rejects_authorization_server_unknown_identity_provider() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server],
         authorization: InstallationAuthorization::default(),
@@ -592,6 +597,7 @@ fn control_plane_rejects_profile_without_auth_modes() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -624,6 +630,7 @@ fn control_plane_rejects_oidc_profile_without_browser_endpoints() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![auth_server],
         authorization: InstallationAuthorization::default(),
@@ -659,6 +666,7 @@ fn control_plane_rejects_oidc_profile_without_browser_endpoints() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![idp],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -697,6 +705,7 @@ fn control_plane_rejects_extension_auth_modes_without_matching_endpoints() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![idp],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -731,6 +740,7 @@ fn control_plane_rejects_unknown_secret_owner_references() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -772,6 +782,7 @@ fn control_plane_rejects_unknown_secret_owner_references() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -816,6 +827,7 @@ fn control_plane_rejects_missing_oauth_client_for_auth_mode() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -855,6 +867,7 @@ fn control_plane_allows_service_profile_before_durable_client_admission() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -882,6 +895,7 @@ fn control_plane_rejects_missing_oidc_client_for_browser_auth() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -917,6 +931,7 @@ fn control_plane_rejects_oidc_client_without_openid_scope() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -950,6 +965,7 @@ fn control_plane_rejects_public_client_credentials() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -983,6 +999,7 @@ fn control_plane_rejects_private_key_jwt_without_jwks() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1022,6 +1039,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1052,6 +1070,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1083,6 +1102,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1118,6 +1138,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1153,6 +1174,7 @@ fn control_plane_rejects_oauth_client_missing_required_scope() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1184,6 +1206,7 @@ fn control_plane_rejects_duplicate_tenants() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1227,6 +1250,7 @@ fn control_plane_rejects_duplicate_policy_rule_ids() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1260,6 +1284,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1291,6 +1316,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1321,6 +1347,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
     let config = HubControlPlane {
         branding: None,
         native_upstreams: None,
+        computers: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1645,5 +1672,50 @@ fn hosted_client_credentials_still_require_private_key_jwt_and_caller_jwks() {
     assert!(matches!(
         config.validate(&registry),
         Err(HubControlPlaneError::OAuthClientMissingJwks { .. })
+    ));
+}
+
+#[test]
+fn computer_bootstrap_admits_only_fixed_direct_clients_and_env_provider_seeds() {
+    let mut plane = control_plane_with_secrets(default_secrets());
+    let mut seed = signing_secret();
+    seed.id = SecretReferenceId::parse("computer-model-seed").unwrap();
+    seed.purpose = SecretPurpose::ProviderApiKey;
+    plane.secrets.push(seed);
+    let computers: Computers = serde_json::from_value(serde_json::json!({
+        "gateway": {"endpoint":"https://gateway.test", "certificateAuthority":"/etc/native/ca.pem", "bearerEnvironment":"COMPUTER_PROVISION_AUTHORITY"},
+        "template": {"workspace":"installation", "name":"computer"},
+        "policyFile":"/etc/native/computer-policy.yaml", "command":["/usr/local/bin/computer"],
+        "oauthClient":"operator-local-public", "profile":"default", "workContext":"default", "port":4096,
+        "hubProvider":{"profile":"computer-user", "credentialKey":"access_token"},
+        "modelProvider":{"profile":"computer-model", "credentialKey":"api_key", "secret":"computer-model-seed"}
+    })).unwrap();
+    plane.computers = Some(computers);
+    plane.validate(&crate::catalog_fixture::registry()).unwrap();
+    let mut bad = plane.clone();
+    bad.secrets.last_mut().unwrap().source = SecretSource::Vault;
+    assert!(matches!(
+        bad.validate(&crate::catalog_fixture::registry()),
+        Err(HubControlPlaneError::InvalidComputers(_))
+    ));
+    let mut bad = plane.clone();
+    bad.oauth_clients[0]
+        .grant_types
+        .remove(&OAuthGrantType::RefreshToken);
+    assert!(matches!(
+        bad.validate(&crate::catalog_fixture::registry()),
+        Err(HubControlPlaneError::InvalidComputers(_))
+    ));
+    let mut bad = plane.clone();
+    bad.computers.as_mut().unwrap().command.clear();
+    assert!(matches!(
+        bad.validate(&crate::catalog_fixture::registry()),
+        Err(HubControlPlaneError::InvalidComputers(_))
+    ));
+    let mut bad = plane;
+    bad.computers.as_mut().unwrap().port = 0;
+    assert!(matches!(
+        bad.validate(&crate::catalog_fixture::registry()),
+        Err(HubControlPlaneError::InvalidComputers(_))
     ));
 }

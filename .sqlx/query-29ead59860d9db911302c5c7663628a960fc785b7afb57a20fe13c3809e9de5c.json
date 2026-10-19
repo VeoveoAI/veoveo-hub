@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.computer SET ready = false, family_id = NULL, handoff_id = $4, configure_request = $5, rotate_request = $6\nWHERE id = $1 AND tenant = $2 AND principal_id = $3 RETURNING id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "29ead59860d9db911302c5c7663628a960fc785b7afb57a20fe13c3809e9de5c"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.computer_browser_session(digest, computer_id, family_id, created_at) VALUES ($1,$2,$3,$4)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0af42e50ee5b4d2619e6a4cb609d424be49791ba5c1ab212343a657b233577f0"
+}

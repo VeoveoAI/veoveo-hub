@@ -4,6 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HubControlPlaneError {
+    InvalidComputers(&'static str),
     DuplicateRole(veoveo_types::RoleId),
     UnknownGrantRole(veoveo_types::RoleId),
     UnknownGrantTenant {
@@ -263,6 +264,9 @@ impl AuthorizationServerEndpoint {
 impl fmt::Display for HubControlPlaneError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidComputers(reason) => {
+                write!(f, "invalid Computers configuration: {reason}")
+            }
             Self::CatalogAdmission(error) => fmt::Display::fmt(error, f),
             Self::DuplicateRole(role) => write!(f, "duplicate installation role `{role}`"),
             Self::UnknownGrantRole(role) => write!(f, "grant names unknown role `{role}`"),

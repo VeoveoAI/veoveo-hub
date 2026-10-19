@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.computer_login(state_digest, browser_digest, verifier, expires_at) VALUES ($1,$2,$3,$4)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cd3ca8d38062478adf6b8bbe62440155a3dab385c7ce1f4871b37f6ef5eaccf6"
+}

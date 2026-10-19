@@ -147,8 +147,9 @@ impl HubCatalogHandle {
             "catalog reload changed its admission binding"
         );
         anyhow::ensure!(
-            current.control_plane.native_upstreams == replacement.control_plane.native_upstreams,
-            "native upstream configuration is fixed at startup; restart the Hub to change it"
+            current.control_plane.native_upstreams == replacement.control_plane.native_upstreams
+                && current.control_plane.computers == replacement.control_plane.computers,
+            "native upstream and Computers configuration is fixed at startup; restart the Hub to change it"
         );
         Ok(())
     }

@@ -28,6 +28,7 @@ veoveo-hub-sdk-fixture = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", r
 
 aws-lc-rs = "1.18.0"
 openshell-sdk = { git = "https://github.com/NVIDIA/OpenShell", rev = "5a7728c304b5528e954e9ae900cf21f84e1a12b1", version = "0.0.0" }
+openshell-policy = { git = "https://github.com/NVIDIA/OpenShell", rev = "5a7728c304b5528e954e9ae900cf21f84e1a12b1", version = "0.0.0" }
 tokio-stream = "0.1"
 anyhow = "=1.0.104"
 async-stream = "0.3.6"

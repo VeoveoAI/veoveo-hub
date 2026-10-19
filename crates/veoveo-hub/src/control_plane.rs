@@ -28,6 +28,8 @@ pub const MCP_ENTERPRISE_MANAGED_AUTHORIZATION_EXTENSION: &str =
     "io.modelcontextprotocol/enterprise-managed-authorization";
 pub const MCP_OAUTH_CLIENT_CREDENTIALS_EXTENSION: &str =
     "io.modelcontextprotocol/oauth-client-credentials";
+mod computers;
+pub use computers::*;
 mod native_upstreams;
 pub use native_upstreams::*;
 mod authorization_config;
@@ -71,6 +73,7 @@ pub const HUB_CORE_FIELDS: &[&str] = &[
     "oidcClients",
     "secrets",
     "nativeUpstreams",
+    "computers",
     "metadata",
 ];
 
@@ -81,6 +84,8 @@ pub struct HubControlPlane {
     pub branding: Option<InstallationBranding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub native_upstreams: Option<NativeUpstreams>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub computers: Option<Computers>,
     pub identity_providers: Vec<IdentityProvider>,
     pub authorization_servers: Vec<ResourceAuthorizationServer>,
     pub profiles: Vec<HubProfile>,
@@ -574,6 +579,9 @@ impl HubControlPlane {
             }
         }
 
+        if let Some(computers) = &self.computers {
+            computers.validate(self)?;
+        }
         Ok(sections)
     }
 

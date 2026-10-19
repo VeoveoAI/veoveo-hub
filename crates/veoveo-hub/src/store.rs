@@ -5,6 +5,8 @@
 //! Registrations and Task routes run their own statements against the same schema.
 
 mod authorization;
+mod computers;
+pub use computers::{Computer, ComputerHandoff};
 mod control;
 mod refresh;
 mod replay;

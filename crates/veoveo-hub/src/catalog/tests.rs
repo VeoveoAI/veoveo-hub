@@ -304,6 +304,7 @@ fn catalog_with_profile_and_policy(profile: HubProfile, policy: PolicySet) -> Hu
         HubControlPlane {
             branding: None,
             native_upstreams: None,
+            computers: None,
             identity_providers: vec![identity_provider()],
             authorization_servers: vec![authorization_server()],
             profiles: vec![profile],

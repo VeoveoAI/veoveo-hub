@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT computer_id, family_id FROM hub.computer_browser_session WHERE digest = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "computer_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.computer_browser_session",
+            "name": "computer_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "family_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.computer_browser_session",
+            "name": "family_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "e4f2c9c73093e58fc32e78541d2697c010ec0b151b660b14ee64cfd6042a8dba"
+}
