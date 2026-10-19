@@ -2333,7 +2333,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "openshell-core"
 version = "0.0.0"
-source = "git+https://github.com/NVIDIA/OpenShell?rev=5a7728c304b5528e954e9ae900cf21f84e1a12b1#5a7728c304b5528e954e9ae900cf21f84e1a12b1"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=9724fb1834dec157b4482a1da97338fd8ca1e50c#9724fb1834dec157b4482a1da97338fd8ca1e50c"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2369,7 +2369,7 @@ dependencies = [
 [[package]]
 name = "openshell-extension-core"
 version = "0.0.0"
-source = "git+https://github.com/NVIDIA/OpenShell?rev=5a7728c304b5528e954e9ae900cf21f84e1a12b1#5a7728c304b5528e954e9ae900cf21f84e1a12b1"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=9724fb1834dec157b4482a1da97338fd8ca1e50c#9724fb1834dec157b4482a1da97338fd8ca1e50c"
 dependencies = [
  "hyper-util",
  "serde",
@@ -2382,7 +2382,7 @@ dependencies = [
 [[package]]
 name = "openshell-policy"
 version = "0.0.0"
-source = "git+https://github.com/NVIDIA/OpenShell?rev=5a7728c304b5528e954e9ae900cf21f84e1a12b1#5a7728c304b5528e954e9ae900cf21f84e1a12b1"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=9724fb1834dec157b4482a1da97338fd8ca1e50c#9724fb1834dec157b4482a1da97338fd8ca1e50c"
 dependencies = [
  "hickory-proto",
  "miette",
@@ -2396,7 +2396,7 @@ dependencies = [
 [[package]]
 name = "openshell-policy-schema"
 version = "0.0.0"
-source = "git+https://github.com/NVIDIA/OpenShell?rev=5a7728c304b5528e954e9ae900cf21f84e1a12b1#5a7728c304b5528e954e9ae900cf21f84e1a12b1"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=9724fb1834dec157b4482a1da97338fd8ca1e50c#9724fb1834dec157b4482a1da97338fd8ca1e50c"
 dependencies = [
  "miette",
  "noyalib",
@@ -2409,7 +2409,7 @@ dependencies = [
 [[package]]
 name = "openshell-sdk"
 version = "0.0.0"
-source = "git+https://github.com/NVIDIA/OpenShell?rev=5a7728c304b5528e954e9ae900cf21f84e1a12b1#5a7728c304b5528e954e9ae900cf21f84e1a12b1"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=9724fb1834dec157b4482a1da97338fd8ca1e50c#9724fb1834dec157b4482a1da97338fd8ca1e50c"
 dependencies = [
  "async-stream",
  "async-trait",
