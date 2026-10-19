@@ -85,6 +85,7 @@ pub(super) fn replace_http_client(http: &SharedHttpClient, new_client: reqwest::
 /// most [`RETENTION_BATCH`] rows, each its own transaction, until one falls short.
 pub(super) async fn run_authorization_retention_gc(hub_state: &HubState) -> anyhow::Result<()> {
     let now = Utc::now();
+    hub_state.hub_store().prune_computer_logins().await?;
     let authorization_records = hub_state
         .prune_expired_authorization_records(now, RETENTION_BATCH)
         .await?;

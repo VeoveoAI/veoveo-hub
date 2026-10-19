@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Lock the current Computer first, matching custody's lock order. A stale cookie\n-- cannot revoke a family after the next explicit handoff has begun/completed.\nWITH owner AS MATERIALIZED (\n    SELECT family_id FROM hub.computer\n    WHERE id = $1 AND tenant = $2 AND principal_id = $3\n      AND ready AND handoff_id IS NULL AND family_id = $4\n    FOR UPDATE\n)\nUPDATE hub.refresh_family AS family\nSET revoked_at = coalesce(family.revoked_at, $5),\n    revocation_reason = coalesce(family.revocation_reason, $6)\nFROM owner\nWHERE family.id = owner.family_id\nRETURNING family.id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.refresh_family",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a60421692420833c45a92c60744f7c79c72b01db361d36dfc21fe764e4113cd3"
+}

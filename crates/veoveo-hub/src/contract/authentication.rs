@@ -24,6 +24,7 @@ impl AuthOutcome {
 #[serde(rename_all = "snake_case")]
 pub enum AuthMethod {
     BearerJwt,
+    BrowserSession,
     OidcAuthorizationCodePkce,
     RefreshToken,
     ClientCredentialsPrivateKeyJwt,
@@ -34,6 +35,7 @@ impl AuthMethod {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::BearerJwt => "bearer_jwt",
+            Self::BrowserSession => "browser_session",
             Self::OidcAuthorizationCodePkce => "oidc_authorization_code_pkce",
             Self::RefreshToken => "refresh_token",
             Self::ClientCredentialsPrivateKeyJwt => "client_credentials_private_key_jwt",

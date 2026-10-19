@@ -116,6 +116,37 @@ impl ComputerHandoff {
 }
 
 impl HubStore {
+    /// Only an already-admitted browser owner calls this. Recheck the durable
+    /// owner/current-family binding under the same row lock custody uses, then
+    /// revoke and clear successor deliveries with the audit in one transaction.
+    pub(crate) async fn revoke_computer_session(
+        &self,
+        computer: &Computer,
+        family: &HubRefreshFamilyId,
+        audit: &impl super::TransactionAppend,
+    ) -> Result<bool, HubStoreError> {
+        let mut transaction = self.pool().begin().await?;
+        let row = sqlx::query_file!(
+            "src/store/computers/revoke.sql",
+            computer.id.as_uuid(),
+            computer.tenant.as_str(),
+            computer.principal.as_str(),
+            family.as_uuid(),
+            Utc::now(),
+            super::RefreshRevocation::ClientRevocation as super::RefreshRevocation,
+        )
+        .fetch_optional(&mut *transaction)
+        .await?;
+        if row.is_none() {
+            return Ok(false);
+        }
+        sqlx::query_file!("src/store/computers/clear_deliveries.sql", family.as_uuid())
+            .execute(&mut *transaction)
+            .await?;
+        audit.append(&mut transaction).await?;
+        transaction.commit().await?;
+        Ok(true)
+    }
     pub async fn ensure_computer(
         &self,
         tenant: &TenantId,
@@ -369,6 +400,99 @@ mod tests {
                 "worker rollback/crash must retain the precommitted pending identity"
             );
             assert!(!pending.ready);
+            let replacement = HubState::new(db.a.clone())
+                .issue_refresh_token(HubRefreshIssueRequest {
+                    authorization_server: &AuthorizationServerId::parse("fixture").unwrap(),
+                    profile: &HubProfileId::parse("fixture").unwrap(),
+                    oauth_client_id: &OAuthClientId::parse("browser").unwrap(),
+                    work_context: &WorkContextId::parse("fixture").unwrap(),
+                    principal: &principal,
+                    principal_display_name: &PrincipalDisplayName::new("Fixture user").unwrap(),
+                    scopes: &BTreeSet::new(),
+                    now: Utc::now(),
+                })
+                .await
+                .unwrap();
+            // Production callbacks generate a new random cookie per login.
+            // Keep the old digest present to exercise stale-family refusal.
+            let replacement_digest = Sha256Digest::from_bytes([8; 32]);
+            first
+                .lock_computer_handoff(&computer.id, next_id)
+                .await
+                .unwrap()
+                .unwrap()
+                .complete(&replacement.grant.family_id, &replacement_digest)
+                .await
+                .unwrap();
+            struct NoAudit;
+            impl super::super::TransactionAppend for NoAudit {
+                async fn append(&self, _: &mut sqlx::PgConnection) -> Result<(), HubStoreError> {
+                    Ok(())
+                }
+            }
+            assert!(
+                !first
+                    .revoke_computer_session(&computer, &issued.grant.family_id, &NoAudit)
+                    .await
+                    .unwrap(),
+                "stale logout cannot revoke the newer family"
+            );
+            let mut wrong_owner = computer.clone();
+            wrong_owner.principal = other.principal;
+            assert!(
+                !first
+                    .revoke_computer_session(&wrong_owner, &replacement.grant.family_id, &NoAudit)
+                    .await
+                    .unwrap()
+            );
+            struct FailedAudit;
+            impl super::super::TransactionAppend for FailedAudit {
+                async fn append(&self, _: &mut sqlx::PgConnection) -> Result<(), HubStoreError> {
+                    Err(HubStoreError::InvalidStoredValue {
+                        column: "test.audit",
+                    })
+                }
+            }
+            assert!(
+                first
+                    .revoke_computer_session(&computer, &replacement.grant.family_id, &FailedAudit)
+                    .await
+                    .is_err()
+            );
+            assert!(
+                second
+                    .refresh_family(&replacement.grant.family_id)
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .revoked_at
+                    .is_none(),
+                "audit failure must roll back logout revocation"
+            );
+            assert!(
+                first
+                    .revoke_computer_session(&computer, &replacement.grant.family_id, &NoAudit)
+                    .await
+                    .unwrap()
+            );
+            assert_eq!(
+                second
+                    .refresh_family(&replacement.grant.family_id)
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .revocation,
+                Some(super::super::RefreshRevocation::ClientRevocation)
+            );
+            assert!(
+                second
+                    .refresh_family(&issued.grant.family_id)
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .revoked_at
+                    .is_none()
+            );
         })
         .await
         .expect("Computer handoff fixture exceeded 90 seconds");

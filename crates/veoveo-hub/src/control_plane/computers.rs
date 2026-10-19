@@ -51,6 +51,7 @@ pub struct ComputerTemplate {
 pub struct ComputerRefreshProvider {
     /// Installation-owned global native profile; its refresh scopes must be empty.
     pub profile: String,
+    /// Native runtime environment key declared in the selected profile.
     pub credential_key: String,
 }
 
@@ -58,6 +59,7 @@ pub struct ComputerRefreshProvider {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ComputerStaticProvider {
     pub profile: String,
+    /// Native runtime environment key declared in the selected profile.
     pub credential_key: String,
     /// Only a trusted Env ProviderApiKey reference is admitted for bootstrap.
     pub secret: SecretReferenceId,

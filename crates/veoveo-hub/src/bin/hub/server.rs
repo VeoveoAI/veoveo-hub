@@ -145,6 +145,14 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         delegation: delegation.clone(),
     };
 
+    let computers = veoveo_hub::computers::ComputerRuntime::new(
+        catalog.clone(),
+        hub_state.clone(),
+        deployment.base_url(),
+        super::runtime::current_http_client(&http),
+    )
+    .await?;
+
     // Probes reach the process by any address, so they skip Host validation.
     let probes = Router::new()
         .route("/livez", get(|| async { StatusCode::NO_CONTENT }))
@@ -172,6 +180,10 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         .route("/oauth/jwks.json", get(authorization_server_jwks))
         .with_state(state)
         .merge(registration::router(registrations.clone()));
+
+    if let Some(computers) = computers {
+        router = router.merge(computers.router());
+    }
 
     let auth_state = ProfileAuthState {
         catalog: catalog.clone(),

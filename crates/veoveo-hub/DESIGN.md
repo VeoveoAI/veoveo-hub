@@ -476,3 +476,92 @@ binding, the audit vocabulary and readers, and the control store.
   next catalog generation; templates and reads are always current.
 - Readiness and registration internals answer with RFC 9457 problem details. Other administrative handlers still answer some errors with a
   status and no body.
+
+### Private Computer browser ingress
+
+The optional fixed `computers` installation selects one public PKCE client,
+profile/Work Context, authenticated native OpenShell gateway, trusted workload
+template, native policy file, fixed service command and global provider profiles.
+The gateway authority has explicit workspace/provider/sandbox provisioning rights;
+it never enters the Computer. The trusted bearer environment must hold a native
+mediated reference whose management credential renews under OpenShell custody.
+`raw_grpc_fresh` opens an authenticated call; it does not refresh a copied expiring
+JWT. Reference mediation for that dedicated authority needs deployment qualification.
+Browser input selects no image, policy, secret,
+provider profile or forwarding target. Both credential keys name native runtime
+**environment aliases**, rather than logical profile credential names.
+
+`GET /computer` admits the existing opaque host-only session cookie or starts an
+ordinary PKCE authorization against this Hub's existing OAuth endpoints. A bounded
+single-use database state binds the verifier to a separate initiating-browser
+cookie. The callback exchanges the native code, verifies the actual signed access
+JWT with the shared verifier, resolves current native subject authority, and binds
+the browser only to its actual refresh-family ID and exact tenant/principal owner.
+No expired or fabricated JWT establishes a browser session. Cookies contain random
+selectors; only their hashes are stored. Grant material is never stored in Hub
+Computer rows, cookies or UI bundles.
+
+A precommitted pending handoff invalidates old browser admission before native
+mutation. An owned worker locks that exact handoff, clones the trusted native
+workload into a distinct owner workspace with its nonsecret external base path,
+creates workspace-local providers, and stops an existing app before replacing its
+Hub refresh material. ConfigureProviderRefresh **and** RotateProviderCredential
+must succeed before Start/ready publication. The existing managed runtime access
+value is never replaced with UpdateProvider; no operator credential export occurs.
+The model seed resolves through the existing trusted Env ProviderApiKey locator.
+Native global profiles and exact refresh recipient are checked before custody.
+The native template must opt into Docker persistent workspace storage; Create also
+sets native persistent retention, fixed policy/command and `Always` restart policy.
+Native gateway lifecycle owns missing-runtime recovery and runtime identities.
+Provisioning and browser entry also wait for a successful native ForwardTcp target
+connection under the existing 120-second startup bound. The gateway must return
+ForwardTcp success after the native relay claim, not before target connection.
+Document navigation can resume native lifecycle and wait on its actual forwarding
+connection. Warm asset/API requests open only their real forwarding connection;
+there is no extra health endpoint or per-request probe. Retry classification uses
+native status codes, never error text; authorization/invalid-target failures stop
+immediately. A successful TCP connection does not prove application protocol health.
+
+The worker survives HTTP disconnection. Native operations and readiness waits are
+bounded; a crash or ambiguous failure leaves the durable handoff pending and
+requires reauthorization. The row lock serializes cooperating Hub workers, while
+native request IDs preserve each admitted native mutation's semantics. This is
+not exactly-once grant custody across a crash after provider consumption. No
+provider health/status assertion substitutes for proof of which family was handed
+off. No alternate token store, provisioning controller or reconciliation daemon is
+introduced.
+
+Mounted requests admit the exact Computer owner before opening authenticated
+native ForwardTcp to its fixed loopback port. HTTP entities remain encoded streams;
+hop-by-hop and Connection-nominated headers, incoming credentials/cookies/forwarded
+identity, backend cookies and CORS headers do not cross this boundary. Unsafe HTTP
+and WebSocket requests require exactly the public origin; Origin is then removed
+before the trusted loopback backend. WebSocket upgrades preserve the byte stream.
+Each active connection has an independent family-expiry deadline and fresh native
+family/client/profile/membership checks every five seconds, with a five-second DB
+read bound. Errors fail closed; revocation observation is at most ten seconds under
+normally scheduled checks. Dropping a response or upgrade cancels its native stream
+and releases a bounded connection permit. Proxy responses are private/no-store.
+The online-only native app must be used; mounted UI caches are convenience, not a
+same-origin browser security boundary or a guarantee about previously loaded data.
+
+`POST /computer/logout` is parameterless and same-origin. Only a fresh admitted
+BrowserSession selects its owner and actual native family. A conditional transaction
+locks the current ready/no-handoff Computer, rejects stale owner/family bindings,
+revokes using ClientRevocation, clears successor delivery envelopes, and commits a
+native `hub.authentication` Revoke record with BrowserSession method. A newer
+handoff cannot be revoked by the old cookie. The cookie is cleared only after that
+operation succeeds (or when there is no current admitted session).
+
+The native audit declaration flow updates a changed class's documenting schema
+in place before startup records are written. The added `browser_session` method
+uses that existing flow; it does not require a Core/SDK pin, database reset or
+record rewrite. Other owners' declarations and stored evidence remain intact.
+Generic stored-record reading and sealing do not deserialize this owner enum.
+Coordinate Hub versions: an older binary can re-declare older documentation, and
+an older consumer explicitly decoding this enum may reject the new method.
+
+This source path still needs native image/gateway, browser OAuth/owner-isolation,
+revocation/streaming and user-agent acceptance on the selected installation. Local
+protocol fixtures and database keepers do not establish live identity/provider,
+private source transport or model-inference qualification.
