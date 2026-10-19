@@ -35,7 +35,6 @@ impl<'de> Deserialize<'de> for HubControlPlane {
         // Flattened owner extensions cannot absorb retired core spellings.
         for obsolete in [
             "servers",
-            "lore",
             "identity_providers",
             "authorization_servers",
             "work_contexts",

@@ -91,7 +91,7 @@ impl HubState {
         if family.revoked_at.is_some() || family.expires_at <= Utc::now() {
             return Ok(None);
         }
-        if !(family.profile == config.profile
+        if !(family.protected_resource == profile.protected_resource
             && family.authorization_server == profile.authorization_server
             && family.oauth_client_id == config.oauth_client
             && family.work_context == config.work_context)
@@ -182,7 +182,7 @@ mod tests {
                 scopes: profile.required_scopes.iter().cloned().collect(), data_labels: BTreeSet::new(), assurances: BTreeSet::new(), authenticated_at: None,
             };
             let issued = hub.issue_refresh_token(HubRefreshIssueRequest {
-                authorization_server: &profile.authorization_server, profile: &config.profile, oauth_client_id: &config.oauth_client,
+                authorization_server: &profile.authorization_server, protected_resource: &profile.protected_resource, oauth_client_id: &config.oauth_client,
                 work_context: &config.work_context, principal: &principal, principal_display_name: &PrincipalDisplayName::new("Fixture user").unwrap(),
                 scopes: &principal.scopes, now: Utc::now(),
             }).await.unwrap();
@@ -192,7 +192,7 @@ mod tests {
             hub.hub_store().lock_computer_handoff(&computer, pending).await.unwrap().unwrap()
                 .complete(&issued.grant.family_id, &digest).await.unwrap();
             assert!(hub.computer_browser_session(&catalog, &config, &digest, None).await.unwrap().is_some());
-            hub.revoke_refresh_token_family(&issued.token, &profile.authorization_server, &config.profile, &config.oauth_client, Utc::now()).await.unwrap();
+            hub.revoke_refresh_token_family(&issued.token, &profile.authorization_server, &profile.protected_resource, &config.oauth_client, Utc::now()).await.unwrap();
             assert!(hub.computer_browser_session(&catalog, &config, &digest, None).await.unwrap().is_none(), "revoked cookie must start a fresh login rather than stick at 503");
             db.a.pool().close().await;
             assert!(hub.computer_browser_session(&catalog, &config, &digest, None).await.is_err(), "store loss must not be disguised as an unauthenticated cookie");

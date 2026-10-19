@@ -4,11 +4,13 @@ use crate::contract::{
     OAuthAuthorizationCode, OAuthRedirectUri, OAuthStateValue, OidcClientRegistrationId, OidcNonce,
     PkceCodeChallenge, PkceCodeChallengeMethod, PkceCodeVerifier, PrincipalDisplayName,
 };
-use crate::control_plane::{HubAuthorizationCodeRecord, HubAuthorizationRequest};
+use crate::control_plane::{
+    AuthorizationDestination, HubAuthorizationCodeRecord, HubAuthorizationRequest,
+};
 use chrono::{DateTime, Utc};
 use sqlx::types::Json;
-use veoveo_hub_sdk::HubProfileId;
 use veoveo_hub_sdk::Principal;
+use veoveo_hub_sdk::ProtectedResourceId;
 use veoveo_types::{OAuthClientId, ScopeName, Vocabulary, WorkContextId};
 
 use super::admitted;
@@ -24,15 +26,12 @@ impl HubStore {
         sqlx::query_file!(
             "src/store/authorization/create_request.sql",
             request.idp_state.as_str(),
-            request.profile.as_str(),
+            request.protected_resource.as_str(),
             request.oauth_client_id.as_str(),
             request.work_context.as_str(),
             request.oidc_client.as_str(),
-            request.redirect_uri.as_str(),
-            request.client_state.as_ref().map(OAuthStateValue::as_str),
+            Json(&request.destination) as _,
             &scopes,
-            request.code_challenge.as_str(),
-            request.code_challenge_method.as_str(),
             request.idp_code_verifier.as_str(),
             request.idp_code_challenge.as_str(),
             request.idp_code_challenge_method.as_str(),
@@ -65,9 +64,9 @@ impl HubStore {
                     "authorization_request.idp_state",
                     OAuthStateValue::parse(row.idp_state),
                 )?,
-                profile: admitted(
-                    "authorization_request.profile",
-                    HubProfileId::parse(row.profile),
+                protected_resource: admitted(
+                    "authorization_request.protected_resource",
+                    ProtectedResourceId::parse(row.protected_resource),
                 )?,
                 oauth_client_id: admitted(
                     "authorization_request.oauth_client_id",
@@ -81,30 +80,10 @@ impl HubStore {
                     "authorization_request.oidc_client",
                     OidcClientRegistrationId::parse(row.oidc_client),
                 )?,
-                redirect_uri: admitted(
-                    "authorization_request.redirect_uri",
-                    OAuthRedirectUri::new(row.redirect_uri),
-                )?,
-                client_state: row
-                    .client_state
-                    .map(|state| {
-                        admitted(
-                            "authorization_request.client_state",
-                            OAuthStateValue::parse(state),
-                        )
-                    })
-                    .transpose()?,
+                destination: row.destination.0,
                 requested_scopes: scopes(
                     "authorization_request.requested_scopes",
                     row.requested_scopes,
-                )?,
-                code_challenge: admitted(
-                    "authorization_request.code_challenge",
-                    PkceCodeChallenge::parse(row.code_challenge),
-                )?,
-                code_challenge_method: admitted(
-                    "authorization_request.code_challenge_method",
-                    PkceCodeChallengeMethod::parse(&row.code_challenge_method),
                 )?,
                 idp_code_verifier: admitted(
                     "authorization_request.idp_code_verifier",
@@ -134,7 +113,7 @@ impl HubStore {
         sqlx::query_file!(
             "src/store/authorization/create_code.sql",
             code.code.as_str(),
-            code.profile.as_str(),
+            code.protected_resource.as_str(),
             code.oauth_client_id.as_str(),
             code.work_context.as_str(),
             code.oidc_client.as_str(),
@@ -174,9 +153,9 @@ impl HubStore {
                     "authorization_code.code",
                     OAuthAuthorizationCode::parse(row.code),
                 )?,
-                profile: admitted(
-                    "authorization_code.profile",
-                    HubProfileId::parse(row.profile),
+                protected_resource: admitted(
+                    "authorization_code.protected_resource",
+                    ProtectedResourceId::parse(row.protected_resource),
                 )?,
                 oauth_client_id: admitted(
                     "authorization_code.oauth_client_id",

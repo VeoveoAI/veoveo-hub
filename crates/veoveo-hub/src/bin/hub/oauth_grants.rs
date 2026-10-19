@@ -7,7 +7,7 @@ use veoveo_hub::contract::{
     OAuthAuthorizationCode, OAuthGrantType, OAuthRedirectUri, PkceCodeChallengeMethod,
     PkceCodeVerifier,
 };
-use veoveo_hub::control_plane::{AuthMode, HubProfile, ResourceAuthorizationServer};
+use veoveo_hub::control_plane::ResourceAuthorizationServer;
 use veoveo_hub::{HubCatalog, HubRefreshIssueRequest, REFRESH_TOKEN_TTL_SECONDS};
 use veoveo_hub_sdk::{OAuthClientId, PrincipalKind};
 use veoveo_types::InvocationProvenance;
@@ -20,7 +20,7 @@ use crate::{
         TokenResponse, oauth_error_response, pkce_s256_challenge, scope_string, token_response,
     },
     runtime::AppState,
-    tokens::{ACCESS_TOKEN_TTL_SECONDS, AccessTokenInvocation, issue_access_token},
+    tokens::{AccessTokenInvocation, issue_access_token},
 };
 
 #[path = "oauth_grants/id_jag.rs"]
@@ -42,15 +42,12 @@ pub(super) use scopes::{
 pub(super) async fn token_endpoint_authorization_code(
     state: &AppState,
     catalog: &HubCatalog,
-    profile: &HubProfile,
+    profile: veoveo_hub::RegisteredProtectedResource<'_>,
     authorization_server: &ResourceAuthorizationServer,
     request: TokenRequest,
     started_at: Instant,
 ) -> axum::response::Response {
-    if !profile
-        .auth_modes
-        .contains(&AuthMode::OidcAuthorizationCodePkce)
-    {
+    if !profile.supports(OAuthGrantType::AuthorizationCodePkce) {
         if let Err(err) = record_oidc_auth_audit(
             &state.hub_state,
             profile,
@@ -70,7 +67,17 @@ pub(super) async fn token_endpoint_authorization_code(
         return oauth_error_response(
             StatusCode::BAD_REQUEST,
             "unsupported_grant_type",
-            "authorization code flow is not enabled for this hub profile",
+            "authorization code flow is not enabled for this protected resource",
+        );
+    }
+    if request.client_secret.is_some()
+        || request.client_assertion.is_some()
+        || request.client_assertion_type.is_some()
+    {
+        return oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "invalid_client",
+            "public client does not accept client credentials",
         );
     }
     let client_id = match OAuthClientId::parse(request.client_id.trim()) {
@@ -318,7 +325,7 @@ pub(super) async fn token_endpoint_authorization_code(
         Ok(challenge) => challenge,
         Err(err) => return internal_error_response(err),
     };
-    if code_record.profile != profile.id
+    if code_record.protected_resource != *profile.protected_resource()
         || code_record.oauth_client_id != client_id
         || code_record.redirect_uri != redirect_uri
         || code_record.code_challenge_method != PkceCodeChallengeMethod::S256
@@ -346,11 +353,13 @@ pub(super) async fn token_endpoint_authorization_code(
             "authorization code binding is invalid",
         );
     }
-    if let Err(err) = catalog.work_context_membership(
-        &client_id,
-        &code_record.work_context,
-        &code_record.principal,
-    ) {
+    if profile.profile().is_some()
+        && let Err(err) = catalog.work_context_membership(
+            &client_id,
+            &code_record.work_context,
+            &code_record.principal,
+        )
+    {
         tracing::warn!("rejected authorization-code Work Context: {err}");
         if let Err(err) = record_oidc_auth_audit(
             &state.hub_state,
@@ -381,7 +390,7 @@ pub(super) async fn token_endpoint_authorization_code(
             .hub_state
             .issue_refresh_token(HubRefreshIssueRequest {
                 authorization_server: &authorization_server.id,
-                profile: &profile.id,
+                protected_resource: profile.protected_resource(),
                 oauth_client_id: &client_id,
                 work_context: &code_record.work_context,
                 principal: &code_record.principal,
@@ -420,33 +429,66 @@ pub(super) async fn token_endpoint_authorization_code(
     } else {
         None
     };
-    let token = match issue_access_token(
-        catalog,
-        authorization_server,
-        &profile.protected_resource,
-        &code_record.principal.subject,
-        &client_id,
-        PrincipalKind::User,
-        Some(&code_record.principal),
-        Some(&code_record.principal_display_name),
-        None,
-        AccessTokenInvocation {
-            extensions: Default::default(),
-            session_family: refresh
-                .as_ref()
-                .map(|issued| issued.grant.family_id.clone()),
-            work_context: code_record.work_context.clone(),
-            provenance: InvocationProvenance::Direct {
-                initiator: code_record.principal.id.clone(),
+    let token = match if profile.profile().is_some() {
+        issue_access_token(
+            catalog,
+            authorization_server,
+            profile.protected_resource(),
+            &code_record.principal.subject,
+            &client_id,
+            PrincipalKind::User,
+            Some(&code_record.principal),
+            Some(&code_record.principal_display_name),
+            None,
+            AccessTokenInvocation {
+                lifetime: None,
+                not_after: None,
+                purpose: None,
+                extensions: Default::default(),
+                session_family: refresh
+                    .as_ref()
+                    .map(|issued| issued.grant.family_id.clone()),
+                work_context: code_record.work_context.clone(),
+                provenance: InvocationProvenance::Direct {
+                    initiator: code_record.principal.id.clone(),
+                },
             },
-        },
-        code_record.principal.id.clone(),
-        &code_record.scopes,
-    )
-    .await
-    {
+            code_record.principal.id.clone(),
+            &code_record.scopes,
+        )
+        .await
+        .map_err(veoveo_hub::token_profile::TokenIssueError::Unavailable)
+    } else {
+        async {
+            let context = veoveo_hub::token_profile::TokenContext::admit(
+                catalog,
+                profile.protected_resource(),
+                &client_id,
+                &code_record.principal,
+                &code_record.work_context,
+                &code_record.scopes,
+                refresh.as_ref().map(|r| &r.grant.family_id),
+            )?;
+            state
+                .token_profiles
+                .issue(
+                    context,
+                    veoveo_hub::token_profile::ProfileRequest::Login,
+                    Some(&code_record.principal_display_name),
+                )
+                .await
+        }
+        .await
+    } {
         Ok(token) => token,
         Err(err) => {
+            if err.is_denied() {
+                return oauth_error_response(
+                    StatusCode::BAD_REQUEST,
+                    "invalid_grant",
+                    "current token authority is denied",
+                );
+            }
             tracing::error!("failed to issue browser authorization-code access token: {err}");
             if let Err(err) = record_oidc_auth_audit(
                 &state.hub_state,
@@ -488,9 +530,9 @@ pub(super) async fn token_endpoint_authorization_code(
         return auth_audit_error_response(err);
     }
     token_response(TokenResponse {
+        expires_in: token.expires_in(),
         access_token: token.access_token,
         token_type: "Bearer",
-        expires_in: ACCESS_TOKEN_TTL_SECONDS as u64,
         scope: scope_string(&code_record.scopes),
         refresh_token: refresh
             .as_ref()

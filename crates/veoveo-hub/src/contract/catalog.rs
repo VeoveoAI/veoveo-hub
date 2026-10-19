@@ -88,6 +88,8 @@ pub struct ProtectedResourceDescriptor {
     pub authorization_server: AuthorizationServerId,
     pub policy_version: PolicyVersion,
     pub required_scopes: BTreeSet<ScopeName>,
+    /// Grants the resource owner implements. Registration alone never enables a grant.
+    pub grant_types: BTreeSet<crate::contract::OAuthGrantType>,
 }
 #[derive(Clone)]
 pub struct CatalogObjectDescriptor {

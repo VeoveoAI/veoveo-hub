@@ -660,6 +660,35 @@ XVKygdRdax3xMB3Eld5rlIDwzX09ARHrm8badXtrF0NhQPYZVbax8rpJGcgEFPgXEJJ71w==
     }
 
     #[test]
+    fn signed_token_purpose_is_typed_reserved_and_rejects_unknown_authority() {
+        use crate::token_profile::{TOKEN_PURPOSE_CLAIM, TokenPurpose};
+        let verifier = verifier(&["operator:use"]);
+        for (wire, purpose) in [
+            ("login", TokenPurpose::Login),
+            ("resource", TokenPurpose::Resource),
+        ] {
+            let token = claims_with_extra(&format!("\"{TOKEN_PURPOSE_CLAIM}\":\"{wire}\""));
+            let verified = verifier.verify(&token).unwrap();
+            assert_eq!(verified.purpose, Some(purpose));
+            assert!(!verified.extensions.wire().contains_key(TOKEN_PURPOSE_CLAIM));
+        }
+        assert!(
+            verifier
+                .verify(&claims_with_extra(&format!(
+                    "\"{TOKEN_PURPOSE_CLAIM}\":\"unrestricted\""
+                )))
+                .is_err()
+        );
+        assert!(
+            verifier
+                .verify(&token("operator:use"))
+                .unwrap()
+                .purpose
+                .is_none()
+        );
+    }
+
+    #[test]
     fn signed_session_binding_is_typed_and_cannot_be_inferred_when_absent() {
         let family = uuid::Uuid::now_v7().to_string();
         let verifier = verifier(&["operator:use"]);

@@ -4,7 +4,7 @@ use axum::{http::StatusCode, response::IntoResponse};
 use chrono::Utc;
 use veoveo_hub::contract::{AuthOutcome, AuthReasonCode};
 use veoveo_hub::contract::{OAuthClientAuthMethod, OAuthGrantType};
-use veoveo_hub::control_plane::{HubProfile, OAuthRefreshToken, ResourceAuthorizationServer};
+use veoveo_hub::control_plane::{OAuthRefreshToken, ResourceAuthorizationServer};
 use veoveo_hub::{HubCatalog, HubRefreshExchange, HubRefreshRotationRequest};
 use veoveo_hub_sdk::{OAuthClientId, PrincipalKind};
 use veoveo_types::InvocationProvenance;
@@ -17,17 +17,27 @@ use crate::{
     http_util::{TokenResponse, oauth_error_response, scope_string, token_response},
     oauth_grants::TokenRequest,
     runtime::AppState,
-    tokens::{ACCESS_TOKEN_TTL_SECONDS, AccessTokenInvocation, issue_access_token},
+    tokens::{AccessTokenInvocation, issue_access_token},
 };
 
 pub(crate) async fn token_endpoint_refresh_token(
     state: &AppState,
     catalog: &HubCatalog,
-    profile: &HubProfile,
+    profile: veoveo_hub::RegisteredProtectedResource<'_>,
     authorization_server: &ResourceAuthorizationServer,
     request: TokenRequest,
     started_at: Instant,
 ) -> axum::response::Response {
+    if request.client_secret.is_some()
+        || request.client_assertion.is_some()
+        || request.client_assertion_type.is_some()
+    {
+        return oauth_error_response(
+            StatusCode::BAD_REQUEST,
+            "invalid_client",
+            "public client does not accept client credentials",
+        );
+    }
     let client_id = match OAuthClientId::parse(request.client_id.trim()) {
         Ok(client_id) => client_id,
         Err(_) => {
@@ -55,10 +65,11 @@ pub(crate) async fn token_endpoint_refresh_token(
         )
         .await;
     };
-    if client.authorization_server != profile.authorization_server
+    if !profile.supports(OAuthGrantType::RefreshToken)
+        || client.authorization_server != *profile.authorization_server()
         || !client
             .allowed_resources
-            .contains(&profile.protected_resource)
+            .contains(profile.protected_resource())
         || !client.grant_types.contains(&OAuthGrantType::RefreshToken)
         || !client.auth_methods.contains(&OAuthClientAuthMethod::None)
     {
@@ -123,7 +134,7 @@ pub(crate) async fn token_endpoint_refresh_token(
         .refresh_token_grant(
             &refresh_token,
             &authorization_server.id,
-            &profile.id,
+            profile.protected_resource(),
             &client_id,
             now,
         )
@@ -164,9 +175,7 @@ pub(crate) async fn token_endpoint_refresh_token(
         }
     };
     if !grant.scopes.is_subset(&client.allowed_scopes)
-        || !grant
-            .scopes
-            .is_subset(&catalog.profile_supported_scopes(profile))
+        || !grant.scopes.is_subset(&profile.supported_scopes(catalog))
     {
         return invalid_refresh_response(
             state,
@@ -179,9 +188,10 @@ pub(crate) async fn token_endpoint_refresh_token(
         )
         .await;
     }
-    if catalog
-        .work_context_membership(&client_id, &grant.work_context, &grant.principal)
-        .is_err()
+    if profile.profile().is_some()
+        && catalog
+            .work_context_membership(&client_id, &grant.work_context, &grant.principal)
+            .is_err()
     {
         return invalid_refresh_response(
             state,
@@ -194,31 +204,65 @@ pub(crate) async fn token_endpoint_refresh_token(
         )
         .await;
     }
-    let token = match issue_access_token(
-        catalog,
-        authorization_server,
-        &profile.protected_resource,
-        &grant.principal.subject,
-        &client_id,
-        PrincipalKind::User,
-        Some(&grant.principal),
-        Some(&grant.principal_display_name),
-        None,
-        AccessTokenInvocation {
-            extensions: Default::default(),
-            session_family: Some(grant.family_id.clone()),
-            work_context: grant.work_context.clone(),
-            provenance: InvocationProvenance::Direct {
-                initiator: grant.principal.id.clone(),
+    let token = match if profile.profile().is_some() {
+        issue_access_token(
+            catalog,
+            authorization_server,
+            profile.protected_resource(),
+            &grant.principal.subject,
+            &client_id,
+            PrincipalKind::User,
+            Some(&grant.principal),
+            Some(&grant.principal_display_name),
+            None,
+            AccessTokenInvocation {
+                lifetime: None,
+                not_after: None,
+                purpose: None,
+                extensions: Default::default(),
+                session_family: Some(grant.family_id.clone()),
+                work_context: grant.work_context.clone(),
+                provenance: InvocationProvenance::Direct {
+                    initiator: grant.principal.id.clone(),
+                },
             },
-        },
-        grant.principal.id.clone(),
-        &grant.scopes,
-    )
-    .await
-    {
+            grant.principal.id.clone(),
+            &grant.scopes,
+        )
+        .await
+        .map_err(veoveo_hub::token_profile::TokenIssueError::Unavailable)
+    } else {
+        async {
+            let context = veoveo_hub::token_profile::TokenContext::admit(
+                catalog,
+                profile.protected_resource(),
+                &client_id,
+                &grant.principal,
+                &grant.work_context,
+                &grant.scopes,
+                Some(&grant.family_id),
+            )?
+            .expires_before(grant.expires_at);
+            state
+                .token_profiles
+                .issue(
+                    context,
+                    veoveo_hub::token_profile::ProfileRequest::Login,
+                    Some(&grant.principal_display_name),
+                )
+                .await
+        }
+        .await
+    } {
         Ok(token) => token,
         Err(error) => {
+            if error.is_denied() {
+                return oauth_error_response(
+                    StatusCode::BAD_REQUEST,
+                    "invalid_grant",
+                    "current token authority is denied",
+                );
+            }
             tracing::error!("failed to issue refreshed access token: {error}");
             if let Err(error) = record_refresh_auth_audit(
                 &state.hub_state,
@@ -277,7 +321,7 @@ pub(crate) async fn token_endpoint_refresh_token(
             &refresh_token,
             HubRefreshRotationRequest {
                 authorization_server: &authorization_server.id,
-                profile: &profile.id,
+                protected_resource: profile.protected_resource(),
                 oauth_client_id: &client_id,
                 now,
                 delivery_window: state.refresh_delivery_window,
@@ -343,9 +387,9 @@ pub(crate) async fn token_endpoint_refresh_token(
         .num_seconds()
         .max(0) as u64;
     token_response(TokenResponse {
+        expires_in: token.expires_in(),
         access_token: token.access_token,
         token_type: "Bearer",
-        expires_in: ACCESS_TOKEN_TTL_SECONDS as u64,
         scope: scope_string(&rotated.grant.scopes),
         refresh_token: Some(rotated.token.as_str().to_owned()),
         refresh_token_expires_in: Some(refresh_expires_in),
@@ -354,7 +398,7 @@ pub(crate) async fn token_endpoint_refresh_token(
 
 async fn invalid_refresh_response(
     state: &AppState,
-    profile: &HubProfile,
+    profile: veoveo_hub::RegisteredProtectedResource<'_>,
     authorization_server: &ResourceAuthorizationServer,
     client_id: Option<&OAuthClientId>,
     principal: Option<&veoveo_hub_sdk::Principal>,

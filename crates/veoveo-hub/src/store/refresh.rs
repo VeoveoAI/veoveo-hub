@@ -10,7 +10,7 @@ use secrecy::SecretString;
 use sqlx::{PgConnection, types::Json};
 use uuid::Uuid;
 use veoveo_hub_sdk::Principal;
-use veoveo_hub_sdk::{HubProfileId, HubRefreshFamilyId};
+use veoveo_hub_sdk::{HubRefreshFamilyId, ProtectedResourceId};
 use veoveo_types::{OAuthClientId, ScopeName, Sha256Digest, WorkContextId};
 
 use super::{HubStore, HubStoreError};
@@ -29,12 +29,12 @@ pub enum RefreshRevocation {
     TokenReplay,
 }
 
-/// The client a family belongs to. A token presented by another client, profile or
+/// The client a family belongs to. A token presented by another client, protected_resource or
 /// authorization server is not this family's.
 #[derive(Clone, Copy, Debug)]
 pub struct RefreshBinding<'a> {
     pub authorization_server: &'a AuthorizationServerId,
-    pub profile: &'a HubProfileId,
+    pub protected_resource: &'a ProtectedResourceId,
     pub oauth_client_id: &'a OAuthClientId,
 }
 
@@ -43,7 +43,7 @@ pub struct RefreshBinding<'a> {
 pub struct RefreshFamily {
     pub id: HubRefreshFamilyId,
     pub authorization_server: AuthorizationServerId,
-    pub profile: HubProfileId,
+    pub protected_resource: ProtectedResourceId,
     pub oauth_client_id: OAuthClientId,
     pub work_context: WorkContextId,
     pub principal: RefreshPrincipal,
@@ -59,7 +59,7 @@ impl RefreshFamily {
     /// Whether a token of this family presented by `binding` belongs to it.
     pub fn bound_to(&self, binding: RefreshBinding<'_>) -> bool {
         &self.authorization_server == binding.authorization_server
-            && &self.profile == binding.profile
+            && &self.protected_resource == binding.protected_resource
             && &self.oauth_client_id == binding.oauth_client_id
     }
 }
@@ -76,7 +76,7 @@ pub struct RefreshPrincipal {
 pub struct NewRefreshFamily {
     pub id: HubRefreshFamilyId,
     pub authorization_server: AuthorizationServerId,
-    pub profile: HubProfileId,
+    pub protected_resource: ProtectedResourceId,
     pub oauth_client_id: OAuthClientId,
     pub work_context: WorkContextId,
     pub principal: RefreshPrincipal,
@@ -151,7 +151,7 @@ pub struct RefreshRetention {
 struct FamilyRow {
     id: Uuid,
     authorization_server: String,
-    profile: String,
+    protected_resource: String,
     oauth_client_id: String,
     work_context: String,
     principal: Json<Principal>,
@@ -174,7 +174,10 @@ impl TryFrom<FamilyRow> for RefreshFamily {
                 "refresh_family.authorization_server",
                 AuthorizationServerId::parse(row.authorization_server),
             )?,
-            profile: admitted("refresh_family.profile", HubProfileId::parse(row.profile))?,
+            protected_resource: admitted(
+                "refresh_family.protected_resource",
+                ProtectedResourceId::parse(row.protected_resource),
+            )?,
             oauth_client_id: admitted(
                 "refresh_family.oauth_client_id",
                 OAuthClientId::parse(row.oauth_client_id),
@@ -291,7 +294,7 @@ impl HubStore {
             "src/store/refresh/create_family.sql",
             family.id.as_uuid(),
             family.authorization_server.as_str(),
-            family.profile.as_str(),
+            family.protected_resource.as_str(),
             family.oauth_client_id.as_str(),
             family.work_context.as_str(),
             principal.id.as_str(),

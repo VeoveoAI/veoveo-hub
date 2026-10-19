@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.device_authorization SET state='approved', principal=$3, principal_display_name=$4\nWHERE id=$1 AND browser_digest=$2 AND state='authorizing' AND expires_at>$5 RETURNING id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "24fe8b7b174959cbed07f6da2b8f8bef0dd0256064b3f0a9af3f80bfde4e7a48"
+}

@@ -29,6 +29,9 @@ pub enum AuthMethod {
     RefreshToken,
     ClientCredentialsPrivateKeyJwt,
     EnterpriseManagedIdJag,
+    DeviceAuthorization,
+    PublicTokenExchange,
+    ClientCredentialsSecretPost,
 }
 
 impl AuthMethod {
@@ -40,6 +43,9 @@ impl AuthMethod {
             Self::RefreshToken => "refresh_token",
             Self::ClientCredentialsPrivateKeyJwt => "client_credentials_private_key_jwt",
             Self::EnterpriseManagedIdJag => "enterprise_managed_id_jag",
+            Self::DeviceAuthorization => "device_authorization",
+            Self::PublicTokenExchange => "public_token_exchange",
+            Self::ClientCredentialsSecretPost => "client_credentials_secret_post",
         }
     }
 }

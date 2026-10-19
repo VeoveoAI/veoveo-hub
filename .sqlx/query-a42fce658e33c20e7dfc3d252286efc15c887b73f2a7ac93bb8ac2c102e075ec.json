@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE hub.authorization_code\nSET consumed_at = $2\nWHERE code = $1 AND expires_at > $2 AND consumed_at IS NULL\nRETURNING\n    code, profile, oauth_client_id, work_context, oidc_client, redirect_uri,\n    client_state, scopes, code_challenge, code_challenge_method,\n    principal AS \"principal: Json<Principal>\", principal_display_name,\n    issued_at, expires_at, consumed_at\n",
+  "query": "UPDATE hub.authorization_code\nSET consumed_at = $2\nWHERE code = $1 AND expires_at > $2 AND consumed_at IS NULL\nRETURNING\n    code, protected_resource, oauth_client_id, work_context, oidc_client, redirect_uri,\n    client_state, scopes, code_challenge, code_challenge_method,\n    principal AS \"principal: Json<Principal>\", principal_display_name,\n    issued_at, expires_at, consumed_at\n",
   "describe": {
     "columns": [
       {
@@ -16,12 +16,12 @@
       },
       {
         "ordinal": 1,
-        "name": "profile",
+        "name": "protected_resource",
         "type_info": "Text",
         "origin": {
           "Table": {
             "table": "hub.authorization_code",
-            "name": "profile"
+            "name": "protected_resource"
           }
         }
       },
@@ -193,5 +193,5 @@
       true
     ]
   },
-  "hash": "8a824c210093b42af377b4c1cc07b009321daa8206ddd47840683b25218ce805"
+  "hash": "a42fce658e33c20e7dfc3d252286efc15c887b73f2a7ac93bb8ac2c102e075ec"
 }

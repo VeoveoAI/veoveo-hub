@@ -47,20 +47,33 @@ pub struct HubJwtRevocationPruneResult {
     pub deleted: u64,
 }
 
+/// Final delivery after one upstream browser identity proof. Device approval has
+/// no downstream redirect URI or synthetic authorization code.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum AuthorizationDestination {
+    Code {
+        redirect_uri: OAuthRedirectUri,
+        client_state: Option<OAuthStateValue>,
+        code_challenge: PkceCodeChallenge,
+        code_challenge_method: PkceCodeChallengeMethod,
+    },
+    Device {
+        request: uuid::Uuid,
+        browser: veoveo_types::Sha256Digest,
+    },
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct HubAuthorizationRequest {
     pub idp_state: OAuthStateValue,
-    pub profile: HubProfileId,
+    pub protected_resource: ProtectedResourceId,
     pub oauth_client_id: OAuthClientId,
     pub work_context: WorkContextId,
     pub oidc_client: OidcClientRegistrationId,
-    pub redirect_uri: OAuthRedirectUri,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_state: Option<OAuthStateValue>,
+    pub destination: AuthorizationDestination,
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub requested_scopes: BTreeSet<ScopeName>,
-    pub code_challenge: PkceCodeChallenge,
-    pub code_challenge_method: PkceCodeChallengeMethod,
     pub idp_code_verifier: PkceCodeVerifier,
     pub idp_code_challenge: PkceCodeChallenge,
     pub idp_code_challenge_method: PkceCodeChallengeMethod,
@@ -72,7 +85,7 @@ pub struct HubAuthorizationRequest {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct HubAuthorizationCodeRecord {
     pub code: OAuthAuthorizationCode,
-    pub profile: HubProfileId,
+    pub protected_resource: ProtectedResourceId,
     pub oauth_client_id: OAuthClientId,
     pub work_context: WorkContextId,
     pub oidc_client: OidcClientRegistrationId,
@@ -95,7 +108,7 @@ pub struct HubAuthorizationCodeRecord {
 pub struct HubRefreshGrant {
     pub family_id: HubRefreshFamilyId,
     pub authorization_server: AuthorizationServerId,
-    pub profile: HubProfileId,
+    pub protected_resource: ProtectedResourceId,
     pub oauth_client_id: OAuthClientId,
     pub work_context: WorkContextId,
     pub principal: Principal,

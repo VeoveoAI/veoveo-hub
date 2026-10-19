@@ -7,14 +7,20 @@ pub mod contract;
 pub mod control_plane;
 pub mod delegation;
 pub mod http;
+pub mod issuance;
 pub use catalog_admission::HubCatalogAdmission;
-pub use catalog_registry::{audit_registry, kernel_catalog_registry};
+pub use catalog_registry::{
+    audit_registry, kernel_catalog_registry, kernel_catalog_registry_builder,
+};
 mod control_store;
 pub mod local;
 pub mod mcp;
 mod mcp_support;
 mod metadata;
 pub mod oauth_clients;
+mod oauth_resource;
+pub mod token_profile;
+pub use oauth_resource::RegisteredProtectedResource;
 pub mod policy;
 mod principal_audit;
 pub mod problem;

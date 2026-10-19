@@ -106,6 +106,17 @@ pub(super) async fn record_token_auth_audit<'a>(
     hub_state.record_audit(draft).await
 }
 
+pub(super) async fn record_protocol_auth_audit<'a>(
+    hub_state: &HubState,
+    target: impl Into<AuthAuditTarget<'a>>,
+    record: AuthAuditRecord<'_>,
+    method: AuthMethod,
+) -> anyhow::Result<()> {
+    hub_state
+        .record_audit(authentication_draft(target.into(), record, method)?)
+        .await
+}
+
 pub(super) async fn record_id_jag_auth_audit(
     hub_state: &HubState,
     profile: &HubProfile,
@@ -119,9 +130,9 @@ pub(super) async fn record_id_jag_auth_audit(
         )?)
         .await
 }
-pub(super) async fn record_oidc_auth_audit(
+pub(super) async fn record_oidc_auth_audit<'a>(
     hub_state: &HubState,
-    profile: &HubProfile,
+    profile: impl Into<AuthAuditTarget<'a>>,
     record: AuthAuditRecord<'_>,
 ) -> anyhow::Result<()> {
     hub_state
@@ -132,17 +143,17 @@ pub(super) async fn record_oidc_auth_audit(
         )?)
         .await
 }
-pub(super) async fn record_refresh_auth_audit(
+pub(super) async fn record_refresh_auth_audit<'a>(
     hub_state: &HubState,
-    profile: &HubProfile,
+    profile: impl Into<AuthAuditTarget<'a>>,
     record: AuthAuditRecord<'_>,
 ) -> anyhow::Result<()> {
     hub_state
         .record_audit(refresh_auth_audit_event(profile, record)?)
         .await
 }
-pub(super) fn refresh_auth_audit_event(
-    profile: &HubProfile,
+pub(super) fn refresh_auth_audit_event<'a>(
+    profile: impl Into<AuthAuditTarget<'a>>,
     record: AuthAuditRecord<'_>,
 ) -> anyhow::Result<AuditDraft> {
     authentication_draft(profile.into(), record, AuthMethod::RefreshToken)

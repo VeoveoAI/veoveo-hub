@@ -6,6 +6,8 @@ use veoveo_hub::contract::{SecretPurpose, SecretReferenceId, SecretSource};
 #[path = "hub/bindings.rs"]
 mod bindings;
 use bindings::catalog_admission;
+#[path = "hub/contributions/mod.rs"]
+mod contributions;
 
 #[path = "hub/admin.rs"]
 mod admin;
@@ -17,6 +19,8 @@ mod audit_cli;
 mod auth;
 #[path = "hub/console/mod.rs"]
 mod console;
+#[path = "hub/control_reload.rs"]
+mod control_reload;
 #[path = "hub/host.rs"]
 mod host;
 #[path = "hub/http_util.rs"]
@@ -33,15 +37,15 @@ mod runtime;
 mod server;
 #[path = "hub/startup.rs"]
 mod startup;
-#[path = "hub/tokens.rs"]
-mod tokens;
+use veoveo_hub::issuance as tokens;
 
 use clap::{Args as ClapArgs, Parser, Subcommand, ValueEnum};
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use veoveo_hub::{
-    HubCatalog, HubRefreshDeliveryWindow, HubSecretResolver, RefreshTokenDeliveryCipher,
+    HubCatalog, HubControlStore, HubRefreshDeliveryWindow, HubSecretResolver,
+    RefreshTokenDeliveryCipher,
 };
 use veoveo_hub_sdk::{TelemetryGuard, init_server_telemetry};
 use veoveo_store::StoreConfig;
@@ -100,6 +104,13 @@ impl FromStr for RedactedSecret {
 
 #[derive(Subcommand, Debug)]
 enum Command {
+    /// Explicitly replace the authoritative control plane while the service is stopped.
+    ImportControlPlane {
+        #[command(flatten)]
+        database: DatabaseArgs,
+        #[arg(long, env = "VEOVEO_CONFIG")]
+        config: PathBuf,
+    },
     /// Validate an installation configuration file and exit.
     Validate {
         /// Installation configuration (JSON).
@@ -145,7 +156,7 @@ struct ServeArgs {
     /// announces.
     #[arg(long, env = "VEOVEO_ISSUER")]
     issuer: String,
-    /// Installation configuration (JSON). It becomes the active revision at startup.
+    /// Installation seed (JSON), used only when the database has no active revision.
     #[arg(long, env = "VEOVEO_CONFIG")]
     config: PathBuf,
     #[command(flatten)]
@@ -245,6 +256,18 @@ async fn main() -> anyhow::Result<()> {
     };
 
     match command {
+        Command::ImportControlPlane { database, config } => {
+            let platform =
+                startup::connect(database.into_config()?, std::time::Duration::from_secs(30))
+                    .await?;
+            startup::migrate(&platform).await?;
+            let admission = crate::catalog_admission()?;
+            let catalog = HubCatalog::load_json(&config, admission.clone())?;
+            let store = HubControlStore::from_platform_store(platform, admission);
+            startup::import(&store, &catalog).await?;
+            println!("published control plane");
+            Ok(())
+        }
         Command::Validate { config } => {
             let catalog = HubCatalog::load_json(&config, crate::catalog_admission()?)?;
             println!("ok: {} profile(s)", catalog.profile_count());
@@ -314,10 +337,9 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
     )
     .await?;
     startup::migrate(&platform).await?;
-    let catalog = HubCatalog::load_json(&config, crate::catalog_admission()?)?;
     let control_store =
-        veoveo_hub::HubControlStore::from_platform_store(platform, catalog.admission());
-    startup::publish(&control_store, &catalog).await?;
+        veoveo_hub::HubControlStore::from_platform_store(platform, crate::catalog_admission()?);
+    let catalog = startup::load_catalog(&control_store, &config).await?;
     let audit_exports = audit_export_config
         .as_deref()
         .map(veoveo_audit::export::AuditExportConfig::load)

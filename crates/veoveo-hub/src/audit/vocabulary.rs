@@ -191,6 +191,18 @@ impl AuditDetailType for AccountChange {
     const OCSF: AuditOcsfClass = OCSF_ACCOUNT_CHANGE;
 }
 
+/// One admitted revision became authoritative in the same transaction as this record.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ControlPlanePublication {
+    pub revision: crate::control_plane::HubControlPlaneRevisionId,
+    pub digest: veoveo_types::Sha256Digest,
+}
+impl AuditDetailType for ControlPlanePublication {
+    const CLASS: &'static str = "hub.control_plane_publication";
+    const OCSF: AuditOcsfClass = OCSF_ENTITY_MANAGEMENT;
+}
+
 /// A server registration step: class `hub.registration`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -280,6 +292,7 @@ impl HubAudit {
         builder.declare::<AdminCompletion>()?;
         builder.declare::<Authentication>()?;
         builder.declare::<AccountChange>()?;
+        builder.declare::<ControlPlanePublication>()?;
         builder.declare::<Registration>()?;
         builder.declare::<TaskStatusRead>()?;
         builder.declare::<TokenExchange>()?;
@@ -318,6 +331,7 @@ mod tests {
                 "admin_admission",
                 "admin_completion",
                 "authentication",
+                "control_plane_publication",
                 "registration",
                 "task_status",
                 "token_exchange"
@@ -347,6 +361,6 @@ mod tests {
             .filter(|declaration| declaration.class().owner() == "hub")
             .map(|declaration| declaration.ocsf().class_uid)
             .collect();
-        assert_eq!(declared.len(), 7);
+        assert_eq!(declared.len(), 8);
     }
 }

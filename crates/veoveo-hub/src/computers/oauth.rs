@@ -346,7 +346,7 @@ async fn finish(
         runtime
             .hub
             .access_token_session_valid(
-                &profile.id,
+                &profile.protected_resource,
                 &server.id,
                 &subject.access_token,
                 &subject.principal

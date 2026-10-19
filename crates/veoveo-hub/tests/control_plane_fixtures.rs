@@ -14,20 +14,3 @@ fn core_control_planes_satisfy_the_hub_contract() {
             .unwrap_or_else(|error| panic!("{path}: {error}"));
     }
 }
-
-#[test]
-fn retired_lore_issuer_configuration_is_rejected() {
-    let mut value: serde_json::Value =
-        serde_json::from_slice(&fs::read("testdata/hub.json").unwrap()).unwrap();
-    value["lore"] = serde_json::json!({
-        "resource": "lores://retired-issuer.example:41337",
-        "authorizationServer": "local",
-        "grants": []
-    });
-    let error = serde_json::from_value::<HubControlPlane>(value).unwrap_err();
-    assert!(
-        error
-            .to_string()
-            .contains("obsolete control-plane field `lore`")
-    );
-}

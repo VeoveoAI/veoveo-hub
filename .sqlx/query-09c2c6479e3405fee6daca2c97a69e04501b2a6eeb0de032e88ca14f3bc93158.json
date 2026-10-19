@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.device_authorization (id,device_digest,user_digest,protected_resource,oauth_client_id,work_context,scopes,state,poll_interval,next_poll,created_at,expires_at)\nVALUES ($1,$2,$3,$4,$5,$6,$7,'pending',5,$8,$9,$10)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "09c2c6479e3405fee6daca2c97a69e04501b2a6eeb0de032e88ca14f3bc93158"
+}

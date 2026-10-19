@@ -23,6 +23,7 @@ pub(super) type SharedProfileMcpServices = Arc<RwLock<BTreeMap<HubProfileId, Pro
 
 #[derive(Clone)]
 pub(super) struct AppState {
+    pub(super) token_profiles: veoveo_hub::token_profile::TokenProfiles,
     pub(super) catalog: SharedCatalog,
     pub(super) hub_state: HubState,
     pub(super) http: SharedHttpClient,
@@ -37,6 +38,7 @@ pub(super) use veoveo_hub::http::ProfileAuthState;
 
 #[derive(Clone)]
 pub(super) struct AdminState {
+    pub(super) publication: Arc<tokio::sync::Mutex<()>>,
     pub(super) catalog: SharedCatalog,
     pub(super) http: SharedHttpClient,
     pub(super) control_store: HubControlStore,
@@ -86,6 +88,10 @@ pub(super) fn replace_http_client(http: &SharedHttpClient, new_client: reqwest::
 pub(super) async fn run_authorization_retention_gc(hub_state: &HubState) -> anyhow::Result<()> {
     let now = Utc::now();
     hub_state.hub_store().prune_computer_logins().await?;
+    hub_state
+        .hub_store()
+        .prune_device_authorizations(now)
+        .await?;
     let authorization_records = hub_state
         .prune_expired_authorization_records(now, RETENTION_BATCH)
         .await?;

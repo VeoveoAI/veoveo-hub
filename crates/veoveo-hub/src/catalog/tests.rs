@@ -478,6 +478,7 @@ fn authorization_server_metadata_states_every_member_with_a_default() {
     let metadata = crate::AuthorizationServerMetadata {
         issuer: "https://veoveo.example/oauth".to_owned(),
         authorization_endpoint: None,
+        device_authorization_endpoint: None,
         token_endpoint: "https://veoveo.example/oauth/token".to_owned(),
         revocation_endpoint: None,
         jwks_uri: None,

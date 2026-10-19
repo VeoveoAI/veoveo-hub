@@ -466,6 +466,7 @@ impl HubControlPlane {
                 &identity_providers,
                 &authorization_servers,
                 &profile_by_id,
+                &contributed_resources,
                 &secret_refs,
             )?;
         }
@@ -502,9 +503,12 @@ impl HubControlPlane {
                 });
             }
             let mode_matches = match client.invocation_mode {
-                veoveo_types::InvocationMode::Direct => client
-                    .grant_types
-                    .contains(&OAuthGrantType::AuthorizationCodePkce),
+                veoveo_types::InvocationMode::Direct => client.grant_types.iter().any(|grant| {
+                    matches!(
+                        grant,
+                        OAuthGrantType::AuthorizationCodePkce | OAuthGrantType::DeviceAuthorization
+                    )
+                }),
                 veoveo_types::InvocationMode::Delegated => client
                     .grant_types
                     .contains(&OAuthGrantType::EnterpriseManagedAuthorization),

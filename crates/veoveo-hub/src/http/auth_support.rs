@@ -19,6 +19,19 @@ use std::time::Instant;
 use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditRequest, AuditTarget};
 use veoveo_hub_sdk::HubProfileId;
 use veoveo_hub_sdk::ProtectedResourceId;
+impl<'a> From<crate::RegisteredProtectedResource<'a>> for AuthAuditTarget<'a> {
+    fn from(resource: crate::RegisteredProtectedResource<'a>) -> Self {
+        Self {
+            profile: resource.profile().map(|profile| &profile.id),
+            protected_resource: resource.protected_resource(),
+        }
+    }
+}
+impl<'a> From<&crate::RegisteredProtectedResource<'a>> for AuthAuditTarget<'a> {
+    fn from(resource: &crate::RegisteredProtectedResource<'a>) -> Self {
+        (*resource).into()
+    }
+}
 pub async fn record_auth_audit(
     state: &ProfileAuthState,
     profile: &HubProfile,

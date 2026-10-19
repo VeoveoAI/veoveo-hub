@@ -12,15 +12,14 @@ use serde::Deserialize;
 use veoveo_hub::contract::{AuthOutcome, AuthReasonCode};
 use veoveo_hub::contract::{OAuthClientAuthMethod, OAuthGrantType};
 use veoveo_hub::control_plane::{
-    HubProfile, HubRefreshRevocationRequest, OAuthRefreshToken, OAuthTokenTypeHint,
-    ResourceAuthorizationServer,
+    HubRefreshRevocationRequest, OAuthRefreshToken, OAuthTokenTypeHint, ResourceAuthorizationServer,
 };
 use veoveo_hub_sdk::OAuthClientId;
 
 use crate::{
     audit::{AuthAuditRecord, auth_audit_error_response, record_refresh_auth_audit},
     http_util::oauth_error_response,
-    oauth::resolve_oauth_profile,
+    oauth::resolve_oauth_resource,
     runtime::{AppState, current_catalog},
 };
 
@@ -49,11 +48,11 @@ pub(crate) async fn revoke_refresh_token(
     };
     let catalog = current_catalog(&state.catalog);
     let profile =
-        match resolve_oauth_profile(&catalog, form.client_id.as_str(), form.resource.as_deref()) {
+        match resolve_oauth_resource(&catalog, form.client_id.as_str(), form.resource.as_deref()) {
             Ok(profile) => profile,
             Err(response) => return *response,
         };
-    let Some(authorization_server) = catalog.authorization_server(&profile.authorization_server)
+    let Some(authorization_server) = catalog.authorization_server(profile.authorization_server())
     else {
         return oauth_error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -84,10 +83,10 @@ pub(crate) async fn revoke_refresh_token(
         )
         .await;
     };
-    if client.authorization_server != profile.authorization_server
+    if client.authorization_server != *profile.authorization_server()
         || !client
             .allowed_resources
-            .contains(&profile.protected_resource)
+            .contains(profile.protected_resource())
         || !client.grant_types.contains(&OAuthGrantType::RefreshToken)
         || !client.auth_methods.contains(&OAuthClientAuthMethod::None)
     {
@@ -146,7 +145,7 @@ pub(crate) async fn revoke_refresh_token(
         .revoke_refresh_token_family(
             &request.token,
             &authorization_server.id,
-            &profile.id,
+            profile.protected_resource(),
             &request.client_id,
             Utc::now(),
         )
@@ -243,7 +242,7 @@ fn parse_request(
 
 async fn invalid_client_response(
     state: &AppState,
-    profile: &HubProfile,
+    profile: veoveo_hub::RegisteredProtectedResource<'_>,
     authorization_server: &ResourceAuthorizationServer,
     client_id: Option<&OAuthClientId>,
     started_at: Instant,
@@ -272,7 +271,7 @@ async fn invalid_client_response(
 #[allow(clippy::too_many_arguments)]
 async fn record_revocation_audit(
     state: &AppState,
-    profile: &HubProfile,
+    profile: veoveo_hub::RegisteredProtectedResource<'_>,
     authorization_server: &ResourceAuthorizationServer,
     client_id: Option<&OAuthClientId>,
     principal: Option<&veoveo_hub_sdk::Principal>,

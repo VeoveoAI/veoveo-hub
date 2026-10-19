@@ -31,6 +31,8 @@ pub struct AuthorizationServerMetadata {
     pub authorization_endpoint: Option<String>,
     pub token_endpoint: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device_authorization_endpoint: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub revocation_endpoint: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub jwks_uri: Option<String>,
@@ -165,6 +167,19 @@ impl HubCatalog {
                 .as_ref()
                 .map(ToString::to_string),
             token_endpoint: authorization_server.token_endpoint.to_string(),
+            device_authorization_endpoint: clients
+                .iter()
+                .any(|client| {
+                    client
+                        .grant_types
+                        .contains(&OAuthGrantType::DeviceAuthorization)
+                })
+                .then(|| {
+                    format!(
+                        "{}/device_authorization",
+                        authorization_server.issuer.as_str().trim_end_matches('/')
+                    )
+                }),
             revocation_endpoint: supports_public_refresh_revocation.then(|| {
                 format!(
                     "{}/revoke",
@@ -254,6 +269,13 @@ impl HubCatalog {
         let scopes = profiles
             .iter()
             .flat_map(|profile| self.profile_supported_scopes(profile).into_iter())
+            .chain(
+                self.sections()
+                    .protected_resources()
+                    .iter()
+                    .filter(|resource| &resource.authorization_server == authorization_server_id)
+                    .flat_map(|resource| resource.required_scopes.iter().cloned()),
+            )
             .collect::<BTreeSet<_>>();
         let supports_authorization_code = auth_modes.contains(&AuthMode::OidcAuthorizationCodePkce);
         let supports_private_key_jwt = clients.iter().any(|client| {
@@ -273,6 +295,19 @@ impl HubCatalog {
                 .as_ref()
                 .map(ToString::to_string),
             token_endpoint: authorization_server.token_endpoint.to_string(),
+            device_authorization_endpoint: clients
+                .iter()
+                .any(|client| {
+                    client
+                        .grant_types
+                        .contains(&OAuthGrantType::DeviceAuthorization)
+                })
+                .then(|| {
+                    format!(
+                        "{}/device_authorization",
+                        authorization_server.issuer.as_str().trim_end_matches('/')
+                    )
+                }),
             revocation_endpoint: supports_public_refresh_revocation.then(|| {
                 format!(
                     "{}/revoke",
@@ -420,6 +455,8 @@ fn oauth_grant_type_name(grant_type: OAuthGrantType) -> &'static str {
     match grant_type {
         OAuthGrantType::AuthorizationCodePkce => "authorization_code",
         OAuthGrantType::RefreshToken => "refresh_token",
+        OAuthGrantType::DeviceAuthorization => "urn:ietf:params:oauth:grant-type:device_code",
+        OAuthGrantType::TokenExchange => "urn:ietf:params:oauth:grant-type:token-exchange",
         OAuthGrantType::ClientCredentials => "client_credentials",
         OAuthGrantType::EnterpriseManagedAuthorization => {
             "urn:ietf:params:oauth:grant-type:jwt-bearer"

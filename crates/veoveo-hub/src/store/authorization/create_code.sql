@@ -1,5 +1,5 @@
 INSERT INTO hub.authorization_code (
-    code, profile, oauth_client_id, work_context, oidc_client, redirect_uri,
+    code, protected_resource, oauth_client_id, work_context, oidc_client, redirect_uri,
     client_state, scopes, code_challenge, code_challenge_method, principal,
     principal_display_name, issued_at, expires_at, consumed_at
 )

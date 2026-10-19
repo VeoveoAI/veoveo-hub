@@ -462,6 +462,9 @@ pub(crate) async fn token_endpoint_id_jag(
         None,
         None,
         AccessTokenInvocation {
+            lifetime: None,
+            not_after: None,
+            purpose: None,
             extensions: Default::default(),
             session_family: None,
             work_context,

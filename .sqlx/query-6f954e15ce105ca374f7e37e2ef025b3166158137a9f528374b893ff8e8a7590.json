@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    id, authorization_server, profile, oauth_client_id, work_context,\n    principal AS \"principal: Json<Principal>\", principal_display_name, scopes,\n    current_generation, issued_at, expires_at, revoked_at,\n    revocation_reason AS \"revocation_reason: RefreshRevocation\"\nFROM hub.refresh_family\nWHERE id = $1\n",
+  "query": "-- Every change to a family's tokens holds this lock, so presentations of one token\n-- serialize across replicas.\nSELECT\n    f.id, f.authorization_server, f.protected_resource, f.oauth_client_id, f.work_context,\n    f.principal AS \"principal: Json<Principal>\", f.principal_display_name, f.scopes,\n    f.current_generation, f.issued_at, f.expires_at, f.revoked_at,\n    f.revocation_reason AS \"revocation_reason: RefreshRevocation\"\nFROM hub.refresh_family AS f\nWHERE f.id = (SELECT t.family FROM hub.refresh_token AS t WHERE t.token_digest = $1)\nFOR UPDATE\n",
   "describe": {
     "columns": [
       {
@@ -27,12 +27,12 @@
       },
       {
         "ordinal": 2,
-        "name": "profile",
+        "name": "protected_resource",
         "type_info": "Text",
         "origin": {
           "Table": {
             "table": "hub.refresh_family",
-            "name": "profile"
+            "name": "protected_resource"
           }
         }
       },
@@ -149,7 +149,7 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Text"
       ]
     },
     "nullable": [
@@ -168,5 +168,5 @@
       true
     ]
   },
-  "hash": "568a46104f651cfebef245f8b7e282906faed805d5bb0379e05bcfce32bfcaac"
+  "hash": "6f954e15ce105ca374f7e37e2ef025b3166158137a9f528374b893ff8e8a7590"
 }

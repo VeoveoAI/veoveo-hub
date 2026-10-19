@@ -266,6 +266,8 @@ pub enum OAuthGrantType {
     RefreshToken,
     ClientCredentials,
     EnterpriseManagedAuthorization,
+    DeviceAuthorization,
+    TokenExchange,
 }
 
 #[derive(

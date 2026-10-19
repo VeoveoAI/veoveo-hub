@@ -6,13 +6,13 @@ use veoveo_hub::contract::{OAuthClientAuthMethod, OAuthGrantType};
 use veoveo_hub::control_plane::{HubProfile, OAuthClientRegistration};
 use veoveo_types::ScopeName;
 
-pub(crate) fn requested_token_scopes(
+pub(crate) fn requested_token_scopes<'a>(
     catalog: &HubCatalog,
-    profile: &HubProfile,
+    profile: impl Into<veoveo_hub::RegisteredProtectedResource<'a>>,
     client: &OAuthClientRegistration,
     raw_scope: Option<&str>,
 ) -> anyhow::Result<BTreeSet<ScopeName>> {
-    let profile_supported_scopes = catalog.profile_supported_scopes(profile);
+    let profile_supported_scopes = profile.into().supported_scopes(catalog);
     requested_client_credentials_scopes(&profile_supported_scopes, client, raw_scope)
 }
 
@@ -76,14 +76,15 @@ pub(super) fn id_jag_token_scopes(
     Ok(scopes)
 }
 
-pub(crate) fn authorization_code_client_allowed(
-    profile: &HubProfile,
+pub(crate) fn authorization_code_client_allowed<'a>(
+    profile: impl Into<veoveo_hub::RegisteredProtectedResource<'a>>,
     client: &OAuthClientRegistration,
 ) -> bool {
-    client.authorization_server == profile.authorization_server
+    let profile = profile.into();
+    client.authorization_server == *profile.authorization_server()
         && client
             .allowed_resources
-            .contains(&profile.protected_resource)
+            .contains(profile.protected_resource())
         && client
             .grant_types
             .contains(&OAuthGrantType::AuthorizationCodePkce)

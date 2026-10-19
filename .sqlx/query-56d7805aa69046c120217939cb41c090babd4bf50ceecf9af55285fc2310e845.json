@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.device_authorization SET poll_interval=$2, next_poll=$3 WHERE id=$1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "56d7805aa69046c120217939cb41c090babd4bf50ceecf9af55285fc2310e845"
+}

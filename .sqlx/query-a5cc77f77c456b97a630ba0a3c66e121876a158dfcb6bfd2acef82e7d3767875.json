@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.authorization_code (\n    code, protected_resource, oauth_client_id, work_context, oidc_client, redirect_uri,\n    client_state, scopes, code_challenge, code_challenge_method, principal,\n    principal_display_name, issued_at, expires_at, consumed_at\n)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a5cc77f77c456b97a630ba0a3c66e121876a158dfcb6bfd2acef82e7d3767875"
+}

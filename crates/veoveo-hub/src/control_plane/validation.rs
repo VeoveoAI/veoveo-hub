@@ -406,6 +406,10 @@ fn validate_oauth_client_auth_configuration(
         .grant_types
         .iter()
         .any(|grant| matches!(grant, OAuthGrantType::AuthorizationCodePkce));
+    let device_grants = client
+        .grant_types
+        .contains(&OAuthGrantType::DeviceAuthorization);
+    let exchange_grants = client.grant_types.contains(&OAuthGrantType::TokenExchange);
     let refresh_grants = client.grant_types.contains(&OAuthGrantType::RefreshToken);
     let enterprise_managed_grants = client
         .grant_types
@@ -417,7 +421,7 @@ fn validate_oauth_client_auth_configuration(
 
     let expected = if client_credentials_grants {
         BTreeSet::from([OAuthClientAuthMethod::PrivateKeyJwt])
-    } else if browser_grants || enterprise_managed_grants {
+    } else if browser_grants || enterprise_managed_grants || device_grants || exchange_grants {
         BTreeSet::from([OAuthClientAuthMethod::None])
     } else {
         BTreeSet::new()
@@ -430,10 +434,13 @@ fn validate_oauth_client_auth_configuration(
             && !client.auth_methods.contains(&OAuthClientAuthMethod::None)
     } else {
         expected == client.auth_methods
+            || (client_credentials_grants
+                && client.auth_methods == BTreeSet::from([OAuthClientAuthMethod::ClientSecretPost]))
     };
     if auth_matches
-        && (!refresh_grants || browser_grants)
-        && !(client_credentials_grants && (browser_grants || enterprise_managed_grants))
+        && (!refresh_grants || browser_grants || device_grants)
+        && !(client_credentials_grants
+            && (browser_grants || enterprise_managed_grants || device_grants || exchange_grants))
     {
         return Ok(());
     }
@@ -452,6 +459,10 @@ pub(super) fn validate_oidc_client_registration(
     identity_providers: &BTreeMap<IdentityProviderId, &IdentityProvider>,
     authorization_servers: &BTreeMap<AuthorizationServerId, &ResourceAuthorizationServer>,
     profiles: &BTreeMap<HubProfileId, &HubProfile>,
+    contributed_resources: &BTreeMap<
+        ProtectedResourceName,
+        &crate::contract::ProtectedResourceDescriptor,
+    >,
     secrets: &BTreeMap<SecretReferenceId, &SecretReference>,
 ) -> Result<(), HubControlPlaneError> {
     if !identity_providers.contains_key(&client.identity_provider) {
@@ -484,35 +495,48 @@ pub(super) fn validate_oidc_client_registration(
         ));
     }
     for resource_id in &client.allowed_resources {
-        let Some(profile) = profiles
+        let profile = profiles
             .values()
             .copied()
-            .find(|profile| &profile.protected_resource == resource_id)
-        else {
+            .find(|profile| &profile.protected_resource == resource_id);
+        let contributed = contributed_resources
+            .values()
+            .copied()
+            .find(|resource| &resource.resource == resource_id);
+        let (resource_server, resource_provider) = if let Some(profile) = profile {
+            (
+                &profile.authorization_server,
+                Some(&profile.identity_provider),
+            )
+        } else if let Some(resource) = contributed {
+            (
+                &resource.authorization_server,
+                authorization_servers
+                    .get(&resource.authorization_server)
+                    .and_then(|server| server.identity_provider.as_ref()),
+            )
+        } else {
             return Err(HubControlPlaneError::UnknownOidcClientResource {
                 client: client.id.clone(),
                 resource: resource_id.clone(),
             });
         };
-        if profile.authorization_server != client.authorization_server {
+        if resource_server != &client.authorization_server {
             return Err(
                 HubControlPlaneError::OidcClientResourceAuthorizationServerMismatch {
                     client: client.id.clone(),
                     resource: resource_id.clone(),
                     client_authorization_server: client.authorization_server.clone(),
-                    resource_authorization_server: profile.authorization_server.clone(),
+                    resource_authorization_server: resource_server.clone(),
                 },
             );
         }
-        if profile.identity_provider != client.identity_provider {
-            return Err(
-                HubControlPlaneError::OidcClientResourceIdentityProviderMismatch {
-                    client: client.id.clone(),
-                    resource: resource_id.clone(),
-                    client_identity_provider: client.identity_provider.clone(),
-                    resource_identity_provider: profile.identity_provider.clone(),
-                },
-            );
+        if resource_provider != Some(&client.identity_provider) {
+            return Err(HubControlPlaneError::CatalogAdmission(
+                veoveo_types::ExtensionError::new(
+                    "resource broker must use its authorization server's identity provider",
+                ),
+            ));
         }
     }
     let Some(secret) = secrets.get(&client.credential_secret) else {

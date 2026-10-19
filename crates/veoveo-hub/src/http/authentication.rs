@@ -279,7 +279,7 @@ pub async fn authenticate_profile(
     match state
         .hub_state
         .access_token_session_valid(
-            &profile.id,
+            &profile.protected_resource,
             &authorization_server.id,
             &subject.access_token,
             &subject.principal,

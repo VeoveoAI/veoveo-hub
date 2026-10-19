@@ -7,7 +7,7 @@ use veoveo_audit_contract::AuditRegistry;
 use veoveo_types::{ExtensionError, ExtensionName};
 
 /// The catalog registry with the kernel sections, extension groups and actions only.
-pub fn kernel_catalog_registry() -> Result<CatalogRegistry, ExtensionError> {
+pub fn kernel_catalog_registry_builder() -> Result<CatalogRegistryBuilder, ExtensionError> {
     let mut builder = CatalogRegistryBuilder::new(
         [
             "branding",
@@ -41,7 +41,11 @@ pub fn kernel_catalog_registry() -> Result<CatalogRegistry, ExtensionError> {
         .collect::<Result<Vec<_>, _>>()?,
     );
     builder.register_kernel::<HubAction>()?;
-    builder.build()
+    Ok(builder)
+}
+
+pub fn kernel_catalog_registry() -> Result<CatalogRegistry, ExtensionError> {
+    kernel_catalog_registry_builder()?.build()
 }
 
 /// The installation's audit registry: core's platform classes, the MCP vocabulary and

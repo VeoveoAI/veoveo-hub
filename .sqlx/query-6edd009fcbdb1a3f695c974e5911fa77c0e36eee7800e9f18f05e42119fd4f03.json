@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT draft #>> '{detail,revision}' AS \"revision!\"\nFROM audit.record\nWHERE class = 'hub.control_plane_publication'\nORDER BY sequence\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6edd009fcbdb1a3f695c974e5911fa77c0e36eee7800e9f18f05e42119fd4f03"
+}

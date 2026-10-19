@@ -339,9 +339,7 @@ mod tests {
     };
     use chrono::TimeDelta;
     use std::{collections::BTreeSet, time::Duration};
-    use veoveo_hub_sdk::{
-        HubProfileId, OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject,
-    };
+    use veoveo_hub_sdk::{OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject};
     use veoveo_types::WorkContextId;
 
     #[tokio::test]
@@ -385,7 +383,10 @@ mod tests {
             let issued = HubState::new(db.a.clone())
                 .issue_refresh_token(HubRefreshIssueRequest {
                     authorization_server: &AuthorizationServerId::parse("fixture").unwrap(),
-                    profile: &HubProfileId::parse("fixture").unwrap(),
+                    protected_resource: &veoveo_hub_sdk::ProtectedResourceId::parse(
+                        "https://fixture.example/resource",
+                    )
+                    .unwrap(),
                     oauth_client_id: &OAuthClientId::parse("browser").unwrap(),
                     work_context: &WorkContextId::parse("fixture").unwrap(),
                     principal: &principal,
@@ -477,7 +478,10 @@ mod tests {
             let replacement = HubState::new(db.a.clone())
                 .issue_refresh_token(HubRefreshIssueRequest {
                     authorization_server: &AuthorizationServerId::parse("fixture").unwrap(),
-                    profile: &HubProfileId::parse("fixture").unwrap(),
+                    protected_resource: &veoveo_hub_sdk::ProtectedResourceId::parse(
+                        "https://fixture.example/resource",
+                    )
+                    .unwrap(),
                     oauth_client_id: &OAuthClientId::parse("browser").unwrap(),
                     work_context: &WorkContextId::parse("fixture").unwrap(),
                     principal: &principal,

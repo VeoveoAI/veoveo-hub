@@ -131,6 +131,11 @@ async fn publication() {
         "failed publication moved the active pointer"
     );
     assert_eq!(revision_count(&db.a).await, 3);
+    assert_eq!(
+        publications(&db.a).await,
+        ["gcp-first", "gcp-second", "gcp-third"],
+        "even an empty or owner-only revision has an atomic publication record"
+    );
     assert!(
         db.a.work_context_by_key(tenant_id, "operations")
             .await
@@ -182,6 +187,13 @@ async fn revision_count(store: &PlatformStore) -> i64 {
 async fn active_object_count(store: &PlatformStore) -> i64 {
     sqlx::query_file_scalar!("tests/control_store/active_object_count.sql")
         .fetch_one(store.pool())
+        .await
+        .unwrap()
+}
+
+async fn publications(store: &PlatformStore) -> Vec<String> {
+    sqlx::query_file_scalar!("tests/control_store/publications.sql")
+        .fetch_all(store.pool())
         .await
         .unwrap()
 }

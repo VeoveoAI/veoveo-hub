@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM hub.authorization_request\nWHERE idp_state = $1 AND expires_at > $2\nRETURNING\n    idp_state, profile, oauth_client_id, work_context, oidc_client, redirect_uri,\n    client_state, requested_scopes, code_challenge, code_challenge_method,\n    idp_code_verifier, idp_code_challenge, idp_code_challenge_method, nonce,\n    created_at, expires_at\n",
+  "query": "DELETE FROM hub.authorization_request\nWHERE idp_state = $1 AND expires_at > $2\nRETURNING\n    idp_state, protected_resource, oauth_client_id, work_context, oidc_client,\n    destination AS \"destination: Json<AuthorizationDestination>\", requested_scopes,\n    idp_code_verifier, idp_code_challenge, idp_code_challenge_method, nonce,\n    created_at, expires_at\n",
   "describe": {
     "columns": [
       {
@@ -16,12 +16,12 @@
       },
       {
         "ordinal": 1,
-        "name": "profile",
+        "name": "protected_resource",
         "type_info": "Text",
         "origin": {
           "Table": {
             "table": "hub.authorization_request",
-            "name": "profile"
+            "name": "protected_resource"
           }
         }
       },
@@ -60,28 +60,17 @@
       },
       {
         "ordinal": 5,
-        "name": "redirect_uri",
-        "type_info": "Text",
+        "name": "destination: Json<AuthorizationDestination>",
+        "type_info": "Jsonb",
         "origin": {
           "Table": {
             "table": "hub.authorization_request",
-            "name": "redirect_uri"
+            "name": "destination"
           }
         }
       },
       {
         "ordinal": 6,
-        "name": "client_state",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "hub.authorization_request",
-            "name": "client_state"
-          }
-        }
-      },
-      {
-        "ordinal": 7,
         "name": "requested_scopes",
         "type_info": "TextArray",
         "origin": {
@@ -92,29 +81,7 @@
         }
       },
       {
-        "ordinal": 8,
-        "name": "code_challenge",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "hub.authorization_request",
-            "name": "code_challenge"
-          }
-        }
-      },
-      {
-        "ordinal": 9,
-        "name": "code_challenge_method",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "hub.authorization_request",
-            "name": "code_challenge_method"
-          }
-        }
-      },
-      {
-        "ordinal": 10,
+        "ordinal": 7,
         "name": "idp_code_verifier",
         "type_info": "Text",
         "origin": {
@@ -125,7 +92,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 8,
         "name": "idp_code_challenge",
         "type_info": "Text",
         "origin": {
@@ -136,7 +103,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 9,
         "name": "idp_code_challenge_method",
         "type_info": "Text",
         "origin": {
@@ -147,7 +114,7 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 10,
         "name": "nonce",
         "type_info": "Text",
         "origin": {
@@ -158,7 +125,7 @@
         }
       },
       {
-        "ordinal": 14,
+        "ordinal": 11,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -169,7 +136,7 @@
         }
       },
       {
-        "ordinal": 15,
+        "ordinal": 12,
         "name": "expires_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -193,9 +160,6 @@
       false,
       false,
       false,
-      true,
-      false,
-      false,
       false,
       false,
       false,
@@ -205,5 +169,5 @@
       false
     ]
   },
-  "hash": "bceb833dcc0e11a304da22d4b0c71582b12648fe400ade249f8bbc2c351fb88d"
+  "hash": "b4e362287360794921209dbeed8f4c401b1d2a7ecb425d78cd3c5773a04f5bc9"
 }

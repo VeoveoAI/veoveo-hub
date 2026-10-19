@@ -8,6 +8,7 @@ use veoveo_types::ScopeName;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifiedAccessToken {
+    pub purpose: Option<crate::token_profile::TokenPurpose>,
     pub extensions: veoveo_types::AdmittedExtensions,
     pub access_token: AccessTokenSubject,
     pub principal: Principal,

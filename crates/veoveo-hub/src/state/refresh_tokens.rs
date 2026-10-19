@@ -20,7 +20,7 @@ use chrono::{DateTime, TimeDelta, Utc};
 use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
-use veoveo_hub_sdk::{HubProfileId, HubRefreshFamilyId, OAuthClientId, Principal};
+use veoveo_hub_sdk::{HubRefreshFamilyId, OAuthClientId, Principal, ProtectedResourceId};
 use veoveo_store::{MaintenanceBatch, Pruned};
 use veoveo_types::{ScopeName, Sha256Digest, WorkContextId};
 
@@ -124,7 +124,7 @@ impl HubRefreshDeliveryWindow {
 
 pub struct HubRefreshRotationRequest<'a> {
     pub authorization_server: &'a AuthorizationServerId,
-    pub profile: &'a HubProfileId,
+    pub protected_resource: &'a ProtectedResourceId,
     pub oauth_client_id: &'a OAuthClientId,
     pub now: DateTime<Utc>,
     pub delivery_window: HubRefreshDeliveryWindow,
@@ -135,7 +135,7 @@ pub struct HubRefreshRotationRequest<'a> {
 
 pub struct HubRefreshIssueRequest<'a> {
     pub authorization_server: &'a AuthorizationServerId,
-    pub profile: &'a HubProfileId,
+    pub protected_resource: &'a ProtectedResourceId,
     pub oauth_client_id: &'a OAuthClientId,
     pub work_context: &'a WorkContextId,
     pub principal: &'a Principal,
@@ -173,7 +173,7 @@ impl HubState {
         &self,
         token: &OAuthRefreshToken,
         authorization_server: &AuthorizationServerId,
-        profile: &HubProfileId,
+        protected_resource: &ProtectedResourceId,
         oauth_client_id: &OAuthClientId,
         now: DateTime<Utc>,
     ) -> Result<Option<HubRefreshGrant>> {
@@ -187,7 +187,7 @@ impl HubState {
         };
         let binding = RefreshBinding {
             authorization_server,
-            profile,
+            protected_resource,
             oauth_client_id,
         };
         if !family.bound_to(binding)
@@ -204,7 +204,7 @@ impl HubState {
         &self,
         token: &OAuthRefreshToken,
         authorization_server: &AuthorizationServerId,
-        profile: &HubProfileId,
+        protected_resource: &ProtectedResourceId,
         oauth_client_id: &OAuthClientId,
         now: DateTime<Utc>,
     ) -> Result<Option<HubRefreshGrant>> {
@@ -214,7 +214,7 @@ impl HubState {
                 &refresh_token_digest(token),
                 RefreshBinding {
                     authorization_server,
-                    profile,
+                    protected_resource,
                     oauth_client_id,
                 },
                 now,
@@ -230,7 +230,7 @@ impl HubState {
     ) -> Result<IssuedHubRefreshToken> {
         let HubRefreshIssueRequest {
             authorization_server,
-            profile,
+            protected_resource,
             oauth_client_id,
             work_context,
             principal,
@@ -246,7 +246,7 @@ impl HubState {
         let family = NewRefreshFamily {
             id: family_id.clone(),
             authorization_server: authorization_server.clone(),
-            profile: profile.clone(),
+            protected_resource: protected_resource.clone(),
             oauth_client_id: oauth_client_id.clone(),
             work_context: work_context.clone(),
             principal: RefreshPrincipal {
@@ -274,7 +274,7 @@ impl HubState {
             grant: HubRefreshGrant {
                 family_id,
                 authorization_server: authorization_server.clone(),
-                profile: profile.clone(),
+                protected_resource: protected_resource.clone(),
                 oauth_client_id: oauth_client_id.clone(),
                 work_context: work_context.clone(),
                 principal: principal.clone(),
@@ -303,7 +303,7 @@ impl HubState {
         };
         let binding = RefreshBinding {
             authorization_server: request.authorization_server,
-            profile: request.profile,
+            protected_resource: request.protected_resource,
             oauth_client_id: request.oauth_client_id,
         };
         if !family.bound_to(binding)
@@ -412,7 +412,7 @@ pub(super) fn grant_from_family(family: RefreshFamily) -> HubRefreshGrant {
     HubRefreshGrant {
         family_id: family.id,
         authorization_server: family.authorization_server,
-        profile: family.profile,
+        protected_resource: family.protected_resource,
         oauth_client_id: family.oauth_client_id,
         work_context: family.work_context,
         principal: family.principal.principal,
@@ -427,9 +427,9 @@ pub(super) fn grant_from_family(family: RefreshFamily) -> HubRefreshGrant {
 /// Binds a delivery envelope to its family's client, Work Context and generation.
 fn refresh_delivery_aad(family: &RefreshFamily, generation: u64) -> Vec<u8> {
     format!(
-        "veoveo-refresh-delivery-v2\0{}\0{}\0{}\0{}\0{}\0{generation}",
+        "veoveo-refresh-delivery-v3\0{}\0{}\0{}\0{}\0{}\0{generation}",
         family.authorization_server,
-        family.profile,
+        family.protected_resource,
         family.oauth_client_id,
         family.work_context,
         family.id,
@@ -457,17 +457,23 @@ mod tests {
     fn delivery_envelope_round_trips_only_with_its_bound_identity() {
         let cipher = RefreshTokenDeliveryCipher::new(TEST_KEY).unwrap();
         let token = OAuthRefreshToken::parse("r".repeat(43)).unwrap();
-        let envelope = cipher.seal(&token, b"profile-a/family-a/1").unwrap();
+        let envelope = cipher
+            .seal(&token, b"protected_resource-a/family-a/1")
+            .unwrap();
 
         assert_ne!(envelope.expose_secret(), token.as_str());
         assert_eq!(
             cipher
-                .open(&envelope, b"profile-a/family-a/1")
+                .open(&envelope, b"protected_resource-a/family-a/1")
                 .unwrap()
                 .as_str(),
             token.as_str(),
         );
-        assert!(cipher.open(&envelope, b"profile-b/family-a/1").is_err());
+        assert!(
+            cipher
+                .open(&envelope, b"protected_resource-b/family-a/1")
+                .is_err()
+        );
 
         let debug = format!("{cipher:?} {envelope:?}");
         assert!(!debug.contains(token.as_str()));

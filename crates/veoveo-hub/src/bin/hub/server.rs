@@ -136,6 +136,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     let registration_watcher = registrations.spawn_watcher(ct.child_token());
     let registration_housekeeping = registrations.spawn_housekeeping(ct.child_token());
     let state = AppState {
+        token_profiles: crate::contributions::bindings()?.profiles.clone(),
         catalog: catalog.clone(),
         hub_state: hub_state.clone(),
         http: http.clone(),
@@ -159,6 +160,14 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         .route("/readyz", get(readyz))
         .with_state(state.clone());
     let mut router = Router::new()
+        .route(
+            "/oauth/device_authorization",
+            post(super::oauth::device_authorization),
+        )
+        .route(
+            "/oauth/device",
+            get(super::oauth::device_verification).post(super::oauth::device_approval),
+        )
         .route("/oauth/authorize", get(authorize_endpoint))
         .route("/oauth/callback", get(authorization_callback))
         .route("/oauth/token", post(token_endpoint))
@@ -228,6 +237,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     );
 
     let admin_state = AdminState {
+        publication: Arc::new(tokio::sync::Mutex::new(())),
         catalog: catalog.clone(),
         http: http.clone(),
         control_store,
@@ -236,6 +246,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         console_stream: super::admin::ConsoleStreamLimits::new(),
         instance: instance.clone(),
     };
+    let control_watcher = super::control_reload::spawn(admin_state.clone(), ct.clone());
     let admin_router = Router::new()
         .route(
             "/admin/{profile}/control-plane",
@@ -359,6 +370,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         refresh_gc.await?;
         usage_partitions.await?;
         registration_watcher.await?;
+        control_watcher.await?;
         registration_housekeeping.await?;
         Ok::<(), tokio::task::JoinError>(())
     })

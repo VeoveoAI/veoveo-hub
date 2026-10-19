@@ -153,6 +153,9 @@ pub(crate) async fn update_control_plane(
     Extension(subject): Extension<AuthenticatedSubject>,
     RequestJson(control_plane): RequestJson<HubControlPlane>,
 ) -> Response {
+    // The durable publication and this process's swap are one ordered operation.
+    // No await separates successful commit from the local replacement.
+    let _publication = state.publication.lock().await;
     let started_at = Instant::now();
     let Some(profile_id) = admin_profile_id(profile) else {
         return StatusCode::NOT_FOUND.into_response();
@@ -324,23 +327,8 @@ pub(crate) async fn update_control_plane(
 
     let servers = new_catalog.server_count();
     let profiles = new_catalog.profile_count();
-    if let Err(err) = record_admin_operation_audit(
-        &state,
-        &profile,
-        &subject,
-        AdminOperationAuditRecord {
-            audit_target: None,
-            action: HubAction::AdminWrite.into(),
-            operation: AdministrativeOperation::ControlPlane,
-            started_at,
-            status: AdminOperationStatus::Succeeded,
-            failure: None,
-        },
-    )
-    .await
-    {
-        return internal_error_response(err);
-    }
+    // Success is recorded atomically by HubControlStore. A second post-commit
+    // audit must not prevent this process from adopting the committed revision.
     replace_http_client(&state.http, new_http);
     if let Err(err) = replace_catalog(&state.catalog, new_catalog) {
         return internal_error_response(err);

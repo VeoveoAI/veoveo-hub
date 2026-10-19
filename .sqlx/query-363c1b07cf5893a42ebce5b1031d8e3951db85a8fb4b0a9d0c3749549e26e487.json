@@ -1,0 +1,161 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, protected_resource, oauth_client_id, work_context, scopes,\nstate AS \"state: DeviceStatus\", browser_digest, principal AS \"principal: Json<Principal>\", principal_display_name,\npoll_interval, next_poll, expires_at FROM hub.device_authorization WHERE user_digest=$1 AND expires_at>$2 AND state='pending'\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "protected_resource",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "protected_resource"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "oauth_client_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "oauth_client_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "work_context",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "work_context"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "scopes",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "scopes"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "state: DeviceStatus",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "browser_digest",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "browser_digest"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "principal: Json<Principal>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "principal"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "principal_display_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "principal_display_name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "poll_interval",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "poll_interval"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "next_poll",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "next_poll"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.device_authorization",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "363c1b07cf5893a42ebce5b1031d8e3951db85a8fb4b0a9d0c3749549e26e487"
+}

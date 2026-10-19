@@ -10,6 +10,8 @@ use super::AuthError;
 pub(super) struct JwtClaimsWire {
     #[serde(flatten)]
     pub(super) extensions: std::collections::BTreeMap<String, serde_json::Value>,
+    #[serde(default, rename = "https://veoveo.ai/claims/token-purpose")]
+    pub(super) purpose: Option<crate::token_profile::TokenPurpose>,
     pub(super) iss: String,
     pub(super) sub: String,
     #[serde(rename = "https://veoveo.ai/claims/principal")]

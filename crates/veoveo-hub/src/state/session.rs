@@ -6,7 +6,7 @@ use crate::store::RefreshFamily;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use veoveo_hub_sdk::{AccessTokenSubject, HubProfileId, OAuthClientId, Principal};
+use veoveo_hub_sdk::{AccessTokenSubject, OAuthClientId, Principal, ProtectedResourceId};
 use veoveo_types::{PrincipalId, ScopeName, TenantId, WorkContextId};
 
 use super::HubState;
@@ -17,7 +17,7 @@ impl HubState {
     /// not acquire a browser session or permission for session-bound renewal.
     pub async fn access_token_session_valid(
         &self,
-        profile: &HubProfileId,
+        protected_resource: &ProtectedResourceId,
         authorization_server: &AuthorizationServerId,
         token: &AccessTokenSubject,
         principal: &Principal,
@@ -38,7 +38,7 @@ impl HubState {
         Ok(
             SessionFamilyAuthority::from_stored(&SessionView::from(&family))?.allows(
                 SessionRequest {
-                    profile,
+                    protected_resource,
                     authorization_server,
                     token,
                     principal,
@@ -75,7 +75,7 @@ impl HubState {
 #[derive(Serialize)]
 struct SessionView<'a> {
     authorization_server: &'a AuthorizationServerId,
-    profile: &'a HubProfileId,
+    protected_resource: &'a ProtectedResourceId,
     oauth_client_id: &'a OAuthClientId,
     work_context: &'a WorkContextId,
     principal_id: &'a PrincipalId,
@@ -97,7 +97,7 @@ impl<'a> From<&'a RefreshFamily> for SessionView<'a> {
         let principal = &family.principal.principal;
         Self {
             authorization_server: &family.authorization_server,
-            profile: &family.profile,
+            protected_resource: &family.protected_resource,
             oauth_client_id: &family.oauth_client_id,
             work_context: &family.work_context,
             principal_id: &principal.id,

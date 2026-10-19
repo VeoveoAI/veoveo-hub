@@ -179,6 +179,7 @@ impl JwtVerifier {
         };
 
         Ok(VerifiedAccessToken {
+            purpose: claims.purpose,
             extensions,
             access_token: token_subject,
             principal,
@@ -200,6 +201,7 @@ impl JwtVerifier {
 
 /// Every fixed public token field, plus internal attribution prohibited on public tokens.
 pub const ACCESS_TOKEN_CORE_CLAIMS: &[&str] = &[
+    crate::token_profile::TOKEN_PURPOSE_CLAIM,
     "iss",
     "sub",
     "https://veoveo.ai/claims/principal",

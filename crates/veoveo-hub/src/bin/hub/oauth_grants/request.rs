@@ -9,6 +9,10 @@ pub(crate) struct TokenRequest {
     #[serde(default)]
     pub(crate) client_id: String,
     #[serde(default)]
+    pub(crate) client_secret: Option<String>,
+    #[serde(default)]
+    pub(crate) device_code: Option<String>,
+    #[serde(default)]
     pub(crate) scope: Option<String>,
     #[serde(default)]
     pub(crate) resource: Option<String>,

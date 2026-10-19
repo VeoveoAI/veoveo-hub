@@ -1,0 +1,401 @@
+//! Native Lore wire contribution. All deployments and assignments come from the
+//! admitted control-plane revision; only native protocol types live in code.
+use anyhow::{Context, Result, ensure};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
+use veoveo_hub::{
+    contract::{
+        AuthorizationServerId, CatalogFacts, CatalogObjectDescriptor, CatalogSection,
+        OAuthGrantType, ProtectedResourceDescriptor, ProtectedResourceName, SectionKey,
+    },
+    token_profile::{ProfileRequest, TokenContext, TokenLifetime, TokenProfile, TokenPurpose},
+};
+use veoveo_hub_sdk::ProtectedResourceId;
+use veoveo_types::{
+    ExtensionError, ExtensionName, PolicyVersion, PrincipalId, ScopeName, TenantId,
+};
+
+#[veoveo_types::id(text(veoveo_types::identifier_syntax::PathIdProfile))]
+pub struct DeploymentId(String);
+#[veoveo_types::id(text(RepositoryIds))]
+pub struct RepositoryId(String);
+#[doc(hidden)]
+pub struct RepositoryIds;
+impl veoveo_types::IdProfile for RepositoryIds {
+    type Error = veoveo_types::IdentifierError;
+    const PROFILE: veoveo_types::IdProfileSpec<Self::Error> =
+        veoveo_types::IdProfileSpec::text(|value, _| {
+            if value.len() == 32
+                && value
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            {
+                Ok(())
+            } else {
+                Err(veoveo_types::IdentifierError::new(
+                    value,
+                    "expected a canonical native repository ID",
+                ))
+            }
+        });
+}
+
+/// Native `{id}` substitution only, never a JSON/JWT template.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, JsonSchema)]
+#[serde(transparent)]
+pub struct RepositoryTemplate(String);
+impl<'de> Deserialize<'de> for RepositoryTemplate {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Self, D::Error> {
+        let text = String::deserialize(d)?;
+        let (prefix, suffix) = text
+            .split_once("{id}")
+            .ok_or_else(|| serde::de::Error::custom("repository template needs one {id}"))?;
+        if suffix.contains("{id}")
+            || prefix.contains(['{', '}'])
+            || suffix.contains(['{', '}'])
+            || text.chars().any(char::is_whitespace)
+            || text.chars().any(char::is_control)
+        {
+            return Err(serde::de::Error::custom("invalid repository template"));
+        }
+        Ok(Self(text))
+    }
+}
+impl RepositoryTemplate {
+    fn render(&self, id: &RepositoryId) -> String {
+        self.0.replace("{id}", id.as_str())
+    }
+    fn parse(&self, value: &str) -> Result<RepositoryId> {
+        let (prefix, suffix) = self.0.split_once("{id}").expect("admitted template");
+        let id = value
+            .strip_prefix(prefix)
+            .and_then(|s| s.strip_suffix(suffix))
+            .context("repository target does not match the deployment")?;
+        let id = RepositoryId::parse(id)?;
+        ensure!(self.render(&id) == value, "noncanonical repository target");
+        Ok(id)
+    }
+}
+
+/// Native named privileges. An empty set remains ordinary native access, including
+/// unprotected writes; it is not a read-only role. No service-account inference.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeAction {
+    Owner,
+    Admin,
+    Obliterate,
+    Migrate,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Deployment {
+    pub id: DeploymentId,
+    pub resource_name: ProtectedResourceName,
+    pub audience: ProtectedResourceId,
+    pub endpoint: url::Url,
+    pub authorization_server: AuthorizationServerId,
+    pub policy_version: PolicyVersion,
+    pub login_scopes: BTreeSet<ScopeName>,
+    pub scope_template: RepositoryTemplate,
+    pub resource_id_template: RepositoryTemplate,
+    pub token_lifetime_seconds: TokenLifetime,
+}
+impl Deployment {
+    fn recipient(&self) -> Result<String> {
+        ensure!(
+            self.endpoint.scheme() == "grpcs"
+                && self.endpoint.username().is_empty()
+                && self.endpoint.password().is_none()
+                && self.endpoint.query().is_none()
+                && self.endpoint.fragment().is_none()
+                && matches!(self.endpoint.path(), "" | "/"),
+            "invalid native endpoint"
+        );
+        Ok(self
+            .endpoint
+            .host_str()
+            .context("native endpoint has no host")?
+            .to_owned())
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Repository {
+    pub deployment: DeploymentId,
+    pub id: RepositoryId,
+    pub tenant: TenantId,
+    pub title: String,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Assignment {
+    pub deployment: DeploymentId,
+    pub repository: RepositoryId,
+    pub tenant: TenantId,
+    pub principal: PrincipalId,
+    pub actions: BTreeSet<NativeAction>,
+}
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Lore {
+    pub deployments: Vec<Deployment>,
+    pub repositories: Vec<Repository>,
+    pub assignments: Vec<Assignment>,
+}
+impl CatalogSection for Lore {
+    fn validate(&self, facts: &CatalogFacts) -> std::result::Result<(), ExtensionError> {
+        self.check(facts)
+            .map_err(|_| ExtensionError::new("native repository contribution is invalid"))
+    }
+    fn protected_resources(&self) -> Vec<ProtectedResourceDescriptor> {
+        self.deployments
+            .iter()
+            .map(|d| ProtectedResourceDescriptor {
+                name: d.resource_name.clone(),
+                resource: d.audience.clone(),
+                authorization_server: d.authorization_server.clone(),
+                policy_version: d.policy_version.clone(),
+                required_scopes: d.login_scopes.clone(),
+                grant_types: BTreeSet::from([
+                    OAuthGrantType::DeviceAuthorization,
+                    OAuthGrantType::RefreshToken,
+                    OAuthGrantType::TokenExchange,
+                    OAuthGrantType::ClientCredentials,
+                ]),
+            })
+            .collect()
+    }
+    fn objects(&self) -> std::result::Result<Vec<CatalogObjectDescriptor>, ExtensionError> {
+        let mut objects = Vec::new();
+        for d in &self.deployments {
+            objects.push(CatalogObjectDescriptor {
+                tenant: None,
+                kind: ExtensionName::parse("lore.deployment")?,
+                id: d.id.to_string(),
+                value: serde_json::to_value(d)
+                    .map_err(|_| ExtensionError::new("native deployment encoding failed"))?,
+            });
+        }
+        for r in &self.repositories {
+            objects.push(CatalogObjectDescriptor {
+                tenant: Some(r.tenant.clone()),
+                kind: ExtensionName::parse("lore.repository")?,
+                id: format!("{}/{}", r.deployment, r.id),
+                value: serde_json::to_value(r)
+                    .map_err(|_| ExtensionError::new("native repository encoding failed"))?,
+            });
+        }
+        for a in &self.assignments {
+            objects.push(CatalogObjectDescriptor {
+                tenant: Some(a.tenant.clone()),
+                kind: ExtensionName::parse("lore.assignment")?,
+                id: format!("{}/{}/{}", a.deployment, a.repository, a.principal),
+                value: serde_json::to_value(a)
+                    .map_err(|_| ExtensionError::new("native assignment encoding failed"))?,
+            });
+        }
+        Ok(objects)
+    }
+}
+impl Lore {
+    fn check(&self, facts: &CatalogFacts) -> Result<()> {
+        let mut deployments = BTreeSet::new();
+        let mut resources = BTreeSet::new();
+        for d in &self.deployments {
+            ensure!(
+                deployments.insert(d.id.clone()) && resources.insert(d.audience.clone()),
+                "duplicate native deployment"
+            );
+            ensure!(
+                facts
+                    .authorization_servers
+                    .contains(&d.authorization_server)
+                    && facts.policies.contains(&d.policy_version),
+                "unknown deployment authority"
+            );
+            d.recipient()?;
+            ensure!(
+                !d.login_scopes.is_empty()
+                    && d.login_scopes
+                        .contains(&ScopeName::parse("offline_access")?),
+                "native login scopes must explicitly include offline_access"
+            );
+            let probe = RepositoryId::parse("11111111111111111111111111111111")?;
+            ScopeName::parse(d.scope_template.render(&probe))?;
+            ensure!(
+                d.scope_template.parse(&d.scope_template.render(&probe))? == probe,
+                "ambiguous native scope template"
+            );
+        }
+        let mut repositories = BTreeSet::new();
+        for r in &self.repositories {
+            ensure!(
+                deployments.contains(&r.deployment)
+                    && facts.tenants.contains(&r.tenant)
+                    && !r.title.trim().is_empty()
+                    && repositories.insert((r.deployment.clone(), r.id.clone())),
+                "invalid native repository registration"
+            );
+        }
+        let mut assignments = BTreeSet::new();
+        for a in &self.assignments {
+            ensure!(
+                self.repositories
+                    .iter()
+                    .any(|r| r.deployment == a.deployment
+                        && r.id == a.repository
+                        && r.tenant == a.tenant),
+                "assignment references another repository or tenant"
+            );
+            ensure!(
+                assignments.insert((
+                    a.deployment.clone(),
+                    a.repository.clone(),
+                    a.principal.clone()
+                )),
+                "duplicate native assignment"
+            );
+        }
+        Ok(())
+    }
+}
+
+pub struct Profile {
+    pub key: SectionKey<Lore>,
+}
+pub enum Request {
+    Login,
+    Exchange {
+        resource: Option<String>,
+        scope: Option<String>,
+    },
+}
+impl Request {
+    pub fn from_protocol(request: ProfileRequest<'_>) -> Result<Self> {
+        Ok(match request {
+            ProfileRequest::Login => Self::Login,
+            ProfileRequest::Exchange { resource, scope } => Self::Exchange {
+                resource: resource.map(str::to_owned),
+                scope: scope.map(str::to_owned),
+            },
+        })
+    }
+}
+pub struct AuthorizedGrant {
+    identity: PrincipalId,
+    recipient: String,
+    resource: Option<NativeGrant>,
+    lifetime: TokenLifetime,
+    scopes: BTreeSet<ScopeName>,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NativeGrant {
+    resource_id: String,
+    permission: BTreeSet<NativeAction>,
+}
+#[derive(Serialize)]
+pub struct Claims {
+    identity: PrincipalId,
+    root_domains: Vec<String>,
+    resources: Vec<NativeGrant>,
+}
+impl TokenProfile for Profile {
+    type Section = Lore;
+    type Request = Request;
+    type AuthorizedGrant = AuthorizedGrant;
+    type Claims = Claims;
+    fn section(&self) -> &SectionKey<Lore> {
+        &self.key
+    }
+    fn authorize(
+        &self,
+        section: &Lore,
+        context: &TokenContext<'_>,
+        request: &Request,
+    ) -> Result<AuthorizedGrant> {
+        let deployment = section
+            .deployments
+            .iter()
+            .find(|d| &d.audience == context.resource().protected_resource())
+            .context("native deployment is not registered")?;
+        ensure!(
+            context.scopes() == &deployment.login_scopes,
+            "native login scope set changed"
+        );
+        let mut issued_scopes = context.scopes().clone();
+        let resource = match request {
+            Request::Login => None,
+            Request::Exchange { resource, scope } => {
+                ensure!(resource.is_none(), "deployment expects one scope target");
+                let id = deployment
+                    .scope_template
+                    .parse(scope.as_deref().context("repository scope is required")?)?;
+                issued_scopes =
+                    BTreeSet::from([ScopeName::parse(deployment.scope_template.render(&id))?]);
+                let tenant = context
+                    .principal()
+                    .tenant
+                    .as_ref()
+                    .context("native principal has no tenant")?;
+                ensure!(
+                    section
+                        .repositories
+                        .iter()
+                        .any(|r| r.deployment == deployment.id
+                            && r.id == id
+                            && &r.tenant == tenant),
+                    "native repository is not registered for this tenant"
+                );
+                let assignment = section
+                    .assignments
+                    .iter()
+                    .find(|a| {
+                        a.deployment == deployment.id
+                            && a.repository == id
+                            && &a.tenant == tenant
+                            && a.principal == context.principal().id
+                    })
+                    .context("native repository assignment denied")?;
+                Some(NativeGrant {
+                    resource_id: deployment.resource_id_template.render(&id),
+                    permission: assignment.actions.clone(),
+                })
+            }
+        };
+        Ok(AuthorizedGrant {
+            identity: context.principal().id.clone(),
+            recipient: deployment.recipient()?,
+            resource,
+            lifetime: deployment.token_lifetime_seconds,
+            scopes: issued_scopes,
+        })
+    }
+    fn purpose(&self, grant: &AuthorizedGrant) -> TokenPurpose {
+        if grant.resource.is_some() {
+            TokenPurpose::Resource
+        } else {
+            TokenPurpose::Login
+        }
+    }
+    fn lifetime(&self, grant: &AuthorizedGrant) -> TokenLifetime {
+        grant.lifetime
+    }
+    fn issued_scopes(&self, grant: &AuthorizedGrant, _: &TokenContext<'_>) -> BTreeSet<ScopeName> {
+        grant.scopes.clone()
+    }
+    fn encode(&self, grant: &AuthorizedGrant) -> Claims {
+        Claims {
+            identity: grant.identity.clone(),
+            root_domains: vec![grant.recipient.clone()],
+            resources: grant.resource.iter().cloned().collect(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests;

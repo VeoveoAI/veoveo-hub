@@ -125,7 +125,7 @@ pub(super) async fn current(
         if !state
             .hub_state
             .access_token_session_valid(
-                &profile.id,
+                &profile.protected_resource,
                 &profile.authorization_server,
                 &subject.access_token,
                 &subject.principal,

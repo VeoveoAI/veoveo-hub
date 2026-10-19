@@ -1,3 +1,4 @@
+use veoveo_hub_sdk::ProtectedResourceId;
 #[path = "support/database.rs"]
 mod database;
 use database as fixture;
@@ -120,6 +121,7 @@ async fn hub_correctness_state_is_shared_and_single_use_across_replicas() {
         }
 
         let profile = HubProfileId::parse("operator").unwrap();
+        let resource = ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap();
         let issuer = TokenIssuer::parse("https://idp.example.com").unwrap();
         let revoked_jwt = JwtId::parse("revoked-jwt").unwrap();
         let revocation = HubJwtRevocation {
@@ -181,7 +183,7 @@ async fn hub_correctness_state_is_shared_and_single_use_across_replicas() {
         let issued_refresh = first
             .issue_refresh_token(HubRefreshIssueRequest {
                 authorization_server: &authorization_server,
-                profile: &profile,
+                protected_resource: &resource,
                 oauth_client_id: &client_id,
                 work_context: &WorkContextId::parse("mission").unwrap(),
                 principal: &principal,
@@ -204,7 +206,7 @@ async fn hub_correctness_state_is_shared_and_single_use_across_replicas() {
                 &presented_refresh,
                 refresh_rotation_request(
                     &authorization_server,
-                    &profile,
+                    &resource,
                     &client_id,
                     now + TimeDelta::seconds(1),
                     &delivery_cipher,
@@ -216,7 +218,7 @@ async fn hub_correctness_state_is_shared_and_single_use_across_replicas() {
                 &presented_refresh,
                 refresh_rotation_request(
                     &authorization_server,
-                    &profile,
+                    &resource,
                     &client_id,
                     now + TimeDelta::seconds(1),
                     &delivery_cipher,
@@ -265,7 +267,7 @@ async fn hub_correctness_state_is_shared_and_single_use_across_replicas() {
                     &presented_refresh,
                     refresh_rotation_request(
                         &authorization_server,
-                        &profile,
+                        &resource,
                         &client_id,
                         now + TimeDelta::seconds(6),
                         &delivery_cipher,
@@ -291,7 +293,7 @@ async fn hub_correctness_state_is_shared_and_single_use_across_replicas() {
                     &rotated.token,
                     refresh_rotation_request(
                         &authorization_server,
-                        &profile,
+                        &resource,
                         &client_id,
                         now + TimeDelta::seconds(7),
                         &delivery_cipher,
@@ -373,12 +375,13 @@ async fn refresh_rotation_rolls_back_when_success_audit_cannot_commit() {
         let delivery_cipher = test_refresh_delivery_cipher();
         let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
         let profile = HubProfileId::parse("operator").unwrap();
+        let resource = ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap();
         let client_id = OAuthClientId::parse("operator-console").unwrap();
         let principal = authorization_code(now, &profile, &client_id).principal;
         let issued = state
             .issue_refresh_token(HubRefreshIssueRequest {
                 authorization_server: &authorization_server,
-                profile: &profile,
+                protected_resource: &resource,
                 oauth_client_id: &client_id,
                 work_context: &WorkContextId::parse("mission").unwrap(),
                 principal: &principal,
@@ -405,7 +408,7 @@ async fn refresh_rotation_rolls_back_when_success_audit_cannot_commit() {
                 &issued.token,
                 refresh_rotation_request(
                     &authorization_server,
-                    &profile,
+                    &resource,
                     &client_id,
                     now + TimeDelta::seconds(1),
                     &delivery_cipher,
@@ -419,7 +422,7 @@ async fn refresh_rotation_rolls_back_when_success_audit_cannot_commit() {
             .refresh_token_grant(
                 &issued.token,
                 &authorization_server,
-                &profile,
+                &resource,
                 &client_id,
                 now + TimeDelta::seconds(2),
             )
@@ -440,7 +443,7 @@ async fn refresh_rotation_rolls_back_when_success_audit_cannot_commit() {
                 &issued.token,
                 refresh_rotation_request(
                     &authorization_server,
-                    &profile,
+                    &resource,
                     &client_id,
                     now + TimeDelta::seconds(2),
                     &delivery_cipher,
@@ -465,12 +468,13 @@ async fn consuming_a_successor_clears_its_delivery_envelope_atomically() {
         let delivery_cipher = test_refresh_delivery_cipher();
         let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
         let profile = HubProfileId::parse("operator").unwrap();
+        let resource = ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap();
         let client_id = OAuthClientId::parse("operator-console").unwrap();
         let principal = authorization_code(now, &profile, &client_id).principal;
         let issued = state
             .issue_refresh_token(HubRefreshIssueRequest {
                 authorization_server: &authorization_server,
-                profile: &profile,
+                protected_resource: &resource,
                 oauth_client_id: &client_id,
                 work_context: &WorkContextId::parse("mission").unwrap(),
                 principal: &principal,
@@ -488,7 +492,7 @@ async fn consuming_a_successor_clears_its_delivery_envelope_atomically() {
                 &issued.token,
                 refresh_rotation_request(
                     &authorization_server,
-                    &profile,
+                    &resource,
                     &client_id,
                     now + TimeDelta::seconds(1),
                     &delivery_cipher,
@@ -515,7 +519,7 @@ async fn consuming_a_successor_clears_its_delivery_envelope_atomically() {
                 &successor.token,
                 refresh_rotation_request(
                     &authorization_server,
-                    &profile,
+                    &resource,
                     &client_id,
                     now + TimeDelta::seconds(2),
                     &delivery_cipher,
@@ -539,7 +543,7 @@ async fn consuming_a_successor_clears_its_delivery_envelope_atomically() {
                     &successor.token,
                     refresh_rotation_request(
                         &authorization_server,
-                        &profile,
+                        &resource,
                         &client_id,
                         now + TimeDelta::seconds(3),
                         &delivery_cipher,
@@ -571,12 +575,13 @@ async fn public_client_revocation_is_bound_idempotent_and_family_wide() {
         let delivery_cipher = test_refresh_delivery_cipher();
         let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
         let profile = HubProfileId::parse("operator").unwrap();
+        let resource = ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap();
         let client_id = OAuthClientId::parse("operator-console").unwrap();
         let principal = authorization_code(now, &profile, &client_id).principal;
         let issued = state
             .issue_refresh_token(HubRefreshIssueRequest {
                 authorization_server: &authorization_server,
-                profile: &profile,
+                protected_resource: &resource,
                 oauth_client_id: &client_id,
                 work_context: &WorkContextId::parse("mission").unwrap(),
                 principal: &principal,
@@ -592,7 +597,7 @@ async fn public_client_revocation_is_bound_idempotent_and_family_wide() {
                 .revoke_refresh_token_family(
                     &issued.token,
                     &authorization_server,
-                    &profile,
+                    &resource,
                     &OAuthClientId::parse("different-client").unwrap(),
                     now + TimeDelta::seconds(1),
                 )
@@ -605,7 +610,7 @@ async fn public_client_revocation_is_bound_idempotent_and_family_wide() {
             .revoke_refresh_token_family(
                 &issued.token,
                 &authorization_server,
-                &profile,
+                &resource,
                 &client_id,
                 now + TimeDelta::seconds(2),
             )
@@ -618,7 +623,7 @@ async fn public_client_revocation_is_bound_idempotent_and_family_wide() {
                 .revoke_refresh_token_family(
                     &issued.token,
                     &authorization_server,
-                    &profile,
+                    &resource,
                     &client_id,
                     now + TimeDelta::seconds(3),
                 )
@@ -636,7 +641,7 @@ async fn public_client_revocation_is_bound_idempotent_and_family_wide() {
                     &issued.token,
                     refresh_rotation_request(
                         &authorization_server,
-                        &profile,
+                        &resource,
                         &client_id,
                         now + TimeDelta::seconds(4),
                         &delivery_cipher,
@@ -660,15 +665,17 @@ fn authorization_request(
 ) -> HubAuthorizationRequest {
     HubAuthorizationRequest {
         idp_state: OAuthStateValue::parse("integration-idp-state").unwrap(),
-        profile: profile.clone(),
+        protected_resource: resource_for(profile),
         oauth_client_id: client_id.clone(),
         work_context: WorkContextId::parse("mission").unwrap(),
         oidc_client: OidcClientRegistrationId::parse("enterprise").unwrap(),
-        redirect_uri: OAuthRedirectUri::new("https://veoveo.example/oauth/callback").unwrap(),
-        client_state: Some(OAuthStateValue::parse("client-state").unwrap()),
+        destination: veoveo_hub::control_plane::AuthorizationDestination::Code {
+            redirect_uri: OAuthRedirectUri::new("https://veoveo.example/oauth/callback").unwrap(),
+            client_state: Some(OAuthStateValue::parse("client-state").unwrap()),
+            code_challenge: PkceCodeChallenge::parse("A".repeat(43)).unwrap(),
+            code_challenge_method: PkceCodeChallengeMethod::S256,
+        },
         requested_scopes: BTreeSet::from([ScopeName::parse("operator:use").unwrap()]),
-        code_challenge: PkceCodeChallenge::parse("A".repeat(43)).unwrap(),
-        code_challenge_method: PkceCodeChallengeMethod::S256,
         idp_code_verifier: PkceCodeVerifier::parse("B".repeat(43)).unwrap(),
         idp_code_challenge: PkceCodeChallenge::parse("C".repeat(43)).unwrap(),
         idp_code_challenge_method: PkceCodeChallengeMethod::S256,
@@ -699,7 +706,7 @@ fn authorization_code(
     };
     HubAuthorizationCodeRecord {
         code: OAuthAuthorizationCode::parse("D".repeat(43)).unwrap(),
-        profile: profile.clone(),
+        protected_resource: resource_for(profile),
         oauth_client_id: client_id.clone(),
         work_context: WorkContextId::parse("mission").unwrap(),
         oidc_client: OidcClientRegistrationId::parse("enterprise").unwrap(),
@@ -828,7 +835,7 @@ fn test_refresh_delivery_cipher() -> RefreshTokenDeliveryCipher {
 
 fn refresh_rotation_request<'a>(
     authorization_server: &'a AuthorizationServerId,
-    profile: &'a HubProfileId,
+    protected_resource: &'a ProtectedResourceId,
     oauth_client_id: &'a OAuthClientId,
     now: chrono::DateTime<Utc>,
     delivery_cipher: &'a RefreshTokenDeliveryCipher,
@@ -837,7 +844,7 @@ fn refresh_rotation_request<'a>(
 ) -> HubRefreshRotationRequest<'a> {
     HubRefreshRotationRequest {
         authorization_server,
-        profile,
+        protected_resource,
         oauth_client_id,
         now,
         delivery_window: HubRefreshDeliveryWindow::from_seconds(NonZeroU32::new(5).unwrap())
@@ -873,4 +880,8 @@ fn assert_single_consumption<T: Clone + PartialEq + std::fmt::Debug>(
 ) {
     let consumed = [left, right].into_iter().flatten().collect::<Vec<_>>();
     assert_eq!(consumed, vec![expected.clone()]);
+}
+
+fn resource_for(profile: &HubProfileId) -> ProtectedResourceId {
+    ProtectedResourceId::parse(format!("https://veoveo.example/mcp/{profile}")).unwrap()
 }

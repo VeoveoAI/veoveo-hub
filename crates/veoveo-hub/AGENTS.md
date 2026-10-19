@@ -27,3 +27,9 @@ repository's [AGENTS.md](../../AGENTS.md).
 - Every audit record names a declared class: the SDK's `mcp.*` classes for MCP
   requests, core's `task.*` and `audit.*` classes, or this crate's `hub.*` classes
   in `src/audit/vocabulary.rs`, each with a closed JSON Schema.
+
+- The user-authorized native credential contribution is a scoped exception only at
+  the executable composition boundary: `src/bin/hub/contributions/lore` and its
+  native integration fixtures may name Lore's existing protocol. The generic
+  library, OAuth handlers, policy evaluator and ordinary fixtures remain independent
+  of native server names. Do not add another process or an authorization service.

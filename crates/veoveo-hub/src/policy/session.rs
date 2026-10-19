@@ -4,7 +4,7 @@ use crate::contract::AuthorizationServerId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use veoveo_hub_sdk::{AccessTokenSubject, HubProfileId, OAuthClientId, Principal};
+use veoveo_hub_sdk::{AccessTokenSubject, OAuthClientId, Principal, ProtectedResourceId};
 use veoveo_types::{PrincipalId, ScopeName, TenantId, WorkContextId};
 
 /// Read-only projection of the existing hub refresh-family record. Display
@@ -12,7 +12,7 @@ use veoveo_types::{PrincipalId, ScopeName, TenantId, WorkContextId};
 #[derive(Deserialize)]
 pub struct SessionFamilyAuthority {
     authorization_server: AuthorizationServerId,
-    profile: HubProfileId,
+    protected_resource: ProtectedResourceId,
     oauth_client_id: OAuthClientId,
     work_context: WorkContextId,
     principal_id: PrincipalId,
@@ -29,7 +29,7 @@ struct StoredPrincipal {
 }
 
 pub struct SessionRequest<'a> {
-    pub profile: &'a HubProfileId,
+    pub protected_resource: &'a ProtectedResourceId,
     pub authorization_server: &'a AuthorizationServerId,
     pub token: &'a AccessTokenSubject,
     pub principal: &'a Principal,
@@ -46,7 +46,7 @@ impl SessionFamilyAuthority {
     }
     pub fn allows(&self, request: SessionRequest<'_>) -> bool {
         let SessionRequest {
-            profile,
+            protected_resource,
             authorization_server,
             token,
             principal,
@@ -57,7 +57,7 @@ impl SessionFamilyAuthority {
         let _ = self.current_generation;
         token.session_family.is_some() && self.revoked_at.is_none() && self.expires_at > now
             && self.principal_id == principal.id && self.tenant == principal.tenant
-            && self.authorization_server == *authorization_server && self.profile == *profile
+            && self.authorization_server == *authorization_server && self.protected_resource == *protected_resource
             && self.oauth_client_id == token.oauth_client_id && self.work_context == token.work_context
             && self.principal.principal.id == principal.id && self.principal.principal.kind == principal.kind
             // The retained principal has its original IdP issuer; the verified

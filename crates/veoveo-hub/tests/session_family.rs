@@ -22,6 +22,7 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
     let first = HubState::new(db.a.clone());
     let second = HubState::new(db.b.clone());
     let profile = HubProfileId::parse("operator").unwrap();
+    let resource = ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap();
     let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
     let client = OAuthClientId::parse("console").unwrap();
     let context = WorkContextId::parse("mission").unwrap();
@@ -47,7 +48,7 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
         let issued = first
             .issue_refresh_token(HubRefreshIssueRequest {
                 authorization_server: &authorization_server,
-                profile: &profile,
+                protected_resource: &resource,
                 oauth_client_id: &client,
                 work_context: &context,
                 principal: &principal,
@@ -79,7 +80,12 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
         authenticated.issuer = token.issuer.clone();
         assert!(
             second
-                .access_token_session_valid(&profile, &authorization_server, &token, &authenticated)
+                .access_token_session_valid(
+                    &resource,
+                    &authorization_server,
+                    &token,
+                    &authenticated
+                )
                 .await
                 .unwrap()
         );
@@ -87,7 +93,7 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
         foreign.subject = TokenSubject::parse("two").unwrap();
         assert!(
             !second
-                .access_token_session_valid(&profile, &authorization_server, &token, &foreign)
+                .access_token_session_valid(&resource, &authorization_server, &token, &foreign)
                 .await
                 .unwrap()
         );
@@ -95,14 +101,14 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
         foreign.tenant = Some(TenantId::parse("tenant-b").unwrap());
         assert!(
             !second
-                .access_token_session_valid(&profile, &authorization_server, &token, &foreign)
+                .access_token_session_valid(&resource, &authorization_server, &token, &foreign)
                 .await
                 .unwrap()
         );
         assert!(
             !second
                 .access_token_session_valid(
-                    &HubProfileId::parse("other").unwrap(),
+                    &ProtectedResourceId::parse("https://other.example/resource").unwrap(),
                     &authorization_server,
                     &token,
                     &authenticated
@@ -113,7 +119,7 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
         assert!(
             !second
                 .access_token_session_valid(
-                    &profile,
+                    &resource,
                     &AuthorizationServerId::parse("other").unwrap(),
                     &token,
                     &authenticated
@@ -133,7 +139,7 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
             assert!(
                 !second
                     .access_token_session_valid(
-                        &profile,
+                        &resource,
                         &authorization_server,
                         &bad,
                         &authenticated
@@ -150,7 +156,7 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
         );
         let request = |at| HubRefreshRotationRequest {
             authorization_server: &authorization_server,
-            profile: &profile,
+            protected_resource: &resource,
             oauth_client_id: &client,
             now: at,
             delivery_window: HubRefreshDeliveryWindow::from_seconds(NonZeroU32::new(1).unwrap())
@@ -170,7 +176,12 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
         assert_eq!(rotated.grant.family_id, issued.grant.family_id);
         assert!(
             second
-                .access_token_session_valid(&profile, &authorization_server, &token, &authenticated)
+                .access_token_session_valid(
+                    &resource,
+                    &authorization_server,
+                    &token,
+                    &authenticated
+                )
                 .await
                 .unwrap()
         );
@@ -181,7 +192,7 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
                     .revoke_refresh_token_family(
                         &rotated.token,
                         &authorization_server,
-                        &profile,
+                        &resource,
                         &client,
                         now,
                     )
@@ -219,7 +230,12 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
         // A still-unexpired signed access token cannot outlive committed family revocation.
         assert!(
             !second
-                .access_token_session_valid(&profile, &authorization_server, &token, &authenticated)
+                .access_token_session_valid(
+                    &resource,
+                    &authorization_server,
+                    &token,
+                    &authenticated
+                )
                 .await
                 .unwrap()
         );

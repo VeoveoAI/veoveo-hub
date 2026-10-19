@@ -10,6 +10,7 @@ pub(super) fn changes(
     before: &[WorkContextDefinition],
     after: &[WorkContextDefinition],
     context: &AuditContext,
+    revision: &crate::control_plane::HubControlPlaneRevision,
 ) -> Result<AuditTransactionWrite> {
     let before = before
         .iter()
@@ -19,7 +20,21 @@ pub(super) fn changes(
         .iter()
         .map(|value| ((&value.tenant, &value.id), value))
         .collect::<BTreeMap<_, _>>();
-    let mut records = Vec::new();
+    let mut records = vec![
+        context
+            .draft(
+                hub_audit().detail(&crate::audit::ControlPlanePublication {
+                    revision: revision.revision_id.clone(),
+                    digest: veoveo_types::Sha256Digest::parse(format!(
+                        "sha256:{}",
+                        revision.sha256
+                    ))?,
+                })?,
+                AuditOutcome::Success,
+            )
+            .target(crate::audit::hub_target()?)
+            .build()?,
+    ];
     for (key, value) in &after {
         let activity = match before.get(key) {
             None => AccountActivity::Create,

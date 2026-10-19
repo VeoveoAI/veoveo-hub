@@ -24,6 +24,7 @@ pub struct Hub {
     secrets: Vec<(String, String)>,
     log: PathBuf,
     child: Child,
+    command: Command,
 }
 
 impl Hub {
@@ -65,7 +66,8 @@ impl Hub {
             .collect();
         let log = directory.join("hub.log");
         let output = std::fs::File::create(&log).unwrap();
-        let child = Command::new(env!("CARGO_BIN_EXE_veoveo-hub"))
+        let mut command = Command::new(env!("CARGO_BIN_EXE_veoveo-hub"));
+        command
             .arg("serve")
             .current_dir(directory)
             .env_clear()
@@ -89,18 +91,26 @@ impl Hub {
             .stdin(Stdio::null())
             .stdout(output.try_clone().unwrap())
             .stderr(output)
-            .kill_on_drop(true)
-            .spawn()
-            .unwrap();
+            .kill_on_drop(true);
+        let child = command.spawn().unwrap();
         let hub = Self {
             base,
             installation,
             secrets,
             log,
             child,
+            command,
         };
         hub.ready().await;
         hub
+    }
+
+    /// Restart this fixture's owned process with the same seed, database and keys.
+    pub async fn restart(&mut self) {
+        self.child.kill().await.unwrap();
+        self.child.wait().await.unwrap();
+        self.child = self.command.spawn().unwrap();
+        self.ready().await;
     }
 
     async fn ready(&self) {

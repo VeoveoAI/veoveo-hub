@@ -38,11 +38,15 @@ Neither its code nor its configuration names a server.
    wait on the migrators' locks.
 3. Record the audit classes the Hub writes in `audit.detail_type`, before its first
    audit record. Repeating a declaration changes nothing.
-4. Load the installation configuration from `VEOVEO_CONFIG` and publish it as the
-   active revision when its digest differs from the active one. A replica that loses
-   the publication to another one with the same file continues.
-5. Load the registrations, start the registration listener and the housekeeping loop,
-   and listen on `VEOVEO_LISTEN_ADDRESS`.
+4. Load and admit the active database revision. `VEOVEO_CONFIG` seeds only an empty
+   installation; restarting never republishes a stale seed over live changes.
+   A concurrent bootstrap adopts the winning active revision. To deliberately
+   replace installation configuration, use trusted `import-control-plane` while
+   the hosted process is stopped; routine changes use the live administrative API.
+5. Load registrations and start the native registration and active-control-revision
+   listeners, retention and housekeeping loops, then listen on `VEOVEO_LISTEN_ADDRESS`.
+   Active revisions emit kernel notifications only after commit; each replica also
+   reconciles on initial subscription and reconnection.
 
 While it serves, the Hub holds a kernel instance of its own on the owner's login.
 Through it the Hub acts on servers' Tasks for their owners, and it claims no Task
@@ -333,6 +337,46 @@ HTTP 502 without its location.
 The Hub checks resource policy before it reads. The read handler commits one
 `mcp.read` audit record before it returns a result; a failed commit prevents delivery.
 
+## Hosted Resource Issuance
+
+An OAuth protected resource is admitted by the current catalog: either an MCP
+profile or a typed `CatalogSection` contribution. Authorization requests, codes,
+refresh families, revocation and current-session checks bind the actual resource
+ID. Contributed resources have no fabricated MCP profile. Their broker client is
+selected by resource, authorization server and identity provider. MCP retains its
+profile-specific grant selection and Work Context membership checks; attribution
+of a Work Context alone neither grants nor denies a contributed owner's data.
+
+The common `issuance` module owns signing, issuer, subject, audience, client,
+family, timestamps and token purpose. A typed `TokenProfile` authorizes against its
+section in the request's admitted catalog revision. The resulting private
+`AuthorizedToken` binds that owner grant to the common resource/client/identity
+context. Its encoded owner claims must have declared codecs and cannot replace
+common claims. Signed purposes distinguish a login credential from a resource
+credential and are parsed as a closed type. Existing MCP tokens retain their
+existing claim shape without a purpose field. Protocol handlers remain responsible
+for authenticating callers and admitting current session authority before issuance.
+
+Native integration belongs only to a binary composition contribution, outside the
+generic OAuth library; it supplies typed catalog records and claim encoding, not
+an additional issuer process or a parallel grant database. Revision publication and
+its existing transaction/audit boundary persist contributed records and a generic
+revision-identity/digest success audit. A shared publication guard orders durable
+publication and local catalog/HTTP-client adoption. Other replicas follow the
+native active-pointer notification and initial/reconnect reconciliation stream,
+using the same guard and admission. Failed adoption logs the error and stops the
+hosted process rather than retaining an indefinitely stale issuer. Propagation is
+asynchronous: in-flight requests retain their admitted revision, and native tokens
+already issued retain their rights until expiry. There is no synchronous global
+revocation claim.
+
+Migration `0003_oauth_resource.sql` is an explicit development hard cut. It discards
+hosted OAuth requests/codes, refresh families/tokens, browser sessions and pending
+Computer login state. It clears only Computer authentication/readiness pointers,
+retaining owner mappings, native workspace IDs and working storage. Tasks,
+Artifacts, trusted configuration and unrelated storage are untouched. A fresh
+ordinary login establishes new custody; there is no legacy binding or backfill.
+
 ## HTTP Surface
 
 | Route | Purpose |
@@ -342,6 +386,7 @@ The Hub checks resource policy before it reads. The read handler commits one
 | `GET /jwks.json` | The keys that verify forwarded tokens |
 | `POST /oauth/register`, `GET`/`PUT`/`DELETE /oauth/register/{client_id}` | Server registration |
 | `/oauth/authorize`, `/oauth/callback`, `/oauth/token`, `/oauth/revoke`, `/oauth/jwks.json` | Hosted authorization server |
+| `POST /oauth/device_authorization`, `GET`/`POST /oauth/device` | RFC 8628 native public-client login and explicit browser approval through the existing identity broker |
 | `/.well-known/oauth-authorization-server/oauth`, `/oauth/.well-known/openid-configuration`, `/.well-known/oauth-protected-resource/mcp/{profile}` | Hosted authorization server metadata at its RFC 8414 and OpenID discovery locations, and protected resource metadata |
 | `/mcp/{profile}` | The profile's MCP endpoint |
 | `/console-api/{profile}/session` | Console session bootstrap |
@@ -565,3 +610,39 @@ This source path still needs native image/gateway, browser OAuth/owner-isolation
 revocation/streaming and user-agent acceptance on the selected installation. Local
 protocol fixtures and database keepers do not establish live identity/provider,
 private source transport or model-inference qualification.
+
+### Native contributed credential lifecycle
+
+The executable binds one typed contribution and its claim codecs at composition.
+Its admitted section contains deployment endpoint/audience, native recipient,
+finite login scopes, repository scope and resource-ID templates, token lifetime,
+repository registrations and exact tenant/principal/native-action assignments.
+None of these records is compiled into OAuth routing or captured by the adapter.
+The common signer fixes identity, issuer, audience, client, family, timestamps and
+signed purpose; owners cannot override those claims. Encoding/signing unavailability
+is a server failure, while a refused owner target is an authorization denial.
+
+A public device client selects one resource and its finite login scopes. Device,
+user and initiating-browser capabilities are stored only as digests. Explicit
+browser approval uses the existing enterprise broker, nonce and upstream PKCE,
+with a typed device destination instead of a fabricated downstream code redirect.
+Polling is persisted and row-locked, enforces the five-second initial interval
+and `slow_down`, and consumes approval once. Expired records are removed in
+bounded batches. Discovery advertises the actual device endpoint.
+
+Native public RFC 8693 exchange is separate from registered-server delegation.
+It verifies a common-signer Login token, current family/client/resource binding
+and finite login scopes, then dispatches the target to the current typed owner.
+Only the owner interprets its configured repository scope template and exact
+assignment. Resource-purpose tokens cannot become login issuance authority.
+Refresh retains the original identity/family binding and dispatches current owner
+admission; rights are not copied into the family. Explicitly configured
+`client_secret_post` factory clients authenticate through the existing secret
+resolver and request the same owner target, with no human session or inferred
+service-account/administrator repository permission. Existing private-key clients
+and registered-server delegation keep their original proof contracts.
+
+The native HTTP fixture approves a synthetic identity through trusted fixture
+state, checks actual hosted HTTP/JWT/persistence/live-publication behavior, and
+restarts against a stale seed. It does not establish Entra interaction or actual
+native CLI/server acceptance; those remain deployment qualification.

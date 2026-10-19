@@ -115,6 +115,7 @@ impl HubControlStore {
             }),
             &revision.control_plane.work_contexts,
             context,
+            revision,
         )?);
         let objects = control_plane_objects(&revision.control_plane, &sections)?;
         self.store

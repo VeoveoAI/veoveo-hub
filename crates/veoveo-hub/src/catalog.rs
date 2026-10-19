@@ -465,6 +465,7 @@ impl HubCatalog {
         membership: WorkContextMembershipLevel,
     ) -> Result<AuthenticatedSubject, HubAuthorityError> {
         let VerifiedAccessToken {
+            purpose: _,
             extensions,
             access_token,
             principal,
