@@ -234,8 +234,8 @@ pub(super) async fn forward(
     .await
     {
         Ok(response) => response,
-        Err(_) => {
-            tracing::debug!(computer = %id, "Computer transport unavailable");
+        Err(error) => {
+            tracing::debug!(computer = %id, error = %error, "Computer transport unavailable");
             unavailable()
         }
     }
@@ -288,7 +288,11 @@ async fn stream(
         runtime
             .provisioner
             .gateway
-            .stream(session.computer().native_name(), runtime.config.port)
+            .stream_when_ready(
+                session.computer().native_name(),
+                runtime.config.port,
+                super::gateway::RPC_TIMEOUT,
+            )
             .await?
     };
     // A cold listener wait can outlast revocation/expiry. Re-admit before any

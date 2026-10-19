@@ -45,8 +45,11 @@ impl ForwardError {
     fn retryable(&self) -> bool {
         matches!(
             self,
-            Self::Refused(tonic::Code::Unavailable | tonic::Code::DeadlineExceeded)
-                | Self::Transport
+            Self::Refused(
+                tonic::Code::Unavailable
+                    | tonic::Code::DeadlineExceeded
+                    | tonic::Code::ResourceExhausted
+            ) | Self::Transport
                 | Self::Deadline
         )
     }
@@ -75,7 +78,8 @@ impl Gateway {
         })
     }
 
-    /// Retry only transient native connection failures under one startup bound.
+    /// Retry transient native connection failures and relay capacity under one bound.
+    /// No HTTP bytes have been sent; forwarded requests are never retried here.
     /// The successful connection is returned for actual forwarding or closed by
     /// the provisioning caller; no HTTP/application health request is sent.
     pub async fn stream_when_ready(
@@ -89,6 +93,7 @@ impl Gateway {
                 match self.stream(workspace.clone(), port).await {
                     Ok(stream) => return Ok(stream),
                     Err(error) if error.retryable() => {
+                        tracing::debug!(error = %error, "retrying Computer forwarding connection");
                         tokio::time::sleep(Duration::from_millis(250)).await
                     }
                     Err(error) => return Err(error),
@@ -106,10 +111,9 @@ impl Gateway {
         workspace: String,
         port: u16,
     ) -> std::result::Result<(DuplexStream, tokio::task::JoinHandle<()>), ForwardError> {
-        let permit = self
-            .permits
-            .clone()
-            .try_acquire_owned()
+        let permit = tokio::time::timeout(RPC_TIMEOUT, self.permits.clone().acquire_owned())
+            .await
+            .map_err(|_| ForwardError::Capacity)?
             .map_err(|_| ForwardError::Capacity)?;
         let (caller, socket) = tokio::io::duplex(CHUNK);
         let client = self.client.clone();
@@ -176,8 +180,12 @@ impl Gateway {
 mod tests {
     use super::*;
     #[test]
-    fn listener_retry_uses_native_codes_and_refuses_auth_configuration_and_capacity() {
-        for code in [tonic::Code::Unavailable, tonic::Code::DeadlineExceeded] {
+    fn forwarding_retry_uses_native_capacity_and_refuses_auth_or_configuration() {
+        for code in [
+            tonic::Code::Unavailable,
+            tonic::Code::DeadlineExceeded,
+            tonic::Code::ResourceExhausted,
+        ] {
             assert!(ForwardError::Refused(code).retryable());
         }
         for code in [
@@ -186,7 +194,6 @@ mod tests {
             tonic::Code::InvalidArgument,
             tonic::Code::NotFound,
             tonic::Code::FailedPrecondition,
-            tonic::Code::ResourceExhausted,
         ] {
             assert!(!ForwardError::Refused(code).retryable());
         }
