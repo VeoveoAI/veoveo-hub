@@ -44,8 +44,11 @@ impl ForwardError {
     fn retryable(&self) -> bool {
         matches!(
             self,
-            Self::Refused(tonic::Code::Unavailable | tonic::Code::DeadlineExceeded)
-                | Self::Transport
+            // A native pre-listener relay can be cancelled before target bind.
+            // Only the cold-start path uses this classification, before HTTP bytes.
+            Self::Refused(
+                tonic::Code::Unavailable | tonic::Code::DeadlineExceeded | tonic::Code::Cancelled
+            ) | Self::Transport
                 | Self::Deadline
         )
     }
@@ -178,7 +181,11 @@ mod tests {
     use super::*;
     #[test]
     fn listener_retry_refuses_authority_configuration_and_real_capacity_limits() {
-        for code in [tonic::Code::Unavailable, tonic::Code::DeadlineExceeded] {
+        for code in [
+            tonic::Code::Unavailable,
+            tonic::Code::DeadlineExceeded,
+            tonic::Code::Cancelled,
+        ] {
             assert!(ForwardError::Refused(code).retryable());
         }
         for code in [
