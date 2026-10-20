@@ -77,6 +77,28 @@ async fn caller(
     mcp_client(hub, hub.access_token(http, hub.caller(role)).await).await
 }
 
+// A hosted fixture must hold the same login-scoped liveness as a real MCP process.
+// Otherwise orphan collection legitimately removes its registration during auth tests.
+async fn native_process(
+    registration: &veoveo_hub_sdk::registration::client::Registration,
+    server: &str,
+) -> (PlatformStore, Instance) {
+    let grant = registration.database().unwrap();
+    let store = PlatformStore::connect(
+        StoreConfig::builder(grant.url.as_str(), grant.password.clone())
+            .username(grant.username.as_str())
+            .max_connections(2)
+            .build()
+            .unwrap(),
+    )
+    .await
+    .unwrap();
+    let instance = Instance::start(&store, &ServerSlug::parse(server).unwrap())
+        .await
+        .unwrap();
+    (store, instance)
+}
+
 async fn qualify() {
     let _ = rustls::crypto::ring::default_provider().install_default();
     let directory = tempfile::tempdir().unwrap();
@@ -93,12 +115,14 @@ async fn qualify() {
         .uses
         .push(PermissionName::parse("relay.calls.make").unwrap());
     let ledger_tasks = LedgerTasks::default();
+    let mut ledger_process = None;
     let ledger = serve(
         &hub,
         &http,
         "ledger",
         ledger_declaration,
         async |registration, _, _| {
+            ledger_process = Some(native_process(registration, "ledger").await);
             let tasks = ledger_tasks.clone();
             hosted::<LedgerDomain>(registration, &http)
                 .handler(move || ledger::hosted(tasks.clone()))
@@ -150,12 +174,14 @@ async fn qualify() {
     )
     .await;
     let relay_calls = relay_calls.lock().unwrap().clone().unwrap();
+    let mut gateway_process = None;
     let gateway = serve(
         &hub,
         &http,
         "gateway",
         gateway::authorization(),
         async |registration, metadata, key| {
+            gateway_process = Some(native_process(registration, "gateway").await);
             let calls = ServerCalls::discover(registration, metadata, key, http.clone())
                 .await
                 .unwrap();
@@ -592,6 +618,9 @@ async fn qualify() {
     );
 
     // Without Ledger, the refusal names the permission no server provides.
+    let (ledger_store, ledger_instance) = ledger_process.take().unwrap();
+    ledger_instance.shutdown().await.unwrap();
+    ledger_store.close().await;
     ledger.client.deregister(ledger.registration).await.unwrap();
     let missing = tokio::time::timeout(Duration::from_secs(10), async {
         loop {
@@ -614,5 +643,13 @@ async fn qualify() {
     );
     member.cancel().await.unwrap();
     admin.cancel().await.unwrap();
+    let (gateway_store, gateway_instance) = gateway_process.take().unwrap();
+    gateway_instance.shutdown().await.unwrap();
+    gateway_store.close().await;
+    gateway
+        .client
+        .deregister(gateway.registration)
+        .await
+        .unwrap();
     drop(hub);
 }

@@ -8,7 +8,7 @@ FROM rust:1.99.0-trixie@sha256:6ff07edce8775d0f64be7aba9197229407301bddf2054d62c
 # PostgreSQL 18.6 from the PGDG repository, whose signing key Debian's postgresql-common
 # ships. Tests start their own clusters, so the packages create none.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates clang cmake git protobuf-compiler pkg-config procps postgresql-common \
+    && apt-get install -y --no-install-recommends ca-certificates clang cmake git protobuf-compiler libprotobuf-dev pkg-config procps postgresql-common \
     && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
     && mkdir -p /etc/postgresql-common/createcluster.d \
     && printf 'create_main_cluster = false\n' > /etc/postgresql-common/createcluster.d/veoveo.conf \

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Test-owned admitted document; exercises the immutable publication marker only.\nINSERT INTO hub.control_revision (id, digest, source, applied_at, applied_by, tenant, control_plane)\nVALUES ($1, 'sha256:0000000000000000000000000000000000000000000000000000000000000000',\n    'contribution', clock_timestamp(), $2, $3, $4)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d3a16eed72d5339162d645bbfc0610d29cf04e36c427ac57eb22801d0b102001"
+}

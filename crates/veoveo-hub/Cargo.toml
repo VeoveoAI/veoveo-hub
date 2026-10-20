@@ -17,6 +17,7 @@ name = "veoveo-hub"
 path = "src/bin/hub.rs"
 
 [dependencies]
+lore-proto.workspace = true
 veoveo-audit.workspace = true
 veoveo-audit-contract = { workspace = true, features = ["postgres"] }
 veoveo-http.workspace = true

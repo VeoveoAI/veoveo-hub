@@ -1,0 +1,149 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT tenant, principal_id, deployment, repository, default_branch, name, mode, state, publication_id, last_status, computer_id\nFROM hub.lore_workspace WHERE tenant = $1 AND principal_id = $2\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tenant",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "tenant"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "principal_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "principal_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "deployment",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "deployment"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "repository"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "default_branch",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "default_branch"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "mode"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "publication_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "publication_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "last_status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "last_status"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "computer_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_workspace",
+            "name": "computer_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "37d7266fe5ae7d43bb3be2d9dd513e26b6f94b8884b8d66f75645ff01b4be269"
+}

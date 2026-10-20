@@ -33,3 +33,8 @@ repository's [AGENTS.md](../../AGENTS.md).
   native integration fixtures may name Lore's existing protocol. The generic
   library, OAuth handlers, policy evaluator and ordinary fixtures remain independent
   of native server names. Do not add another process or an authorization service.
+
+- That approved executable contribution may own a typed persistence table and its
+  declaration in the crate's required shared `migrations/` directory. Its native
+  operations and focused SQL stay under `src/bin/hub/contributions/lore`; generic
+  library, OAuth and policy interfaces remain independent of native server names.

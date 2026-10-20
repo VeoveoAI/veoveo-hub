@@ -155,12 +155,6 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         delegation: delegation.clone(),
     };
 
-    let computers = veoveo_hub::computers::ComputerService::new(
-        catalog.clone(),
-        hub_state.clone(),
-        deployment.base_url(),
-    )?;
-
     // Probes reach the process by any address, so they skip Host validation.
     let probes = Router::new()
         .route("/livez", get(|| async { StatusCode::NO_CONTENT }))
@@ -196,8 +190,6 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         .route("/oauth/jwks.json", get(authorization_server_jwks))
         .with_state(state)
         .merge(registration::router(registrations.clone()));
-
-    router = router.merge(computers.router());
 
     let auth_state = ProfileAuthState {
         catalog: catalog.clone(),
@@ -253,6 +245,17 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         instance: instance.clone(),
     };
     let control_watcher = super::control_reload::spawn(admin_state.clone(), ct.clone());
+    let workspaces =
+        crate::contributions::lore::workspace::WorkspaceService::new(admin_state.clone());
+    let computers = veoveo_hub::computers::ComputerService::new(
+        catalog.clone(),
+        hub_state.clone(),
+        deployment.base_url(),
+    )?
+    .with_onboarding(Arc::new(workspaces.clone()));
+    router = router
+        .merge(computers.router())
+        .merge(workspaces.router(auth_state.clone()));
     let admin_router = Router::new()
         .route(
             "/admin/{profile}/deployment-admissions",

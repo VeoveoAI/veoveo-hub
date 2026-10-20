@@ -563,7 +563,7 @@ impl Provisioner {
             }
         }
     }
-    fn validate_sandbox(&self, computer: &Computer, sandbox: &p::Sandbox) -> Result<()> {
+    pub(super) fn validate_sandbox(&self, computer: &Computer, sandbox: &p::Sandbox) -> Result<()> {
         let name = computer.native_name();
         let spec = sandbox
             .spec

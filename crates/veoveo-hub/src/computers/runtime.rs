@@ -91,6 +91,8 @@ pub struct ComputerService {
     catalog: HubCatalogHandle,
     hub: HubState,
     public: Url,
+    onboarding: Option<Arc<dyn super::ComputerOnboarding>>,
+    onboarding_jobs: super::onboarding::Jobs,
 }
 impl ComputerService {
     pub fn new(catalog: HubCatalogHandle, hub: HubState, public: &str) -> Result<Self> {
@@ -98,7 +100,13 @@ impl ComputerService {
             catalog,
             hub,
             public: Url::parse(public)?,
+            onboarding: None,
+            onboarding_jobs: Default::default(),
         })
+    }
+    pub fn with_onboarding(mut self, onboarding: Arc<dyn super::ComputerOnboarding>) -> Self {
+        self.onboarding = Some(onboarding);
+        self
     }
     pub fn router(self) -> Router {
         Router::new()
@@ -106,6 +114,7 @@ impl ComputerService {
             .route("/computer/", get(super::oauth::entry))
             .route("/computer/callback", get(super::oauth::callback))
             .route("/computer/logout", post(super::oauth::logout))
+            .route("/computer/onboarding", get(super::onboarding::status))
             .route("/computer/c/{computer}", any(super::proxy::forward))
             .route("/computer/c/{computer}/", any(super::proxy::forward))
             .route("/computer/c/{computer}/{*path}", any(super::proxy::forward))
@@ -114,6 +123,8 @@ impl ComputerService {
 }
 #[derive(Clone)]
 pub struct ComputerRuntime {
+    pub(super) onboarding: Option<Arc<dyn super::ComputerOnboarding>>,
+    pub(super) onboarding_jobs: super::onboarding::Jobs,
     pub(super) catalog: HubCatalogHandle,
     pub(super) hub: HubState,
     pub(super) config: Arc<Computers>,
@@ -134,6 +145,8 @@ impl FromRequestParts<ComputerService> for ComputerRuntime {
             .and_then(|v| v.computers.as_ref())
             .ok_or(StatusCode::NOT_FOUND)?;
         Ok(Self {
+            onboarding: state.onboarding.clone(),
+            onboarding_jobs: state.onboarding_jobs.clone(),
             catalog: state.catalog.clone(),
             hub: state.hub.clone(),
             config: config.config.clone(),

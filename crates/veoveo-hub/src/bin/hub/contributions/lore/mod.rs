@@ -1,5 +1,6 @@
 //! Native Lore wire contribution. All deployments and assignments come from the
 //! admitted control-plane revision; only native protocol types live in code.
+pub(crate) mod workspace;
 use anyhow::{Context, Result, ensure};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -145,6 +146,10 @@ pub struct Lore {
     pub deployments: Vec<Deployment>,
     pub repositories: Vec<Repository>,
     pub assignments: Vec<Assignment>,
+    /// Optional first-use default only. Existing owner associations retain their
+    /// selected deployment and repository when the installation changes this.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub personal_workspace: Option<workspace::PersonalWorkspace>,
 }
 impl CatalogSection for Lore {
     fn validate(&self, facts: &CatalogFacts) -> std::result::Result<(), ExtensionError> {
@@ -232,6 +237,12 @@ impl Lore {
             );
         }
         let mut repositories = BTreeSet::new();
+        if let Some(default) = &self.personal_workspace {
+            ensure!(
+                deployments.contains(&default.deployment),
+                "unknown personal workspace deployment"
+            );
+        }
         for r in &self.repositories {
             ensure!(
                 deployments.contains(&r.deployment)

@@ -316,6 +316,7 @@ fn source_wire(source: HubControlPlaneRevisionSource) -> &'static str {
     match source {
         HubControlPlaneRevisionSource::AdminApi => "admin_api",
         HubControlPlaneRevisionSource::SeedFile => "seed_file",
+        HubControlPlaneRevisionSource::Contribution => "contribution",
     }
 }
 
@@ -323,6 +324,7 @@ fn source_from_wire(source: &str) -> Result<HubControlPlaneRevisionSource, HubSt
     match source {
         "admin_api" => Ok(HubControlPlaneRevisionSource::AdminApi),
         "seed_file" => Ok(HubControlPlaneRevisionSource::SeedFile),
+        "contribution" => Ok(HubControlPlaneRevisionSource::Contribution),
         _ => Err(HubStoreError::InvalidStoredValue {
             column: "control_revision.source",
         }),
@@ -338,6 +340,7 @@ mod tests {
         for source in [
             HubControlPlaneRevisionSource::AdminApi,
             HubControlPlaneRevisionSource::SeedFile,
+            HubControlPlaneRevisionSource::Contribution,
         ] {
             assert_eq!(source_from_wire(source_wire(source)).unwrap(), source);
             assert_eq!(

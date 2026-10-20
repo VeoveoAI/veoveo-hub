@@ -9,7 +9,9 @@ pub use session::{ADMISSION_READ_TIMEOUT, BrowserSession, STREAM_ADMISSION_INTER
 
 mod gateway;
 mod oauth;
+mod onboarding;
 mod provisioning;
 mod proxy;
+pub use onboarding::{ComputerOnboarding, ComputerOnboardingContext, ComputerOnboardingStatus};
 pub(crate) mod runtime;
 pub use runtime::{ComputerRuntime, ComputerService};

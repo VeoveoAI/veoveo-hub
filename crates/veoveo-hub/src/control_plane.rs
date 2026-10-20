@@ -132,6 +132,8 @@ pub struct HubControlPlaneRevision {
 pub enum HubControlPlaneRevisionSource {
     AdminApi,
     SeedFile,
+    /// Authenticated executable contribution, with its actual caller audit actor.
+    Contribution,
 }
 
 impl HubControlPlane {
