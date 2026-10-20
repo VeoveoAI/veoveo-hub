@@ -200,6 +200,7 @@ pub(crate) async fn verification(
         .and_then(user_code)
         .unwrap_or_default();
     let mut label = "Enter the code shown by your client".to_owned();
+    let mut form_action = "'self'".to_owned();
     if !code.is_empty() {
         match state
             .hub_state
@@ -208,6 +209,33 @@ pub(crate) async fn verification(
             .await
         {
             Ok(Some(request)) => {
+                let catalog = current_catalog(&state.catalog);
+                let Some(resource) = catalog.registered_protected_resource(&request.resource)
+                else {
+                    return refusal("invalid_target");
+                };
+                if !catalog.oauth_client(&request.client).is_some_and(|client| {
+                    public_client(resource, client, OAuthGrantType::DeviceAuthorization)
+                        && request.scopes.is_subset(&client.allowed_scopes)
+                        && request.scopes == resource.supported_scopes(&catalog)
+                }) {
+                    return refusal("invalid_client");
+                }
+                let Some(endpoint) = resource
+                    .oidc_client(&catalog)
+                    .and_then(|client| catalog.identity_provider(&client.identity_provider))
+                    .and_then(|provider| provider.authorization_endpoint.as_ref())
+                else {
+                    return unavailable();
+                };
+                let origin = match url::Url::parse(endpoint.as_str()) {
+                    Ok(endpoint) => endpoint.origin().ascii_serialization(),
+                    Err(error) => return internal_error_response(error),
+                };
+                // Chrome applies form-action to the POST's broker redirect too.
+                // Admit only this selected resource's trusted authorization origin.
+                form_action.push(' ');
+                form_action.push_str(&origin);
                 label = format!(
                     "Approve client {} for {} only if this code matches your client",
                     request.client, request.resource
@@ -217,18 +245,28 @@ pub(crate) async fn verification(
             Err(e) => return internal_error_response(e),
         }
     }
+    let form = if code.is_empty() {
+        // Select a code first so the approval page can bind its browser policy to
+        // one resource/broker. Never put the browser capability in a GET query.
+        "<form method=get><label>Code <input required name=user_code></label><button>Continue</button></form>".to_owned()
+    } else {
+        format!(
+            "<form method=post><label>Code <input required name=user_code value=\"{}\"></label><input type=hidden name=browser value=\"{}\"><button name=decision value=approve>Continue to sign in</button><button name=decision value=deny>Deny</button></form>",
+            escaped(&code),
+            browser
+        )
+    };
     let html = format!(
-        "<!doctype html><meta charset=utf-8><title>Device authorization</title><h1>Device authorization</h1><p>{}</p><form method=post><label>Code <input required name=user_code value=\"{}\"></label><input type=hidden name=browser value=\"{}\"><button name=decision value=approve>Continue to sign in</button><button name=decision value=deny>Deny</button></form>",
-        escaped(&label),
-        escaped(&code),
-        browser
+        "<!doctype html><meta charset=utf-8><title>Device authorization</title><h1>Device authorization</h1><p>{}</p>{form}",
+        escaped(&label)
     );
     let mut response = no_store(Html(html));
     response.headers_mut().insert(
         header::CONTENT_SECURITY_POLICY,
-        HeaderValue::from_static(
-            "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
-        ),
+        HeaderValue::from_str(&format!(
+            "default-src 'none'; form-action {form_action}; frame-ancestors 'none'; base-uri 'none'"
+        ))
+        .expect("trusted authorization origin"),
     );
     response.headers_mut().insert(
         header::SET_COOKIE,

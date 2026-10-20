@@ -132,6 +132,34 @@ async fn qualify() {
     )
     .await;
     assert_eq!(status, reqwest::StatusCode::OK);
+    let manual = http
+        .get(device["verification_uri"].as_str().unwrap())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        manual.headers()["content-security-policy"],
+        "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
+    );
+    let manual = manual.text().await.unwrap();
+    assert!(manual.contains("<form method=get>"));
+    assert!(!manual.contains("name=browser"));
+    let approval = http
+        .get(device["verification_uri_complete"].as_str().unwrap())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        approval.headers()["content-security-policy"],
+        "default-src 'none'; form-action 'self' https://identity.example; frame-ancestors 'none'; base-uri 'none'"
+    );
+    assert!(
+        approval
+            .text()
+            .await
+            .unwrap()
+            .contains("<form method=post>")
+    );
     let device_code = device["device_code"].as_str().unwrap();
     let device_form = [
         ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),

@@ -246,6 +246,18 @@ impl Provisioner {
             .context("native template has no workload")?
             .environment
             .insert("PUBLIC_BASE_PATH".into(), computer.base_path());
+        spec.workload
+            .as_mut()
+            .context("native template has no workload")?
+            .environment
+            .insert(
+                "COMPUTER_HUB_URL".into(),
+                catalog
+                    .profile(&self.config.profile)
+                    .context("Computer profile unavailable")?
+                    .protected_resource
+                    .to_string(),
+            );
         match tokio::time::timeout(
             RPC_TIMEOUT,
             grpc.get_sandbox_template(p::GetSandboxTemplateRequest {
