@@ -201,21 +201,29 @@ takes three rollouts, each complete on every replica before the next begins:
 ## Calls Between Servers
 
 `src/delegation.rs` implements the exchange of the SDK's [calls between
-servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/523c7ace42660a20b213bef7acb31398813fec97/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers)
+servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/f369804dd2bda5c69103f480169769c80fac2859/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers)
 and the admission of the tokens it issues. A registered server authenticates at
 `/oauth/token` with an RFC 7523 assertion signed by the key its registration pinned;
 the Hub records the assertion's `jti` with the other replay identifiers. The
 registration must hold the token exchange grant, which a server registers exactly when
-it declares uses. The subject is a forwarded token addressed to that server and not
-itself delegated, or one of the server's Tasks.
+it declares uses. The subject is a forwarded token addressed to that server, including
+a previously delegated request, or one of the server's own delegating Tasks. The
+SDK retains up to eight registered actors in standard RFC 8693 nested `act` claims.
+The Hub preserves the original caller/client, actor, invocation authority and signed
+request context independently of the current HTTP request's audit correlation.
+Neither forwarding nor another exchange can extend the inherited signed deadline.
 
 A Task is a subject while it runs. When the Hub records the route of a Task that
 a server with declared uses created for a caller's own call, the route keeps that
 caller in `delegated_caller`: the OAuth client, actor, invocation authority and request
-context the Hub authenticated. A Task another server's call created keeps none, so
-a delegation never extends past one calling server. The exchange reads the route by
-server and Task identifier, and core's `tasks.task` for that server must hold the Task
-as queued, running or waiting in the caller's tenant. A Task stops acting for a caller
+context the Hub authenticated. A Task another server's call created keeps none and
+cannot acquire further Task delegation. Request composition can continue without
+creating Tasks. The signed context retains the originating Task's server and ID,
+independently of the immediate server actor. Every exchange and admission of such a
+chain reads its unexpired native route, compares the original caller/client, authority,
+request context and profile, and requires core's `tasks.task` for the original server
+to hold the Task as queued, running or waiting in the caller's tenant.
+A Task stops acting for a caller
 whose browser session the Hub revoked because one of its refresh tokens was
 replayed: the exchange is refused with `invalid_grant` and a Task-bound token is no
 longer admitted. A logout, a session that expired or a caller without a session
@@ -224,6 +232,10 @@ leaves the delegation in place until the Task ends.
 The token carries the requested permissions that the server declared and the caller
 holds now: the installation's roles and overrides are evaluated again at each
 exchange, over each provider's current declaration, for the caller as authenticated.
+Admission retains the existing boundary: the signed grant/deadline and current
+caller/target policy apply; an already issued short-lived grant is not additionally
+revoked merely because the calling server's registration or declared uses changed.
+Every subsequent exchange checks its registered caller's current declaration again.
 A request permission no registered server declares refuses the exchange with
 `invalid_target`, whose description names each such permission. A token for a request
 subject ends with the subject token; one for a Task lives at most five minutes and
@@ -241,9 +253,11 @@ subscriptions alike, narrows the role-granted permissions to the token's. An
 explicit declared `Authenticated` route may carry zero permissions after current
 principal/profile and managed-client admission; undeclared targets remain denied,
 and server/Task targets retain the nonempty narrowed-grant requirement. A route whose
-required permission the token does not carry is denied as a missing permission. The forwarded token names
-the calling server as the prior actor and, for a Task subject, the calling server's
-Task as `acting_task`, by the identifier that server issued. Every record of a
+required permission the token does not carry is denied as a missing permission.
+The forwarded token names the immediate calling server as prior actor and retains
+earlier actors in its SDK delegation context. For a direct Task subject it names the
+calling server's Task as `acting_task`; a later request retains that origin in the
+signed context instead of assigning it to the immediate server. Every record of a
 delegated request names the calling server, and its Task when the identifier is a core
 Task identifier, in the envelope's `via`.
 

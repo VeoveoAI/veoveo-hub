@@ -2,8 +2,8 @@
 //! Ledger fixture for Relay's caller with an RFC 8693 exchanged token, inline, through a
 //! Ledger Task and from a durable Relay Task after the call that created it returned.
 //! The Hub narrows each call to the uses Relay declared and the caller holds, names
-//! a missing provider, and refuses another server's subject, a delegated subject and an
-//! ended Task.
+//! a missing provider, preserves nested request actors and refuses another server's
+//! subject and an ended originating Task.
 
 #[path = "support/hub.rs"]
 mod hub;
@@ -15,7 +15,7 @@ use std::{
     time::Duration,
 };
 
-use hub::Hub;
+use hub::{DISCOVER, Hub};
 use rmcp::{
     RoleClient,
     model::{CallToolRequestParams, CallToolResponse, ClientConfig, GetTaskParams, TaskPayload},
@@ -26,13 +26,15 @@ use servers::{decoded_claims, exchange, hosted, mcp_client, relay_call, serve};
 use tokio_util::sync::CancellationToken;
 use veoveo_fixtures::store::TestDb;
 use veoveo_hub_sdk::{
-    HubProfileId,
+    ForwardedRequest, HubInternalSigningKey, HubInternalTokenIssuer, HubInternalTokenVerifier,
+    HubInternalTrustBundle, HubProfileId, TokenAudience, TokenIssuer,
     calls::{TokenErrorCode, ToolCall},
     client::CallError,
     hosting::ServerCalls,
 };
 use veoveo_hub_sdk_fixture::{
     calls::{EntryState, FollowedEntry, Inspect, Inspection},
+    gateway::{self, Gateway},
     ledger::{self, LedgerDomain, LedgerTasks},
     relay::{self, RelayDomain, RelayTasks},
 };
@@ -41,6 +43,24 @@ use veoveo_task::TaskRuntime;
 use veoveo_types::{PermissionName, ServerSlug, TaskId};
 
 const PROFILE: &str = "local";
+
+fn forwarded_issuer(hub: &Hub) -> (HubInternalTokenIssuer, HubInternalTrustBundle) {
+    use base64::Engine as _;
+    let key = HubInternalSigningKey::new(
+        base64::engine::general_purpose::STANDARD
+            .decode(hub.secret("VEOVEO_FORWARDED_TOKEN_KEY_B64"))
+            .unwrap(),
+    )
+    .unwrap();
+    let trust = HubInternalTrustBundle::from_key_set(
+        &veoveo_hub_sdk::registration::Ed25519JwkSet::new(vec![key.verification_key()]).unwrap(),
+    )
+    .unwrap();
+    (
+        HubInternalTokenIssuer::new(TokenIssuer::parse(&hub.base).unwrap(), key).unwrap(),
+        trust,
+    )
+}
 
 #[tokio::test]
 async fn servers_call_each_other_for_their_caller_through_the_hub() {
@@ -125,6 +145,22 @@ async fn qualify() {
     )
     .await;
     let relay_calls = relay_calls.lock().unwrap().clone().unwrap();
+    let gateway = serve(
+        &hub,
+        &http,
+        "gateway",
+        gateway::authorization(),
+        async |registration, metadata, key| {
+            let calls = ServerCalls::discover(registration, metadata, key, http.clone())
+                .await
+                .unwrap();
+            hosted::<Gateway>(registration, &http)
+                .calls(calls)
+                .handler(gateway::hosted)
+                .build()
+        },
+    )
+    .await;
     let member = caller(&hub, &http, "member").await;
     let admin = caller(&hub, &http, "admin").await;
 
@@ -153,6 +189,41 @@ async fn qualify() {
         delegated["https://veoveo.ai/claims/invocation"]["acting_server"],
         "relay"
     );
+
+    // Three independent servers use their native typed SDK clients. The final
+    // server receives the original caller/context and both actors, not a new identity.
+    let answer = member
+        .call_tool(
+            CallToolRequestParams::new("gateway__gateway_inspect")
+                .with_arguments(Default::default()),
+        )
+        .await
+        .unwrap();
+    assert_ne!(answer.is_error, Some(true), "{answer:?}");
+    let seen: Inspection = serde_json::from_value(answer.structured_content.unwrap()).unwrap();
+    assert_eq!(seen.client, "acceptance-member");
+    assert_eq!(seen.acting_server.as_deref(), Some("relay"));
+    assert_eq!(seen.prior_servers, ["gateway"]);
+    assert_eq!(seen.originating_task, None);
+    assert_eq!(
+        seen.permissions,
+        ["ledger.entries.read", "ledger.entries.write"]
+    );
+    let first = decoded_claims(&gateway.bearers.last());
+    let last = decoded_claims(&ledger.bearers.last());
+    let claim = "https://veoveo.ai/claims/invocation";
+    for field in ["actor", "authority", "request_context"] {
+        assert_eq!(last[claim][field], first[claim][field], "{field}");
+    }
+    assert_eq!(
+        last["act"]["act"]["sub"],
+        relay.registration.client_id().as_str()
+    );
+    assert_eq!(
+        last["act"]["act"]["act"]["sub"],
+        gateway.registration.client_id().as_str()
+    );
+    assert!(last["exp"].as_i64().unwrap() <= first["exp"].as_i64().unwrap());
 
     // Narrowing: the member holds no sensitive permission, the admin does.
     let refused = relay_call(&member, "relay_seal", json!({}))
@@ -241,6 +312,21 @@ async fn qualify() {
         ),
         "{ended:?}"
     );
+    // An unexpired request token derived from that Task cannot exchange after the
+    // originating Task ends, even though Ledger is now the immediate server.
+    let (_, ended_request) = exchange(
+        &hub,
+        &http,
+        &ledger,
+        (
+            &ledger.bearers.last(),
+            veoveo_hub_sdk::calls::ACCESS_TOKEN_TOKEN_TYPE,
+        ),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(ended_request["error"], "invalid_grant", "{ended_request}");
 
     // Refusals at the token endpoint, with Relay's own assertion.
     let access = veoveo_hub_sdk::calls::ACCESS_TOKEN_TOKEN_TYPE;
@@ -274,16 +360,155 @@ async fn qualify() {
     // Another server's forwarded token is no subject of Relay's.
     let (_, answer) = exchange(&hub, &http, &relay, (&ledger_token, access), None, None).await;
     assert_eq!(answer["error"], "invalid_grant", "{answer}");
-    // A delegated identity is not delegated again.
-    let (_, answer) = exchange(&hub, &http, &ledger, (&ledger_token, access), None, None).await;
-    assert_eq!(answer["error"], "invalid_grant", "{answer}");
-    assert!(
-        answer["error_description"]
-            .as_str()
-            .unwrap()
-            .contains("delegated again"),
-        "{answer}"
+    // The addressed registered server can continue the original caller through a
+    // declared use. It cannot acquire the caller's withheld sensitive permission.
+    let (status, nested) =
+        exchange(&hub, &http, &ledger, (&ledger_token, access), None, None).await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{nested}");
+    assert_eq!(
+        nested["authorization_details"][0]["actions"],
+        json!(["relay.calls.make"])
     );
+    let nested_claims = decoded_claims(nested["access_token"].as_str().unwrap());
+    assert!(
+        nested_claims["exp"].as_i64().unwrap()
+            <= decoded_claims(&ledger_token)["exp"].as_i64().unwrap()
+    );
+    let (_, undeclared_nested) = exchange(
+        &hub,
+        &http,
+        &ledger,
+        (&ledger_token, access),
+        Some(
+            json!([{"type":"https://veoveo.ai/oauth/permissions","actions":["ledger.seals.read"]}]),
+        ),
+        None,
+    )
+    .await;
+    assert_eq!(
+        undeclared_nested["error"], "invalid_authorization_details",
+        "{undeclared_nested}"
+    );
+    // The production token endpoint bounds repeated composition at the SDK depth.
+    // A new client assertion and HTTP request do not renew the original deadline.
+    let mut token = ledger_token.clone();
+    let mut from_ledger = true;
+    for depth in 2..=veoveo_hub_sdk::MAX_DELEGATION_DEPTH {
+        let server = if from_ledger { &ledger } else { &relay };
+        let (status, answer) = exchange(&hub, &http, server, (&token, access), None, None).await;
+        assert_eq!(status, reqwest::StatusCode::OK, "depth {depth}: {answer}");
+        let client = mcp_client(&hub, answer["access_token"].as_str().unwrap().to_owned()).await;
+        let tool = if from_ledger {
+            "relay__relay_whoami"
+        } else {
+            "ledger__inspect"
+        };
+        let result = client
+            .call_tool(CallToolRequestParams::new(tool).with_arguments(Default::default()))
+            .await
+            .unwrap();
+        assert_ne!(result.is_error, Some(true), "{result:?}");
+        token = if from_ledger {
+            relay.bearers.last()
+        } else {
+            ledger.bearers.last()
+        };
+        let claims = decoded_claims(&token);
+        assert!(
+            claims["exp"].as_i64().unwrap()
+                <= decoded_claims(&ledger_token)["exp"].as_i64().unwrap()
+        );
+        client.cancel().await.unwrap();
+        from_ledger = !from_ledger;
+    }
+    let server = if from_ledger { &ledger } else { &relay };
+    let (_, too_deep) = exchange(&hub, &http, server, (&token, access), None, None).await;
+    assert_eq!(too_deep["error"], "invalid_grant", "{too_deep}");
+
+    // Short-lived native signed source fixtures exercise production admission and
+    // exchange expiry without waiting for the ordinary 60-second request lifetime.
+    let (issuer, trust) = forwarded_issuer(&hub);
+    let identity = HubInternalTokenVerifier::new(
+        TokenIssuer::parse(&hub.base).unwrap(),
+        TokenAudience {
+            server: ledger.metadata.slug().clone(),
+            resource: veoveo_hub_sdk::registration::ResourceIndicator::from(
+                &ledger.metadata.registration.endpoint,
+            ),
+        },
+        trust,
+    )
+    .verify(&ledger_token)
+    .unwrap();
+    let short = issuer
+        .issue(ForwardedRequest {
+            profile: identity.profile,
+            server: identity.server,
+            audience: identity.audience,
+            client: identity.client,
+            actor: identity.actor,
+            authority: identity.authority,
+            permissions: identity.permissions,
+            request_context: identity.request_context,
+            acting_server: identity.acting_server,
+            acting_task: identity.acting_task,
+            delegation_context: identity.delegation_context,
+            expires_at: chrono::Utc::now() + chrono::TimeDelta::seconds(3),
+        })
+        .unwrap();
+    let (status, short_exchange) = exchange(
+        &hub,
+        &http,
+        &ledger,
+        (&short.bearer_token, access),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{short_exchange}");
+    let bearer = format!(
+        "Bearer {}",
+        short_exchange["access_token"].as_str().unwrap()
+    );
+    assert_eq!(
+        hub.mcp(&http, Some(&bearer), DISCOVER).await.status(),
+        reqwest::StatusCode::OK
+    );
+    tokio::time::sleep(Duration::from_secs(4)).await;
+    assert_eq!(
+        hub.mcp(&http, Some(&bearer), DISCOVER).await.status(),
+        reqwest::StatusCode::UNAUTHORIZED
+    );
+    let (_, expired) = exchange(
+        &hub,
+        &http,
+        &ledger,
+        (&short.bearer_token, access),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(expired["error"], "invalid_grant", "{expired}");
+
+    // Modified signatures do not become valid when they carry a nested actor chain.
+    let mut forged = ledger_token.clone().into_bytes();
+    let signature = forged.iter().rposition(|b| *b == b'.').unwrap() + 1;
+    forged[signature] = if forged[signature] == b'A' {
+        b'B'
+    } else {
+        b'A'
+    };
+    let (_, forged) = exchange(
+        &hub,
+        &http,
+        &ledger,
+        (std::str::from_utf8(&forged).unwrap(), access),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(forged["error"], "invalid_grant", "{forged}");
+
     // Relay's own subject exchanges; the response names what the token carries: the
     // member's Ledger permissions among Relay's uses, without the sensitive seal.
     let (status, answer) = exchange(&hub, &http, &relay, (&relay_token, access), None, None).await;

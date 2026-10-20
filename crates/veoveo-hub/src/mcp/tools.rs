@@ -522,6 +522,7 @@ impl HubMcp {
                 actor: subject.actor.clone(),
                 authority: subject.authority.clone(),
                 request_context: subject.request_context(),
+                delegation_context: None,
             }
         });
         let (canonical, _) = self

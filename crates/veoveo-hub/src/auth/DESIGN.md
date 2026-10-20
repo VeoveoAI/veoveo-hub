@@ -93,7 +93,12 @@ A Task a caller started keeps acting for that caller after a logout and after th
 family expires, until the Task ends. A family revoked because a refresh token was
 replayed, which suggests the session was stolen, also ends the delegation of the
 caller's running Tasks: `HubState::session_compromised` reads the family's
-revocation reason at each Task exchange and at each admission of a Task-bound token.
+revocation reason at each Task exchange and at each admission of a Task-bound token,
+including request-origin exchanges later in that Task's signed actor chain. The
+native Task route/profile and original caller must still agree, independently of the
+immediate calling server. Ordinary logout continues not to revoke Tasks. Request-only
+chains retain the existing signed-request expiry and current-policy semantics; this
+extension does not change their browser-session policy.
 
 Refresh tokens reference their family with `ON DELETE CASCADE`, so deleting a family
 removes its tokens in the same transaction. Revocation keeps the family until expiry
@@ -109,6 +114,9 @@ The Hub assigns a request identity before authentication and carries it in
 `HubRequestContext.audit`. Forwarded tokens sign the request ID, W3C trace and span
 identifiers and the peer address with the access-token subject. A server uses these
 signed values and never trusts an unsigned request-ID header.
+Nested request delegation retains this original signed context. Each Hub HTTP hop
+still has its own audit correlation; that fresh observation must not replace the
+original caller context when the Hub signs a downstream request.
 
 Authentication records identify the verified principal with its scopes and data
 labels. API activity records identify the invocation actor: a delegated request names

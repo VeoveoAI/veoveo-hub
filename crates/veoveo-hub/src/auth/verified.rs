@@ -31,6 +31,9 @@ pub struct AuthenticatedSubject {
 
 impl AuthenticatedSubject {
     pub fn request_context(&self) -> veoveo_hub_sdk::HubRequestContext {
+        if let Some(delegation) = &self.delegation {
+            return delegation.request_context.clone();
+        }
         veoveo_hub_sdk::HubRequestContext {
             audit: self.audit.clone(),
             access_token: self.access_token.clone(),

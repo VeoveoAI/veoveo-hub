@@ -44,6 +44,8 @@ pub(super) struct HubAuthorizedHttpClient {
     request_context: HubRequestContext,
     acting_server: Option<veoveo_hub_sdk::ActingServer>,
     acting_task: Option<veoveo_hub_sdk::OpaqueTaskId>,
+    delegation_context: Option<veoveo_hub_sdk::DelegationContext>,
+    delegation_expires_at: Option<chrono::DateTime<Utc>>,
 }
 
 impl std::fmt::Debug for HubAuthorizedHttpClient {
@@ -85,6 +87,14 @@ impl HubAuthorizedHttpClient {
                 .as_ref()
                 .map(|delegation| delegation.acting_server.clone()),
             acting_task: subject.acting_task().cloned(),
+            delegation_context: subject
+                .delegation
+                .as_ref()
+                .and_then(|delegation| delegation.context.clone()),
+            delegation_expires_at: subject
+                .delegation
+                .as_ref()
+                .map(|delegation| delegation.expires_at),
         }
     }
 
@@ -153,7 +163,10 @@ impl HubAuthorizedHttpClient {
                 request_context: Some(self.request_context.clone()),
                 acting_server: self.acting_server.clone(),
                 acting_task: self.acting_task.clone(),
-                expires_at,
+                delegation_context: self.delegation_context.clone(),
+                expires_at: self
+                    .delegation_expires_at
+                    .map_or(expires_at, |deadline| deadline.min(expires_at)),
             })
             .map(|issued| issued.bearer_token)
             .map_err(HubAuthorizedHttpError::InternalToken)
@@ -436,6 +449,84 @@ mod tests {
                 serde_json::json!(["upstream-b.items.read"])
             );
         }
+    }
+
+    #[test]
+    fn delegated_forwarding_preserves_signed_origin_and_cannot_renew_deadline() {
+        use veoveo_hub_sdk::{
+            ActingServer, DelegationContext, HubInternalTokenVerifier, HubInternalTrustBundle,
+            TokenAudience,
+        };
+        let baseline = client();
+        let original = baseline.request_context.clone();
+        let deadline = Utc::now() + TimeDelta::seconds(12);
+        let acting = ActingServer {
+            server: ServerSlug::parse("middle").unwrap(),
+            client: OAuthClientId::parse("middle-1").unwrap(),
+        };
+        let context = DelegationContext {
+            actors: vec![ActingServer {
+                server: ServerSlug::parse("first").unwrap(),
+                client: OAuthClientId::parse("first-1").unwrap(),
+            }],
+            task: None,
+            expires_at: deadline,
+        };
+        let subject = crate::AuthenticatedSubject {
+            extensions: Default::default(),
+            audit: veoveo_audit_contract::AuditRequest::background(),
+            access_token: original.access_token.clone(),
+            principal: original.principal.clone(),
+            actor: baseline.actor.clone(),
+            principal_display_name: None,
+            authority: baseline.authority.clone(),
+            delegation: Some(crate::delegation::SubjectDelegation {
+                acting_server: acting.clone(),
+                permissions: baseline.permissions.clone(),
+                task: None,
+                request_context: original.clone(),
+                context: Some(context.clone()),
+                expires_at: deadline,
+            }),
+        };
+        assert_ne!(subject.audit, original.audit);
+        assert_eq!(subject.request_context(), original);
+        let mut delegated = HubAuthorizedHttpClient::new(
+            baseline.http,
+            baseline.issuer,
+            baseline.profile,
+            &registered_server(),
+            &subject,
+            baseline.permissions,
+        );
+        let verifier = HubInternalTokenVerifier::new(
+            TokenIssuer::parse(TEST_ISSUER).unwrap(),
+            TokenAudience {
+                server: delegated.server.clone(),
+                resource: delegated.audience.clone(),
+            },
+            HubInternalTrustBundle::from_key_set(
+                &veoveo_hub_sdk::registration::Ed25519JwkSet::new(vec![
+                    signing_key().verification_key(),
+                ])
+                .unwrap(),
+            )
+            .unwrap(),
+        );
+        for lifetime in [60, 900] {
+            let token = delegated
+                .issue_bearer_token_until(Utc::now() + TimeDelta::seconds(lifetime))
+                .unwrap();
+            let identity = verifier.verify(&token).unwrap();
+            assert_eq!(identity.request_context, Some(original.clone()));
+            assert_eq!(identity.actor, subject.actor);
+            assert_eq!(identity.authority, subject.authority);
+            assert_eq!(identity.acting_server, Some(acting.clone()));
+            assert_eq!(identity.delegation_context, Some(context.clone()));
+            assert!(identity.expires_at <= deadline);
+        }
+        delegated.delegation_expires_at = Some(Utc::now() - TimeDelta::seconds(1));
+        assert!(delegated.issue_bearer_token().is_err());
     }
 
     #[tokio::test]

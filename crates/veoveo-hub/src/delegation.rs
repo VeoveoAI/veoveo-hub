@@ -1,7 +1,7 @@
 //! Calls between servers: the RFC 8693 token exchange a registered server performs to
 //! call other servers for its caller, and the admission of the token it receives at a
 //! profile. The protocol is the SDK's
-//! [calls between servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/5165538fb8534cac227168a598798ea952c1da95/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers).
+//! [calls between servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/f369804dd2bda5c69103f480169769c80fac2859/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers).
 use std::{collections::BTreeSet, sync::Arc};
 
 use anyhow::Context;
@@ -9,9 +9,9 @@ use chrono::{DateTime, TimeDelta, Utc};
 use serde::Deserialize;
 use veoveo_audit_contract::AuditOutcome;
 use veoveo_hub_sdk::{
-    ActingServer, DelegatedCaller, ExchangeGrant, ExchangedTokenVerifier, HubInternalIdentity,
-    HubInternalTokenIssuer, HubInternalTokenVerifier, HubInternalTrustBundle, OpaqueTaskId,
-    TokenAudience, TokenIssuer,
+    ActingServer, DelegatedCaller, DelegatingTask, DelegationContext, ExchangeGrant,
+    ExchangedTokenVerifier, HubInternalIdentity, HubInternalTokenIssuer, HubInternalTokenVerifier,
+    HubInternalTrustBundle, HubRequestContext, OpaqueTaskId, TokenAudience, TokenIssuer,
     calls::{
         ACCESS_TOKEN_TOKEN_TYPE, TASK_TOKEN_TYPE, TokenErrorCode, TokenErrorResponse,
         TokenExchangeResponse,
@@ -45,6 +45,12 @@ pub struct SubjectDelegation {
     /// The calling server's Task the delegation lasts as long as, and which the call
     /// names as provenance.
     pub task: Option<OpaqueTaskId>,
+    /// Original signed caller context, distinct from this HTTP request's audit context.
+    pub request_context: HubRequestContext,
+    /// Earlier server actors and originating Task constraints from the SDK protocol.
+    pub context: Option<DelegationContext>,
+    /// Forwarding and further exchanges cannot renew the admitted grant.
+    pub expires_at: DateTime<Utc>,
 }
 
 impl SubjectDelegation {
@@ -464,18 +470,15 @@ impl DelegationService {
                         format!("the subject token is no live forwarded token of {slug}"),
                     )
                 })?;
-                let caller = DelegatedCaller::of(&identity).map_err(|error| match error {
-                    veoveo_hub_sdk::InternalTokenError::RedelegatedIdentity => {
-                        TokenExchangeRefusal::new(
-                            InvalidGrant,
-                            "a delegated identity cannot be delegated again",
-                        )
-                    }
-                    _ => TokenExchangeRefusal::new(
+                let caller = DelegatedCaller::of(&identity).map_err(|_| {
+                    TokenExchangeRefusal::new(
                         InvalidGrant,
-                        "the subject token carries no request context",
-                    ),
+                        "the subject token cannot continue its caller context",
+                    )
                 })?;
+                if let Some(task) = identity.delegating_task() {
+                    self.require_task(&task, &caller, &identity.profile).await?;
+                }
                 Ok(Subject {
                     kind: ExchangeSubjectKind::Request,
                     caller,
@@ -502,32 +505,15 @@ impl DelegationService {
                             ),
                         )
                     })?;
-                let live = self
-                    .inner
-                    .hub
-                    .task_live(slug, task.as_str(), &delegation.caller)
-                    .await
-                    .map_err(TokenExchangeRefusal::unavailable)?;
-                if !live {
-                    return Err(TokenExchangeRefusal::new(
-                        InvalidGrant,
-                        format!("Task {task} has ended"),
-                    ));
-                }
-                if self
-                    .inner
-                    .hub
-                    .session_compromised(&delegation.caller.request_context.access_token)
-                    .await
-                    .map_err(TokenExchangeRefusal::unavailable)?
-                {
-                    return Err(TokenExchangeRefusal::new(
-                        InvalidGrant,
-                        format!(
-                            "Task {task} no longer acts for its caller: the caller's session was revoked after a refresh token was replayed"
-                        ),
-                    ));
-                }
+                self.require_task(
+                    &DelegatingTask {
+                        server: slug.clone(),
+                        task: task.clone(),
+                    },
+                    &delegation.caller,
+                    &delegation.profile,
+                )
+                .await?;
                 Ok(Subject {
                     kind: ExchangeSubjectKind::Task,
                     caller: delegation.caller,
@@ -545,6 +531,67 @@ impl DelegationService {
                 "subject_token and subject_token_type are required",
             )),
         }
+    }
+
+    /// Check the original native route, caller, Task and session independently of
+    /// whichever server is now the immediate actor. No positive result is cached.
+    async fn task_refusal(
+        &self,
+        task: &DelegatingTask,
+        caller: &DelegatedCaller,
+        profile: &veoveo_hub_sdk::HubProfileId,
+    ) -> anyhow::Result<Option<&'static str>> {
+        let Some(route) = self
+            .inner
+            .hub
+            .task_delegation(&task.server, task.task.as_str())
+            .await?
+        else {
+            return Ok(Some("the originating Task's delegation route has ended"));
+        };
+        let mut original = caller.clone();
+        original.delegation_context = None;
+        if route.profile != *profile || route.caller != original {
+            return Ok(Some("the originating Task's profile or caller differs"));
+        }
+        if !self
+            .inner
+            .hub
+            .task_live(&task.server, task.task.as_str(), caller)
+            .await?
+        {
+            return Ok(Some("the originating Task has ended"));
+        }
+        if self
+            .inner
+            .hub
+            .session_compromised(&caller.request_context.access_token)
+            .await?
+        {
+            return Ok(Some(
+                "the caller's session was revoked after a refresh token was replayed",
+            ));
+        }
+        Ok(None)
+    }
+
+    async fn require_task(
+        &self,
+        task: &DelegatingTask,
+        caller: &DelegatedCaller,
+        profile: &veoveo_hub_sdk::HubProfileId,
+    ) -> Result<(), TokenExchangeRefusal> {
+        if let Some(reason) = self
+            .task_refusal(task, caller, profile)
+            .await
+            .map_err(TokenExchangeRefusal::unavailable)?
+        {
+            return Err(TokenExchangeRefusal::new(
+                TokenErrorCode::InvalidGrant,
+                reason,
+            ));
+        }
+        Ok(())
     }
 
     /// A forwarded token the Hub addressed to the registered server `metadata`.
@@ -635,34 +682,14 @@ impl DelegationService {
         if identity.profile != profile.id {
             return ExchangedAdmission::Refused("the token is another profile's");
         }
-        if let Some(task) = &identity.task {
+        if let Some(task) = identity.delegating_task() {
             match self
-                .inner
-                .hub
-                .task_live(
-                    &identity.acting_server.server,
-                    task.as_str(),
-                    &identity.caller,
-                )
+                .task_refusal(&task, &identity.caller, &identity.profile)
                 .await
-                .context("failed to read the delegating Task")
+                .context("failed to read originating Task authority")
             {
-                Ok(true) => {}
-                Ok(false) => return ExchangedAdmission::Refused("the delegating Task has ended"),
-                Err(error) => return ExchangedAdmission::Unavailable(error),
-            }
-            match self
-                .inner
-                .hub
-                .session_compromised(&identity.caller.request_context.access_token)
-                .await
-            {
-                Ok(false) => {}
-                Ok(true) => {
-                    return ExchangedAdmission::Refused(
-                        "the caller's session was revoked after a refresh token was replayed",
-                    );
-                }
+                Ok(None) => {}
+                Ok(Some(reason)) => return ExchangedAdmission::Refused(reason),
                 Err(error) => return ExchangedAdmission::Unavailable(error),
             }
         }
@@ -672,6 +699,9 @@ impl DelegationService {
                 acting_server: identity.acting_server,
                 permissions: identity.permissions,
                 task: identity.task,
+                request_context: identity.caller.request_context.clone(),
+                context: identity.caller.delegation_context.clone(),
+                expires_at: identity.expires_at,
             }),
         )))
     }

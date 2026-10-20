@@ -23,7 +23,7 @@ use hub::{DISCOVER, Hub};
 use keycloak::{TestKeycloak, form, random_text};
 use rmcp::model::{CallToolRequestParams, CallToolResponse};
 use serde_json::{Value, json};
-use servers::{exchange, hosted, mcp_client, serve};
+use servers::{exchange, hosted, mcp_client, relay_call, serve};
 use sha2::{Digest, Sha256};
 use veoveo_fixtures::store::TestDb;
 use veoveo_hub_sdk::{
@@ -39,7 +39,7 @@ use veoveo_hub_sdk_fixture::{
 };
 use veoveo_store::{Instance, PlatformStore, StoreConfig};
 use veoveo_task::TaskRuntime;
-use veoveo_types::{ServerSlug, TaskId};
+use veoveo_types::{PermissionName, ServerSlug, TaskId};
 
 const REALM: &str = "veoveo";
 /// The Hub's client at Keycloak.
@@ -92,11 +92,15 @@ async fn qualify() {
     let _stop = stop.clone().drop_guard();
 
     let ledger_tasks = LedgerTasks::default();
-    let _ledger = serve(
+    let mut ledger_declaration = ledger::authorization().unwrap();
+    ledger_declaration
+        .uses
+        .push(PermissionName::parse("relay.calls.make").unwrap());
+    let ledger = serve(
         &hub,
         &http,
         "ledger",
-        ledger::authorization().unwrap(),
+        ledger_declaration,
         async |registration, _, _| {
             let tasks = ledger_tasks.clone();
             hosted::<LedgerDomain>(registration, &http)
@@ -109,6 +113,7 @@ async fn qualify() {
     // them, so each stays queued and live while the test acts for it.
     let relay_slug = ServerSlug::parse("relay").unwrap();
     let relay_calls: Arc<Mutex<Option<ServerCalls>>> = Arc::default();
+    let relay_runtime: Arc<Mutex<Option<TaskRuntime>>> = Arc::default();
     let relay = serve(
         &hub,
         &http,
@@ -130,10 +135,9 @@ async fn qualify() {
             .await
             .unwrap();
             let instance = Arc::new(Instance::start(&store, &relay_slug).await.unwrap());
-            let tasks = RelayTasks::new(
-                TaskRuntime::new(store, relay_slug.clone(), instance),
-                calls.clone(),
-            );
+            let runtime = TaskRuntime::new(store, relay_slug.clone(), instance);
+            *relay_runtime.lock().unwrap() = Some(runtime.clone());
+            let tasks = RelayTasks::new(runtime, calls.clone());
             hosted::<RelayDomain>(registration, &http)
                 .calls(calls)
                 .handler(move || relay::hosted_with_tasks(tasks.clone()))
@@ -142,6 +146,7 @@ async fn qualify() {
     )
     .await;
     let relay_calls = relay_calls.lock().unwrap().clone().unwrap();
+    let relay_runtime = relay_runtime.lock().unwrap().clone().unwrap();
     let profile = HubProfileId::parse(PROFILE).unwrap();
     let act_for = async |task: &str| {
         relay_calls
@@ -159,6 +164,52 @@ async fn qualify() {
         hub.mcp(&http, Some(&format!("Bearer {token}")), DISCOVER)
             .await
             .status()
+    };
+    let nested_bound = async |task: &str| {
+        act_for(task).await.unwrap();
+        let (status, answer) = exchange(
+            &hub,
+            &http,
+            &ledger,
+            (
+                &ledger.bearers.last(),
+                veoveo_hub_sdk::calls::ACCESS_TOKEN_TOKEN_TYPE,
+            ),
+            None,
+            None,
+        )
+        .await;
+        assert_eq!(status, reqwest::StatusCode::OK, "{answer}");
+        let token = answer["access_token"].as_str().unwrap().to_owned();
+        let client = mcp_client(&hub, token.clone()).await;
+        let seen: Inspection = serde_json::from_value(
+            relay_call(&client, "relay_inspect", json!({}))
+                .await
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(seen.client, BROWSER);
+        assert_eq!(seen.acting_server.as_deref(), Some("relay"));
+        assert_eq!(seen.acting_task, None);
+        assert_eq!(seen.prior_servers, ["relay", "ledger"]);
+        assert_eq!(
+            seen.originating_task,
+            Some(("relay".to_owned(), task.to_owned()))
+        );
+        let forwarded = ledger.bearers.last();
+        client.cancel().await.unwrap();
+        (token, forwarded)
+    };
+    let continued = async |forwarded: &str| {
+        exchange(
+            &hub,
+            &http,
+            &ledger,
+            (forwarded, veoveo_hub_sdk::calls::ACCESS_TOKEN_TOKEN_TYPE),
+            None,
+            None,
+        )
+        .await
     };
 
     // The user logs in, and a Task created for the user's call acts for the user.
@@ -182,6 +233,8 @@ async fn qualify() {
     );
     let first_bound = task_bound(&first_task).await;
     assert_eq!(admitted(&first_bound).await, reqwest::StatusCode::OK);
+    let (first_nested, first_forwarded) = nested_bound(&first_task).await;
+    assert_eq!(admitted(&first_nested).await, reqwest::StatusCode::OK);
 
     // A logout ends the session, and the browser's access token with it, but the Task
     // keeps acting for the user.
@@ -216,6 +269,10 @@ async fn qualify() {
     assert_eq!(admitted(&first_bound).await, reqwest::StatusCode::OK);
     let inspection: Inspection = act_for(&first_task).await.unwrap();
     assert_eq!(inspection.client, BROWSER);
+    // Ordinary logout preserves all inherited Task authority, including a later
+    // request-origin exchange and an already issued nested token.
+    assert_eq!(admitted(&first_nested).await, reqwest::StatusCode::OK);
+    assert_eq!(continued(&first_forwarded).await.0, reqwest::StatusCode::OK);
 
     // A second login rotates its refresh token. Presenting the consumed token again
     // after the delivery window revokes the session as a replay.
@@ -224,6 +281,7 @@ async fn qualify() {
     act_for(&second_task).await.unwrap();
     let second_bound = task_bound(&second_task).await;
     assert_eq!(admitted(&second_bound).await, reqwest::StatusCode::OK);
+    let (second_nested, second_forwarded) = nested_bound(&second_task).await;
     let (status, rotated) = refresh(&hub, &second.refresh).await;
     assert_eq!(status, reqwest::StatusCode::OK, "{rotated}");
     let successor = rotated["refresh_token"].as_str().unwrap().to_owned();
@@ -277,6 +335,17 @@ async fn qualify() {
         admitted(&second_bound).await,
         reqwest::StatusCode::UNAUTHORIZED
     );
+    assert_eq!(
+        admitted(&second_nested).await,
+        reqwest::StatusCode::UNAUTHORIZED
+    );
+    let (status, replayed_nested) = continued(&second_forwarded).await;
+    assert_eq!(
+        status,
+        reqwest::StatusCode::BAD_REQUEST,
+        "{replayed_nested}"
+    );
+    assert_eq!(replayed_nested["error"], "invalid_grant");
     let ended = records_since(&db, mark).await;
     for expected in [
         record("hub.token_exchange", "denied", Some("invalid_grant"), None),
@@ -297,6 +366,21 @@ async fn qualify() {
         reqwest::StatusCode::OK
     );
     act_for(&first_task).await.unwrap();
+
+    // Native Task cancellation independently ends the nested grant at admission
+    // and at a subsequent exchange; it cannot rename Ledger as the Task owner.
+    relay_runtime
+        .cancel(TaskId::parse(&first_task).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(
+        admitted(&first_nested).await,
+        reqwest::StatusCode::UNAUTHORIZED
+    );
+    let (status, ended_nested) = continued(&first_forwarded).await;
+    assert_eq!(status, reqwest::StatusCode::BAD_REQUEST, "{ended_nested}");
+    assert_eq!(ended_nested["error"], "invalid_grant");
+
     drop(hub);
 }
 
