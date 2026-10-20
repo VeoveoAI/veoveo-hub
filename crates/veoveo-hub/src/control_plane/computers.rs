@@ -17,7 +17,8 @@ use crate::contract::{
 pub struct Computers {
     pub gateway: ComputerGateway,
     pub template: ComputerTemplate,
-    /// Trusted native authored policy, parsed by OpenShell at startup.
+    /// Trusted native authored policy, admitted before runtime publication.
+    /// Use an immutable versioned file path for each policy revision.
     pub policy_file: PathBuf,
     /// Fixed service command. No browser-controlled governance overrides.
     pub command: Vec<String>,

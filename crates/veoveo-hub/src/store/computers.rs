@@ -1,13 +1,16 @@
 //! Durable owner mapping, single-use PKCE state and fail-closed custody transitions.
 use chrono::{DateTime, Utc};
 use sha2::{Digest, Sha256};
-use sqlx::{Postgres, Transaction};
+use sqlx::{Postgres, Transaction, types::Json};
 use uuid::Uuid;
 use veoveo_hub_sdk::HubRefreshFamilyId;
 use veoveo_types::{PrincipalId, Sha256Digest, TenantId};
 
 use super::{HubStore, HubStoreError, RefreshFamily, admitted};
-use crate::{computers::ComputerId, contract::PkceCodeVerifier};
+use crate::{
+    computers::{ComputerId, ComputerProvisionSpec},
+    contract::PkceCodeVerifier,
+};
 
 #[derive(Clone, Debug)]
 pub struct Computer {
@@ -24,6 +27,7 @@ pub struct Computer {
     pub rotate_request: Option<Uuid>,
     pub family: Option<HubRefreshFamilyId>,
     pub ready: bool,
+    pub provisioning: ComputerProvisionSpec,
 }
 impl Computer {
     /// Native OpenShell DNS-routable workspace/sandbox names are limited to 19
@@ -64,6 +68,7 @@ struct ComputerRow {
     rotate_request: Option<Uuid>,
     family_id: Option<Uuid>,
     ready: bool,
+    provisioning: Json<ComputerProvisionSpec>,
 }
 impl TryFrom<ComputerRow> for Computer {
     type Error = HubStoreError;
@@ -93,8 +98,14 @@ impl TryFrom<ComputerRow> for Computer {
                 })
                 .transpose()?,
             ready: row.ready,
+            provisioning: row.provisioning.0,
         })
     }
+}
+
+pub struct ComputerLogin {
+    pub verifier: PkceCodeVerifier,
+    pub provisioning: ComputerProvisionSpec,
 }
 
 pub struct ComputerHandoff {
@@ -176,6 +187,7 @@ impl HubStore {
         &self,
         tenant: &TenantId,
         principal: &PrincipalId,
+        provisioning: &ComputerProvisionSpec,
     ) -> Result<Computer, HubStoreError> {
         sqlx::query_file!(
             "src/store/computers/ensure.sql",
@@ -187,7 +199,8 @@ impl HubStore {
             Uuid::now_v7(),
             Uuid::now_v7(),
             Uuid::now_v7(),
-            Utc::now()
+            Utc::now(),
+            Json(provisioning) as _
         )
         .execute(self.pool())
         .await?;
@@ -302,13 +315,15 @@ impl HubStore {
         browser: &Sha256Digest,
         verifier: &PkceCodeVerifier,
         expires: DateTime<Utc>,
+        provisioning: &ComputerProvisionSpec,
     ) -> Result<(), HubStoreError> {
         sqlx::query_file!(
             "src/store/computers/login_insert.sql",
             state.as_str(),
             browser.as_str(),
             verifier.as_str(),
-            expires
+            expires,
+            Json(provisioning) as _
         )
         .execute(self.pool())
         .await?;
@@ -319,7 +334,7 @@ impl HubStore {
         &self,
         state: &Sha256Digest,
         browser: &Sha256Digest,
-    ) -> Result<Option<PkceCodeVerifier>, HubStoreError> {
+    ) -> Result<Option<ComputerLogin>, HubStoreError> {
         let row = sqlx::query_file!(
             "src/store/computers/login_consume.sql",
             state.as_str(),
@@ -329,10 +344,13 @@ impl HubStore {
         .fetch_optional(self.pool())
         .await?;
         row.map(|r| {
-            admitted(
-                "computer_login.verifier",
-                PkceCodeVerifier::parse(r.verifier),
-            )
+            Ok(ComputerLogin {
+                verifier: admitted(
+                    "computer_login.verifier",
+                    PkceCodeVerifier::parse(r.verifier),
+                )?,
+                provisioning: r.provisioning.0,
+            })
         })
         .transpose()
     }
@@ -376,15 +394,29 @@ mod tests {
                 assurances: BTreeSet::new(),
                 authenticated_at: None,
             };
+            let config: crate::control_plane::Computers = serde_json::from_value(serde_json::json!({
+                "gateway": {"endpoint":"https://gateway.example/", "certificateAuthority":"/unused/ca", "bearerEnvironment":"UNUSED"},
+                "template":{"workspace":"installation", "name":"initial"}, "policyFile":"/unused/policy", "command":["/initial/app"],
+                "oauthClient":"fixture-client", "profile":"fixture", "workContext":"fixture", "port":4096,
+                "hubProvider":{"profile":"fixture-hub", "credentialKey":"HUB_REFERENCE"},
+                "modelProvider":{"profile":"fixture-model", "credentialKey":"MODEL_REFERENCE", "secret":"fixture-secret"}
+            })).unwrap();
+            let provisioning = ComputerProvisionSpec::fixture(config.clone());
             let computer = first
-                .ensure_computer(principal.tenant.as_ref().unwrap(), &principal.id)
+                .ensure_computer(principal.tenant.as_ref().unwrap(), &principal.id, &provisioning)
                 .await
                 .unwrap();
+            let mut changed = config;
+            changed.template.name = "replacement".into();
+            changed.command = vec!["/replacement/app".into()];
+            changed.port = 4097;
+            let replacement_defaults = ComputerProvisionSpec::fixture(changed);
             let same = second
-                .ensure_computer(&computer.tenant, &computer.principal)
+                .ensure_computer(&computer.tenant, &computer.principal, &replacement_defaults)
                 .await
                 .unwrap();
             assert_eq!(same.id, computer.id);
+            assert_eq!(same.provisioning, provisioning, "reauthorization retains the admitted instance, not new defaults");
             assert_eq!(same.native_name(), computer.native_name());
             assert_eq!(computer.native_name().len(), 19);
             assert!(
@@ -394,10 +426,11 @@ mod tests {
                     .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
             );
             let other = first
-                .ensure_computer(&computer.tenant, &PrincipalId::parse("other-user").unwrap())
+                .ensure_computer(&computer.tenant, &PrincipalId::parse("other-user").unwrap(), &replacement_defaults)
                 .await
                 .unwrap();
             assert_ne!(other.id, computer.id);
+            assert_eq!(other.provisioning, replacement_defaults, "new owners receive current defaults");
             assert_ne!(other.native_name(), computer.native_name());
             let issued = HubState::new(db.a.clone())
                 .issue_refresh_token(HubRefreshIssueRequest {
@@ -641,12 +674,21 @@ mod tests {
         let browser = Sha256Digest::from_bytes([2; 32]);
         let wrong = Sha256Digest::from_bytes([3; 32]);
         let verifier = PkceCodeVerifier::parse("x".repeat(43)).unwrap();
+        let config: crate::control_plane::Computers = serde_json::from_value(serde_json::json!({
+            "gateway":{"endpoint":"https://gateway.example/","certificateAuthority":"/unused/ca","bearerEnvironment":"UNUSED"},
+            "template":{"workspace":"installation","name":"initial"},"policyFile":"/unused/policy","command":["/initial/app"],
+            "oauthClient":"fixture-client","profile":"fixture","workContext":"fixture","port":4096,
+            "hubProvider":{"profile":"fixture-hub","credentialKey":"HUB_REFERENCE"},
+            "modelProvider":{"profile":"fixture-model","credentialKey":"MODEL_REFERENCE","secret":"fixture-secret"}
+        })).unwrap();
+        let provisioning = ComputerProvisionSpec::fixture(config);
         store
             .insert_computer_login(
                 &state,
                 &browser,
                 &verifier,
                 Utc::now() + TimeDelta::minutes(5),
+                &provisioning,
             )
             .await
             .unwrap();
@@ -657,12 +699,15 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
+        let pending = store
+            .consume_computer_login(&state, &browser)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(pending.verifier, verifier);
         assert_eq!(
-            store
-                .consume_computer_login(&state, &browser)
-                .await
-                .unwrap(),
-            Some(verifier.clone())
+            pending.provisioning, provisioning,
+            "consume returns the initiating client/context/defaults, never a later default"
         );
         assert!(
             store
@@ -677,6 +722,7 @@ mod tests {
                 &browser,
                 &verifier,
                 Utc::now() - TimeDelta::seconds(1),
+                &provisioning,
             )
             .await
             .unwrap();

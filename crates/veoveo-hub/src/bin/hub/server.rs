@@ -18,7 +18,7 @@ use tower::ServiceExt;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use veoveo_hub::{
     HubCatalog, HubCatalogHandle, HubControlStore, HubMcp, HubRefreshDeliveryWindow,
-    HubUpstreamHttpClientPool, RefreshTokenDeliveryCipher,
+    RefreshTokenDeliveryCipher,
     registration::{self, RegistrationIdentity, RegistrationService, ServerDatabase},
 };
 use veoveo_hub_sdk::{
@@ -110,10 +110,19 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     let _stop = ct.clone().drop_guard();
     let allowed_hosts = Arc::new(public_allowed_hosts(&deployment, allow_loopback_hosts));
     let http = Arc::new(RwLock::new(build_http_client(&initial_catalog)?));
-    let upstream_http = match &initial_catalog.control_plane().native_upstreams {
-        Some(config) => HubUpstreamHttpClientPool::native(config).await?,
-        None => HubUpstreamHttpClientPool::new(),
-    };
+    let initial_catalog = Arc::new(
+        initial_catalog
+            .as_ref()
+            .clone()
+            .prepare_runtime(
+                None,
+                deployment.base_url(),
+                super::runtime::current_http_client(&http),
+            )
+            .await?,
+    );
+    catalog.replace(initial_catalog.clone())?;
+    let upstream_http = veoveo_hub::HubUpstreamHttpClientPool::new();
     let registrations = RegistrationService::new(
         control_store.platform_store().clone(),
         catalog.clone(),
@@ -146,13 +155,11 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         delegation: delegation.clone(),
     };
 
-    let computers = veoveo_hub::computers::ComputerRuntime::new(
+    let computers = veoveo_hub::computers::ComputerService::new(
         catalog.clone(),
         hub_state.clone(),
         deployment.base_url(),
-        super::runtime::current_http_client(&http),
-    )
-    .await?;
+    )?;
 
     // Probes reach the process by any address, so they skip Host validation.
     let probes = Router::new()
@@ -190,9 +197,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         .with_state(state)
         .merge(registration::router(registrations.clone()));
 
-    if let Some(computers) = computers {
-        router = router.merge(computers.router());
-    }
+    router = router.merge(computers.router());
 
     let auth_state = ProfileAuthState {
         catalog: catalog.clone(),
@@ -237,6 +242,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     );
 
     let admin_state = AdminState {
+        public_base_url: deployment.base_url().to_string(),
         publication: Arc::new(tokio::sync::Mutex::new(())),
         catalog: catalog.clone(),
         http: http.clone(),

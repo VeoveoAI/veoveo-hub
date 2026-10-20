@@ -5035,6 +5035,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
  "parking_lot",
+ "prost 0.14.4",
  "prost-types 0.14.4",
  "rcgen",
  "reqwest 0.13.5",

@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use anyhow::{Context, Result, ensure};
 use chrono::{DateTime, Utc};
 use openshell_sdk::raw::proto as p;
-use prost_types::{Timestamp, value::Kind};
+use prost_types::Timestamp;
 use secrecy::{ExposeSecret, SecretString};
 use uuid::Uuid;
 
@@ -21,6 +21,7 @@ pub(super) const READY_TIMEOUT: Duration = Duration::from_secs(120);
 
 pub(super) struct LoginGrant {
     pub access: SecretString,
+    pub client: veoveo_hub_sdk::OAuthClientId,
     pub refresh: SecretString,
     pub access_expiry: DateTime<Utc>,
 }
@@ -38,6 +39,7 @@ pub(super) struct Provisioner {
     pub config: Arc<Computers>,
     policy: p::sandbox::v1::SandboxPolicy,
     public: String,
+    pub spec: super::ComputerProvisionSpec,
 }
 fn scope(name: &str) -> Option<p::WorkspaceSelector> {
     Some(p::WorkspaceSelector {
@@ -65,30 +67,108 @@ fn native_error(operation: &'static str, status: tonic::Status) -> anyhow::Error
     anyhow::anyhow!("Computer native {operation} failed: {}", status.code())
 }
 impl Provisioner {
-    pub async fn new(config: Arc<Computers>, catalog: &HubCatalog, public: &str) -> Result<Self> {
+    pub async fn prepare(
+        config: Arc<Computers>,
+        previous: Option<&Self>,
+        catalog: &HubCatalog,
+        public: &str,
+    ) -> Result<Self> {
         let policy = openshell_policy::validate_and_canonicalize_sandbox_policy(
             openshell_policy::parse_sandbox_policy_file(&config.policy_file)
                 .map_err(|_| anyhow::anyhow!("trusted Computer native policy admission failed"))?,
         )
         .context("canonicalize trusted Computer native policy")?;
-        let gateway = Gateway::connect(&config.gateway, config.forwarding_connection_limit).await?;
+        let gateway = match previous {
+            Some(old) if old.config.gateway == config.gateway => {
+                old.gateway.with_limit(config.forwarding_connection_limit)
+            }
+            _ => Gateway::connect(&config.gateway, config.forwarding_connection_limit).await?,
+        };
+        let mut grpc = gateway.client.raw_grpc_fresh().await?;
+        let info = tokio::time::timeout(
+            RPC_TIMEOUT,
+            grpc.get_gateway_info(p::GetGatewayInfoRequest {}),
+        )
+        .await?
+        .map_err(|status| {
+            native_error(
+                "get gateway info (requires config:read and platform_admin)",
+                status,
+            )
+        })?
+        .into_inner();
+        ensure!(
+            info.compute_drivers.len() == 1,
+            "Computer requires one selected native driver"
+        );
+        let template = tokio::time::timeout(
+            RPC_TIMEOUT,
+            grpc.get_sandbox_template(p::GetSandboxTemplateRequest {
+                workspace_scope: scope(&config.template.workspace),
+                name: config.template.name.clone(),
+            }),
+        )
+        .await?
+        .map_err(|e| native_error("get template", e))?
+        .into_inner()
+        .template
+        .context("native template omitted")?;
+        ensure!(
+            template
+                .spec
+                .as_ref()
+                .and_then(|v| v.workload.as_ref())
+                .is_some_and(|v| !v.image.is_empty()),
+            "Computer native image unspecified"
+        );
+        let backend = super::spec::persistence(&info.compute_drivers[0], &template)?;
+        let model_secret = catalog
+            .secret_reference(&config.model_provider.secret)
+            .context("Computer model secret missing")?
+            .clone();
+        let _ = HubSecretResolver::new()
+            .resolve_reference(&model_secret, SecretPurpose::ProviderApiKey)
+            .await?;
+        let hub_url = catalog
+            .profile(&config.profile)
+            .context("Computer profile unavailable")?
+            .protected_resource
+            .to_string();
+        let spec = super::ComputerProvisionSpec::new(
+            (*config).clone(),
+            model_secret,
+            hub_url,
+            backend,
+            &policy,
+            &template,
+        );
         let result = Self {
             gateway,
             config,
             policy,
             public: public.to_owned(),
+            spec,
         };
         result.validate_profiles(public).await?;
-        // Resolve the trusted locator at startup; never embed its value in config.
-        let _ = HubSecretResolver::new()
-            .resolve_string(
-                catalog,
-                &result.config.model_provider.secret,
-                SecretPurpose::ProviderApiKey,
-            )
-            .await?;
-        result.source_template().await?;
         Ok(result)
+    }
+    pub fn for_computer(&self, computer: &Computer) -> Result<Self> {
+        self.for_spec(computer.provisioning.clone())
+    }
+    pub fn for_spec(&self, spec: super::ComputerProvisionSpec) -> Result<Self> {
+        ensure!(
+            spec.backend == self.spec.backend && spec.config.gateway == self.config.gateway,
+            "Computer recorded native backend or gateway differs; explicit replacement required"
+        );
+        Ok(Self {
+            // Forwarding capacity is process-wide live policy, not a per-user
+            // quota. Old instance governance does not allocate another budget.
+            gateway: self.gateway.clone(),
+            config: Arc::new(spec.config.clone()),
+            policy: spec.policy()?,
+            public: self.public.clone(),
+            spec,
+        })
     }
     async fn validate_profiles(&self, public: &str) -> Result<()> {
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
@@ -157,54 +237,14 @@ impl Provisioner {
         Ok(())
     }
     async fn source_template(&self) -> Result<p::SandboxWorkloadTemplate> {
-        let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
-        let template = tokio::time::timeout(
-            RPC_TIMEOUT,
-            grpc.get_sandbox_template(p::GetSandboxTemplateRequest {
-                workspace_scope: scope(&self.config.template.workspace),
-                name: self.config.template.name.clone(),
-            }),
-        )
-        .await?
-        .map_err(|e| native_error("get template", e))?
-        .into_inner()
-        .template
-        .context("native template omitted")?;
-        let spec = template
-            .spec
-            .as_ref()
-            .context("native template has no spec")?;
-        let workload = spec
-            .workload
-            .as_ref()
-            .context("native template has no workload")?;
-        ensure!(
-            !workload.image.is_empty(),
-            "Computer native image unspecified"
-        );
-        let docker = spec
-            .driver_config
-            .as_ref()
-            .and_then(|v| v.fields.get("docker"))
-            .and_then(|v| match &v.kind {
-                Some(Kind::StructValue(value)) => Some(value),
-                _ => None,
-            });
-        ensure!(
-            docker
-                .and_then(|v| v.fields.get("persistent_workspace"))
-                .is_some_and(|v| matches!(v.kind, Some(Kind::BoolValue(true)))),
-            "Computer requires native persistent workspace storage"
-        );
-        Ok(template)
+        self.spec.template()
     }
-
     /// Runs only while the caller owns the durable handoff row lock. A bounded
     /// cold-path transaction serializes custody, not an exactly-once claim across
     /// crashes between provider consumption and native durable publication.
     pub async fn handoff(
         &self,
-        catalog: &HubCatalog,
+        _catalog: &HubCatalog,
         computer: &Computer,
         grant: LoginGrant,
     ) -> Result<()> {
@@ -250,14 +290,7 @@ impl Provisioner {
             .as_mut()
             .context("native template has no workload")?
             .environment
-            .insert(
-                "COMPUTER_HUB_URL".into(),
-                catalog
-                    .profile(&self.config.profile)
-                    .context("Computer profile unavailable")?
-                    .protected_resource
-                    .to_string(),
-            );
+            .insert("COMPUTER_HUB_URL".into(), self.spec.hub_url.clone());
         match tokio::time::timeout(
             RPC_TIMEOUT,
             grpc.get_sandbox_template(p::GetSandboxTemplateRequest {
@@ -286,11 +319,7 @@ impl Provisioner {
             Err(e) => return Err(native_error("get cloned template", e)),
         }
         let model = HubSecretResolver::new()
-            .resolve_string(
-                catalog,
-                &self.config.model_provider.secret,
-                SecretPurpose::ProviderApiKey,
-            )
+            .resolve_reference(&self.spec.model_secret, SecretPurpose::ProviderApiKey)
             .await?;
         self.ensure_provider(
             computer,
@@ -343,7 +372,7 @@ impl Provisioner {
                 credential_key: self.config.hub_provider.credential_key.clone(),
                 strategy: p::ProviderCredentialRefreshStrategy::Oauth2RefreshToken as i32,
                 material: HashMap::from([
-                    ("client_id".into(), self.config.oauth_client.to_string()),
+                    ("client_id".into(), grant.client.to_string()),
                     ("refresh_token".into(), grant.refresh.expose_secret().into()),
                 ]),
                 secret_material_keys: vec!["refresh_token".into()],

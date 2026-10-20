@@ -58,6 +58,7 @@ impl ForwardError {
 pub(super) struct Gateway {
     pub client: OpenShellClient,
     permits: Arc<Semaphore>,
+    limit: NonZeroUsize,
 }
 impl Gateway {
     pub async fn connect(config: &ComputerGateway, limit: NonZeroUsize) -> Result<Self> {
@@ -74,7 +75,19 @@ impl Gateway {
         Ok(Self {
             client,
             permits: Arc::new(Semaphore::new(limit.get())),
+            limit,
         })
+    }
+
+    pub fn with_limit(&self, limit: NonZeroUsize) -> Self {
+        if self.limit == limit {
+            return self.clone();
+        }
+        Self {
+            client: self.client.clone(),
+            permits: Arc::new(Semaphore::new(limit.get())),
+            limit,
+        }
     }
 
     /// Retry transient native listener failures only during cold startup.

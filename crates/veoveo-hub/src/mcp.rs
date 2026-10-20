@@ -116,8 +116,10 @@ impl HubMcp {
             .server(server_slug)
             .ok_or_else(|| mcp_invalid_params(format!("unknown upstream server `{server_slug}`")))?
             .clone();
-        let transport = self
-            .upstream_http
+        let transport = snapshot
+            .catalog()
+            .upstream_http()
+            .unwrap_or(&self.upstream_http)
             .transport(server_slug, &server.endpoint)?;
         let mut permissions = crate::policy::granted_permissions(
             &snapshot.catalog().control_plane().authorization,

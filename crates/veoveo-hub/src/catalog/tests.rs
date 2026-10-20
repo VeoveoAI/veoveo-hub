@@ -612,64 +612,52 @@ fn native_catalog(native: Option<crate::control_plane::NativeUpstreams>) -> HubC
 }
 
 #[test]
-fn native_upstream_reload_rejects_changes_without_mutation_or_notification() {
+fn native_upstream_reload_rejects_bootstrap_but_admits_live_destinations() {
     let initial = native_upstream_configuration();
-    let mut alternatives = vec![None];
-    let mut changes = Vec::new();
-    let mut changed = initial.clone();
-    changed.gateway.set_port(Some(17671)).unwrap();
-    changes.push(changed);
-    let mut changed = initial.clone();
-    changed.certificate_authority = "/trusted/other-ca.pem".into();
-    changes.push(changed);
-    let mut changed = initial.clone();
-    changed.bearer_environment = "OTHER_REFERENCE".into();
-    changes.push(changed);
-    let mut changed = initial.clone();
-    changed.bindings[0].workspace = "other".into();
-    changes.push(changed);
-    let mut changed = initial.clone();
-    changed.bindings[0].sandbox = "replacement".into();
-    changes.push(changed);
-    let mut changed = initial.clone();
-    changed.bindings[0].port = 8801;
-    changes.push(changed);
-    let mut changed = initial.clone();
-    changed.bindings[0].endpoint = veoveo_hub_sdk::registration::ServerEndpoint::new(
-        url::Url::parse("http://other.internal:8800/fixture/mcp").unwrap(),
-    )
-    .unwrap();
-    changes.push(changed);
-    let mut changed = initial.clone();
-    changed.bindings.clear();
-    changes.push(changed);
-    alternatives.extend(changes.into_iter().map(Some));
-    for native in alternatives {
-        let original = Arc::new(native_catalog(Some(initial.clone())));
-        let handle = HubCatalogHandle::new(original.clone());
-        let changes = handle.subscribe();
-        let candidate = Arc::new(native_catalog(native));
+    let original = Arc::new(native_catalog(Some(initial.clone())));
+    let handle = HubCatalogHandle::new(original.clone());
+    let changes = handle.subscribe();
+    for field in 0..4 {
+        let mut next = initial.clone();
+        match field {
+            0 => {
+                next.gateway.set_port(Some(17671)).unwrap();
+            }
+            1 => next.certificate_authority = "/trusted/other-ca.pem".into(),
+            2 => next.bearer_environment = "OTHER_REFERENCE".into(),
+            _ => {}
+        }
+        let candidate = native_catalog(if field == 3 { None } else { Some(next) });
         assert!(
             handle
                 .validate_replacement(&candidate)
                 .unwrap_err()
                 .to_string()
-                .contains("restart the Hub")
+                .contains("connection/authentication")
         );
-        assert!(handle.replace(candidate).is_err());
+        assert!(handle.replace(Arc::new(candidate)).is_err());
         assert!(Arc::ptr_eq(&handle.current(), &original));
         assert_eq!(handle.snapshot().generation(), 0);
         assert!(!changes.has_changed().unwrap());
     }
-
-    let handle = HubCatalogHandle::new(Arc::new(native_catalog(None)));
-    assert!(
+    for field in 0..5 {
+        let mut next = initial.clone();
+        match field {
+            0 => next.bindings[0].workspace = "other".into(),
+            1 => next.bindings[0].sandbox = "replacement".into(),
+            2 => next.bindings[0].port = 8801,
+            3 => {
+                next.bindings[0].endpoint = veoveo_hub_sdk::registration::ServerEndpoint::new(
+                    url::Url::parse("http://other.internal:8800/fixture/mcp").unwrap(),
+                )
+                .unwrap()
+            }
+            _ => next.bindings.clear(),
+        }
         handle
-            .replace(Arc::new(native_catalog(Some(initial))))
-            .is_err()
-    );
-    assert_eq!(handle.snapshot().generation(), 0);
-    assert!(handle.current().control_plane().native_upstreams.is_none());
+            .validate_replacement(&native_catalog(Some(next)))
+            .unwrap();
+    }
 }
 
 #[test]
@@ -781,4 +769,52 @@ fn registered_authenticated_routes_keep_current_admission_and_task_boundaries() 
         assert_eq!(denied.effect, PolicyEffect::Deny);
         assert_eq!(denied.reason, PolicyReasonCode::MissingPermission);
     }
+}
+
+#[tokio::test]
+async fn hosted_publication_requires_prepared_state_and_keeps_inflight_catalog_snapshots() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    let initial = native_catalog(None)
+        .prepare_runtime(None, "https://hub.example", reqwest::Client::new())
+        .await
+        .unwrap();
+    let handle = HubCatalogHandle::new(Arc::new(initial));
+    let inflight = handle.snapshot();
+    let old_runtime = inflight.catalog().runtime.as_ref().unwrap().clone();
+    let mut plane = handle.current().control_plane().clone();
+    plane.metadata = serde_json::json!({"revision":"live"});
+    let next = HubCatalog::from_control_plane(plane, crate::test_catalog::binding()).unwrap();
+    let changes = handle.subscribe();
+    assert!(
+        handle.replace(Arc::new(next.clone())).is_err(),
+        "a typed document alone is not prepared hosted state"
+    );
+    assert!(!changes.has_changed().unwrap());
+    assert_eq!(handle.snapshot().generation(), inflight.generation());
+    let prepared = next
+        .prepare_runtime(
+            Some(&handle.current()),
+            "https://hub.example",
+            reqwest::Client::new(),
+        )
+        .await
+        .unwrap();
+    handle.replace(Arc::new(prepared)).unwrap();
+    assert!(changes.has_changed().unwrap());
+    assert_eq!(
+        handle.current().control_plane().metadata["revision"],
+        "live"
+    );
+    assert_ne!(
+        handle.current().configuration_sha256(),
+        inflight.catalog().configuration_sha256()
+    );
+    assert!(Arc::ptr_eq(
+        inflight.catalog().runtime.as_ref().unwrap(),
+        &old_runtime
+    ));
+    assert!(!Arc::ptr_eq(
+        handle.current().runtime.as_ref().unwrap(),
+        &old_runtime
+    ));
 }

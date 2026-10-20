@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM hub.computer_login WHERE state_digest = $1 AND browser_digest = $2 AND expires_at > $3 RETURNING verifier, provisioning AS \"provisioning: Json<ComputerProvisionSpec>\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "verifier",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.computer_login",
+            "name": "verifier"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "provisioning: Json<ComputerProvisionSpec>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.computer_login",
+            "name": "provisioning"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "c09fc6b1e69a6f1de57413ddc93f66cd53a6c94fa75156d4ac27ae1f1f7bc3aa"
+}

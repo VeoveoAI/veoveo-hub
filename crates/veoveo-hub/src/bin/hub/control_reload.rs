@@ -12,6 +12,7 @@ pub(super) async fn reconcile(
     catalog_handle: &crate::runtime::SharedCatalog,
     http_handle: &crate::runtime::SharedHttpClient,
     publication: &tokio::sync::Mutex<()>,
+    public: &str,
 ) -> anyhow::Result<()> {
     let _publication = publication.lock().await;
     let active = control_store
@@ -25,6 +26,9 @@ pub(super) async fn reconcile(
         HubCatalog::from_control_plane(active.control_plane, catalog_handle.current().admission())?;
     catalog_handle.validate_replacement(&catalog)?;
     let http = build_http_client(&catalog)?;
+    let catalog = catalog
+        .prepare_runtime(Some(&catalog_handle.current()), public, http.clone())
+        .await?;
     replace_http_client(http_handle, http);
     replace_catalog(catalog_handle, Arc::new(catalog))?;
     tracing::info!(revision = %active.revision_id, "adopted active control-plane revision");
@@ -57,6 +61,7 @@ pub(super) fn spawn(state: AdminState, stop: CancellationToken) -> tokio::task::
                     &state.catalog,
                     &state.http,
                     &state.publication,
+                    &state.public_base_url,
                 )
                 .await
             {
@@ -117,7 +122,7 @@ mod tests {
                 left.current().configuration_sha256(),
                 right.current().configuration_sha256()
             );
-            reconcile(&store, &right, &http, &publication)
+            reconcile(&store, &right, &http, &publication, "https://hub.test")
                 .await
                 .unwrap();
             assert_eq!(
@@ -125,7 +130,7 @@ mod tests {
                 right.current().configuration_sha256()
             );
             let generation = right.snapshot().generation();
-            reconcile(&store, &right, &http, &publication)
+            reconcile(&store, &right, &http, &publication, "https://hub.test")
                 .await
                 .unwrap();
             assert_eq!(

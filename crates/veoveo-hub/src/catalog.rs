@@ -136,7 +136,7 @@ impl HubCatalogHandle {
         }
     }
 
-    /// Check startup-fixed configuration before publishing a catalog revision.
+    /// Check stable native connection/auth bootstrap before preparing a revision.
     pub fn validate_replacement(&self, catalog: &HubCatalog) -> Result<()> {
         Self::check_replacement(&self.state.read().catalog, catalog)
     }
@@ -147,10 +147,30 @@ impl HubCatalogHandle {
             "catalog reload changed its admission binding"
         );
         anyhow::ensure!(
-            current.control_plane.native_upstreams == replacement.control_plane.native_upstreams
-                && current.control_plane.computers == replacement.control_plane.computers,
-            "native upstream and Computers configuration is fixed at startup; restart the Hub to change it"
+            current.control_plane.native_upstreams.is_some()
+                == replacement.control_plane.native_upstreams.is_some(),
+            "native gateway connection/authentication is process bootstrap; restart the Hub to change it"
         );
+        if let (Some(left), Some(right)) = (
+            &current.control_plane.native_upstreams,
+            &replacement.control_plane.native_upstreams,
+        ) {
+            anyhow::ensure!(
+                left.gateway == right.gateway
+                    && left.certificate_authority == right.certificate_authority
+                    && left.bearer_environment == right.bearer_environment,
+                "native gateway connection/authentication is process bootstrap; restart the Hub to change it"
+            );
+        }
+        if let (Some(left), Some(right)) = (
+            &current.control_plane.computers,
+            &replacement.control_plane.computers,
+        ) {
+            anyhow::ensure!(
+                left.gateway == right.gateway,
+                "Computer gateway connection/authentication is process bootstrap; restart the Hub to change it"
+            );
+        }
         Ok(())
     }
 
@@ -158,6 +178,10 @@ impl HubCatalogHandle {
     pub fn replace(&self, catalog: Arc<HubCatalog>) -> Result<()> {
         let mut state = self.state.write();
         Self::check_replacement(&state.catalog, &catalog)?;
+        anyhow::ensure!(
+            state.catalog.runtime.is_none() || catalog.runtime.is_some(),
+            "hosted catalog replacement requires prepared runtime state"
+        );
         let registrations = state.catalog.registrations().clone();
         state.catalog = Arc::new(catalog.with_registrations(registrations));
         state.generation = state.generation.saturating_add(1);
@@ -190,6 +214,7 @@ pub struct HubCatalog {
     admission: HubCatalogAdmission,
     control_plane: Arc<HubControlPlane>,
     configuration_sha256: [u8; 32],
+    pub(crate) runtime: Option<Arc<crate::hosting::HostedRuntime>>,
     identity_providers: BTreeMap<IdentityProviderId, usize>,
     authorization_servers: BTreeMap<AuthorizationServerId, usize>,
     registrations: Arc<crate::registration::RegistrationSnapshot>,
@@ -286,6 +311,7 @@ impl HubCatalog {
             admission,
             control_plane: Arc::new(control_plane),
             configuration_sha256,
+            runtime: None,
             identity_providers,
             authorization_servers,
             registrations: Arc::default(),
@@ -299,6 +325,27 @@ impl HubCatalog {
             oidc_clients,
             secrets,
         })
+    }
+
+    /// Prepare all fallible hosted state before committing a control revision.
+    /// The catalog and its routing/provisioning generation are then swapped together.
+    pub async fn prepare_runtime(
+        mut self,
+        previous: Option<&Self>,
+        public: &str,
+        http: reqwest::Client,
+    ) -> Result<Self> {
+        if let Some(previous) = previous {
+            HubCatalogHandle::check_replacement(previous, &self)?;
+        }
+        self.runtime = Some(Arc::new(
+            crate::hosting::HostedRuntime::prepare(&self, previous, public, http).await?,
+        ));
+        Ok(self)
+    }
+
+    pub(crate) fn upstream_http(&self) -> Option<&crate::HubUpstreamHttpClientPool> {
+        self.runtime.as_ref().map(|runtime| &runtime.upstream_http)
     }
 
     pub fn load_json(path: impl AsRef<Path>, admission: HubCatalogAdmission) -> Result<Self> {

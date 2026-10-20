@@ -45,6 +45,7 @@ http-body = "=1.1.0"
 http-body-util = "=0.1.5"
 hyper = { version = "=1.12.0", features = ["client", "http1"] }
 hyper-util = { version = "=0.1.21", features = ["tokio"] }
+prost = "=0.14.4"
 prost-types = "=0.14.4"
 tonic = "=0.14.6"
 jsonschema = "=0.58.6"

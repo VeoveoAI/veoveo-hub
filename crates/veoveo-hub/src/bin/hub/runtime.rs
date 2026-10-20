@@ -38,6 +38,7 @@ pub(super) use veoveo_hub::http::ProfileAuthState;
 
 #[derive(Clone)]
 pub(super) struct AdminState {
+    pub(super) public_base_url: String,
     pub(super) publication: Arc<tokio::sync::Mutex<()>>,
     pub(super) catalog: SharedCatalog,
     pub(super) http: SharedHttpClient,

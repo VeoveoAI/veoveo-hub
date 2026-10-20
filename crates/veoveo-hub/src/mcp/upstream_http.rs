@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     sync::{
         Arc, Mutex, PoisonError,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
 };
 
@@ -23,7 +23,7 @@ const UPSTREAM_CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_
 /// request opens new connections through a new one. Other servers keep their pools.
 #[derive(Debug, Clone)]
 pub struct HubUpstreamHttpClientPool {
-    servers: Arc<Mutex<HashMap<ServerSlug, Pooled>>>,
+    servers: Arc<Mutex<HashMap<ServerSlug, Arc<Pooled>>>>,
     generations: Arc<AtomicU64>,
     builder: fn() -> reqwest::ClientBuilder,
     native: Option<Arc<super::native_upstreams::NativeTransport>>,
@@ -39,6 +39,7 @@ impl Default for HubUpstreamHttpClientPool {
 struct Pooled {
     endpoint: veoveo_hub_sdk::registration::ServerEndpoint,
     generation: u64,
+    discarded: AtomicBool,
     client: reqwest::Client,
 }
 
@@ -67,6 +68,37 @@ impl HubUpstreamHttpClientPool {
         })
     }
 
+    /// Prepare a new immutable routing generation, sharing only unchanged pools.
+    /// Existing request transports keep their prior generation alive until drained.
+    pub(crate) fn reconfigured(
+        &self,
+        config: Option<&crate::control_plane::NativeUpstreams>,
+    ) -> anyhow::Result<Self> {
+        let native = match (&self.native, config) {
+            (Some(previous), Some(config)) => Some(Arc::new(previous.reconfigured(config)?)),
+            (None, None) => None,
+            _ => anyhow::bail!("native gateway bootstrap cannot change during runtime adoption"),
+        };
+        let servers = self
+            .servers
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .iter()
+            .filter(|(_, pooled)| match (&self.native, &native) {
+                (Some(left), Some(right)) => left.same_endpoint(right, &pooled.endpoint),
+                (None, None) => true,
+                _ => false,
+            })
+            .map(|(slug, pooled)| (slug.clone(), pooled.clone()))
+            .collect();
+        Ok(Self {
+            servers: Arc::new(Mutex::new(servers)),
+            generations: self.generations.clone(),
+            builder: self.builder,
+            native,
+        })
+    }
+
     /// The current transport to `server`, building its client on first use.
     pub(super) fn transport(
         &self,
@@ -74,10 +106,9 @@ impl HubUpstreamHttpClientPool {
         endpoint: &veoveo_hub_sdk::registration::ServerEndpoint,
     ) -> Result<UpstreamTransport, McpError> {
         let mut servers = self.servers.lock().unwrap_or_else(PoisonError::into_inner);
-        if servers
-            .get(server)
-            .is_some_and(|pooled| &pooled.endpoint != endpoint)
-        {
+        if servers.get(server).is_some_and(|pooled| {
+            &pooled.endpoint != endpoint || pooled.discarded.load(Ordering::Acquire)
+        }) {
             servers.remove(server);
         }
         if !servers.contains_key(server) {
@@ -97,11 +128,12 @@ impl HubUpstreamHttpClientPool {
             let generation = self.generations.fetch_add(1, Ordering::Relaxed);
             servers.insert(
                 server.clone(),
-                Pooled {
+                Arc::new(Pooled {
                     endpoint: endpoint.clone(),
                     generation,
+                    discarded: AtomicBool::new(false),
                     client,
-                },
+                }),
             );
         }
         let pooled = &servers[server];
@@ -122,6 +154,7 @@ impl HubUpstreamHttpClientPool {
             .get(server)
             .is_some_and(|pooled| pooled.generation == generation)
         {
+            servers[server].discarded.store(true, Ordering::Release);
             servers.remove(server);
         }
     }
@@ -161,4 +194,46 @@ pub fn upstream_client_builder() -> reqwest::ClientBuilder {
         // create notification gaps, so only connection establishment is bounded.
         .connect_timeout(UPSTREAM_CONNECT_TIMEOUT)
         .redirect(reqwest::redirect::Policy::none())
+}
+
+#[cfg(test)]
+mod live_tests {
+    use super::*;
+    use veoveo_hub_sdk::registration::ServerEndpoint;
+    #[test]
+    fn live_pool_generations_share_unaffected_clients_and_propagate_discard() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let first = HubUpstreamHttpClientPool::new();
+        let a = ServerSlug::parse("fixture-a").unwrap();
+        let b = ServerSlug::parse("fixture-b").unwrap();
+        let endpoint =
+            ServerEndpoint::new(url::Url::parse("http://fixture.internal/mcp").unwrap()).unwrap();
+        let old_a = first.transport(&a, &endpoint).unwrap();
+        let old_b = first.transport(&b, &endpoint).unwrap();
+        let next = first.reconfigured(None).unwrap();
+        assert_eq!(
+            next.transport(&a, &endpoint).unwrap().generation,
+            old_a.generation
+        );
+        assert_eq!(
+            next.transport(&b, &endpoint).unwrap().generation,
+            old_b.generation
+        );
+        old_a.discard();
+        assert_ne!(
+            next.transport(&a, &endpoint).unwrap().generation,
+            old_a.generation
+        );
+        assert_eq!(
+            next.transport(&b, &endpoint).unwrap().generation,
+            old_b.generation
+        );
+        // A late failure from the prior generation cannot discard its replacement.
+        let replacement = next.transport(&a, &endpoint).unwrap();
+        old_a.discard();
+        assert_eq!(
+            next.transport(&a, &endpoint).unwrap().generation,
+            replacement.generation
+        );
+    }
 }

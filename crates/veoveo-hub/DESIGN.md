@@ -536,9 +536,71 @@ binding, the audit vocabulary and readers, and the control store.
 - Readiness and registration internals answer with RFC 9457 problem details. Other administrative handlers still answer some errors with a
   status and no body.
 
+
+### Live native destinations and Computer defaults
+
+The hosted catalog carries one prepared immutable routing/provisioning generation.
+The administrative publication mutex covers preparation, durable revision/audit
+publication and local adoption. Native gateway origin, CA path and management
+credential environment are process bootstrap. Configure native transport at startup
+(with an empty binding list if necessary); destination changes do not toggle the
+installation between native-only transport and direct TCP. MCP request destinations (workspace,
+sandbox and port), destination additions/removals, and Computer workload defaults
+are live data. Prepare listeners, policy, native template, provider-profile shape,
+secret locators and browser-client binding before committing; failed preparation
+rejects the update without changing the active revision or working runtime.
+
+Unchanged destination listeners and HTTP clients are shared with the next revision.
+Changed destinations get a new private socket/client; requests retain their old
+snapshot until completion or ordinary cancellation. Removal prevents new routing,
+without replaying a mutation or forcibly restarting unrelated services. Shared
+client invalidation remains visible across unchanged generations. The existing
+control-revision notification listener prepares/adopts on each replica and
+reconciles on connection/reconnection; convergence is asynchronous. An unrecoverable
+replica adoption failure follows normal process shutdown instead of serving stale
+rights indefinitely. There is no zero-downtime or automatic Task migration claim.
+
+Each Computer request selects a prepared default snapshot. Pending PKCE state
+retains its initiating client/profile/context and admitted defaults with the
+verifier, so a default update between entry and callback cannot exchange an old
+code with a new client. Consumption is still single-use and browser-bound. Current
+catalog grant/family authority is checked before custody; this does not grandfather
+removed permissions. Initial owner mapping
+creation stores a typed immutable provision snapshot: workload defaults, native
+policy/template protobufs, selected persistence backend and model secret locator,
+never access/refresh tokens or actual model credentials. An existing owner keeps
+that snapshot on reauthorization and resume. The current catalog still controls
+browser/session/client/grant authority. Changes to template, command, policy,
+provider defaults or port affect new or explicitly replaced Computers only; they
+do not restart or rewrite existing instances. The supplied refresh grant's actual
+client ID accompanies custody; it is not inferred from an old provision snapshot.
+Use immutable versioned native template names and policy file paths when changing
+defaults, and publish the new reference through the live control plane. Editing a
+native template under the same name is not watched and does not automatically
+refresh cached defaults for new Computers. The selected profile's resource URL and
+model secret locator also participate in prepared-default reuse. Forwarding
+capacity remains the current process-wide budget, not a recorded per-user quota;
+old instance snapshots reuse that gateway budget. Requests already using an older
+budget generation drain naturally when the installation changes the limit.
+Unchanged runtime data reuses prepared state without a new native RPC on
+a grant-only catalog update. The stable router can enable/disable Computer routes
+from a prepared catalog without rebuilding the server router.
+
+Migration `0006` defines the mandatory per-instance snapshot for a reset/reseeded
+development application database. It deliberately has no backfill from current
+defaults and does not attempt to migrate old Computer state. Native workload or
+storage deletion is not performed by this schema change. Installation must add the
+exact `GetGatewayInfo` POST and `config:read` to the dedicated control authority;
+no native authorization implementation changes. SDK/policy `9724fb1` already
+provide this API. Comparing them with maintained fork `846de5fa` found no production
+SDK/policy changes and no changes to the public management/ForwardTcp/policy fields
+used here; internal gateway/supervisor protocol additions still require matching
+maintained runtime images. Kubernetes deployment qualification remains separate
+from the Rust component tests.
+
 ### Private Computer browser ingress
 
-The optional fixed `computers` installation selects one public PKCE client,
+The optional live `computers` installation selects one public PKCE client,
 profile/Work Context, authenticated native OpenShell gateway, trusted workload
 template, native policy file, fixed service command and global provider profiles.
 The gateway authority has explicit workspace/provider/sandbox provisioning rights;
@@ -569,8 +631,15 @@ must succeed before Start/ready publication. The existing managed runtime access
 value is never replaced with UpdateProvider; no operator credential export occurs.
 The model seed resolves through the existing trusted Env ProviderApiKey locator.
 Native global profiles and exact refresh recipient are checked before custody.
-The native template must opt into Docker persistent workspace storage; Create also
-sets native persistent retention, fixed policy/command and `Always` restart policy.
+The selected backend is read with native `GetGatewayInfo` (requiring `config:read`
+and `platform_admin`). Docker must opt into its persistent workspace. Kubernetes
+uses its native automatic per-sandbox `/sandbox` PVC. Reusable Computer defaults
+must not contain explicit mounts at/below `/sandbox`: a static claim could share
+private owner data or disable whole-workspace persistence. Read-only configuration
+PVCs outside that workspace remain supported by native admission. This is the
+current automatic-persistence contract, not a new authorization rule. Unknown
+backends fail closed. Create also sets native persistent retention, the admitted
+policy/command and `Always` restart policy.
 Native gateway lifecycle owns missing-runtime recovery and runtime identities.
 Provisioning and browser entry also wait for a successful native ForwardTcp target
 connection under the existing 120-second startup bound. The gateway must return

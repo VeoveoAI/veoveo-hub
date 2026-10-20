@@ -1,5 +1,5 @@
 //! Trusted endpoint placement; registration still owns each service's logical URI.
-//! Captured at Hub startup. Catalog reloads must retain this configuration exactly.
+//! Gateway/auth is process bootstrap; destination bindings are live catalog data.
 
 use std::path::PathBuf;
 

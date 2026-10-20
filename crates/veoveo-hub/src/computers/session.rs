@@ -186,7 +186,7 @@ mod tests {
                 work_context: &config.work_context, principal: &principal, principal_display_name: &PrincipalDisplayName::new("Fixture user").unwrap(),
                 scopes: &principal.scopes, now: Utc::now(),
             }).await.unwrap();
-            let computer = hub.hub_store().ensure_computer(principal.tenant.as_ref().unwrap(), &principal.id).await.unwrap();
+            let computer = hub.hub_store().ensure_computer(principal.tenant.as_ref().unwrap(), &principal.id, &crate::computers::ComputerProvisionSpec::fixture(config.clone())).await.unwrap();
             let pending = hub.hub_store().begin_computer_handoff(&computer).await.unwrap();
             let digest = Sha256Digest::from_bytes([42; 32]);
             hub.hub_store().lock_computer_handoff(&computer, pending).await.unwrap().unwrap()

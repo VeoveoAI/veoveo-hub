@@ -13,6 +13,7 @@ pub use catalog_registry::{
     audit_registry, kernel_catalog_registry, kernel_catalog_registry_builder,
 };
 mod control_store;
+mod hosting;
 pub mod local;
 pub mod mcp;
 mod mcp_support;

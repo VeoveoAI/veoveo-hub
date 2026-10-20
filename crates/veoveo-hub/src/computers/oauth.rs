@@ -1,7 +1,7 @@
 //! This gateway is an ordinary public PKCE client of the existing Hub issuer.
 use anyhow::{Context, Result, ensure};
 use axum::{
-    extract::{Query, State, rejection::QueryRejection},
+    extract::{Query, rejection::QueryRejection},
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
@@ -104,7 +104,7 @@ pub(super) fn denied() -> Response {
     )
 }
 
-pub(super) async fn entry(State(runtime): State<ComputerRuntime>, headers: HeaderMap) -> Response {
+pub(super) async fn entry(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
     match enter(&runtime, &headers).await {
         Ok(response) => response,
         Err(error) => {
@@ -124,6 +124,7 @@ async fn enter(runtime: &ComputerRuntime, headers: &HeaderMap) -> Result<Respons
     {
         runtime
             .provisioner
+            .for_computer(session.computer())?
             .ensure_running(session.computer())
             .await?;
         // Authority may change during the native start; do not publish a
@@ -155,6 +156,7 @@ async fn enter(runtime: &ComputerRuntime, headers: &HeaderMap) -> Result<Respons
             &digest(&browser),
             &verifier,
             Utc::now() + TimeDelta::seconds(LOGIN_TTL),
+            &runtime.provisioner.spec,
         )
         .await?;
     let profile = catalog
@@ -213,7 +215,7 @@ fn secret<'de, D: Deserializer<'de>>(
     String::deserialize(deserializer).map(SecretString::from)
 }
 pub(super) async fn callback(
-    State(runtime): State<ComputerRuntime>,
+    runtime: ComputerRuntime,
     headers: HeaderMap,
     callback: std::result::Result<Query<Callback>, QueryRejection>,
 ) -> Response {
@@ -245,12 +247,16 @@ async fn finish(
         "Computer callback state invalid"
     );
     let browser = cookie(&headers, LOGIN_COOKIE)?.context("Computer initiating browser missing")?;
-    let verifier = runtime
+    let login = runtime
         .hub
         .hub_store()
         .consume_computer_login(&digest(&callback.state), &digest(&browser))
         .await?
         .context("Computer login expired or consumed")?;
+    let mut runtime = runtime.clone();
+    runtime.provisioner = runtime.provisioner.for_spec(login.provisioning)?;
+    runtime.config = runtime.provisioner.config.clone();
+    let verifier = login.verifier;
     ensure!(callback.error.is_none(), "Computer authorization refused");
     let code = OAuthAuthorizationCode::parse(callback.code.context("Computer code missing")?)?;
     let catalog = runtime.catalog.current();
@@ -372,7 +378,7 @@ async fn finish(
     let computer = runtime
         .hub
         .hub_store()
-        .ensure_computer(tenant, &subject.principal.id)
+        .ensure_computer(tenant, &subject.principal.id, &runtime.provisioner.spec)
         .await?;
     let family_id = subject
         .access_token
@@ -397,6 +403,7 @@ async fn finish(
         .begin_computer_handoff(&computer)
         .await?;
     let grant = LoginGrant {
+        client: runtime.config.oauth_client.clone(),
         access: tokens.access_token,
         refresh: tokens.refresh_token,
         access_expiry: subject.access_token.expires_at,
@@ -431,6 +438,7 @@ async fn finish(
                 .context("Computer grant authority ended")?;
             worker_runtime
                 .provisioner
+                .for_computer(&claim.computer)?
                 .handoff(&current, &claim.computer, grant)
                 .await?;
             let family = worker_runtime
@@ -473,7 +481,7 @@ async fn finish(
 
 /// Parameterless same-origin logout. Family/owner come only from fresh native
 /// BrowserSession admission; no caller-supplied identifier or exported grant.
-pub(super) async fn logout(State(runtime): State<ComputerRuntime>, headers: HeaderMap) -> Response {
+pub(super) async fn logout(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
     if !super::proxy::same_origin(&runtime, &headers) {
         return private(
             Problem::new(

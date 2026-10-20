@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, tenant, principal_id, workspace_request, template_request, model_provider_request, hub_provider_request, sandbox_request, handoff_id, configure_request, rotate_request, family_id, ready FROM hub.computer WHERE id = $1 AND tenant = $2 AND principal_id = $3 FOR UPDATE\n",
+  "query": "SELECT id, tenant, principal_id, workspace_request, template_request, model_provider_request, hub_provider_request, sandbox_request, handoff_id, configure_request, rotate_request, family_id, ready, provisioning AS \"provisioning: Json<ComputerProvisionSpec>\" FROM hub.computer WHERE id = $1 AND tenant = $2 AND principal_id = $3\n",
   "describe": {
     "columns": [
       {
@@ -145,6 +145,17 @@
             "name": "ready"
           }
         }
+      },
+      {
+        "ordinal": 13,
+        "name": "provisioning: Json<ComputerProvisionSpec>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "provisioning"
+          }
+        }
       }
     ],
     "parameters": {
@@ -167,8 +178,9 @@
       true,
       true,
       true,
+      false,
       false
     ]
   },
-  "hash": "0d64a0ca6f4710c46e2079e8287b64beb43c71a05797cad3f4a4605fd95852a9"
+  "hash": "c15dc1d9845c572cc6d286995be2cd9631f532a8b43a32777a82dd73de203081"
 }

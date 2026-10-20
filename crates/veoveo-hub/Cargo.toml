@@ -47,6 +47,7 @@ http-body.workspace = true
 http-body-util.workspace = true
 hyper.workspace = true
 hyper-util.workspace = true
+prost.workspace = true
 prost-types.workspace = true
 tonic.workspace = true
 jsonwebtoken.workspace = true

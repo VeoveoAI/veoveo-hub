@@ -8,7 +8,7 @@ use std::{
 use anyhow::{Result, ensure};
 use axum::{
     body::{Body, Bytes},
-    extract::{Request, State},
+    extract::Request,
     http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode, Uri, header},
     response::{IntoResponse, Response},
 };
@@ -163,10 +163,7 @@ impl HttpBody for GuardedBody {
     }
 }
 
-pub(super) async fn forward(
-    State(runtime): State<ComputerRuntime>,
-    mut request: Request,
-) -> Response {
+pub(super) async fn forward(runtime: ComputerRuntime, mut request: Request) -> Response {
     let Some((id, path)) = route(request.uri()) else {
         return private(crate::problem::Problem::not_found().into_response());
     };
@@ -204,6 +201,14 @@ pub(super) async fn forward(
         Ok(Some(session)) => session,
         Ok(None) => return denied(),
         Err(_) => return unavailable(),
+    };
+    let mut runtime = runtime;
+    runtime.provisioner = match runtime.provisioner.for_computer(session.computer()) {
+        Ok(provisioner) => provisioner,
+        Err(error) => {
+            tracing::warn!(%error, "Computer recorded configuration unavailable");
+            return unavailable();
+        }
     };
     // Canonical mount slash matters to native browser URL resolution.
     if request.uri().path() == session.computer().base_path().trim_end_matches('/') {
@@ -280,7 +285,7 @@ async fn stream(
             .gateway
             .stream_when_ready(
                 session.computer().native_name(),
-                runtime.config.port,
+                runtime.provisioner.config.port,
                 super::provisioning::READY_TIMEOUT,
             )
             .await?
@@ -288,7 +293,10 @@ async fn stream(
         runtime
             .provisioner
             .gateway
-            .stream(session.computer().native_name(), runtime.config.port)
+            .stream(
+                session.computer().native_name(),
+                runtime.provisioner.config.port,
+            )
             .await?
     };
     // A cold listener wait can outlast revocation/expiry. Re-admit before any

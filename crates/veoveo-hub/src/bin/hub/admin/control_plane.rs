@@ -177,7 +177,7 @@ pub(crate) async fn update_control_plane(
     let new_catalog =
         match HubCatalog::from_control_plane(control_plane, state.catalog.current().admission())
             .and_then(|catalog| {
-                // Reject startup-only placement changes before durable publication.
+                // Reject changes to stable gateway/auth bootstrap before preparation.
                 // replace() repeats this check under its write lock.
                 state.catalog.validate_replacement(&catalog)?;
                 Ok(catalog)
@@ -231,6 +231,39 @@ pub(crate) async fn update_control_plane(
                 "failed to rebuild hub HTTP client",
             )
                 .into_response();
+        }
+    };
+    let new_catalog = match new_catalog
+        .as_ref()
+        .clone()
+        .prepare_runtime(
+            Some(&state.catalog.current()),
+            &state.public_base_url,
+            new_http.clone(),
+        )
+        .await
+    {
+        Ok(catalog) => Arc::new(catalog),
+        Err(error) => {
+            tracing::warn!(%error, "rejected unprepared runtime configuration");
+            if let Err(error) = record_admin_operation_audit(
+                &state,
+                &profile,
+                &subject,
+                AdminOperationAuditRecord {
+                    audit_target: None,
+                    action: HubAction::AdminWrite.into(),
+                    operation: AdministrativeOperation::ControlPlane,
+                    started_at,
+                    status: AdminOperationStatus::Rejected,
+                    failure: Some(AdminOperationFailure::InvalidControlPlane),
+                },
+            )
+            .await
+            {
+                return internal_error_response(error);
+            }
+            return (StatusCode::BAD_REQUEST, "invalid runtime configuration").into_response();
         }
     };
     let control_plane = new_catalog.control_plane().clone();
