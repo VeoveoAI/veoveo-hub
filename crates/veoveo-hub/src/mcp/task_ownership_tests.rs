@@ -21,6 +21,7 @@ pub(crate) fn subject() -> AuthenticatedSubject {
     actor.scopes = BTreeSet::from([ScopeName::parse("operator:use").unwrap()]);
     actor.data_labels.insert(DataLabelId::parse("cui").unwrap());
     AuthenticatedSubject {
+        execution: Some(veoveo_hub_sdk::hosting::testing::execution_context()),
         extensions: Default::default(),
         audit: veoveo_audit_contract::AuditRequest::background(),
         access_token: AccessTokenSubject {

@@ -22,8 +22,8 @@ use veoveo_hub::{
     registration::{self, RegistrationIdentity, RegistrationService, ServerDatabase},
 };
 use veoveo_hub_sdk::{
-    HubInternalSigningKey, HubInternalTokenIssuer, HubProfileId, PublicDeployment, ServerSlug,
-    TokenIssuer, public_allowed_hosts,
+    HubInternalSigningKey, HubInternalTokenIssuer, PublicDeployment, ServerSlug, TokenIssuer,
+    public_allowed_hosts,
 };
 
 use super::{
@@ -38,9 +38,9 @@ use super::{
     host::validate_host,
     oauth::{authorization_callback, authorize_endpoint, revoke_refresh_token, token_endpoint},
     runtime::{
-        AdminState, AppState, DynamicMcpState, ProfileAuthState, ProfileMcpService, Readiness,
-        build_http_client, current_catalog, spawn_authorization_retention_gc_loop,
-        spawn_refresh_delivery_gc_loop, spawn_usage_partition_loop,
+        AdminState, AppState, DynamicMcpState, ProfileAuthState, Readiness, build_http_client,
+        current_catalog, spawn_authorization_retention_gc_loop, spawn_refresh_delivery_gc_loop,
+        spawn_usage_partition_loop,
     },
 };
 
@@ -255,6 +255,10 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     let control_watcher = super::control_reload::spawn(admin_state.clone(), ct.clone());
     let admin_router = Router::new()
         .route(
+            "/admin/{profile}/deployment-admissions",
+            post(super::admin::admit_deployment),
+        )
+        .route(
             "/admin/{profile}/control-plane",
             get(read_control_plane).put(update_control_plane),
         )
@@ -394,40 +398,108 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
 
 async fn dynamic_mcp_profile(
     State(state): State<DynamicMcpState>,
-    request: Request,
+    mut request: Request,
 ) -> axum::response::Response {
     let Some(profile_id) = veoveo_hub::http::profile_from_request(&request) else {
         return StatusCode::NOT_FOUND.into_response();
     };
-    let catalog = current_catalog(&state.catalog);
-    if catalog.profile(&profile_id).is_none() {
+    let snapshot = state.catalog.snapshot();
+    if snapshot.catalog().profile(&profile_id).is_none() {
         return StatusCode::NOT_FOUND.into_response();
     }
-    drop(catalog);
-
-    let service = {
+    let selector = match environment_selector(request.headers()) {
+        Ok(selector) => selector,
+        Err(problem) => return problem.into_response(),
+    };
+    let Some(mut subject) = request
+        .extensions()
+        .get::<veoveo_hub::AuthenticatedSubject>()
+        .cloned()
+    else {
+        return veoveo_hub::problem::Problem::internal().into_response();
+    };
+    let composition = match veoveo_hub::execution::admit_execution(
+        &state.hub_state,
+        snapshot.catalog(),
+        &mut subject,
+        selector,
+    )
+    .await
+    {
+        Ok(composition) => composition,
+        Err(error) => {
+            let forbidden = matches!(
+                error,
+                veoveo_hub::execution::ExecutionAdmissionError::Selection(_)
+            );
+            if !forbidden {
+                tracing::error!(%error, "execution selection unavailable");
+            }
+            let (status, code, title) = if forbidden {
+                (
+                    StatusCode::FORBIDDEN,
+                    "execution-selection-denied",
+                    "Execution selection denied",
+                )
+            } else {
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "execution-unavailable",
+                    "Execution unavailable",
+                )
+            };
+            return veoveo_hub::problem::Problem::new(status, code, title).into_response();
+        }
+    };
+    request.extensions_mut().insert(subject);
+    let handler = {
         let mut services = state.services.write();
         services
             .entry(profile_id.clone())
-            .or_insert_with(|| build_profile_mcp_service(&state, profile_id))
+            .or_insert_with(|| {
+                HubMcp::new(
+                    state.catalog.clone(),
+                    profile_id,
+                    state.hub_state.clone(),
+                    state.internal_token_issuer.clone(),
+                    state.upstream_http.clone(),
+                )
+            })
             .clone()
-    };
-    service.oneshot(request).await.into_response()
+    }
+    .for_execution(&snapshot, &composition);
+    build_profile_mcp_service(&state, handler)
+        .oneshot(request)
+        .await
+        .into_response()
 }
 
-fn build_profile_mcp_service(
-    state: &DynamicMcpState,
-    profile_id: HubProfileId,
-) -> ProfileMcpService {
-    // Every stateless request gets its own handler clone while the profile's
-    // discovery cache and change broadcaster remain process-wide.
-    let hub_mcp = HubMcp::new(
-        state.catalog.clone(),
-        profile_id.clone(),
-        state.hub_state.clone(),
-        state.internal_token_issuer.clone(),
-        state.upstream_http.clone(),
-    );
+fn environment_selector(
+    headers: &axum::http::HeaderMap,
+) -> Result<Option<veoveo_hub_sdk::EnvironmentSelector>, veoveo_hub::problem::Problem> {
+    let invalid = || {
+        veoveo_hub::problem::Problem::new(
+            StatusCode::BAD_REQUEST,
+            "invalid-environment-selector",
+            "Invalid environment selector",
+        )
+    };
+    let mut values = headers.get_all(veoveo_hub_sdk::ENVIRONMENT_HEADER).iter();
+    let Some(value) = values.next() else {
+        return Ok(None);
+    };
+    if values.next().is_some() {
+        return Err(invalid());
+    }
+    let value = value.to_str().map_err(|_| invalid())?;
+    veoveo_hub_sdk::EnvironmentSelector::parse(value)
+        .map(Some)
+        .map_err(|_| invalid())
+}
+
+fn build_profile_mcp_service(state: &DynamicMcpState, hub_mcp: HubMcp) -> Router {
+    // Every stateless HTTP operation retains its exact admitted composition. The
+    // profile handler shares discovery/progress resources with other selections.
     let mcp_service = StreamableHttpService::new(
         move || Ok(hub_mcp.clone()),
         veoveo_hub_sdk::stateless_session_manager(),
@@ -468,6 +540,40 @@ async fn readyz(State(state): State<AppState>) -> axum::response::Response {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn environment_selection_has_one_typed_untrusted_header() {
+        use axum::http::{HeaderMap, HeaderValue};
+        use veoveo_hub_sdk::{ENVIRONMENT_HEADER, EnvironmentId};
+        let mut headers = HeaderMap::new();
+        assert!(environment_selector(&headers).unwrap().is_none());
+        let environment = EnvironmentId::new();
+        headers.insert(
+            ENVIRONMENT_HEADER,
+            HeaderValue::from_str(&environment.to_string()).unwrap(),
+        );
+        assert_eq!(
+            environment_selector(&headers)
+                .unwrap()
+                .unwrap()
+                .environment(),
+            environment
+        );
+        headers.append(
+            ENVIRONMENT_HEADER,
+            HeaderValue::from_static("019a5b30-0000-7000-8000-000000000001"),
+        );
+        assert!(environment_selector(&headers).is_err());
+        headers.insert(ENVIRONMENT_HEADER, HeaderValue::from_static("production"));
+        assert!(environment_selector(&headers).is_err());
+        headers.insert(
+            ENVIRONMENT_HEADER,
+            HeaderValue::from_static(
+                "019a5b30-0000-7000-8000-000000000001,019a5b30-0000-7000-8000-000000000002",
+            ),
+        );
+        assert!(environment_selector(&headers).is_err());
+    }
 
     #[test]
     fn production_allowed_hosts_use_public_authority_only() {

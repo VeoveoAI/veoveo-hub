@@ -64,6 +64,8 @@ struct RequestUpstream {
 #[derive(Debug, Clone)]
 pub struct HubMcp {
     catalog: HubCatalogHandle,
+    // Immutable selected views keep this original signal for publication/reconnect hints.
+    live_catalog: HubCatalogHandle,
     state: HubState,
     profile_id: HubProfileId,
     internal_token_issuer: HubInternalTokenIssuer,
@@ -82,6 +84,7 @@ impl HubMcp {
         upstream_http: HubUpstreamHttpClientPool,
     ) -> Self {
         Self {
+            live_catalog: catalog.clone(),
             catalog,
             state,
             profile_id,
@@ -90,6 +93,18 @@ impl HubMcp {
             discovery: Arc::new(CatalogDiscoveryCache::default()),
             discovery_watches: Default::default(),
             progress_tokens: progress::HubProgressTokens::default(),
+        }
+    }
+
+    /// One authenticated stateless operation, sharing only properly scoped caches.
+    pub fn for_execution(
+        &self,
+        snapshot: &crate::HubCatalogSnapshot,
+        composition: &veoveo_hub_sdk::ResolvedComposition,
+    ) -> Self {
+        Self {
+            catalog: snapshot.selected(composition),
+            ..self.clone()
         }
     }
 
@@ -120,7 +135,7 @@ impl HubMcp {
             .catalog()
             .upstream_http()
             .unwrap_or(&self.upstream_http)
-            .transport(server_slug, &server.endpoint)?;
+            .transport(server.deployment, &server.endpoint)?;
         let mut permissions = crate::policy::granted_permissions(
             &snapshot.catalog().control_plane().authorization,
             &server.authorization,
@@ -136,7 +151,7 @@ impl HubMcp {
             &server,
             subject,
             permissions,
-        );
+        )?;
         let handler = HubUpstreamHandler::new(HubUpstreamHandlerConfig {
             catalog: self.catalog.clone(),
             profile_id: self.profile_id.clone(),
@@ -236,13 +251,28 @@ fn invocation_authorization_fingerprint(
     .into())
 }
 
+fn execution_composition(
+    subject: &AuthenticatedSubject,
+) -> Result<&veoveo_hub_sdk::CompositionRevision, McpError> {
+    subject
+        .execution
+        .as_ref()
+        .map(|execution| &execution.composition)
+        .ok_or_else(|| mcp_internal("authenticated execution capture missing"))
+}
+
 fn discovery_authorization_fingerprint(
     subject: &AuthenticatedSubject,
 ) -> Result<[u8; 32], McpError> {
     let authority = invocation_authorization_fingerprint(&subject.actor, &subject.authority)?;
     Ok(Sha256::digest(
-        serde_json::to_vec(&(authority, &subject.access_token.oauth_client_id))
-            .map_err(|_| mcp_internal("failed to fingerprint discovery authority"))?,
+        // Composition is part of cache identity, not business/data authority.
+        serde_json::to_vec(&(
+            authority,
+            &subject.access_token.oauth_client_id,
+            execution_composition(subject)?,
+        ))
+        .map_err(|_| mcp_internal("failed to fingerprint discovery authority"))?,
     )
     .into())
 }

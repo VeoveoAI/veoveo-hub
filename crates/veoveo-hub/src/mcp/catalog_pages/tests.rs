@@ -2,6 +2,21 @@ use super::*;
 use rmcp::model::ErrorCode;
 use veoveo_types::{ResourceScheme, ResourceUri};
 
+fn composition() -> veoveo_hub_sdk::CompositionRevision {
+    veoveo_hub_sdk::hosting::testing::execution_context().composition
+}
+
+fn page<T: CatalogItem>(
+    items: Vec<T>,
+    request: Option<&PaginatedRequestParams>,
+) -> Result<CatalogPage<T>, McpError> {
+    super::page(items, request, &composition())
+}
+
+fn decode<T: CatalogItem>(encoded: &str) -> Result<T::Key, McpError> {
+    super::decode::<T>(encoded, &composition())
+}
+
 fn template(index: usize) -> ResourceTemplate {
     let scheme = ResourceScheme::parse(format!("fixture{index:03}")).unwrap();
     ResourceTemplate::new(format!("{scheme}://docs/{{doc_id}}"), "Document")
@@ -154,4 +169,29 @@ fn malformed_versions_keys_and_excessive_cursors_fail_without_echoing_input() {
 fn duplicate_upstream_identities_are_rejected_instead_of_hidden_by_pagination() {
     let error = page(vec![template(1), template(1)], None).unwrap_err();
     assert_eq!(error.code, ErrorCode::INTERNAL_ERROR);
+}
+
+#[test]
+fn a_catalog_cursor_cannot_continue_in_another_composition() {
+    let first = page((0..205).map(template).collect(), None).unwrap();
+    let different = veoveo_hub_sdk::ResolvedComposition::new(
+        veoveo_hub_sdk::EnvironmentId::new(),
+        std::collections::BTreeMap::new(),
+    );
+    assert!(
+        super::page(
+            (0..205).map(template).collect(),
+            Some(&continuation(&first)),
+            different.revision()
+        )
+        .is_err()
+    );
+    assert!(
+        super::page(
+            (0..205).map(template).collect(),
+            Some(&continuation(&first)),
+            &composition()
+        )
+        .is_ok()
+    );
 }

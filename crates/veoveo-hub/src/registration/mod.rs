@@ -3,7 +3,9 @@
 //! processes ended, and the snapshot of registered servers each catalog generation
 //! routes to.
 
+mod admission;
 mod endpoint;
+pub use admission::{DeploymentAdmissionGrant, DeploymentAdmissionRequest};
 mod service;
 mod snapshot;
 mod store;

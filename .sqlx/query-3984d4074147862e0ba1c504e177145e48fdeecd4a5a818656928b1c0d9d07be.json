@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.execution_composition (revision, environment, canonical)\nVALUES ($1, $2, $3)\nON CONFLICT (revision) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3984d4074147862e0ba1c504e177145e48fdeecd4a5a818656928b1c0d9d07be"
+}

@@ -5,7 +5,10 @@ use std::collections::BTreeSet;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, TimeDelta, Utc};
-use veoveo_hub_sdk::{CanonicalTaskId, HubProfileId, Principal, ServerSlug};
+use veoveo_hub_sdk::{
+    CanonicalTaskId, DeploymentId, EnvironmentId, ExecutionContext, HubProfileId, Principal,
+    ServerSlug,
+};
 use veoveo_store::{
     PrincipalId, PrincipalKind, TenantId, WorkContextId, deterministic_principal_id,
     deterministic_tenant_id, deterministic_work_context_id,
@@ -32,6 +35,8 @@ pub(crate) struct HubTaskRouteDraft {
     pub work_context: veoveo_types::WorkContextId,
     pub profile: HubProfileId,
     pub server: ServerSlug,
+    pub deployment: DeploymentId,
+    pub execution: ExecutionContext,
     pub source_task_id: String,
     pub authority_digest: Sha256Digest,
     pub ownership: HubTaskOwnership,
@@ -94,6 +99,8 @@ pub(crate) struct HubTaskRoute {
     pub work_context: WorkContextId,
     pub profile: HubProfileId,
     pub server: ServerSlug,
+    pub deployment: DeploymentId,
+    pub execution: ExecutionContext,
     pub source_task_id: String,
     pub authority_digest: Sha256Digest,
     pub ownership: HubTaskOwnership,
@@ -107,6 +114,9 @@ struct RouteRow {
     work_context: WorkContextId,
     profile: String,
     server: String,
+    deployment: uuid::Uuid,
+    environment: uuid::Uuid,
+    composition: String,
     source_task_id: String,
     authority_digest: String,
     owner_key: String,
@@ -146,6 +156,11 @@ impl TryFrom<RouteRow> for HubTaskRoute {
             work_context: row.work_context,
             profile: HubProfileId::parse(row.profile)?,
             server: ServerSlug::parse(row.server)?,
+            deployment: DeploymentId::parse(row.deployment.to_string())?,
+            execution: ExecutionContext {
+                environment: EnvironmentId::parse(row.environment.to_string())?,
+                composition: serde_json::from_value(serde_json::Value::String(row.composition))?,
+            },
             source_task_id: row.source_task_id,
             authority_digest: Sha256Digest::parse(row.authority_digest)?,
             ownership: HubTaskOwnership {
@@ -209,6 +224,19 @@ impl HubState {
             !draft.source_task_id.is_empty()
                 && draft.source_task_id.len() <= MAX_SOURCE_TASK_ID_BYTES,
             "source task id must contain 1 to {MAX_SOURCE_TASK_ID_BYTES} bytes"
+        );
+        let capture = self
+            .store
+            .composition(&draft.execution.composition)
+            .await?
+            .context("Task execution composition is not retained")?;
+        ensure!(
+            capture.context() == draft.execution
+                && capture.components().get(&draft.server)
+                    == Some(&veoveo_hub_sdk::ResolvedComponent::Deployment {
+                        deployment: draft.deployment
+                    }),
+            "Task deployment is not selected by its captured composition"
         );
         let now = Utc::now();
         let ttl = draft
@@ -277,6 +305,9 @@ impl HubState {
             now,
             expires_at,
             delegated_caller,
+            draft.deployment.as_uuid(),
+            draft.execution.environment.as_uuid(),
+            draft.execution.composition.digest().as_str(),
         )
         .execute(self.store.platform().pool())
         .await
@@ -313,6 +344,7 @@ impl HubState {
     pub async fn task_delegation(
         &self,
         server: &ServerSlug,
+        deployment: DeploymentId,
         source_task_id: &str,
     ) -> Result<Option<TaskDelegation>> {
         let rows = sqlx::query_file!(
@@ -320,6 +352,7 @@ impl HubState {
             server.as_str(),
             source_task_id,
             Utc::now(),
+            deployment.as_uuid(),
         )
         .fetch_all(self.store.platform().pool())
         .await
@@ -342,6 +375,7 @@ impl HubState {
     pub async fn task_live(
         &self,
         server: &ServerSlug,
+        deployment: DeploymentId,
         source_task_id: &str,
         caller: &veoveo_hub_sdk::DelegatedCaller,
     ) -> Result<bool> {
@@ -358,11 +392,33 @@ impl HubState {
             "src/state/task_routes/task_live.sql",
             server.as_str(),
             task,
-            tenant
+            tenant,
+            deployment.as_uuid(),
         )
         .fetch_one(self.store.platform().pool())
         .await
         .context("failed to read the Task's status")
+    }
+
+    /// Placement identity for the existing owner-scoped administrative Task path.
+    /// This is not a claim: the Core owner query still admits the actual mutation.
+    pub async fn task_deployment(
+        &self,
+        server: &ServerSlug,
+        task: veoveo_types::TaskId,
+        tenant: Option<&veoveo_types::TenantId>,
+    ) -> Result<Option<DeploymentId>> {
+        let tenant = tenant.map_or("installation", |tenant| tenant.as_str());
+        sqlx::query_file_scalar!(
+            "src/state/task_routes/deployment.sql",
+            server.as_str(),
+            task.as_uuid(),
+            tenant
+        )
+        .fetch_optional(self.store.platform().pool())
+        .await?
+        .map(|id| DeploymentId::parse(id.to_string()).map_err(Into::into))
+        .transpose()
     }
 
     async fn task_route_for_source(
@@ -378,6 +434,7 @@ impl HubState {
             identity.owner as PrincipalId,
             draft.profile.as_str(),
             identity.tenant as TenantId,
+            draft.deployment.as_uuid(),
         )
         .fetch_optional(self.store.platform().pool())
         .await
@@ -399,6 +456,7 @@ fn reusable(
             && route.work_context == identity.work_context
             && route.profile == draft.profile
             && route.server == draft.server
+            && route.deployment == draft.deployment
             && route.source_task_id == draft.source_task_id
             && route.authority_digest == draft.authority_digest
             && route.ownership == draft.ownership

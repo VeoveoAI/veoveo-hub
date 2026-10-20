@@ -8,12 +8,36 @@ fn draft() -> HubTaskRouteDraft {
         work_context: subject.authority.work_context.clone(),
         profile: HubProfileId::parse("admin").unwrap(),
         server: ServerSlug::parse("upstream-a").unwrap(),
+        deployment: deployment(1),
+        execution: capture().context(),
         source_task_id: "opaque-provider-task/one".into(),
         authority_digest: Sha256Digest::from_bytes([0xa; 32]),
         ownership: HubTaskOwnership::from_invocation(&subject.actor, &subject.authority),
         ttl_ms: Some(60_000),
         delegated_caller: None,
     }
+}
+
+fn deployment(index: u8) -> DeploymentId {
+    DeploymentId::parse(format!("019a5b30-0000-7000-8000-{index:012}")).unwrap()
+}
+
+fn capture() -> veoveo_hub_sdk::ResolvedComposition {
+    veoveo_hub_sdk::ResolvedComposition::new(
+        EnvironmentId::parse("019a5b30-0000-7000-8000-000000000003").unwrap(),
+        [
+            ("upstream-a", deployment(1)),
+            ("another-server", deployment(2)),
+        ]
+        .into_iter()
+        .map(|(slug, deployment)| {
+            (
+                ServerSlug::parse(slug).unwrap(),
+                veoveo_hub_sdk::ResolvedComponent::Deployment { deployment },
+            )
+        })
+        .collect(),
+    )
 }
 
 /// The tenant of [`draft`]'s route.
@@ -31,6 +55,53 @@ async fn database() -> fixture::TestDb {
         &input.work_context,
     )
     .await;
+    let store = crate::store::HubStore::new(db.a.clone());
+    store.retain_composition(&capture()).await.unwrap();
+    for (slug, deployment) in [
+        ("upstream-a", deployment(1)),
+        ("another-server", deployment(2)),
+        ("upstream-a", deployment(4)),
+    ] {
+        use veoveo_hub_sdk::registration::{
+            AuthorizationDeclaration, ClientMetadata, RegistrationDeclaration, ServerEndpoint,
+            ServerVersion, StorageBinding,
+        };
+        let key = veoveo_hub_sdk::registration::statement::ServerKeyPair::generate().unwrap();
+        let metadata = ClientMetadata::new(
+            *key.public_key(),
+            RegistrationDeclaration {
+                deployment,
+                slug: ServerSlug::parse(slug).unwrap(),
+                uri_scheme: veoveo_types::ResourceScheme::parse(slug).unwrap(),
+                endpoint: ServerEndpoint::new(
+                    url::Url::parse(&format!("https://{slug}.example/mcp")).unwrap(),
+                )
+                .unwrap(),
+                version: ServerVersion::new("0.1.0").unwrap(),
+            },
+            AuthorizationDeclaration {
+                permissions: Vec::new(),
+                requirements: Default::default(),
+                uses: Vec::new(),
+            },
+        )
+        .unwrap();
+        let storage = StorageBinding::SharedLogicalSchema {
+            server: ServerSlug::parse(slug).unwrap(),
+        };
+        let thumbprint = metadata.key().thumbprint();
+        sqlx::query_file!(
+            "src/state/task_routes/tests/deployment.sql",
+            deployment.as_uuid(),
+            slug,
+            thumbprint.as_str(),
+            serde_json::to_value(&metadata).unwrap(),
+            serde_json::to_value(storage).unwrap()
+        )
+        .execute(db.a.pool())
+        .await
+        .unwrap();
+    }
     db
 }
 
@@ -114,6 +185,7 @@ async fn changed_authority_or_expired_routes_cannot_be_rebound_by_an_upstream_re
     );
     let mut another = input.clone();
     another.server = ServerSlug::parse("another-server").unwrap();
+    another.deployment = deployment(2);
     let (independent, _) = state.create_task_route(another).await.unwrap();
     assert_ne!(canonical, independent);
     let mut overflow = input;
@@ -185,5 +257,70 @@ async fn stored_routes_keep_their_owner_provenance_and_labels() {
         read.owner,
         deterministic_principal_id(subject.authority.tenant.as_str(), subject.actor.id.as_str())
             .unwrap()
+    );
+}
+
+#[tokio::test]
+async fn same_deployment_retry_preserves_first_execution_capture() {
+    let db = database().await;
+    let state = HubState::new(db.a.clone());
+    let input = draft();
+    let (canonical, first) = state.create_task_route(input.clone()).await.unwrap();
+    let second = veoveo_hub_sdk::ResolvedComposition::new(
+        EnvironmentId::new(),
+        capture().components().clone(),
+    );
+    state.hub_store().retain_composition(&second).await.unwrap();
+    let mut retry = input;
+    retry.execution = second.context();
+    let (same, retained) = state.create_task_route(retry).await.unwrap();
+    assert_eq!(same, canonical);
+    assert_eq!(retained.execution, first.execution);
+    assert_eq!(retained.deployment, first.deployment);
+}
+
+#[tokio::test]
+async fn identical_source_tasks_from_two_deployments_never_share_a_route() {
+    let db = database().await;
+    let state = HubState::new(db.a.clone());
+    let input = draft();
+    let (first, _) = state.create_task_route(input.clone()).await.unwrap();
+    let mut components = capture().components().clone();
+    components.insert(
+        input.server.clone(),
+        veoveo_hub_sdk::ResolvedComponent::Deployment {
+            deployment: deployment(4),
+        },
+    );
+    let composition =
+        veoveo_hub_sdk::ResolvedComposition::new(input.execution.environment, components);
+    state
+        .hub_store()
+        .retain_composition(&composition)
+        .await
+        .unwrap();
+    let mut replacement = input.clone();
+    replacement.deployment = deployment(4);
+    replacement.execution = composition.context();
+    let (second, _) = state.create_task_route(replacement).await.unwrap();
+    assert_ne!(first, second);
+    assert_eq!(state.create_task_route(input).await.unwrap().0, first);
+    assert_eq!(
+        state
+            .task_route(&first, &input_tenant())
+            .await
+            .unwrap()
+            .unwrap()
+            .deployment,
+        deployment(1)
+    );
+    assert_eq!(
+        state
+            .task_route(&second, &input_tenant())
+            .await
+            .unwrap()
+            .unwrap()
+            .deployment,
+        deployment(4)
     );
 }

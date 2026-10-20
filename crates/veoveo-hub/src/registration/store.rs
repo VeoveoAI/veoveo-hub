@@ -8,7 +8,11 @@ use secrecy::{ExposeSecret, SecretString};
 use sqlx::types::Json;
 use veoveo_hub_sdk::registration::{ClientMetadata, SoftwareStatement};
 use veoveo_store::{LoginName, PlatformStore};
-use veoveo_types::{OAuthClientId, ServerSlug, Sha256Digest};
+use veoveo_types::{DeploymentId, OAuthClientId, ServerSlug, Sha256Digest};
+mod admissions;
+use super::admission::RegistrationAuthority;
+use crate::control_plane::{HubControlPlane, NativeUpstreamBinding};
+use veoveo_hub_sdk::registration::StorageBinding;
 
 /// One registration as the service reads it back.
 #[derive(Clone, Debug)]
@@ -53,6 +57,7 @@ impl TryFrom<RegistrationRow> for StoredRegistration {
 
 /// What registering one server writes.
 pub(crate) struct NewRegistration<'a> {
+    pub authority: &'a RegistrationAuthority,
     pub client_id: &'a OAuthClientId,
     pub metadata: &'a ClientMetadata,
     pub software_statement: &'a SoftwareStatement,
@@ -71,6 +76,8 @@ pub(crate) enum Pin {
     Held,
     /// Another key holds the namespace.
     Foreign,
+    Rebound,
+    AdmissionRejected,
 }
 
 /// A registration that ended, and the login it held.
@@ -103,7 +110,7 @@ impl TryFrom<EndedRow> for EndedRegistration {
 /// housekeeping has found it without one.
 #[derive(Clone, Debug)]
 pub(crate) struct Liveness {
-    pub server: ServerSlug,
+    pub deployment: DeploymentId,
     pub orphaned_at: Option<DateTime<Utc>>,
     pub alive: bool,
 }
@@ -136,28 +143,110 @@ impl RegistrationStore {
         let server = registration.metadata.slug();
         let thumbprint = registration.metadata.key().thumbprint();
         let mut transaction = self.store.pool().begin().await?;
-        let claimed = sqlx::query_file_scalar!(
-            "src/registration/store/create_claim.sql",
-            server.as_str(),
-            thumbprint.as_str(),
-            registration.now,
-        )
-        .fetch_optional(&mut *transaction)
-        .await
-        .context("failed to claim the namespace")?;
-        let pin = if claimed.is_some() {
-            Pin::Claimed
-        } else {
-            let pinned =
-                sqlx::query_file_scalar!("src/registration/store/claim.sql", server.as_str())
+        let binding = match registration.authority {
+            RegistrationAuthority::Namespace => StorageBinding::SharedLogicalSchema {
+                server: server.clone(),
+            },
+            RegistrationAuthority::Deployment(admission) => {
+                if admission.consumed
+                    || admission.request.expires_at <= registration.now
+                    || admission.request.metadata != *registration.metadata
+                {
+                    return Ok(Pin::AdmissionRejected);
+                }
+                let control = sqlx::query_file!("src/registration/store/admission_control.sql")
+                    .fetch_optional(&mut *transaction)
+                    .await?
+                    .context("no authoritative control revision")?
+                    .control_plane
+                    .0;
+                if !admissions::current_owner(&control, &admission.request)
+                    .is_ok_and(|owner| owner == admission.owner)
+                {
+                    return Ok(Pin::AdmissionRejected);
+                }
+                let deployment = registration.metadata.registration.deployment.as_uuid();
+                let consumed = sqlx::query_file_scalar!(
+                    "src/registration/store/consume_admission.sql",
+                    deployment,
+                    admission.token_digest.as_str(),
+                    registration.now,
+                )
+                .fetch_optional(&mut *transaction)
+                .await?;
+                if consumed.is_none() {
+                    return Ok(Pin::AdmissionRejected);
+                }
+                admission.request.storage.clone()
+            }
+        };
+        let pin = match registration.authority {
+            RegistrationAuthority::Namespace => {
+                let claimed = sqlx::query_file_scalar!(
+                    "src/registration/store/create_claim.sql",
+                    server.as_str(),
+                    thumbprint.as_str(),
+                    registration.now,
+                )
+                .fetch_optional(&mut *transaction)
+                .await
+                .context("failed to claim the namespace")?;
+                if claimed.is_some() {
+                    Pin::Claimed
+                } else {
+                    let pinned = sqlx::query_file_scalar!(
+                        "src/registration/store/claim.sql",
+                        server.as_str()
+                    )
                     .fetch_one(&mut *transaction)
                     .await
-                    .context("failed to read the namespace claim")?;
-            if pinned != thumbprint.as_str() {
-                return Ok(Pin::Foreign);
+                    .context("failed to read namespace claim")?;
+                    if pinned != thumbprint.as_str() {
+                        return Ok(Pin::Foreign);
+                    }
+                    Pin::Held
+                }
             }
-            Pin::Held
+            // Scoped admission delegates one deployment, never ownership of the namespace key.
+            RegistrationAuthority::Deployment(_) => Pin::Held,
         };
+        let deployment = registration.metadata.registration.deployment.as_uuid();
+        let (environment, owner_tenant, owner_principal, runtime) = match registration.authority {
+            RegistrationAuthority::Namespace => (None, None, None, None),
+            RegistrationAuthority::Deployment(admission) => (
+                Some(admission.request.environment.as_uuid()),
+                Some(admission.owner.tenant.as_str()),
+                Some(admission.owner.principal.as_str()),
+                Some(Json(&admission.request.runtime)),
+            ),
+        };
+        sqlx::query_file!(
+            "src/registration/store/create_deployment.sql",
+            deployment,
+            server.as_str(),
+            Json(registration.metadata) as _,
+            Json(&binding) as _,
+            registration.now,
+            environment,
+            owner_tenant,
+            owner_principal,
+            runtime as _,
+        )
+        .execute(&mut *transaction)
+        .await?;
+        let immutable = sqlx::query_file!("src/registration/store/deployment.sql", deployment)
+            .fetch_one(&mut *transaction)
+            .await?;
+        if immutable.metadata.0 != *registration.metadata
+            || immutable.storage.0 != binding
+            || immutable.environment != environment
+            || immutable.owner_tenant.as_deref() != owner_tenant
+            || immutable.owner_principal.as_deref() != owner_principal
+            || immutable.runtime.map(|runtime| runtime.0)
+                != runtime.map(|runtime| runtime.0.clone())
+        {
+            return Ok(Pin::Rebound);
+        }
         sqlx::query_file!("src/registration/store/ensure_server.sql", server.as_str())
             .execute(&mut *transaction)
             .await
@@ -174,6 +263,7 @@ impl RegistrationStore {
         sqlx::query_file!(
             "src/registration/store/create_registration.sql",
             registration.client_id.as_str(),
+            deployment,
             server.as_str(),
             Json(registration.metadata) as _,
             registration.software_statement.as_str(),
@@ -212,27 +302,6 @@ impl RegistrationStore {
         .context("failed to read the registration")?
         .map(StoredRegistration::try_from)
         .transpose()
-    }
-
-    /// Replace a registration's metadata. Returns false when the registration ended.
-    pub async fn update(
-        &self,
-        client_id: &OAuthClientId,
-        metadata: &ClientMetadata,
-        software_statement: &SoftwareStatement,
-        now: DateTime<Utc>,
-    ) -> Result<bool> {
-        let updated = sqlx::query_file_scalar!(
-            "src/registration/store/update_registration.sql",
-            client_id.as_str(),
-            Json(metadata) as _,
-            software_statement.as_str(),
-            now,
-        )
-        .fetch_optional(self.store.pool())
-        .await
-        .context("failed to update the registration")?;
-        Ok(updated.is_some())
     }
 
     /// Remove one registration and drop its login, in one transaction.
@@ -298,7 +367,7 @@ impl RegistrationStore {
             .into_iter()
             .map(|row| {
                 Ok(Liveness {
-                    server: ServerSlug::parse(row.server)?,
+                    deployment: DeploymentId::parse(row.deployment.to_string())?,
                     orphaned_at: row.orphaned_at,
                     alive: row.alive,
                 })

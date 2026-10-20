@@ -24,8 +24,8 @@ pub(super) enum Surface {
 
 #[derive(Serialize, Deserialize)]
 enum Version {
-    #[serde(rename = "1")]
-    V1,
+    #[serde(rename = "2")]
+    V2,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -33,6 +33,7 @@ enum Version {
 struct Cursor<K> {
     version: Version,
     surface: Surface,
+    composition: veoveo_hub_sdk::CompositionRevision,
     after: K,
 }
 
@@ -76,14 +77,16 @@ impl CatalogItem for ResourceTemplate {
 }
 
 /// Admission runs before this function on every request. A cursor carries only
-/// an exclusive position, never cached descriptors or authority.
+/// an exclusive position and exact composition, never cached descriptors or authority.
+/// A different composition must restart enumeration; domain collection cursors are unchanged.
 pub(super) fn page<T: CatalogItem>(
     items: Vec<T>,
     request: Option<&PaginatedRequestParams>,
+    composition: &veoveo_hub_sdk::CompositionRevision,
 ) -> Result<CatalogPage<T>, McpError> {
     let after = request
         .and_then(|request| request.cursor.as_deref())
-        .map(decode::<T>)
+        .map(|encoded| decode::<T>(encoded, composition))
         .transpose()?;
     let mut keyed = items
         .into_iter()
@@ -105,7 +108,8 @@ pub(super) fn page<T: CatalogItem>(
     let next_cursor = if remaining.next().is_some() {
         let (last, _) = selected.last().expect("positive hub page size");
         use veoveo_types::CursorCodec;
-        let encoded = CatalogCursorCodec::<T::Key>::new(T::SURFACE).encode(last)?;
+        let encoded =
+            CatalogCursorCodec::<T::Key>::new(T::SURFACE, composition.clone()).encode(last)?;
         Some(encoded)
     } else {
         None
@@ -118,12 +122,14 @@ pub(super) fn page<T: CatalogItem>(
 
 struct CatalogCursorCodec<K> {
     surface: Surface,
+    composition: veoveo_hub_sdk::CompositionRevision,
     marker: std::marker::PhantomData<K>,
 }
 impl<K> CatalogCursorCodec<K> {
-    fn new(surface: Surface) -> Self {
+    fn new(surface: Surface, composition: veoveo_hub_sdk::CompositionRevision) -> Self {
         Self {
             surface,
+            composition,
             marker: std::marker::PhantomData,
         }
     }
@@ -136,8 +142,9 @@ impl<K: Serialize + DeserializeOwned> veoveo_types::CursorCodec for CatalogCurso
     }
     fn encode(&self, position: &K) -> Result<String, McpError> {
         let bytes = serde_json::to_vec(&Cursor {
-            version: Version::V1,
+            version: Version::V2,
             surface: self.surface,
+            composition: self.composition.clone(),
             after: position,
         })
         .map_err(|_| mcp_internal("catalog cursor serialization failed"))?;
@@ -157,15 +164,18 @@ impl<K: Serialize + DeserializeOwned> veoveo_types::CursorCodec for CatalogCurso
         }
         let bytes = URL_SAFE_NO_PAD.decode(encoded).map_err(|_| invalid())?;
         let cursor: Cursor<K> = serde_json::from_slice(&bytes).map_err(|_| invalid())?;
-        if cursor.surface != self.surface {
+        if cursor.surface != self.surface || cursor.composition != self.composition {
             return Err(invalid());
         }
         Ok(cursor.after)
     }
 }
-fn decode<T: CatalogItem>(encoded: &str) -> Result<T::Key, McpError> {
+fn decode<T: CatalogItem>(
+    encoded: &str,
+    composition: &veoveo_hub_sdk::CompositionRevision,
+) -> Result<T::Key, McpError> {
     use veoveo_types::CursorCodec;
-    let codec = CatalogCursorCodec::<T::Key>::new(T::SURFACE);
+    let codec = CatalogCursorCodec::<T::Key>::new(T::SURFACE, composition.clone());
     let position = codec.decode(encoded)?;
     codec.check(&position)?;
     Ok(position)

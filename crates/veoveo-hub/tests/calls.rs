@@ -133,7 +133,12 @@ async fn qualify() {
             .unwrap();
             let instance = Arc::new(Instance::start(&store, &relay_slug).await.unwrap());
             let tasks = RelayTasks::new(
-                TaskRuntime::new(store, relay_slug.clone(), instance),
+                TaskRuntime::new(
+                    store,
+                    relay_slug.clone(),
+                    metadata.registration.deployment,
+                    instance,
+                ),
                 calls.clone(),
             );
             tokio::spawn(tasks.clone().work(stop.child_token()));
@@ -296,6 +301,46 @@ async fn qualify() {
         source.as_str()
     );
 
+    // Retained Tasks use their first routing capture, not current selection or
+    // current base ancestry. Revoking access to the captured environment still denies.
+    let original_control = hub.control_plane().await;
+    let mut changed = original_control.clone();
+    let captured_environment = changed["execution"]["defaultEnvironment"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let new_default = veoveo_hub_sdk::EnvironmentId::new().to_string();
+    let private_base = veoveo_hub_sdk::EnvironmentId::new().to_string();
+    let mut next = changed["execution"]["environments"][&captured_environment].clone();
+    next["components"]["relay"] = json!({"kind": "unavailable"});
+    changed["execution"]["environments"][&new_default] = next;
+    changed["execution"]["defaultEnvironment"] = json!(new_default);
+    changed["execution"]["environments"][&private_base] = json!({
+        "owner": changed["execution"]["environments"][&captured_environment]["owner"].clone(),
+        "displayName": "Unreadable current base", "readers": [], "components": {}
+    });
+    changed["execution"]["environments"][&captured_environment]["base"] =
+        json!({"kind": "follow", "environment": private_base});
+    hub.publish_control_plane(&changed).await;
+    let retained = member.get_task(GetTaskParams::new(&created)).await.unwrap();
+    assert!(matches!(
+        retained.task.payload,
+        TaskPayload::Completed { .. }
+    ));
+    let retained_claims = decoded_claims(&relay.bearers.last());
+    assert_eq!(
+        retained_claims[claim]["request_context"]["execution"]["environment"],
+        captured_environment
+    );
+    changed["execution"]["environments"][&captured_environment]["readers"] = json!([]);
+    hub.publish_control_plane(&changed).await;
+    assert!(
+        member.get_task(GetTaskParams::new(&created)).await.is_err(),
+        "readable new default cannot bypass captured environment revocation"
+    );
+    hub.publish_control_plane(&original_control).await;
+    assert!(member.get_task(GetTaskParams::new(&created)).await.is_ok());
+
     // Once the Task ended, it acts for nobody.
     let profile = HubProfileId::parse(PROFILE).unwrap();
     let ended = relay_calls
@@ -431,6 +476,7 @@ async fn qualify() {
     let identity = HubInternalTokenVerifier::new(
         TokenIssuer::parse(&hub.base).unwrap(),
         TokenAudience {
+            deployment: ledger.metadata.registration.deployment,
             server: ledger.metadata.slug().clone(),
             resource: veoveo_hub_sdk::registration::ResourceIndicator::from(
                 &ledger.metadata.registration.endpoint,
@@ -442,6 +488,7 @@ async fn qualify() {
     .unwrap();
     let short = issuer
         .issue(ForwardedRequest {
+            deployment: identity.deployment,
             profile: identity.profile,
             server: identity.server,
             audience: identity.audience,

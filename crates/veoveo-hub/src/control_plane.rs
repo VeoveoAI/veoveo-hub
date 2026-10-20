@@ -74,12 +74,16 @@ pub const HUB_CORE_FIELDS: &[&str] = &[
     "secrets",
     "nativeUpstreams",
     "computers",
+    "execution",
     "metadata",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct HubControlPlane {
+    /// Trusted admitted routing outputs; source manifests remain owned by source adapters.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution: Option<crate::execution::ExecutionConfiguration>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub branding: Option<InstallationBranding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -166,6 +170,11 @@ impl HubControlPlane {
         &self,
         registry: &crate::contract::CatalogRegistry,
     ) -> Result<crate::contract::AdmittedCatalogSections, HubControlPlaneError> {
+        if let Some(execution) = &self.execution {
+            execution
+                .validate()
+                .map_err(HubControlPlaneError::InvalidExecution)?;
+        }
         registry
             .check_reserved(
                 HUB_CORE_FIELDS,
@@ -258,6 +267,16 @@ impl HubControlPlane {
         for tenant in &self.tenants {
             if !tenants.insert(tenant.id.clone()) {
                 return Err(HubControlPlaneError::DuplicateTenant(tenant.id.clone()));
+            }
+        }
+        if let Some(execution) = &self.execution {
+            for (environment, record) in &execution.environments {
+                if !tenants.contains(&record.owner.tenant) {
+                    return Err(HubControlPlaneError::UnknownEnvironmentTenant {
+                        environment: *environment,
+                        tenant: record.owner.tenant.clone(),
+                    });
+                }
             }
         }
         for identity_provider in &self.identity_providers {

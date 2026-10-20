@@ -36,6 +36,7 @@ pub(super) struct HubAuthorizedHttpClient {
     issuer: HubInternalTokenIssuer,
     profile: HubProfileId,
     server: ServerSlug,
+    deployment: veoveo_hub_sdk::DeploymentId,
     audience: ResourceIndicator,
     client: OAuthClientId,
     actor: Principal,
@@ -70,18 +71,21 @@ impl HubAuthorizedHttpClient {
         server: &crate::registration::RegisteredServer,
         subject: &crate::AuthenticatedSubject,
         permissions: BTreeSet<PermissionName>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, McpError> {
+        Ok(Self {
             http,
             issuer,
             profile,
             server: server.slug.clone(),
+            deployment: server.deployment,
             audience: ResourceIndicator::from(&server.endpoint),
             client: subject.access_token.oauth_client_id.clone(),
             actor: subject.actor.clone(),
             authority: subject.authority.clone(),
             permissions,
-            request_context: subject.request_context(),
+            request_context: subject
+                .request_context()
+                .map_err(|error| crate::mcp_support::mcp_internal(error.to_string()))?,
             acting_server: subject
                 .delegation
                 .as_ref()
@@ -95,7 +99,7 @@ impl HubAuthorizedHttpClient {
                 .delegation
                 .as_ref()
                 .map(|delegation| delegation.expires_at),
-        }
+        })
     }
 
     /// The same authorization over a new client for the server, after a
@@ -155,6 +159,7 @@ impl HubAuthorizedHttpClient {
             .issue(ForwardedRequest {
                 profile: self.profile.clone(),
                 server: self.server.clone(),
+                deployment: self.deployment,
                 audience: self.audience.clone(),
                 client: self.client.clone(),
                 actor: self.actor.clone(),
@@ -335,6 +340,7 @@ mod tests {
 
     fn registered_server() -> crate::registration::RegisteredServer {
         crate::registration::RegisteredServer {
+            deployment: veoveo_hub_sdk::hosting::testing::deployment_id(),
             slug: ServerSlug::parse("upstream-b").unwrap(),
             uri_scheme: veoveo_types::ResourceScheme::parse("upstream-b").unwrap(),
             endpoint: veoveo_hub_sdk::registration::ServerEndpoint::new(
@@ -390,12 +396,16 @@ mod tests {
         };
         HubAuthorizedHttpClient::new(
             super::super::HubUpstreamHttpClientPool::new()
-                .transport(&registered_server().slug, &registered_server().endpoint)
+                .transport(
+                    registered_server().deployment,
+                    &registered_server().endpoint,
+                )
                 .unwrap(),
             issuer,
             HubProfileId::parse("operator").unwrap(),
             &registered_server(),
             &crate::AuthenticatedSubject {
+                execution: Some(veoveo_hub_sdk::hosting::testing::execution_context()),
                 extensions: Default::default(),
                 audit: veoveo_audit_contract::AuditRequest::background(),
                 access_token: veoveo_hub_sdk::AccessTokenSubject {
@@ -425,6 +435,7 @@ mod tests {
             },
             BTreeSet::from([PermissionName::parse("upstream-b.items.read").unwrap()]),
         )
+        .unwrap()
     }
 
     #[test]
@@ -461,11 +472,13 @@ mod tests {
         let original = baseline.request_context.clone();
         let deadline = Utc::now() + TimeDelta::seconds(12);
         let acting = ActingServer {
+            deployment: veoveo_hub_sdk::DeploymentId::new(),
             server: ServerSlug::parse("middle").unwrap(),
             client: OAuthClientId::parse("middle-1").unwrap(),
         };
         let context = DelegationContext {
             actors: vec![ActingServer {
+                deployment: veoveo_hub_sdk::DeploymentId::new(),
                 server: ServerSlug::parse("first").unwrap(),
                 client: OAuthClientId::parse("first-1").unwrap(),
             }],
@@ -473,6 +486,7 @@ mod tests {
             expires_at: deadline,
         };
         let subject = crate::AuthenticatedSubject {
+            execution: Some(veoveo_hub_sdk::hosting::testing::execution_context()),
             extensions: Default::default(),
             audit: veoveo_audit_contract::AuditRequest::background(),
             access_token: original.access_token.clone(),
@@ -490,7 +504,7 @@ mod tests {
             }),
         };
         assert_ne!(subject.audit, original.audit);
-        assert_eq!(subject.request_context(), original);
+        assert_eq!(subject.request_context().unwrap(), original);
         let mut delegated = HubAuthorizedHttpClient::new(
             baseline.http,
             baseline.issuer,
@@ -498,10 +512,12 @@ mod tests {
             &registered_server(),
             &subject,
             baseline.permissions,
-        );
+        )
+        .unwrap();
         let verifier = HubInternalTokenVerifier::new(
             TokenIssuer::parse(TEST_ISSUER).unwrap(),
             TokenAudience {
+                deployment: delegated.deployment,
                 server: delegated.server.clone(),
                 resource: delegated.audience.clone(),
             },
@@ -545,6 +561,7 @@ mod tests {
             let verifier = HubInternalTokenVerifier::new(
                 TokenIssuer::parse(TEST_ISSUER).unwrap(),
                 veoveo_hub_sdk::TokenAudience {
+                    deployment: registered_server().deployment,
                     server: ServerSlug::parse("upstream-b").unwrap(),
                     resource: ResourceIndicator::parse(TEST_RESOURCE).unwrap(),
                 },

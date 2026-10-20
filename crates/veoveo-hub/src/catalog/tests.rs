@@ -302,6 +302,7 @@ fn catalog_with_policy(policy: PolicySet) -> HubCatalog {
 fn catalog_with_profile_and_policy(profile: HubProfile, policy: PolicySet) -> HubCatalog {
     HubCatalog::from_control_plane(
         HubControlPlane {
+            execution: None,
             branding: None,
             native_upstreams: None,
             computers: None,

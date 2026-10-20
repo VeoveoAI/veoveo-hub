@@ -232,6 +232,7 @@ fn revision(id: &str, sha256: String, control_plane: HubControlPlane) -> HubCont
 
 fn empty_control_plane() -> HubControlPlane {
     HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,

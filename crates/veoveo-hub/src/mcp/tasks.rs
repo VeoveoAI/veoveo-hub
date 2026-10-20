@@ -26,7 +26,8 @@ impl HubMcp {
         let route = self
             .authorize_canonical_task(&context, HubAction::TasksGet, &canonical_task_id)
             .await?;
-        let upstream = self
+        let upstream = route
+            .hub
             .upstream_with_tasks(&route.server, context.peer.clone(), &route.subject, true)
             .await?;
         let mut upstream_request = GetTaskParams::new(route.task_id);
@@ -36,7 +37,7 @@ impl HubMcp {
             .get_task(upstream_request)
             .await
             .map_err(RequestError::from)?;
-        let catalog = self.catalog.current();
+        let catalog = route.hub.catalog.current();
         let manifest = catalog
             .server(&route.server)
             .ok_or_else(|| mcp_internal(format!("unknown task server `{}`", route.server)))?;
@@ -57,7 +58,8 @@ impl HubMcp {
         let route = self
             .authorize_canonical_task(&context, HubAction::TasksUpdate, &request.task_id)
             .await?;
-        let upstream = self
+        let upstream = route
+            .hub
             .upstream_with_tasks(&route.server, context.peer.clone(), &route.subject, true)
             .await?;
         let mut upstream_request = UpdateTaskParams::new(route.task_id, request.input_responses);
@@ -81,7 +83,8 @@ impl HubMcp {
         let route = self
             .authorize_canonical_task(&context, HubAction::TasksCancel, &request.task_id)
             .await?;
-        let upstream = self
+        let upstream = route
+            .hub
             .upstream_with_tasks(&route.server, context.peer.clone(), &route.subject, true)
             .await?;
         let mut upstream_request = CancelTaskParams::new(route.task_id);

@@ -91,6 +91,7 @@ pub async fn serve(
     let metadata = ClientMetadata::new(
         *key.public_key(),
         RegistrationDeclaration {
+            deployment: veoveo_hub_sdk::DeploymentId::new(),
             slug: ServerSlug::parse(slug).unwrap(),
             uri_scheme: ResourceScheme::parse(slug).unwrap(),
             version: ServerVersion::new("0.1.0").unwrap(),
@@ -113,6 +114,7 @@ pub async fn serve(
     )
     .unwrap();
     let registration = client.register().await.unwrap();
+    hub.enroll(&metadata).await;
     let bearers = Bearers::default();
     let router: Router = build(&registration, &metadata, &key)
         .await

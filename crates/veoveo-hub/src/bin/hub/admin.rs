@@ -3,6 +3,9 @@ mod console;
 pub(crate) use console::{ConsoleStreamLimits, audit as console_audit};
 #[path = "admin/control_plane.rs"]
 mod control_plane;
+#[path = "admin/deployment_admissions.rs"]
+mod deployment_admissions;
+pub(super) use deployment_admissions::admit_deployment;
 #[path = "admin/jwt_revocations.rs"]
 mod jwt_revocations;
 #[path = "admin/server_health.rs"]

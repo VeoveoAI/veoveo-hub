@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Identity lookup only; the subsequent deployment-bound Core owner query authorizes cancellation.\nSELECT deployment FROM tasks.task WHERE server = $1 AND id = $2 AND tenant = $3\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deployment",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "tasks.task",
+            "name": "deployment"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "29687866d716c946b9ad5e80b28aca8a1d85232822aab442cf001fa211ed811c"
+}

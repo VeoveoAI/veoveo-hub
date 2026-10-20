@@ -97,7 +97,11 @@ impl HubMcp {
             denied,
         )
         .await?;
-        let page = super::catalog_pages::page(prompts, request.as_ref())?;
+        let page = super::catalog_pages::page(
+            prompts,
+            request.as_ref(),
+            super::execution_composition(&subject)?,
+        )?;
         Ok(ListPromptsResult {
             prompts: page.items,
             next_cursor: page.next_cursor,

@@ -24,6 +24,7 @@ use crate::{
 use super::HubMcp;
 
 pub(super) struct CanonicalTaskRoute {
+    pub(super) hub: HubMcp,
     pub(super) task_id: String,
     pub(super) server: ServerSlug,
     pub(super) subject: AuthenticatedSubject,
@@ -98,34 +99,70 @@ impl HubMcp {
         if !route.ownership.allows(&subject.actor, &subject.authority) {
             return Err(mcp_invalid_params("unknown task id"));
         }
+        // Task ownership is checked before using its retained routing capture.
+        // Current selection may differ; current environment and domain policy still apply.
+        if subject.delegation.is_some() && subject.execution.as_ref() != Some(&route.execution) {
+            return Err(mcp_invalid_params("unknown task id"));
+        }
+        let snapshot = self.live_catalog.snapshot();
+        let configuration = snapshot
+            .catalog()
+            .control_plane()
+            .execution
+            .as_ref()
+            .ok_or_else(|| mcp_invalid_request("execution routing is unavailable"))?;
+        let tenant = subject
+            .principal
+            .tenant
+            .as_ref()
+            .ok_or_else(|| mcp_invalid_params("unknown task id"))?;
+        configuration
+            .authorize_capture(route.execution.environment, tenant, &subject.principal.id)
+            .map_err(|_| mcp_invalid_params("unknown task id"))?;
+        let composition = self
+            .state
+            .hub_store()
+            .composition(&route.execution.composition)
+            .await
+            .map_err(|_| mcp_internal("Task composition storage is unavailable"))?
+            .filter(|capture| {
+                capture.context() == route.execution
+                    && capture.components().get(&route.server)
+                        == Some(&veoveo_hub_sdk::ResolvedComponent::Deployment {
+                            deployment: route.deployment,
+                        })
+            })
+            .ok_or_else(|| mcp_invalid_params("unknown task id"))?;
+        let hub = self.for_execution(&snapshot, &composition);
         let server = route.server;
-        let exposed = self
+        let exposed = hub
             .catalog
             .current()
             .profile_servers(&self.profile_id)
             .into_iter()
-            .any(|manifest| manifest.slug == server && manifest.capabilities.tasks);
+            .any(|manifest| {
+                manifest.slug == server
+                    && manifest.deployment == route.deployment
+                    && manifest.capabilities.tasks
+            });
         if !exposed {
-            tracing::warn!(
-                %task_id,
-                %server,
-                profile = %self.profile_id,
-                "canonical task server is not exposed with tasks enabled"
-            );
-            return Err(mcp_invalid_params("unknown task id"));
+            return Err(mcp_invalid_params("Task deployment is unavailable"));
         }
+        let mut subject = subject.clone();
+        subject.execution = Some(route.execution);
         let target = PolicyTarget::Task {
             server: server.clone(),
             task_id: canonical_task_id,
         };
         let subject = match trace_id {
             Some(trace_id) => {
-                self.authorize_subject_with_trace(subject, action, target, trace_id)
+                hub.authorize_subject_with_trace(&subject, action, target, trace_id)
                     .await?
             }
-            None => self.authorize_subject(subject, action, target).await?,
+            None => hub.authorize_subject(&subject, action, target).await?,
         };
         Ok(CanonicalTaskRoute {
+            hub,
             task_id: route.source_task_id,
             server,
             subject,

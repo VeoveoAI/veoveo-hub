@@ -43,7 +43,11 @@ impl HubMcp {
             denied,
         )
         .await?;
-        let page = super::catalog_pages::page(resources, request.as_ref())?;
+        let page = super::catalog_pages::page(
+            resources,
+            request.as_ref(),
+            super::execution_composition(&subject)?,
+        )?;
         Ok(ListResourcesResult {
             resources: page.items,
             next_cursor: page.next_cursor,
@@ -249,7 +253,11 @@ impl HubMcp {
             denied,
         )
         .await?;
-        let page = super::catalog_pages::page(templates, request.as_ref())?;
+        let page = super::catalog_pages::page(
+            templates,
+            request.as_ref(),
+            super::execution_composition(&subject)?,
+        )?;
         Ok(ListResourceTemplatesResult {
             resource_templates: page.items,
             next_cursor: page.next_cursor,
@@ -424,7 +432,8 @@ impl HubMcp {
         let route = self
             .authorize_canonical_task_for_subject(&subject, HubAction::TasksGet, task_id)
             .await?;
-        let upstream = self
+        let upstream = route
+            .hub
             .upstream_with_tasks(&route.server, context.peer.clone(), &route.subject, true)
             .await?;
         let mut detailed = upstream
@@ -433,7 +442,7 @@ impl HubMcp {
             .await
             .map_err(RequestError::from)?
             .task;
-        let catalog = self.catalog.current();
+        let catalog = route.hub.catalog.current();
         let manifest = catalog
             .server(&route.server)
             .ok_or_else(|| mcp_internal(format!("unknown task server `{}`", route.server)))?;

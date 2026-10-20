@@ -142,6 +142,7 @@ async fn qualify() {
     let metadata = ClientMetadata::new(
         *key.public_key(),
         RegistrationDeclaration {
+            deployment: veoveo_hub_sdk::DeploymentId::new(),
             slug: "streamfixture".parse().unwrap(),
             uri_scheme: "streamfixture".parse().unwrap(),
             version: ServerVersion::new("0.1.0").unwrap(),
@@ -170,6 +171,7 @@ async fn qualify() {
     )
     .unwrap();
     let _registered = registration.register().await.unwrap();
+    hub.enroll(registration.metadata()).await;
 
     let (opened, mut openings) = mpsc::unbounded_channel();
     let (cuts, mut cut_streams) = mpsc::unbounded_channel();

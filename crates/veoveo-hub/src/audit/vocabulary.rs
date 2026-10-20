@@ -42,6 +42,7 @@ const OCSF_ENTITY_MANAGEMENT: AuditOcsfClass = AuditOcsfClass {
 /// An administrative operation of the Hub's admin API.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, veoveo_types::Vocabulary)]
 pub enum AdministrativeOperation {
+    DeploymentAdmission,
     ControlPlane,
     JwtRevoke,
     JwtPrune,
@@ -60,6 +61,7 @@ pub enum AdministrativeAccess {
 /// Why an admitted administrative operation failed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, veoveo_types::Vocabulary)]
 pub enum AdminOperationFailure {
+    PersistDeploymentAdmission,
     BuildHttpClient,
     CancelTask,
     ControlPlaneSha,

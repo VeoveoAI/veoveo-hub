@@ -174,7 +174,17 @@ fn configuration(
             })
         })
         .collect();
+    let environment = veoveo_hub_sdk::EnvironmentId::new();
     let document = json!({
+        "execution": {
+            "defaultEnvironment": environment,
+            "environments": { (environment.to_string()): {
+                "owner": { "tenant": "local", "principal": format!("{issuer}#acceptance-admin") },
+                "displayName": "Local base",
+                "readers": callers.iter().map(|caller| format!("{issuer}#{}", caller.client_id)).collect::<Vec<_>>(),
+                "components": {}
+            } }
+        },
         "identityProviders": [{
             "id": "local",
             "issuer": format!("{base}/identity"),

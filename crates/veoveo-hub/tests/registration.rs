@@ -108,6 +108,7 @@ async fn qualify() {
         key,
     );
     let registration = client.register().await.unwrap();
+    hub.enroll(client.metadata()).await;
     assert_eq!(registration.access_tokens().issuer.as_str(), hub.base);
 
     // The grant is a login in the server's group role: it migrates the server's own
@@ -443,6 +444,7 @@ fn registration_client(
     let metadata = ClientMetadata::new(
         *key.public_key(),
         RegistrationDeclaration {
+            deployment: veoveo_hub_sdk::DeploymentId::new(),
             slug: ServerSlug::parse("observatory").unwrap(),
             uri_scheme: ResourceScheme::parse("observatory").unwrap(),
             version: ServerVersion::new("0.1.0").unwrap(),
@@ -475,6 +477,7 @@ fn hub_slug_client(
     let metadata = ClientMetadata::new(
         *key.public_key(),
         RegistrationDeclaration {
+            deployment: veoveo_hub_sdk::DeploymentId::new(),
             slug: ServerSlug::parse("hub").unwrap(),
             uri_scheme: ResourceScheme::parse("hub").unwrap(),
             version: ServerVersion::new("0.1.0").unwrap(),

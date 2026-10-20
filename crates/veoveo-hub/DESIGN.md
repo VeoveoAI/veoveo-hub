@@ -27,6 +27,57 @@ Neither its code nor its configuration names a server.
 | [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Hub's `hub.*` classes. The Hub's records carry its own reason codes and name targets by URI |
 | [Veoveo usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/platform/usage/DESIGN.md), after FOCUS 1.4 with ISO 4217 currencies | The Hub prepares the ledger's monthly partitions and serves daily totals across servers |
 
+## Execution Composition And Deployment Identity
+
+The live control plane's `execution` section is an internal routing output, separate
+from the source-facing environment definition. It declares an explicit default,
+owned environments, optional pinned or following bases, and owned logical-component
+selections. A missing component inherits; an explicit `unavailable` selection does
+not fall back. Display names convey no authority. Fresh selection checks tenant,
+reader/owner and base-sharing access; cycles and missing references are rejected.
+A pin shares one retained readable composition, rather than recomposing its current
+ancestors. Deployment references and pins are admitted before publication; health
+is checked at use, so temporary target failure cannot block an unrelated revision.
+
+RFC 7591 metadata carries an immutable deployment ID. The namespace-owner bootstrap
+proof still pins the logical namespace's key. Independently keyed deployments use
+an operator-issued one-use initial registration admission binding exact metadata,
+owner/environment, native destination and explicit `shared_logical_schema` storage.
+Environment edit authority grants none of these privileges. Shared schema is an
+explicit data binding, not owner isolation. A deployment cannot change its key,
+logical namespace, contract, endpoint, owner or storage through re-registration.
+Trusted reissue after registration loss retains that binding; no worker receives
+the namespace key or global initial credential. Registrations and health remain
+independent per deployment; registration alone never selects a serving component.
+
+Each authenticated stateless MCP operation admits at most one `veoveo-environment`
+header, an untrusted typed selector, or uses the configured default. The resource
+URL stays `/mcp/{profile}`. The Hub resolves and retains the SDK's canonical immutable
+composition once, then selects exact registered deployments for all surfaces.
+Signed downstream context keeps this same capture while the target deployment
+changes per hop. Descriptor caches and catalog continuation are scoped to that
+composition; a continuation from another composition is refused. Domain collection
+cursors remain owned by their servers. HTTP pools use deployment plus endpoint.
+Publication hints complete existing listens normally, requiring native re-listen
+and current admission instead of silently keeping a stale selection alive.
+
+Tasks persist exact deployment and composition before the projected response.
+A native retry of the same Task preserves its first capture. Later reads, changes,
+cancellation, delegated work and re-listened Task filters use that capture while
+checking current selected-environment access and component/data policy. Editing
+current selection or base ancestry cannot retarget retained work. Revoking access
+to the captured environment denies it even if another readable environment selects
+the same deployment. Current native destination bindings remain authoritative: old
+bindings must be retained while work drains; explicit withdrawal makes that work
+unavailable and is never undone from historical provenance. Core's independent
+Task deployment affinity prevents same-namespace workers sharing a schema from
+claiming or recovering one another's work.
+
+This boundary does not implement source materialization, local apply/watch, native
+revision consumption or worker activation. Those executable adapters must publish
+admitted outputs through this contract. Public provider callbacks need their own
+deployment-qualified ingress proof; MCP routing alone does not establish it.
+
 ## Process
 
 `veoveo-hub serve` starts in this order:

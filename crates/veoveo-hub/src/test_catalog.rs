@@ -38,6 +38,7 @@ pub fn token_issuer() -> veoveo_hub_sdk::HubInternalTokenIssuer {
 /// A registered server with no declared targets, reached at `endpoint`.
 pub fn registered_server(slug: &str, endpoint: &str) -> crate::registration::RegisteredServer {
     crate::registration::RegisteredServer {
+        deployment: veoveo_hub_sdk::DeploymentId::new(),
         slug: veoveo_types::ServerSlug::parse(slug).unwrap(),
         uri_scheme: veoveo_types::ResourceScheme::parse(slug).unwrap(),
         endpoint: veoveo_hub_sdk::registration::ServerEndpoint::new(

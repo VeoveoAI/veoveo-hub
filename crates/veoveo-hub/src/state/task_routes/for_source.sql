@@ -5,6 +5,9 @@ SELECT
     r.work_context AS "work_context: WorkContextId",
     r.profile,
     r.server,
+    r.deployment,
+    r.environment,
+    r.composition,
     r.source_task_id,
     r.authority_digest,
     p.principal_key AS owner_key,
@@ -19,3 +22,4 @@ SELECT
 FROM hub.task_route AS r
 JOIN identity.principal AS p ON p.id = r.owner AND p.tenant = r.tenant
 WHERE r.server = $1 AND r.source_task_id = $2 AND r.owner = $3 AND r.profile = $4 AND r.tenant = $5
+    AND r.deployment = $6

@@ -108,6 +108,9 @@ impl HubControlStore {
             .admission
             .validate(&revision.control_plane)
             .context("refusing to persist invalid hub control plane")?;
+        self.store
+            .check_execution_configuration(revision.control_plane.execution.as_ref())
+            .await?;
         let audit = crate::audit::AuditAppend::new(audit::changes(
             &crate::audit_registry(),
             previous.as_ref().map_or(&[], |revision| {

@@ -6,6 +6,7 @@ pub mod computers;
 pub mod contract;
 pub mod control_plane;
 pub mod delegation;
+pub mod execution;
 pub mod http;
 pub mod issuance;
 pub use catalog_admission::HubCatalogAdmission;

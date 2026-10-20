@@ -119,6 +119,7 @@ fn default_secrets() -> Vec<SecretReference> {
 
 fn control_plane_with_secrets(secrets: Vec<SecretReference>) -> HubControlPlane {
     HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -458,6 +459,7 @@ fn hub_actions_expose_final_subscription_and_task_methods() {
 #[test]
 fn control_plane_validates_cross_references() {
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -493,6 +495,7 @@ fn control_plane_rejects_unknown_identity_provider_reference() {
     let mut profile = default_profile();
     profile.identity_provider = IdentityProviderId::parse("missing").unwrap();
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -527,6 +530,7 @@ fn control_plane_rejects_unknown_authorization_server_reference() {
     let mut profile = default_profile();
     profile.authorization_server = AuthorizationServerId::parse("missing").unwrap();
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -561,6 +565,7 @@ fn control_plane_rejects_authorization_server_unknown_identity_provider() {
     let mut authorization_server = authorization_server();
     authorization_server.identity_provider = Some(IdentityProviderId::parse("missing").unwrap());
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -595,6 +600,7 @@ fn control_plane_rejects_profile_without_auth_modes() {
     let mut profile = default_profile();
     profile.auth_modes.clear();
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -628,6 +634,7 @@ fn control_plane_rejects_oidc_profile_without_browser_endpoints() {
     let mut profile = default_profile();
     profile.auth_modes = BTreeSet::from([AuthMode::OidcAuthorizationCodePkce]);
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -664,6 +671,7 @@ fn control_plane_rejects_oidc_profile_without_browser_endpoints() {
     let mut profile = default_profile();
     profile.auth_modes = BTreeSet::from([AuthMode::OidcAuthorizationCodePkce]);
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -703,6 +711,7 @@ fn control_plane_rejects_extension_auth_modes_without_matching_endpoints() {
     let mut profile = default_profile();
     profile.auth_modes = BTreeSet::from([AuthMode::EnterpriseManagedAuthorization]);
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -738,6 +747,7 @@ fn control_plane_rejects_extension_auth_modes_without_matching_endpoints() {
 #[test]
 fn control_plane_rejects_unknown_secret_owner_references() {
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -780,6 +790,7 @@ fn control_plane_rejects_unknown_secret_owner_references() {
     ));
 
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -825,6 +836,7 @@ fn control_plane_rejects_unknown_secret_owner_references() {
 #[test]
 fn control_plane_rejects_missing_oauth_client_for_auth_mode() {
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -865,6 +877,7 @@ fn control_plane_allows_service_profile_before_durable_client_admission() {
         }
     }
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -893,6 +906,7 @@ fn control_plane_rejects_missing_oidc_client_for_browser_auth() {
     let mut profile = default_profile();
     profile.auth_modes = BTreeSet::from([AuthMode::OidcAuthorizationCodePkce]);
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -929,6 +943,7 @@ fn control_plane_rejects_oidc_client_without_openid_scope() {
         .scopes
         .remove(&ScopeName::parse("openid").unwrap());
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -963,6 +978,7 @@ fn control_plane_rejects_public_client_credentials() {
     let mut clients = default_oauth_clients();
     clients[1].auth_methods = BTreeSet::from([OAuthClientAuthMethod::None]);
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -997,6 +1013,7 @@ fn control_plane_rejects_private_key_jwt_without_jwks() {
     let mut clients = default_oauth_clients();
     clients[1].jwks = None;
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -1037,6 +1054,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         jwks_uri: HttpsUrl::new("https://idp.example.com/oauth2/browser/jwks.json").unwrap(),
     });
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -1068,6 +1086,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
     let mut clients = default_oauth_clients();
     clients[0].grant_types = BTreeSet::from([OAuthGrantType::RefreshToken]);
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -1103,6 +1122,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
     clients[1].credential_secret =
         Some(SecretReferenceId::parse("enterprise_oidc_client_secret").unwrap());
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -1139,6 +1159,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
     clients[1].redirect_uris =
         vec![OAuthRedirectUri::new("https://veoveo.example/oauth/callback").unwrap()];
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -1175,6 +1196,7 @@ fn control_plane_rejects_oauth_client_missing_required_scope() {
         .allowed_scopes
         .remove(&ScopeName::parse("operator:use").unwrap());
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -1207,6 +1229,7 @@ fn control_plane_rejects_oauth_client_missing_required_scope() {
 #[test]
 fn control_plane_rejects_duplicate_tenants() {
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -1251,6 +1274,7 @@ fn control_plane_rejects_duplicate_policy_rule_ids() {
     let mut policy = default_policy();
     policy.rules.push(policy.rules[0].clone());
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -1285,6 +1309,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
     let mut policy = default_policy();
     policy.rules[0].profiles = BTreeSet::from([HubProfileId::parse("missing").unwrap()]);
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -1317,6 +1342,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
     policy.rules[0].required_data_labels =
         BTreeSet::from([DataLabelId::parse("unknown_label").unwrap()]);
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,
@@ -1348,6 +1374,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
     let mut policy = default_policy();
     policy.rules[0].tenant_ids = BTreeSet::from([TenantId::parse("missing").unwrap()]);
     let config = HubControlPlane {
+        execution: None,
         branding: None,
         native_upstreams: None,
         computers: None,

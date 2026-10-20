@@ -7,15 +7,15 @@ use std::{
 };
 
 use rmcp::model::ErrorData as McpError;
-use veoveo_hub_sdk::ServerSlug;
+use veoveo_hub_sdk::DeploymentId;
 
 use crate::mcp_support::mcp_internal;
 
 const UPSTREAM_CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
-/// The transport clients for hub-to-server traffic, one per registered server.
+/// The transport clients for hub-to-server traffic, one per immutable deployment and endpoint.
 ///
-/// Each server's client pools that server's connections. Each request still carries its
+/// Each deployment client pools only its endpoint's connections. Each request still carries its
 /// own short-lived access token, so a pool holds no authority. A server reached through a
 /// port forward can restart while the forward keeps the Hub's side of every pooled
 /// connection open; those connections look idle and fail only when the next request goes
@@ -23,7 +23,7 @@ const UPSTREAM_CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_
 /// request opens new connections through a new one. Other servers keep their pools.
 #[derive(Debug, Clone)]
 pub struct HubUpstreamHttpClientPool {
-    servers: Arc<Mutex<HashMap<ServerSlug, Arc<Pooled>>>>,
+    servers: Arc<Mutex<HashMap<PoolKey, Arc<Pooled>>>>,
     generations: Arc<AtomicU64>,
     builder: fn() -> reqwest::ClientBuilder,
     native: Option<Arc<super::native_upstreams::NativeTransport>>,
@@ -32,6 +32,24 @@ pub struct HubUpstreamHttpClientPool {
 impl Default for HubUpstreamHttpClientPool {
     fn default() -> Self {
         Self::with_builder(upstream_client_builder)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct PoolKey {
+    deployment: DeploymentId,
+    endpoint: url::Url,
+}
+
+impl PoolKey {
+    fn new(
+        deployment: DeploymentId,
+        endpoint: &veoveo_hub_sdk::registration::ServerEndpoint,
+    ) -> Self {
+        Self {
+            deployment,
+            endpoint: endpoint.url().clone(),
+        }
     }
 }
 
@@ -102,16 +120,17 @@ impl HubUpstreamHttpClientPool {
     /// The current transport to `server`, building its client on first use.
     pub(super) fn transport(
         &self,
-        server: &ServerSlug,
+        deployment: DeploymentId,
         endpoint: &veoveo_hub_sdk::registration::ServerEndpoint,
     ) -> Result<UpstreamTransport, McpError> {
+        let key = PoolKey::new(deployment, endpoint);
         let mut servers = self.servers.lock().unwrap_or_else(PoisonError::into_inner);
-        if servers.get(server).is_some_and(|pooled| {
+        if servers.get(&key).is_some_and(|pooled| {
             &pooled.endpoint != endpoint || pooled.discarded.load(Ordering::Acquire)
         }) {
-            servers.remove(server);
+            servers.remove(&key);
         }
-        if !servers.contains_key(server) {
+        if !servers.contains_key(&key) {
             let mut builder = (self.builder)();
             if let Some(native) = &self.native {
                 builder = builder
@@ -127,7 +146,7 @@ impl HubUpstreamHttpClientPool {
             })?;
             let generation = self.generations.fetch_add(1, Ordering::Relaxed);
             servers.insert(
-                server.clone(),
+                key.clone(),
                 Arc::new(Pooled {
                     endpoint: endpoint.clone(),
                     generation,
@@ -136,11 +155,11 @@ impl HubUpstreamHttpClientPool {
                 }),
             );
         }
-        let pooled = &servers[server];
+        let pooled = &servers[&key];
         Ok(UpstreamTransport {
             pool: self.clone(),
             endpoint: endpoint.clone(),
-            server: server.clone(),
+            key,
             generation: pooled.generation,
             client: pooled.client.clone(),
         })
@@ -148,14 +167,14 @@ impl HubUpstreamHttpClientPool {
 
     /// Discard `server`'s client if it is still `generation`, so concurrent failures on
     /// one generation discard it once and never a newer one.
-    fn discard(&self, server: &ServerSlug, generation: u64) {
+    fn discard(&self, key: &PoolKey, generation: u64) {
         let mut servers = self.servers.lock().unwrap_or_else(PoisonError::into_inner);
         if servers
-            .get(server)
+            .get(key)
             .is_some_and(|pooled| pooled.generation == generation)
         {
-            servers[server].discarded.store(true, Ordering::Release);
-            servers.remove(server);
+            servers[key].discarded.store(true, Ordering::Release);
+            servers.remove(key);
         }
     }
 }
@@ -165,7 +184,7 @@ impl HubUpstreamHttpClientPool {
 pub(super) struct UpstreamTransport {
     pool: HubUpstreamHttpClientPool,
     endpoint: veoveo_hub_sdk::registration::ServerEndpoint,
-    server: ServerSlug,
+    key: PoolKey,
     generation: u64,
     client: reqwest::Client,
 }
@@ -178,12 +197,12 @@ impl UpstreamTransport {
     /// Stop reusing this generation's idle connections. The client closes them once
     /// the requests still holding it end.
     pub(super) fn discard(&self) {
-        self.pool.discard(&self.server, self.generation);
+        self.pool.discard(&self.key, self.generation);
     }
 
     /// The server's current transport, after this one was discarded.
     pub(super) fn current(&self) -> Result<Self, McpError> {
-        self.pool.transport(&self.server, &self.endpoint)
+        self.pool.transport(self.key.deployment, &self.endpoint)
     }
 }
 
@@ -204,35 +223,35 @@ mod live_tests {
     fn live_pool_generations_share_unaffected_clients_and_propagate_discard() {
         let _ = rustls::crypto::ring::default_provider().install_default();
         let first = HubUpstreamHttpClientPool::new();
-        let a = ServerSlug::parse("fixture-a").unwrap();
-        let b = ServerSlug::parse("fixture-b").unwrap();
+        let a = DeploymentId::new();
+        let b = DeploymentId::new();
         let endpoint =
             ServerEndpoint::new(url::Url::parse("http://fixture.internal/mcp").unwrap()).unwrap();
-        let old_a = first.transport(&a, &endpoint).unwrap();
-        let old_b = first.transport(&b, &endpoint).unwrap();
+        let old_a = first.transport(a, &endpoint).unwrap();
+        let old_b = first.transport(b, &endpoint).unwrap();
         let next = first.reconfigured(None).unwrap();
         assert_eq!(
-            next.transport(&a, &endpoint).unwrap().generation,
+            next.transport(a, &endpoint).unwrap().generation,
             old_a.generation
         );
         assert_eq!(
-            next.transport(&b, &endpoint).unwrap().generation,
+            next.transport(b, &endpoint).unwrap().generation,
             old_b.generation
         );
         old_a.discard();
         assert_ne!(
-            next.transport(&a, &endpoint).unwrap().generation,
+            next.transport(a, &endpoint).unwrap().generation,
             old_a.generation
         );
         assert_eq!(
-            next.transport(&b, &endpoint).unwrap().generation,
+            next.transport(b, &endpoint).unwrap().generation,
             old_b.generation
         );
         // A late failure from the prior generation cannot discard its replacement.
-        let replacement = next.transport(&a, &endpoint).unwrap();
+        let replacement = next.transport(a, &endpoint).unwrap();
         old_a.discard();
         assert_eq!(
-            next.transport(&a, &endpoint).unwrap().generation,
+            next.transport(a, &endpoint).unwrap().generation,
             replacement.generation
         );
     }

@@ -50,7 +50,16 @@ async fn an_ended_catalog_source_reaches_the_downstream_reconnect_path() {
         .await
         .unwrap();
     let mut routed = Box::pin(routed_notifications(
-        ServerSlug::parse("catalog").unwrap(),
+        (
+            ServerSlug::parse("catalog").unwrap(),
+            DeploymentId::new(),
+            veoveo_hub_sdk::ResolvedComposition::new(
+                veoveo_hub_sdk::EnvironmentId::new(),
+                Default::default(),
+            )
+            .revision()
+            .clone(),
+        ),
         false,
         subscription,
     ));

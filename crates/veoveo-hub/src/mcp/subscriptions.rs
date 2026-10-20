@@ -8,7 +8,7 @@ use rmcp::{
     model::{ErrorData as McpError, ServerNotification, SubscriptionFilter},
     service::{ServiceError, SubscriptionContext, SubscriptionEnd},
 };
-use veoveo_hub_sdk::{CanonicalTaskId, ServerSlug};
+use veoveo_hub_sdk::{CanonicalTaskId, CompositionRevision, DeploymentId, ServerSlug};
 
 use crate::mcp_support::{mcp_internal, upstream_error};
 
@@ -17,8 +17,12 @@ use super::{HubMcp, tools::project_detailed_task_resource_uris};
 #[cfg(test)]
 mod tests;
 
+type SubscriptionRouteKey = (ServerSlug, DeploymentId, CompositionRevision);
+
 #[derive(Default)]
 struct UpstreamSubscriptionRoute {
+    hub: Option<HubMcp>,
+    subject: Option<crate::AuthenticatedSubject>,
     filter: SubscriptionFilter,
     task_ids: BTreeMap<String, String>,
 }
@@ -27,7 +31,7 @@ type RoutedNotificationStream = Pin<
     Box<
         dyn Stream<
                 Item = (
-                    ServerSlug,
+                    SubscriptionRouteKey,
                     bool,
                     Result<Option<ServerNotification>, ServiceError>,
                 ),
@@ -37,6 +41,7 @@ type RoutedNotificationStream = Pin<
 >;
 
 struct OpenedUpstreamSubscription {
+    hub: HubMcp,
     task_ids: BTreeMap<String, String>,
     connection: super::RequestUpstream,
     notifications: RoutedNotificationStream,
@@ -47,7 +52,6 @@ impl HubMcp {
         &self,
         requested: &SubscriptionFilter,
     ) -> SubscriptionFilter {
-        let catalog = self.catalog.current();
         let mut accepted = SubscriptionFilter::new();
         accepted.tools_list_changed = requested.tools_list_changed;
         accepted.prompts_list_changed = requested.prompts_list_changed;
@@ -62,21 +66,15 @@ impl HubMcp {
         if !resources.is_empty() {
             accepted.resource_subscriptions = Some(resources);
         }
-        let tasks_exposed = catalog
-            .profile_servers(&self.profile_id)
+        let task_ids = requested
+            .task_ids
             .iter()
-            .any(|server| server.capabilities.tasks);
-        if tasks_exposed {
-            let task_ids = requested
-                .task_ids
-                .iter()
-                .flatten()
-                .filter(|task_id| CanonicalTaskId::parse((*task_id).clone()).is_ok())
-                .cloned()
-                .collect::<Vec<_>>();
-            if !task_ids.is_empty() {
-                accepted.task_ids = Some(task_ids);
-            }
+            .flatten()
+            .filter(|task_id| CanonicalTaskId::parse((*task_id).clone()).is_ok())
+            .cloned()
+            .collect::<Vec<_>>();
+        if !task_ids.is_empty() {
+            accepted.task_ids = Some(task_ids);
         }
         accepted
     }
@@ -89,6 +87,8 @@ impl HubMcp {
         let catalog_generation = snapshot.generation();
         let authorization_fingerprint = super::discovery_authorization_fingerprint(&subject)?;
         let mut discovery_changes = self.discovery.subscribe();
+        let mut catalog_changes = self.live_catalog.subscribe();
+        let composition = super::execution_composition(&subject)?.clone();
 
         // A catalog listener primes discovery on the same replica that owns the
         // stream. Each server completes independently and wakes the caller through
@@ -107,7 +107,7 @@ impl HubMcp {
                 .available_tools(request_context.clone(), subject.clone())
                 .await?;
         }
-        let mut routes = BTreeMap::<ServerSlug, UpstreamSubscriptionRoute>::new();
+        let mut routes = BTreeMap::<SubscriptionRouteKey, UpstreamSubscriptionRoute>::new();
 
         if accepted.tools_list_changed == Some(true)
             || accepted.prompts_list_changed == Some(true)
@@ -126,7 +126,14 @@ impl HubMcp {
                     filter.prompts_list_changed = None;
                 }
                 if !subscription_filter_is_empty(&filter) {
-                    routes.entry(manifest.slug.clone()).or_default().filter = filter;
+                    routes
+                        .entry((
+                            manifest.slug.clone(),
+                            manifest.deployment,
+                            composition.clone(),
+                        ))
+                        .or_default()
+                        .filter = filter;
                 }
             }
         }
@@ -139,8 +146,13 @@ impl HubMcp {
                 &projection,
             )
             .await?;
+            let deployment = snapshot
+                .catalog()
+                .server(&projection.server)
+                .ok_or_else(|| mcp_internal("resource deployment is unavailable"))?
+                .deployment;
             routes
-                .entry(projection.server)
+                .entry((projection.server, deployment, composition.clone()))
                 .or_default()
                 .filter
                 .resource_subscriptions
@@ -168,7 +180,17 @@ impl HubMcp {
                     canonical_task_id,
                 )
                 .await?;
-            let upstream_route = routes.entry(route.server).or_default();
+            let selected = route.hub.catalog.current();
+            let deployment = selected
+                .server(&route.server)
+                .ok_or_else(|| mcp_internal("Task deployment is unavailable"))?
+                .deployment;
+            let revision = super::execution_composition(&route.subject)?.clone();
+            let upstream_route = routes
+                .entry((route.server, deployment, revision))
+                .or_default();
+            upstream_route.hub = Some(route.hub);
+            upstream_route.subject = Some(route.subject);
             upstream_route
                 .filter
                 .task_ids
@@ -190,6 +212,8 @@ impl HubMcp {
             async move {
                 let required = route.filter.resource_subscriptions.is_some()
                     || route.filter.task_ids.is_some();
+                let hub = route.hub.clone().unwrap_or(hub);
+                let subject = route.subject.clone().unwrap_or(subject);
                 let result = hub
                     .open_upstream_subscription(
                         server.clone(),
@@ -205,7 +229,12 @@ impl HubMcp {
         .buffer_unordered(super::discovery::MAX_CONCURRENT_DISCOVERY);
         let mut pending_done = false;
         let mut notifications = SelectAll::<RoutedNotificationStream>::new();
-        let mut task_routes = BTreeMap::<ServerSlug, BTreeMap<String, String>>::new();
+        let mut task_routes =
+            BTreeMap::<SubscriptionRouteKey, (HubMcp, BTreeMap<String, String>)>::new();
+        if *catalog_changes.borrow_and_update() != catalog_generation {
+            notify_catalog_change(&context, &accepted).await?;
+            return Ok(());
+        }
         let mut upstream_connections = Vec::new();
         loop {
             tokio::select! {
@@ -213,13 +242,13 @@ impl HubMcp {
                 opened = pending.next(), if !pending_done => {
                     match opened {
                         Some((server, _, Ok(opened))) => {
-                            task_routes.insert(server, opened.task_ids);
+                            task_routes.insert(server, (opened.hub, opened.task_ids));
                             notifications.push(opened.notifications);
                             upstream_connections.push(opened.connection);
                         }
                         Some((_server, true, Err(error))) => return Err(error),
                         Some((server, false, Err(error))) => {
-                            tracing::warn!(%server, %error, "isolated upstream catalog-listener failure");
+                            tracing::warn!(server = %server.0, deployment = %server.1, %error, "isolated upstream catalog-listener failure");
                         }
                         None => pending_done = true,
                     }
@@ -229,9 +258,11 @@ impl HubMcp {
                     let (server, _required, update) = update;
                     match update {
                         Ok(Some(mut notification)) => {
-                            self.project_subscription_notification(
-                                &server,
-                                task_routes.get(&server),
+                            let (hub, routes) = task_routes.get(&server)
+                                .ok_or_else(|| mcp_internal("subscription route is unavailable"))?;
+                            hub.project_subscription_notification(
+                                &server.0,
+                                Some(routes),
                                 &mut notification,
                             ).await?;
                             context.sink().send(notification).await.map_err(|error| {
@@ -248,6 +279,15 @@ impl HubMcp {
                         }
                         Err(error) => return Err(upstream_error(error)),
                     }
+                }
+                change = catalog_changes.changed() => {
+                    if change.is_err() { return Ok(()); }
+                    // Finish normally after a hint, as when an upstream source ends.
+                    // Re-listening re-admits current selection/access/placement; Task
+                    // filters independently retain their original exact captures.
+                    catalog_changes.borrow_and_update();
+                    notify_catalog_change(&context, &accepted).await?;
+                    return Ok(());
                 }
                 change = discovery_changes.recv() => {
                     match change {
@@ -294,15 +334,16 @@ impl HubMcp {
 
     async fn open_upstream_subscription(
         &self,
-        server: ServerSlug,
+        key: SubscriptionRouteKey,
         route: UpstreamSubscriptionRoute,
         downstream: rmcp::service::Peer<rmcp::service::RoleServer>,
         subject: crate::AuthenticatedSubject,
         required: bool,
     ) -> Result<OpenedUpstreamSubscription, McpError> {
+        let server = &key.0;
         let needs_tasks = route.filter.task_ids.is_some();
         let upstream = self
-            .upstream_with_tasks(&server, downstream, &subject, needs_tasks)
+            .upstream_with_tasks(server, downstream, &subject, needs_tasks)
             .await
             .map_err(super::http_response::RequestError::into_protocol)?;
         let observed = upstream
@@ -326,9 +367,10 @@ impl HubMcp {
             )));
         }
         Ok(OpenedUpstreamSubscription {
+            hub: self.clone(),
             task_ids: route.task_ids,
             connection: upstream,
-            notifications: Box::pin(routed_notifications(server, required, subscription)),
+            notifications: Box::pin(routed_notifications(key, required, subscription)),
         })
     }
 
@@ -386,12 +428,12 @@ fn subscription_filter_is_empty(filter: &SubscriptionFilter) -> bool {
 }
 
 fn routed_notifications(
-    server: ServerSlug,
+    key: SubscriptionRouteKey,
     required: bool,
     mut subscription: rmcp::service::Subscription,
 ) -> impl Stream<
     Item = (
-        ServerSlug,
+        SubscriptionRouteKey,
         bool,
         Result<Option<ServerNotification>, ServiceError>,
     ),
@@ -400,7 +442,7 @@ fn routed_notifications(
     async_stream::stream! {
         loop {
             match subscription.next().await {
-                Ok(Some(notification)) => yield (server.clone(), required, Ok(Some(notification))),
+                Ok(Some(notification)) => yield (key.clone(), required, Ok(Some(notification))),
                 Ok(None) => {
                     let reason = match subscription.end() {
                         Some(SubscriptionEnd::Graceful(_)) => "graceful",
@@ -409,15 +451,52 @@ fn routed_notifications(
                         Some(SubscriptionEnd::Lagged { .. }) => "lagged",
                         _ => "unknown",
                     };
-                    tracing::info!(%server, reason, "upstream subscription ended; completing downstream listen for re-subscription");
-                    yield (server.clone(), required, Ok(None));
+                    tracing::info!(server = %key.0, deployment = %key.1, reason, "upstream subscription ended; completing downstream listen for re-subscription");
+                    yield (key.clone(), required, Ok(None));
                     break;
                 }
                 Err(error) => {
-                    yield (server.clone(), required, Err(error));
+                    yield (key.clone(), required, Err(error));
                     break;
                 }
             }
         }
     }
+}
+
+// Hints contain no authority; the caller re-lists/re-listens under current admission.
+async fn notify_catalog_change(
+    context: &SubscriptionContext,
+    accepted: &SubscriptionFilter,
+) -> Result<(), McpError> {
+    if accepted.tools_list_changed == Some(true) {
+        context
+            .sink()
+            .notify_tool_list_changed()
+            .await
+            .map_err(|error| {
+                mcp_internal(format!("failed to publish tool catalog change: {error}"))
+            })?;
+    }
+    if accepted.prompts_list_changed == Some(true) {
+        context
+            .sink()
+            .notify_prompt_list_changed()
+            .await
+            .map_err(|error| {
+                mcp_internal(format!("failed to publish prompt catalog change: {error}"))
+            })?;
+    }
+    if accepted.resources_list_changed == Some(true) {
+        context
+            .sink()
+            .notify_resource_list_changed()
+            .await
+            .map_err(|error| {
+                mcp_internal(format!(
+                    "failed to publish resource catalog change: {error}"
+                ))
+            })?;
+    }
+    Ok(())
 }

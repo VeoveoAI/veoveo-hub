@@ -223,7 +223,7 @@ mod tests {
     use super::*;
     use crate::mcp::HubUpstreamHttpClientPool;
     use futures::StreamExt;
-    use veoveo_hub_sdk::ServerSlug;
+    use veoveo_hub_sdk::DeploymentId;
 
     #[tokio::test]
     async fn native_destination_replacement_retains_only_inflight_and_unaffected_listeners()
@@ -298,9 +298,9 @@ mod tests {
         let config: NativeUpstreams = serde_json::from_slice(&std::fs::read(path)?)?;
         let endpoint = &config.bindings.first().context("fixture binding")?.endpoint;
         let pool = HubUpstreamHttpClientPool::native(&config).await?;
-        let slug = ServerSlug::parse("native-fixture")?;
+        let deployment = DeploymentId::new();
         let transport = pool
-            .transport(&slug, endpoint)
+            .transport(deployment, endpoint)
             .map_err(|e| anyhow::anyhow!("{e}"))?;
         let mut url = endpoint.url().clone();
         url.set_path("/healthz");
@@ -356,8 +356,7 @@ mod tests {
         );
         let missing = ServerEndpoint::new(url::Url::parse("http://unbound.internal/mcp")?)?;
         ensure!(
-            pool.transport(&ServerSlug::parse("unbound")?, &missing)
-                .is_err(),
+            pool.transport(DeploymentId::new(), &missing).is_err(),
             "unbound endpoint rejected"
         );
         drop(transport);

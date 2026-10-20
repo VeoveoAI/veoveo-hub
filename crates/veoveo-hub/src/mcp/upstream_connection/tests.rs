@@ -111,7 +111,13 @@ impl Fixture {
     }
 
     async fn connect(&self) -> Result<RunningService<RoleClient, ClientConfig>, RequestError> {
-        connect(&pool(), "upstream-a", &self.endpoint).await
+        connect(
+            &pool(),
+            veoveo_hub_sdk::DeploymentId::new(),
+            "upstream-a",
+            &self.endpoint,
+        )
+        .await
     }
 }
 
@@ -127,18 +133,21 @@ fn pool() -> HubUpstreamHttpClientPool {
 
 async fn connect(
     pool: &HubUpstreamHttpClientPool,
+    deployment: veoveo_hub_sdk::DeploymentId,
     slug: &str,
     endpoint: &str,
 ) -> Result<RunningService<RoleClient, ClientConfig>, RequestError> {
-    let server = crate::test_catalog::registered_server(slug, endpoint);
+    let mut server = crate::test_catalog::registered_server(slug, endpoint);
+    server.deployment = deployment;
     let http = HubAuthorizedHttpClient::new(
-        pool.transport(&server.slug, &server.endpoint).unwrap(),
+        pool.transport(server.deployment, &server.endpoint).unwrap(),
         crate::test_catalog::token_issuer(),
         "workspace".parse().unwrap(),
         &server,
         &super::super::task_ownership_tests::subject(),
         Default::default(),
-    );
+    )
+    .unwrap();
     discover(
         ClientConfig::default(),
         http,
@@ -317,13 +326,14 @@ async fn bind_again(address: std::net::SocketAddr) -> TcpListener {
 /// answered in full.
 async fn pool_connections(
     pool: &HubUpstreamHttpClientPool,
+    deployment: veoveo_hub_sdk::DeploymentId,
     slug: &str,
     endpoint: &str,
     count: usize,
 ) {
     let transport = pool
         .transport(
-            &crate::test_catalog::registered_server(slug, endpoint).slug,
+            deployment,
             &crate::test_catalog::registered_server(slug, endpoint).endpoint,
         )
         .unwrap();
@@ -350,8 +360,10 @@ async fn after_an_upstream_restart_discovery_and_calls_succeed_and_other_pools_s
         let b_upstream = Upstream::serve(b_listener);
         let b = Forward::start(b_backend).await;
 
-        pool_connections(&pool, "upstream-a", &a.endpoint, 4).await;
-        pool_connections(&pool, "upstream-b", &b.endpoint, 4).await;
+        let a_deployment = veoveo_hub_sdk::DeploymentId::new();
+        let b_deployment = veoveo_hub_sdk::DeploymentId::new();
+        pool_connections(&pool, a_deployment, "upstream-a", &a.endpoint, 4).await;
+        pool_connections(&pool, b_deployment, "upstream-b", &b.endpoint, 4).await;
         let a_pooled = a.accepted.load(Ordering::SeqCst);
         let b_pooled = b.accepted.load(Ordering::SeqCst);
         assert!(
@@ -366,7 +378,7 @@ async fn after_an_upstream_restart_discovery_and_calls_succeed_and_other_pools_s
         // Every discovery and every tool call after the restart succeeds.
         const CALLS: usize = 4;
         for call in 0..CALLS {
-            let client = connect(&pool, "upstream-a", &a.endpoint)
+            let client = connect(&pool, a_deployment, "upstream-a", &a.endpoint)
                 .await
                 .unwrap_or_else(|error| panic!("discovery {call} after the restart: {error:?}"));
             client
@@ -382,7 +394,9 @@ async fn after_an_upstream_restart_discovery_and_calls_succeed_and_other_pools_s
         assert!(a_second.requests.load(Ordering::SeqCst) >= 2 * CALLS);
 
         // upstream-b's pool is untouched: its next requests reuse its idle connections.
-        let client = connect(&pool, "upstream-b", &b.endpoint).await.unwrap();
+        let client = connect(&pool, b_deployment, "upstream-b", &b.endpoint)
+            .await
+            .unwrap();
         client
             .call_tool(CallToolRequestParams::new("mutate"))
             .await

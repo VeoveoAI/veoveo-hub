@@ -2,6 +2,8 @@ use super::*;
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ControlPlaneWire {
+    #[serde(default)]
+    pub execution: Option<crate::execution::ExecutionConfiguration>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub branding: Option<InstallationBranding>,
     #[serde(default)]
@@ -51,6 +53,7 @@ impl<'de> Deserialize<'de> for HubControlPlane {
         let wire: ControlPlaneWire =
             serde_json::from_value(value).map_err(serde::de::Error::custom)?;
         Ok(Self {
+            execution: wire.execution,
             branding: wire.branding,
             native_upstreams: wire.native_upstreams,
             computers: wire.computers,

@@ -21,6 +21,7 @@ pub struct ServerHealthReport {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ServerHealthEntry {
     pub server: veoveo_types::ServerSlug,
+    pub deployment: veoveo_types::DeploymentId,
     pub state: Option<HubServerHealthState>,
     pub checked_at: Option<chrono::DateTime<chrono::Utc>>,
 }
@@ -32,7 +33,7 @@ mod tests {
     #[test]
     fn health_snapshot_preserves_null_probe() {
         let wire = serde_json::json!({
-            "servers": [{"server":"frames", "state":null, "checkedAt":null}]
+            "servers": [{"server":"frames", "deployment":"019a5b30-0000-7000-8000-000000000001", "state":null, "checkedAt":null}]
         });
         let report: ServerHealthReport = serde_json::from_value(wire.clone()).unwrap();
         assert_eq!(report.servers[0].state, None);

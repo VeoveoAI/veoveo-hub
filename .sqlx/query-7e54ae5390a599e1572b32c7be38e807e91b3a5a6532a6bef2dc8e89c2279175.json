@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT environment, owner_tenant, owner_principal,\n    metadata AS \"metadata: Json<ClientMetadata>\",\n    storage_binding AS \"storage: Json<StorageBinding>\",\n    runtime AS \"runtime: Json<NativeUpstreamBinding>\", expires_at, consumed_at\nFROM hub.deployment_admission\nWHERE token_digest = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "environment",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.deployment_admission",
+            "name": "environment"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_tenant",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.deployment_admission",
+            "name": "owner_tenant"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "owner_principal",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.deployment_admission",
+            "name": "owner_principal"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "metadata: Json<ClientMetadata>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.deployment_admission",
+            "name": "metadata"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "storage: Json<StorageBinding>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.deployment_admission",
+            "name": "storage_binding"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "runtime: Json<NativeUpstreamBinding>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.deployment_admission",
+            "name": "runtime"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.deployment_admission",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "consumed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.deployment_admission",
+            "name": "consumed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "7e54ae5390a599e1572b32c7be38e807e91b3a5a6532a6bef2dc8e89c2279175"
+}

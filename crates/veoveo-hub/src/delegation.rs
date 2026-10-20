@@ -171,6 +171,7 @@ type Refused = Box<(TokenExchangeRefusal, Option<Subject>, u32)>;
 
 /// A verified exchange subject: whom the token acts for, until when, and through which
 /// profile.
+#[derive(Clone)]
 struct Subject {
     kind: ExchangeSubjectKind,
     caller: DelegatedCaller,
@@ -315,7 +316,27 @@ impl DelegationService {
             .subject(request, metadata)
             .await
             .map_err(|refusal| Box::new((refusal, None, 0)))?;
-        match self.issue(request, client, metadata, &subject) {
+        let snapshot = self.inner.catalog.snapshot();
+        let mut authenticated = subject_of(&subject.caller, None);
+        let composition = crate::execution::admit_execution(
+            &self.inner.hub,
+            snapshot.catalog(),
+            &mut authenticated,
+            None,
+        )
+        .await
+        .map_err(|error| {
+            Box::new((
+                TokenExchangeRefusal::new(
+                    TokenErrorCode::InvalidGrant,
+                    format!("the captured execution selection is unavailable: {error}"),
+                ),
+                Some(subject.clone()),
+                0,
+            ))
+        })?;
+        let selected = snapshot.selected(&composition);
+        match self.issue(request, client, metadata, &subject, &selected.current()) {
             Ok((response, requested)) => Ok((response, subject, requested)),
             Err((refusal, requested)) => Err(Box::new((refusal, Some(subject), requested))),
         }
@@ -330,10 +351,10 @@ impl DelegationService {
         client: &OAuthClientId,
         metadata: &ClientMetadata,
         subject: &Subject,
+        catalog: &HubCatalog,
     ) -> Result<(TokenExchangeResponse, u32), (TokenExchangeRefusal, u32)> {
         use TokenErrorCode::*;
         let slug = metadata.slug();
-        let catalog = self.inner.catalog.current();
         let uses: BTreeSet<&PermissionName> = metadata.authorization.uses.iter().collect();
         let requested: BTreeSet<PermissionName> = match request.authorization_details.as_deref() {
             None => uses
@@ -382,7 +403,7 @@ impl DelegationService {
                 format!("resource must be {resource}, the profile the subject came through"),
             ));
         }
-        let missing = missing_providers(&catalog, &requested);
+        let missing = missing_providers(catalog, &requested);
         if !missing.is_empty() {
             return Err(refuse(
                 InvalidTarget,
@@ -397,10 +418,11 @@ impl DelegationService {
                 resource,
                 caller: subject.caller.clone(),
                 acting_server: ActingServer {
+                    deployment: metadata.registration.deployment,
                     server: slug.clone(),
                     client: client.clone(),
                 },
-                permissions: self.held(&catalog, &requested, &subject.caller),
+                permissions: self.held(catalog, &requested, &subject.caller),
                 task: subject.task.clone(),
                 expires_at: subject.expires_at,
             })
@@ -494,7 +516,7 @@ impl DelegationService {
                 let delegation = self
                     .inner
                     .hub
-                    .task_delegation(slug, task.as_str())
+                    .task_delegation(slug, metadata.registration.deployment, task.as_str())
                     .await
                     .map_err(TokenExchangeRefusal::unavailable)?
                     .ok_or_else(|| {
@@ -507,6 +529,7 @@ impl DelegationService {
                     })?;
                 self.require_task(
                     &DelegatingTask {
+                        deployment: metadata.registration.deployment,
                         server: slug.clone(),
                         task: task.clone(),
                     },
@@ -544,7 +567,7 @@ impl DelegationService {
         let Some(route) = self
             .inner
             .hub
-            .task_delegation(&task.server, task.task.as_str())
+            .task_delegation(&task.server, task.deployment, task.task.as_str())
             .await?
         else {
             return Ok(Some("the originating Task's delegation route has ended"));
@@ -557,7 +580,7 @@ impl DelegationService {
         if !self
             .inner
             .hub
-            .task_live(&task.server, task.task.as_str(), caller)
+            .task_live(&task.server, task.deployment, task.task.as_str(), caller)
             .await?
         {
             return Ok(Some("the originating Task has ended"));
@@ -599,6 +622,7 @@ impl DelegationService {
         HubInternalTokenVerifier::new(
             self.inner.issuer_id.clone(),
             TokenAudience {
+                deployment: metadata.registration.deployment,
                 server: metadata.slug().clone(),
                 resource: ResourceIndicator::from(&metadata.registration.endpoint),
             },
@@ -738,6 +762,7 @@ fn subject_of(
     delegation: Option<SubjectDelegation>,
 ) -> AuthenticatedSubject {
     AuthenticatedSubject {
+        execution: Some(caller.request_context.execution.clone()),
         extensions: Default::default(),
         audit: crate::request_observation::RequestObservation::current()
             .map(|request| request.audit)

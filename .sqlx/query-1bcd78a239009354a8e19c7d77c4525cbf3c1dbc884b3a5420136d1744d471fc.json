@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT canonical FROM hub.execution_composition WHERE revision = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "canonical",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "hub.execution_composition",
+            "name": "canonical"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1bcd78a239009354a8e19c7d77c4525cbf3c1dbc884b3a5420136d1744d471fc"
+}

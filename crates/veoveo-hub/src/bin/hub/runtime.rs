@@ -1,6 +1,5 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use axum::Router;
 use chrono::Utc;
 use parking_lot::RwLock;
 use serde::Serialize;
@@ -18,7 +17,7 @@ const RETENTION_BATCH: MaintenanceBatch = MaintenanceBatch::DEFAULT;
 
 pub(super) type SharedCatalog = HubCatalogHandle;
 pub(super) type SharedHttpClient = Arc<RwLock<reqwest::Client>>;
-pub(super) type ProfileMcpService = Router;
+pub(super) type ProfileMcpService = veoveo_hub::HubMcp;
 pub(super) type SharedProfileMcpServices = Arc<RwLock<BTreeMap<HubProfileId, ProfileMcpService>>>;
 
 #[derive(Clone)]

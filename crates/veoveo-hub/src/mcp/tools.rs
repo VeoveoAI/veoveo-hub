@@ -76,7 +76,11 @@ impl HubMcp {
                 denied,
             )
             .await?;
-            let page = super::catalog_pages::page(tools, request.as_ref())?;
+            let page = super::catalog_pages::page(
+                tools,
+                request.as_ref(),
+                super::execution_composition(&subject)?,
+            )?;
             return Ok(ListToolsResult {
                 tools: page.items,
                 next_cursor: page.next_cursor,
@@ -157,7 +161,11 @@ impl HubMcp {
             denied,
         )
         .await?;
-        let page = super::catalog_pages::page(tools, request.as_ref())?;
+        let page = super::catalog_pages::page(
+            tools,
+            request.as_ref(),
+            super::execution_composition(&subject)?,
+        )?;
         Ok(ListToolsResult {
             tools: page.items,
             next_cursor: page.next_cursor,
@@ -511,20 +519,24 @@ impl HubMcp {
         );
         // A server that calls other servers may call them from this Task for its caller.
         // A Task another server's call created delegates nothing further.
-        let uses_others = self
-            .catalog
-            .current()
+        let catalog = self.catalog.current();
+        let registered = catalog
             .server(server)
-            .is_some_and(|registered| !registered.authorization.uses.is_empty());
-        let delegated_caller = (uses_others && subject.delegation.is_none()).then(|| {
-            veoveo_hub_sdk::DelegatedCaller {
+            .ok_or_else(|| mcp_internal("Task deployment is not selected"))?;
+        let uses_others = !registered.authorization.uses.is_empty();
+        let delegated_caller = if uses_others && subject.delegation.is_none() {
+            Some(veoveo_hub_sdk::DelegatedCaller {
                 client: subject.access_token.oauth_client_id.clone(),
                 actor: subject.actor.clone(),
                 authority: subject.authority.clone(),
-                request_context: subject.request_context(),
+                request_context: subject
+                    .request_context()
+                    .map_err(|error| mcp_internal(error.to_string()))?,
                 delegation_context: None,
-            }
-        });
+            })
+        } else {
+            None
+        };
         let (canonical, _) = self
             .state
             .create_task_route(HubTaskRouteDraft {
@@ -532,6 +544,11 @@ impl HubMcp {
                 work_context: subject.authority.work_context.clone(),
                 profile: self.profile_id.clone(),
                 server: server.clone(),
+                deployment: registered.deployment,
+                execution: subject
+                    .execution
+                    .clone()
+                    .ok_or_else(|| mcp_internal("Task execution capture is missing"))?,
                 source_task_id: created.task.task_id.clone(),
                 authority_digest,
                 ownership: crate::state::HubTaskOwnership::from_invocation(

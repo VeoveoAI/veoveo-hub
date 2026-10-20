@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH claim AS (\n    INSERT INTO hub.namespace_claim (server, key_thumbprint, claimed_at)\n    VALUES ($2, $3, clock_timestamp())\n    ON CONFLICT (server) DO UPDATE SET server = EXCLUDED.server\n    RETURNING server\n)\nINSERT INTO hub.deployment (id, server, metadata, storage_binding, created_at)\nSELECT $1, claim.server, $4, $5, clock_timestamp() FROM claim\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4de6690de30f72fa1de50a4b92f74d6b1e6dc57b1901d9a8020ed761fb40de52"
+}

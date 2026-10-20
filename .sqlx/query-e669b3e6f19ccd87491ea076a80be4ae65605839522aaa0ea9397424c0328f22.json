@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- veoveo: scan (kernel.instance has no index on login; it holds one row per running process of the installation)\nSELECT\n    r.deployment,\n    r.orphaned_at,\n    EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    ) AS \"alive!\"\nFROM hub.registration AS r\nWHERE r.client_id = ANY ($1)\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deployment",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.registration",
+            "name": "deployment"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "orphaned_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.registration",
+            "name": "orphaned_at"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "alive!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "e669b3e6f19ccd87491ea076a80be4ae65605839522aaa0ea9397424c0328f22"
+}

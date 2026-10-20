@@ -63,10 +63,22 @@ pub(crate) async fn cancel_task(
         Err(response) => return *response,
     };
 
-    let exposed = catalog
-        .profile_server(&profile_id, &server_slug)
-        .is_some_and(|(_, server)| server.capabilities.tasks);
-    if !exposed {
+    let deployment = match state
+        .hub_state
+        .task_deployment(&server_slug, task_id, subject.principal.tenant.as_ref())
+        .await
+    {
+        Ok(deployment) => deployment,
+        Err(error) => return internal_error_response(error),
+    };
+    let exposed = deployment.filter(|deployment| {
+        catalog.profile_servers(&profile_id).iter().any(|server| {
+            server.slug == server_slug
+                && server.deployment == *deployment
+                && server.capabilities.tasks
+        })
+    });
+    let Some(deployment) = exposed else {
         if let Err(error) = record_task_result(
             &state,
             &profile,
@@ -81,13 +93,14 @@ pub(crate) async fn cancel_task(
             return internal_error_response(error);
         }
         return StatusCode::NOT_FOUND.into_response();
-    }
+    };
 
     // The Hub acts for the Task's owner on the server's Tasks; its own kernel
     // instance owns no Task work.
     let task_runtime = TaskRuntime::new(
         state.hub_state.platform_store().clone(),
         server_slug.clone(),
+        deployment,
         state.instance.clone(),
     );
     let owner = TaskOwner {

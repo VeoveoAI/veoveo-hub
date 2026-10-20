@@ -10,9 +10,10 @@
 | Veoveo `gtr_` route identifiers | 32 random bytes encoded as base64url without padding; identifiers convey no access authority |
 
 `task_routes.rs` owns the mapping between an upstream Task and its public hub
-identifier. The source tuple is server, opaque upstream ID, owner and profile, and a
+identifier. The source tuple is logical server, immutable deployment, opaque upstream ID, owner and profile, and a
 unique constraint holds it. Each mapping also records its tenant, Work Context,
-authorization digest and the owner's actor and provenance. Those fields must match
+authorization digest, exact execution composition and the owner's actor and provenance. The
+composition is retained by its canonical digest before a route is inserted. Authority fields must match
 before an existing route is reused.
 
 A route of a server that declares uses keeps `delegated_caller`, the caller a token
@@ -26,7 +27,8 @@ when a later configuration removes it.
 
 An upstream tool retry can return its original Task. Hub projection returns that
 Task's existing public route, including across replicas and fresh authentication.
-It preserves the original creation time and expiry. Competing projections insert with
+It preserves the original creation time, expiry and execution capture, including when a
+later selection reaches the same deployment through another composition. Competing projections insert with
 `ON CONFLICT DO NOTHING` and then read the one route the source tuple holds; no lookup
 redispatches the upstream tool. A retry neither extends nor recreates an expired
 route that retention has not yet deleted.
@@ -65,3 +67,21 @@ exposure. The database tests cover twelve competing projections across two pools
 retained expiry, changed Work Context, authority and labels, expired mappings,
 independent servers, overflow-safe retention input and the stored ownership round
 trip.
+
+Deployment identity is independent of the logical namespace and the business Work
+Context. Different deployments can project the same opaque source Task ID without
+colliding. Current registration of the exact immutable deployment may resume after
+a process restart; no lookup substitutes the newest registration of another deployment.
+
+A Task's current request can select a different environment. After owner/provenance
+checks, Task routing restores the original retained composition and checks current
+access to that captured environment. Current base ancestry is irrelevant to the old
+capture. Current component/data policy still applies, and a delegated request must
+already carry the same capture. Revoked captured-environment access cannot be
+recovered by selecting another environment containing the same deployment.
+Listeners are keyed by logical server, deployment and composition, so one request
+can retain old Task streams while its current catalog selects a replacement. A live
+catalog publication completes the listen after an invalidation hint; reconnect
+re-admits every Task's own capture and current access rather than retaining stale
+subscription authority. The existing administrative native Task path similarly
+reads the Task's stored deployment before invoking Core's owner query.

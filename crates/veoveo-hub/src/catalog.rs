@@ -207,6 +207,19 @@ impl HubCatalogSnapshot {
     pub fn generation(&self) -> u64 {
         self.generation
     }
+
+    /// An immutable request view retaining this exact authority/runtime generation.
+    /// The original live handle remains the source of publication notifications.
+    pub fn selected(&self, composition: &veoveo_hub_sdk::ResolvedComposition) -> HubCatalogHandle {
+        let registrations = self.catalog.registrations().selected(composition);
+        HubCatalogHandle {
+            state: Arc::new(RwLock::new(HubCatalogHandleState {
+                catalog: Arc::new(self.catalog.with_registrations(registrations)),
+                generation: self.generation,
+            })),
+            changes: tokio::sync::watch::channel(self.generation).0,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -602,6 +615,7 @@ impl HubCatalog {
             }
         };
         Ok(AuthenticatedSubject {
+            execution: None,
             extensions,
             audit: crate::request_observation::RequestObservation::current()
                 .map(|request| request.audit)

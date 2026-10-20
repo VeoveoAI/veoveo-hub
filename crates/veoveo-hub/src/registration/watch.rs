@@ -1,5 +1,5 @@
 //! Every replica follows registrations through notifications on the `hub` channel
-//! and routes each server to its newest registration. A housekeeping loop removes the
+//! and retains every deployment, selecting its newest live process registration. A housekeeping loop removes the
 //! registrations whose logins hold no live kernel instance for the grace period.
 
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
@@ -10,7 +10,7 @@ use futures::StreamExt;
 use tokio_util::sync::CancellationToken;
 use veoveo_hub_sdk::registration::ClientMetadata;
 use veoveo_store::ChangeSignal;
-use veoveo_types::{OAuthClientId, ServerSlug};
+use veoveo_types::{DeploymentId, OAuthClientId};
 
 use super::{
     RegisteredServer, RegistrationService, RegistrationSnapshot, ServerCapabilities,
@@ -45,7 +45,7 @@ impl RegistrationService {
             .map(|row| row.metadata.clone())
     }
 
-    /// Reload every registration and route to the newest of each server.
+    /// Reload every registration and retain the newest process of each deployment.
     pub async fn refresh(&self) -> anyhow::Result<()> {
         let rows = self.inner.store.registrations().await?;
         self.inner.live.write().rows = rows
@@ -90,16 +90,17 @@ impl RegistrationService {
         }
     }
 
-    /// Route to the newest registration of each slug.
+    /// Retain every deployment. A process can resume the same immutable deployment;
+    /// a different deployment never takes over another environment's logical route.
     fn route(&self) {
         let mut live = self.inner.live.write();
-        let mut chosen: BTreeMap<ServerSlug, &StoredRegistration> = BTreeMap::new();
+        let mut chosen: BTreeMap<DeploymentId, &StoredRegistration> = BTreeMap::new();
         for row in live.rows.values() {
-            let slug = row.metadata.slug().clone();
-            match chosen.get(&slug) {
+            let deployment = row.metadata.registration.deployment;
+            match chosen.get(&deployment) {
                 Some(current) if current.issued_at >= row.issued_at => {}
                 _ => {
-                    chosen.insert(slug, row);
+                    chosen.insert(deployment, row);
                 }
             }
         }
@@ -135,7 +136,7 @@ impl RegistrationService {
     /// Health of every routed server: healthy while its login holds a live kernel
     /// instance, degraded since housekeeping found it without one until the grace period
     /// removes it.
-    pub async fn health(&self) -> anyhow::Result<BTreeMap<ServerSlug, HubServerHealth>> {
+    pub async fn health(&self) -> anyhow::Result<BTreeMap<DeploymentId, HubServerHealth>> {
         let routed = self
             .inner
             .live
@@ -163,7 +164,7 @@ impl RegistrationService {
                         checked_at: liveness.orphaned_at.unwrap_or(now),
                     }
                 };
-                (liveness.server, health)
+                (liveness.deployment, health)
             })
             .collect())
     }
@@ -221,6 +222,7 @@ impl RegistrationService {
 fn registered(row: &StoredRegistration) -> RegisteredServer {
     let registration = &row.metadata.registration;
     RegisteredServer {
+        deployment: row.metadata.registration.deployment,
         slug: registration.slug.clone(),
         uri_scheme: registration.uri_scheme.clone(),
         endpoint: registration.endpoint.clone(),

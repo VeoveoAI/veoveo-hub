@@ -135,7 +135,12 @@ async fn qualify() {
             .await
             .unwrap();
             let instance = Arc::new(Instance::start(&store, &relay_slug).await.unwrap());
-            let runtime = TaskRuntime::new(store, relay_slug.clone(), instance);
+            let runtime = TaskRuntime::new(
+                store,
+                relay_slug.clone(),
+                metadata.registration.deployment,
+                instance,
+            );
             *relay_runtime.lock().unwrap() = Some(runtime.clone());
             let tasks = RelayTasks::new(runtime, calls.clone());
             hosted::<RelayDomain>(registration, &http)
@@ -466,6 +471,14 @@ fn browser_login(config: &mut Value, keycloak: &TestKeycloak) {
             "metadata": {}
         }),
     );
+    let environment = config["execution"]["defaultEnvironment"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    config["execution"]["environments"][&environment]["readers"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!(format!("{issuer}#{USER}")));
     config["authorization"]["grants"]
         .as_array_mut()
         .unwrap()

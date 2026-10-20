@@ -17,6 +17,8 @@ pub struct VerifiedAccessToken {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthenticatedSubject {
+    /// Resolved at the authenticated execution boundary, never inferred from WorkContext.
+    pub execution: Option<veoveo_hub_sdk::ExecutionContext>,
     pub extensions: veoveo_types::AdmittedExtensions,
     pub audit: veoveo_audit_contract::AuditRequest,
     pub access_token: AccessTokenSubject,
@@ -30,15 +32,28 @@ pub struct AuthenticatedSubject {
 }
 
 impl AuthenticatedSubject {
-    pub fn request_context(&self) -> veoveo_hub_sdk::HubRequestContext {
+    pub fn request_context(
+        &self,
+    ) -> Result<veoveo_hub_sdk::HubRequestContext, veoveo_hub_sdk::InternalTokenError> {
         if let Some(delegation) = &self.delegation {
-            return delegation.request_context.clone();
+            if self
+                .execution
+                .as_ref()
+                .is_some_and(|execution| execution != &delegation.request_context.execution)
+            {
+                return Err(veoveo_hub_sdk::InternalTokenError::InvalidRequestContext);
+            }
+            return Ok(delegation.request_context.clone());
         }
-        veoveo_hub_sdk::HubRequestContext {
+        Ok(veoveo_hub_sdk::HubRequestContext {
+            execution: self
+                .execution
+                .clone()
+                .ok_or(veoveo_hub_sdk::InternalTokenError::InvalidRequestContext)?,
             audit: self.audit.clone(),
             access_token: self.access_token.clone(),
             principal: self.principal.clone(),
-        }
+        })
     }
 }
 
