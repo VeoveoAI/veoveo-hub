@@ -100,6 +100,7 @@ pub(super) async fn read(
     run(clone, cancellation).await?;
     let mut write = native_command(temporary.path());
     write
+        .current_dir(&repository_path)
         .args(["--access-token", token.as_str(), "--repository"])
         .arg(&repository_path)
         .args([
