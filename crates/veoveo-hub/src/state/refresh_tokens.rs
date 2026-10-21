@@ -169,6 +169,35 @@ pub enum HubRefreshExchange {
 }
 
 impl HubState {
+    /// An omitted refresh resource means this retained grant's exact resource,
+    /// not a default inferred from the client's current resource registrations.
+    /// Consumed predecessors still reach the atomic delivery/replay checks.
+    pub async fn refresh_token_resource(
+        &self,
+        token: &OAuthRefreshToken,
+        authorization_server: &AuthorizationServerId,
+        oauth_client_id: &OAuthClientId,
+        now: DateTime<Utc>,
+    ) -> Result<Option<ProtectedResourceId>> {
+        let Some((current, family)) = self
+            .store
+            .refresh_grant(&refresh_token_digest(token))
+            .await
+            .context("failed to read hub refresh-token resource")?
+        else {
+            return Ok(None);
+        };
+        if &family.authorization_server != authorization_server
+            || &family.oauth_client_id != oauth_client_id
+            || current.expires_at <= now
+            || family.expires_at <= now
+            || family.revoked_at.is_some()
+        {
+            return Ok(None);
+        }
+        Ok(Some(family.protected_resource))
+    }
+
     pub async fn refresh_token_grant(
         &self,
         token: &OAuthRefreshToken,

@@ -10,7 +10,7 @@ use axum::{
 
 use veoveo_hub::HubCatalog;
 use veoveo_hub::contract::{AuthOutcome, AuthReasonCode};
-use veoveo_hub::control_plane::OAuthClientRegistration;
+use veoveo_hub::control_plane::{OAuthClientRegistration, OAuthRefreshToken};
 use veoveo_hub_sdk::OAuthClientId;
 use veoveo_oauth::CLIENT_ASSERTION_TYPE;
 
@@ -86,6 +86,52 @@ pub(super) async fn token_endpoint(
             return *invalid_client();
         }
     };
+    // RFC 8707: refresh stays within its retained original grant. Adding another
+    // client resource must not make a native refresh without `resource` ambiguous.
+    if request.grant_type == "refresh_token"
+        && request
+            .resource
+            .as_deref()
+            .is_none_or(|resource| resource.trim().is_empty())
+    {
+        let token = request
+            .refresh_token
+            .as_deref()
+            .map(str::trim)
+            .and_then(|token| OAuthRefreshToken::parse(token).ok());
+        let resource = match token {
+            Some(token) => {
+                state
+                    .hub_state
+                    .refresh_token_resource(
+                        &token,
+                        &effective.registration.authorization_server,
+                        &client_id,
+                        chrono::Utc::now(),
+                    )
+                    .await
+            }
+            None => Ok(None),
+        };
+        match resource {
+            Ok(Some(resource)) => request.resource = Some(resource.to_string()),
+            Ok(None) => {
+                return oauth_error_response(
+                    StatusCode::BAD_REQUEST,
+                    "invalid_grant",
+                    "refresh token is invalid, expired, or replayed",
+                );
+            }
+            Err(error) => {
+                tracing::error!(%error, "failed to resolve OAuth refresh-token resource");
+                return oauth_error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "server_error",
+                    "refresh-token state is unavailable",
+                );
+            }
+        }
+    }
     let resource = match resolve_client_resource(
         &catalog,
         &effective.registration,

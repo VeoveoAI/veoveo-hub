@@ -58,6 +58,43 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
             })
             .await
             .unwrap();
+        assert_eq!(
+            second
+                .refresh_token_resource(&issued.token, &authorization_server, &client, now)
+                .await
+                .unwrap(),
+            Some(resource.clone())
+        );
+        for (server, caller) in [
+            (
+                AuthorizationServerId::parse("other").unwrap(),
+                client.clone(),
+            ),
+            (
+                authorization_server.clone(),
+                OAuthClientId::parse("other").unwrap(),
+            ),
+        ] {
+            assert!(
+                second
+                    .refresh_token_resource(&issued.token, &server, &caller, now)
+                    .await
+                    .unwrap()
+                    .is_none()
+            );
+        }
+        assert!(
+            second
+                .refresh_token_resource(
+                    &issued.token,
+                    &authorization_server,
+                    &client,
+                    now + TimeDelta::days(8),
+                )
+                .await
+                .unwrap()
+                .is_none()
+        );
         let token = AccessTokenSubject {
             issuer: TokenIssuer::parse("https://veoveo.example").unwrap(),
             subject: principal.subject.clone(),
@@ -174,6 +211,14 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
             _ => panic!("rotation must succeed"),
         };
         assert_eq!(rotated.grant.family_id, issued.grant.family_id);
+        assert_eq!(
+            second
+                .refresh_token_resource(&issued.token, &authorization_server, &client, now)
+                .await
+                .unwrap(),
+            Some(resource.clone()),
+            "consumed predecessors still reach atomic delivery/replay handling"
+        );
         assert!(
             second
                 .access_token_session_valid(
@@ -228,6 +273,14 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
             }
         }
         // A still-unexpired signed access token cannot outlive committed family revocation.
+        assert!(
+            second
+                .refresh_token_resource(&rotated.token, &authorization_server, &client, Utc::now())
+                .await
+                .unwrap()
+                .is_none(),
+            "ended family cannot select a refresh resource: {ending}"
+        );
         assert!(
             !second
                 .access_token_session_valid(

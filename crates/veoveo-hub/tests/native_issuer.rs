@@ -280,6 +280,95 @@ async fn qualify() {
     assert_eq!(refreshed_claims["sub"], claims["sub"]);
     assert_eq!(refreshed_claims["identity"], claims["identity"]);
     assert_eq!(refreshed_claims[purpose], "login");
+
+    // A live client-resource addition must not change the original refresh grant.
+    // This is the native custody request shape: no resource or scope parameter.
+    let original = hub.control_plane().await;
+    let mut multiple = original.clone();
+    let other_resource = "https://native.example/other-source";
+    let mut other = multiple["lore"]["deployments"][0].clone();
+    other["id"] = json!("other-source");
+    other["resourceName"] = json!("other-native-source");
+    other["audience"] = json!(other_resource);
+    multiple["lore"]["deployments"]
+        .as_array_mut()
+        .unwrap()
+        .push(other);
+    let client = multiple["oauthClients"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|client| client["id"] == "native-cli")
+        .unwrap();
+    client["allowedResources"] = json!([RESOURCE, other_resource]);
+    hub.publish_control_plane(&multiple).await;
+    let predecessor = refreshed["refresh_token"].as_str().unwrap();
+    let (_, wrong_resource) = form(
+        &http,
+        &token_url,
+        &[
+            ("grant_type", "refresh_token"),
+            ("client_id", "native-cli"),
+            ("refresh_token", predecessor),
+            ("resource", other_resource),
+        ],
+    )
+    .await;
+    assert_eq!(wrong_resource["error"], "invalid_grant");
+    let (status, bound) = form(
+        &http,
+        &token_url,
+        &[
+            ("grant_type", "refresh_token"),
+            ("client_id", "native-cli"),
+            ("refresh_token", predecessor),
+        ],
+    )
+    .await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{bound}");
+    let bound_claims = verified(
+        bound["access_token"].as_str().unwrap(),
+        &keys,
+        metadata["issuer"].as_str().unwrap(),
+    );
+    assert_eq!(bound_claims["sub"], claims["sub"]);
+    assert_eq!(bound_claims["identity"], claims["identity"]);
+    assert_eq!(bound_claims[purpose], "login");
+    // A consumed predecessor still reaches the existing duplicate-delivery path.
+    // Whitespace retains the resolver's existing empty-means-omitted convention.
+    let (status, duplicate) = form(
+        &http,
+        &token_url,
+        &[
+            ("grant_type", "refresh_token"),
+            ("client_id", "native-cli"),
+            ("refresh_token", predecessor),
+            ("resource", "  "),
+        ],
+    )
+    .await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{duplicate}");
+    assert_eq!(duplicate["refresh_token"], bound["refresh_token"]);
+    let client = multiple["oauthClients"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|client| client["id"] == "native-cli")
+        .unwrap();
+    client["allowedResources"] = json!([other_resource]);
+    hub.publish_control_plane(&multiple).await;
+    let (_, withdrawn) = form(
+        &http,
+        &token_url,
+        &[
+            ("grant_type", "refresh_token"),
+            ("client_id", "native-cli"),
+            ("refresh_token", bound["refresh_token"].as_str().unwrap()),
+        ],
+    )
+    .await;
+    assert_eq!(withdrawn["error"], "invalid_target");
+    hub.publish_control_plane(&original).await;
     let (status, factory) = form(
         &http,
         &token_url,
