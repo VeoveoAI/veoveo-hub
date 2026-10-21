@@ -13,7 +13,7 @@ use veoveo_types::WorkContextId;
 
 use super::{
     Association, Mode, Selection, State, Status, WorkspaceStore, client,
-    descriptor::CheckoutDescriptor,
+    descriptor::WorkspaceDescriptor,
 };
 use crate::{
     contributions::lore::{Assignment, Deployment, Lore, NativeAction, Repository},
@@ -216,7 +216,7 @@ impl WorkspaceService {
         }
         self.store.complete(&association).await?;
         // Re-admit against the current contribution. A concurrently revoked grant
-        // must not become a ready checkout merely because publication once succeeded.
+        // must not become a prepared default merely because publication once succeeded.
         self.token(authority, &deployment, Some(&association.repository))
             .await?;
         let association = self
@@ -460,24 +460,23 @@ impl ComputerOnboarding for WorkspaceService {
                 let Some((association, deployment)) = self.prepare(&authority, None).await? else {
                     return Ok(Status::Disabled);
                 };
-                let descriptor = CheckoutDescriptor::new(&deployment, &association)?;
+                let descriptor = WorkspaceDescriptor::new(&deployment, &association)?;
                 let result = context
                     .exec(
                         vec![
                             "/bin/sh".into(),
                             "-ec".into(),
-                            super::descriptor::INSTALL_AND_RETRY.into(),
+                            super::descriptor::INSTALL_DESCRIPTOR.into(),
                         ],
                         descriptor.assignments(),
                     )
                     .await?;
-                Ok(match result.exit_code {
-                    0 => Status::Ready,
-                    16 | 18 => Status::AuthenticationRequired,
-                    17 => Status::Denied,
-                    75 => Status::Preparing,
-                    73 => Status::Conflict,
-                    _ => Status::Unavailable,
+                // Ready means the personal repository default and its public
+                // descriptor are prepared, not that a user logged in or cloned it.
+                Ok(if result.exit_code == 0 {
+                    Status::Ready
+                } else {
+                    Status::Unavailable
                 })
             }
             .await;
