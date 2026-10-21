@@ -1,4 +1,5 @@
-//! Optional executable-owned onboarding. It never owns browser custody or auth.
+//! Best-effort public handbook delivery and optional executable-owned onboarding.
+//! Neither owns browser custody or auth.
 use std::{future::Future, pin::Pin, time::Duration};
 
 use anyhow::{Context, Result};
@@ -50,6 +51,29 @@ pub struct ComputerOnboardingContext {
     runtime: ComputerRuntime,
 }
 impl ComputerOnboardingContext {
+    async fn deliver_handbook(&self) -> Result<()> {
+        let Some(handbook) = self
+            .runtime
+            .catalog
+            .current()
+            .control_plane()
+            .computers
+            .as_ref()
+            .context("Computer handbook configuration unavailable")?
+            .handbook
+            .clone()
+        else {
+            return Ok(());
+        };
+        let result = self
+            .exec(
+                vec!["/bin/sh".into(), "-ec".into(), INSTALL_HANDBOOK.into()],
+                handbook.into_bytes(),
+            )
+            .await?;
+        anyhow::ensure!(result.exit_code == 0, "Computer handbook delivery failed");
+        Ok(())
+    }
     /// Re-read current browser family/client/owner authority before delayed work
     /// or a later native operation. The contribution cannot extend the session.
     pub async fn recheck(&self) -> Result<()> {
@@ -128,6 +152,8 @@ impl ComputerOnboardingContext {
     }
 }
 
+const INSTALL_HANDBOOK: &str = "umask 077; mkdir -p /sandbox/home/.config/computer; tmp=$(mktemp /sandbox/home/.config/computer/.instructions.XXXXXX); trap 'rm -f \"$tmp\"' EXIT; cat >\"$tmp\"; chmod 600 \"$tmp\"; mv -f \"$tmp\" /sandbox/home/.config/computer/instructions.md";
+
 pub trait ComputerOnboarding: Send + Sync + 'static {
     fn ensure<'a>(
         &'a self,
@@ -166,9 +192,7 @@ impl ComputerRuntime {
         }
     }
     pub(super) fn onboard(&self, session: BrowserSession) {
-        let Some(onboarding) = self.onboarding.clone() else {
-            return;
-        };
+        let onboarding = self.onboarding.clone();
         let computer = session.computer();
         let owner = (computer.tenant.clone(), computer.principal.clone());
         if !self.onboarding_jobs.lock().insert(owner.clone()) {
@@ -182,6 +206,14 @@ impl ComputerRuntime {
         tokio::spawn(async move {
             let _job = job;
             let context = runtime.onboarding_context(session);
+            if context.deliver_handbook().await.is_err() {
+                tracing::warn!(
+                    "Computer handbook delivery incomplete; next admitted entry may retry"
+                );
+            }
+            let Some(onboarding) = onboarding else {
+                return;
+            };
             let result = tokio::time::timeout(Duration::from_secs(180), async {
                 // Queueing must not preserve a revoked or replaced browser grant.
                 context.recheck().await?;

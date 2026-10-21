@@ -61,7 +61,10 @@ impl ComputerConfiguration {
             "Computer client must use this Hub's native OAuth endpoints and exact callback"
         );
         let provisioner = match previous.filter(|old| {
-            old.config == config
+            // Guidance changes do not change native provisioning inputs.
+            let mut previous_config = old.config.as_ref().clone();
+            previous_config.handbook.clone_from(&config.handbook);
+            previous_config == *config
                 && old.provisioner.spec.hub_url == profile.protected_resource.as_str()
                 && catalog.secret_reference(&config.model_provider.secret)
                     == Some(&old.provisioner.spec.model_secret)
