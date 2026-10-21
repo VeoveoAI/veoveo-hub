@@ -82,6 +82,16 @@ pub struct Deployment {
     pub token_lifetime_seconds: TokenLifetime,
 }
 impl Deployment {
+    /// Translate the admitted native authority into tonic's TLS transport URI.
+    /// URL scheme mutation cannot cross from non-special `grpcs` to `https`.
+    pub(crate) fn tls_endpoint(&self) -> Result<tonic::transport::Endpoint> {
+        self.recipient()?;
+        let authority = &self.endpoint[url::Position::BeforeHost..url::Position::AfterPort];
+        Ok(tonic::transport::Endpoint::from_shared(format!(
+            "https://{authority}/"
+        ))?)
+    }
+
     fn recipient(&self) -> Result<String> {
         ensure!(
             self.endpoint.scheme() == "grpcs"

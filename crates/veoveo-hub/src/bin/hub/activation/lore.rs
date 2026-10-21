@@ -16,7 +16,7 @@ use lore_proto::lore::revision::v1::{
 use sqlx::{Connection as _, PgConnection, types::Json};
 use tonic::{
     Request,
-    transport::{Channel, ClientTlsConfig, Endpoint},
+    transport::{Channel, ClientTlsConfig},
 };
 use veoveo_hub::{
     activation::{AcceptedApply, ActivationError, MaterializedSource},
@@ -85,11 +85,8 @@ pub(super) async fn credential_in(
     Ok((deployment, token))
 }
 pub(super) async fn connect(deployment: &Deployment) -> Result<Channel> {
-    let mut address = deployment.endpoint.clone();
-    address
-        .set_scheme("https")
-        .map_err(|()| anyhow::anyhow!("invalid native source endpoint"))?;
-    Ok(Endpoint::from_shared(address.to_string())?
+    Ok(deployment
+        .tls_endpoint()?
         .connect_timeout(std::time::Duration::from_secs(30))
         .timeout(std::time::Duration::from_secs(30))
         .tls_config(ClientTlsConfig::new().with_native_roots())?

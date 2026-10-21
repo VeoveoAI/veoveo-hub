@@ -9,7 +9,7 @@ use lore_proto::lore::{
 };
 use tonic::{
     Request,
-    transport::{Channel, ClientTlsConfig, Endpoint},
+    transport::{Channel, ClientTlsConfig},
 };
 
 use super::{Association, BranchId};
@@ -21,11 +21,8 @@ use crate::contributions::lore::Deployment;
 pub(super) struct Client(RepositoryServiceClient<Channel>);
 impl Client {
     pub async fn connect(deployment: &Deployment) -> Result<Self> {
-        let mut address = deployment.endpoint.clone();
-        address
-            .set_scheme("https")
-            .map_err(|()| anyhow::anyhow!("invalid native TLS endpoint"))?;
-        let channel = Endpoint::from_shared(address.to_string())?
+        let channel = deployment
+            .tls_endpoint()?
             .connect_timeout(std::time::Duration::from_secs(30))
             .timeout(std::time::Duration::from_secs(30))
             .tls_config(ClientTlsConfig::new().with_native_roots())?

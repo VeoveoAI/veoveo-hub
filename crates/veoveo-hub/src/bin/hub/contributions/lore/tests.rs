@@ -59,6 +59,38 @@ fn plane() -> HubControlPlane {
         .insert(ProtectedResourceId::parse(RESOURCE).unwrap());
     plane
 }
+#[test]
+fn native_tls_endpoint_preserves_authority_and_rejects_invalid_native_urls() {
+    let source: Lore = serde_json::from_value(plane().extensions.remove("lore").unwrap()).unwrap();
+    let mut deployment = source.deployments.into_iter().next().unwrap();
+    for (native, transport) in [
+        (
+            "grpcs://source.example:41337",
+            "https://source.example:41337/",
+        ),
+        (
+            "grpcs://[2001:db8::7]:41337",
+            "https://[2001:db8::7]:41337/",
+        ),
+    ] {
+        deployment.endpoint = url::Url::parse(native).unwrap();
+        let endpoint = deployment.tls_endpoint().unwrap();
+        assert_eq!(endpoint.uri().to_string(), transport);
+        assert_eq!(endpoint.uri().port_u16(), Some(41337));
+    }
+    for invalid in [
+        "https://source.example:41337",
+        "grpc://source.example:41337",
+        "grpcs:/relative",
+        "grpcs://user@source.example:41337",
+        "grpcs://source.example:41337/repository",
+        "grpcs://source.example:41337?query=value",
+        "grpcs://source.example:41337#fragment",
+    ] {
+        deployment.endpoint = url::Url::parse(invalid).unwrap();
+        assert!(deployment.tls_endpoint().is_err(), "{invalid}");
+    }
+}
 fn catalog(plane: HubControlPlane) -> HubCatalog {
     HubCatalog::from_control_plane(
         plane,
