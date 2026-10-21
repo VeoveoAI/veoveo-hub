@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.control_plane AS \"control_plane: ControlDocument\"\nFROM hub.control_active a JOIN hub.control_revision r ON r.id=a.revision\nFOR UPDATE OF a\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "control_plane: ControlDocument",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.control_revision",
+            "name": "control_plane"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "69c233a7d8bec6ba4ce312afe62f8c11d8791fbdd4de64499f806eb5e13ddce5"
+}

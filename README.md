@@ -34,10 +34,11 @@ and deployed services run through native OpenShell; the former Compose Hub servi
 and application edge route are retired. See the installation's
 [native setup](../veoveo-template-installation/openshell/README.md) and the current
 [Hub/Time integration gates](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md#subsequent-adoption).
-That placement is not yet qualified for Hub + Time. Native upstream transport
-configuration is captured at startup. Catalog updates must keep `nativeUpstreams`
-unchanged; changing its gateway, trust, bearer selector or endpoint bindings requires
-a Hub restart.
+The earlier native deployment is qualified in its recorded scope; the integrated
+environment/source-activation candidate still needs deployed qualification. Native
+upstream placements are authoritative live control data. Revision publication
+prepares replacement transport generations and preserves retained exact bindings;
+ordinary component source changes require no Hub restart.
 
 Tests that need a database start a private PostgreSQL cluster per test process from the
 PostgreSQL 18 programs on `PATH`; the `dev` image installs the PGDG `postgresql-18`
@@ -51,9 +52,11 @@ Queries are checked at compile time against the metadata in `.sqlx`, which also 
 the queries of the core crates the check stage compiles. After changing a query or a
 pin, apply core's kernel migrations and then the Hub's own migrations in
 `crates/veoveo-hub/migrations` to a scratch database, and run
-`cargo sqlx prepare --workspace -- --all-targets --all-features` against it with an
-empty `CARGO_TARGET_DIR`, so every core query is compiled and recorded. The check stage
-does the same before `cargo sqlx prepare --check`.
+`cargo sqlx prepare --workspace --all -- --all-targets --all-features` with
+`DATABASE_URL` pointing to it. The `--all` option also recompiles query macros in
+pinned dependencies outside this workspace, so a warm Core build cannot silently
+omit its metadata from the shared set. The check stage applies the same migrations
+before `cargo sqlx prepare --workspace --all --check`.
 
 ## Local Test Configuration
 
@@ -117,10 +120,15 @@ The application routes are:
 | `/oauth/token` | Client-credentials tokens for the profile `local`, and the token exchange a registered server performs to call other servers for its caller |
 | `/mcp/local` | The MCP endpoint of every registered server |
 
-A server registers at `/oauth/register` with the registration secret as its initial
-access token. Native OpenShell policy/provider binding must limit bootstrap-secret
-mediation to that request. Preserve the SDK's subsequent registration credentials;
-they are not the bootstrap secret. The registration response grants
+An installation/base server registers at `/oauth/register` under its namespace
+bootstrap authority. An independently keyed override uses a one-use,
+deployment-scoped admission bound to its metadata, current owner, native placement
+and explicit storage binding. Namespace private keys and the global initial secret
+do not enter override workers. Native OpenShell policy/provider binding limits
+bootstrap-secret mediation to its admitted request. Preserve the SDK's subsequent
+registration credentials and resume them on ordinary process restart; explicit
+retirement deletes the registration. Missing registration needs freshly admitted
+authority rather than automatic global bootstrap. The registration response grants
 the server its own PostgreSQL login; the server stays registered while that login holds
 a live kernel instance.
 
@@ -133,6 +141,84 @@ application tokens require the configured issuer/audience/claims and matching Hu
 catalog authority; the Hub does not mint tokens for an external authorization
 server. Lore credentials come directly from the installation IdP, never the Hub.
 
+
+## Environment source activation
+
+The owner API and packaged `veoveo-environment` client share one
+[typed environment definition](crates/veoveo-hub/src/bin/hub/activation/types.rs).
+The full candidate is awaiting component gates and deployed qualification; earlier
+helper/mechanism probes do not prove this integrated path.
+
+An authenticated user can create an empty environment or update their own definition
+with `PUT /environments/{profile}/{environment}` and
+`{"idempotency":"<request-key>","definition":{...}}`. The definition contains
+`id`, `displayName`, optional `base` and `components`. The authenticated tenant and
+principal determine ownership; clients cannot supply another owner. Unknown IDs
+are created by this operation, while reads and edits of another owner's ID fail.
+`GET` returns the complete definition. Ordinary owner edits need no AdminWrite.
+An operator separately admits each environment/component's runtime template,
+provider attachments and explicit storage binding through the live control plane.
+That eligibility does not come from the source file.
+
+Each component contains `source`, `runtimeTemplate` and `recipe`. Source is either
+`{"kind":"local_snapshot","digest":"<sha256>","size":123}` or
+`{"kind":"lore","deployment":"<registered-native-id>","repository":"<repo-id>",
+"selection":{"kind":"follow","branch":"<branch-id>"}}`; an exact source pin
+uses `{"kind":"pin","revision":"<native-revision>"}` instead. Recipes contain
+structured `check`/`build` commands with `executable`, `args`, relative `cwd`, and
+one `worker`: compiled output from a source/cache-relative path, or an admitted
+interpreter with immutable source/imports. Commands are foreground commands, not
+background daemons. Activation supplies deployment, endpoint, key directory and
+listener identity; a recipe cannot substitute registration credentials.
+
+The client derives control endpoints from `COMPUTER_HUB_URL` and reuses
+`COMPUTER_HUB_REFERENCE`, the existing native opaque user reference:
+
+```sh
+veoveo-environment apply --definition environment.json --local component=./source --exclude target
+veoveo-environment watch --definition environment.json --local component=./source --exclude target
+```
+
+Local apply reserves before upload. Completion attaches the authorized Artifact ID
+to the same accepted BuildId; Hub independently verifies the producer's digest and
+size while materializing private PVC bytes. Transfer uses the configured platform
+profile, independently of a candidate application's selected environment. Watch
+retries the same reservation after transport failure and observes actual current
+files before submitting changed intent. It does not resubmit obsolete intent merely
+because it reconnects.
+
+`GET /environments/{profile}/applies/{build}` reports desired and prior serving
+state; `POST .../retry` retries that still-current accepted input, and
+`GET .../diagnostics` returns bounded command output/truncation information for its
+owner. Incomplete local transfers need fresh caller authority through
+`POST .../complete-local`; retained source/output does not require uploading again.
+Failed builds keep the previously serving worker, rather than falling back to base.
+
+`GET/POST /environments/{profile}/{environment}/source` reads or explicitly selects
+native definition following, using `{"replaces":<current-source-generation-or-null>,
+"source":{"deployment":"<native-id>","repository":"<repo-id>",
+"branch":"<branch-id>","path":"environments/work.json"}}`. The CLI's
+`follow-definition --environment ID --deployment ID --repository ID --branch ID
+--path environments/work.json` performs this CAS. The ordinary file contains the
+same definition DTO, not another manifest. Local apply switches definition mode to
+local atomically. Component source followers remain independent. Subscribe-before-read,
+periodic authoritative reads, and selector/predecessor CAS handle missed events,
+reconnect and branch rewinds without overwriting a later local selection.
+
+Source changes reuse an admitted native sandbox/PVC and incremental cache. A copied
+compiled executable uses a unique BuildId path; s6 owns revision workers and keeps
+old inputs unchanged. Exact live registration and the application's `/readyz` gate
+route/catalog publication. `/readyz` does not prove MCP discovery/tool behavior.
+Retained canonical Task routes authorize only recovery of their exact worker while
+current environment/template/storage/native placement eligibility remains; they do
+not reselect an old override or grant new source/build authority.
+
+Build the initial helper with `docker build --target environment-artifact ...`.
+The Hub runtime image additionally needs a reviewed matching-platform `lore` named
+artifact context containing `/usr/local/bin/lore`; native Lore reconstructs followed
+definition files. No additional Lore runtime library/allocator is linked into Hub.
+The check target does not require this runtime context. Initial Computer/runtime
+image packaging is separate from per-edit source activation.
 
 ## License
 

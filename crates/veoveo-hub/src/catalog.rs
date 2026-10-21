@@ -243,6 +243,23 @@ pub struct HubCatalog {
 }
 
 impl HubCatalog {
+    /// Native executable contributions reuse the prepared gateway client; they
+    /// never accept an endpoint/credential supplied by an environment definition.
+    pub fn native_control_client(&self) -> Option<openshell_sdk::OpenShellClient> {
+        self.runtime.as_ref()?.upstream_http.native_control_client()
+    }
+    pub async fn native_application_ready(
+        &self,
+        deployment: veoveo_hub_sdk::DeploymentId,
+        endpoint: &veoveo_hub_sdk::registration::ServerEndpoint,
+    ) -> Result<bool> {
+        self.runtime
+            .as_ref()
+            .context("prepared native runtime unavailable")?
+            .upstream_http
+            .application_ready(deployment, endpoint)
+            .await
+    }
     pub fn from_control_plane(
         control_plane: HubControlPlane,
         admission: HubCatalogAdmission,

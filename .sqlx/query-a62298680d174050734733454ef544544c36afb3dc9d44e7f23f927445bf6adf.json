@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT placement AS \"placement: Json<WorkerPlacement>\" FROM hub.activation_worker WHERE build=$1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "placement: Json<WorkerPlacement>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.activation_worker",
+            "name": "placement"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a62298680d174050734733454ef544544c36afb3dc9d44e7f23f927445bf6adf"
+}

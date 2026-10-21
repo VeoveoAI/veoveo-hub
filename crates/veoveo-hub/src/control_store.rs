@@ -104,6 +104,143 @@ impl HubControlStore {
         revision: &HubControlPlaneRevision,
         context: &veoveo_audit_contract::AuditContext,
     ) -> Result<()> {
+        self.record_revision_on_inner(
+            None,
+            previous,
+            revision,
+            context,
+            None,
+            &crate::audit::AuditAppend::new(Default::default()),
+        )
+        .await
+    }
+
+    /// Source activation repeats its generation/authority checks inside the
+    /// existing control publication transaction, never after committing routing.
+    pub async fn record_activation_on(
+        &self,
+        previous: Option<&HubControlPlaneRevision>,
+        revision: &HubControlPlaneRevision,
+        context: &veoveo_audit_contract::AuditContext,
+        activation: &crate::activation::ActivationPublication,
+    ) -> Result<()> {
+        self.record_revision_on_inner(
+            None,
+            previous,
+            revision,
+            context,
+            Some(crate::activation::PublicationGuard::Select(activation)),
+            &crate::audit::AuditAppend::new(Default::default()),
+        )
+        .await
+    }
+
+    pub async fn record_environment_on(
+        &self,
+        previous: Option<&HubControlPlaneRevision>,
+        revision: &HubControlPlaneRevision,
+        context: &veoveo_audit_contract::AuditContext,
+        environment: &crate::activation::EnvironmentPublication,
+    ) -> Result<()> {
+        self.record_revision_on_inner(
+            None,
+            previous,
+            revision,
+            context,
+            Some(crate::activation::PublicationGuard::Environment(
+                environment,
+            )),
+            &crate::audit::AuditAppend::new(Default::default()),
+        )
+        .await
+    }
+
+    pub async fn record_activation_placement_on(
+        &self,
+        previous: Option<&HubControlPlaneRevision>,
+        revision: &HubControlPlaneRevision,
+        context: &veoveo_audit_contract::AuditContext,
+        placement: &crate::activation::ActivationPlacement,
+    ) -> Result<()> {
+        self.record_revision_on_inner(
+            None,
+            previous,
+            revision,
+            context,
+            Some(crate::activation::PublicationGuard::Place(placement)),
+            &crate::audit::AuditAppend::new(Default::default()),
+        )
+        .await
+    }
+
+    pub async fn record_activation_on_connection(
+        &self,
+        connection: &mut sqlx::PgConnection,
+        previous: Option<&HubControlPlaneRevision>,
+        revision: &HubControlPlaneRevision,
+        context: &veoveo_audit_contract::AuditContext,
+        activation: &crate::activation::ActivationPublication,
+    ) -> Result<()> {
+        self.record_revision_on_inner(
+            Some(connection),
+            previous,
+            revision,
+            context,
+            Some(crate::activation::PublicationGuard::Select(activation)),
+            &crate::audit::AuditAppend::new(Default::default()),
+        )
+        .await
+    }
+    pub async fn record_activation_placement_on_connection(
+        &self,
+        connection: &mut sqlx::PgConnection,
+        previous: Option<&HubControlPlaneRevision>,
+        revision: &HubControlPlaneRevision,
+        context: &veoveo_audit_contract::AuditContext,
+        placement: &crate::activation::ActivationPlacement,
+    ) -> Result<()> {
+        self.record_revision_on_inner(
+            Some(connection),
+            previous,
+            revision,
+            context,
+            Some(crate::activation::PublicationGuard::Place(placement)),
+            &crate::audit::AuditAppend::new(Default::default()),
+        )
+        .await
+    }
+    /// Native source definitions and their reservations append on the SAME existing
+    /// publication connection alongside the ordinary audit records.
+    pub async fn record_source_environment_on(
+        &self,
+        previous: Option<&HubControlPlaneRevision>,
+        revision: &HubControlPlaneRevision,
+        context: &veoveo_audit_contract::AuditContext,
+        environment: &crate::activation::EnvironmentPublication,
+        source: &impl crate::store::TransactionAppend,
+    ) -> Result<()> {
+        self.record_revision_on_inner(
+            None,
+            previous,
+            revision,
+            context,
+            Some(crate::activation::PublicationGuard::Environment(
+                environment,
+            )),
+            source,
+        )
+        .await
+    }
+
+    async fn record_revision_on_inner(
+        &self,
+        connection: Option<&mut sqlx::PgConnection>,
+        previous: Option<&HubControlPlaneRevision>,
+        revision: &HubControlPlaneRevision,
+        context: &veoveo_audit_contract::AuditContext,
+        activation: Option<crate::activation::PublicationGuard<'_>>,
+        additional: &impl crate::store::TransactionAppend,
+    ) -> Result<()> {
         let sections = self
             .admission
             .validate(&revision.control_plane)
@@ -120,18 +257,46 @@ impl HubControlStore {
             context,
             revision,
         )?);
+        let records = PublicationRecords { audit, additional };
         let objects = control_plane_objects(&revision.control_plane, &sections)?;
-        self.store
-            .publish_control_revision(
-                ControlPublication {
-                    revision,
-                    replaces: previous.as_ref().map(|previous| &previous.revision_id),
-                    objects: &objects,
-                },
-                &audit,
+        let publication = ControlPublication {
+            revision,
+            replaces: previous.as_ref().map(|previous| &previous.revision_id),
+            objects: &objects,
+        };
+        if let Some(connection) = connection {
+            return HubStore::publish_control_revision_on(
+                connection,
+                publication,
+                &records,
+                activation,
             )
             .await
-            .context("failed to publish hub control-plane revision")
+            .context("failed to publish owned activation revision");
+        }
+        match activation {
+            Some(crate::activation::PublicationGuard::Place(placement)) => {
+                self.store
+                    .publish_activation_placement_revision(publication, &records, placement)
+                    .await
+            }
+            Some(crate::activation::PublicationGuard::Select(activation)) => {
+                self.store
+                    .publish_activation_revision(publication, &records, activation)
+                    .await
+            }
+            Some(crate::activation::PublicationGuard::Environment(environment)) => {
+                self.store
+                    .publish_environment_revision(publication, &records, environment)
+                    .await
+            }
+            None => {
+                self.store
+                    .publish_control_revision(publication, &records)
+                    .await
+            }
+        }
+        .context("failed to publish hub control-plane revision")
     }
 
     pub fn platform_store(&self) -> &PlatformStore {
@@ -242,6 +407,22 @@ fn single_tenant<'a>(tenants: impl IntoIterator<Item = &'a TenantId>) -> Option<
     let mut tenants = tenants.into_iter();
     let tenant = tenants.next()?;
     tenants.next().is_none().then(|| tenant.clone())
+}
+
+struct PublicationRecords<'a, A> {
+    audit: crate::audit::AuditAppend,
+    additional: &'a A,
+}
+impl<A: crate::store::TransactionAppend> crate::store::TransactionAppend
+    for PublicationRecords<'_, A>
+{
+    async fn append(
+        &self,
+        connection: &mut sqlx::PgConnection,
+    ) -> Result<(), crate::store::HubStoreError> {
+        self.audit.append(connection).await?;
+        self.additional.append(connection).await
+    }
 }
 
 #[cfg(test)]

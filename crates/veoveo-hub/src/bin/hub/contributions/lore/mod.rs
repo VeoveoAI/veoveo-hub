@@ -17,31 +17,7 @@ use veoveo_types::{
     ExtensionError, ExtensionName, PolicyVersion, PrincipalId, ScopeName, TenantId,
 };
 
-#[veoveo_types::id(text(veoveo_types::identifier_syntax::PathIdProfile))]
-pub struct DeploymentId(String);
-#[veoveo_types::id(text(RepositoryIds))]
-pub struct RepositoryId(String);
-#[doc(hidden)]
-pub struct RepositoryIds;
-impl veoveo_types::IdProfile for RepositoryIds {
-    type Error = veoveo_types::IdentifierError;
-    const PROFILE: veoveo_types::IdProfileSpec<Self::Error> =
-        veoveo_types::IdProfileSpec::text(|value, _| {
-            if value.len() == 32
-                && value
-                    .bytes()
-                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-            {
-                Ok(())
-            } else {
-                Err(veoveo_types::IdentifierError::new(
-                    value,
-                    "expected a canonical native repository ID",
-                ))
-            }
-        });
-}
-
+pub use crate::native_source_ids::{DeploymentId, RepositoryId};
 /// Native `{id}` substitution only, never a JSON/JWT template.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(transparent)]
@@ -64,7 +40,7 @@ impl<'de> Deserialize<'de> for RepositoryTemplate {
     }
 }
 impl RepositoryTemplate {
-    fn render(&self, id: &RepositoryId) -> String {
+    pub(crate) fn render(&self, id: &RepositoryId) -> String {
         self.0.replace("{id}", id.as_str())
     }
     fn parse(&self, value: &str) -> Result<RepositoryId> {

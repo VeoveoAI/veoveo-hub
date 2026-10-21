@@ -12,6 +12,7 @@ use veoveo_types::{DeploymentId, OAuthClientId, ServerSlug, Sha256Digest};
 mod admissions;
 use super::admission::RegistrationAuthority;
 use crate::control_plane::{HubControlPlane, NativeUpstreamBinding};
+pub(in crate::registration) use admissions::WorkerAdmission;
 use veoveo_hub_sdk::registration::StorageBinding;
 
 /// One registration as the service reads it back.

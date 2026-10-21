@@ -420,6 +420,66 @@ impl RegistrationService {
         })
     }
 
+    /// Trusted native activation writes on its Singleton connection, so losing
+    /// phase ownership cannot issue another admission from a pooled connection.
+    pub async fn admit_deployment_on(
+        &self,
+        connection: &mut sqlx::PgConnection,
+        request: DeploymentAdmissionRequest,
+    ) -> anyhow::Result<DeploymentAdmissionGrant> {
+        let token = random_token()?;
+        super::store::RegistrationStore::admit_deployment_on(
+            connection,
+            &request,
+            &digest(token.expose_secret()),
+        )
+        .await?;
+        Ok(DeploymentAdmissionGrant {
+            deployment: request.metadata.registration.deployment,
+            initial_access_token: RegistrationAccessToken::new(token.expose_secret()),
+            expires_at: request.expires_at,
+        })
+    }
+    pub async fn admit_activation_deployment_on(
+        &self,
+        connection: &mut sqlx::PgConnection,
+        request: DeploymentAdmissionRequest,
+        accepted: &crate::activation::AcceptedApply,
+    ) -> anyhow::Result<DeploymentAdmissionGrant> {
+        let token = random_token()?;
+        super::store::RegistrationStore::admit_deployment_guarded_on(
+            connection,
+            &request,
+            &digest(token.expose_secret()),
+            Some(super::store::WorkerAdmission::Current(accepted)),
+        )
+        .await?;
+        Ok(DeploymentAdmissionGrant {
+            deployment: request.metadata.registration.deployment,
+            initial_access_token: RegistrationAccessToken::new(token.expose_secret()),
+            expires_at: request.expires_at,
+        })
+    }
+    pub async fn admit_retained_deployment_on(
+        &self,
+        connection: &mut sqlx::PgConnection,
+        request: DeploymentAdmissionRequest,
+        accepted: &crate::activation::AcceptedApply,
+    ) -> anyhow::Result<DeploymentAdmissionGrant> {
+        let token = random_token()?;
+        super::store::RegistrationStore::admit_deployment_guarded_on(
+            connection,
+            &request,
+            &digest(token.expose_secret()),
+            Some(super::store::WorkerAdmission::Retained(accepted)),
+        )
+        .await?;
+        Ok(DeploymentAdmissionGrant {
+            deployment: request.metadata.registration.deployment,
+            initial_access_token: RegistrationAccessToken::new(token.expose_secret()),
+            expires_at: request.expires_at,
+        })
+    }
     async fn check_initial_access_token(
         &self,
         bearer: Bearer<'_>,

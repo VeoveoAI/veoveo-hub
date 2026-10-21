@@ -28,13 +28,17 @@ repository's [AGENTS.md](../../AGENTS.md).
   requests, core's `task.*` and `audit.*` classes, or this crate's `hub.*` classes
   in `src/audit/vocabulary.rs`, each with a closed JSON Schema.
 
-- The user-authorized native credential contribution is a scoped exception only at
-  the executable composition boundary: `src/bin/hub/contributions/lore` and its
-  native integration fixtures may name Lore's existing protocol. The generic
-  library, OAuth handlers, policy evaluator and ordinary fixtures remain independent
-  of native server names. Do not add another process or an authorization service.
+- The user-authorized native credential and source-activation contributions are
+  scoped exceptions at the executable composition boundary:
+  `src/bin/hub/contributions/lore` and native integration fixtures may name Lore's
+  existing protocol; binary source-activation adapters and the packaged environment
+  CLI may use the existing native Artifact transfer contract. The generic library,
+  OAuth handlers, policy evaluator and ordinary fixtures remain server-independent.
+  Do not add another process or an authorization service.
 
 - That approved executable contribution may own a typed persistence table and its
   declaration in the crate's required shared `migrations/` directory. Its native
-  operations and focused SQL stay under `src/bin/hub/contributions/lore`; generic
+  credential operations and focused SQL stay under `src/bin/hub/contributions/lore`;
+  source adapters/activation persistence stay under `src/bin/hub/activation` and
+  the packaged environment CLI. Generic
   library, OAuth and policy interfaces remain independent of native server names.

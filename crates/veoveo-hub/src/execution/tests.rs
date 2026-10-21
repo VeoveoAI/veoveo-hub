@@ -37,6 +37,7 @@ fn independent_overrides_inherit_without_taking_each_others_routes() {
     let b = DeploymentId::new();
     let c = DeploymentId::new();
     let mut config = ExecutionConfiguration {
+        runtime_templates: Default::default(),
         default_environment: base,
         environments: BTreeMap::from([
             (base, record(None, &[("observatory", selected(a))])),
@@ -98,6 +99,7 @@ fn pins_retain_exact_selection_while_followers_advance_and_labels_do_not_hash() 
     let follower = EnvironmentId::new();
     let pin = EnvironmentId::new();
     let mut config = ExecutionConfiguration {
+        runtime_templates: Default::default(),
         default_environment: base,
         environments: BTreeMap::from([
             (
@@ -155,6 +157,7 @@ fn cycles_cross_tenant_access_and_revoked_base_access_are_rejected() {
     let base = EnvironmentId::new();
     let child = EnvironmentId::new();
     let mut config = ExecutionConfiguration {
+        runtime_templates: Default::default(),
         default_environment: base,
         environments: BTreeMap::from([
             (base, record(None, &[])),
@@ -207,6 +210,7 @@ fn retained_capture_checks_selected_access_without_reinterpreting_current_base()
     let base = EnvironmentId::new();
     let child = EnvironmentId::new();
     let mut config = ExecutionConfiguration {
+        runtime_templates: Default::default(),
         default_environment: base,
         environments: BTreeMap::from([
             (

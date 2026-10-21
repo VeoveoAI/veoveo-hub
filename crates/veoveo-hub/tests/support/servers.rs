@@ -83,11 +83,28 @@ pub async fn serve(
     declaration: AuthorizationDeclaration,
     build: impl AsyncFnOnce(&Registration, &ClientMetadata, &ServerKeyPair) -> HostedServer,
 ) -> Served {
+    let key = ServerKeyPair::generate().unwrap();
+    let served = serve_revision(hub, http, slug, declaration, &key, build).await;
+    hub.enroll(&served.metadata).await;
+    served
+}
+
+/// Another installation-owned fixture revision. This uses its synthetic namespace
+/// owner's signer, not an application user's authority. It never changes serving
+/// selection. Independent user-key admission is qualified separately.
+pub async fn serve_revision(
+    hub: &Hub,
+    http: &reqwest::Client,
+    slug: &str,
+    declaration: AuthorizationDeclaration,
+    namespace_key: &ServerKeyPair,
+    build: impl AsyncFnOnce(&Registration, &ClientMetadata, &ServerKeyPair) -> HostedServer,
+) -> Served {
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
         .await
         .unwrap();
     let address = listener.local_addr().unwrap();
-    let key = ServerKeyPair::generate().unwrap();
+    let key = ServerKeyPair::from_pkcs8_der(namespace_key.pkcs8_der()).unwrap();
     let metadata = ClientMetadata::new(
         *key.public_key(),
         RegistrationDeclaration {
@@ -114,7 +131,6 @@ pub async fn serve(
     )
     .unwrap();
     let registration = client.register().await.unwrap();
-    hub.enroll(&metadata).await;
     let bearers = Bearers::default();
     let router: Router = build(&registration, &metadata, &key)
         .await
@@ -164,15 +180,33 @@ pub fn hosted<D: veoveo_hub_sdk::hosting::DomainServer>(
 
 /// An MCP client of the local profile that presents `token`.
 pub async fn mcp_client(hub: &Hub, token: String) -> RunningService<RoleClient, ClientConfig> {
+    mcp_client_selected(hub, token, None).await
+}
+
+/// The typed untrusted selector is sent with every stateless MCP request, including
+/// initialize, discovery, Tasks and subscription reconnects.
+pub async fn mcp_client_selected(
+    hub: &Hub,
+    token: String,
+    environment: Option<veoveo_hub_sdk::EnvironmentId>,
+) -> RunningService<RoleClient, ClientConfig> {
+    let mut transport =
+        StreamableHttpClientTransportConfig::with_uri(hub.installation.resource.clone())
+            .auth_header(token);
+    if let Some(environment) = environment {
+        let selector =
+            veoveo_hub_sdk::EnvironmentSelector::parse(&environment.to_string()).unwrap();
+        transport.custom_headers.insert(
+            reqwest::header::HeaderName::from_static(veoveo_hub_sdk::ENVIRONMENT_HEADER),
+            selector.environment().to_string().parse().unwrap(),
+        );
+    }
     ClientConfig::new(
         ClientCapabilities::builder().enable_tasks().build(),
         Implementation::new("hub-qualification", "0.1.0"),
     )
     .serve_with_lifecycle(
-        StreamableHttpClientTransport::from_config(
-            StreamableHttpClientTransportConfig::with_uri(hub.installation.resource.clone())
-                .auth_header(token),
-        ),
+        StreamableHttpClientTransport::from_config(transport),
         ClientLifecycleMode::Discover {
             preferred_versions: vec![ProtocolVersion::V_2026_07_28],
         },

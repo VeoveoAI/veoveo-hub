@@ -9,6 +9,12 @@ use bindings::catalog_admission;
 #[path = "hub/contributions/mod.rs"]
 mod contributions;
 
+#[path = "native_source_ids.rs"]
+mod native_source_ids;
+
+#[path = "hub/activation.rs"]
+mod activation;
+
 #[path = "hub/admin.rs"]
 mod admin;
 #[path = "hub/audit.rs"]

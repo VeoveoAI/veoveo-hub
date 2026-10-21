@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.activation_source (build,document) VALUES ($1,$2)\nON CONFLICT (build) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0dd378ba758d3b644925c7db552e8adbce3658c3f88cf1079f0fb74ba244390b"
+}

@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT document AS \"document: DefinitionDocument\"\nFROM hub.environment_definition_source\nWHERE environment=$1 AND owner_tenant=$2 AND owner_principal=$3\n    AND document->'mode'->>'kind'='lore'\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "document: DefinitionDocument",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.environment_definition_source",
+            "name": "document"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "57685231a77c85c5bbbdfebc6ac64c6c866f0f8c0ef1cbd203040ccb12819d41"
+}

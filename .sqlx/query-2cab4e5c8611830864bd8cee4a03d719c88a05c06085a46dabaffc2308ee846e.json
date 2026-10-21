@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT min(port) AS port FROM generate_series(30000,59999) AS candidate(port)\nWHERE NOT EXISTS(SELECT 1 FROM hub.activation_worker w WHERE w.runtime=$1 AND w.port=candidate.port)\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "port",
+        "type_info": "Int4",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "2cab4e5c8611830864bd8cee4a03d719c88a05c06085a46dabaffc2308ee846e"
+}

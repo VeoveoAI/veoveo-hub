@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.environment_apply(owner_tenant,owner_principal,environment,idempotency,document)\nVALUES($1,$2,$3,$4,$5)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Uuid",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ce9cfcade7525e33049600f26d815cb91a57378ab602e981a4b791e535e4b254"
+}

@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.accepted AS \"accepted: Json<AcceptedApply>\", h.desired = b.id AND h.generation = b.generation AS \"current!\"\nFROM hub.activation_build b\nJOIN hub.activation_head h ON h.owner_tenant=b.owner_tenant AND h.owner_principal=b.owner_principal\n    AND h.environment=b.environment AND h.component=b.component\nWHERE b.id=$1\nFOR UPDATE OF h\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "accepted: Json<AcceptedApply>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.activation_build",
+            "name": "accepted"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "current!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "34704cd16be77a2e2dabf00b40a799e5a1dea7653fb7446b290a4747f379bb24"
+}

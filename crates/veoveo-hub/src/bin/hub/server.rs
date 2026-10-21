@@ -253,9 +253,12 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         deployment.base_url(),
     )?
     .with_onboarding(Arc::new(workspaces.clone()));
+    let activations = crate::activation::ActivationService::new(admin_state.clone(), ct.clone());
+    let activation_reconciliation = activations.spawn_reconciliation(ct.clone());
     router = router
         .merge(computers.router())
-        .merge(workspaces.router(auth_state.clone()));
+        .merge(workspaces.router(auth_state.clone()))
+        .merge(activations.router(auth_state.clone()));
     let admin_router = Router::new()
         .route(
             "/admin/{profile}/deployment-admissions",
@@ -384,6 +387,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         usage_partitions.await?;
         registration_watcher.await?;
         control_watcher.await?;
+        activation_reconciliation.await?;
         registration_housekeeping.await?;
         Ok::<(), tokio::task::JoinError>(())
     })

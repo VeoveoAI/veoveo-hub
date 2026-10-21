@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT component FROM hub.activation_head\nWHERE owner_tenant=$1 AND owner_principal=$2 AND environment=$3 AND component>$4\n    AND component <> ALL ($5)\nORDER BY component\nLIMIT $6\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "component",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.activation_head",
+            "name": "component"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Uuid",
+        "Text",
+        "TextArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f1484521025300ff4f07a50fa12b30dc298d553b26bb8b587cf358bbead0fcad"
+}

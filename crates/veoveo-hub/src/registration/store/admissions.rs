@@ -1,10 +1,11 @@
 use anyhow::{Context, Result, ensure};
 use chrono::Utc;
-use sqlx::types::Json;
+use sqlx::{Connection as _, PgConnection, types::Json};
 use veoveo_hub_sdk::{
     EnvironmentId,
     registration::{ClientMetadata, StorageBinding},
 };
+use veoveo_store::{TenantId as DatabaseTenantId, deterministic_tenant_id};
 use veoveo_types::{PrincipalId, Sha256Digest, TenantId};
 
 use super::super::admission::{DeploymentAdmissionRequest, StoredDeploymentAdmission};
@@ -49,23 +50,85 @@ pub(super) fn current_owner(
     Ok(environment.owner.clone())
 }
 
+#[derive(Clone, Copy)]
+pub(in crate::registration) enum WorkerAdmission<'a> {
+    Current(&'a crate::activation::AcceptedApply),
+    Retained(&'a crate::activation::AcceptedApply),
+}
+
 impl RegistrationStore {
     pub(in crate::registration) async fn admit_deployment(
         &self,
         request: &DeploymentAdmissionRequest,
         digest: &Sha256Digest,
     ) -> Result<()> {
+        let mut connection = self.store.pool().acquire().await?;
+        Self::admit_deployment_on(&mut connection, request, digest).await
+    }
+    pub(in crate::registration) async fn admit_deployment_on(
+        connection: &mut PgConnection,
+        request: &DeploymentAdmissionRequest,
+        digest: &Sha256Digest,
+    ) -> Result<()> {
+        Self::admit_deployment_guarded_on(connection, request, digest, None).await
+    }
+    pub(in crate::registration) async fn admit_deployment_guarded_on(
+        connection: &mut PgConnection,
+        request: &DeploymentAdmissionRequest,
+        digest: &Sha256Digest,
+        worker: Option<WorkerAdmission<'_>>,
+    ) -> Result<()> {
         ensure!(
             request.expires_at > Utc::now(),
             "deployment admission must expire in the future"
         );
-        let mut transaction = self.store.pool().begin().await?;
+        let mut transaction = connection.begin().await?;
         let control = sqlx::query_file!("src/registration/store/admission_control.sql")
             .fetch_optional(&mut *transaction)
             .await?
             .context("no authoritative control revision")?
             .control_plane
             .0;
+        if let Some(worker) = worker {
+            let accepted = match &worker {
+                WorkerAdmission::Current(accepted) | WorkerAdmission::Retained(accepted) => {
+                    *accepted
+                }
+            };
+            match worker {
+                WorkerAdmission::Current(_) => {
+                    crate::activation::ActivationStore::admit_worker_on(
+                        &mut transaction,
+                        &control,
+                        accepted,
+                    )
+                    .await?
+                }
+                WorkerAdmission::Retained(_) => accepted.admit_retained(&control)?,
+            }
+            ensure!(
+                request.environment == accepted.key.environment
+                    && request.metadata.registration.deployment == accepted.deployment
+                    && request.metadata.slug() == &accepted.key.component
+                    && request.storage == accepted.runtime.storage,
+                "retained admission identity differs from accepted worker"
+            );
+            if matches!(worker, WorkerAdmission::Retained(_)) {
+                let tenant = deterministic_tenant_id(accepted.key.owner.tenant.as_str())?;
+                ensure!(
+                    sqlx::query_file!(
+                        "src/registration/store/retained_task.sql",
+                        tenant as DatabaseTenantId,
+                        accepted.deployment.as_uuid(),
+                        Utc::now()
+                    )
+                    .fetch_one(&mut *transaction)
+                    .await?
+                    .retained,
+                    "worker has no unexpired canonical Task route"
+                );
+            }
+        }
         let owner = current_owner(&control, request)?;
         let deployment = request.metadata.registration.deployment.as_uuid();
         let environment = request.environment.as_uuid();
