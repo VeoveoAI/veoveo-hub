@@ -10,7 +10,7 @@ use axum::{
     body::{Body, Bytes},
     extract::Request,
     http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode, Uri, header},
-    response::{IntoResponse, Response},
+    response::{IntoResponse, Redirect, Response},
 };
 use http_body::{Body as HttpBody, Frame, SizeHint};
 use hyper::body::Incoming;
@@ -38,6 +38,27 @@ fn websocket(request: &Request) -> bool {
             .headers()
             .get(header::UPGRADE)
             .is_some_and(|v| v.as_bytes().eq_ignore_ascii_case(b"websocket"))
+}
+fn document_navigation(request: &Request) -> bool {
+    request.method() == Method::GET
+        && !websocket(request)
+        && request
+            .headers()
+            .get("sec-fetch-mode")
+            .is_some_and(|value| value == "navigate")
+        && request
+            .headers()
+            .get("sec-fetch-dest")
+            .is_some_and(|value| value == "document")
+}
+fn authorization_required(request: &Request) -> Response {
+    if document_navigation(request) {
+        // Entry resolves the current Computer or starts ordinary sign-in. Never
+        // carry a stale mount, session path or caller-supplied return URL forward.
+        private(Redirect::to("/computer").into_response())
+    } else {
+        denied()
+    }
 }
 /// Connection-nominated fields are hop-by-hop too. Keep content encoding/length:
 /// hyper forwards the original encoded entity bytes and owns fresh framing.
@@ -185,7 +206,7 @@ pub(super) async fn forward(runtime: ComputerRuntime, mut request: Request) -> R
         );
     }
     let Ok(Some(value)) = cookie(request.headers(), SESSION_COOKIE) else {
-        return denied();
+        return authorization_required(&request);
     };
     let cookie_digest = digest(&value);
     let session = match runtime
@@ -199,7 +220,7 @@ pub(super) async fn forward(runtime: ComputerRuntime, mut request: Request) -> R
         .await
     {
         Ok(Some(session)) => session,
-        Ok(None) => return denied(),
+        Ok(None) => return authorization_required(&request),
         Err(_) => return unavailable(),
     };
     let mut runtime = runtime;
@@ -253,15 +274,7 @@ async fn stream(
     path: &str,
     upgrade: bool,
 ) -> Result<Response> {
-    let navigation = request.method() == Method::GET
-        && request
-            .headers()
-            .get("sec-fetch-mode")
-            .is_some_and(|value| value == "navigate")
-        && request
-            .headers()
-            .get("sec-fetch-dest")
-            .is_some_and(|value| value == "document");
+    let navigation = document_navigation(request);
     if navigation {
         runtime.provisioner.resume(session.computer()).await?;
     }
@@ -401,6 +414,59 @@ async fn stream(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn authorization_refusal_recovers_documents_without_replaying_the_stale_url() {
+        let request = Request::builder()
+            .uri(format!(
+                "/computer/c/{}/server/old-origin/session/old-session?return=https://other.example/",
+                ComputerId::new()
+            ))
+            .header("sec-fetch-mode", "navigate")
+            .header("sec-fetch-dest", "document")
+            .body(Body::empty())
+            .unwrap();
+        let response = authorization_required(&request);
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        assert_eq!(response.headers()[header::LOCATION], "/computer");
+        assert_eq!(
+            response.headers()[header::CACHE_CONTROL],
+            "private, no-store"
+        );
+    }
+
+    #[test]
+    fn authorization_refusal_keeps_fetch_api_and_websocket_responses_unauthorized() {
+        for (method, mode, destination, upgrade) in [
+            (Method::GET, None, None, false),
+            (Method::GET, Some("cors"), Some("empty"), false),
+            (Method::GET, Some("same-origin"), Some("script"), false),
+            (Method::HEAD, Some("navigate"), Some("document"), false),
+            (Method::POST, Some("navigate"), Some("document"), false),
+            (Method::GET, Some("navigate"), Some("document"), true),
+        ] {
+            let mut request = Request::builder()
+                .method(method)
+                .uri(format!("/computer/c/{}/api/session", ComputerId::new()))
+                .header(header::ACCEPT, "text/html");
+            if let Some(mode) = mode {
+                request = request.header("sec-fetch-mode", mode);
+            }
+            if let Some(destination) = destination {
+                request = request.header("sec-fetch-dest", destination);
+            }
+            if upgrade {
+                request = request.header(header::UPGRADE, "websocket");
+            }
+            let response = authorization_required(&request.body(Body::empty()).unwrap());
+            assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+            assert!(!response.headers().contains_key(header::LOCATION));
+            assert_eq!(
+                response.headers()[header::CACHE_CONTROL],
+                "private, no-store"
+            );
+        }
+    }
+
     #[test]
     fn proxy_strips_credentials_nominated_hops_and_cors_without_decoding_entities() {
         let mut headers = HeaderMap::new();

@@ -724,6 +724,12 @@ and releases a bounded connection permit. Proxy responses are private/no-store.
 The online-only native app must be used; mounted UI caches are convenience, not a
 same-origin browser security boundary or a guarantee about previously loaded data.
 
+An initial authorization refusal on a browser document navigation redirects to
+the fixed `/computer` entry. Entry resolves the current Computer from a still-valid
+cookie or starts ordinary sign-in; it never replays the stale mount or chat URL.
+API/fetch and WebSocket requests retain `401`, malformed routes retain `404`, and
+operational failures retain `503` rather than redirecting into a recovery loop.
+
 `POST /computer/logout` is parameterless and same-origin. Only a fresh admitted
 BrowserSession selects its owner and actual native family. A conditional transaction
 locks the current ready/no-handoff Computer, rejects stale owner/family bindings,

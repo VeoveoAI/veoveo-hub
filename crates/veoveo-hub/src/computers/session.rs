@@ -192,6 +192,11 @@ mod tests {
             hub.hub_store().lock_computer_handoff(&computer, pending).await.unwrap().unwrap()
                 .complete(&issued.grant.family_id, &digest).await.unwrap();
             assert!(hub.computer_browser_session(&catalog, &config, &digest, None).await.unwrap().is_some());
+            assert!(hub.computer_browser_session(&catalog, &config, &digest, Some(&ComputerId::new())).await.unwrap().is_none(), "a current cookie cannot authorize a stale Computer URL");
+            assert!(hub.computer_browser_session(&catalog, &config, &digest, None).await.unwrap().is_some(), "entry can still recover the current Computer without signing in again");
+            let mut expired = hub.hub_store().refresh_family(&issued.grant.family_id).await.unwrap().unwrap();
+            expired.expires_at = Utc::now() - chrono::TimeDelta::seconds(1);
+            assert!(hub.admit_computer_family(&catalog, &config, computer.clone(), expired).await.unwrap().is_none(), "expired browser authority requires ordinary entry recovery");
             hub.revoke_refresh_token_family(&issued.token, &profile.authorization_server, &profile.protected_resource, &config.oauth_client, Utc::now()).await.unwrap();
             assert!(hub.computer_browser_session(&catalog, &config, &digest, None).await.unwrap().is_none(), "revoked cookie must start a fresh login rather than stick at 503");
             db.a.pool().close().await;
