@@ -103,6 +103,13 @@ impl Runtime {
         }
         Ok((name, hash))
     }
+    fn create_request_id(accepted: &AcceptedApply, name: &str, hash: &[u8; 32]) -> uuid::Uuid {
+        // Native admission binds a request ID to its create payload. Include the
+        // emitted name so a name-contract correction is not a conflicting retry.
+        // The fixed-width digest prefix keeps these bytes unambiguous.
+        let identity = [hash.as_slice(), name.as_bytes()].concat();
+        uuid::Uuid::new_v5(&accepted.key.environment.as_uuid(), &identity)
+    }
     pub async fn existing(
         catalog: &HubCatalog,
         connection: &mut PgConnection,
@@ -182,7 +189,7 @@ impl Runtime {
         )?;
         let policy_bytes = policy.encode_to_vec();
         let (name, hash) = Self::name(accepted)?;
-        let request_id = uuid::Uuid::new_v5(&accepted.key.environment.as_uuid(), &hash).to_string();
+        let request_id = Self::create_request_id(accepted, &name, &hash).to_string();
         let previous = sqlx::query_file!("src/bin/hub/activation/native/runtime_read.sql", name)
             .fetch_optional(&mut *connection)
             .await?;
@@ -445,7 +452,27 @@ mod tests {
         let mut next_build = accepted.clone();
         next_build.build = BuildId::new();
         next_build.deployment = veoveo_hub_sdk::DeploymentId::new();
+        next_build.inputs.definition_digest = veoveo_types::Sha256Digest::from_bytes([2; 32]);
         assert_eq!(Runtime::name(&next_build).unwrap(), identity);
+        let request_id = Runtime::create_request_id(&accepted, &identity.0, &identity.1);
+        assert_eq!(
+            request_id.to_string(),
+            "18b2b7a9-ebd3-5d07-9f1d-d09041c2439b"
+        );
+        assert_eq!(
+            Runtime::create_request_id(&next_build, &identity.0, &identity.1),
+            request_id
+        );
+        let previous_name = format!("environment-{}", hex::encode(&identity.1[..16]));
+        assert_ne!(
+            Runtime::create_request_id(&accepted, &previous_name, &identity.1),
+            request_id
+        );
+        assert_ne!(
+            uuid::Uuid::new_v5(&accepted.key.environment.as_uuid(), &identity.1),
+            request_id,
+            "the corrected payload must not reuse its old admitted request ID"
+        );
 
         let mut identities = std::collections::BTreeSet::from([identity.0]);
         for changed in ["environment", "component", "template"] {
