@@ -88,9 +88,20 @@ pub(super) fn transport_failure(error: &anyhow::Error) -> bool {
 }
 impl Runtime {
     fn name(accepted: &AcceptedApply) -> Result<(String, [u8; 32])> {
+        const ALPHABET: &[u8; 32] = b"abcdefghijklmnopqrstuvwxyz234567";
         let key = serde_json::to_vec(&(&accepted.key, &accepted.inputs.runtime_template))?;
         let hash: [u8; 32] = Sha256::digest(key).into();
-        Ok((format!("environment-{}", &hex::encode(hash)[..32]), hash))
+        // Native routable names allow 19 characters. Retain 90 hash bits in
+        // lowercase base32; the full digest still binds the create request ID.
+        let mut name = String::with_capacity(19);
+        name.push('e');
+        for bit in (0..90).step_by(5) {
+            let byte = bit / 8;
+            let window = (u16::from(hash[byte]) << 8) | u16::from(hash[byte + 1]);
+            let index = usize::from((window >> (11 - bit % 8)) & 31);
+            name.push(char::from(ALPHABET[index]));
+        }
+        Ok((name, hash))
     }
     pub async fn existing(
         catalog: &HubCatalog,
@@ -415,6 +426,60 @@ impl Runtime {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn runtime_names_fit_native_contract_and_bind_environment_component_and_template() {
+        let accepted: AcceptedApply = serde_json::from_value(serde_json::json!({
+            "runtime":{"workspace":"fixture","template":"fixture-v1","policyFile":"/fixture.yaml","providers":[],"storage":{"kind":"shared_logical_schema","server":"observatory"}},
+            "key":{"owner":{"tenant":"fixture","principal":"owner"},"environment":"019a5b30-0000-7000-8000-000000000001","component":"observatory"},
+            "generation":1,"build":BuildId::new(),"deployment":veoveo_hub_sdk::DeploymentId::new(),"idempotency":"fixture",
+            "inputs":{"runtimeTemplate":"fixture-v1","definitionDigest":veoveo_types::Sha256Digest::from_bytes([1;32]),"expectedSource":null,"recipe":{"worker":{"kind":"compiled","output":{"root":"source","path":"service"},"args":[],"cwd":"."}}}
+        })).unwrap();
+        let identity = Runtime::name(&accepted).unwrap();
+        // Fixed vector independently derived from the unchanged serialized key.
+        assert_eq!(identity.0, "envkplxxczljk3ou7c6");
+        assert_eq!(
+            hex::encode(identity.1),
+            "6d54f5dee2cad2adba9f17b24ceba8129081abc942b5089f3c3d1927d0374b0e"
+        );
+        assert_eq!(Runtime::name(&accepted).unwrap(), identity);
+        let mut next_build = accepted.clone();
+        next_build.build = BuildId::new();
+        next_build.deployment = veoveo_hub_sdk::DeploymentId::new();
+        assert_eq!(Runtime::name(&next_build).unwrap(), identity);
+
+        let mut identities = std::collections::BTreeSet::from([identity.0]);
+        for changed in ["environment", "component", "template"] {
+            let mut candidate = accepted.clone();
+            match changed {
+                "environment" => {
+                    candidate.key.environment =
+                        veoveo_hub_sdk::EnvironmentId::parse("019a5b30-0000-7000-8000-000000000002")
+                            .unwrap()
+                }
+                "component" => {
+                    candidate.key.component =
+                        veoveo_hub_sdk::ServerSlug::parse("fixture-two").unwrap()
+                }
+                "template" => {
+                    candidate.inputs.runtime_template =
+                        veoveo_hub::activation::RuntimeTemplateRef::parse("fixture-v2").unwrap()
+                }
+                _ => unreachable!(),
+            }
+            let (name, hash) = Runtime::name(&candidate).unwrap();
+            assert_eq!(name.len(), 19);
+            assert!(name.starts_with('e'));
+            assert!(
+                name.bytes()
+                    .all(|b| b.is_ascii_lowercase() || (b'2'..=b'7').contains(&b))
+            );
+            assert_ne!(hash, identity.1);
+            assert!(
+                identities.insert(name),
+                "{changed} must select a distinct runtime"
+            );
+        }
+    }
     #[test]
     fn reconnect_does_not_retry_policy_auth_or_candidate_failure() {
         assert!(transport_failure(&anyhow::Error::new(
