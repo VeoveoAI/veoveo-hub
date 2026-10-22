@@ -30,6 +30,7 @@ pub mod problem;
 pub mod registration;
 pub mod request_observation;
 pub mod secrets;
+pub mod selection;
 pub mod state;
 pub mod store;
 #[cfg(test)]

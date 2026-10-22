@@ -68,6 +68,11 @@ instance of the selected branch, or else of the configured `execution.baseBranch
 When that instance is missing, when several instances serve that branch, or when no
 base branch is configured, the component is `unavailable`, never another branch or
 the configured component, and a tool call to that server answers with the cause.
+`PUT /selection/{profile}/{server}` with `{"branch": "…"}` and `DELETE` of the same
+path change the caller's own selection and nothing else, so authentication is their
+only check; a delegated caller changes the selection of the principal it carries.
+Each change notifies the `hub` channel with the principal, and every replica
+completes only that principal's open listens with a list-changed hint.
 
 Tasks persist exact deployment and composition before the projected response.
 A native retry of the same Task preserves its first capture. Later reads, changes,
@@ -524,6 +529,7 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 | `/mcp/{profile}` | The profile's MCP endpoint |
 | `/console-api/{profile}/session` | Console session bootstrap |
 | `/admin/{profile}/...` | Configuration, audit, JWT revocation, Task cancellation, server health and usage |
+| `PUT`/`DELETE /selection/{profile}/{server}` | The caller's branch for a server, or back to the base branch; 204 |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 

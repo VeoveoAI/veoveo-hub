@@ -88,6 +88,7 @@ impl HubMcp {
         let authorization_fingerprint = super::discovery_authorization_fingerprint(&subject)?;
         let mut discovery_changes = self.discovery.subscribe();
         let mut catalog_changes = self.live_catalog.subscribe();
+        let mut selection_changes = self.state.selection_changes.subscribe();
         let composition = super::execution_composition(&subject)?.clone();
 
         // A catalog listener primes discovery on the same replica that owns the
@@ -288,6 +289,19 @@ impl HubMcp {
                     catalog_changes.borrow_and_update();
                     notify_catalog_change(&context, &accepted).await?;
                     return Ok(());
+                }
+                change = selection_changes.recv() => {
+                    use tokio::sync::broadcast::error::RecvError;
+                    match change {
+                        Ok(principal) if principal != subject.principal.id => {}
+                        Err(RecvError::Closed) => return Ok(()),
+                        // The principal's selection changed, or this listen missed
+                        // changes: finish with a hint, as after a publication.
+                        Ok(_) | Err(RecvError::Lagged(_)) => {
+                            notify_catalog_change(&context, &accepted).await?;
+                            return Ok(());
+                        }
+                    }
                 }
                 change = discovery_changes.recv() => {
                     match change {

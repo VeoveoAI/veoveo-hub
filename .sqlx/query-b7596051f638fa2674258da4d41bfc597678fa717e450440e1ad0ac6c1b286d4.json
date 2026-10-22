@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM hub.selection\nWHERE principal = $1 AND server = $2\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b7596051f638fa2674258da4d41bfc597678fa717e450440e1ad0ac6c1b286d4"
+}

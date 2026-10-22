@@ -143,6 +143,8 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         internal_token_issuer.clone(),
     )?;
     let registration_watcher = registrations.spawn_watcher(ct.child_token());
+    let selection_watcher =
+        veoveo_hub::selection::spawn_watcher(hub_state.clone(), ct.child_token());
     let registration_housekeeping = registrations.spawn_housekeeping(ct.child_token());
     let state = AppState {
         token_profiles: crate::contributions::bindings()?.profiles.clone(),
@@ -256,7 +258,11 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     .with_onboarding(Arc::new(workspaces.clone()));
     router = router
         .merge(computers.router())
-        .merge(workspaces.router(auth_state.clone()));
+        .merge(workspaces.router(auth_state.clone()))
+        .merge(veoveo_hub::selection::router(
+            hub_state.clone(),
+            auth_state.clone(),
+        ));
     let admin_router = Router::new()
         .route(
             "/admin/{profile}/control-plane",
@@ -380,6 +386,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         refresh_gc.await?;
         usage_partitions.await?;
         registration_watcher.await?;
+        selection_watcher.await?;
         control_watcher.await?;
         registration_housekeeping.await?;
         Ok::<(), tokio::task::JoinError>(())

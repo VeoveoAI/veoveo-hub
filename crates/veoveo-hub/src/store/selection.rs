@@ -1,8 +1,9 @@
 //! Per-principal selection: the branch whose instance serves each server a principal
-//! names.
+//! names. Changes notify on the `hub` channel, keyed by principal.
 use std::collections::BTreeMap;
 
 use anyhow::{Context, Result};
+use chrono::Utc;
 use veoveo_hub_sdk::ServerSlug;
 use veoveo_types::PrincipalId;
 
@@ -26,5 +27,42 @@ impl crate::store::HubStore {
                 ))
             })
             .collect()
+    }
+
+    /// Serve `server` to `principal` from the instance of `branch`.
+    pub async fn select(
+        &self,
+        principal: &PrincipalId,
+        server: &ServerSlug,
+        branch: &BranchName,
+    ) -> Result<()> {
+        sqlx::query_file!(
+            "src/store/selection/select.sql",
+            principal.as_str(),
+            server.as_str(),
+            branch.as_str(),
+            Utc::now(),
+        )
+        .execute(self.pool())
+        .await
+        .context("record the selection")?;
+        Ok(())
+    }
+
+    /// Serve `server` to `principal` from the instance of the base branch again.
+    pub async fn clear_selection(
+        &self,
+        principal: &PrincipalId,
+        server: &ServerSlug,
+    ) -> Result<()> {
+        sqlx::query_file!(
+            "src/store/selection/clear.sql",
+            principal.as_str(),
+            server.as_str()
+        )
+        .execute(self.pool())
+        .await
+        .context("clear the selection")?;
+        Ok(())
     }
 }

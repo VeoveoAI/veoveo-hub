@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.selection (principal, server, branch, updated_at)\nVALUES ($1, $2, $3, $4)\nON CONFLICT (principal, server) DO UPDATE\nSET branch = EXCLUDED.branch, updated_at = EXCLUDED.updated_at\nWHERE hub.selection.branch <> EXCLUDED.branch\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "14f97b931c41026b10312332142c84086569b7c48ca8820ebb2ea4ccc72273f2"
+}

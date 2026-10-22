@@ -16,6 +16,9 @@ pub use refresh_tokens::{
 };
 pub(crate) use task_routes::{HubTaskOwnership, HubTaskRoute, HubTaskRouteDraft};
 
+/// Selection changes a replica holds for listens that have not read them yet.
+const SELECTION_CHANGES: usize = 256;
+
 /// Shared, installation-wide hub correctness state.
 ///
 /// Clones may be used by independent hub replicas; PostgreSQL is the sole authority
@@ -29,6 +32,9 @@ pub struct HubState {
     pub(crate) audit_health: std::sync::Arc<std::sync::OnceLock<veoveo_audit::AuditHealth>>,
     pub(crate) oauth_client_resolver:
         Option<std::sync::Arc<dyn crate::oauth_clients::OAuthClientResolver>>,
+    /// Principals whose selection changed, as this replica learned it from the `hub`
+    /// channel. Their open MCP listens complete with a catalog change hint.
+    pub(crate) selection_changes: tokio::sync::broadcast::Sender<veoveo_types::PrincipalId>,
 }
 
 impl HubState {
@@ -40,6 +46,7 @@ impl HubState {
             audit_health: Default::default(),
             oauth_client_resolver: None,
             token_extensions: None,
+            selection_changes: tokio::sync::broadcast::channel(SELECTION_CHANGES).0,
         }
     }
 
