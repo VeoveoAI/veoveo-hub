@@ -309,6 +309,11 @@ to ready or still serves after a failed step, and offline otherwise. With
 latest pusher of more instances records a warning naming the count and the cap; with
 `caps.enforce` the Hub refuses it as `failed{stage: capacity}` instead.
 
+The Hub forwards to an instance through `nativeUpstreams`, which must name the
+factory's gateway: an instance's deployment binds to its sandbox in the factory
+workspace, at the port of the endpoint it registered, instead of to a control-plane
+binding of its endpoint.
+
 ## Routing And Catalog
 
 The catalog combines the installation configuration with the registration snapshot.

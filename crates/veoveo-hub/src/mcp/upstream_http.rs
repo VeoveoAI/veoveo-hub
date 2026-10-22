@@ -56,6 +56,8 @@ impl PoolKey {
 #[derive(Debug)]
 struct Pooled {
     endpoint: veoveo_hub_sdk::registration::ServerEndpoint,
+    /// Whether the deployment is an instance, reached in its factory sandbox.
+    instance: bool,
     generation: u64,
     discarded: AtomicBool,
     client: reqwest::Client,
@@ -77,10 +79,14 @@ impl HubUpstreamHttpClientPool {
     }
 
     /// Install trusted native placements; missing endpoints never use direct TCP.
-    pub async fn native(config: &crate::control_plane::NativeUpstreams) -> anyhow::Result<Self> {
+    /// `instances` is the factory workspace whose sandboxes serve instances.
+    pub async fn native(
+        config: &crate::control_plane::NativeUpstreams,
+        instances: Option<&str>,
+    ) -> anyhow::Result<Self> {
         Ok(Self {
             native: Some(Arc::new(
-                super::native_upstreams::NativeTransport::start(config).await?,
+                super::native_upstreams::NativeTransport::start(config, instances).await?,
             )),
             ..Self::new()
         })
@@ -91,9 +97,12 @@ impl HubUpstreamHttpClientPool {
     pub(crate) fn reconfigured(
         &self,
         config: Option<&crate::control_plane::NativeUpstreams>,
+        instances: Option<&str>,
     ) -> anyhow::Result<Self> {
         let native = match (&self.native, config) {
-            (Some(previous), Some(config)) => Some(Arc::new(previous.reconfigured(config)?)),
+            (Some(previous), Some(config)) => {
+                Some(Arc::new(previous.reconfigured(config, instances)?))
+            }
             (None, None) => None,
             _ => anyhow::bail!("native gateway bootstrap cannot change during runtime adoption"),
         };
@@ -103,6 +112,7 @@ impl HubUpstreamHttpClientPool {
             .unwrap_or_else(PoisonError::into_inner)
             .iter()
             .filter(|(_, pooled)| match (&self.native, &native) {
+                (Some(left), Some(right)) if pooled.instance => left.same_instances(right),
                 (Some(left), Some(right)) => left.same_endpoint(right, &pooled.endpoint),
                 (None, None) => true,
                 _ => false,
@@ -117,11 +127,13 @@ impl HubUpstreamHttpClientPool {
         })
     }
 
-    /// The current transport to `server`, building its client on first use.
+    /// The current transport to `server`, building its client on first use. An
+    /// instance's deployment is reached in its factory sandbox.
     pub(super) fn transport(
         &self,
         deployment: DeploymentId,
         endpoint: &veoveo_hub_sdk::registration::ServerEndpoint,
+        instance: bool,
     ) -> Result<UpstreamTransport, McpError> {
         let key = PoolKey::new(deployment, endpoint);
         let mut servers = self.servers.lock().unwrap_or_else(PoisonError::into_inner);
@@ -133,12 +145,13 @@ impl HubUpstreamHttpClientPool {
         if !servers.contains_key(&key) {
             let mut builder = (self.builder)();
             if let Some(native) = &self.native {
+                let socket = if instance {
+                    native.instance_socket(deployment, endpoint)
+                } else {
+                    native.socket(endpoint).map(ToOwned::to_owned)
+                };
                 builder = builder
-                    .unix_socket(
-                        native
-                            .socket(endpoint)
-                            .map_err(|error| mcp_internal(error.to_string()))?,
-                    )
+                    .unix_socket(socket.map_err(|error| mcp_internal(error.to_string()))?)
                     .no_proxy();
             }
             let client = builder.build().map_err(|err| {
@@ -149,6 +162,7 @@ impl HubUpstreamHttpClientPool {
                 key.clone(),
                 Arc::new(Pooled {
                     endpoint: endpoint.clone(),
+                    instance,
                     generation,
                     discarded: AtomicBool::new(false),
                     client,
@@ -159,6 +173,7 @@ impl HubUpstreamHttpClientPool {
         Ok(UpstreamTransport {
             pool: self.clone(),
             endpoint: endpoint.clone(),
+            instance,
             key,
             generation: pooled.generation,
             client: pooled.client.clone(),
@@ -184,6 +199,7 @@ impl HubUpstreamHttpClientPool {
 pub(super) struct UpstreamTransport {
     pool: HubUpstreamHttpClientPool,
     endpoint: veoveo_hub_sdk::registration::ServerEndpoint,
+    instance: bool,
     key: PoolKey,
     generation: u64,
     client: reqwest::Client,
@@ -202,7 +218,8 @@ impl UpstreamTransport {
 
     /// The server's current transport, after this one was discarded.
     pub(super) fn current(&self) -> Result<Self, McpError> {
-        self.pool.transport(self.key.deployment, &self.endpoint)
+        self.pool
+            .transport(self.key.deployment, &self.endpoint, self.instance)
     }
 }
 
@@ -227,31 +244,31 @@ mod live_tests {
         let b = DeploymentId::new();
         let endpoint =
             ServerEndpoint::new(url::Url::parse("http://fixture.internal/mcp").unwrap()).unwrap();
-        let old_a = first.transport(a, &endpoint).unwrap();
-        let old_b = first.transport(b, &endpoint).unwrap();
-        let next = first.reconfigured(None).unwrap();
+        let old_a = first.transport(a, &endpoint, false).unwrap();
+        let old_b = first.transport(b, &endpoint, false).unwrap();
+        let next = first.reconfigured(None, None).unwrap();
         assert_eq!(
-            next.transport(a, &endpoint).unwrap().generation,
+            next.transport(a, &endpoint, false).unwrap().generation,
             old_a.generation
         );
         assert_eq!(
-            next.transport(b, &endpoint).unwrap().generation,
+            next.transport(b, &endpoint, false).unwrap().generation,
             old_b.generation
         );
         old_a.discard();
         assert_ne!(
-            next.transport(a, &endpoint).unwrap().generation,
+            next.transport(a, &endpoint, false).unwrap().generation,
             old_a.generation
         );
         assert_eq!(
-            next.transport(b, &endpoint).unwrap().generation,
+            next.transport(b, &endpoint, false).unwrap().generation,
             old_b.generation
         );
         // A late failure from the prior generation cannot discard its replacement.
-        let replacement = next.transport(a, &endpoint).unwrap();
+        let replacement = next.transport(a, &endpoint, false).unwrap();
         old_a.discard();
         assert_eq!(
-            next.transport(a, &endpoint).unwrap().generation,
+            next.transport(a, &endpoint, false).unwrap().generation,
             replacement.generation
         );
     }

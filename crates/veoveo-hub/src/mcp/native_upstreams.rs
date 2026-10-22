@@ -1,5 +1,7 @@
 //! Byte transport only: reqwest/rmcp retain HTTP, tokens, pooling and streaming.
-//! Each accepted private Unix connection opens a new authenticated ForwardTcp.
+//! Each accepted private Unix connection opens a new authenticated ForwardTcp. The
+//! control plane binds each server endpoint to a sandbox; an instance is bound by its
+//! deployment to its factory sandbox, at the port of the endpoint it registered.
 
 use std::{
     collections::BTreeMap,
@@ -18,6 +20,7 @@ use tokio::{
 };
 use tokio_stream::wrappers::ReceiverStream;
 use veoveo_hub_sdk::registration::ServerEndpoint;
+use veoveo_types::DeploymentId;
 
 use crate::control_plane::{NativeUpstreamBinding, NativeUpstreams};
 
@@ -29,6 +32,14 @@ pub(super) struct NativeTransport {
     client: OpenShellClient,
     permits: Arc<Semaphore>,
     endpoints: BTreeMap<String, Arc<NativeEndpoint>>,
+    instances: Option<Arc<Instances>>,
+}
+
+/// The factory sandboxes of instances, each bound on first use.
+#[derive(Debug)]
+struct Instances {
+    workspace: String,
+    endpoints: parking_lot::Mutex<BTreeMap<DeploymentId, Arc<NativeEndpoint>>>,
 }
 
 impl std::fmt::Debug for NativeTransport {
@@ -56,7 +67,9 @@ impl Drop for NativeEndpoint {
 }
 
 impl NativeTransport {
-    pub(super) async fn start(config: &NativeUpstreams) -> Result<Self> {
+    /// Connect to the gateway. `instances` is the factory workspace, when the
+    /// installation serves instances from factory sandboxes.
+    pub(super) async fn start(config: &NativeUpstreams, instances: Option<&str>) -> Result<Self> {
         ensure!(
             config.gateway.scheme() == "https",
             "native upstream gateway requires verified HTTPS"
@@ -71,19 +84,30 @@ impl NativeTransport {
         let client = OpenShellClient::connect(connection)
             .await
             .context("connect native upstream gateway")?;
-        Self::with_client(config, client)
+        Self::with_client(config, instances, client)
     }
 
-    fn with_client(config: &NativeUpstreams, client: OpenShellClient) -> Result<Self> {
+    fn with_client(
+        config: &NativeUpstreams,
+        instances: Option<&str>,
+        client: OpenShellClient,
+    ) -> Result<Self> {
         Self {
             client,
             permits: Arc::new(Semaphore::new(CONNECTIONS)),
             endpoints: BTreeMap::new(),
+            instances: None,
         }
-        .reconfigured(config)
+        .reconfigured(config, instances)
     }
 
-    pub(super) fn reconfigured(&self, config: &NativeUpstreams) -> Result<Self> {
+    /// The next routing generation. Instance bindings carry over while the factory
+    /// workspace stays the same.
+    pub(super) fn reconfigured(
+        &self,
+        config: &NativeUpstreams,
+        instances: Option<&str>,
+    ) -> Result<Self> {
         let mut endpoints = BTreeMap::new();
         for binding in &config.bindings {
             ensure!(
@@ -101,10 +125,18 @@ impl NativeTransport {
             };
             endpoints.insert(key, endpoint);
         }
+        let instances = instances.map(|workspace| match &self.instances {
+            Some(current) if current.workspace == workspace => current.clone(),
+            _ => Arc::new(Instances {
+                workspace: workspace.to_owned(),
+                endpoints: parking_lot::Mutex::default(),
+            }),
+        });
         Ok(Self {
             client: self.client.clone(),
             permits: self.permits.clone(),
             endpoints,
+            instances,
         })
     }
 
@@ -157,11 +189,48 @@ impl NativeTransport {
         }
     }
 
+    /// Whether both generations bind instances to the same factory sandboxes.
+    pub(super) fn same_instances(&self, other: &Self) -> bool {
+        match (&self.instances, &other.instances) {
+            (Some(left), Some(right)) => Arc::ptr_eq(left, right),
+            _ => false,
+        }
+    }
+
     pub(super) fn socket(&self, endpoint: &ServerEndpoint) -> Result<&Path> {
         self.endpoints
             .get(endpoint.url().as_str())
             .map(|v| v.path.as_path())
             .with_context(|| format!("no native upstream binding for {}", endpoint.url()))
+    }
+
+    /// The socket of an instance's factory sandbox, at the port of the endpoint the
+    /// instance registered.
+    pub(super) fn instance_socket(
+        &self,
+        deployment: DeploymentId,
+        endpoint: &ServerEndpoint,
+    ) -> Result<PathBuf> {
+        let instances = self.instances.as_ref().context(
+            "instances run in factory sandboxes; the installation configures no factory",
+        )?;
+        let binding = NativeUpstreamBinding {
+            endpoint: endpoint.clone(),
+            workspace: instances.workspace.clone(),
+            sandbox: crate::factory::sandbox_name(deployment),
+            port: endpoint
+                .url()
+                .port_or_known_default()
+                .with_context(|| format!("{} names no port", endpoint.url()))?,
+        };
+        let mut endpoints = instances.endpoints.lock();
+        if let Some(bound) = endpoints.get(&deployment).filter(|v| v.binding == binding) {
+            return Ok(bound.path.clone());
+        }
+        let bound = Arc::new(self.open_endpoint(binding)?);
+        let path = bound.path.clone();
+        endpoints.insert(deployment, bound);
+        Ok(path)
     }
 }
 
@@ -239,14 +308,14 @@ mod tests {
                 {"endpoint":"http://fixture-b.internal/mcp", "workspace":"fixture", "sandbox":"b", "port":8800}
             ]
         }))?;
-        let old = NativeTransport::with_client(&config, client)?;
+        let old = NativeTransport::with_client(&config, None, client)?;
         let a = config.bindings[0].endpoint.clone();
         let b = config.bindings[1].endpoint.clone();
         let inflight = old.endpoints[a.url().as_str()].clone();
         let old_path = inflight.path.clone();
         let mut invalid = config.clone();
         invalid.bindings.push(invalid.bindings[0].clone());
-        assert!(old.reconfigured(&invalid).is_err());
+        assert!(old.reconfigured(&invalid, None).is_err());
         assert!(
             old.socket(&a)?.exists(),
             "rejected preparation cannot disturb active listeners"
@@ -257,7 +326,7 @@ mod tests {
         added.sandbox = "added".into();
         let c = added.endpoint.clone();
         config.bindings.push(added);
-        let next = old.reconfigured(&config)?;
+        let next = old.reconfigured(&config, None)?;
         assert!(old.socket(&c).is_err());
         assert!(next.socket(&c)?.exists());
         assert!(!old.same_endpoint(&next, &a));
@@ -275,7 +344,7 @@ mod tests {
         );
         config.bindings.remove(0);
         let removed_path = next.socket(&a)?.to_owned();
-        let removed = next.reconfigured(&config)?;
+        let removed = next.reconfigured(&config, None)?;
         assert!(removed.socket(&a).is_err());
         assert!(next.same_endpoint(&removed, &b));
         assert!(
@@ -288,6 +357,53 @@ mod tests {
         Ok(())
     }
 
+    #[tokio::test]
+    async fn an_instance_is_bound_by_its_deployment_to_its_factory_sandbox() -> Result<()> {
+        let client = OpenShellClient::from_parts(
+            tonic::transport::Endpoint::from_static("http://127.0.0.1:9").connect_lazy(),
+            openshell_sdk::EdgeAuthInterceptor::noop(),
+        );
+        let config: NativeUpstreams = serde_json::from_value(serde_json::json!({
+            "gateway":"https://gateway.example/", "certificateAuthority":"/unused/ca",
+            "bearerEnvironment":"UNUSED", "bindings":[]
+        }))?;
+        let deployment = DeploymentId::new();
+        let endpoint = ServerEndpoint::new(url::Url::parse(
+            "http://instance.internal:8800/fixture/mcp",
+        )?)?;
+        assert!(
+            NativeTransport::with_client(&config, None, client.clone())?
+                .instance_socket(deployment, &endpoint)
+                .is_err(),
+            "without a factory no instance is bound"
+        );
+        let native = NativeTransport::with_client(&config, Some("factory"), client)?;
+        let path = native.instance_socket(deployment, &endpoint)?;
+        assert!(path.exists());
+        assert_eq!(native.instance_socket(deployment, &endpoint)?, path);
+        assert_eq!(
+            native.instances.as_ref().unwrap().endpoints.lock()[&deployment].binding,
+            NativeUpstreamBinding {
+                endpoint: endpoint.clone(),
+                workspace: "factory".into(),
+                sandbox: crate::factory::sandbox_name(deployment),
+                port: 8800,
+            }
+        );
+        let reloaded = native.reconfigured(&config, Some("factory"))?;
+        assert!(native.same_instances(&reloaded));
+        assert_eq!(reloaded.instance_socket(deployment, &endpoint)?, path);
+        let moved = native.reconfigured(&config, Some("elsewhere"))?;
+        assert!(!native.same_instances(&moved));
+        assert_ne!(moved.instance_socket(deployment, &endpoint)?, path);
+        let reregistered = ServerEndpoint::new(url::Url::parse(
+            "http://instance.internal:8810/fixture/mcp",
+        )?)?;
+        assert_ne!(native.instance_socket(deployment, &reregistered)?, path);
+        assert!(!path.exists(), "a replaced binding releases its socket");
+        Ok(())
+    }
+
     /// The external fixture serves /healthz, /mcp and /sse, as declared by the
     /// qualification repository. This exercises real native forwarding, not a mock.
     #[tokio::test]
@@ -297,10 +413,10 @@ mod tests {
         let path = std::env::var("VEOVEO_NATIVE_TRANSPORT_TEST_CONFIG")?;
         let config: NativeUpstreams = serde_json::from_slice(&std::fs::read(path)?)?;
         let endpoint = &config.bindings.first().context("fixture binding")?.endpoint;
-        let pool = HubUpstreamHttpClientPool::native(&config).await?;
+        let pool = HubUpstreamHttpClientPool::native(&config, None).await?;
         let deployment = DeploymentId::new();
         let transport = pool
-            .transport(deployment, endpoint)
+            .transport(deployment, endpoint, false)
             .map_err(|e| anyhow::anyhow!("{e}"))?;
         let mut url = endpoint.url().clone();
         url.set_path("/healthz");
@@ -356,13 +472,14 @@ mod tests {
         );
         let missing = ServerEndpoint::new(url::Url::parse("http://unbound.internal/mcp")?)?;
         ensure!(
-            pool.transport(DeploymentId::new(), &missing).is_err(),
+            pool.transport(DeploymentId::new(), &missing, false)
+                .is_err(),
             "unbound endpoint rejected"
         );
         drop(transport);
         drop(replacement);
         drop(pool);
-        let native = NativeTransport::start(&config).await?;
+        let native = NativeTransport::start(&config, None).await?;
         let directories = native
             .endpoints
             .values()

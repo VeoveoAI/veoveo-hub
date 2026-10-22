@@ -22,10 +22,15 @@ impl HostedRuntime {
     ) -> Result<Self> {
         let old = previous.and_then(|catalog| catalog.runtime.as_ref());
         let native = catalog.control_plane().native_upstreams.as_ref();
+        let instances = catalog
+            .control_plane()
+            .factory
+            .as_ref()
+            .map(|factory| factory.workspace.as_str());
         let upstream_http = match old {
-            Some(old) => old.upstream_http.reconfigured(native)?,
+            Some(old) => old.upstream_http.reconfigured(native, instances)?,
             None => match native {
-                Some(config) => HubUpstreamHttpClientPool::native(config).await?,
+                Some(config) => HubUpstreamHttpClientPool::native(config, instances).await?,
                 None => HubUpstreamHttpClientPool::new(),
             },
         };

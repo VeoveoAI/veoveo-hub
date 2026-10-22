@@ -400,6 +400,7 @@ mod tests {
                 .transport(
                     registered_server().deployment,
                     &registered_server().endpoint,
+                    false,
                 )
                 .unwrap(),
             issuer,

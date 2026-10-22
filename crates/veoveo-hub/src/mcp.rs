@@ -174,7 +174,7 @@ impl HubMcp {
             .catalog()
             .upstream_http()
             .unwrap_or(&self.upstream_http)
-            .transport(server.deployment, &server.endpoint)?;
+            .transport(server.deployment, &server.endpoint, server.branch.is_some())?;
         let mut permissions = crate::policy::granted_permissions(
             &snapshot.catalog().control_plane().authorization,
             &server.authorization,

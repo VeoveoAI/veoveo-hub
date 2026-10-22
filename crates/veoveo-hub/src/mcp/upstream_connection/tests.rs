@@ -140,7 +140,8 @@ async fn connect(
     let mut server = crate::test_catalog::registered_server(slug, endpoint);
     server.deployment = deployment;
     let http = HubAuthorizedHttpClient::new(
-        pool.transport(server.deployment, &server.endpoint).unwrap(),
+        pool.transport(server.deployment, &server.endpoint, false)
+            .unwrap(),
         crate::test_catalog::token_issuer(),
         "workspace".parse().unwrap(),
         &server,
@@ -335,6 +336,7 @@ async fn pool_connections(
         .transport(
             deployment,
             &crate::test_catalog::registered_server(slug, endpoint).endpoint,
+            false,
         )
         .unwrap();
     futures::future::join_all((0..count).map(|_| async {
