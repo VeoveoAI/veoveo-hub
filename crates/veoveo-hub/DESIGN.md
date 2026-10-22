@@ -632,6 +632,15 @@ refused with `invalid_grant`. A second test, without the binary, runs four concu
 checks that `drop_database_if_unused` drops that database, but neither one an instance
 names nor the installation database.
 
+`tests/selection.rs` starts the binary with base branch `dev`, registers instances of
+the Ledger fixture on `dev` and on another branch, and calls them as the `member` and
+`admin` callers. It checks that a selection serves its branch's tools to its principal while
+the other principal keeps the base branch, that clearing returns to the base, that a
+selected branch without an instance lists no tools of that server and refuses a call
+with its cause, that a change completes only the changed principal's listens with a
+tool-list hint, and that a Task started before a change completes on the instance it
+started on, under its captured composition.
+
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed
 assertion, an unknown client, resource or scope and an unsupported grant, and the MCP
