@@ -72,10 +72,9 @@ pub(crate) enum Pin {
     Claimed,
     /// The namespace was already pinned to the same key.
     Held,
-    /// Another key holds the namespace.
+    /// Another key holds the namespace, or the namespace of the deployment's
+    /// registered server.
     Foreign,
-    /// The deployment was registered before with other metadata or storage.
-    Rebound,
 }
 
 /// A registration that ended, and the login it held.
@@ -136,8 +135,15 @@ impl RegistrationStore {
     }
 
     /// Pin the namespace on the server's first registration, create the server's group
-    /// role and schema, the registration's login and its row, in one transaction.
-    pub async fn register(&self, registration: NewRegistration<'_>) -> Result<Pin> {
+    /// role and schema, the registration's login and its row, in one transaction. A
+    /// deployment registered before with other metadata takes the new metadata and
+    /// storage binding, and its previous registrations end with their logins; when it
+    /// belonged to another slug, that slug's namespace must be pinned to the same key.
+    /// Returns the replaced registrations.
+    pub async fn register(
+        &self,
+        registration: NewRegistration<'_>,
+    ) -> Result<(Pin, Vec<EndedRegistration>)> {
         let server = registration.metadata.slug();
         let thumbprint = registration.metadata.key().thumbprint();
         let mut transaction = self.store.pool().begin().await?;
@@ -162,7 +168,7 @@ impl RegistrationStore {
                     .await
                     .context("failed to read namespace claim")?;
             if pinned != thumbprint.as_str() {
-                return Ok(Pin::Foreign);
+                return Ok((Pin::Foreign, Vec::new()));
             }
             Pin::Held
         };
@@ -177,15 +183,26 @@ impl RegistrationStore {
         )
         .execute(&mut *transaction)
         .await?;
-        let immutable = sqlx::query_file!("src/registration/store/deployment.sql", deployment)
+        let stored = sqlx::query_file!("src/registration/store/deployment.sql", deployment)
             .fetch_one(&mut *transaction)
             .await?;
-        if immutable.metadata.0 != *registration.metadata || immutable.storage.0 != binding {
-            return Ok(Pin::Rebound);
+        let mut replaced = Vec::new();
+        if stored.metadata.0 != *registration.metadata || stored.storage.0 != binding {
+            if stored.server != server.as_str() {
+                let pinned =
+                    sqlx::query_file_scalar!("src/registration/store/claim.sql", stored.server)
+                        .fetch_optional(&mut *transaction)
+                        .await
+                        .context("failed to read the deployment's namespace claim")?;
+                if pinned.as_deref() != Some(thumbprint.as_str()) {
+                    return Ok((Pin::Foreign, Vec::new()));
+                }
+            }
+            replaced = replace(&mut transaction, &registration, &binding).await?;
         }
         admit(&mut transaction, &registration).await?;
         transaction.commit().await?;
-        Ok(pin)
+        Ok((pin, replaced))
     }
 
     /// Record a new instance in `database` under the digest of its registration token.
@@ -242,7 +259,6 @@ impl RegistrationStore {
         environment: Option<&DatabaseName>,
     ) -> Result<Vec<EndedRegistration>> {
         let server = registration.metadata.slug();
-        let deployment = registration.metadata.registration.deployment.as_uuid();
         let binding = StorageBinding::SharedLogicalSchema {
             server: server.clone(),
         };
@@ -258,34 +274,53 @@ impl RegistrationStore {
             })?;
         }
         let mut transaction = self.store.pool().begin().await?;
-        sqlx::query_file!(
-            "src/registration/store/replace_deployment.sql",
-            deployment,
-            server.as_str(),
-            Json(registration.metadata) as _,
-            Json(&binding) as _,
-            registration.now,
-        )
-        .execute(&mut *transaction)
-        .await
-        .context("failed to record the instance's deployment")?;
-        let replaced = sqlx::query_file_as!(
-            EndedRow,
-            "src/registration/store/replace_registrations.sql",
-            deployment,
-        )
-        .fetch_all(&mut *transaction)
-        .await
-        .context("failed to remove the instance's previous registrations")?
-        .into_iter()
-        .map(EndedRegistration::try_from)
-        .collect::<Result<Vec<_>>>()?;
-        for previous in &replaced {
-            drop_login(&mut transaction, &previous.login).await?;
-        }
+        let replaced = replace(&mut transaction, &registration, &binding).await?;
         admit(&mut transaction, &registration).await?;
         transaction.commit().await?;
         Ok(replaced)
+    }
+
+    /// Whether `deployment` is an instance's.
+    pub async fn is_instance(&self, deployment: DeploymentId) -> Result<bool> {
+        sqlx::query_file_scalar!(
+            "src/registration/store/deployment_instance.sql",
+            deployment.as_uuid()
+        )
+        .fetch_one(self.store.pool())
+        .await
+        .context("failed to look up the deployment's instance")
+    }
+
+    /// Replace a registration's metadata and software statement, and its deployment's
+    /// metadata, in one transaction.
+    pub async fn update(
+        &self,
+        client_id: &OAuthClientId,
+        metadata: &ClientMetadata,
+        software_statement: &SoftwareStatement,
+        now: DateTime<Utc>,
+    ) -> Result<()> {
+        let mut transaction = self.store.pool().begin().await?;
+        sqlx::query_file!(
+            "src/registration/store/update_registration.sql",
+            client_id.as_str(),
+            Json(metadata) as _,
+            software_statement.as_str(),
+            now,
+        )
+        .execute(&mut *transaction)
+        .await
+        .context("failed to update the registration")?;
+        sqlx::query_file!(
+            "src/registration/store/update_deployment.sql",
+            metadata.registration.deployment.as_uuid(),
+            Json(metadata) as _,
+        )
+        .execute(&mut *transaction)
+        .await
+        .context("failed to update the registration's deployment")?;
+        transaction.commit().await?;
+        Ok(())
     }
 
     pub async fn registrations(&self) -> Result<Vec<StoredRegistration>> {
@@ -384,6 +419,42 @@ impl RegistrationStore {
             })
             .collect()
     }
+}
+
+/// Write the deployment's server, metadata and storage binding, remove its previous
+/// registrations and drop their logins. Returns the removed registrations.
+async fn replace(
+    connection: &mut sqlx::PgConnection,
+    registration: &NewRegistration<'_>,
+    binding: &StorageBinding,
+) -> Result<Vec<EndedRegistration>> {
+    let deployment = registration.metadata.registration.deployment.as_uuid();
+    sqlx::query_file!(
+        "src/registration/store/replace_deployment.sql",
+        deployment,
+        registration.metadata.slug().as_str(),
+        Json(registration.metadata) as _,
+        Json(binding) as _,
+        registration.now,
+    )
+    .execute(&mut *connection)
+    .await
+    .context("failed to record the deployment")?;
+    let replaced = sqlx::query_file_as!(
+        EndedRow,
+        "src/registration/store/replace_registrations.sql",
+        deployment,
+    )
+    .fetch_all(&mut *connection)
+    .await
+    .context("failed to remove the deployment's previous registrations")?
+    .into_iter()
+    .map(EndedRegistration::try_from)
+    .collect::<Result<Vec<_>>>()?;
+    for previous in &replaced {
+        drop_login(&mut *connection, &previous.login).await?;
+    }
+    Ok(replaced)
 }
 
 /// Create the server's group role and schema, the registration's login and its row.

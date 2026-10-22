@@ -5,7 +5,9 @@
 //! that a registration replaces its instance's previous one with a new key and new
 //! metadata under the same deployment, that a token registers only its own
 //! deployment, that every other token still takes the namespace path, and that
-//! housekeeping never orphans or collects an instance registration.
+//! housekeeping never orphans or collects an instance registration. RFC 7592 updates
+//! that change the metadata, and namespace registrations of an existing deployment
+//! with new metadata, replace it, while the namespace's key pin still holds.
 
 #[path = "support/hub.rs"]
 mod hub;
@@ -20,8 +22,9 @@ use veoveo_hub::data_environment::DatabaseName;
 use veoveo_hub::registration::{HOUSEKEEPING_INTERVAL, NewInstance, create_instance};
 use veoveo_hub_sdk::DeploymentId;
 use veoveo_hub_sdk::registration::{
-    AuthorizationDeclaration, ClientMetadata, DatabaseGrant, RegistrationDeclaration,
-    RegistrationErrorCode, ServerEndpoint, ServerVersion,
+    AuthorizationDeclaration, ClientInformation, ClientMetadata, ClientUpdateRequest,
+    DatabaseGrant, RegistrationDeclaration, RegistrationErrorCode, RegistrationErrorResponse,
+    ServerEndpoint, ServerVersion,
     client::{ClientError, Registration, RegistrationClient},
     statement::ServerKeyPair,
 };
@@ -295,6 +298,127 @@ async fn housekeeping_never_orphans_or_collects_an_instance_registration() {
     .expect("the test exceeded its bound");
 }
 
+#[tokio::test]
+async fn an_update_with_new_metadata_replaces_the_instance_registration_and_its_deployment() {
+    tokio::time::timeout(BOUND, async {
+        let fixture = Fixture::start(Duration::from_secs(60)).await;
+        let a = create_instance(&fixture.db.a, &fixture.installation())
+            .await
+            .unwrap();
+        let registered = fixture
+            .instance(&a, a.deployment, Revision::First)
+            .register()
+            .await
+            .unwrap();
+
+        // A rebuilt branch updates in place: a new key, version, endpoint and
+        // declaration under the same registration and deployment.
+        let key = ServerKeyPair::generate().unwrap();
+        let changed = fixture.metadata(&key, a.deployment, Revision::Second);
+        let response = fixture.update(&registered, &key, &changed).await;
+        assert_eq!(response.status(), reqwest::StatusCode::OK);
+        let information: ClientInformation = response.json().await.unwrap();
+        assert_eq!(information.client_id, *registered.client_id());
+        assert_eq!(information.metadata, changed);
+        assert_eq!(fixture.read(&registered).await.metadata, changed);
+        assert_eq!(
+            stored_deployment(&fixture.db, a.deployment).await.1,
+            changed
+        );
+        assert!(
+            role_exists(&fixture.db, grant(&registered)).await,
+            "the registration keeps its login"
+        );
+
+        // An update still keeps the registration's deployment and slug.
+        let elsewhere = fixture.metadata(&key, DeploymentId::new(), Revision::Second);
+        let refused = fixture.update(&registered, &key, &elsewhere).await;
+        assert_eq!(
+            rejection(refused).await,
+            RegistrationErrorCode::InvalidClientMetadata
+        );
+        assert_eq!(
+            stored_deployment(&fixture.db, a.deployment).await.1,
+            changed
+        );
+    })
+    .await
+    .expect("the test exceeded its bound");
+}
+
+#[tokio::test]
+async fn a_namespace_registration_with_new_metadata_replaces_its_deployment_under_the_pinned_key() {
+    tokio::time::timeout(BOUND, async {
+        let fixture = Fixture::start(Duration::from_secs(60)).await;
+        let secret = fixture.registration_secret();
+        let key = ServerKeyPair::generate().unwrap();
+        let deployment = DeploymentId::new();
+        let first = fixture
+            .client_with(&secret, copy(&key), deployment, Revision::First)
+            .register()
+            .await
+            .unwrap();
+        connect(grant(&first)).await.close().await;
+
+        // The same deployment with other declarations replaces the registration.
+        let second = fixture
+            .client_with(&secret, copy(&key), deployment, Revision::Second)
+            .register()
+            .await
+            .unwrap();
+        assert_ne!(second.client_id(), first.client_id());
+        assert_eq!(
+            registrations(&fixture.db)
+                .await
+                .iter()
+                .map(|row| (row.client_id.clone(), row.deployment))
+                .collect::<Vec<_>>(),
+            [(second.client_id().to_string(), deployment)]
+        );
+        assert!(!role_exists(&fixture.db, grant(&first)).await);
+        assert!(try_connect(grant(&first)).await.is_err());
+        assert_eq!(
+            &stored_deployment(&fixture.db, deployment).await.1,
+            &second.information().metadata
+        );
+
+        // An update with new metadata under the pinned key applies too.
+        let updated = fixture.metadata(&key, deployment, Revision::First);
+        let response = fixture.update(&second, &key, &updated).await;
+        assert_eq!(response.status(), reqwest::StatusCode::OK);
+        assert_eq!(stored_deployment(&fixture.db, deployment).await.1, updated);
+
+        // Another key neither registers the claimed slug, for this deployment or any
+        // other, nor updates its registration.
+        for named in [deployment, DeploymentId::new()] {
+            match fixture
+                .client(&secret, named, Revision::Second)
+                .register()
+                .await
+            {
+                Err(ClientError::Rejected {
+                    status: reqwest::StatusCode::BAD_REQUEST,
+                    error: Some(error),
+                }) => assert_eq!(
+                    error.error,
+                    RegistrationErrorCode::UnapprovedSoftwareStatement
+                ),
+                other => panic!("expected the namespace pin to hold, got {other:?}"),
+            }
+        }
+        let other = ServerKeyPair::generate().unwrap();
+        let foreign = fixture.metadata(&other, deployment, Revision::Second);
+        assert_eq!(
+            rejection(fixture.update(&second, &other, &foreign).await).await,
+            RegistrationErrorCode::UnapprovedSoftwareStatement
+        );
+        assert_eq!(stored_deployment(&fixture.db, deployment).await.1, updated);
+        assert_eq!(registrations(&fixture.db).await.len(), 1);
+    })
+    .await
+    .expect("the test exceeded its bound");
+}
+
 /// The Hub on a fresh database, and the client its registration endpoint is
 /// discovered with.
 struct Fixture {
@@ -352,8 +476,41 @@ impl Fixture {
         deployment: DeploymentId,
         revision: Revision,
     ) -> RegistrationClient {
-        let key = ServerKeyPair::generate().unwrap();
-        let metadata = ClientMetadata::new(
+        self.client_with(
+            token,
+            ServerKeyPair::generate().unwrap(),
+            deployment,
+            revision,
+        )
+    }
+
+    /// A process with `key` presenting `token` as its initial access token.
+    fn client_with(
+        &self,
+        token: &SecretString,
+        key: ServerKeyPair,
+        deployment: DeploymentId,
+        revision: Revision,
+    ) -> RegistrationClient {
+        let metadata = self.metadata(&key, deployment, revision);
+        RegistrationClient::new(
+            self.http.clone(),
+            self.endpoint.clone(),
+            SecretString::from(token.expose_secret().to_owned()),
+            key,
+            metadata,
+        )
+        .unwrap()
+    }
+
+    /// The Observatory declaration of `revision` under `key` for `deployment`.
+    fn metadata(
+        &self,
+        key: &ServerKeyPair,
+        deployment: DeploymentId,
+        revision: Revision,
+    ) -> ClientMetadata {
+        ClientMetadata::new(
             *key.public_key(),
             RegistrationDeclaration {
                 deployment,
@@ -371,15 +528,46 @@ impl Fixture {
             },
             revision.authorization(),
         )
-        .unwrap();
-        RegistrationClient::new(
-            self.http.clone(),
-            self.endpoint.clone(),
-            SecretString::from(token.expose_secret().to_owned()),
-            key,
-            metadata,
-        )
         .unwrap()
+    }
+
+    /// RFC 7592 §2.2: replace `registration`'s metadata with `metadata`, signed by `key`.
+    /// The SDK's client updates only to the metadata it registered, so the test sends
+    /// the request itself.
+    async fn update(
+        &self,
+        registration: &Registration,
+        key: &ServerKeyPair,
+        metadata: &ClientMetadata,
+    ) -> reqwest::Response {
+        let information = registration.information();
+        let uri = &information.registration_client_uri;
+        let request = ClientUpdateRequest {
+            client_id: information.client_id.clone(),
+            metadata: metadata.clone(),
+            software_statement: key.sign_statement(metadata, uri, Utc::now()).unwrap(),
+        };
+        self.http
+            .put(uri.clone())
+            .bearer_auth(information.registration_access_token.expose_secret())
+            .json(&request)
+            .send()
+            .await
+            .unwrap()
+    }
+
+    /// RFC 7592 §2.1: the registration as the Hub holds it now.
+    async fn read(&self, registration: &Registration) -> ClientInformation {
+        let information = registration.information();
+        let response = self
+            .http
+            .get(information.registration_client_uri.clone())
+            .bearer_auth(information.registration_access_token.expose_secret())
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(response.status(), reqwest::StatusCode::OK);
+        response.json().await.unwrap()
     }
 
     /// The slug and deployment of every server the Hub routes, from its server-health
@@ -459,6 +647,20 @@ impl Revision {
         }
         serde_json::from_value(declaration).unwrap()
     }
+}
+
+/// The RFC 7591 error code of a refused request.
+async fn rejection(response: reqwest::Response) -> RegistrationErrorCode {
+    assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
+    response
+        .json::<RegistrationErrorResponse>()
+        .await
+        .unwrap()
+        .error
+}
+
+fn copy(key: &ServerKeyPair) -> ServerKeyPair {
+    ServerKeyPair::from_pkcs8_der(key.pkcs8_der()).unwrap()
 }
 
 fn deployment(registration: &Registration) -> DeploymentId {

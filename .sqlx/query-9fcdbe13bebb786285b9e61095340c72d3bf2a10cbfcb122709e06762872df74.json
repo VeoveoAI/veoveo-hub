@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.registration\nSET metadata = $2, software_statement = $3, updated_at = $4\nWHERE client_id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Jsonb",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9fcdbe13bebb786285b9e61095340c72d3bf2a10cbfcb122709e06762872df74"
+}

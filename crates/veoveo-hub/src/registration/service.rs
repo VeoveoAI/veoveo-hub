@@ -282,7 +282,8 @@ impl RegistrationService {
         let mut url = self.inner.database.url.clone();
         match authority {
             RegistrationAuthority::Namespace => {
-                match self.inner.store.register(registration).await? {
+                let (pin, replaced) = self.inner.store.register(registration).await?;
+                match pin {
                     Pin::Foreign => {
                         return Err(RegistrationError::rejected(
                             RegistrationErrorCode::UnapprovedSoftwareStatement,
@@ -294,12 +295,10 @@ impl RegistrationService {
                             .await?;
                     }
                     Pin::Held => {}
-                    Pin::Rebound => {
-                        return Err(RegistrationError::rejected(
-                            RegistrationErrorCode::InvalidClientMetadata,
-                            "a deployment cannot change its admitted identity or contract",
-                        ));
-                    }
+                }
+                for replaced in replaced {
+                    self.ended(&replaced, RegistrationActivity::Replace).await?;
+                    self.reload(&replaced.client_id).await?;
                 }
             }
             RegistrationAuthority::Instance { database, .. } => {
@@ -359,9 +358,11 @@ impl RegistrationService {
         )
     }
 
-    /// RFC 7592 §2.2: replace the registered metadata. Changed declarations take the
-    /// admission of a new registration under the pinned key; an unchanged update
-    /// writes nothing.
+    /// RFC 7592 §2.2: replace the registered metadata, which keeps the registration's
+    /// deployment and slug, and with them its login. The software statement is verified
+    /// against the key the slug's namespace is pinned to, or for an instance against
+    /// the key the metadata presents. Changed metadata replaces the registration's and
+    /// its deployment's; an unchanged update writes nothing.
     pub async fn update(
         &self,
         client_id: &str,
@@ -377,22 +378,57 @@ impl RegistrationService {
             ));
         }
         request.metadata.check().map_err(invalid_metadata)?;
-        if request.metadata != registration.metadata {
+        let deployment = registration.metadata.registration.deployment;
+        if request.metadata.registration.deployment != deployment {
             return Err(RegistrationError::rejected(
                 RegistrationErrorCode::InvalidClientMetadata,
-                "a deployment's key, identity, endpoint and contract are immutable; admit a new deployment",
+                format!(
+                    "the registration belongs to deployment {deployment}; register again for another"
+                ),
+            ));
+        }
+        let slug = registration.metadata.slug();
+        if request.metadata.slug() != slug {
+            return Err(RegistrationError::rejected(
+                RegistrationErrorCode::InvalidClientMetadata,
+                format!(
+                    "the registration's login belongs to `{slug}`; register again for another slug"
+                ),
             ));
         }
         let now = Utc::now();
         let audience = self.registration_client_uri(&registration.client_id);
-        let claim = registration.metadata.key().thumbprint();
+        let pinned = if self.inner.store.is_instance(deployment).await? {
+            None
+        } else {
+            Some(
+                self.inner
+                    .store
+                    .claim(slug)
+                    .await?
+                    .unwrap_or_else(|| registration.metadata.key().thumbprint().to_string()),
+            )
+        };
         verify(
             &request.software_statement,
             &request.metadata,
-            Some(claim.as_str()),
+            pinned.as_deref(),
             &audience,
             now,
         )?;
+        if request.metadata != registration.metadata {
+            self.inner
+                .store
+                .update(
+                    &registration.client_id,
+                    &request.metadata,
+                    &request.software_statement,
+                    now,
+                )
+                .await?;
+            self.audit(slug, RegistrationActivity::Update).await?;
+            self.reload(&registration.client_id).await?;
+        }
         self.information(
             registration.client_id,
             registration.issued_at,

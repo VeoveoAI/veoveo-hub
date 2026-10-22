@@ -43,9 +43,10 @@ RFC 7591 metadata carries a deployment ID. A deployment registers either with th
 installation's registration secret under the key its logical namespace is pinned
 to, or as an instance with the registration token the Hub created for it, and
 receives the namespace's explicit `shared_logical_schema` storage binding. Shared
-schema is an explicit data binding, not owner isolation. A namespace deployment
-cannot change its key, logical namespace, contract, endpoint or storage through
-re-registration; an instance's every registration replaces them. Registrations and
+schema is an explicit data binding, not owner isolation. A registration of a
+namespace deployment with new metadata, under the pinned key, replaces its contract,
+endpoint and storage, and an instance's every registration replaces them, key
+included. Registrations and
 health remain independent per deployment; registration alone never selects a
 serving component.
 
@@ -163,7 +164,13 @@ One transaction registers a server: it claims the namespace on the slug's first
 registration, or finds it pinned to the same key, calls `kernel.ensure_server` for the
 server's group role `server_<schema>` and its schema, creates the registration's login
 with `kernel.create_server_login`, and inserts the registration row. A namespace pinned
-to another key is refused with `unapproved_software_statement`. The login is
+to another key is refused with `unapproved_software_statement`. A registration naming a
+deployment registered before with other metadata replaces it in the same transaction,
+as an instance's registration does: it writes the deployment's slug, metadata and
+storage binding, and removes the deployment's registrations with their logins. When
+the deployment belonged to another slug, that slug's namespace must be pinned to the
+same key. A registration with the deployment's own metadata adds a replica beside
+the others. The login is
 `<schema>_<suffix>`, where the suffix is the last 14 hexadecimal digits of the client
 identifier, and its password is 256 random bits. The response grants the login as
 `veoveo_database`: `VEOVEO_SERVER_DATABASE_URL`, or the Hub's own URL without its
@@ -213,8 +220,13 @@ Registration health reads liveness in the installation database, so it reports a
 instance in a data environment as degraded.
 
 A server takes its group role, applies its own migrations in its schema and holds a
-kernel instance on its login while it serves. An RFC 7592 update replaces the stored
-metadata when it changed and writes nothing otherwise; it never extends anything.
+kernel instance on its login while it serves. An RFC 7592 update keeps the
+registration's deployment and slug, and with them its login; another deployment or
+slug is refused with `invalid_client_metadata`. Its software statement is verified
+against the key the slug's namespace is pinned to, or for an instance against the key
+the metadata presents. Changed metadata replaces the registration's and the
+deployment's in one transaction, an update audit record follows, and an unchanged
+update writes nothing; it never extends anything.
 Reads return the stored statement. A `DELETE` removes the row and drops the login in
 one transaction, and the registration access token then answers HTTP 401.
 
@@ -582,7 +594,15 @@ registration and drops that login, that an instance token whose metadata names
 another deployment is refused, that any other token is checked as the registration
 secret, whose namespace pin binds the namespace path only, and that housekeeping
 neither orphans nor removes an instance registration whose login holds no live
-kernel instance while it removes such a namespace registration.
+kernel instance while it removes such a namespace registration. An RFC 7592 update
+with a new key, version, endpoint and declaration replaces the instance registration's
+metadata and its deployment's under the same registration and login, and one naming
+another deployment is refused. A namespace registration of an existing deployment with
+other declarations under the pinned key replaces the previous registration and drops
+its login, an update under that key applies, and another key neither registers the
+slug, for that deployment or another, nor updates the registration. The test sends
+the updates itself, because the SDK's client updates only to the metadata it
+registered.
 
 `tests/data_environments.rs` starts the binary the same way and runs the SDK's Relay
 fixture as two instances of one slug, one in the installation database and one in a

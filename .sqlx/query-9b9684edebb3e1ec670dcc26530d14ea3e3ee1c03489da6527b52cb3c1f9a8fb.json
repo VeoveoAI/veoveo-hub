@@ -1,10 +1,21 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT metadata AS \"metadata: Json<ClientMetadata>\", storage_binding AS \"storage: Json<StorageBinding>\"\nFROM hub.deployment WHERE id = $1\n",
+  "query": "SELECT server, metadata AS \"metadata: Json<ClientMetadata>\", storage_binding AS \"storage: Json<StorageBinding>\"\nFROM hub.deployment WHERE id = $1\n",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
+        "name": "server",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.deployment",
+            "name": "server"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
         "name": "metadata: Json<ClientMetadata>",
         "type_info": "Jsonb",
         "origin": {
@@ -15,7 +26,7 @@
         }
       },
       {
-        "ordinal": 1,
+        "ordinal": 2,
         "name": "storage: Json<StorageBinding>",
         "type_info": "Jsonb",
         "origin": {
@@ -33,8 +44,9 @@
     },
     "nullable": [
       false,
+      false,
       false
     ]
   },
-  "hash": "c2b0251539bb41c9b36c3d04308eae592fd3faf8ae53279980243f9adfa3ada1"
+  "hash": "9b9684edebb3e1ec670dcc26530d14ea3e3ee1c03489da6527b52cb3c1f9a8fb"
 }
