@@ -233,5 +233,6 @@ fn registered(row: &StoredRegistration) -> RegisteredServer {
         client_id: row.client_id.clone(),
         authorization: Arc::new(row.metadata.authorization.clone()),
         capabilities: ServerCapabilities::from_declaration(&row.metadata.authorization),
+        branch: row.branch.clone(),
     }
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "-- Every replica routes every registered server, so a reconciliation reads them all.\n-- veoveo: unbounded (one row per registration of a running server process, which the installation's grace period bounds)\n-- veoveo: scan (a reconciliation reads every registration of the installation)\nSELECT\n    client_id,\n    server,\n    metadata AS \"metadata: Json<ClientMetadata>\",\n    software_statement,\n    access_token_digest,\n    issued_at\nFROM hub.registration\nORDER BY client_id\n",
+  "query": "-- Every replica routes every registered server, so a reconciliation reads them all.\n-- veoveo: unbounded (one row per registration of a running server process, which the installation's grace period bounds)\nSELECT\n    registration.client_id,\n    registration.server,\n    registration.metadata AS \"metadata: Json<ClientMetadata>\",\n    registration.software_statement,\n    registration.access_token_digest,\n    registration.issued_at,\n    instance.branch AS \"branch?\"\nFROM hub.registration\nLEFT JOIN hub.instance ON instance.deployment = registration.deployment\nORDER BY registration.client_id\n",
   "describe": {
     "columns": [
       {
@@ -68,6 +68,17 @@
             "name": "issued_at"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "branch?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "branch"
+          }
+        }
       }
     ],
     "parameters": {
@@ -79,8 +90,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "f7abc7441fd1f1e50b7b34cdbeca79ee57246a2786a5a3818addfcf8d7e6128b"
+  "hash": "e7fab961a8300e041df58bf3acf9c0a2d82b20605a9f60f76ee72546ee02bb2d"
 }

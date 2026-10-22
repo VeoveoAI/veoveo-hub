@@ -357,6 +357,7 @@ mod tests {
                 },
             ),
             capabilities: Default::default(),
+            branch: None,
         }
     }
 

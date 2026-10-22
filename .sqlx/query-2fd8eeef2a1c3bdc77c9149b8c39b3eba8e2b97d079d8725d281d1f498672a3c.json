@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- veoveo: unbounded (one row per server the principal selected a branch of)\nSELECT server, branch\nFROM hub.selection\nWHERE principal = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "server",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.selection",
+            "name": "server"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "branch",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.selection",
+            "name": "branch"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "2fd8eeef2a1c3bdc77c9149b8c39b3eba8e2b97d079d8725d281d1f498672a3c"
+}

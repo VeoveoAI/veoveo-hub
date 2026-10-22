@@ -12,6 +12,7 @@ use veoveo_store::{LoginName, PlatformStore};
 use veoveo_types::{DeploymentId, OAuthClientId, ServerSlug, Sha256Digest};
 
 use crate::data_environment::{self, DatabaseName};
+use crate::execution::BranchName;
 
 /// One registration as the service reads it back.
 #[derive(Clone, Debug)]
@@ -21,6 +22,8 @@ pub(crate) struct StoredRegistration {
     pub software_statement: SoftwareStatement,
     pub token_digest: Sha256Digest,
     pub issued_at: DateTime<Utc>,
+    /// The branch of the instance the registration's deployment is, if it is one.
+    pub branch: Option<BranchName>,
 }
 
 struct RegistrationRow {
@@ -30,6 +33,7 @@ struct RegistrationRow {
     software_statement: String,
     access_token_digest: String,
     issued_at: DateTime<Utc>,
+    branch: Option<String>,
 }
 
 impl TryFrom<RegistrationRow> for StoredRegistration {
@@ -50,6 +54,11 @@ impl TryFrom<RegistrationRow> for StoredRegistration {
             token_digest: Sha256Digest::parse(row.access_token_digest)
                 .context("stored registration access token digest is malformed")?,
             issued_at: row.issued_at,
+            branch: row
+                .branch
+                .map(BranchName::parse)
+                .transpose()
+                .context("stored instance branch is malformed")?,
         })
     }
 }
@@ -205,12 +214,14 @@ impl RegistrationStore {
         Ok((pin, replaced))
     }
 
-    /// Record a new instance in `database` under the digest of its registration token.
+    /// Record a new instance of `branch` in `database` under the digest of its
+    /// registration token.
     pub async fn create_instance(
         &self,
         deployment: DeploymentId,
         token_digest: &Sha256Digest,
         database: &DatabaseName,
+        branch: &BranchName,
         now: DateTime<Utc>,
     ) -> Result<()> {
         sqlx::query_file!(
@@ -218,6 +229,7 @@ impl RegistrationStore {
             deployment.as_uuid(),
             token_digest.as_str(),
             database.as_str(),
+            branch.as_str(),
             now,
         )
         .execute(self.store.pool())

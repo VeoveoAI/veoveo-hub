@@ -46,9 +46,9 @@ receives the namespace's explicit `shared_logical_schema` storage binding. Share
 schema is an explicit data binding, not owner isolation. A registration of a
 namespace deployment with new metadata, under the pinned key, replaces its contract,
 endpoint and storage, and an instance's every registration replaces them, key
-included. Registrations and
-health remain independent per deployment; registration alone never selects a
-serving component.
+included. Registrations and health remain independent per deployment; a namespace
+registration alone never selects a serving component, and an instance serves through
+selection.
 
 Each authenticated stateless MCP operation admits at most one `veoveo-environment`
 header, an untrusted typed selector, or uses the configured default. The resource
@@ -60,6 +60,14 @@ composition; a continuation from another composition is refused. Domain collecti
 cursors remain owned by their servers. HTTP pools use deployment plus endpoint.
 Publication hints complete existing listens normally, requiring native re-listen
 and current admission instead of silently keeping a stale selection alive.
+
+Each authenticated principal's selection, `hub.selection`, names a branch per
+server. A fresh admission starts from the environment's composition; each server
+that has registered instances, or that the selection names, then routes to the
+instance of the selected branch, or else of the configured `execution.baseBranch`.
+When that instance is missing, when several instances serve that branch, or when no
+base branch is configured, the component is `unavailable`, never another branch or
+the configured component, and a tool call to that server answers with the cause.
 
 Tasks persist exact deployment and composition before the projected response.
 A native retry of the same Task preserves its first capture. Later reads, changes,
@@ -73,8 +81,8 @@ unavailable and is never undone from historical provenance. Core's independent
 Task deployment affinity prevents same-namespace workers sharing a schema from
 claiming or recovering one another's work.
 
-This boundary does not build or run deployments; routing outputs enter only through
-control-plane publication. Public provider callbacks need their own
+This boundary does not build or run deployments; routing outputs enter through
+control-plane publication, instance registrations and selection. Public provider callbacks need their own
 deployment-qualified ingress proof; MCP routing alone does not establish it.
 
 ## Process
@@ -156,7 +164,7 @@ other token must be the installation's registration secret.
 | Table in the `hub` schema | Holds |
 |---|---|
 | `namespace_claim` | One row per slug: the RFC 7638 thumbprint of the pinned key |
-| `instance` | One row per instance: its deployment ID, the SHA-256 digest of its registration token and the database its server registers into |
+| `instance` | One row per instance: its deployment ID, the branch it serves, the SHA-256 digest of its registration token and the database its server registers into |
 | `deployment` | One row per deployment: its slug, metadata and storage binding |
 | `registration` | One row per registration: client identifier, deployment, metadata, software statement, SHA-256 digest of the registration access token, its login, and `orphaned_at`, when housekeeping found that login without a live process, which is NULL while it holds one |
 
@@ -533,8 +541,8 @@ the administrative operation.
 The Hub owns the `hub` schema. Its migrations in `migrations/` run after core's
 kernel migrations and record their history in `hub._sqlx_migrations`, as
 `sqlx.toml` declares. `src/store` reads and writes the schema through `HubStore`:
-OAuth requests and codes, refresh families, JWT revocations, replay identifiers and
-control-plane revisions. A publication also writes the identity rows of the Work
+OAuth requests and codes, refresh families, JWT revocations, replay identifiers,
+control-plane revisions and principals' selections. A publication also writes the identity rows of the Work
 Contexts it defines in core's `identity` schema. Refresh rotation and control-plane
 publication commit their audit records in the same transaction through the audit
 envelope's transactional append; an audit record that cannot commit rolls the change

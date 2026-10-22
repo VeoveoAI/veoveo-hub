@@ -19,6 +19,7 @@ use hub::Hub;
 use secrecy::{ExposeSecret, SecretString};
 use veoveo_fixtures::store::TestDb;
 use veoveo_hub::data_environment::DatabaseName;
+use veoveo_hub::execution::BranchName;
 use veoveo_hub::registration::{HOUSEKEEPING_INTERVAL, NewInstance, create_instance};
 use veoveo_hub_sdk::DeploymentId;
 use veoveo_hub_sdk::registration::{
@@ -37,10 +38,10 @@ const BOUND: Duration = Duration::from_secs(120);
 async fn instances_of_one_slug_register_side_by_side_under_different_keys() {
     tokio::time::timeout(BOUND, async {
         let fixture = Fixture::start(Duration::from_secs(60)).await;
-        let a = create_instance(&fixture.db.a, &fixture.installation())
+        let a = create_instance(&fixture.db.a, &fixture.installation(), &branch("a"))
             .await
             .unwrap();
-        let b = create_instance(&fixture.db.a, &fixture.installation())
+        let b = create_instance(&fixture.db.a, &fixture.installation(), &branch("b"))
             .await
             .unwrap();
         assert_ne!(a.deployment, b.deployment);
@@ -82,10 +83,10 @@ async fn instances_of_one_slug_register_side_by_side_under_different_keys() {
 async fn an_instance_registration_replaces_the_previous_one_under_the_same_deployment() {
     tokio::time::timeout(BOUND, async {
         let fixture = Fixture::start(Duration::from_secs(60)).await;
-        let a = create_instance(&fixture.db.a, &fixture.installation())
+        let a = create_instance(&fixture.db.a, &fixture.installation(), &branch("a"))
             .await
             .unwrap();
-        let b = create_instance(&fixture.db.a, &fixture.installation())
+        let b = create_instance(&fixture.db.a, &fixture.installation(), &branch("b"))
             .await
             .unwrap();
         let before = fixture.instance(&a, a.deployment, Revision::First);
@@ -158,10 +159,10 @@ async fn an_instance_token_registers_only_its_deployment_and_other_tokens_take_t
 {
     tokio::time::timeout(BOUND, async {
         let fixture = Fixture::start(Duration::from_secs(60)).await;
-        let a = create_instance(&fixture.db.a, &fixture.installation())
+        let a = create_instance(&fixture.db.a, &fixture.installation(), &branch("a"))
             .await
             .unwrap();
-        let b = create_instance(&fixture.db.a, &fixture.installation())
+        let b = create_instance(&fixture.db.a, &fixture.installation(), &branch("b"))
             .await
             .unwrap();
         let registered = fixture
@@ -253,7 +254,7 @@ async fn an_instance_token_registers_only_its_deployment_and_other_tokens_take_t
 async fn housekeeping_never_orphans_or_collects_an_instance_registration() {
     tokio::time::timeout(BOUND, async {
         let fixture = Fixture::start(Duration::from_secs(1)).await;
-        let a = create_instance(&fixture.db.a, &fixture.installation())
+        let a = create_instance(&fixture.db.a, &fixture.installation(), &branch("a"))
             .await
             .unwrap();
         let instance = fixture
@@ -661,6 +662,10 @@ async fn rejection(response: reqwest::Response) -> RegistrationErrorCode {
 
 fn copy(key: &ServerKeyPair) -> ServerKeyPair {
     ServerKeyPair::from_pkcs8_der(key.pkcs8_der()).unwrap()
+}
+
+fn branch(name: &str) -> BranchName {
+    BranchName::parse(name).unwrap()
 }
 
 fn deployment(registration: &Registration) -> DeploymentId {

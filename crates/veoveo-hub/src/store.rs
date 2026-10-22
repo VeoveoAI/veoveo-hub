@@ -1,6 +1,7 @@
 //! The Hub's database state: hosted OAuth requests and codes, refresh-token
 //! families, JWT revocations, replay identifiers, published control-plane revisions with
-//! the identity rows they define, and the cleanup of expired Task routes. The Hub
+//! the identity rows they define, principals' selections, and the cleanup of expired Task
+//! routes. The Hub
 //! owns the `hub` schema and applies its migrations after core's kernel migrations.
 //! Registrations and Task routes run their own statements against the same schema.
 
@@ -14,6 +15,7 @@ mod control;
 mod refresh;
 mod replay;
 mod revocations;
+mod selection;
 mod task_routes;
 
 pub use control::{ControlObject, ControlPublication};

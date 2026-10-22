@@ -1,12 +1,13 @@
 -- Every replica routes every registered server, so a reconciliation reads them all.
 -- veoveo: unbounded (one row per registration of a running server process, which the installation's grace period bounds)
--- veoveo: scan (a reconciliation reads every registration of the installation)
 SELECT
-    client_id,
-    server,
-    metadata AS "metadata: Json<ClientMetadata>",
-    software_statement,
-    access_token_digest,
-    issued_at
+    registration.client_id,
+    registration.server,
+    registration.metadata AS "metadata: Json<ClientMetadata>",
+    registration.software_statement,
+    registration.access_token_digest,
+    registration.issued_at,
+    instance.branch AS "branch?"
 FROM hub.registration
-ORDER BY client_id
+LEFT JOIN hub.instance ON instance.deployment = registration.deployment
+ORDER BY registration.client_id

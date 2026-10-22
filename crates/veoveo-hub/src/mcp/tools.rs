@@ -23,7 +23,7 @@ use veoveo_hub_sdk::{LocalToolName, related_task_meta, sanitized_request_meta};
 use crate::{
     AuthenticatedSubject,
     mcp_support::{
-        mcp_internal, parse_hub_tool, project_call_tool_resource_uris,
+        mcp_internal, mcp_invalid_params, parse_hub_tool, project_call_tool_resource_uris,
         project_tool_resource_metadata, unexpected_upstream_response,
     },
     state::HubTaskRouteDraft,
@@ -335,13 +335,32 @@ impl HubMcp {
         })
     }
 
+    /// The server and tool `name` names. A server this operation's selection serves no
+    /// instance of is refused with the cause.
+    fn tool_projection(
+        &self,
+        catalog: &crate::HubCatalog,
+        name: &str,
+    ) -> Result<crate::HubToolProjection, McpError> {
+        let unavailable = veoveo_hub_sdk::hub::HubToolName::parse(name)
+            .ok()
+            .and_then(|name| crate::HubToolProjection::parse(&name).ok())
+            .and_then(|projection| self.unavailable.get_key_value(&projection.server));
+        match unavailable {
+            Some((server, cause)) => Err(mcp_invalid_params(format!(
+                "server `{server}` is unavailable: {cause}"
+            ))),
+            None => parse_hub_tool(catalog, name),
+        }
+    }
+
     pub(super) async fn handle_call_tool(
         &self,
         mut request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, RequestError> {
         let catalog = self.catalog.current();
-        let projection = parse_hub_tool(&catalog, &request.name)?;
+        let projection = self.tool_projection(&catalog, &request.name)?;
         let (subject, _) = self
             .authorize_tool(
                 &context,

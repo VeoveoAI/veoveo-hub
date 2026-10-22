@@ -318,7 +318,7 @@ impl DelegationService {
             .map_err(|refusal| Box::new((refusal, None, 0)))?;
         let snapshot = self.inner.catalog.snapshot();
         let mut authenticated = subject_of(&subject.caller, None);
-        let composition = crate::execution::admit_execution(
+        let admitted = crate::execution::admit_execution(
             &self.inner.hub,
             snapshot.catalog(),
             &mut authenticated,
@@ -335,7 +335,7 @@ impl DelegationService {
                 0,
             ))
         })?;
-        let selected = snapshot.selected(&composition);
+        let selected = snapshot.selected(&admitted.composition);
         match self.issue(request, client, metadata, &subject, &selected.current()) {
             Ok((response, requested)) => Ok((response, subject, requested)),
             Err((refusal, requested)) => Err(Box::new((refusal, Some(subject), requested))),

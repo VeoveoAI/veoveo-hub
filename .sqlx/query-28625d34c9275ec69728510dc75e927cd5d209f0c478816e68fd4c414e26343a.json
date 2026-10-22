@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    client_id,\n    server,\n    metadata AS \"metadata: Json<ClientMetadata>\",\n    software_statement,\n    access_token_digest,\n    issued_at\nFROM hub.registration\nWHERE client_id = $1\n",
+  "query": "SELECT\n    registration.client_id,\n    registration.server,\n    registration.metadata AS \"metadata: Json<ClientMetadata>\",\n    registration.software_statement,\n    registration.access_token_digest,\n    registration.issued_at,\n    instance.branch AS \"branch?\"\nFROM hub.registration\nLEFT JOIN hub.instance ON instance.deployment = registration.deployment\nWHERE registration.client_id = $1\n",
   "describe": {
     "columns": [
       {
@@ -68,6 +68,17 @@
             "name": "issued_at"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "branch?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "branch"
+          }
+        }
       }
     ],
     "parameters": {
@@ -81,8 +92,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "9e96db434d440ad7a9a1e2fbbcfb6701bd2a1a4ff417fd20a33dee0d8f5e27f2"
+  "hash": "28625d34c9275ec69728510dc75e927cd5d209f0c478816e68fd4c414e26343a"
 }

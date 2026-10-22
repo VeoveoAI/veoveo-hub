@@ -74,6 +74,8 @@ pub struct HubMcp {
     discovery: Arc<CatalogDiscoveryCache>,
     discovery_watches: Arc<discovery_watch::DiscoveryWatches>,
     progress_tokens: progress::HubProgressTokens,
+    /// Why this operation's selection routes no instance of a server.
+    unavailable: Arc<std::collections::BTreeMap<ServerSlug, crate::execution::Unavailable>>,
 }
 
 impl HubMcp {
@@ -94,6 +96,7 @@ impl HubMcp {
             discovery: Arc::new(CatalogDiscoveryCache::default()),
             discovery_watches: Default::default(),
             progress_tokens: progress::HubProgressTokens::default(),
+            unavailable: Default::default(),
         }
     }
 
@@ -105,7 +108,20 @@ impl HubMcp {
     ) -> Self {
         Self {
             catalog: snapshot.selected(composition),
+            unavailable: Default::default(),
             ..self.clone()
+        }
+    }
+
+    /// One fresh admission: its composition, and why it serves no instance of a server.
+    pub fn for_admission(
+        &self,
+        snapshot: &crate::HubCatalogSnapshot,
+        admitted: crate::execution::Admitted,
+    ) -> Self {
+        Self {
+            unavailable: Arc::new(admitted.unavailable),
+            ..self.for_execution(snapshot, &admitted.composition)
         }
     }
 

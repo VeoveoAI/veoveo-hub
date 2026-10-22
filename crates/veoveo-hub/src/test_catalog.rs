@@ -55,6 +55,7 @@ pub fn registered_server(slug: &str, endpoint: &str) -> crate::registration::Reg
             },
         ),
         capabilities: Default::default(),
+        branch: None,
     }
 }
 

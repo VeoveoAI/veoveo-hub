@@ -123,13 +123,14 @@ pub struct NewInstance {
     pub registration_token: SecretString,
 }
 
-/// Create an instance whose server registers into `database` with a random
-/// registration token: the installation database, or a data environment's database
-/// that [`crate::data_environment::ensure_database`] created. Only the token's digest
-/// is stored; the token stays valid while the instance exists.
+/// Create an instance that serves `branch` and whose server registers into `database`,
+/// with a random registration token: the installation database, or a data
+/// environment's database that [`crate::data_environment::ensure_database`] created.
+/// Only the token's digest is stored; the token stays valid while the instance exists.
 pub async fn create_instance(
     store: &veoveo_store::PlatformStore,
     database: &DatabaseName,
+    branch: &crate::execution::BranchName,
 ) -> anyhow::Result<NewInstance> {
     let deployment = DeploymentId::new();
     let registration_token = random_token()?;
@@ -138,6 +139,7 @@ pub async fn create_instance(
             deployment,
             &digest(registration_token.expose_secret()),
             database,
+            branch,
             Utc::now(),
         )
         .await?;

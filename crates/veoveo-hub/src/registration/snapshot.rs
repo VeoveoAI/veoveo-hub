@@ -44,6 +44,8 @@ pub struct RegisteredServer {
     pub client_id: OAuthClientId,
     pub authorization: Arc<AuthorizationDeclaration>,
     pub capabilities: ServerCapabilities,
+    /// The branch this deployment serves, when it is an instance.
+    pub branch: Option<crate::execution::BranchName>,
 }
 
 impl RegisteredServer {

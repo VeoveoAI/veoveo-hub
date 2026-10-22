@@ -89,14 +89,14 @@ async fn scenario() {
     let base = relay_instance(
         &hub,
         &http,
-        &create_instance(&db.a, &installation).await.unwrap(),
+        &create_instance(&db.a, &installation, &branch_name("dev")).await.unwrap(),
         installation,
     )
     .await;
     let other = relay_instance(
         &hub,
         &http,
-        &create_instance(&db.a, &branch).await.unwrap(),
+        &create_instance(&db.a, &branch, &branch_name("feature")).await.unwrap(),
         branch,
     )
     .await;
@@ -325,7 +325,7 @@ async fn environment_databases_are_created_once_and_dropped_when_unused() {
 
         let used = environment_name();
         ensure_database(&db.a, &used).await.unwrap();
-        create_instance(&db.a, &used).await.unwrap();
+        create_instance(&db.a, &used, &branch_name("used")).await.unwrap();
 
         assert!(drop_database_if_unused(&db.a, &created).await.unwrap());
         assert!(!database_exists(&db.a, &created).await);
@@ -451,4 +451,8 @@ async fn database_exists(store: &PlatformStore, database: &DatabaseName) -> bool
     .fetch_one(store.pool())
     .await
     .unwrap()
+}
+
+fn branch_name(name: &str) -> veoveo_hub::execution::BranchName {
+    veoveo_hub::execution::BranchName::parse(name).unwrap()
 }

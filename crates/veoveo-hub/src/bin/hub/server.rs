@@ -418,7 +418,7 @@ async fn dynamic_mcp_profile(
     else {
         return veoveo_hub::problem::Problem::internal().into_response();
     };
-    let composition = match veoveo_hub::execution::admit_execution(
+    let admitted = match veoveo_hub::execution::admit_execution(
         &state.hub_state,
         snapshot.catalog(),
         &mut subject,
@@ -426,7 +426,7 @@ async fn dynamic_mcp_profile(
     )
     .await
     {
-        Ok(composition) => composition,
+        Ok(admitted) => admitted,
         Err(error) => {
             let forbidden = matches!(
                 error,
@@ -467,7 +467,7 @@ async fn dynamic_mcp_profile(
             })
             .clone()
     }
-    .for_execution(&snapshot, &composition);
+    .for_admission(&snapshot, admitted);
     build_profile_mcp_service(&state, handler)
         .oneshot(request)
         .await
