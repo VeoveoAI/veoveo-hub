@@ -16,9 +16,6 @@ use veoveo_types::{PrincipalId, TenantId};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ExecutionConfiguration {
-    /// Live trusted eligibility, separate from user-authored source definitions.
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub runtime_templates: crate::activation::RuntimeTemplateAdmissions,
     pub default_environment: EnvironmentId,
     pub environments: BTreeMap<EnvironmentId, EnvironmentRecord>,
 }
@@ -67,8 +64,6 @@ impl EnvironmentBase {
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq, Eq)]
 pub enum ExecutionError {
-    #[error("runtime template admission is invalid")]
-    InvalidRuntimeTemplate,
     #[error("execution environment is not configured")]
     UnknownEnvironment,
     #[error("execution environment is not authorized for this tenant and principal")]
@@ -94,31 +89,6 @@ impl ExecutionConfiguration {
     pub fn validate(&self) -> Result<(), ExecutionError> {
         if !self.environments.contains_key(&self.default_environment) {
             return Err(ExecutionError::UnknownEnvironment);
-        }
-        for admission in self.runtime_templates.values() {
-            if admission.workspace.is_empty()
-                || admission.template.is_empty()
-                || !admission.policy_file.is_absolute()
-                || admission
-                    .providers
-                    .iter()
-                    .any(|provider| provider.trim().is_empty())
-                || admission.providers.iter().collect::<BTreeSet<_>>().len()
-                    != admission.providers.len()
-            {
-                return Err(ExecutionError::InvalidRuntimeTemplate);
-            }
-            let mut eligible = BTreeSet::new();
-            for entry in &admission.eligible {
-                let veoveo_hub_sdk::registration::StorageBinding::SharedLogicalSchema { server } =
-                    &entry.storage;
-                if !self.environments.contains_key(&entry.environment)
-                    || server != &entry.component
-                    || !eligible.insert((entry.environment, entry.component.clone()))
-                {
-                    return Err(ExecutionError::InvalidRuntimeTemplate);
-                }
-            }
         }
         for (environment, record) in &self.environments {
             let mut seen = BTreeSet::from([*environment]);

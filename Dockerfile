@@ -1,7 +1,6 @@
 # syntax=docker/dockerfile:1.27@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # Stages: dev is the development environment, check is the single gate, build compiles the
-# release binary, environment-artifact exports the checked Computer/runtime helper,
-# and runtime is the deployable Hub image.
+# release binary, and runtime is the deployable image.
 
 ARG COMPONENT=veoveo-hub
 
@@ -75,14 +74,6 @@ ARG COMPONENT
 RUN cargo build --locked --release --bin "${COMPONENT}" \
     && cp "target/release/${COMPONENT}" /home/sandbox/component
 
-# Initial packaging only: Computer and reusable development images COPY this same
-# helper through a named build context. Ordinary source applies rebuild neither.
-FROM source AS environment-build
-RUN cargo build --locked --release --bin veoveo-environment
-
-FROM scratch AS environment-artifact
-COPY --from=environment-build /home/sandbox/src/target/release/veoveo-environment /usr/local/bin/veoveo-environment
-
 FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f AS runtime
 ARG COMPONENT
 RUN apt-get update \
@@ -92,9 +83,6 @@ RUN apt-get update \
     && mkdir -p /etc/veoveo \
     && chown -R component:component /etc/veoveo /var/lib/veoveo
 COPY --from=build /home/sandbox/component /usr/local/bin/veoveo-hub
-# Initial native definition-file adapter: unchanged CLI, no Lore runtime linked
-# into Hub. Supply the reviewed matching-platform Lore artifact named context.
-COPY --from=lore --chmod=0755 /usr/local/bin/lore /usr/local/bin/lore
 USER component
 # A container listens on every interface; a sandbox keeps the loopback default.
 ENV VEOVEO_LISTEN_ADDRESS=0.0.0.0:8080

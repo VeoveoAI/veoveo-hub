@@ -16,13 +16,7 @@ path = "src/lib.rs"
 name = "veoveo-hub"
 path = "src/bin/hub.rs"
 
-[[bin]]
-name = "veoveo-environment"
-path = "src/bin/environment.rs"
-
 [dependencies]
-veoveo-mcp-artifact.workspace = true
-tar.workspace = true
 lore-proto.workspace = true
 veoveo-audit.workspace = true
 veoveo-audit-contract = { workspace = true, features = ["postgres"] }

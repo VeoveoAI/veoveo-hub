@@ -86,8 +86,6 @@ pub enum HubStoreError {
     ControlRevisionChanged,
     #[error("the control-plane revision already exists")]
     ControlRevisionExists,
-    #[error("activation publication was refused: {0}")]
-    Activation(#[source] anyhow::Error),
     #[error("records appended with the change failed: {0}")]
     Append(#[source] Box<dyn std::error::Error + Send + Sync>),
 }

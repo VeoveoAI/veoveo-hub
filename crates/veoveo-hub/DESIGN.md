@@ -29,15 +29,15 @@ Neither its code nor its configuration names a server.
 
 ## Execution Composition And Deployment Identity
 
-The live control plane's `execution` section is an internal routing output, separate
-from the source-facing environment definition. It declares an explicit default,
-owned environments, optional pinned or following bases, and owned logical-component
-selections. A missing component inherits; an explicit `unavailable` selection does
-not fall back. Display names convey no authority. Fresh selection checks tenant,
-reader/owner and base-sharing access; cycles and missing references are rejected.
-A pin shares one retained readable composition, rather than recomposing its current
-ancestors. Deployment references and pins are admitted before publication; health
-is checked at use, so temporary target failure cannot block an unrelated revision.
+The live control plane's `execution` section is an internal routing output. It
+declares an explicit default, owned environments, optional pinned or following
+bases, and owned logical-component selections. A missing component inherits; an
+explicit `unavailable` selection does not fall back. Display names convey no
+authority. Fresh selection checks tenant, reader/owner and base-sharing access;
+cycles and missing references are rejected. A pin shares one retained readable
+composition, rather than recomposing its current ancestors. Deployment references
+and pins are admitted before publication; health is checked at use, so temporary
+target failure cannot block an unrelated revision.
 
 RFC 7591 metadata carries an immutable deployment ID. The namespace-owner bootstrap
 proof still pins the logical namespace's key. Independently keyed deployments use
@@ -73,9 +73,8 @@ unavailable and is never undone from historical provenance. Core's independent
 Task deployment affinity prevents same-namespace workers sharing a schema from
 claiming or recovering one another's work.
 
-This boundary does not implement source materialization, local apply/watch, native
-revision consumption or worker activation. Those executable adapters must publish
-admitted outputs through this contract. Public provider callbacks need their own
+This boundary does not build or run deployments; routing outputs enter only through
+control-plane publication. Public provider callbacks need their own
 deployment-qualified ingress proof; MCP routing alone does not establish it.
 
 ## Process

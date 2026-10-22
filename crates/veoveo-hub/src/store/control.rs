@@ -5,7 +5,7 @@ use crate::control_plane::{
     HubControlPlaneRevisionSource, WorkContextDefinition,
 };
 use chrono::{DateTime, Utc};
-use sqlx::{Connection as _, PgConnection, types::Json};
+use sqlx::{PgConnection, types::Json};
 use veoveo_types::{
     AccessLevel, AccessSubject, ExtensionName, PolicyVersion, PrincipalId, Sha256Digest,
 };
@@ -86,93 +86,17 @@ impl HubStore {
         publication: ControlPublication<'_>,
         records: &impl TransactionAppend,
     ) -> Result<(), HubStoreError> {
-        self.publish_control_revision_inner(publication, records, None)
-            .await
-    }
-
-    pub async fn publish_activation_revision(
-        &self,
-        publication: ControlPublication<'_>,
-        records: &impl TransactionAppend,
-        activation: &crate::activation::ActivationPublication,
-    ) -> Result<(), HubStoreError> {
-        self.publish_control_revision_inner(
-            publication,
-            records,
-            Some(crate::activation::PublicationGuard::Select(activation)),
-        )
-        .await
-    }
-
-    pub async fn publish_environment_revision(
-        &self,
-        publication: ControlPublication<'_>,
-        records: &impl TransactionAppend,
-        environment: &crate::activation::EnvironmentPublication,
-    ) -> Result<(), HubStoreError> {
-        self.publish_control_revision_inner(
-            publication,
-            records,
-            Some(crate::activation::PublicationGuard::Environment(
-                environment,
-            )),
-        )
-        .await
-    }
-
-    pub async fn publish_activation_placement_revision(
-        &self,
-        publication: ControlPublication<'_>,
-        records: &impl super::TransactionAppend,
-        placement: &crate::activation::ActivationPlacement,
-    ) -> Result<(), HubStoreError> {
-        self.publish_control_revision_inner(
-            publication,
-            records,
-            Some(crate::activation::PublicationGuard::Place(placement)),
-        )
-        .await
-    }
-
-    async fn publish_control_revision_inner(
-        &self,
-        publication: ControlPublication<'_>,
-        records: &impl TransactionAppend,
-        activation: Option<crate::activation::PublicationGuard<'_>>,
-    ) -> Result<(), HubStoreError> {
-        let mut connection = self.pool().acquire().await?;
-        Self::publish_control_revision_on(&mut connection, publication, records, activation).await
-    }
-    pub(crate) async fn publish_control_revision_on(
-        connection: &mut PgConnection,
-        publication: ControlPublication<'_>,
-        records: &impl TransactionAppend,
-        activation: Option<crate::activation::PublicationGuard<'_>>,
-    ) -> Result<(), HubStoreError> {
         let revision = publication.revision;
         let digest = admitted(
             "control revision digest",
             Sha256Digest::from_hex(&revision.sha256),
         )?;
-        let mut transaction = connection.begin().await?;
+        let mut transaction = self.pool().begin().await?;
         let active = sqlx::query_file_scalar!("src/store/control/lock_active.sql")
             .fetch_one(&mut *transaction)
             .await?;
         if active.as_deref() != publication.replaces.map(HubControlPlaneRevisionId::as_str) {
             return Err(HubStoreError::ControlRevisionChanged);
-        }
-        if let Some(activation) = activation {
-            // Same control→activation lock ordering as reserve/withdraw. Serving
-            // and route/audit publication either commit together or roll back.
-            let current = sqlx::query_file!("src/activation/current.sql")
-                .fetch_one(&mut *transaction)
-                .await?
-                .control_plane
-                .0;
-            activation
-                .publish_on(&mut transaction, &current, &revision.control_plane)
-                .await
-                .map_err(HubStoreError::Activation)?;
         }
         sqlx::query_file!(
             "src/store/control/create_revision.sql",

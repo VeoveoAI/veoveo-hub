@@ -1,5 +1,4 @@
 use super::*;
-use crate::activation::{AcceptedApply, BuildState};
 use crate::{
     control_plane::{
         HubControlPlaneRevision, HubControlPlaneRevisionId, HubControlPlaneRevisionSource,
@@ -99,7 +98,7 @@ async fn publish(store: &RegistrationStore, control_plane: HubControlPlane) {
 }
 
 #[tokio::test]
-async fn scoped_admission_reissue_retains_workers_but_never_bypasses_identity_or_withdrawal() {
+async fn scoped_admission_is_one_use_reissuable_and_never_rebinds_namespace_or_deployment() {
     tokio::time::timeout(std::time::Duration::from_secs(60), qualification())
         .await
         .expect("scoped admission test exceeded one minute");
@@ -108,14 +107,6 @@ async fn scoped_admission_reissue_retains_workers_but_never_bypasses_identity_or
 async fn qualification() {
     let db = crate::test_store::TestDb::new().await;
     let store = RegistrationStore::new(db.a.clone());
-    let caller = crate::mcp::task_ownership_tests::subject();
-    let hub = crate::store::HubStore::new(db.a.clone());
-    crate::test_catalog::publish_work_context(
-        &hub,
-        &caller.authority.tenant,
-        &caller.authority.work_context,
-    )
-    .await;
     let namespace_key = ServerKeyPair::generate().unwrap();
     let base = metadata(&namespace_key, DeploymentId::new());
     assert_eq!(
@@ -134,14 +125,12 @@ async fn qualification() {
     let worker = metadata(&worker_key, DeploymentId::new());
     let environment = EnvironmentId::new();
     let other_environment = EnvironmentId::new();
-    let mut control = hub
-        .active_control_revision()
-        .await
-        .unwrap()
-        .unwrap()
-        .control_plane;
+    let mut control: HubControlPlane = serde_json::from_value(serde_json::json!({
+        "identityProviders": [], "authorizationServers": [], "profiles": [],
+        "tenants": [{ "id": "tenant" }], "workContexts": [], "policies": [], "dataLabels": [], "oidcClients": []
+    })).unwrap();
     let owner = EnvironmentOwner {
-        tenant: caller.authority.tenant.clone(),
+        tenant: TenantId::parse("tenant").unwrap(),
         principal: PrincipalId::parse("owner").unwrap(),
     };
     let record = crate::execution::EnvironmentRecord {
@@ -152,7 +141,6 @@ async fn qualification() {
         components: Default::default(),
     };
     control.execution = Some(crate::execution::ExecutionConfiguration {
-        runtime_templates: Default::default(),
         default_environment: environment,
         environments: BTreeMap::from([(environment, record.clone()), (other_environment, record)]),
     });
@@ -215,147 +203,10 @@ async fn qualification() {
     let authority = RegistrationAuthority::Deployment(Box::new(
         store.deployment_admission(&next).await.unwrap().unwrap(),
     ));
-    let (pin, resumed_client) = register(&store, &authority, &worker, &worker_key).await;
-    assert_eq!(pin, Pin::Held);
-    store.deregister(&resumed_client).await.unwrap().unwrap();
-
-    // Removing an owned override does not retire a canonical Task's worker. A
-    // fresh narrow admission is allowed only while its retained Task and the
-    // separate operator eligibility/native binding still authorize that worker.
-    use crate::activation::{
-        ActivationKey, AdmittedRuntime, ApplyIdempotencyKey, BuildInputs, Generation,
-        RuntimeEligibility, RuntimeTemplateAdmission, RuntimeTemplateRef,
-    };
-    let reference = RuntimeTemplateRef::parse("fixture-runtime-v1").unwrap();
-    let admission = RuntimeTemplateAdmission {
-        workspace: "workspace".into(),
-        template: "fixture-template-v1".into(),
-        policy_file: "/etc/fixture-policy.yaml".into(),
-        providers: vec![],
-        eligible: vec![RuntimeEligibility {
-            environment,
-            component: worker.slug().clone(),
-            storage: request.storage.clone(),
-        }],
-    };
-    control
-        .execution
-        .as_mut()
-        .unwrap()
-        .runtime_templates
-        .insert(reference.clone(), admission.clone());
-    control
-        .execution
-        .as_mut()
-        .unwrap()
-        .environments
-        .get_mut(&environment)
-        .unwrap()
-        .components
-        .insert(
-            worker.slug().clone(),
-            veoveo_hub_sdk::ResolvedComponent::Deployment {
-                deployment: worker.registration.deployment,
-            },
-        );
-    publish(&store, control.clone()).await;
-    let accepted = AcceptedApply {
-        runtime: AdmittedRuntime::capture(&admission, &request.storage),
-        key: ActivationKey {owner: control.execution.as_ref().unwrap().environments[&environment].owner.clone(), environment, component: worker.slug().clone()},
-        generation: Generation::new(1).unwrap(),
-        build: veoveo_types::BuildId::new(),
-        deployment: worker.registration.deployment,
-        idempotency: ApplyIdempotencyKey::parse("retained-fixture").unwrap(),
-        inputs: BuildInputs {
-            runtime_template: reference,
-            definition_digest: Sha256Digest::from_bytes([5;32]),
-            expected_source: None,
-            recipe: serde_json::from_value(serde_json::json!({"worker":{"kind":"compiled","output":{"root":"source","path":"service"},"args":[],"cwd":"."}})).unwrap(),
-        },
-    };
-    let capture = veoveo_hub_sdk::ResolvedComposition::new(
-        environment,
-        BTreeMap::from([(
-            worker.slug().clone(),
-            veoveo_hub_sdk::ResolvedComponent::Deployment {
-                deployment: accepted.deployment,
-            },
-        )]),
-    );
-    hub.retain_composition(&capture).await.unwrap();
-    let (_, route) = crate::state::HubState::new(db.a.clone())
-        .create_task_route(crate::state::HubTaskRouteDraft {
-            tenant: caller.authority.tenant.clone(),
-            work_context: caller.authority.work_context.clone(),
-            profile: veoveo_hub_sdk::HubProfileId::parse("fixture").unwrap(),
-            server: worker.slug().clone(),
-            deployment: accepted.deployment,
-            execution: capture.context(),
-            source_task_id: "retained-native-task".into(),
-            authority_digest: Sha256Digest::from_bytes([6; 32]),
-            ownership: crate::state::HubTaskOwnership::from_invocation(
-                &caller.actor,
-                &caller.authority,
-            ),
-            ttl_ms: Some(60_000),
-            delegated_caller: None,
-        })
-        .await
-        .unwrap();
-    assert!(route.expires_at > Utc::now());
-    superseded_worker_recovery_remains_in_retained_scan(&db, &accepted).await;
-    control
-        .execution
-        .as_mut()
-        .unwrap()
-        .environments
-        .get_mut(&environment)
-        .unwrap()
-        .components
-        .remove(worker.slug());
-    publish(&store, control.clone()).await;
-    assert!(accepted.admit(&control).is_err()); // owned override was removed
-    let retained_digest = Sha256Digest::from_bytes([7; 32]);
-    let mut connection = db.a.pool().acquire().await.unwrap();
-    RegistrationStore::admit_deployment_guarded_on(
-        &mut connection,
-        &request,
-        &retained_digest,
-        Some(WorkerAdmission::Retained(&accepted)),
-    )
-    .await
-    .unwrap();
-    drop(connection);
-    let authority = RegistrationAuthority::Deployment(Box::new(
-        store
-            .deployment_admission(&retained_digest)
-            .await
-            .unwrap()
-            .unwrap(),
-    ));
     assert_eq!(
         register(&store, &authority, &worker, &worker_key).await.0,
         Pin::Held
     );
-    control
-        .execution
-        .as_mut()
-        .unwrap()
-        .runtime_templates
-        .clear();
-    publish(&store, control.clone()).await;
-    let mut connection = db.a.pool().acquire().await.unwrap();
-    assert!(
-        RegistrationStore::admit_deployment_guarded_on(
-            &mut connection,
-            &request,
-            &Sha256Digest::from_bytes([8; 32]),
-            Some(WorkerAdmission::Retained(&accepted))
-        )
-        .await
-        .is_err()
-    );
-    drop(connection);
     let mut changed_key = request.clone();
     changed_key.metadata = metadata(
         &ServerKeyPair::generate().unwrap(),
@@ -392,231 +243,4 @@ async fn qualification() {
             .is_err()
     );
     assert_eq!(store.claim(worker.slug()).await.unwrap(), claim);
-}
-
-/// Exercise the actual current-worker recovery transition and a competing reserve,
-/// then the production retained scan. A healthy serving publication is fixture
-/// setup here; registration and its canonical Task were created above normally.
-async fn superseded_worker_recovery_remains_in_retained_scan(
-    db: &crate::test_store::TestDb,
-    accepted: &AcceptedApply,
-) {
-    use crate::activation::{
-        ActivationStore, ApplyIdempotencyKey, BuildFailure, FailureCode, MaterializedSource,
-        RelativePath, VerifiedOutput,
-    };
-    let now = Utc::now();
-    let tenant = deterministic_tenant_id(accepted.key.owner.tenant.as_str()).unwrap();
-    let foreign_tenant = deterministic_tenant_id("foreign-tenant").unwrap();
-    assert!(
-        sqlx::query_file!(
-            "src/registration/store/retained_task.sql",
-            tenant as DatabaseTenantId,
-            accepted.deployment.as_uuid(),
-            now
-        )
-        .fetch_one(db.a.pool())
-        .await
-        .unwrap()
-        .retained
-    );
-    assert!(
-        !sqlx::query_file!(
-            "src/registration/store/retained_task.sql",
-            foreign_tenant as DatabaseTenantId,
-            accepted.deployment.as_uuid(),
-            now
-        )
-        .fetch_one(db.a.pool())
-        .await
-        .unwrap()
-        .retained
-    );
-    sqlx::query_file!(
-        "src/activation/insert.sql",
-        accepted.build.as_uuid(),
-        accepted.deployment.as_uuid(),
-        accepted.key.owner.tenant.as_str(),
-        accepted.key.owner.principal.as_str(),
-        accepted.key.environment.as_uuid(),
-        accepted.key.component.as_str(),
-        accepted.generation.get(),
-        accepted.idempotency.as_str(),
-        Json(accepted) as _,
-        now
-    )
-    .execute(db.a.pool())
-    .await
-    .unwrap();
-    sqlx::query_file!(
-        "src/activation/reserve.sql",
-        accepted.key.owner.tenant.as_str(),
-        accepted.key.owner.principal.as_str(),
-        accepted.key.environment.as_uuid(),
-        accepted.key.component.as_str(),
-        accepted.generation.get(),
-        accepted.build.as_uuid()
-    )
-    .execute(db.a.pool())
-    .await
-    .unwrap();
-    let store = ActivationStore::new(db.a.clone());
-    let source = MaterializedSource {
-        identity: crate::activation::SnapshotIdentity {
-            digest: Sha256Digest::from_bytes([9; 32]),
-            size: 1,
-        },
-        directory: RelativePath::parse(format!("sources/{}", accepted.build)).unwrap(),
-    };
-    let output = VerifiedOutput {
-        digest: Sha256Digest::from_bytes([10; 32]),
-        executable: RelativePath::parse(format!("builds/{}/service", accepted.build)).unwrap(),
-    };
-    store.source_ready(accepted, source.clone()).await.unwrap();
-    store.begin_build(accepted).await.unwrap();
-    store.output_ready(accepted, output.clone()).await.unwrap();
-    // Seed the earlier successful readiness/publication, then invoke the same
-    // transition recovery uses when that serving worker becomes unavailable.
-    let serving = BuildState::Serving {
-        source: source.clone(),
-        output: output.clone(),
-    };
-    sqlx::query_file!(
-        "src/activation/transition.sql",
-        accepted.build.as_uuid(),
-        Json(&serving) as _,
-        Utc::now()
-    )
-    .execute(db.a.pool())
-    .await
-    .unwrap();
-    store.recover_worker(accepted).await.unwrap();
-    assert!(matches!(
-        store
-            .status(&accepted.key.owner, accepted.build)
-            .await
-            .unwrap()
-            .state,
-        BuildState::Registering { .. }
-    ));
-    let newer = store
-        .reserve(
-            accepted.key.clone(),
-            ApplyIdempotencyKey::parse("superseding-during-recovery").unwrap(),
-            accepted.inputs.clone(),
-        )
-        .await
-        .unwrap();
-    assert!(newer.generation > accepted.generation);
-    assert!(
-        !store
-            .status(&accepted.key.owner, accepted.build)
-            .await
-            .unwrap()
-            .current
-    );
-    let registering = BuildState::Registering {
-        source: source.clone(),
-        output: output.clone(),
-    };
-    for (state, expected) in [
-        (registering.clone(), true),
-        (
-            BuildState::Failed {
-                failure: BuildFailure::Worker {
-                    source: source.clone(),
-                    output: output.clone(),
-                    code: FailureCode::NativeUnavailable,
-                },
-            },
-            true,
-        ),
-        (
-            BuildState::Failed {
-                failure: BuildFailure::Worker {
-                    source: source.clone(),
-                    output: output.clone(),
-                    code: FailureCode::Registration,
-                },
-            },
-            false,
-        ),
-        (
-            BuildState::Failed {
-                failure: BuildFailure::Worker {
-                    source: source.clone(),
-                    output: output.clone(),
-                    code: FailureCode::Readiness,
-                },
-            },
-            false,
-        ),
-        (
-            BuildState::Failed {
-                failure: BuildFailure::Build {
-                    source: source.clone(),
-                    code: FailureCode::NativeUnavailable,
-                },
-            },
-            false,
-        ),
-        (BuildState::Withdrawn, false),
-    ] {
-        sqlx::query_file!(
-            "src/activation/transition.sql",
-            accepted.build.as_uuid(),
-            Json(&state) as _,
-            Utc::now()
-        )
-        .execute(db.a.pool())
-        .await
-        .unwrap();
-        let rows = sqlx::query_file!(
-            "src/bin/hub/activation/retained_list.sql",
-            accepted.key.owner.tenant.as_str(),
-            accepted.key.owner.principal.as_str(),
-            accepted.key.environment.as_uuid(),
-            uuid::Uuid::nil(),
-            tenant as DatabaseTenantId,
-            Utc::now(),
-            crate::activation::ACTIVATION_PAGE_SIZE
-        )
-        .fetch_all(db.a.pool())
-        .await
-        .unwrap();
-        assert_eq!(
-            rows.iter().any(|row| row.accepted.0 == *accepted),
-            expected,
-            "retained scan state={state:?}"
-        );
-        if expected {
-            assert_eq!(rows[0].state.0, state);
-        }
-    }
-    sqlx::query_file!(
-        "src/activation/transition.sql",
-        accepted.build.as_uuid(),
-        Json(&registering) as _,
-        Utc::now()
-    )
-    .execute(db.a.pool())
-    .await
-    .unwrap();
-    let after_expiry = Utc::now() + chrono::TimeDelta::minutes(2);
-    assert!(
-        sqlx::query_file!(
-            "src/bin/hub/activation/retained_list.sql",
-            accepted.key.owner.tenant.as_str(),
-            accepted.key.owner.principal.as_str(),
-            accepted.key.environment.as_uuid(),
-            uuid::Uuid::nil(),
-            tenant as DatabaseTenantId,
-            after_expiry,
-            crate::activation::ACTIVATION_PAGE_SIZE
-        )
-        .fetch_all(db.a.pool())
-        .await
-        .unwrap()
-        .is_empty()
-    );
 }

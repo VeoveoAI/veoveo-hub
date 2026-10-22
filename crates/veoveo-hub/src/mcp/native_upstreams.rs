@@ -56,9 +56,6 @@ impl Drop for NativeEndpoint {
 }
 
 impl NativeTransport {
-    pub(super) fn control_client(&self) -> OpenShellClient {
-        self.client.clone()
-    }
     pub(super) async fn start(config: &NativeUpstreams) -> Result<Self> {
         ensure!(
             config.gateway.scheme() == "https",

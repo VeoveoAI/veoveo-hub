@@ -28,4 +28,5 @@ pub(crate) struct Selection {
     pub repository: Option<RepositoryId>,
 }
 
-pub use crate::native_source_ids::BranchId;
+#[veoveo_types::id(text(super::RepositoryIds))]
+pub struct BranchId(String);

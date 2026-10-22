@@ -330,8 +330,7 @@ async fn scenario() {
             .as_deref(),
         Some(first_descriptor.as_str())
     );
-    // Simulate ready candidate selection through the real authoritative publisher.
-    // Source/build/native admission itself belongs to the deployed E3 qualification.
+    // Select another deployment through the real authoritative publisher.
     control["execution"]["environments"][first_environment.to_string()]["components"]["ledger"] =
         json!({"kind":"deployment","deployment":base.metadata.registration.deployment});
     hub.publish_control_plane(&control).await;

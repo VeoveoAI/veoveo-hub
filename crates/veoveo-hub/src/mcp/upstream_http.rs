@@ -62,40 +62,6 @@ struct Pooled {
 }
 
 impl HubUpstreamHttpClientPool {
-    /// Provisioning probe only: native placement must already be authoritative.
-    /// This is the SDK's existing anonymous application readiness endpoint, not
-    /// an authenticated MCP initialize or a replacement for selected-session tests.
-    pub(crate) async fn application_ready(
-        &self,
-        deployment: DeploymentId,
-        endpoint: &veoveo_hub_sdk::registration::ServerEndpoint,
-    ) -> anyhow::Result<bool> {
-        anyhow::ensure!(
-            self.native.is_some(),
-            "candidate readiness requires native placement"
-        );
-        let transport = self
-            .transport(deployment, endpoint)
-            .map_err(|_| anyhow::anyhow!("candidate transport unavailable"))?;
-        let response = transport
-            .client()
-            .get(endpoint.url().join("/readyz")?)
-            .timeout(std::time::Duration::from_secs(3))
-            .send()
-            .await;
-        match response {
-            Ok(response) => Ok(response.status() == reqwest::StatusCode::OK),
-            Err(_) => {
-                transport.discard();
-                Ok(false)
-            }
-        }
-    }
-    /// Reuse the installation-admitted native connection for trusted provisioning.
-    /// This grants no workload/user API; native RPC authorization still applies.
-    pub(crate) fn native_control_client(&self) -> Option<openshell_sdk::OpenShellClient> {
-        self.native.as_ref().map(|native| native.control_client())
-    }
     pub fn new() -> Self {
         Self::default()
     }

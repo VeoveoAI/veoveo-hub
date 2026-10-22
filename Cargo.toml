@@ -11,9 +11,6 @@ repository = "https://github.com/VeoveoAI/veoveo-hub"
 publish = false
 
 [workspace.dependencies]
-# Native source transport remains at the executable composition boundary.
-veoveo-mcp-artifact = { git = "https://github.com/VeoveoAI/veoveo-mcp-artifact", rev = "b53d15e93891727169a1fe482b8fb664a9877730", default-features = false, features = ["client"] }
-tar = "=0.4.46"
 # Native wire types are consumed only by the executable's approved contribution.
 lore-proto = { git = "https://github.com/VeoveoAI/lore", rev = "ff40bb216a241a7d453a11892aab17fdce1a6198", default-features = false }
 # veoveo-core, pinned to one revision for every core crate.
