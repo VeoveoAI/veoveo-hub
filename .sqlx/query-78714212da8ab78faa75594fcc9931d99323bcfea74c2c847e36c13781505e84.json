@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Housekeeping marks every registration whose login newly holds no live kernel\n-- instance. It writes only rows whose mark changes. An instance's registration is never\n-- marked: OpenShell restarts its process, and its next registration replaces it.\n-- veoveo: unbounded (housekeeping checks every registration of the installation, one per running server process)\n-- veoveo: scan (housekeeping reads every registration and every process instance of the installation)\nUPDATE hub.registration AS r\nSET orphaned_at = $1\nWHERE r.orphaned_at IS NULL\n    AND NOT EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    )\n    AND NOT EXISTS (\n        SELECT FROM hub.instance AS n\n        WHERE n.deployment = r.deployment\n    )\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "78714212da8ab78faa75594fcc9931d99323bcfea74c2c847e36c13781505e84"
+}

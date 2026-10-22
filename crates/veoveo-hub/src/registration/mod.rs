@@ -1,7 +1,7 @@
-//! Server registration: the RFC 7591 and RFC 7592 endpoints, namespace claims, the
-//! PostgreSQL login each registration receives, the removal of registrations whose
-//! processes ended, and the snapshot of registered servers each catalog generation
-//! routes to.
+//! Server registration: the RFC 7591 and RFC 7592 endpoints, namespace claims,
+//! instances and their registration tokens, the PostgreSQL login each registration
+//! receives, the removal of registrations whose processes ended, and the snapshot of
+//! registered servers each catalog generation routes to.
 
 mod endpoint;
 mod service;
@@ -17,7 +17,9 @@ use axum::{
 use veoveo_hub_sdk::registration::{RegistrationErrorCode, RegistrationErrorResponse};
 
 pub use endpoint::{JWK_SET_MEDIA_TYPE, router};
-pub use service::{RegistrationIdentity, RegistrationService, ServerDatabase};
+pub use service::{
+    NewInstance, RegistrationIdentity, RegistrationService, ServerDatabase, create_instance,
+};
 pub use snapshot::{RegisteredServer, RegistrationSnapshot, ServerCapabilities};
 pub use watch::HOUSEKEEPING_INTERVAL;
 

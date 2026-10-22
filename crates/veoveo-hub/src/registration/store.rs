@@ -1,6 +1,6 @@
-//! Registrations, namespace claims and registration logins in the `hub` schema.
-//! Every replica reads the same rows, so a registration admitted by one replica routes
-//! on all of them.
+//! Registrations, namespace claims, instances and registration logins in the `hub`
+//! schema. Every replica reads the same rows, so a registration admitted by one replica
+//! routes on all of them.
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
@@ -181,35 +181,84 @@ impl RegistrationStore {
         if immutable.metadata.0 != *registration.metadata || immutable.storage.0 != binding {
             return Ok(Pin::Rebound);
         }
-        sqlx::query_file!("src/registration/store/ensure_server.sql", server.as_str())
-            .execute(&mut *transaction)
-            .await
-            .context("failed to create the server's role and schema")?;
+        admit(&mut transaction, &registration).await?;
+        transaction.commit().await?;
+        Ok(pin)
+    }
+
+    /// Record a new instance under the digest of its registration token.
+    pub async fn create_instance(
+        &self,
+        deployment: DeploymentId,
+        token_digest: &Sha256Digest,
+        now: DateTime<Utc>,
+    ) -> Result<()> {
         sqlx::query_file!(
-            "src/registration/store/create_login.sql",
-            server.as_str(),
-            registration.login.as_str(),
-            registration.password.expose_secret(),
+            "src/registration/store/create_instance.sql",
+            deployment.as_uuid(),
+            token_digest.as_str(),
+            now,
         )
-        .execute(&mut *transaction)
+        .execute(self.store.pool())
         .await
-        .context("failed to create the registration's login")?;
+        .context("failed to record the instance")?;
+        Ok(())
+    }
+
+    /// The deployment of the instance whose registration token has this digest.
+    pub async fn instance(&self, token_digest: &Sha256Digest) -> Result<Option<DeploymentId>> {
+        sqlx::query_file_scalar!("src/registration/store/instance.sql", token_digest.as_str())
+            .fetch_optional(self.store.pool())
+            .await
+            .context("failed to read the instance")?
+            .map(|deployment| {
+                DeploymentId::try_from(deployment).context("stored instance deployment is invalid")
+            })
+            .transpose()
+    }
+
+    /// Replace the registration of an instance, in one transaction: write the
+    /// deployment's server, metadata and storage binding, remove the deployment's
+    /// previous registrations and drop their logins, then create the server's group
+    /// role and schema, the new login and its row. Returns the replaced registrations.
+    pub async fn register_instance(
+        &self,
+        registration: NewRegistration<'_>,
+    ) -> Result<Vec<EndedRegistration>> {
+        let server = registration.metadata.slug();
+        let deployment = registration.metadata.registration.deployment.as_uuid();
+        let binding = StorageBinding::SharedLogicalSchema {
+            server: server.clone(),
+        };
+        let mut transaction = self.store.pool().begin().await?;
         sqlx::query_file!(
-            "src/registration/store/create_registration.sql",
-            registration.client_id.as_str(),
+            "src/registration/store/replace_deployment.sql",
             deployment,
             server.as_str(),
             Json(registration.metadata) as _,
-            registration.software_statement.as_str(),
-            registration.token_digest.as_str(),
-            registration.login.as_str(),
+            Json(&binding) as _,
             registration.now,
         )
         .execute(&mut *transaction)
         .await
-        .context("failed to record the registration")?;
+        .context("failed to record the instance's deployment")?;
+        let replaced = sqlx::query_file_as!(
+            EndedRow,
+            "src/registration/store/replace_registrations.sql",
+            deployment,
+        )
+        .fetch_all(&mut *transaction)
+        .await
+        .context("failed to remove the instance's previous registrations")?
+        .into_iter()
+        .map(EndedRegistration::try_from)
+        .collect::<Result<Vec<_>>>()?;
+        for previous in &replaced {
+            drop_login(&mut transaction, &previous.login).await?;
+        }
+        admit(&mut transaction, &registration).await?;
         transaction.commit().await?;
-        Ok(pin)
+        Ok(replaced)
     }
 
     pub async fn registrations(&self) -> Result<Vec<StoredRegistration>> {
@@ -308,6 +357,42 @@ impl RegistrationStore {
             })
             .collect()
     }
+}
+
+/// Create the server's group role and schema, the registration's login and its row.
+async fn admit(
+    connection: &mut sqlx::PgConnection,
+    registration: &NewRegistration<'_>,
+) -> Result<()> {
+    let server = registration.metadata.slug();
+    sqlx::query_file!("src/registration/store/ensure_server.sql", server.as_str())
+        .execute(&mut *connection)
+        .await
+        .context("failed to create the server's role and schema")?;
+    sqlx::query_file!(
+        "src/registration/store/create_login.sql",
+        server.as_str(),
+        registration.login.as_str(),
+        registration.password.expose_secret(),
+    )
+    .execute(&mut *connection)
+    .await
+    .context("failed to create the registration's login")?;
+    sqlx::query_file!(
+        "src/registration/store/create_registration.sql",
+        registration.client_id.as_str(),
+        registration.metadata.registration.deployment.as_uuid(),
+        server.as_str(),
+        Json(registration.metadata) as _,
+        registration.software_statement.as_str(),
+        registration.token_digest.as_str(),
+        registration.login.as_str(),
+        registration.now,
+    )
+    .execute(&mut *connection)
+    .await
+    .context("failed to record the registration")?;
+    Ok(())
 }
 
 async fn drop_login(connection: &mut sqlx::PgConnection, login: &LoginName) -> Result<()> {

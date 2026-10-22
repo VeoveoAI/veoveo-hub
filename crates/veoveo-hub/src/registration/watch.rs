@@ -1,6 +1,8 @@
 //! Every replica follows registrations through notifications on the `hub` channel
-//! and retains every deployment, selecting its newest live process registration. A housekeeping loop removes the
-//! registrations whose logins hold no live kernel instance for the grace period.
+//! and retains every deployment, selecting its newest live process registration. A
+//! housekeeping loop removes the registrations whose logins hold no live kernel
+//! instance for the grace period, except an instance's, which only its next
+//! registration replaces.
 
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
@@ -90,7 +92,7 @@ impl RegistrationService {
         }
     }
 
-    /// Retain every deployment. A process can resume the same immutable deployment;
+    /// Retain every deployment. A process can resume the same deployment;
     /// a different deployment never takes over another environment's logical route.
     fn route(&self) {
         let mut live = self.inner.live.write();
@@ -123,7 +125,8 @@ impl RegistrationService {
 
     /// Mark the registrations whose logins lost their live instance, clear the mark of
     /// those that regained one, and remove the ones orphaned for the grace period with
-    /// their logins. A round in which no liveness changed writes nothing.
+    /// their logins. An instance's registration is never marked or removed. A round in
+    /// which no liveness changed writes nothing.
     pub async fn collect_abandoned(&self) -> anyhow::Result<()> {
         let now = Utc::now();
         let grace = TimeDelta::from_std(self.inner.grace)?;

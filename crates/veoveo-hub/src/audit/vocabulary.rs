@@ -105,6 +105,8 @@ pub enum RegistrationActivity {
     Update,
     Deregister,
     Expire,
+    /// A new registration of the same instance removed this one.
+    Replace,
 }
 
 /// What a registered server presented as the subject of a token exchange.

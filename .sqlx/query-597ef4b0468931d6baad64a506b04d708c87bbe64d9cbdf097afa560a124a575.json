@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT deployment\nFROM hub.instance\nWHERE token_digest = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deployment",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "deployment"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "597ef4b0468931d6baad64a506b04d708c87bbe64d9cbdf097afa560a124a575"
+}

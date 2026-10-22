@@ -19,7 +19,7 @@ use veoveo_hub_sdk::registration::{
 };
 use veoveo_hub_sdk::{HubInternalSigningKey, TokenIssuer};
 use veoveo_store::{LoginName, ServerSchema};
-use veoveo_types::{OAuthClientId, Sha256Digest};
+use veoveo_types::{DeploymentId, OAuthClientId, Sha256Digest};
 
 use super::{
     RegistrationError,
@@ -90,6 +90,42 @@ pub(super) struct Inner {
 pub enum Bearer<'a> {
     Missing,
     Presented(&'a str),
+}
+
+/// What an RFC 7591 initial access token authorizes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RegistrationAuthority {
+    /// The installation's registration secret: any slug, under the key its namespace
+    /// is pinned to.
+    Namespace,
+    /// An instance's registration token: every registration of the instance's
+    /// deployment, each replacing the previous one.
+    Instance { deployment: DeploymentId },
+}
+
+/// An instance the Hub serves from its own sandbox: the deployment its server
+/// registers, and the registration token it presents as its initial access token.
+pub struct NewInstance {
+    pub deployment: DeploymentId,
+    pub registration_token: SecretString,
+}
+
+/// Create an instance with a random registration token. Only the token's digest is
+/// stored; the token stays valid while the instance exists.
+pub async fn create_instance(store: &veoveo_store::PlatformStore) -> anyhow::Result<NewInstance> {
+    let deployment = DeploymentId::new();
+    let registration_token = random_token()?;
+    RegistrationStore::new(store.clone())
+        .create_instance(
+            deployment,
+            &digest(registration_token.expose_secret()),
+            Utc::now(),
+        )
+        .await?;
+    Ok(NewInstance {
+        deployment,
+        registration_token,
+    })
 }
 
 impl RegistrationService {
@@ -173,15 +209,16 @@ impl RegistrationService {
             .is_some()
     }
 
-    /// RFC 7591 §3: register a server presenting the installation's registration
-    /// secret as its initial access token. The response grants a new PostgreSQL login
-    /// in the server's group role and the server's logical schema.
+    /// RFC 7591 §3: register a server presenting an instance's registration token or
+    /// the installation's registration secret as its initial access token. The response
+    /// grants a new PostgreSQL login in the server's group role and the server's logical
+    /// schema.
     pub async fn register(
         &self,
         bearer: Bearer<'_>,
         body: &[u8],
     ) -> Result<ClientInformation, RegistrationError> {
-        self.check_initial_access_token(bearer).await?;
+        let authority = self.registration_authority(bearer).await?;
         let request: ClientRegistrationRequest = decode(body)?;
         request.metadata.check().map_err(invalid_metadata)?;
         let now = Utc::now();
@@ -198,11 +235,25 @@ impl RegistrationService {
                 format!("software_id cannot name a database schema: {error}"),
             )
         })?;
-        let claim = self.inner.store.claim(&slug).await?;
+        let pinned = match authority {
+            RegistrationAuthority::Namespace => self.inner.store.claim(&slug).await?,
+            RegistrationAuthority::Instance { deployment } => {
+                if request.metadata.registration.deployment != deployment {
+                    return Err(RegistrationError::rejected(
+                        RegistrationErrorCode::InvalidClientMetadata,
+                        format!(
+                            "the instance token registers deployment {deployment}; the metadata names {}",
+                            request.metadata.registration.deployment
+                        ),
+                    ));
+                }
+                None
+            }
+        };
         verify(
             &request.software_statement,
             &request.metadata,
-            claim.as_deref(),
+            pinned.as_deref(),
             &self.inner.registration_endpoint,
             now,
         )?;
@@ -210,36 +261,42 @@ impl RegistrationService {
         let login = registration_login(&schema, &client_id)?;
         let password = random_token()?;
         let token = random_token()?;
-        let pin = self
-            .inner
-            .store
-            .register(NewRegistration {
-                client_id: &client_id,
-                metadata: &request.metadata,
-                software_statement: &request.software_statement,
-                token_digest: &digest(token.expose_secret()),
-                login: &login,
-                password: &password,
-                now,
-            })
-            .await?;
-        match pin {
-            Pin::Foreign => {
-                return Err(RegistrationError::rejected(
-                    RegistrationErrorCode::UnapprovedSoftwareStatement,
-                    "the namespace is pinned to another key",
-                ));
+        let registration = NewRegistration {
+            client_id: &client_id,
+            metadata: &request.metadata,
+            software_statement: &request.software_statement,
+            token_digest: &digest(token.expose_secret()),
+            login: &login,
+            password: &password,
+            now,
+        };
+        match authority {
+            RegistrationAuthority::Namespace => {
+                match self.inner.store.register(registration).await? {
+                    Pin::Foreign => {
+                        return Err(RegistrationError::rejected(
+                            RegistrationErrorCode::UnapprovedSoftwareStatement,
+                            "the namespace is pinned to another key",
+                        ));
+                    }
+                    Pin::Claimed => {
+                        self.audit(&slug, RegistrationActivity::ClaimNamespace)
+                            .await?;
+                    }
+                    Pin::Held => {}
+                    Pin::Rebound => {
+                        return Err(RegistrationError::rejected(
+                            RegistrationErrorCode::InvalidClientMetadata,
+                            "a deployment cannot change its admitted identity or contract",
+                        ));
+                    }
+                }
             }
-            Pin::Claimed => {
-                self.audit(&slug, RegistrationActivity::ClaimNamespace)
-                    .await?;
-            }
-            Pin::Held => {}
-            Pin::Rebound => {
-                return Err(RegistrationError::rejected(
-                    RegistrationErrorCode::InvalidClientMetadata,
-                    "a deployment cannot change its admitted identity or contract",
-                ));
+            RegistrationAuthority::Instance { .. } => {
+                for replaced in self.inner.store.register_instance(registration).await? {
+                    self.ended(&replaced, RegistrationActivity::Replace).await?;
+                    self.reload(&replaced.client_id).await?;
+                }
             }
         }
         self.audit(&slug, RegistrationActivity::Register).await?;
@@ -356,13 +413,24 @@ impl RegistrationService {
         Ok(())
     }
 
-    async fn check_initial_access_token(
+    /// The authority of an initial access token: an instance's registration token is
+    /// found by its digest first, and any other token must be the installation's
+    /// registration secret.
+    async fn registration_authority(
         &self,
         bearer: Bearer<'_>,
-    ) -> Result<(), RegistrationError> {
+    ) -> Result<RegistrationAuthority, RegistrationError> {
         let Bearer::Presented(presented) = bearer else {
             return Err(RegistrationError::Unauthorized { token_sent: false });
         };
+        if let Some(deployment) = self.inner.store.instance(&digest(presented)).await? {
+            return Ok(RegistrationAuthority::Instance { deployment });
+        }
+        self.check_initial_access_token(presented).await?;
+        Ok(RegistrationAuthority::Namespace)
+    }
+
+    async fn check_initial_access_token(&self, presented: &str) -> Result<(), RegistrationError> {
         let catalog = self.inner.catalog.current();
         let Some(settings) = catalog.control_plane().registration.as_ref() else {
             tracing::warn!(

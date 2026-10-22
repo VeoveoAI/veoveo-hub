@@ -39,13 +39,15 @@ composition, rather than recomposing its current ancestors. Deployment reference
 and pins are admitted before publication; health is checked at use, so temporary
 target failure cannot block an unrelated revision.
 
-RFC 7591 metadata carries an immutable deployment ID. Every deployment registers
-with the installation's registration secret under the key its logical namespace is
-pinned to, and receives the namespace's explicit `shared_logical_schema` storage
-binding. Shared schema is an explicit data binding, not owner isolation. A
-deployment cannot change its key, logical namespace, contract, endpoint or storage
-through re-registration. Registrations and health remain independent per
-deployment; registration alone never selects a serving component.
+RFC 7591 metadata carries a deployment ID. A deployment registers either with the
+installation's registration secret under the key its logical namespace is pinned
+to, or as an instance with the registration token the Hub created for it, and
+receives the namespace's explicit `shared_logical_schema` storage binding. Shared
+schema is an explicit data binding, not owner isolation. A namespace deployment
+cannot change its key, logical namespace, contract, endpoint or storage through
+re-registration; an instance's every registration replaces them. Registrations and
+health remain independent per deployment; registration alone never selects a
+serving component.
 
 Each authenticated stateless MCP operation admits at most one `veoveo-environment`
 header, an untrusted typed selector, or uses the configured default. The resource
@@ -147,12 +149,16 @@ protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/523c7ace42660a20b213be
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
 then the software statement against the pinned key and the endpoint URL. The slug
-`hub` names the Hub's own schema and is refused with `invalid_client_metadata`.
+`hub` names the Hub's own schema and is refused with `invalid_client_metadata`. An
+initial access token whose digest names an instance registers that instance; any
+other token must be the installation's registration secret.
 
 | Table in the `hub` schema | Holds |
 |---|---|
 | `namespace_claim` | One row per slug: the RFC 7638 thumbprint of the pinned key |
-| `registration` | One row per registration: client identifier, metadata, software statement, SHA-256 digest of the registration access token, its login, and `orphaned_at`, when housekeeping found that login without a live process, which is NULL while it holds one |
+| `instance` | One row per instance: its deployment ID and the SHA-256 digest of its registration token |
+| `deployment` | One row per deployment: its slug, metadata and storage binding |
+| `registration` | One row per registration: client identifier, deployment, metadata, software statement, SHA-256 digest of the registration access token, its login, and `orphaned_at`, when housekeeping found that login without a live process, which is NULL while it holds one |
 
 One transaction registers a server: it claims the namespace on the slug's first
 registration, or finds it pinned to the same key, calls `kernel.ensure_server` for the
@@ -164,6 +170,18 @@ identifier, and its password is 256 random bits. The response grants the login a
 `veoveo_database`: `VEOVEO_SERVER_DATABASE_URL`, or the Hub's own URL without its
 user, with the login and its password. The Hub keeps only the login's name.
 
+An instance is one branch of a server repository, served from its own sandbox.
+`registration::create_instance` gives it a new deployment ID and a random 256-bit
+registration token, of which the Hub stores only the digest; the token stays valid
+while the instance exists. Its one check is that the metadata names the instance's
+deployment, otherwise `invalid_client_metadata`; the software statement is verified
+against the key the metadata presents. It claims no namespace, pins no key, does not
+expire and is not used up, so several instances of one slug register at once under
+their own keys. Every registration with the token replaces the instance's previous
+one in one transaction: it writes the deployment's slug, metadata and storage
+binding, removes the deployment's registrations and drops their logins, then calls
+`kernel.ensure_server`, creates the new login and inserts its row.
+
 A server takes its group role, applies its own migrations in its schema and holds a
 kernel instance on its login while it serves. An RFC 7592 update replaces the stored
 metadata when it changed and writes nothing otherwise; it never extends anything.
@@ -174,9 +192,12 @@ A process can end without deregistering. Every replica's housekeeping loop runs 
 seconds and writes only when a login's liveness changed. It sets `orphaned_at` on a
 registration whose login it first finds without a live kernel instance, clears it when
 an instance appears again, and removes the registrations orphaned for longer than
-`VEOVEO_REGISTRATION_GRACE_SECONDS`, dropping their logins in the same transaction. An
+`VEOVEO_REGISTRATION_GRACE_SECONDS`, dropping their logins in the same transaction. It
+never marks or removes an instance's registration: OpenShell restarts the instance's
+process, and its next registration replaces the previous one. An
 installation whose servers keep their instances writes nothing while idle. Each claim,
-registration, declaration update, deregistration and removal writes an audit record.
+registration, declaration update, deregistration, removal and replacement writes an
+audit record.
 
 Every replica listens on the `hub` channel. A row inserted or deleted, or a
 metadata change, wakes it to reload the one registration the notification names by
@@ -510,6 +531,17 @@ issuer's `jwks_uri`, which equal those of its registration response. The Hub run
 with a verification key, so the test also checks that the set lists it after the
 signing key and that every forwarded token carries the signing key's `kid`.
 
+`tests/instance_registration.rs` starts the binary the same way and registers the
+Observatory fixture's declaration as instances with tokens from `create_instance`.
+It checks that two instances of one slug register under different keys as distinct
+deployments that both route, that registering an instance again with a new key,
+version, endpoint and declaration keeps its deployment, removes its previous
+registration and drops that login, that an instance token whose metadata names
+another deployment is refused, that any other token is checked as the registration
+secret, whose namespace pin binds the namespace path only, and that housekeeping
+neither orphans nor removes an instance registration whose login holds no live
+kernel instance while it removes such a namespace registration.
+
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed
 assertion, an unknown client, resource or scope and an unsupported grant, and the MCP
@@ -575,8 +607,9 @@ binding, the audit vocabulary and readers, and the control store.
 
 - Several versions of one slug may hold registrations; the newest routes until
   session version selection exists.
-- A server stays registered only while its registration's login holds a live kernel
-  instance; a server that never starts one is removed after the grace period.
+- A namespace server stays registered only while its registration's login holds a
+  live kernel instance; a server that never starts one is removed after the grace
+  period. An instance's registration stays until the instance registers again.
 - Servers are reached at their registered endpoint; dial-in is not implemented.
 - Concrete resources a server adds at run time appear in `resources/list` after the
   next catalog generation; templates and reads are always current.

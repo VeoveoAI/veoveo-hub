@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.instance (deployment, token_digest, created_at)\nVALUES ($1, $2, $3)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0071902eaed95733a8c65e813de8bf5e9f8be77894a164eaa59464425b6fd1c9"
+}

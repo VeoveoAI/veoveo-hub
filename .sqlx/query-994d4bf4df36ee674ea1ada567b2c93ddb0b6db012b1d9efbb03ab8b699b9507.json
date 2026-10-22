@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n    SELECT FROM kernel.instance AS i\n    WHERE i.login = $1::name AND kernel.instance_alive(i.id)\n) AS \"alive!\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "alive!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Name"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "994d4bf4df36ee674ea1ada567b2c93ddb0b6db012b1d9efbb03ab8b699b9507"
+}
