@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT deployment\nFROM hub.instance\nWHERE token_digest = $1\n",
+  "query": "SELECT deployment, database\nFROM hub.instance\nWHERE token_digest = $1\n",
   "describe": {
     "columns": [
       {
@@ -13,6 +13,17 @@
             "name": "deployment"
           }
         }
+      },
+      {
+        "ordinal": 1,
+        "name": "database",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "database"
+          }
+        }
       }
     ],
     "parameters": {
@@ -21,8 +32,9 @@
       ]
     },
     "nullable": [
+      false,
       false
     ]
   },
-  "hash": "597ef4b0468931d6baad64a506b04d708c87bbe64d9cbdf097afa560a124a575"
+  "hash": "67bce768ef42072cec715613d31dd876c70662d12a3d94c8af0dbf142440f72c"
 }

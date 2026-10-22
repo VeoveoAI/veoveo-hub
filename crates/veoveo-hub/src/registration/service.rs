@@ -26,6 +26,7 @@ use super::{
     store::{EndedRegistration, NewRegistration, Pin, RegistrationStore, StoredRegistration},
     watch::LiveRegistrations,
 };
+use crate::data_environment::{self, DatabaseName};
 use crate::{HubCatalogHandle, HubSecretResolver, HubState};
 
 /// The database a registered server reaches, as its registration grant names it.
@@ -33,6 +34,15 @@ use crate::{HubCatalogHandle, HubSecretResolver, HubState};
 #[derive(Debug, Clone)]
 pub struct ServerDatabase {
     pub url: DatabaseUrl,
+}
+
+impl ServerDatabase {
+    /// The URL of another database at the same address and with the same settings.
+    fn in_database(&self, database: &DatabaseName) -> anyhow::Result<DatabaseUrl> {
+        let mut url = self.url.as_url().clone();
+        url.set_path(database.as_str());
+        DatabaseUrl::new(url).context("the data environment's database URL is invalid")
+    }
 }
 
 /// The path of the Hub issuer's JWK Set, below the issuer's origin.
@@ -93,14 +103,17 @@ pub enum Bearer<'a> {
 }
 
 /// What an RFC 7591 initial access token authorizes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum RegistrationAuthority {
     /// The installation's registration secret: any slug, under the key its namespace
     /// is pinned to.
     Namespace,
     /// An instance's registration token: every registration of the instance's
-    /// deployment, each replacing the previous one.
-    Instance { deployment: DeploymentId },
+    /// deployment into its database, each replacing the previous one.
+    Instance {
+        deployment: DeploymentId,
+        database: DatabaseName,
+    },
 }
 
 /// An instance the Hub serves from its own sandbox: the deployment its server
@@ -110,15 +123,21 @@ pub struct NewInstance {
     pub registration_token: SecretString,
 }
 
-/// Create an instance with a random registration token. Only the token's digest is
-/// stored; the token stays valid while the instance exists.
-pub async fn create_instance(store: &veoveo_store::PlatformStore) -> anyhow::Result<NewInstance> {
+/// Create an instance whose server registers into `database` with a random
+/// registration token: the installation database, or a data environment's database
+/// that [`crate::data_environment::ensure_database`] created. Only the token's digest
+/// is stored; the token stays valid while the instance exists.
+pub async fn create_instance(
+    store: &veoveo_store::PlatformStore,
+    database: &DatabaseName,
+) -> anyhow::Result<NewInstance> {
     let deployment = DeploymentId::new();
     let registration_token = random_token()?;
     RegistrationStore::new(store.clone())
         .create_instance(
             deployment,
             &digest(registration_token.expose_secret()),
+            database,
             Utc::now(),
         )
         .await?;
@@ -202,7 +221,7 @@ impl RegistrationService {
     /// RFC 7591 §3: register a server presenting an instance's registration token or
     /// the installation's registration secret as its initial access token. The response
     /// grants a new PostgreSQL login in the server's group role and the server's logical
-    /// schema.
+    /// schema, in the instance's database or the installation database.
     pub async fn register(
         &self,
         bearer: Bearer<'_>,
@@ -225,10 +244,10 @@ impl RegistrationService {
                 format!("software_id cannot name a database schema: {error}"),
             )
         })?;
-        let pinned = match authority {
+        let pinned = match &authority {
             RegistrationAuthority::Namespace => self.inner.store.claim(&slug).await?,
-            RegistrationAuthority::Instance { deployment } => {
-                if request.metadata.registration.deployment != deployment {
+            RegistrationAuthority::Instance { deployment, .. } => {
+                if request.metadata.registration.deployment != *deployment {
                     return Err(RegistrationError::rejected(
                         RegistrationErrorCode::InvalidClientMetadata,
                         format!(
@@ -260,6 +279,7 @@ impl RegistrationService {
             password: &password,
             now,
         };
+        let mut url = self.inner.database.url.clone();
         match authority {
             RegistrationAuthority::Namespace => {
                 match self.inner.store.register(registration).await? {
@@ -282,8 +302,19 @@ impl RegistrationService {
                     }
                 }
             }
-            RegistrationAuthority::Instance { .. } => {
-                for replaced in self.inner.store.register_instance(registration).await? {
+            RegistrationAuthority::Instance { database, .. } => {
+                let environment =
+                    (!data_environment::is_installation(self.inner.store.platform(), &database))
+                        .then_some(database);
+                if let Some(environment) = &environment {
+                    url = self.inner.database.in_database(environment)?;
+                }
+                for replaced in self
+                    .inner
+                    .store
+                    .register_instance(registration, environment.as_ref())
+                    .await?
+                {
                     self.ended(&replaced, RegistrationActivity::Replace).await?;
                     self.reload(&replaced.client_id).await?;
                 }
@@ -296,7 +327,7 @@ impl RegistrationService {
             binding: StorageBinding::SharedLogicalSchema {
                 server: slug.clone(),
             },
-            url: self.inner.database.url.clone(),
+            url,
             username: DatabaseIdentifier::new(login.as_str())
                 .context("the login is a PostgreSQL role name")?,
             password,
@@ -413,8 +444,11 @@ impl RegistrationService {
         let Bearer::Presented(presented) = bearer else {
             return Err(RegistrationError::Unauthorized { token_sent: false });
         };
-        if let Some(deployment) = self.inner.store.instance(&digest(presented)).await? {
-            return Ok(RegistrationAuthority::Instance { deployment });
+        if let Some((deployment, database)) = self.inner.store.instance(&digest(presented)).await? {
+            return Ok(RegistrationAuthority::Instance {
+                deployment,
+                database,
+            });
         }
         self.check_initial_access_token(presented).await?;
         Ok(RegistrationAuthority::Namespace)

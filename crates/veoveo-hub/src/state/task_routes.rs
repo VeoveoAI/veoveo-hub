@@ -371,7 +371,9 @@ impl HubState {
     }
 
     /// Whether `server`'s Task in core's Task runtime is queued, running or waiting for
-    /// `caller`. An identifier that is no runtime Task identifier names no live Task.
+    /// `caller`. An identifier that is no runtime Task identifier names no live Task. The
+    /// Task lives in the database of its deployment: the installation database, or the
+    /// database of an instance's data environment, read on a connection of its own.
     pub async fn task_live(
         &self,
         server: &ServerSlug,
@@ -388,16 +390,28 @@ impl HubState {
             .tenant
             .as_ref()
             .map_or("installation", |tenant| tenant.as_str());
-        sqlx::query_file_scalar!(
-            "src/state/task_routes/task_live.sql",
-            server.as_str(),
-            task,
-            tenant,
-            deployment.as_uuid(),
-        )
-        .fetch_one(self.store.platform().pool())
-        .await
-        .context("failed to read the Task's status")
+        let platform = self.store.platform();
+        let live = async |pool: &sqlx::PgPool| {
+            sqlx::query_file_scalar!(
+                "src/state/task_routes/task_live.sql",
+                server.as_str(),
+                task,
+                tenant,
+                deployment.as_uuid(),
+            )
+            .fetch_one(pool)
+            .await
+            .context("failed to read the Task's status")
+        };
+        match crate::data_environment::of_deployment(platform, deployment).await? {
+            None => live(platform.pool()).await,
+            Some(environment) => {
+                let store = crate::data_environment::connect(platform, &environment).await?;
+                let answer = live(store.pool()).await;
+                store.close().await;
+                answer
+            }
+        }
     }
 
     /// Placement identity for the existing owner-scoped administrative Task path.

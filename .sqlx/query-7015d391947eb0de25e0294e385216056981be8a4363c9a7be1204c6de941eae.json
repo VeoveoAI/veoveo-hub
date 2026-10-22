@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT source_task_id, deployment\nFROM hub.task_route\nWHERE id = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "source_task_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.task_route",
+            "name": "source_task_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "deployment",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.task_route",
+            "name": "deployment"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "7015d391947eb0de25e0294e385216056981be8a4363c9a7be1204c6de941eae"
+}

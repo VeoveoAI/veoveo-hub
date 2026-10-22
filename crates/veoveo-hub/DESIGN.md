@@ -21,7 +21,7 @@ Neither its code nor its configuration names a server.
 | JWK Set, RFC 7517, and JWK Thumbprint, RFC 7638 | `/jwks.json` and `/oauth/jwks.json`, served as `application/jwk-set+json`: public Ed25519 keys whose `kid` is the RFC 7638 thumbprint |
 | Protected resource metadata, RFC 9728 | `/.well-known/oauth-protected-resource/mcp/{profile}` |
 | Problem details, RFC 9457 | HTTP API errors outside OAuth endpoints, typed `https://veoveo.ai/problems/<code>` |
-| PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, then the Hub's own `hub` schema, applied at startup; `LISTEN` on the `hub` channel for registration changes; one login role per registration |
+| PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, then the Hub's own `hub` schema, applied at startup; `LISTEN` on the `hub` channel for registration changes; one login role per registration. A database per data environment in the same instance, with core's kernel schemas |
 | OpenTelemetry | `service.name` is `veoveo-hub` |
 | Veoveo installation configuration | `HubControlPlane` in `src/control_plane.rs`, read as JSON |
 | [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Hub's `hub.*` classes. The Hub's records carry its own reason codes and name targets by URI |
@@ -97,16 +97,15 @@ deployment-qualified ingress proof; MCP routing alone does not establish it.
    Active revisions emit kernel notifications only after commit; each replica also
    reconciles on initial subscription and reconnection.
 
-While it serves, the Hub holds a kernel instance of its own on the owner's login.
-Through it the Hub acts on servers' Tasks for their owners, and it claims no Task
-work. When a lost connection ends the Hub's database sessions, its pools open new
+While it serves, the Hub holds a kernel instance of its own on the owner's login,
+and it claims no Task work. When a lost connection ends the Hub's database sessions, its pools open new
 connections, the registration listener reconnects and reloads every registration, and
 core's instance takes its lock back on a new connection, so the Hub keeps serving
 without a restart.
 
-The Hub connects as the installation owner, a role that owns the database and has
-`CREATEROLE`, because it applies the kernel and Hub migrations and creates each
-registration's login. The other commands are `validate`, `resolve-secret`, `audit` and
+The Hub connects as the installation owner, a role that owns the databases and has
+`CREATEROLE` and `CREATEDB`, because it applies the kernel and Hub migrations, creates
+each registration's login and creates each data environment's database. The other commands are `validate`, `resolve-secret`, `audit` and
 `generate-local-installation`; `audit` reads the same database settings.
 
 | Variable | Meaning |
@@ -156,7 +155,7 @@ other token must be the installation's registration secret.
 | Table in the `hub` schema | Holds |
 |---|---|
 | `namespace_claim` | One row per slug: the RFC 7638 thumbprint of the pinned key |
-| `instance` | One row per instance: its deployment ID and the SHA-256 digest of its registration token |
+| `instance` | One row per instance: its deployment ID, the SHA-256 digest of its registration token and the database its server registers into |
 | `deployment` | One row per deployment: its slug, metadata and storage binding |
 | `registration` | One row per registration: client identifier, deployment, metadata, software statement, SHA-256 digest of the registration access token, its login, and `orphaned_at`, when housekeeping found that login without a live process, which is NULL while it holds one |
 
@@ -181,6 +180,37 @@ their own keys. Every registration with the token replaces the instance's previo
 one in one transaction: it writes the deployment's slug, metadata and storage
 binding, removes the deployment's registrations and drops their logins, then calls
 `kernel.ensure_server`, creates the new login and inserts its row.
+
+### Data Environments
+
+A data environment is the PostgreSQL database the servers of one branch name use, in
+the installation's one PostgreSQL instance; `src/data_environment.rs` implements it.
+Each instance names its database. Instances of the base branch name the installation
+database, which also keeps all of the Hub's own state; there is no environment table,
+template or control database. A database name is 1 to 63 bytes of `[a-z0-9_]`, and
+any other name is refused.
+
+`ensure_database` connects to the database, creates it as the installation owner,
+which then owns it, when the connection reports it missing, and applies core's kernel
+migrations to it. A creation that finds the
+database created meanwhile, `duplicate_database` or a unique violation of
+`pg_database`, counts as done, and the migrator's lock applies the migrations once, so
+concurrent callers all succeed. `drop_database_if_unused` drops a database no
+instance names with `DROP DATABASE … WITH (FORCE)`, and never the installation
+database; the caller deletes the instances' sandboxes first. `FORCE` ends other
+logins' sessions only when the owner has the privileges of `pg_signal_backend`.
+
+Registering an instance outside the installation database first calls
+`kernel.ensure_server` in its database, on a connection of its own, then runs the
+registration transaction above. The grant names that database at the address and
+with the settings of the server database URL. Roles belong to the instance, so the
+group role and login serve both databases. A server writes the identity rows its
+Tasks need itself. The Hub keeps no connection and no `LISTEN` in an environment's
+database: Task get, update, cancel and subscriptions go to the instance, and the read
+of whether a Task still runs before it acts for its caller opens a pool of one
+connection to the database of the Task's deployment.
+Registration health reads liveness in the installation database, so it reports an
+instance in a data environment as degraded.
 
 A server takes its group role, applies its own migrations in its schema and holds a
 kernel instance on its login while it serves. An RFC 7592 update replaces the stored
@@ -289,8 +319,9 @@ cannot acquire further Task delegation. Request composition can continue without
 creating Tasks. The signed context retains the originating Task's server and ID,
 independently of the immediate server actor. Every exchange and admission of such a
 chain reads its unexpired native route, compares the original caller/client, authority,
-request context and profile, and requires core's `tasks.task` for the original server
-to hold the Task as queued, running or waiting in the caller's tenant.
+request context and profile, and requires core's `tasks.task` in the database of the
+Task's deployment to hold the Task as queued, running or waiting in the caller's
+tenant.
 A Task stops acting for a caller
 whose browser session the Hub revoked because one of its refresh tokens was
 replayed: the exchange is refused with `invalid_grant` and a Task-bound token is no
@@ -498,7 +529,9 @@ prune repeats it until a statement changes fewer.
 The Hub's own statements, for registrations and Task routes, are `.sql` files
 beside the modules that run them, checked at compile time through sqlx's `query_file!`
 macros against the metadata in `.sqlx`; tests keep theirs under `tests/`. No Rust code
-builds SQL text. `.sqlx` also holds the metadata of the core crates' queries, because
+builds SQL text, except `CREATE DATABASE` and `DROP DATABASE`, which take no
+parameter and run only outside transactions and functions; their text names a
+validated database name. `.sqlx` also holds the metadata of the core crates' queries, because
 the check stage compiles them offline from an empty target directory.
 
 `tests/database_conformance.rs` holds the Hub's own statements to core's
@@ -541,6 +574,18 @@ another deployment is refused, that any other token is checked as the registrati
 secret, whose namespace pin binds the namespace path only, and that housekeeping
 neither orphans nor removes an instance registration whose login holds no live
 kernel instance while it removes such a namespace registration.
+
+`tests/data_environments.rs` starts the binary the same way and runs the SDK's Relay
+fixture as two instances of one slug, one in the installation database and one in a
+database `ensure_database` created, beside a Ledger namespace server. Each grant names
+its instance's database at the installation database's address, and the server's
+schema exists in each. For each instance, a Task created through the Hub completes after its Ledger call from the Task, which the Hub admits only once it finds
+the Task running in that database, the Task's rows are absent from the installation
+database when the instance is elsewhere, and once the Task ended an exchange for it is
+refused with `invalid_grant`. A second test, without the binary, runs four concurrent
+`ensure_database` calls for one name, checks the kernel migrations applied once, and
+checks that `drop_database_if_unused` drops that database, but neither one an instance
+names nor the installation database.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed

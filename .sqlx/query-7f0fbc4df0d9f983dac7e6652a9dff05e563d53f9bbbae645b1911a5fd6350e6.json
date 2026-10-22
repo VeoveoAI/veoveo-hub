@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"applied!\"\nFROM kernel._sqlx_migrations\nWHERE success\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "applied!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "7f0fbc4df0d9f983dac7e6652a9dff05e563d53f9bbbae645b1911a5fd6350e6"
+}

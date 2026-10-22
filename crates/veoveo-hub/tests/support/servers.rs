@@ -100,15 +100,62 @@ pub async fn serve_revision(
     namespace_key: &ServerKeyPair,
     build: impl AsyncFnOnce(&Registration, &ClientMetadata, &ServerKeyPair) -> HostedServer,
 ) -> Served {
+    serve_as(
+        hub,
+        http,
+        slug,
+        declaration,
+        ServerKeyPair::from_pkcs8_der(namespace_key.pkcs8_der()).unwrap(),
+        veoveo_hub_sdk::DeploymentId::new(),
+        SecretString::from(hub.secret("VEOVEO_REGISTRATION_SECRET").to_owned()),
+        build,
+    )
+    .await
+}
+
+/// Register `declaration` under `slug` as `instance`, with a new key and the
+/// instance's registration token, and serve what `build` makes of its registration.
+/// Selection stays as it is.
+pub async fn serve_instance(
+    hub: &Hub,
+    http: &reqwest::Client,
+    slug: &str,
+    declaration: AuthorizationDeclaration,
+    instance: &veoveo_hub::registration::NewInstance,
+    build: impl AsyncFnOnce(&Registration, &ClientMetadata, &ServerKeyPair) -> HostedServer,
+) -> Served {
+    serve_as(
+        hub,
+        http,
+        slug,
+        declaration,
+        ServerKeyPair::generate().unwrap(),
+        instance.deployment,
+        instance.registration_token.clone(),
+        build,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn serve_as(
+    hub: &Hub,
+    http: &reqwest::Client,
+    slug: &str,
+    declaration: AuthorizationDeclaration,
+    key: ServerKeyPair,
+    deployment: veoveo_hub_sdk::DeploymentId,
+    initial_access_token: SecretString,
+    build: impl AsyncFnOnce(&Registration, &ClientMetadata, &ServerKeyPair) -> HostedServer,
+) -> Served {
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
         .await
         .unwrap();
     let address = listener.local_addr().unwrap();
-    let key = ServerKeyPair::from_pkcs8_der(namespace_key.pkcs8_der()).unwrap();
     let metadata = ClientMetadata::new(
         *key.public_key(),
         RegistrationDeclaration {
-            deployment: veoveo_hub_sdk::DeploymentId::new(),
+            deployment,
             slug: ServerSlug::parse(slug).unwrap(),
             uri_scheme: ResourceScheme::parse(slug).unwrap(),
             version: ServerVersion::new("0.1.0").unwrap(),
@@ -125,7 +172,7 @@ pub async fn serve_revision(
     let client = RegistrationClient::new(
         http.clone(),
         endpoint,
-        SecretString::from(hub.secret("VEOVEO_REGISTRATION_SECRET").to_owned()),
+        initial_access_token,
         ServerKeyPair::from_pkcs8_der(key.pkcs8_der()).unwrap(),
         metadata.clone(),
     )

@@ -5,6 +5,7 @@ mod catalog_registry;
 pub mod computers;
 pub mod contract;
 pub mod control_plane;
+pub mod data_environment;
 pub mod delegation;
 pub mod execution;
 pub mod http;

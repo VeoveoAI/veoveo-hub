@@ -11,6 +11,8 @@ use veoveo_hub_sdk::registration::{ClientMetadata, SoftwareStatement};
 use veoveo_store::{LoginName, PlatformStore};
 use veoveo_types::{DeploymentId, OAuthClientId, ServerSlug, Sha256Digest};
 
+use crate::data_environment::{self, DatabaseName};
+
 /// One registration as the service reads it back.
 #[derive(Clone, Debug)]
 pub(crate) struct StoredRegistration {
@@ -186,17 +188,19 @@ impl RegistrationStore {
         Ok(pin)
     }
 
-    /// Record a new instance under the digest of its registration token.
+    /// Record a new instance in `database` under the digest of its registration token.
     pub async fn create_instance(
         &self,
         deployment: DeploymentId,
         token_digest: &Sha256Digest,
+        database: &DatabaseName,
         now: DateTime<Utc>,
     ) -> Result<()> {
         sqlx::query_file!(
             "src/registration/store/create_instance.sql",
             deployment.as_uuid(),
             token_digest.as_str(),
+            database.as_str(),
             now,
         )
         .execute(self.store.pool())
@@ -205,14 +209,23 @@ impl RegistrationStore {
         Ok(())
     }
 
-    /// The deployment of the instance whose registration token has this digest.
-    pub async fn instance(&self, token_digest: &Sha256Digest) -> Result<Option<DeploymentId>> {
-        sqlx::query_file_scalar!("src/registration/store/instance.sql", token_digest.as_str())
+    /// The deployment and database of the instance whose registration token has this
+    /// digest.
+    pub async fn instance(
+        &self,
+        token_digest: &Sha256Digest,
+    ) -> Result<Option<(DeploymentId, DatabaseName)>> {
+        sqlx::query_file!("src/registration/store/instance.sql", token_digest.as_str())
             .fetch_optional(self.store.pool())
             .await
             .context("failed to read the instance")?
-            .map(|deployment| {
-                DeploymentId::try_from(deployment).context("stored instance deployment is invalid")
+            .map(|row| {
+                Ok((
+                    DeploymentId::try_from(row.deployment)
+                        .context("stored instance deployment is invalid")?,
+                    DatabaseName::parse(row.database)
+                        .context("stored instance database is invalid")?,
+                ))
             })
             .transpose()
     }
@@ -220,16 +233,30 @@ impl RegistrationStore {
     /// Replace the registration of an instance, in one transaction: write the
     /// deployment's server, metadata and storage binding, remove the deployment's
     /// previous registrations and drop their logins, then create the server's group
-    /// role and schema, the new login and its row. Returns the replaced registrations.
+    /// role and schema, the new login and its row. An instance in a data environment
+    /// first gets the server's group role and schema in that database, on a connection
+    /// of its own. Returns the replaced registrations.
     pub async fn register_instance(
         &self,
         registration: NewRegistration<'_>,
+        environment: Option<&DatabaseName>,
     ) -> Result<Vec<EndedRegistration>> {
         let server = registration.metadata.slug();
         let deployment = registration.metadata.registration.deployment.as_uuid();
         let binding = StorageBinding::SharedLogicalSchema {
             server: server.clone(),
         };
+        if let Some(environment) = environment {
+            let store = data_environment::connect(&self.store, environment).await?;
+            let ensured =
+                sqlx::query_file!("src/registration/store/ensure_server.sql", server.as_str())
+                    .execute(store.pool())
+                    .await;
+            store.close().await;
+            ensured.with_context(|| {
+                format!("failed to create the server's role and schema in {environment}")
+            })?;
+        }
         let mut transaction = self.store.pool().begin().await?;
         sqlx::query_file!(
             "src/registration/store/replace_deployment.sql",
