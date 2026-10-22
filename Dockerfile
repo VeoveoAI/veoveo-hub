@@ -83,6 +83,9 @@ RUN apt-get update \
     && mkdir -p /etc/veoveo \
     && chown -R component:component /etc/veoveo /var/lib/veoveo
 COPY --from=build /home/sandbox/component /usr/local/bin/veoveo-hub
+# BuildKit's client, from the image the installation runs as its image builder.
+COPY --from=moby/buildkit:v0.34.1@sha256:99368f3e46177c6405b9740e4461d91cee004128daeecca78d4ceac50ec1da5c \
+    /usr/bin/buildctl /usr/local/bin/buildctl
 USER component
 # A container listens on every interface; a sandbox keeps the loopback default.
 ENV VEOVEO_LISTEN_ADDRESS=0.0.0.0:8080
