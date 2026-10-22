@@ -27,7 +27,9 @@ use rmcp::{
 use serde_json::{Value, json};
 use servers::{Served, decoded_claims, hosted, mcp_client, serve_instance};
 use veoveo_fixtures::store::TestDb;
-use veoveo_hub::{execution::BranchName, registration::create_instance};
+use veoveo_hub::{
+    data_environment::DatabaseName, execution::BranchName, registration::create_instance,
+};
 use veoveo_hub_sdk::hosting::{DomainServer, Hosted};
 use veoveo_hub_sdk_fixture::ledger::{self, LedgerDomain, LedgerTasks};
 
@@ -65,7 +67,9 @@ impl Fixture {
         )
         .await;
         let http = reqwest::Client::new();
-        let instance = create_instance(&db.a, &branch(BASE)).await.unwrap();
+        let instance = create_instance(&db.a, &installation(&db.a), &branch(BASE))
+            .await
+            .unwrap();
         let base = serve_instance(
             &hub,
             &http,
@@ -79,7 +83,9 @@ impl Fixture {
             },
         )
         .await;
-        let instance = create_instance(&db.a, &branch(FEATURE)).await.unwrap();
+        let instance = create_instance(&db.a, &installation(&db.a), &branch(FEATURE))
+            .await
+            .unwrap();
         let feature = serve_instance(
             &hub,
             &http,
@@ -350,4 +356,9 @@ async fn a_task_keeps_the_instance_it_started_on() {
     })
     .await
     .expect("the test exceeded its bound");
+}
+
+/// The installation database, where these instances register.
+fn installation(store: &veoveo_store::PlatformStore) -> DatabaseName {
+    DatabaseName::installation(store).unwrap()
 }

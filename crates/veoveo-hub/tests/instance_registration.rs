@@ -303,7 +303,7 @@ async fn housekeeping_never_orphans_or_collects_an_instance_registration() {
 async fn an_update_with_new_metadata_replaces_the_instance_registration_and_its_deployment() {
     tokio::time::timeout(BOUND, async {
         let fixture = Fixture::start(Duration::from_secs(60)).await;
-        let a = create_instance(&fixture.db.a, &fixture.installation())
+        let a = create_instance(&fixture.db.a, &fixture.installation(), &branch("a"))
             .await
             .unwrap();
         let registered = fixture
