@@ -1,6 +1,5 @@
 //! One composed-routing scenario against the real Hub binary and SDK fixture.
-//! Revisions use a synthetic installation namespace signer, NOT independently
-//! keyed user admission. That authority boundary has separate DB/deployed tests.
+//! Revisions register under their synthetic namespace signer.
 //! No native runtime, source transfer or application inference is simulated here.
 #[path = "support/hub.rs"]
 mod hub;

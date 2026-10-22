@@ -91,7 +91,7 @@ pub async fn serve(
 
 /// Another installation-owned fixture revision. This uses its synthetic namespace
 /// owner's signer, not an application user's authority. It never changes serving
-/// selection. Independent user-key admission is qualified separately.
+/// selection.
 pub async fn serve_revision(
     hub: &Hub,
     http: &reqwest::Client,

@@ -258,10 +258,6 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         .merge(workspaces.router(auth_state.clone()));
     let admin_router = Router::new()
         .route(
-            "/admin/{profile}/deployment-admissions",
-            post(super::admin::admit_deployment),
-        )
-        .route(
             "/admin/{profile}/control-plane",
             get(read_control_plane).put(update_control_plane),
         )

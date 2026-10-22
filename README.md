@@ -119,17 +119,14 @@ The application routes are:
 | `/oauth/token` | Client-credentials tokens for the profile `local`, and the token exchange a registered server performs to call other servers for its caller |
 | `/mcp/local` | The MCP endpoint of every registered server |
 
-An installation/base server registers at `/oauth/register` under its namespace
-bootstrap authority. An independently keyed override uses a one-use,
-deployment-scoped admission bound to its metadata, current owner, native placement
-and explicit storage binding. Namespace private keys and the global initial secret
-do not enter override workers. Native OpenShell policy/provider binding limits
-bootstrap-secret mediation to its admitted request. Preserve the SDK's subsequent
-registration credentials and resume them on ordinary process restart; explicit
-retirement deletes the registration. Missing registration needs freshly admitted
-authority rather than automatic global bootstrap. The registration response grants
-the server its own PostgreSQL login; the server stays registered while that login holds
-a live kernel instance.
+A server registers at `/oauth/register` with the registration secret as its initial
+access token, under the key its namespace is pinned to. Native OpenShell
+policy/provider binding must limit bootstrap-secret mediation to that request.
+Preserve the SDK's subsequent registration credentials and resume them on ordinary
+process restart; explicit retirement deletes the registration. Missing registration
+needs freshly admitted authority rather than automatic global bootstrap. The
+registration response grants the server its own PostgreSQL login; the server stays
+registered while that login holds a live kernel instance.
 
 A caller obtains a token by presenting an RFC 7523 client assertion, signed
 with its key and naming its key identifier, at `/oauth/token` with

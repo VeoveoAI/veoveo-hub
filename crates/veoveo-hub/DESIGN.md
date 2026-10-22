@@ -39,16 +39,13 @@ composition, rather than recomposing its current ancestors. Deployment reference
 and pins are admitted before publication; health is checked at use, so temporary
 target failure cannot block an unrelated revision.
 
-RFC 7591 metadata carries an immutable deployment ID. The namespace-owner bootstrap
-proof still pins the logical namespace's key. Independently keyed deployments use
-an operator-issued one-use initial registration admission binding exact metadata,
-owner/environment, native destination and explicit `shared_logical_schema` storage.
-Environment edit authority grants none of these privileges. Shared schema is an
-explicit data binding, not owner isolation. A deployment cannot change its key,
-logical namespace, contract, endpoint, owner or storage through re-registration.
-Trusted reissue after registration loss retains that binding; no worker receives
-the namespace key or global initial credential. Registrations and health remain
-independent per deployment; registration alone never selects a serving component.
+RFC 7591 metadata carries an immutable deployment ID. Every deployment registers
+with the installation's registration secret under the key its logical namespace is
+pinned to, and receives the namespace's explicit `shared_logical_schema` storage
+binding. Shared schema is an explicit data binding, not owner isolation. A
+deployment cannot change its key, logical namespace, contract, endpoint or storage
+through re-registration. Registrations and health remain independent per
+deployment; registration alone never selects a serving component.
 
 Each authenticated stateless MCP operation admits at most one `veoveo-environment`
 header, an untrusted typed selector, or uses the configured default. The resource

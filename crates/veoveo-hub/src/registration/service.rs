@@ -23,7 +23,6 @@ use veoveo_types::{OAuthClientId, Sha256Digest};
 
 use super::{
     RegistrationError,
-    admission::{DeploymentAdmissionGrant, DeploymentAdmissionRequest, RegistrationAuthority},
     store::{EndedRegistration, NewRegistration, Pin, RegistrationStore, StoredRegistration},
     watch::LiveRegistrations,
 };
@@ -166,20 +165,23 @@ impl RegistrationService {
 
     /// Whether the installation configures server registration.
     pub fn enabled(&self) -> bool {
-        let catalog = self.inner.catalog.current();
-        let control = catalog.control_plane();
-        control.registration.is_some() || control.execution.is_some()
+        self.inner
+            .catalog
+            .current()
+            .control_plane()
+            .registration
+            .is_some()
     }
 
-    /// RFC 7591 §3: register using namespace-bootstrap authority or a one-use,
-    /// deployment-scoped initial admission. Both grant only their admitted logical
-    /// schema binding; scoped workers never receive the namespace's signing key.
+    /// RFC 7591 §3: register a server presenting the installation's registration
+    /// secret as its initial access token. The response grants a new PostgreSQL login
+    /// in the server's group role and the server's logical schema.
     pub async fn register(
         &self,
         bearer: Bearer<'_>,
         body: &[u8],
     ) -> Result<ClientInformation, RegistrationError> {
-        let authority = self.registration_authority(bearer).await?;
+        self.check_initial_access_token(bearer).await?;
         let request: ClientRegistrationRequest = decode(body)?;
         request.metadata.check().map_err(invalid_metadata)?;
         let now = Utc::now();
@@ -196,33 +198,14 @@ impl RegistrationService {
                 format!("software_id cannot name a database schema: {error}"),
             )
         })?;
-        match &authority {
-            RegistrationAuthority::Namespace => {
-                let claim = self.inner.store.claim(&slug).await?;
-                verify(
-                    &request.software_statement,
-                    &request.metadata,
-                    claim.as_deref(),
-                    &self.inner.registration_endpoint,
-                    now,
-                )?;
-            }
-            RegistrationAuthority::Deployment(admission) => {
-                if admission.consumed
-                    || admission.request.expires_at <= now
-                    || admission.request.metadata != request.metadata
-                {
-                    return Err(RegistrationError::Unauthorized { token_sent: true });
-                }
-                verify(
-                    &request.software_statement,
-                    &request.metadata,
-                    Some(admission.request.metadata.key().thumbprint().as_str()),
-                    &self.inner.registration_endpoint,
-                    now,
-                )?;
-            }
-        }
+        let claim = self.inner.store.claim(&slug).await?;
+        verify(
+            &request.software_statement,
+            &request.metadata,
+            claim.as_deref(),
+            &self.inner.registration_endpoint,
+            now,
+        )?;
         let client_id = new_client_id(&slug)?;
         let login = registration_login(&schema, &client_id)?;
         let password = random_token()?;
@@ -231,7 +214,6 @@ impl RegistrationService {
             .inner
             .store
             .register(NewRegistration {
-                authority: &authority,
                 client_id: &client_id,
                 metadata: &request.metadata,
                 software_statement: &request.software_statement,
@@ -259,19 +241,13 @@ impl RegistrationService {
                     "a deployment cannot change its admitted identity or contract",
                 ));
             }
-            Pin::AdmissionRejected => {
-                return Err(RegistrationError::Unauthorized { token_sent: true });
-            }
         }
         self.audit(&slug, RegistrationActivity::Register).await?;
         self.reload(&client_id).await?;
         tracing::info!(server = %slug, client_id = %client_id, %login, "server registered");
         let database = DatabaseGrant {
-            binding: match &authority {
-                RegistrationAuthority::Namespace => StorageBinding::SharedLogicalSchema {
-                    server: slug.clone(),
-                },
-                RegistrationAuthority::Deployment(admission) => admission.request.storage.clone(),
+            binding: StorageBinding::SharedLogicalSchema {
+                server: slug.clone(),
             },
             url: self.inner.database.url.clone(),
             username: DatabaseIdentifier::new(login.as_str())
@@ -378,46 +354,6 @@ impl RegistrationService {
             "server registration ended"
         );
         Ok(())
-    }
-
-    async fn registration_authority(
-        &self,
-        bearer: Bearer<'_>,
-    ) -> Result<RegistrationAuthority, RegistrationError> {
-        let Bearer::Presented(value) = bearer else {
-            return Err(RegistrationError::Unauthorized { token_sent: false });
-        };
-        if let Some(admission) = self
-            .inner
-            .store
-            .deployment_admission(&digest(value))
-            .await?
-        {
-            if admission.consumed || admission.request.expires_at <= Utc::now() {
-                return Err(RegistrationError::Unauthorized { token_sent: true });
-            }
-            return Ok(RegistrationAuthority::Deployment(Box::new(admission)));
-        }
-        self.check_initial_access_token(Bearer::Presented(value))
-            .await?;
-        Ok(RegistrationAuthority::Namespace)
-    }
-
-    /// Trusted provisioning/AdminWrite only. Environment editing does not call this path.
-    pub async fn admit_deployment(
-        &self,
-        request: DeploymentAdmissionRequest,
-    ) -> anyhow::Result<DeploymentAdmissionGrant> {
-        let token = random_token()?;
-        self.inner
-            .store
-            .admit_deployment(&request, &digest(token.expose_secret()))
-            .await?;
-        Ok(DeploymentAdmissionGrant {
-            deployment: request.metadata.registration.deployment,
-            initial_access_token: RegistrationAccessToken::new(token.expose_secret()),
-            expires_at: request.expires_at,
-        })
     }
 
     async fn check_initial_access_token(
