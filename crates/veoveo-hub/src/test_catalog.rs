@@ -52,6 +52,7 @@ pub fn registered_server(slug: &str, endpoint: &str) -> crate::registration::Reg
                 permissions: Vec::new(),
                 requirements: Default::default(),
                 uses: Vec::new(),
+                calls_hub: false,
             },
         ),
         capabilities: Default::default(),

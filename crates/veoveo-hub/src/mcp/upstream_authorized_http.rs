@@ -354,6 +354,7 @@ mod tests {
                     permissions: Vec::new(),
                     requirements: Default::default(),
                     uses: Vec::new(),
+                    calls_hub: false,
                 },
             ),
             capabilities: Default::default(),

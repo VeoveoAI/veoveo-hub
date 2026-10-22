@@ -105,6 +105,7 @@ mod tests {
             ],
             requirements: Requirements::default(),
             uses: Vec::new(),
+            calls_hub: false,
         }
     }
 

@@ -300,7 +300,7 @@ impl DelegationService {
         if !metadata.grant_types.contains(&GrantType::TokenExchange) {
             return Err(TokenExchangeRefusal::new(
                 TokenErrorCode::UnauthorizedClient,
-                "the registration declares no uses, so it holds no token exchange grant",
+                "the registration declares no uses and no calls to the Hub, so it holds no token exchange grant",
             ));
         }
         Ok((client, metadata))

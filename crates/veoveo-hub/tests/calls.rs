@@ -286,6 +286,29 @@ async fn qualify() {
         .await
         .unwrap();
     assert_eq!(administrative.status(), reqwest::StatusCode::FORBIDDEN);
+    // A server that calls the Hub for its caller exchanges for no permissions, with the
+    // caller's profile as the resource, and reaches the caller's own user routes.
+    let (status, for_hub) = exchange(
+        &hub,
+        &http,
+        &relay,
+        (
+            &admin_forwarded,
+            veoveo_hub_sdk::calls::ACCESS_TOKEN_TOKEN_TYPE,
+        ),
+        Some(json!([{"type": "https://veoveo.ai/oauth/permissions", "actions": []}])),
+        Some(&format!("{}/mcp/local", hub.base)),
+    )
+    .await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{for_hub}");
+    let selected = http
+        .put(format!("{}/selection/local/relay", hub.base))
+        .bearer_auth(for_hub["access_token"].as_str().unwrap())
+        .json(&json!({ "branch": "feature" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(selected.status(), reqwest::StatusCode::NO_CONTENT);
 
     // A Ledger Task through the Hub resolves Relay's Task handle.
     let tallied = relay_call(&member, "relay_tally", json!({"entries": 2}))

@@ -83,6 +83,7 @@ async fn database() -> fixture::TestDb {
                 permissions: Vec::new(),
                 requirements: Default::default(),
                 uses: Vec::new(),
+                calls_hub: false,
             },
         )
         .unwrap();
