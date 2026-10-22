@@ -28,13 +28,13 @@ use rmcp::{
     service::RunningService,
 };
 use serde_json::json;
-use servers::{Served, hosted, mcp_client, mcp_client_selected, serve, serve_instance};
+use servers::{Served, hosted, mcp_client, serve, serve_instance};
 use tokio_util::sync::CancellationToken;
 use veoveo_fixtures::store::TestDb;
 use veoveo_hub::data_environment::{DatabaseName, drop_database_if_unused, ensure_database};
 use veoveo_hub::registration::{NewInstance, create_instance};
 use veoveo_hub_sdk::{
-    EnvironmentId, HubProfileId, calls::TokenErrorCode, client::CallError, hosting::ServerCalls,
+    HubProfileId, calls::TokenErrorCode, client::CallError, hosting::ServerCalls,
     registration::client::Registration,
 };
 use veoveo_hub_sdk_fixture::{
@@ -120,26 +120,25 @@ async fn scenario() {
     }
     assert_ne!(base.database, other.database);
 
-    // The default environment serves the base instance, a second environment the other.
+    // The base branch's instance serves by default; selecting the other branch serves
+    // the instance in the data environment.
     hub.enroll(&base.served.metadata).await;
     let mut control = hub.control_plane().await;
-    let default =
-        EnvironmentId::parse(control["execution"]["defaultEnvironment"].as_str().unwrap()).unwrap();
-    let selected = EnvironmentId::new();
-    let mut record = control["execution"]["environments"][default.to_string()].clone();
-    record["displayName"] = json!("Branch");
-    record["base"] = json!({"kind": "follow", "environment": default});
-    record["components"] = json!({
-        "relay": {"kind": "deployment", "deployment": other.served.metadata.registration.deployment}
-    });
-    control["execution"]["environments"][selected.to_string()] = record;
+    control["execution"]["baseBranch"] = json!("dev");
     hub.publish_control_plane(&control).await;
     let token = hub.access_token(&http, hub.caller("member")).await;
-    let base_client = mcp_client(&hub, token.clone()).await;
-    let other_client = mcp_client_selected(&hub, token, Some(selected)).await;
+    let client = mcp_client(&hub, token.clone()).await;
 
-    exercise(&hub, &http, &db, &base, &base_client, &stop).await;
-    exercise(&hub, &http, &db, &other, &other_client, &stop).await;
+    exercise(&hub, &http, &db, &base, &client, &stop).await;
+    let response = http
+        .put(format!("{}/selection/local/relay", hub.base))
+        .bearer_auth(&token)
+        .json(&json!({ "branch": "feature" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), reqwest::StatusCode::NO_CONTENT);
+    exercise(&hub, &http, &db, &other, &client, &stop).await;
 }
 
 /// One Relay instance: its registration, its Tasks, its calls through the Hub and the
