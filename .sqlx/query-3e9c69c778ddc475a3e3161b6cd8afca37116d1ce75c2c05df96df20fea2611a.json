@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The Hub applied a revision to the instance's sandbox, which clears its last failure.\nUPDATE hub.instance\nSET revision = $2, failed_stage = NULL, failed_message = NULL\nWHERE deployment = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3e9c69c778ddc475a3e3161b6cd8afca37116d1ce75c2c05df96df20fea2611a"
+}

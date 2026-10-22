@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT revision, failed_stage, failed_message, warning\nFROM hub.instance\nWHERE deployment = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "revision"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "failed_stage",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "failed_stage"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "failed_message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "failed_message"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "warning",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "warning"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "70dbe91a56a0aa435c9000302a92417e7456a94e66fea783a4fd2c6476a84055"
+}

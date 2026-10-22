@@ -60,18 +60,24 @@ pub(super) struct Gateway {
     permits: Arc<Semaphore>,
     limit: NonZeroUsize,
 }
+/// A client of the configured gateway, authenticated with the bearer reference its
+/// environment variable holds.
+pub(crate) async fn connect(config: &ComputerGateway) -> Result<OpenShellClient> {
+    let bearer = std::env::var(&config.bearer_environment)
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .context("OpenShell gateway authority missing")?;
+    let mut connection = ClientConfig::new(config.endpoint.to_string());
+    connection.ca_cert = Some(tokio::fs::read(&config.certificate_authority).await?);
+    connection.auth = Some(AuthConfig::oidc(bearer));
+    tokio::time::timeout(RPC_TIMEOUT, OpenShellClient::connect(connection))
+        .await?
+        .context("connect OpenShell gateway")
+}
+
 impl Gateway {
     pub async fn connect(config: &ComputerGateway, limit: NonZeroUsize) -> Result<Self> {
-        let bearer = std::env::var(&config.bearer_environment)
-            .ok()
-            .filter(|value| !value.trim().is_empty())
-            .context("Computer provisioning authority missing")?;
-        let mut connection = ClientConfig::new(config.endpoint.to_string());
-        connection.ca_cert = Some(tokio::fs::read(&config.certificate_authority).await?);
-        connection.auth = Some(AuthConfig::oidc(bearer));
-        let client = tokio::time::timeout(RPC_TIMEOUT, OpenShellClient::connect(connection))
-            .await?
-            .context("connect Computer gateway")?;
+        let client = connect(config).await?;
         Ok(Self {
             client,
             permits: Arc::new(Semaphore::new(limit.get())),

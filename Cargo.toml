@@ -50,6 +50,7 @@ hyper-util = { version = "=0.1.21", features = ["tokio"] }
 prost = "=0.14.4"
 prost-types = "=0.14.4"
 tonic = "=0.14.6"
+tonic-prost = "=0.14.6"
 jsonschema = "=0.58.6"
 jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["aws_lc_rs", "use_pem"] }
 opentelemetry = "0.32.0"

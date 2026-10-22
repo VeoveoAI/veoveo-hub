@@ -8,6 +8,7 @@ mod session;
 pub use session::{ADMISSION_READ_TIMEOUT, BrowserSession, STREAM_ADMISSION_INTERVAL};
 
 mod gateway;
+pub(crate) use gateway::connect as connect_gateway;
 mod oauth;
 mod onboarding;
 mod provisioning;

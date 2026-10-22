@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.instance\nSET failed_stage = $2, failed_message = $3\nWHERE deployment = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9d2f3d140156cdb0dabd1f14a44d649d463497244c356d27ba353daf481bfb80"
+}

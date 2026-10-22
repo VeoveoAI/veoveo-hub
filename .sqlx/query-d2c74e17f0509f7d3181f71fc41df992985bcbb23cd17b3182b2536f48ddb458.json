@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT login\nFROM hub.registration\nWHERE deployment = $1\nORDER BY login\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "login",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.registration",
+            "name": "login"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d2c74e17f0509f7d3181f71fc41df992985bcbb23cd17b3182b2536f48ddb458"
+}

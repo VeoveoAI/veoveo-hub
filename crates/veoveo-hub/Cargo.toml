@@ -84,5 +84,7 @@ veoveo-task.workspace = true
 jsonschema.workspace = true
 rcgen.workspace = true
 schemars.workspace = true
+# The factory tests' fake OpenShell gateway answers gRPC through tonic's server.
+tonic-prost.workspace = true
 # The registration test migrates the fixture server's schema.
 sqlx = { workspace = true, features = ["migrate"] }

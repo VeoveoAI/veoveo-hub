@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- A push names the instance's latest pusher, whose instances count toward the per-user\n-- cap.\nUPDATE hub.instance\nSET pusher = $2\nWHERE deployment = $1\nRETURNING branch\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "branch",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "branch"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "41327e97b2349446f3d68bd4937b98bdf290239d172b9ad0b77d64b4f656946a"
+}
