@@ -1834,7 +1834,8 @@ fn a_factory_needs_native_forwarding_on_its_gateway_and_valid_defaults() {
         "workspace":"factory", "policyFile":"/etc/native/factory-base.yaml",
         "cpu":"500m", "memory":"16Gi", "port":8800, "hubIssuer":"https://hub.test",
         "loreServer":"grpcs://lore.test:41337",
-        "registrationProfile":"factory-registration", "caps":{"instancesPerUser":3},
+        "registrationProfile":"factory-registration", "loreProfile":"factory-lore",
+        "caps":{"instancesPerUser":3},
         "imageBuilder":{
             "buildkit":"tcp://buildkitd.test:1234", "registry":"registry.test:5000",
             "lore":"registry.test:5000/lore@sha256:8dad0d15745459ae06213192eba0680a68cbb02e71757d16a739f3f9e34c71b4"
@@ -1865,6 +1866,7 @@ fn a_factory_needs_native_forwarding_on_its_gateway_and_valid_defaults() {
         (|f: &mut FactoryConfiguration| f.cpu = "0".into()) as fn(&mut FactoryConfiguration),
         |f| f.memory = "16GB".into(),
         |f| f.workspace = "Factory".into(),
+        |f| f.lore_profile = "vv_factory_lore".into(),
         |f| f.port = 0,
         |f| f.caps.as_mut().unwrap().instances_per_user = 0,
         |f| f.gateway.endpoint = url::Url::parse("https://other.test").unwrap(),

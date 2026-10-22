@@ -700,13 +700,13 @@ fn registration_login(
 }
 
 /// 256 random bits, base64url without padding.
-fn random_token() -> anyhow::Result<SecretString> {
+pub(crate) fn random_token() -> anyhow::Result<SecretString> {
     let mut bytes = [0_u8; 32];
     getrandom::fill(&mut bytes).map_err(|error| anyhow::anyhow!("random source: {error}"))?;
     Ok(SecretString::from(URL_SAFE_NO_PAD.encode(bytes)))
 }
 
-pub(super) fn digest(value: &str) -> Sha256Digest {
+pub(crate) fn digest(value: &str) -> Sha256Digest {
     Sha256Digest::from_bytes(Sha256::digest(value.as_bytes()).into())
 }
 

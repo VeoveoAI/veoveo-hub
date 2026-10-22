@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 use veoveo_store::PlatformStore;
 use veoveo_types::{DeploymentId, PrincipalId};
 
-use super::{Failure, Revision, Stage};
+use super::{Failure, InstanceClient, Revision, Stage};
 use crate::{data_environment::DatabaseName, execution::BranchName};
 
 /// The deployment and database of the instance of `branch` of `repository`.
@@ -50,6 +50,47 @@ pub(super) async fn push(
     .context("failed to record the instance's pusher")?
     .with_context(|| format!("no instance has deployment {deployment}"))?;
     BranchName::parse(branch).context("the stored instance branch is malformed")
+}
+
+/// Record the digest of the secret of the instance's client.
+pub(super) async fn client(
+    store: &PlatformStore,
+    deployment: DeploymentId,
+    secret_digest: &veoveo_types::Sha256Digest,
+) -> Result<()> {
+    sqlx::query_file!(
+        "src/factory/record/client.sql",
+        deployment.as_uuid(),
+        secret_digest.as_str()
+    )
+    .execute(store.pool())
+    .await
+    .context("failed to record the instance's client")?;
+    Ok(())
+}
+
+/// The instance whose client's secret has this digest.
+pub(super) async fn client_of(
+    store: &PlatformStore,
+    secret_digest: &veoveo_types::Sha256Digest,
+) -> Result<Option<InstanceClient>> {
+    sqlx::query_file!("src/factory/record/client_read.sql", secret_digest.as_str())
+        .fetch_optional(store.pool())
+        .await
+        .context("failed to read the instance's client")?
+        .map(|row| {
+            Ok(InstanceClient {
+                deployment: DeploymentId::try_from(row.deployment)
+                    .context("the stored instance deployment is invalid")?,
+                pusher: row
+                    .pusher
+                    .map(PrincipalId::parse)
+                    .transpose()
+                    .context("the stored instance pusher is malformed")?,
+                repository: row.repository,
+            })
+        })
+        .transpose()
 }
 
 /// How many instances name `pusher` as their latest pusher.

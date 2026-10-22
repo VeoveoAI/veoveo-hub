@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The instance whose client presents a secret with this digest, its latest pusher and\n-- its repository.\nSELECT deployment, pusher, repository\nFROM hub.instance\nWHERE client_digest = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deployment",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "deployment"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "pusher",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "pusher"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "repository"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "0a6f48ecafaba2bdabaa003783044c29c9b9110a80d152f46c718491e292efbd"
+}

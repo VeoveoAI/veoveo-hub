@@ -5,7 +5,9 @@
 //! stop of a stopped or completed sandbox without change and refuses one still
 //! provisioning or starting for the first time; it starts a stopped, completed, failed
 //! or starting sandbox at once and answers a start of a ready one without change. Any
-//! other method is unimplemented. It serves plain gRPC to the test and TLS to the Hub
+//! other method is unimplemented. Once given the token endpoint of a profile's
+//! `oauth2_client_credentials` refresh, a rotation mints the credential there with the
+//! provider's refresh material. It serves plain gRPC to the test and TLS to the Hub
 //! binary.
 
 use std::{
@@ -41,6 +43,8 @@ pub enum Call {
     StopSandbox(p::StopSandboxRequest),
     StartSandbox(p::StartSandboxRequest),
     DeleteSandbox(p::DeleteSandboxRequest),
+    ConfigureProviderRefresh(p::ConfigureProviderRefreshRequest),
+    RotateProviderCredential(p::RotateProviderCredentialRequest),
 }
 
 #[derive(Default)]
@@ -51,6 +55,10 @@ struct State {
     providers: BTreeMap<(String, String), p::Provider>,
     /// The refusal the next request of a method answers instead, by method.
     refusals: BTreeMap<String, Status>,
+    /// Refresh material by workspace, provider and credential key.
+    refresh: BTreeMap<(String, String, String), std::collections::HashMap<String, String>>,
+    /// Where a rotation mints, when set.
+    token_url: Option<String>,
 }
 
 #[derive(Clone, Default)]
@@ -158,6 +166,27 @@ impl Gateway {
             .filter(|(owner, _)| owner == workspace)
             .map(|(_, name)| name.clone())
             .collect()
+    }
+
+    /// Mint rotated credentials at `url` with OAuth 2.0 client credentials, as the
+    /// gateway does for a profile whose refresh names that token endpoint.
+    pub fn set_token_url(&self, url: String) {
+        self.state.lock().unwrap().token_url = Some(url);
+    }
+
+    /// The refresh material configured for a provider's credential.
+    pub fn refresh_material(
+        &self,
+        workspace: &str,
+        provider: &str,
+        key: &str,
+    ) -> Option<std::collections::HashMap<String, String>> {
+        self.state
+            .lock()
+            .unwrap()
+            .refresh
+            .get(&(workspace.into(), provider.into(), key.into()))
+            .cloned()
     }
 
     /// Replace a sandbox's status, as the compute platform's observations would.
@@ -359,6 +388,90 @@ impl Gateway {
                 state.calls.push(Call::DeleteSandbox(request));
                 Ok(p::DeleteSandboxResponse::default())
             }),
+            "ConfigureProviderRefresh" => unary(
+                request,
+                move |request: p::ConfigureProviderRefreshRequest| {
+                    let mut state = state.lock().unwrap();
+                    let workspace = workspace(request.workspace_scope.as_ref())?;
+                    if !state
+                        .providers
+                        .contains_key(&(workspace.clone(), request.provider.clone()))
+                    {
+                        return Err(Status::not_found("provider not found"));
+                    }
+                    if request.strategy
+                        != p::ProviderCredentialRefreshStrategy::Oauth2ClientCredentials as i32
+                    {
+                        return Err(Status::unimplemented(
+                            "the fake gateway refreshes only with client credentials",
+                        ));
+                    }
+                    state.refresh.insert(
+                        (
+                            workspace,
+                            request.provider.clone(),
+                            request.credential_key.clone(),
+                        ),
+                        request.material.clone(),
+                    );
+                    state.calls.push(Call::ConfigureProviderRefresh(request));
+                    Ok(p::ConfigureProviderRefreshResponse::default())
+                },
+            ),
+            "RotateProviderCredential" => unary_async(
+                request,
+                move |request: p::RotateProviderCredentialRequest| async move {
+                    let key = (
+                        workspace(request.workspace_scope.as_ref())?,
+                        request.provider.clone(),
+                        request.credential_key.clone(),
+                    );
+                    let (material, token_url) = {
+                        let mut state = state.lock().unwrap();
+                        state.calls.push(Call::RotateProviderCredential(request));
+                        let material = state.refresh.get(&key).cloned().ok_or_else(|| {
+                            Status::failed_precondition("the credential has no refresh")
+                        })?;
+                        (material, state.token_url.clone())
+                    };
+                    let Some(token_url) = token_url else {
+                        return Ok(p::RotateProviderCredentialResponse::default());
+                    };
+                    let form = url::form_urlencoded::Serializer::new(String::new())
+                        .append_pair("grant_type", "client_credentials")
+                        .append_pair("client_id", &material["client_id"])
+                        .append_pair("client_secret", &material["client_secret"])
+                        .finish();
+                    let response = reqwest::Client::new()
+                        .post(token_url)
+                        .header("content-type", "application/x-www-form-urlencoded")
+                        .body(form)
+                        .send()
+                        .await
+                        .map_err(|error| Status::unavailable(error.to_string()))?;
+                    let status = response.status();
+                    let body: serde_json::Value = response
+                        .json()
+                        .await
+                        .map_err(|error| Status::unavailable(error.to_string()))?;
+                    if !status.is_success() {
+                        return Err(Status::failed_precondition(format!(
+                            "the token endpoint answered {status}: {body}"
+                        )));
+                    }
+                    let token = body["access_token"]
+                        .as_str()
+                        .ok_or_else(|| Status::internal("no access token"))?
+                        .to_owned();
+                    let mut state = state.lock().unwrap();
+                    let provider = state
+                        .providers
+                        .get_mut(&(key.0, key.1))
+                        .ok_or_else(|| Status::not_found("provider not found"))?;
+                    provider.credentials.insert(key.2, token);
+                    Ok(p::RotateProviderCredentialResponse::default())
+                },
+            ),
             other => {
                 let status = Status::unimplemented(format!("the fake gateway has no {other}"));
                 Box::pin(async move { status.into_http() })
@@ -394,6 +507,40 @@ where
         fn call(&mut self, request: tonic::Request<Request>) -> Self::Future {
             let handle = self.0.take().expect("a unary service answers once");
             std::future::ready(handle(request.into_inner()).map(tonic::Response::new))
+        }
+    }
+    Box::pin(async move {
+        Grpc::new(ProstCodec::<Response, Request>::default())
+            .unary(Once(Some(handle)), request)
+            .await
+    })
+}
+
+/// Answer one unary request with `handle`, which may wait.
+fn unary_async<Request, Response, Handle, Answer>(
+    request: http::Request<Body>,
+    handle: Handle,
+) -> BoxFuture
+where
+    Request: prost::Message + Default + Send + 'static,
+    Response: prost::Message + Send + 'static,
+    Handle: FnOnce(Request) -> Answer + Send + 'static,
+    Answer: Future<Output = Result<Response, Status>> + Send + 'static,
+{
+    struct Once<Handle>(Option<Handle>);
+    impl<Request, Response, Handle, Answer> UnaryService<Request> for Once<Handle>
+    where
+        Response: Send + 'static,
+        Handle: FnOnce(Request) -> Answer,
+        Answer: Future<Output = Result<Response, Status>> + Send + 'static,
+    {
+        type Response = Response;
+        type Future =
+            Pin<Box<dyn Future<Output = Result<tonic::Response<Response>, Status>> + Send>>;
+        fn call(&mut self, request: tonic::Request<Request>) -> Self::Future {
+            let handle = self.0.take().expect("a unary service answers once");
+            let answer = handle(request.into_inner());
+            Box::pin(async move { answer.await.map(tonic::Response::new) })
         }
     }
     Box::pin(async move {

@@ -1,0 +1,129 @@
+//! A person's Lore token, as the Hub issues it when it acts in Lore for them: the token
+//! the deployment's public client would obtain for the person through the Hub's
+//! exchange, admitted against their current assignment on every issue.
+use anyhow::{Context, Result};
+use veoveo_hub::{
+    HubCatalog,
+    contract::{OAuthClientAuthMethod, OAuthGrantType},
+    control_plane::OAuthClientRegistration,
+    issuance::IssuedAccessToken,
+    token_profile::{ProfileRequest, TokenContext, TokenIssueError},
+};
+use veoveo_hub_sdk::{Principal, PrincipalKind, TokenIssuer, TokenSubject};
+use veoveo_types::{PrincipalId, TenantId};
+
+use super::{Deployment, DeploymentId, Lore, RepositoryId};
+
+/// Issue `person` a token for the deployment's repository under their current grant:
+/// the token the person would obtain through the Hub's exchange with the deployment's
+/// public client. The Lore profile admits the person's assignment on every issue.
+pub(crate) async fn issue(
+    catalog: &HubCatalog,
+    person: &PrincipalId,
+    deployment: &DeploymentId,
+    repository: &RepositoryId,
+) -> Result<IssuedAccessToken, TokenIssueError> {
+    let section = Lore::of(catalog).map_err(TokenIssueError::Unavailable)?;
+    let deployment = section
+        .deployments
+        .iter()
+        .find(|candidate| &candidate.id == deployment)
+        .with_context(|| format!("the Lore deployment {deployment} is not registered"))
+        .map_err(TokenIssueError::Unavailable)?;
+    let tenant = section
+        .repositories
+        .iter()
+        .find(|registered| registered.deployment == deployment.id && &registered.id == repository)
+        .map(|registered| registered.tenant.clone())
+        .with_context(|| format!("the Lore repository {repository} is not registered"))?;
+    let principal = person_of(catalog, person, tenant)?;
+    let client = exchange_client(catalog, deployment).map_err(TokenIssueError::Unavailable)?;
+    let context = TokenContext::admit(
+        catalog,
+        &deployment.audience,
+        &client.id,
+        &principal,
+        &client.default_work_context,
+        &deployment.login_scopes,
+        None,
+    )
+    .map_err(TokenIssueError::Unavailable)?;
+    let scope = deployment.scope_template.render(repository);
+    crate::contributions::bindings()
+        .map_err(TokenIssueError::Unavailable)?
+        .profiles
+        .issue(
+            context,
+            ProfileRequest::Exchange {
+                resource: None,
+                scope: Some(&scope),
+            },
+            None,
+        )
+        .await
+}
+
+/// The Hub principal of `id` in the repository's tenant. A Hub principal ID names its
+/// issuer and subject, `<issuer>#<subject>`; one issued by the Hub's own authorization
+/// servers is a service.
+fn person_of(catalog: &HubCatalog, id: &PrincipalId, tenant: TenantId) -> Result<Principal> {
+    let (issuer, subject) = id
+        .as_str()
+        .split_once('#')
+        .with_context(|| format!("the principal {id} names no issuer and subject"))?;
+    let issuer = TokenIssuer::parse(issuer)?;
+    let kind = if catalog
+        .control_plane()
+        .authorization_servers
+        .iter()
+        .any(|server| server.issuer == issuer)
+    {
+        PrincipalKind::Service
+    } else {
+        PrincipalKind::User
+    };
+    Ok(Principal {
+        id: id.clone(),
+        kind,
+        issuer,
+        subject: TokenSubject::parse(subject)?,
+        tenant: Some(tenant),
+        groups: Default::default(),
+        group_roles: Default::default(),
+        roles: Default::default(),
+        scopes: Default::default(),
+        data_labels: Default::default(),
+        assurances: Default::default(),
+        authenticated_at: None,
+    })
+}
+
+/// The deployment's one public client that exchanges login tokens for repository tokens.
+fn exchange_client<'a>(
+    catalog: &'a HubCatalog,
+    deployment: &Deployment,
+) -> Result<&'a OAuthClientRegistration> {
+    let mut clients = catalog
+        .control_plane()
+        .oauth_clients
+        .iter()
+        .filter(|client| {
+            client.authorization_server == deployment.authorization_server
+                && client.allowed_resources.contains(&deployment.audience)
+                && client.grant_types.contains(&OAuthGrantType::TokenExchange)
+                && client.auth_methods
+                    == std::collections::BTreeSet::from([OAuthClientAuthMethod::None])
+        });
+    let client = clients.next().with_context(|| {
+        format!(
+            "no public client exchanges tokens for the Lore deployment {}",
+            deployment.id
+        )
+    })?;
+    anyhow::ensure!(
+        clients.next().is_none(),
+        "more than one public client exchanges tokens for the Lore deployment {}",
+        deployment.id
+    );
+    Ok(client)
+}

@@ -74,6 +74,13 @@ pub(super) async fn token_endpoint(
         return *invalid_client();
     };
     request.client_id = client_id.to_string();
+    // An instance's own client authenticates with its secret and acts for the instance's
+    // latest pusher; it is no installed client.
+    if let Some(response) =
+        crate::contributions::instance_token(&state, &catalog, &client_id, &request).await
+    {
+        return response;
+    }
     let effective = match state
         .hub_state
         .effective_oauth_client(&catalog, &client_id)

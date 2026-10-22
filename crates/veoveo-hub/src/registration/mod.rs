@@ -21,6 +21,7 @@ pub use service::{
     NewInstance, RegistrationIdentity, RegistrationService, ServerDatabase, create_instance,
     reissue_token, remove_instance,
 };
+pub(crate) use service::{digest, random_token};
 pub use snapshot::{RegisteredServer, RegistrationSnapshot, ServerCapabilities};
 pub use watch::HOUSEKEEPING_INTERVAL;
 

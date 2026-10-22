@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The instance's client gets a new secret with each new sandbox.\nUPDATE hub.instance\nSET client_digest = $2\nWHERE deployment = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "33e2d088e70740b04e176a0c5a126892a1db3a24a29d379f0e7b9b30b6e00919"
+}

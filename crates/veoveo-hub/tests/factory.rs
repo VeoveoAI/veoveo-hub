@@ -50,7 +50,8 @@ use veoveo_hub::{
     data_environment::DatabaseName,
     execution::BranchName,
     factory::{
-        Condition, Factory, Failure, InstanceStatus, Phase, Prepared, Push, Revision, Stage,
+        self, Condition, Factory, Failure, InstanceClient, InstanceStatus, Phase, Prepared, Push,
+        Revision, Stage,
         image::{Build, ImageBuildError, ImageName, PinnedImage},
         sandbox_name,
     },
@@ -259,6 +260,7 @@ fn configuration_json(
         "hubIssuer": "https://hub.example",
         "loreServer": LORE,
         "registrationProfile": "vv-factory-registration",
+        "loreProfile": "vv-factory-lore",
         "imageBuilder": {
             "buildkit": "tcp://buildkitd.internal:1234",
             "registry": "registry.internal:5000",
@@ -337,11 +339,71 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
         let [
             Call::DeleteProvider(previous),
             Call::CreateProvider(provider),
+            Call::DeleteProvider(previous_lore),
+            Call::CreateProvider(lore),
+            Call::ConfigureProviderRefresh(refresh),
+            Call::RotateProviderCredential(rotate),
             Call::CreateSandbox(sandbox),
         ] = calls.as_slice()
         else {
             panic!("unexpected requests: {calls:?}");
         };
+        // The Lore provider starts without a credential: the gateway refreshes it with
+        // the instance's own client, whose identifier is the deployment, and mints its
+        // first token before the sandbox starts.
+        let lore_provider = format!("{name}-lore");
+        assert_eq!(
+            (previous_lore.name.as_str(), previous_lore.allow_missing),
+            (lore_provider.as_str(), true)
+        );
+        assert_eq!(lore.workspace_scope, scope());
+        let lore = lore.provider.as_ref().unwrap();
+        assert_eq!(lore.metadata.as_ref().unwrap().name, lore_provider);
+        assert_eq!(lore.r#type, "vv-factory-lore");
+        assert!(lore.credentials.is_empty());
+        assert_eq!(
+            (
+                refresh.workspace_scope.clone(),
+                refresh.provider.as_str(),
+                refresh.credential_key.as_str(),
+                refresh.strategy,
+                refresh.secret_material_keys.as_slice(),
+            ),
+            (
+                scope(),
+                lore_provider.as_str(),
+                "LORE_AUTH_TOKEN",
+                p::ProviderCredentialRefreshStrategy::Oauth2ClientCredentials as i32,
+                ["client_secret".to_owned()].as_slice(),
+            )
+        );
+        assert_eq!(refresh.material["client_id"], deployment.to_string());
+        let secret = &refresh.material["client_secret"];
+        assert_eq!(
+            factory::instance_client(&fixture.db.a, &deployment.to_string(), secret)
+                .await
+                .unwrap(),
+            Some(InstanceClient {
+                deployment,
+                pusher: Some(PrincipalId::parse("alice").unwrap()),
+                repository: REPOSITORY.into(),
+            })
+        );
+        for (client, secret) in [
+            (DeploymentId::new().to_string(), secret.as_str()),
+            (deployment.to_string(), "another-secret"),
+        ] {
+            assert_eq!(
+                factory::instance_client(&fixture.db.a, &client, secret)
+                    .await
+                    .unwrap(),
+                None
+            );
+        }
+        assert_eq!(
+            (rotate.provider.as_str(), rotate.credential_key.as_str()),
+            (lore_provider.as_str(), "LORE_AUTH_TOKEN")
+        );
         let registration = format!("{name}-registration");
         assert_eq!(
             (previous.name.as_str(), previous.allow_missing),
@@ -368,7 +430,7 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
         assert_eq!(template.image, built(&name, "FROM a").as_str());
         assert_eq!(template.resources, Some(limits("8", "16Gi")));
         assert_eq!(spec.restart_policy, p::SandboxRestartPolicy::Always as i32);
-        assert_eq!(spec.providers, [registration]);
+        assert_eq!(spec.providers, [registration, lore_provider]);
         assert_eq!(
             spec.environment,
             HashMap::from([
@@ -390,9 +452,9 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
                 "/bin/sh",
                 "-c",
                 "set -e\n\
-                 [ -d /sandbox/src/.lore ] || lore clone \"$1\" /sandbox/src --branch \"$2\"\n\
+                 [ -d /sandbox/src/.lore ] || lore --access-token \"$LORE_AUTH_TOKEN\" --identity \"$VEOVEO_DEPLOYMENT_ID\" clone \"$1\" /sandbox/src --branch \"$2\"\n\
                  cd /sandbox/src\n\
-                 lore sync --reset \"$2@LATEST\"\n\
+                 lore --access-token \"$LORE_AUTH_TOKEN\" --identity \"$VEOVEO_DEPLOYMENT_ID\" sync --reset \"$2@LATEST\"\n\
                  exec ./openshell/run",
                 "factory",
                 &format!("{LORE}/{REPOSITORY}"),
@@ -471,10 +533,16 @@ async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
             )
             .await
             .unwrap();
+        // The Lore token is refreshed first, so the sandbox starts as the new pusher.
         let calls = fixture.gateway.take_calls();
-        let [Call::UpdateConfig(update)] = calls.as_slice() else {
+        let [
+            Call::RotateProviderCredential(rotate),
+            Call::UpdateConfig(update),
+        ] = calls.as_slice()
+        else {
             panic!("unexpected requests: {calls:?}");
         };
+        assert_eq!(rotate.provider, format!("{name}-lore"));
         assert_eq!(
             (update.workspace_scope.clone(), update.sandbox.as_str()),
             (scope(), name.as_str())
@@ -505,6 +573,7 @@ async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
             .unwrap();
         let calls = fixture.gateway.take_calls();
         let [
+            Call::RotateProviderCredential(_),
             Call::UpdateConfig(update),
             Call::StopSandbox(stop),
             Call::StartSandbox(start),
@@ -541,11 +610,16 @@ async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
             Call::DeleteSandbox(delete),
             Call::DeleteProvider(previous),
             Call::CreateProvider(_),
+            Call::DeleteProvider(previous_lore),
+            Call::CreateProvider(_),
+            Call::ConfigureProviderRefresh(_),
+            Call::RotateProviderCredential(_),
             Call::CreateSandbox(create),
         ] = calls.as_slice()
         else {
             panic!("unexpected requests: {calls:?}");
         };
+        assert_eq!(previous_lore.name, format!("{name}-lore"));
         assert_eq!(
             (delete.name.as_str(), delete.allow_missing),
             (name.as_str(), true)
@@ -566,7 +640,7 @@ async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
         );
         assert_eq!(
             fixture.gateway.providers(WORKSPACE),
-            [format!("{name}-registration")]
+            [format!("{name}-lore"), format!("{name}-registration")]
         );
         let recreated = fixture.status(BASE).await.unwrap();
         assert_eq!(recreated.applied_revision, Some(revision_of('4')));
@@ -612,6 +686,7 @@ async fn a_push_restarts_a_crash_looping_sandbox() {
                 .unwrap();
             let calls = fixture.gateway.take_calls();
             let [
+                Call::RotateProviderCredential(_),
                 Call::UpdateConfig(_),
                 Call::StopSandbox(_),
                 Call::StartSandbox(_),
@@ -736,6 +811,10 @@ async fn a_failed_provider_creation_gets_a_new_token_on_the_next_push() {
         let [
             Call::DeleteProvider(_),
             Call::CreateProvider(_),
+            Call::DeleteProvider(_),
+            Call::CreateProvider(_),
+            Call::ConfigureProviderRefresh(_),
+            Call::RotateProviderCredential(_),
             Call::CreateSandbox(_),
         ] = calls.as_slice()
         else {
@@ -925,7 +1004,11 @@ async fn removing_an_instance_deletes_its_sandbox_providers_registrations_and_da
             .await
             .unwrap();
         let calls = fixture.gateway.take_calls();
-        let [Call::DeleteSandbox(sandbox), Call::DeleteProvider(provider)] = calls.as_slice()
+        let [
+            Call::DeleteSandbox(sandbox),
+            Call::DeleteProvider(provider),
+            Call::DeleteProvider(lore),
+        ] = calls.as_slice()
         else {
             panic!("unexpected requests: {calls:?}");
         };
@@ -934,6 +1017,7 @@ async fn removing_an_instance_deletes_its_sandbox_providers_registrations_and_da
             (scope(), name.as_str())
         );
         assert_eq!(provider.name, format!("{name}-registration"));
+        assert_eq!(lore.name, format!("{name}-lore"));
         assert!(fixture.sandbox(deployment).is_none());
         assert!(fixture.gateway.providers(WORKSPACE).is_empty());
         assert!(logins(store, deployment).await.is_empty());
@@ -1220,4 +1304,218 @@ async fn served(store: &PlatformStore, deployment: DeploymentId) {
         .execute(store.pool())
         .await
         .unwrap();
+}
+
+/// A Lore deployment whose repository Alice and Bob may use, and its public client.
+fn native_section(config: &mut serde_json::Value) {
+    config["lore"] = json!({
+        "deployments": [{
+            "id": "source", "resourceName": "native-source", "audience": NATIVE_RESOURCE,
+            "endpoint": LORE, "authorizationServer": "local",
+            "policyVersion": "local", "loginScopes": ["native:login", "offline_access"],
+            "scopeTemplate": "source-{id}", "resourceIdTemplate": "{id}",
+            "tokenLifetimeSeconds": 120
+        }],
+        "repositories": [
+            {"deployment": "source", "id": REPOSITORY, "tenant": "local", "title": "Served"}
+        ],
+        "assignments": [
+            {"deployment": "source", "repository": REPOSITORY, "tenant": "local", "principal": ALICE, "actions": []},
+            {"deployment": "source", "repository": REPOSITORY, "tenant": "local", "principal": BOB, "actions": []}
+        ]
+    });
+    config["oauthClients"].as_array_mut().unwrap().push(json!({
+        "id": "native-cli", "authorizationServer": "local", "defaultWorkContext": "local",
+        "invocationMode": "direct", "allowedResources": [NATIVE_RESOURCE],
+        "grantTypes": ["device_authorization", "refresh_token", "token_exchange"],
+        "authMethods": ["none"], "allowedScopes": ["native:login", "offline_access"]
+    }));
+}
+
+const NATIVE_RESOURCE: &str = "https://native.example/source";
+const ALICE: &str = "https://identity.example#alice";
+const BOB: &str = "https://identity.example#bob";
+
+/// The claims of a token, as the Lore server reads them after verifying it.
+fn claims(token: &str) -> serde_json::Value {
+    use base64::Engine as _;
+    let payload = token.split('.').nth(1).unwrap();
+    serde_json::from_slice(
+        &base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(payload)
+            .unwrap(),
+    )
+    .unwrap()
+}
+
+/// A token request of an instance's client, as the gateway's refresh sends it.
+async fn refresh(
+    http: &reqwest::Client,
+    hub: &hub::Hub,
+    pairs: &[(&str, &str)],
+) -> (reqwest::StatusCode, serde_json::Value) {
+    let form = url::form_urlencoded::Serializer::new(String::new())
+        .extend_pairs(pairs.iter().copied())
+        .finish();
+    let response = http
+        .post(format!("{}/oauth/token", hub.base))
+        .header("content-type", "application/x-www-form-urlencoded")
+        .body(form)
+        .send()
+        .await
+        .unwrap();
+    (response.status(), response.json().await.unwrap())
+}
+
+#[tokio::test]
+async fn an_instances_lore_token_acts_as_its_latest_pusher_under_their_grant() {
+    bounded(async {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let fixture = Fixture::start(json!(null)).await;
+        let installation = tempfile::tempdir().unwrap();
+        let hub = hub::Hub::start_with(
+            installation.path(),
+            &fixture.db,
+            Duration::from_secs(60),
+            &[],
+            native_section,
+        )
+        .await;
+        fixture
+            .gateway
+            .set_token_url(format!("{}/oauth/token", hub.base));
+        let branch = "dev/alice/x";
+        let lore = |deployment| format!("{}-lore", sandbox_name(deployment));
+        let token = |deployment| {
+            fixture
+                .gateway
+                .credentials(WORKSPACE, &lore(deployment))
+                .unwrap()["LORE_AUTH_TOKEN"]
+                .clone()
+        };
+
+        // The first push mints the instance's first token, for its pusher, before its
+        // sandbox starts.
+        fixture
+            .apply(branch, push('1', ALICE), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let deployment = fixture.status(branch).await.unwrap().deployment;
+        let first = claims(&token(deployment));
+        assert_eq!(first["identity"], ALICE);
+        assert_eq!(first["aud"], NATIVE_RESOURCE);
+        assert_eq!(
+            first["resources"],
+            json!([{"resource_id": REPOSITORY, "permission": []}])
+        );
+        assert_eq!(first["root_domains"], json!(["lore.internal"]));
+
+        // Each push refreshes the token for its pusher.
+        fixture
+            .apply(branch, push('2', BOB), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        assert_eq!(claims(&token(deployment))["identity"], BOB);
+
+        // A pusher who lost the grant gets no token; the push is recorded as failed.
+        let mut plane = hub.control_plane().await;
+        plane["lore"]["assignments"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|assignment| assignment["principal"] != BOB);
+        hub.publish_control_plane(&plane).await;
+        let material = fixture
+            .gateway
+            .refresh_material(WORKSPACE, &lore(deployment), "LORE_AUTH_TOKEN")
+            .unwrap();
+        let http = reqwest::Client::new();
+        let client = [
+            ("grant_type", "client_credentials"),
+            ("client_id", material["client_id"].as_str()),
+            ("client_secret", material["client_secret"].as_str()),
+        ];
+        assert_eq!(material["client_id"], deployment.to_string());
+        let (status, refused) = refresh(&http, &hub, &client).await;
+        assert_eq!(status, reqwest::StatusCode::BAD_REQUEST);
+        assert_eq!(refused["error"], "invalid_grant");
+        assert!(
+            fixture
+                .apply(branch, push('3', BOB), fixture.prepared("FROM a", None))
+                .await
+                .is_err()
+        );
+        let Some(Failure { stage, message }) = fixture.status(branch).await.unwrap().failed else {
+            panic!("the refused refresh is recorded");
+        };
+        assert_eq!(stage, Stage::Restart);
+        assert!(
+            message.contains("refresh the instance's Lore token")
+                && message.contains("invalid_grant"),
+            "{message}"
+        );
+
+        // A push by someone who holds the grant serves again.
+        fixture
+            .apply(branch, push('4', ALICE), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        assert_eq!(claims(&token(deployment))["identity"], ALICE);
+
+        // The client authenticates with its own secret and requests nothing else.
+        let wrong = [
+            ("grant_type", "client_credentials"),
+            ("client_id", material["client_id"].as_str()),
+            ("client_secret", "another-secret"),
+        ];
+        assert_eq!(
+            refresh(&http, &hub, &wrong).await.1["error"],
+            "invalid_client"
+        );
+        let scoped = [client.as_slice(), &[("scope", "native:login")]].concat();
+        assert_eq!(
+            refresh(&http, &hub, &scoped).await.1["error"],
+            "invalid_scope"
+        );
+        let (status, issued) = refresh(&http, &hub, &client).await;
+        assert_eq!(status, reqwest::StatusCode::OK);
+        assert_eq!(issued["scope"], format!("source-{REPOSITORY}"));
+        assert_eq!(
+            claims(issued["access_token"].as_str().unwrap())["identity"],
+            ALICE
+        );
+
+        // A new image gives the client a new secret with its new sandbox, and the client
+        // goes with the instance.
+        fixture
+            .apply(branch, push('5', ALICE), fixture.prepared("FROM b", None))
+            .await
+            .unwrap();
+        assert_eq!(
+            refresh(&http, &hub, &client).await.1["error"],
+            "invalid_client"
+        );
+        let renewed = fixture
+            .gateway
+            .refresh_material(WORKSPACE, &lore(deployment), "LORE_AUTH_TOKEN")
+            .unwrap();
+        let renewed = [
+            ("grant_type", "client_credentials"),
+            ("client_id", renewed["client_id"].as_str()),
+            ("client_secret", renewed["client_secret"].as_str()),
+        ];
+        assert_eq!(
+            refresh(&http, &hub, &renewed).await.0,
+            reqwest::StatusCode::OK
+        );
+        fixture
+            .factory
+            .remove(REPOSITORY, &branch_name(branch))
+            .await
+            .unwrap();
+        assert_eq!(
+            refresh(&http, &hub, &renewed).await.1["error"],
+            "invalid_client"
+        );
+    })
+    .await;
 }

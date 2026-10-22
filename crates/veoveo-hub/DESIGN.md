@@ -169,7 +169,7 @@ other token must be the installation's registration secret.
 | Table in the `hub` schema | Holds |
 |---|---|
 | `namespace_claim` | One row per slug: the RFC 7638 thumbprint of the pinned key |
-| `instance` | One row per instance: its deployment ID, the Lore repository and branch it serves, one instance per pair, the SHA-256 digest of its registration token, the database its server registers into, and what the Hub records about its factory sandbox: the latest pusher, the revision it last applied, when its server last registered or resumed, its last failed step and the capacity warning of its creation |
+| `instance` | One row per instance: its deployment ID, the Lore repository and branch it serves, one instance per pair, the SHA-256 digest of its registration token, the database its server registers into, and what the Hub records about its factory sandbox: the latest pusher, the revision it last applied, when its server last registered or resumed, its last failed step, the capacity warning of its creation, and the SHA-256 digest of its client's secret |
 | `deployment` | One row per deployment: its slug, metadata and storage binding |
 | `registration` | One row per registration: client identifier, deployment, metadata, software statement, SHA-256 digest of the registration access token, its login, and `orphaned_at`, when housekeeping found that login without a live process, which is NULL while it holds one |
 
@@ -290,19 +290,39 @@ they were. The caller applies the pushes of one instance one at a time.
 
 The sandbox is named by the last two groups of the instance's deployment ID, 17
 characters within OpenShell's 19 for a routable name. Every creation of an instance's
-sandbox first gives the instance a new registration token and replaces its
-registration provider, `<sandbox>-registration`, of the configured
-`registrationProfile` with that token as `VEOVEO_REGISTRATION_SECRET`: a provider that
-could not be created, or the provider of a sandbox that was replaced, leaves no token
-behind that no sandbox holds. The sandbox then gets the pushed image by digest, the
-configured CPU and memory as Kubernetes limits, restart policy `always`, that provider,
-and the installation's base policy with the network rules of the revision's
-`openshell/policy.yaml` added; a repository policy that sets anything else or reuses a
-base rule's name is refused. Its environment names `VEOVEO_DEPLOYMENT_ID`,
-`VEOVEO_PUBLIC_BASE_URL` (`http://<sandbox>.internal:<port>`), `VEOVEO_PORT` and
-`VEOVEO_HUB_ISSUER`. Its fixed start command clones `<loreServer>/<repository>` into
-`/sandbox/src` when no checkout exists, runs `lore sync --reset <branch>@LATEST` and
-then `exec ./openshell/run`; the repository URL and branch are its arguments.
+sandbox first gives the instance a new registration token and replaces its registration
+provider, `<sandbox>-registration`, of the configured `registrationProfile` with that
+token as `VEOVEO_REGISTRATION_SECRET`: a provider that could not be created, or the
+provider of a sandbox that was replaced, leaves no token behind that no sandbox holds.
+It likewise gives the instance's own client a new secret and replaces its Lore provider,
+`<sandbox>-lore`, of the configured `loreProfile`. The Lore provider has no credential
+of its own: the Hub configures the gateway's `oauth2_client_credentials` refresh of
+`LORE_AUTH_TOKEN` with the client, whose identifier is the deployment ID and whose
+secret only the gateway keeps; the Hub stores the secret's digest. The sandbox then gets
+the pushed image by digest, the configured CPU and memory as Kubernetes limits, restart
+policy `always`, both providers, and the installation's base policy with the network
+rules of the revision's `openshell/policy.yaml` added; a repository policy that sets
+anything else or reuses a base rule's name is refused. Its environment names
+`VEOVEO_DEPLOYMENT_ID`, `VEOVEO_PUBLIC_BASE_URL` (`http://<sandbox>.internal:<port>`),
+`VEOVEO_PORT` and `VEOVEO_HUB_ISSUER`. Its fixed start command clones
+`<loreServer>/<repository>` into `/sandbox/src` when no checkout exists, runs `lore sync
+--reset <branch>@LATEST` and then `exec ./openshell/run`; the repository URL and branch
+are its arguments. Lore runs with `--access-token "$LORE_AUTH_TOKEN"`, the provider's
+placeholder, which the gateway replaces with the real token in Lore's requests. Lore's
+command line requires `--identity` with a token it cannot read; that identity names only
+the checkout's local user, and the Lore server authorizes the token alone, so the start
+command passes `$VEOVEO_DEPLOYMENT_ID`.
+
+The instance's client is no installed OAuth client. At `/oauth/token` a
+`client_credentials` request whose client ID is an instance's deployment ID and whose
+`client_secret` matches its digest receives the Lore token of the instance's latest
+pusher for the instance's repository, issued by the one Lore deployment that registers
+that repository ID: the token the deployment's one public token-exchange client would
+obtain for that person, which the Lore contribution's profile admits against the
+person's current assignment on every issue. The client requests no scope or resource
+and holds no assignment of its own; a pusher without the grant is refused with
+`invalid_grant`. Before every sandbox creation and restart the Hub rotates the
+credential, so the sandbox starts as the latest pusher.
 
 A push applies to an existing instance by the image its sandbox runs. With the same
 image the Hub sets the policy through `UpdateConfig`, which OpenShell keeps when it is
@@ -734,20 +754,25 @@ started on, under its captured composition.
 `tests/factory.rs` applies pushes against an in-process fake OpenShell gateway
 (`tests/factory/gateway.rs`), which answers the methods the factory sends with the
 gateway's stop and start rules, and a fake image builder whose digest is the SHA-256 of
-a `Dockerfile`. It checks a first push's data environment, provider token, image,
-size, restart policy, environment, start command and composed policy; that a push of
-the same image only sets the policy of a provisioning sandbox and otherwise stops and
-starts it, a failed or crash-looping one included, and that a push of another image
-recreates it with a new token; that a failed build is recorded and changes nothing
-else; that a refused provider creation is followed by a new token; that status reports
-phase, exit code, restart count and a scheduling condition; and that caps warn above
-the cap and, enforced, refuse. Against the binary, removing an instance whose Ledger
-fixture registered into a data environment, and so served the applied revision,
-removes its sandbox, provider, registration, login, instance and database; and with
-the factory on the fake gateway over TLS, the status route refuses a caller without a
-grant, answers 404 without an instance, and its wait ends when the fixture registers,
-when the program exits and when the fixture resumes. Images and revisions are
-synthetic values; no OpenShell, Lore, BuildKit or image is involved.
+a `Dockerfile`. It checks a first push's data environment, provider token, image, size,
+restart policy, environment, start command and composed policy; that a push of the same
+image only sets the policy of a provisioning sandbox and otherwise stops and starts it,
+a failed or crash-looping one included, and that a push of another image recreates it
+with a new token; that a failed build is recorded and changes nothing else; that a
+refused provider creation is followed by a new token; that status reports phase, exit
+code, restart count and a scheduling condition; and that caps warn above the cap and,
+enforced, refuse. Against the binary, removing an instance whose Ledger fixture
+registered into a data environment, and so served the applied revision, removes its
+sandbox, provider, registration, login, instance and database; and with the factory on
+the fake gateway over TLS, the status route refuses a caller without a grant, answers
+404 without an instance, and its wait ends when the fixture registers, when the program
+exits and when the fixture resumes. Against the binary too, the fake gateway, given the
+Hub's token endpoint, mints each rotated Lore token with the instance's client: for the
+first pusher, for the next pusher after a push, refused with `invalid_grant` once that
+pusher's assignment is removed and recorded as the failed restart, and again for a
+pusher who holds the grant; a wrong secret, a requested scope, the previous sandbox's
+secret and a removed instance are refused. Images and revisions are synthetic values; no
+OpenShell, Lore server, BuildKit or image is involved.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed

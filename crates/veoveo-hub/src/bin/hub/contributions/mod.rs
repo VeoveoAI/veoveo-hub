@@ -1,6 +1,7 @@
 //! Executable composition. Registries retain typed code bindings only; deployment
 //! records and assignments are resolved from each request's current catalog.
 pub(crate) mod lore;
+pub(crate) use lore::instance_client::token as instance_token;
 use std::sync::LazyLock;
 use veoveo_hub::{contract::CatalogRegistry, token_profile::TokenProfiles};
 use veoveo_types::ExtensionName;

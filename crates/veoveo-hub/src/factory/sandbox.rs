@@ -22,31 +22,42 @@ pub(super) fn registration_provider(sandbox: &str) -> String {
     format!("{sandbox}-registration")
 }
 
-/// The providers the instance's sandbox attaches: its registration provider. The
-/// instance's Lore provider joins it once the Hub issues per-instance Lore credentials.
+/// The provider that carries the instance's Lore access into its sandbox: a token the
+/// gateway refreshes with the instance's own client, for the instance's latest pusher.
+pub(super) fn lore_provider(sandbox: &str) -> String {
+    format!("{sandbox}-lore")
+}
+
+/// The providers the instance's sandbox attaches: its registration provider and its Lore
+/// provider.
 pub(super) fn providers(sandbox: &str) -> Vec<String> {
-    vec![registration_provider(sandbox)]
+    vec![registration_provider(sandbox), lore_provider(sandbox)]
 }
 
 /// The server setting the registration profile carries the instance's token in.
 pub(super) const REGISTRATION_SECRET: &str = "VEOVEO_REGISTRATION_SECRET";
 
-/// The Lore invocation of the start command. Plain `lore` until the Hub issues
-/// per-instance Lore credentials: then also the global options naming the Lore
-/// provider's token placeholder and the identity it acts as.
-const LORE: &str = "lore";
+/// The variable the Lore profile carries the placeholder of the instance's Lore token
+/// in. The gateway refreshes the credential of this key.
+pub(super) const LORE_TOKEN: &str = "LORE_AUTH_TOKEN";
 
 /// The fixed start command, run on every start of the sandbox. The first start clones
 /// the branch onto the sandbox's persistent disk; every start then resets the checkout
 /// to the branch's latest revision, keeping what `.loreignore` lists, such as build
 /// output, and replaces itself with the branch's own program, which builds and serves
 /// it. `$1` is the repository and `$2` the branch.
+///
+/// Lore runs with the Lore provider's placeholder as its access token, which the gateway
+/// replaces with the real token in Lore's requests. Lore's command line requires an
+/// identity with a token it cannot read. That identity only names the checkout's local
+/// user, and the Lore server authorizes the token alone, so the instance names itself.
 fn start_command(repository: &url::Url, branch: &BranchName) -> Vec<String> {
+    let lore = format!(r#"lore --access-token "${LORE_TOKEN}" --identity "$VEOVEO_DEPLOYMENT_ID""#);
     let script = format!(
         r#"set -e
-[ -d /sandbox/src/.lore ] || {LORE} clone "$1" /sandbox/src --branch "$2"
+[ -d /sandbox/src/.lore ] || {lore} clone "$1" /sandbox/src --branch "$2"
 cd /sandbox/src
-{LORE} sync --reset "$2@LATEST"
+{lore} sync --reset "$2@LATEST"
 exec ./openshell/run"#
     );
     vec![
@@ -194,9 +205,9 @@ mod tests {
         assert_eq!(
             command[2],
             "set -e\n\
-             [ -d /sandbox/src/.lore ] || lore clone \"$1\" /sandbox/src --branch \"$2\"\n\
+             [ -d /sandbox/src/.lore ] || lore --access-token \"$LORE_AUTH_TOKEN\" --identity \"$VEOVEO_DEPLOYMENT_ID\" clone \"$1\" /sandbox/src --branch \"$2\"\n\
              cd /sandbox/src\n\
-             lore sync --reset \"$2@LATEST\"\n\
+             lore --access-token \"$LORE_AUTH_TOKEN\" --identity \"$VEOVEO_DEPLOYMENT_ID\" sync --reset \"$2@LATEST\"\n\
              exec ./openshell/run"
         );
         assert_eq!(

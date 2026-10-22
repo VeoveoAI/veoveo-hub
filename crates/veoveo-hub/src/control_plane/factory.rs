@@ -36,6 +36,10 @@ pub struct FactoryConfiguration {
     /// The global provider profile that carries an instance's registration token into
     /// its sandbox.
     pub registration_profile: String,
+    /// The global provider profile that carries an instance's Lore access into its
+    /// sandbox. The gateway refreshes it with the instance's own Hub client, whose tokens
+    /// act as the instance's latest pusher in its repository.
+    pub lore_profile: String,
     /// The BuildKit daemon and registry that build and hold environment images.
     pub image_builder: ImageBuilder,
     /// Per-user caps; without them, nothing is counted.
@@ -86,9 +90,12 @@ impl FactoryConfiguration {
                 "the Lore server is a host and port without credentials, path, query or fragment",
             ));
         }
-        if !dns_label(&self.workspace) || !dns_label(&self.registration_profile) {
+        if !dns_label(&self.workspace)
+            || !dns_label(&self.registration_profile)
+            || !dns_label(&self.lore_profile)
+        {
             return Err(invalid(
-                "the workspace and the registration profile are lowercase DNS labels",
+                "the workspace and the provider profiles are lowercase DNS labels",
             ));
         }
         if !cpu_quantity(&self.cpu) || !memory_quantity(&self.memory) {

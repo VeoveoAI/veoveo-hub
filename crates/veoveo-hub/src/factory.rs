@@ -107,6 +107,33 @@ pub struct Prepared {
     pub policy: Option<String>,
 }
 
+/// An instance's own OAuth client. The gateway refreshes the sandbox's Lore token with
+/// it; the Hub issues each token for the instance's latest pusher and its repository.
+/// Its identifier is the instance's deployment ID.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstanceClient {
+    pub deployment: DeploymentId,
+    /// The instance's latest pusher; none before its first push.
+    pub pusher: Option<PrincipalId>,
+    /// The Lore repository ID whose branch the instance serves.
+    pub repository: String,
+}
+
+/// The instance whose client is `client` with this secret, or none when no instance's
+/// client has both.
+pub async fn instance_client(
+    store: &PlatformStore,
+    client: &str,
+    secret: &str,
+) -> Result<Option<InstanceClient>> {
+    let Ok(deployment) = DeploymentId::parse(client) else {
+        return Ok(None);
+    };
+    Ok(record::client_of(store, &registration::digest(secret))
+        .await?
+        .filter(|found| found.deployment == deployment))
+}
+
 /// What the instance's sandbox runs, from the pushed revision of its repository.
 struct Source {
     /// The Lore repository the start command clones the instance's branch from.
@@ -344,6 +371,7 @@ impl Factory {
     /// the revision's `openshell/policy.yaml`.
     async fn restart(&self, name: &str, sandbox: &p::Sandbox, policy: Option<&str>) -> Result<()> {
         let policy = sandbox::policy(&self.policy, policy)?;
+        self.refresh_lore(name).await?;
         let mut grpc = self.client.raw_grpc_fresh().await?;
         call(
             "set the sandbox's policy",
@@ -388,7 +416,9 @@ impl Factory {
     /// Create the sandbox of an instance that has none. The instance gets a new
     /// registration token in a new registration provider first, so a sandbox always
     /// starts with a token the Hub holds, whatever became of an earlier provider: its
-    /// server registers again with it whenever its disk holds no registration.
+    /// server registers again with it whenever its disk holds no registration. Its
+    /// client likewise gets a new secret in a new Lore provider, whose first token the
+    /// gateway mints for the latest pusher before the sandbox starts.
     async fn create(
         &self,
         deployment: DeploymentId,
@@ -431,6 +461,9 @@ impl Factory {
             }),
         )
         .await?;
+        self.lore_provider(deployment, &name).await?;
+        self.refresh_lore(&name).await?;
+        let mut grpc = self.client.raw_grpc_fresh().await?;
         call(
             "create the sandbox",
             grpc.create_sandbox(sandbox::create_request(
@@ -440,6 +473,80 @@ impl Factory {
                 source,
                 policy,
             )),
+        )
+        .await
+    }
+
+    /// Give the instance's client a new secret, in a new Lore provider without a
+    /// credential: the gateway resolves the token at runtime, refreshing it with the
+    /// client.
+    async fn lore_provider(&self, deployment: DeploymentId, name: &str) -> Result<()> {
+        let secret = registration::random_token()?;
+        record::client(
+            &self.store,
+            deployment,
+            &registration::digest(secret.expose_secret()),
+        )
+        .await?;
+        let provider = sandbox::lore_provider(name);
+        let mut grpc = self.client.raw_grpc_fresh().await?;
+        call(
+            "delete the previous Lore provider",
+            grpc.delete_provider(p::DeleteProviderRequest {
+                workspace_scope: scope(&self.config.workspace),
+                name: provider.clone(),
+                allow_missing: true,
+                ..Default::default()
+            }),
+        )
+        .await?;
+        call(
+            "create the Lore provider",
+            grpc.create_provider(p::CreateProviderRequest {
+                workspace_scope: scope(&self.config.workspace),
+                provider: Some(p::Provider {
+                    metadata: Some(p::ObjectMeta {
+                        name: provider.clone(),
+                        workspace: self.config.workspace.clone(),
+                        ..Default::default()
+                    }),
+                    r#type: self.config.lore_profile.clone(),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+        )
+        .await?;
+        call(
+            "configure the refresh of the Lore provider",
+            grpc.configure_provider_refresh(p::ConfigureProviderRefreshRequest {
+                workspace_scope: scope(&self.config.workspace),
+                provider,
+                credential_key: sandbox::LORE_TOKEN.into(),
+                strategy: p::ProviderCredentialRefreshStrategy::Oauth2ClientCredentials as i32,
+                material: HashMap::from([
+                    ("client_id".into(), deployment.to_string()),
+                    ("client_secret".into(), secret.expose_secret().into()),
+                ]),
+                secret_material_keys: vec!["client_secret".into()],
+                ..Default::default()
+            }),
+        )
+        .await
+    }
+
+    /// Refresh the instance's Lore token now, so that the sandbox's next start reads as
+    /// the latest pusher instead of the pusher of the token the gateway holds.
+    async fn refresh_lore(&self, name: &str) -> Result<()> {
+        let mut grpc = self.client.raw_grpc_fresh().await?;
+        call(
+            "refresh the instance's Lore token",
+            grpc.rotate_provider_credential(p::RotateProviderCredentialRequest {
+                workspace_scope: scope(&self.config.workspace),
+                provider: sandbox::lore_provider(name),
+                credential_key: sandbox::LORE_TOKEN.into(),
+                ..Default::default()
+            }),
         )
         .await
     }
