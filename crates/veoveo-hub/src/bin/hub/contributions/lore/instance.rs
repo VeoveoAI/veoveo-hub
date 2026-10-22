@@ -19,11 +19,12 @@ use veoveo_hub::{
     http::ProfileAuthState, problem::Problem,
 };
 
-use super::{Lore, RepositoryId};
+use super::{Lore, RepositoryId, factory::watch::Watches};
 
 #[derive(Clone)]
 struct Instances {
     factory: Factory,
+    watches: Watches,
     catalog: HubCatalogHandle,
 }
 
@@ -39,12 +40,17 @@ struct Request {
 
 pub(crate) fn router(
     factory: Factory,
+    watches: Watches,
     catalog: HubCatalogHandle,
     auth: ProfileAuthState,
 ) -> Router {
     Router::new()
         .route("/factory/{profile}/instance", get(status))
-        .with_state(Instances { factory, catalog })
+        .with_state(Instances {
+            factory,
+            watches,
+            catalog,
+        })
         .layer(axum::middleware::from_fn_with_state(
             auth,
             veoveo_hub::http::authenticate_profile,
@@ -85,21 +91,54 @@ async fn status(
         .into_response();
     }
     let wait = Duration::from_secs(request.wait);
-    match instances
+    let status = instances
         .factory
         .status(request.repository.as_str(), &request.branch, wait)
-        .await
-    {
-        Ok(Some(status)) => {
-            let mut response = Json(status).into_response();
+        .await;
+    let report = instances
+        .watches
+        .report(&subject.principal, &request.repository, &request.branch)
+        .await;
+    match status.and_then(|status| Ok((status, report?))) {
+        Ok((Some(status), report)) => {
+            let mut body = match serde_json::to_value(status) {
+                Ok(body) => body,
+                Err(error) => {
+                    tracing::error!("instance status is not JSON: {error}");
+                    return Problem::internal().into_response();
+                }
+            };
+            body["watch"] = serde_json::json!(report.watch);
+            body["prepareFailure"] = serde_json::json!(report.prepare_failure);
+            let mut response = Json(body).into_response();
             response
                 .headers_mut()
                 .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
             response
         }
-        Ok(None) => Problem::new(StatusCode::NOT_FOUND, "instance-not-found", "No instance")
-            .detail("no instance serves that branch of the repository")
-            .into_response(),
+        Ok((None, report)) => {
+            let mut detail = "no instance serves that branch of the repository".to_owned();
+            if let Some(failure) = &report.prepare_failure {
+                detail.push_str(&format!(
+                    "; its push of {} could not be prepared: {}",
+                    failure.revision, failure.message
+                ));
+            }
+            match &report.watch {
+                None => detail.push_str("; nobody watches the repository"),
+                Some(watch) => {
+                    if let Some(failed) = &watch.failed {
+                        detail.push_str(&format!(
+                            "; watching the repository as {} failed: {failed}",
+                            watch.watcher
+                        ));
+                    }
+                }
+            }
+            Problem::new(StatusCode::NOT_FOUND, "instance-not-found", "No instance")
+                .detail(detail)
+                .into_response()
+        }
         Err(error) => {
             tracing::error!("instance status failed: {error:#}");
             Problem::internal().into_response()

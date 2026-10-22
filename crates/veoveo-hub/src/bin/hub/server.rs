@@ -134,6 +134,22 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         ),
         None => None,
     };
+    // The Hub follows every watched repository as its watcher and applies its pushes.
+    let watches = match &factory {
+        Some(factory) => {
+            let watches = crate::contributions::lore::factory::watch::Watches::new(
+                Arc::new(
+                    crate::contributions::lore::factory::native::NativeLore::new(catalog.clone()),
+                ),
+                factory.clone(),
+                control_store.platform_store().clone(),
+                ct.child_token(),
+            );
+            watches.resume().await?;
+            Some(watches)
+        }
+        None => None,
+    };
     let upstream_http = veoveo_hub::HubUpstreamHttpClientPool::new();
     let registrations = RegistrationService::new(
         control_store.platform_store().clone(),
@@ -275,12 +291,15 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             hub_state.clone(),
             auth_state.clone(),
         ));
-    if let Some(factory) = &factory {
-        router = router.merge(crate::contributions::lore::instance::router(
-            factory.clone(),
-            catalog.clone(),
-            auth_state.clone(),
-        ));
+    if let (Some(factory), Some(watches)) = (&factory, &watches) {
+        router = router
+            .merge(crate::contributions::lore::instance::router(
+                factory.clone(),
+                watches.clone(),
+                catalog.clone(),
+                auth_state.clone(),
+            ))
+            .merge(watches.clone().router(auth_state.clone()));
     }
     let admin_router = Router::new()
         .route(

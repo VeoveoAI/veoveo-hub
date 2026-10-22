@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- veoveo: unbounded (the Hub follows every repository someone turned on, a handful per installation)\n-- veoveo: scan (every row is read once when the Hub starts)\nSELECT deployment, repository, watcher\nFROM hub.lore_watch\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deployment",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_watch",
+            "name": "deployment"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_watch",
+            "name": "repository"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "watcher",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_watch",
+            "name": "watcher"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "fb3251f12ac90847a6818c0b73d984b39f92f4e483e941fb77f8bdcdba113861"
+}

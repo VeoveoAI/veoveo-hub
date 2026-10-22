@@ -1115,6 +1115,13 @@ async fn the_status_route_waits_for_the_applied_revision_to_serve_or_fail() {
         );
         let (code, body) = get_status(&http, &hub.base, &member, "dev/none", 0).await;
         assert_eq!(code, reqwest::StatusCode::NOT_FOUND, "{body}");
+        assert!(
+            body["detail"]
+                .as_str()
+                .unwrap()
+                .ends_with("; nobody watches the repository"),
+            "{body}"
+        );
         let (code, body) = get_status(&http, &hub.base, &member, BASE, 0).await;
         assert_eq!(code, reqwest::StatusCode::OK, "{body}");
         assert_eq!(body["deployment"], deployment.to_string());
@@ -1123,6 +1130,9 @@ async fn the_status_route_waits_for_the_applied_revision_to_serve_or_fail() {
         assert_eq!(body["sandbox"]["phase"], "provisioning");
         assert_eq!(body["appliedRevision"], "1".repeat(64));
         assert_eq!(body["servingRevision"], serde_json::Value::Null);
+        // Nobody watches the repository and no push failed to be prepared.
+        assert_eq!(body["watch"], serde_json::Value::Null);
+        assert_eq!(body["prepareFailure"], serde_json::Value::Null);
 
         // The wait ends once the sandbox is ready and its server registered.
         let started = Instant::now();

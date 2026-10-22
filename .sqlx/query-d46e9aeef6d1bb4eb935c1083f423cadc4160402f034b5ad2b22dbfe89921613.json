@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT revision, pusher, message\nFROM hub.lore_prepare_failure\nWHERE deployment = $1 AND repository = $2 AND branch = $3\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_prepare_failure",
+            "name": "revision"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "pusher",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_prepare_failure",
+            "name": "pusher"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_prepare_failure",
+            "name": "message"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d46e9aeef6d1bb4eb935c1083f423cadc4160402f034b5ad2b22dbfe89921613"
+}

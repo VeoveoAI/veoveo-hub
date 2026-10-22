@@ -363,8 +363,35 @@ whether it calls itself or through a server that calls the Hub for it; the profi
 authenticates. Without the assignment it answers 403, without an instance 404. With
 `wait`, at most 60 seconds, it answers as soon as the applied revision serves, the
 Hub's last step failed or the sandbox's program exited since its start, which OpenShell
-reports as an error or a restart. The route exists when the installation configures a
-factory.
+reports as an error or a restart. Its answer also carries `watch`, the repository's
+watcher and why the last subscription as them failed, and `prepareFailure`, why the
+branch's latest push could not be read; without an instance its detail names those
+causes. The route exists when the installation configures a factory.
+
+The Lore contribution turns pushes into instances (`src/bin/hub/contributions/lore/factory`).
+`PUT /factory/{profile}/watch?repository=<id>` subscribes to the repository's Lore
+notifications as the caller, answers 403 when Lore or the caller's assignment refuses
+them and 204 otherwise, and records the caller as the repository's watcher in
+`hub.lore_watch`; a later watch replaces the watcher and its follower, which stops
+between pushes. One follower per watched repository subscribes as its watcher, and
+again five seconds after any subscription ends, including Lore ending a lagging
+subscriber's stream with `ABORTED`; at startup the Hub resumes every recorded watch.
+Every subscription starts with a re-check of every branch: each live branch whose
+latest revision its instance has not applied is prepared as that revision's committer,
+and the instance of a deleted branch whose name no live branch took is removed.
+`BranchPushed` prepares the pushed revision as its pusher; `BranchCreated` and
+`BranchDeleted` re-check. Preparing reads `openshell/` at the revision as that person:
+the revision tree lists the files, proved by the revision's signature, and Lore's own
+command line writes `run`, `policy.yaml` and the `image/` subtree from a bare clone of
+that revision into a temporary directory, with the sizes and executable bits the tree
+names. A revision with an executable `openshell/run` is applied with `image/` as its
+image context and `policy.yaml` as its policy; one without it removes the branch's
+instance. One push is applied to an instance at a time. A failed read leaves the
+instance as it serves and is recorded in `hub.lore_prepare_failure` until the branch's
+next push is prepared. Lore checks access only when a subscription starts, so a
+watcher who lost access is noticed at the next subscription: the failure is recorded on
+the watch and the follower stops until someone with access watches again. Every Lore
+call issues a new token for its person, so each acts under that person's current grant.
 
 The Hub forwards to an instance through `nativeUpstreams`, which must name the
 factory's gateway: an instance's deployment binds to its sandbox in the factory
@@ -640,6 +667,7 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 | `/console-api/{profile}/session` | Console session bootstrap |
 | `/admin/{profile}/...` | Configuration, audit, JWT revocation, Task cancellation, server health and usage |
 | `PUT`/`DELETE /selection/{profile}/{server}` | The caller's branch for a server, or back to the base branch; 204 |
+| `PUT /factory/{profile}/watch?repository=<id>` | The Hub watches a Lore repository as the caller; 204, or 403 without the caller's grant |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
@@ -773,6 +801,21 @@ pusher's assignment is removed and recorded as the failed restart, and again for
 pusher who holds the grant; a wrong secret, a requested scope, the previous sandbox's
 secret and a removed instance are refused. Images and revisions are synthetic values; no
 OpenShell, Lore server, BuildKit or image is involved.
+
+`src/bin/hub/contributions/lore/factory/tests.rs` runs watching against an in-process
+fake of Lore and the factory itself on the same fake gateway, a fake image builder and
+a disposable database. The fake Lore admits only the people it holds a grant for and
+serves each subscription from a channel the test feeds. Watching subscribes as the
+watcher and re-checks every branch, applying the unapplied one as its committer,
+building nothing for the applied one and removing the instances of a branch without
+`openshell/run` and of a deleted branch; a push is read as its pusher and applied with
+its image context and policy, or removes the instance; after `ABORTED` the next
+subscription re-checks and applies the branch's new revision and nothing else; a
+watcher who lost access is recorded as failed at the resubscription and the follower
+stops, and the route answers 403, 400 and 204; a failed read is recorded for the branch
+until a push is prepared; another process resumes every recorded watch as its watcher;
+and a later watch replaces the follower. The real Lore adapter is exercised only
+against a deployed Lore.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed

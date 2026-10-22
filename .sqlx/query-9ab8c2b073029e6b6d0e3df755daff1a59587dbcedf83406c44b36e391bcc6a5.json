@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- A subscription as the watcher succeeded, which clears its last failure.\nUPDATE hub.lore_watch\nSET failed_message = NULL, updated_at = $4\nWHERE deployment = $1 AND repository = $2 AND watcher = $3\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9ab8c2b073029e6b6d0e3df755daff1a59587dbcedf83406c44b36e391bcc6a5"
+}

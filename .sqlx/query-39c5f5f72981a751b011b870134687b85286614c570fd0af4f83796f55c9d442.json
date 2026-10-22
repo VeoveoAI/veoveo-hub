@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT watcher, failed_message\nFROM hub.lore_watch\nWHERE deployment = $1 AND repository = $2\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "watcher",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_watch",
+            "name": "watcher"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "failed_message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_watch",
+            "name": "failed_message"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "39c5f5f72981a751b011b870134687b85286614c570fd0af4f83796f55c9d442"
+}

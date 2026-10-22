@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The branch's latest push was prepared, which clears the failure of an earlier one.\nDELETE FROM hub.lore_prepare_failure\nWHERE deployment = $1 AND repository = $2 AND branch = $3\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bb00c7aa49908f93c19470170fa19ef5496da30858279e39c45b392bb817c267"
+}
