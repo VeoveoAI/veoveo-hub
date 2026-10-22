@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "-- veoveo: scan (kernel.instance has no index on login; it holds one row per running process of the installation)\nSELECT\n    r.deployment,\n    r.orphaned_at,\n    EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    ) AS \"alive!\"\nFROM hub.registration AS r\nWHERE r.client_id = ANY ($1)\n",
+  "query": "-- An instance's registration has no liveness here: its server may hold its kernel\n-- instance in another database, and its health comes from its factory sandbox.\n-- veoveo: scan (kernel.instance has no index on login; it holds one row per running process of the installation)\nSELECT\n    r.deployment,\n    r.orphaned_at,\n    EXISTS (\n        SELECT FROM kernel.instance AS i\n        WHERE i.login = r.login::name AND kernel.instance_alive(i.id)\n    ) AS \"alive!\"\nFROM hub.registration AS r\nWHERE r.client_id = ANY ($1)\n    AND NOT EXISTS (\n        SELECT FROM hub.instance AS n\n        WHERE n.deployment = r.deployment\n    )\n",
   "describe": {
     "columns": [
       {
@@ -43,5 +43,5 @@
       null
     ]
   },
-  "hash": "e669b3e6f19ccd87491ea076a80be4ae65605839522aaa0ea9397424c0328f22"
+  "hash": "bb4575af78da34706f3be305a3353ed00df382e1649fd9fc4630ccaacd67100c"
 }

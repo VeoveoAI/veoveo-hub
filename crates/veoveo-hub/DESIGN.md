@@ -229,8 +229,9 @@ Tasks need itself. The Hub keeps no connection and no `LISTEN` in an environment
 database: Task get, update, cancel and subscriptions go to the instance, and the one
 read of Task state, whether a Task still runs before it acts for its caller, opens a
 pool of one connection to the database of the Task's deployment for that read.
-Registration health reads liveness in the installation database, so it reports an
-instance in a data environment as degraded.
+Registration health reads liveness in the installation database, which does not see
+an instance's server in a data environment, so it reports no instance; an instance's
+health comes from its factory sandbox.
 
 A server takes its group role, applies its own migrations in its schema and holds a
 kernel instance on its login while it serves. An RFC 7592 update keeps the
@@ -260,9 +261,10 @@ its client identifier. Every reconnection of the listener reloads all of them, b
 PostgreSQL does not replay notifications. A change of `orphaned_at` wakes no one. A
 replica routes each slug to its newest registration and replaces the catalog only when
 the routed set or a declaration changes, so discovery caches stay intact otherwise.
-Requests in flight finish on the catalog snapshot they started with. Server health
-comes from liveness: healthy while the routed registration's login holds a live
-instance, degraded from `orphaned_at` until housekeeping removes it.
+Requests in flight finish on the catalog snapshot they started with. The health of a
+server that is not an instance comes from liveness: healthy while the routed
+registration's login holds a live instance, degraded from `orphaned_at` until
+housekeeping removes it.
 
 ### Factory Sandboxes
 

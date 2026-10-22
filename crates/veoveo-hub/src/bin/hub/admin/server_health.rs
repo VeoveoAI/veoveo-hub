@@ -1,5 +1,6 @@
 //! Per-server health for operators and tools. A registered server is healthy while
-//! its registration's login holds a live kernel instance.
+//! its registration's login holds a live kernel instance; an instance reports no state
+//! here, because its health comes from its factory sandbox.
 use veoveo_hub::contract::{HubAction, ServerHealthEntry, ServerHealthReport};
 
 use std::time::Instant;

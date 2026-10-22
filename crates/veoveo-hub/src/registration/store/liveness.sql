@@ -1,3 +1,5 @@
+-- An instance's registration has no liveness here: its server may hold its kernel
+-- instance in another database, and its health comes from its factory sandbox.
 -- veoveo: scan (kernel.instance has no index on login; it holds one row per running process of the installation)
 SELECT
     r.deployment,
@@ -8,3 +10,7 @@ SELECT
     ) AS "alive!"
 FROM hub.registration AS r
 WHERE r.client_id = ANY ($1)
+    AND NOT EXISTS (
+        SELECT FROM hub.instance AS n
+        WHERE n.deployment = r.deployment
+    )

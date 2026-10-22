@@ -136,9 +136,11 @@ impl RegistrationService {
         Ok(())
     }
 
-    /// Health of every routed server: healthy while its login holds a live kernel
-    /// instance, degraded since housekeeping found it without one until the grace period
-    /// removes it.
+    /// Health of every routed server except instances: healthy while its login holds a
+    /// live kernel instance, degraded since housekeeping found it without one until the
+    /// grace period removes it. An instance's health is its factory sandbox's
+    /// ([`crate::factory::InstanceStatus::health`]); its server may hold its kernel
+    /// instance in a data environment's database, which liveness does not see.
     pub async fn health(&self) -> anyhow::Result<BTreeMap<DeploymentId, HubServerHealth>> {
         let routed = self
             .inner
