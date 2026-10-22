@@ -127,6 +127,19 @@ impl HubUpstreamHttpClientPool {
         })
     }
 
+    /// Forget the clients of every instance whose deployment `registered` no longer
+    /// names, and close its factory-sandbox forwarding listener. Requests in flight keep
+    /// their transport until they finish.
+    pub(crate) fn retain_instances(&self, registered: impl Fn(DeploymentId) -> bool) {
+        self.servers
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .retain(|key, pooled| !pooled.instance || registered(key.deployment));
+        if let Some(native) = &self.native {
+            native.retain_instances(registered);
+        }
+    }
+
     /// The current transport to `server`, building its client on first use. An
     /// instance's deployment is reached in its factory sandbox.
     pub(super) fn transport(

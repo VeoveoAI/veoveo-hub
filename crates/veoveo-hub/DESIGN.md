@@ -312,7 +312,8 @@ latest pusher of more instances records a warning naming the count and the cap; 
 The Hub forwards to an instance through `nativeUpstreams`, which must name the
 factory's gateway: an instance's deployment binds to its sandbox in the factory
 workspace, at the port of the endpoint it registered, instead of to a control-plane
-binding of its endpoint.
+binding of its endpoint. When the registrations no longer name an instance's
+deployment, every replica closes its forwarding listener and forgets its clients.
 
 ## Routing And Catalog
 

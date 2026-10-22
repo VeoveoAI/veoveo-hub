@@ -193,6 +193,10 @@ impl HubCatalogHandle {
     /// configuration. Requests in flight finish on the snapshot they started with.
     pub fn replace_registrations(&self, registrations: crate::registration::RegistrationSnapshot) {
         let mut state = self.state.write();
+        // An instance without a registration was removed: its forwarding closes.
+        if let Some(pool) = state.catalog.upstream_http() {
+            pool.retain_instances(|deployment| registrations.deployment(&deployment).is_some());
+        }
         state.catalog = Arc::new(state.catalog.with_registrations(registrations));
         state.generation = state.generation.saturating_add(1);
         self.changes.send_replace(state.generation);

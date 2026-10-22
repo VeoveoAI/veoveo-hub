@@ -204,6 +204,17 @@ impl NativeTransport {
             .with_context(|| format!("no native upstream binding for {}", endpoint.url()))
     }
 
+    /// Close the listener of every instance whose deployment `registered` no longer
+    /// names: its instance was removed with its registrations.
+    pub(super) fn retain_instances(&self, registered: impl Fn(DeploymentId) -> bool) {
+        if let Some(instances) = &self.instances {
+            instances
+                .endpoints
+                .lock()
+                .retain(|deployment, _| registered(*deployment));
+        }
+    }
+
     /// The socket of an instance's factory sandbox, at the port of the endpoint the
     /// instance registered.
     pub(super) fn instance_socket(
@@ -401,6 +412,45 @@ mod tests {
         )?)?;
         assert_ne!(native.instance_socket(deployment, &reregistered)?, path);
         assert!(!path.exists(), "a replaced binding releases its socket");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn a_removed_instance_closes_its_listener() -> Result<()> {
+        let client = OpenShellClient::from_parts(
+            tonic::transport::Endpoint::from_static("http://127.0.0.1:9").connect_lazy(),
+            openshell_sdk::EdgeAuthInterceptor::noop(),
+        );
+        let config: NativeUpstreams = serde_json::from_value(serde_json::json!({
+            "gateway":"https://gateway.example/", "certificateAuthority":"/unused/ca",
+            "bearerEnvironment":"UNUSED", "bindings":[]
+        }))?;
+        let native = NativeTransport::with_client(&config, Some("factory"), client)?;
+        let endpoint = ServerEndpoint::new(url::Url::parse(
+            "http://instance.internal:8800/fixture/mcp",
+        )?)?;
+        let (removed, kept) = (DeploymentId::new(), DeploymentId::new());
+        let removed_path = native.instance_socket(removed, &endpoint)?;
+        let kept_path = native.instance_socket(kept, &endpoint)?;
+        let listener = native.instances.as_ref().unwrap().endpoints.lock()[&removed]
+            .listener
+            .abort_handle();
+        let reloaded = native.reconfigured(&config, Some("factory"))?;
+
+        native.retain_instances(|deployment| deployment == kept);
+        assert!(
+            !removed_path.exists(),
+            "the removed instance's socket is gone"
+        );
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while !listener.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .context("the removed instance's listener task ended")?;
+        assert!(kept_path.exists(), "another instance keeps its listener");
+        assert_eq!(reloaded.instance_socket(kept, &endpoint)?, kept_path);
         Ok(())
     }
 
