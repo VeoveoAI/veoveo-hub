@@ -10,9 +10,11 @@
 //! failed provider creation leaves no dead end. Status reports OpenShell's phase, exit
 //! code, restart count and conditions. Caps warn and, enforced, refuse. Removing an
 //! instance whose server registered with the Hub binary removes its sandbox, provider,
-//! instance, registration, login and database. No OpenShell, Lore, BuildKit or image is
-//! involved: revisions, images and their digests are synthetic, and the fake builder's
-//! digest is the SHA-256 of a `Dockerfile`'s text.
+//! instance, registration, login and database. The Hub binary's status route waits for
+//! the applied revision to serve or fail, for callers with a grant on the repository
+//! only. No OpenShell, Lore, BuildKit or image is involved: revisions, images and their
+//! digests are synthetic, and the fake builder's digest is the SHA-256 of a
+//! `Dockerfile`'s text.
 #[path = "support/catalog_admission.rs"]
 mod catalog_admission;
 #[path = "support/database.rs"]
@@ -31,7 +33,7 @@ use std::{
     path::Path,
     process::ExitStatus,
     sync::{Arc, Mutex},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use database::TestDb;
@@ -947,6 +949,209 @@ async fn removing_an_instance_deletes_its_sandbox_providers_registrations_and_da
         drop(served);
     })
     .await;
+}
+
+/// The Hub binary with the factory on the fake gateway, over TLS, and a Lore grant on
+/// the repository for its `member` caller only.
+async fn factory_hub(fixture: &Fixture, directory: &Path) -> hub::Hub {
+    let (gateway, authority) = fixture.gateway.serve_tls().await;
+    let authority_file = directory.join("gateway-ca.pem");
+    std::fs::write(&authority_file, authority).unwrap();
+    let factory = configuration_json(
+        fixture.directory.path(),
+        gateway.as_str(),
+        &authority_file,
+        json!(null),
+    );
+    let installation = directory.join("installation");
+    std::fs::create_dir(&installation).unwrap();
+    hub::Hub::start_with(
+        &installation,
+        &fixture.db,
+        Duration::from_secs(60),
+        &[(GATEWAY_BEARER, "synthetic-gateway-bearer".to_owned())],
+        |config| {
+            let issuer = config["authorizationServers"][0]["issuer"]
+                .as_str()
+                .unwrap()
+                .to_owned();
+            config["execution"]["baseBranch"] = json!(BASE);
+            config["nativeUpstreams"] = json!({
+                "gateway": gateway.as_str(),
+                "certificateAuthority": authority_file,
+                "bearerEnvironment": GATEWAY_BEARER,
+                "bindings": [],
+            });
+            config["factory"] = factory;
+            config["lore"] = json!({
+                "deployments": [{
+                    "id": "source", "resourceName": "native-source",
+                    "audience": "https://lore.internal/native", "endpoint": LORE,
+                    "authorizationServer": "local", "policyVersion": "local",
+                    "loginScopes": ["native:login", "offline_access"],
+                    "scopeTemplate": "source-{id}", "resourceIdTemplate": "{id}",
+                    "tokenLifetimeSeconds": 120,
+                }],
+                "repositories": [
+                    {"deployment": "source", "id": REPOSITORY, "tenant": "local", "title": "Served"},
+                ],
+                "assignments": [{
+                    "deployment": "source", "repository": REPOSITORY, "tenant": "local",
+                    "principal": format!("{issuer}#acceptance-member"), "actions": [],
+                }],
+            });
+        },
+    )
+    .await
+}
+
+#[tokio::test]
+async fn the_status_route_waits_for_the_applied_revision_to_serve_or_fail() {
+    bounded(async {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let fixture = Fixture::start(json!(null)).await;
+        let directory = tempfile::tempdir().unwrap();
+        let hub = factory_hub(&fixture, directory.path()).await;
+        let http = reqwest::Client::new();
+        fixture
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let deployment = fixture.status(BASE).await.unwrap().deployment;
+        let name = sandbox_name(deployment);
+
+        let member = hub.access_token(&http, hub.caller("member")).await;
+        let admin = hub.access_token(&http, hub.caller("admin")).await;
+        let (code, body) = get_status(&http, &hub.base, &admin, BASE, 0).await;
+        assert_eq!(code, reqwest::StatusCode::FORBIDDEN, "{body}");
+        assert_eq!(
+            body["type"],
+            "https://veoveo.ai/problems/instance-forbidden"
+        );
+        let (code, body) = get_status(&http, &hub.base, &member, "dev/none", 0).await;
+        assert_eq!(code, reqwest::StatusCode::NOT_FOUND, "{body}");
+        let (code, body) = get_status(&http, &hub.base, &member, BASE, 0).await;
+        assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+        assert_eq!(body["deployment"], deployment.to_string());
+        assert_eq!(body["sandboxName"], name);
+        assert_eq!(body["workspace"], WORKSPACE);
+        assert_eq!(body["sandbox"]["phase"], "provisioning");
+        assert_eq!(body["appliedRevision"], "1".repeat(64));
+        assert_eq!(body["servingRevision"], serde_json::Value::Null);
+
+        // The wait ends once the sandbox is ready and its server registered.
+        let started = Instant::now();
+        let waiting = tokio::spawn({
+            let (base, http, member) = (hub.base.clone(), http.clone(), member.clone());
+            async move { get_status(&http, &base, &member, BASE, 30).await }
+        });
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        assert!(!waiting.is_finished(), "nothing serves yet");
+        fixture
+            .gateway
+            .set_phase(WORKSPACE, &name, p::SandboxPhase::Ready);
+        let served = servers::serve_instance(
+            &hub,
+            &http,
+            "ledger",
+            ledger::authorization().unwrap(),
+            &fixture.instance(deployment),
+            async |registration, _, _| {
+                servers::hosted::<LedgerDomain>(registration, &http)
+                    .handler(|| ledger::hosted(LedgerTasks::default()))
+                    .build()
+            },
+        )
+        .await;
+        let (code, body) = waiting.await.unwrap();
+        assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+        assert_eq!(body["servingRevision"], "1".repeat(64));
+        assert_eq!(body["sandbox"]["phase"], "ready");
+        assert!(
+            started.elapsed() < Duration::from_secs(30),
+            "{:?}",
+            started.elapsed()
+        );
+
+        // A push restarts the sandbox, and the wait ends when its program exits, as a
+        // broken push's would.
+        fixture
+            .apply(BASE, push('2', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let started = Instant::now();
+        let waiting = tokio::spawn({
+            let (base, http, member) = (hub.base.clone(), http.clone(), member.clone());
+            async move { get_status(&http, &base, &member, BASE, 30).await }
+        });
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        assert!(
+            !waiting.is_finished(),
+            "the restarted program has not exited"
+        );
+        fixture.gateway.set_status(
+            WORKSPACE,
+            &name,
+            p::SandboxStatus {
+                phase: p::SandboxPhase::Starting as i32,
+                exit_code: Some(101),
+                restart_count: 1,
+                ..Default::default()
+            },
+        );
+        let (code, body) = waiting.await.unwrap();
+        assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+        assert_eq!(body["appliedRevision"], "2".repeat(64));
+        assert_eq!(body["servingRevision"], serde_json::Value::Null);
+        assert_eq!(body["sandbox"]["exitCode"], 101);
+        assert_eq!(body["sandbox"]["restartCount"], 1);
+        assert!(
+            started.elapsed() < Duration::from_secs(30),
+            "{:?}",
+            started.elapsed()
+        );
+
+        // The fix is pushed; the restarted server resumes its saved registration, as the
+        // SDK does on start, and the wait ends.
+        fixture
+            .apply(BASE, push('3', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let waiting = tokio::spawn({
+            let (base, http, member) = (hub.base.clone(), http.clone(), member.clone());
+            async move { get_status(&http, &base, &member, BASE, 30).await }
+        });
+        fixture
+            .gateway
+            .set_phase(WORKSPACE, &name, p::SandboxPhase::Ready);
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        assert!(!waiting.is_finished(), "the server has not resumed");
+        served.client.read(&served.registration).await.unwrap();
+        let (code, body) = waiting.await.unwrap();
+        assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+        assert_eq!(body["servingRevision"], "3".repeat(64));
+        assert_eq!(body["failed"], serde_json::Value::Null);
+        drop(served);
+    })
+    .await;
+}
+
+/// `GET /factory/local/instance` with `token` for `branch` of the repository.
+async fn get_status(
+    http: &reqwest::Client,
+    base: &str,
+    token: &str,
+    branch: &str,
+    wait: u64,
+) -> (reqwest::StatusCode, serde_json::Value) {
+    let mut url = url::Url::parse(&format!("{base}/factory/local/instance")).unwrap();
+    url.query_pairs_mut()
+        .append_pair("repository", REPOSITORY)
+        .append_pair("branch", branch)
+        .append_pair("wait", &wait.to_string());
+    let response = http.get(url).bearer_auth(token).send().await.unwrap();
+    let status = response.status();
+    (status, response.json().await.unwrap())
 }
 
 /// Kubernetes resource limits, as OpenShell's command line sends them.

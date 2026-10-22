@@ -122,6 +122,18 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             .await?,
     );
     catalog.replace(initial_catalog.clone())?;
+    // Instances run in factory sandboxes when the installation configures them.
+    let factory = match &initial_catalog.control_plane().factory {
+        Some(config) => Some(
+            veoveo_hub::factory::Factory::connect(
+                config.clone(),
+                catalog.clone(),
+                control_store.platform_store().clone(),
+            )
+            .await?,
+        ),
+        None => None,
+    };
     let upstream_http = veoveo_hub::HubUpstreamHttpClientPool::new();
     let registrations = RegistrationService::new(
         control_store.platform_store().clone(),
@@ -263,6 +275,13 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             hub_state.clone(),
             auth_state.clone(),
         ));
+    if let Some(factory) = &factory {
+        router = router.merge(crate::contributions::lore::instance::router(
+            factory.clone(),
+            catalog.clone(),
+            auth_state.clone(),
+        ));
+    }
     let admin_router = Router::new()
         .route(
             "/admin/{profile}/control-plane",

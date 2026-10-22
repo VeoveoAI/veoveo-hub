@@ -51,10 +51,7 @@ impl WorkspaceService {
         }
     }
     fn section(catalog: &HubCatalog) -> Result<Lore> {
-        match catalog.control_plane().extensions.get("lore") {
-            Some(value) => Ok(serde_json::from_value(value.clone())?),
-            None => Ok(Lore::default()),
-        }
+        Lore::of(catalog)
     }
 
     async fn token(

@@ -5,7 +5,8 @@
 //! stop of a stopped or completed sandbox without change and refuses one still
 //! provisioning or starting for the first time; it starts a stopped, completed, failed
 //! or starting sandbox at once and answers a start of a ready one without change. Any
-//! other method is unimplemented.
+//! other method is unimplemented. It serves plain gRPC to the test and TLS to the Hub
+//! binary.
 
 use std::{
     collections::{BTreeMap, HashMap},
@@ -76,6 +77,42 @@ impl Gateway {
         (
             gateway,
             OpenShellClient::from_parts(channel, EdgeAuthInterceptor::noop()),
+        )
+    }
+
+    /// Serve the same gateway over TLS on another loopback port, with a certificate for
+    /// 127.0.0.1 that a new authority signs. Returns its URL and the authority's PEM.
+    pub async fn serve_tls(&self) -> (url::Url, String) {
+        let authority_key = rcgen::KeyPair::generate().unwrap();
+        let mut authority = rcgen::CertificateParams::new(Vec::new()).unwrap();
+        authority.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+        authority
+            .distinguished_name
+            .push(rcgen::DnType::CommonName, "Fake gateway authority");
+        let authority_certificate = authority.self_signed(&authority_key).unwrap();
+        let issuer = rcgen::Issuer::new(authority, authority_key);
+        let key = rcgen::KeyPair::generate().unwrap();
+        let certificate = rcgen::CertificateParams::new(vec!["127.0.0.1".to_owned()])
+            .unwrap()
+            .signed_by(&key, &issuer)
+            .unwrap();
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let address = listener.local_addr().unwrap();
+        let tls = tonic::transport::ServerTlsConfig::new().identity(
+            tonic::transport::Identity::from_pem(certificate.pem(), key.serialize_pem()),
+        );
+        tokio::spawn(
+            tonic::transport::Server::builder()
+                .tls_config(tls)
+                .unwrap()
+                .add_service(self.clone())
+                .serve_with_incoming(TcpListenerStream::new(listener)),
+        );
+        (
+            url::Url::parse(&format!("https://{address}/")).unwrap(),
+            authority_certificate.pem(),
         )
     }
 

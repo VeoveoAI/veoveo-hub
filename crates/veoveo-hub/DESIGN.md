@@ -336,6 +336,16 @@ for an instance whose latest pusher is the latest pusher of more instances recor
 warning naming the count and the cap; with `caps.enforce` the Hub refuses it as
 `failed{stage: capacity}` instead.
 
+`GET /factory/{profile}/instance?repository=…&branch=…&wait=…`, in the Lore
+contribution, answers an instance's status to a caller with a current Lore assignment
+on the repository in its tenant, the same assignment Lore tokens are issued from,
+whether it calls itself or through a server that calls the Hub for it; the profile only
+authenticates. Without the assignment it answers 403, without an instance 404. With
+`wait`, at most 60 seconds, it answers as soon as the applied revision serves, the
+Hub's last step failed or the sandbox's program exited since its start, which OpenShell
+reports as an error or a restart. The route exists when the installation configures a
+factory.
+
 The Hub forwards to an instance through `nativeUpstreams`, which must name the
 factory's gateway: an instance's deployment binds to its sandbox in the factory
 workspace, at the port of the endpoint it registered, instead of to a control-plane
@@ -732,10 +742,12 @@ recreates it with a new token; that a failed build is recorded and changes nothi
 else; that a refused provider creation is followed by a new token; that status reports
 phase, exit code, restart count and a scheduling condition; and that caps warn above
 the cap and, enforced, refuse. Against the binary, removing an instance whose Ledger
-fixture registered into a data environment removes its sandbox, provider,
-registration, login, instance and database, and the applied revision serves once the
-fixture registered. Images and revisions are synthetic values; no OpenShell, Lore,
-BuildKit or image is involved.
+fixture registered into a data environment, and so served the applied revision,
+removes its sandbox, provider, registration, login, instance and database; and with
+the factory on the fake gateway over TLS, the status route refuses a caller without a
+grant, answers 404 without an instance, and its wait ends when the fixture registers,
+when the program exits and when the fixture resumes. Images and revisions are
+synthetic values; no OpenShell, Lore, BuildKit or image is involved.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed

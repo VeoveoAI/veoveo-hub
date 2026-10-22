@@ -1,5 +1,6 @@
 //! Native Lore wire contribution. All deployments and assignments come from the
 //! admitted control-plane revision; only native protocol types live in code.
+pub(crate) mod instance;
 pub(crate) mod workspace;
 use anyhow::{Context, Result, ensure};
 use schemars::JsonSchema;
@@ -217,6 +218,40 @@ impl CatalogSection for Lore {
     }
 }
 impl Lore {
+    /// The section of the installation's current configuration.
+    pub(crate) fn of(catalog: &veoveo_hub::HubCatalog) -> Result<Self> {
+        match catalog.control_plane().extensions.get("lore") {
+            Some(value) => Ok(serde_json::from_value(value.clone())?),
+            None => Ok(Self::default()),
+        }
+    }
+
+    /// The principal's own assignments on `repository` in its tenant, one per native
+    /// deployment: every Lore grant the Hub issues or honors rests on one.
+    fn assignments<'a>(
+        &'a self,
+        repository: &'a RepositoryId,
+        tenant: &'a TenantId,
+        principal: &'a PrincipalId,
+    ) -> impl Iterator<Item = &'a Assignment> {
+        self.assignments.iter().filter(move |a| {
+            &a.repository == repository && &a.tenant == tenant && &a.principal == principal
+        })
+    }
+
+    /// Whether the principal holds a current grant on `repository`.
+    pub(crate) fn grants(
+        &self,
+        principal: &veoveo_hub_sdk::Principal,
+        repository: &RepositoryId,
+    ) -> bool {
+        principal.tenant.as_ref().is_some_and(|tenant| {
+            self.assignments(repository, tenant, &principal.id)
+                .next()
+                .is_some()
+        })
+    }
+
     fn check(&self, facts: &CatalogFacts) -> Result<()> {
         let mut deployments = BTreeSet::new();
         let mut resources = BTreeSet::new();
@@ -373,14 +408,8 @@ impl TokenProfile for Profile {
                     "native repository is not registered for this tenant"
                 );
                 let assignment = section
-                    .assignments
-                    .iter()
-                    .find(|a| {
-                        a.deployment == deployment.id
-                            && a.repository == id
-                            && &a.tenant == tenant
-                            && a.principal == context.principal().id
-                    })
+                    .assignments(&id, tenant, &context.principal().id)
+                    .find(|a| a.deployment == deployment.id)
                     .context("native repository assignment denied")?;
                 Some(NativeGrant {
                     resource_id: deployment.resource_id_template.render(&id),
