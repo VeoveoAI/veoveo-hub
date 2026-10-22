@@ -10,9 +10,12 @@
 use std::fmt;
 
 use anyhow::{Context, Result};
+use sha2::{Digest, Sha256};
 use sqlx::AssertSqlSafe;
 use veoveo_store::{PlatformStore, StoreConfig, StoreError};
 use veoveo_types::DeploymentId;
+
+use crate::execution::BranchName;
 
 /// PostgreSQL's identifier limit in bytes.
 const MAX_LEN: usize = 63;
@@ -40,6 +43,34 @@ impl DatabaseName {
         } else {
             Err(InvalidDatabaseName)
         }
+    }
+
+    /// The database of the data environment of `branch`, a branch name other than the
+    /// base branch: the name's ASCII letters and digits in lowercase, with each run of
+    /// other characters as one underscore, cut to fit, then an underscore and the first
+    /// eight hexadecimal digits of the name's SHA-256, which tell apart names that read
+    /// alike. Same-named branches of different repositories share it, and it never
+    /// equals the installation database or another name without that suffix.
+    pub fn of_branch(branch: &BranchName) -> Self {
+        const HASH: usize = 8;
+        let mut readable = String::new();
+        for character in branch.as_str().chars() {
+            if character.is_ascii_alphanumeric() {
+                readable.push(character.to_ascii_lowercase());
+            } else if !readable.is_empty() && !readable.ends_with('_') {
+                readable.push('_');
+            }
+        }
+        // Every character kept is ASCII, so any length is a character boundary.
+        readable.truncate(MAX_LEN - 1 - HASH);
+        let readable = readable.trim_end_matches('_');
+        let hash = hex::encode(Sha256::digest(branch.as_str().as_bytes()));
+        let hash = &hash[..HASH];
+        Self(if readable.is_empty() {
+            hash.to_owned()
+        } else {
+            format!("{readable}_{hash}")
+        })
     }
 
     /// The database `store` connects to: the installation database.
@@ -213,5 +244,39 @@ mod tests {
             assert!(DatabaseName::parse(invalid).is_err(), "{invalid:?}");
         }
         assert_eq!(DatabaseName::parse("dev_x").unwrap().quoted(), "\"dev_x\"");
+    }
+
+    #[test]
+    fn a_branch_names_a_readable_database_with_a_short_hash() {
+        let of = |branch: &str| DatabaseName::of_branch(&BranchName::parse(branch).unwrap());
+        let hash = |branch: &str| hex::encode(Sha256::digest(branch.as_bytes()))[..8].to_owned();
+        assert_eq!(
+            of("dev/jose/x").as_str(),
+            format!("dev_jose_x_{}", hash("dev/jose/x"))
+        );
+        assert_eq!(
+            of("Fix--It!").as_str(),
+            format!("fix_it_{}", hash("Fix--It!"))
+        );
+        assert_eq!(of("/über/").as_str(), format!("ber_{}", hash("/über/")));
+        assert_eq!(of("é").as_str(), hash("é"));
+        assert_eq!(of("veoveo").as_str(), format!("veoveo_{}", hash("veoveo")));
+        // Names that read alike stay apart, and the same name always gives the same
+        // database.
+        assert_ne!(of("dev/x"), of("dev-x"));
+        assert_eq!(of("dev/x"), of("dev/x"));
+        let long = format!("{}-tail", "a".repeat(60));
+        let name = of(&long);
+        assert_eq!(name.as_str().len(), 63);
+        assert_eq!(name.as_str(), format!("{}_{}", "a".repeat(54), hash(&long)));
+        // At the cut, a separator is dropped rather than doubled.
+        let cut = format!("{}-b", "a".repeat(53));
+        assert_eq!(
+            of(&cut).as_str(),
+            format!("{}_{}", "a".repeat(53), hash(&cut))
+        );
+        for branch in ["dev/jose/x", "Fix--It!", "é", &long, &cut] {
+            DatabaseName::parse(of(branch).as_str()).unwrap();
+        }
     }
 }
