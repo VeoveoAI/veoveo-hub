@@ -25,8 +25,8 @@ veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "1dd9994
 veoveo-usage = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "1dd9994073515a85f90c3b5c71598366ab804a28" }
 veoveo-usage-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "1dd9994073515a85f90c3b5c71598366ab804a28" }
 # veoveo-hub-sdk, pinned to one revision for the library and its test server.
-veoveo-hub-sdk = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "cc23dc97bbe60f83e95d6e9d0c8fdcc35742d5a2" }
-veoveo-hub-sdk-fixture = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "cc23dc97bbe60f83e95d6e9d0c8fdcc35742d5a2" }
+veoveo-hub-sdk = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "6c881e08936bef1234dd2275b3c000fec1756543" }
+veoveo-hub-sdk-fixture = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "6c881e08936bef1234dd2275b3c000fec1756543" }
 
 aws-lc-rs = "1.18.0"
 openshell-sdk = { git = "https://github.com/VeoveoAI/OpenShell", rev = "9724fb1834dec157b4482a1da97338fd8ca1e50c", version = "0.0.0" }
