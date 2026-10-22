@@ -423,7 +423,9 @@ the profile's protected resource, whatever authorization servers the profile nam
 for a Task subject the Task must still run. The admitted subject is the caller, with
 its delegation: the acting server, the token's permissions and, for a Task subject, the
 Task. Every policy decision for that subject, for tool calls, resource reads and
-subscriptions alike, narrows the role-granted permissions to the token's. An
+subscriptions alike, narrows the role-granted permissions to the token's. Administrative
+routes refuse such a subject outright: their decision does not narrow to the token's
+permissions, and no server declares them. An
 explicit declared `Authenticated` route may carry zero permissions after current
 principal/profile and managed-client admission; undeclared targets remain denied,
 and server/Task targets retain the nonempty narrowed-grant requirement. A route whose

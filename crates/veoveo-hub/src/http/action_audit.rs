@@ -42,6 +42,18 @@ pub async fn authorize_hub_action(
         target: &request.target,
         trace_id: &trace_id,
     });
+    // A registered server acting for its caller never reaches an administrative route:
+    // this decision does not narrow to the permissions its exchanged token carries.
+    let decision = if subject.delegation.is_some() {
+        PolicyDecision {
+            effect: PolicyEffect::Deny,
+            reason: crate::control_plane::PolicyReasonCode::UndeclaredTarget,
+            granted: Default::default(),
+            ..decision
+        }
+    } else {
+        decision
+    };
     if let Err(err) = record_admin_audit(
         hub,
         &profile,

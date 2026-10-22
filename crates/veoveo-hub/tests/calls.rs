@@ -263,6 +263,29 @@ async fn qualify() {
     assert!(refused.contains("rejected"), "{refused}");
     let seal = relay_call(&admin, "relay_seal", json!({})).await.unwrap();
     assert_eq!(seal["value"], "seal-7");
+    // A server acting for the admin never reaches an administrative route, which the
+    // admin's own token does.
+    let admin_forwarded = relay.bearers.last();
+    let (status, delegated) = exchange(
+        &hub,
+        &http,
+        &relay,
+        (
+            &admin_forwarded,
+            veoveo_hub_sdk::calls::ACCESS_TOKEN_TOKEN_TYPE,
+        ),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{delegated}");
+    let administrative = http
+        .get(format!("{}/admin/local/control-plane", hub.base))
+        .bearer_auth(delegated["access_token"].as_str().unwrap())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(administrative.status(), reqwest::StatusCode::FORBIDDEN);
 
     // A Ledger Task through the Hub resolves Relay's Task handle.
     let tallied = relay_call(&member, "relay_tally", json!({"entries": 2}))
