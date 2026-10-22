@@ -362,21 +362,27 @@ mod tests {
 
     #[test]
     fn the_digest_is_read_from_buildctl_metadata() {
-        let metadata = format!(
-            r#"{{
-  "containerimage.config.digest": "sha256:1d5e2c5e3f4b1b2d6f0a0c4f9e7a4c8b3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a",
-  "containerimage.descriptor": {{
+        // Written by buildctl v0.34.1 for an image it pushed.
+        let metadata = r#"{
+  "containerimage.config.digest": "sha256:6c0e153064f5d496e7162b8e846f7d25f87fc950462f8d535fb9997726d8d371",
+  "containerimage.descriptor": {
     "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "{DIGEST}",
-    "size": 2125
-  }},
-  "containerimage.digest": "{DIGEST}",
-  "image.name": "registry.veoveo-system.svc.cluster.local:5000/factory/time-dev"
-}}"#
-        );
+    "digest": "sha256:0603da33cbeb3a2e0ba47d24912bff917f3a9f4289802ef5f6fa5b1164cb1485",
+    "size": 481,
+    "platform": {
+      "architecture": "amd64",
+      "os": "linux"
+    }
+  },
+  "containerimage.digest": "sha256:0603da33cbeb3a2e0ba47d24912bff917f3a9f4289802ef5f6fa5b1164cb1485",
+  "image.name": "registry.veoveo-probe.svc.cluster.local:5000/lore"
+}"#;
         assert_eq!(
             image_digest(metadata.as_bytes()).unwrap(),
-            Sha256Digest::parse(DIGEST).unwrap()
+            Sha256Digest::parse(
+                "sha256:0603da33cbeb3a2e0ba47d24912bff917f3a9f4289802ef5f6fa5b1164cb1485"
+            )
+            .unwrap()
         );
         for metadata in [
             r#"{"image.name": "registry/factory/time-dev"}"#,
