@@ -30,6 +30,8 @@ pub const MCP_OAUTH_CLIENT_CREDENTIALS_EXTENSION: &str =
     "io.modelcontextprotocol/oauth-client-credentials";
 mod computers;
 pub use computers::*;
+mod factory;
+pub use factory::*;
 mod native_upstreams;
 pub use native_upstreams::*;
 mod authorization_config;
@@ -74,6 +76,7 @@ pub const HUB_CORE_FIELDS: &[&str] = &[
     "secrets",
     "nativeUpstreams",
     "computers",
+    "factory",
     "execution",
     "metadata",
 ];
@@ -90,6 +93,8 @@ pub struct HubControlPlane {
     pub native_upstreams: Option<NativeUpstreams>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub computers: Option<Computers>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub factory: Option<FactoryConfiguration>,
     pub identity_providers: Vec<IdentityProvider>,
     pub authorization_servers: Vec<ResourceAuthorizationServer>,
     pub profiles: Vec<HubProfile>,
@@ -606,6 +611,9 @@ impl HubControlPlane {
 
         if let Some(computers) = &self.computers {
             computers.validate(self)?;
+        }
+        if let Some(factory) = &self.factory {
+            factory.validate(self)?;
         }
         Ok(sections)
     }

@@ -10,6 +10,7 @@ pub enum HubControlPlaneError {
         tenant: TenantId,
     },
     InvalidComputers(&'static str),
+    InvalidFactory(&'static str),
     DuplicateRole(veoveo_types::RoleId),
     UnknownGrantRole(veoveo_types::RoleId),
     UnknownGrantTenant {
@@ -280,6 +281,7 @@ impl fmt::Display for HubControlPlaneError {
             Self::InvalidComputers(reason) => {
                 write!(f, "invalid Computers configuration: {reason}")
             }
+            Self::InvalidFactory(reason) => write!(f, "invalid factory configuration: {reason}"),
             Self::CatalogAdmission(error) => fmt::Display::fmt(error, f),
             Self::DuplicateRole(role) => write!(f, "duplicate installation role `{role}`"),
             Self::UnknownGrantRole(role) => write!(f, "grant names unknown role `{role}`"),

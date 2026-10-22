@@ -123,6 +123,7 @@ fn control_plane_with_secrets(secrets: Vec<SecretReference>) -> HubControlPlane 
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         profiles: vec![default_profile()],
@@ -463,6 +464,7 @@ fn control_plane_validates_cross_references() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: default_authorization(),
@@ -499,6 +501,7 @@ fn control_plane_rejects_unknown_identity_provider_reference() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -534,6 +537,7 @@ fn control_plane_rejects_unknown_authorization_server_reference() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -569,6 +573,7 @@ fn control_plane_rejects_authorization_server_unknown_identity_provider() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server],
         authorization: InstallationAuthorization::default(),
@@ -604,6 +609,7 @@ fn control_plane_rejects_profile_without_auth_modes() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -638,6 +644,7 @@ fn control_plane_rejects_oidc_profile_without_browser_endpoints() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![auth_server],
         authorization: InstallationAuthorization::default(),
@@ -675,6 +682,7 @@ fn control_plane_rejects_oidc_profile_without_browser_endpoints() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![idp],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -715,6 +723,7 @@ fn control_plane_rejects_extension_auth_modes_without_matching_endpoints() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![idp],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -751,6 +760,7 @@ fn control_plane_rejects_unknown_secret_owner_references() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -794,6 +804,7 @@ fn control_plane_rejects_unknown_secret_owner_references() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -840,6 +851,7 @@ fn control_plane_rejects_missing_oauth_client_for_auth_mode() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -881,6 +893,7 @@ fn control_plane_allows_service_profile_before_durable_client_admission() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -910,6 +923,7 @@ fn control_plane_rejects_missing_oidc_client_for_browser_auth() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -947,6 +961,7 @@ fn control_plane_rejects_oidc_client_without_openid_scope() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -982,6 +997,7 @@ fn control_plane_rejects_public_client_credentials() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1017,6 +1033,7 @@ fn control_plane_rejects_private_key_jwt_without_jwks() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1058,6 +1075,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1090,6 +1108,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1126,6 +1145,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1163,6 +1183,7 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1200,6 +1221,7 @@ fn control_plane_rejects_oauth_client_missing_required_scope() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1233,6 +1255,7 @@ fn control_plane_rejects_duplicate_tenants() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1278,6 +1301,7 @@ fn control_plane_rejects_duplicate_policy_rule_ids() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1313,6 +1337,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1346,6 +1371,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1378,6 +1404,7 @@ fn control_plane_rejects_unknown_policy_rule_references() {
         branding: None,
         native_upstreams: None,
         computers: None,
+        factory: None,
         identity_providers: vec![identity_provider()],
         authorization_servers: vec![authorization_server()],
         authorization: InstallationAuthorization::default(),
@@ -1797,4 +1824,52 @@ fn computer_bootstrap_admits_only_fixed_direct_clients_and_env_provider_seeds() 
         bad.validate(&crate::catalog_fixture::registry()),
         Err(HubControlPlaneError::InvalidComputers(_))
     ));
+}
+
+#[test]
+fn a_factory_needs_native_forwarding_on_its_gateway_and_valid_defaults() {
+    let mut plane = control_plane_with_secrets(default_secrets());
+    let factory: FactoryConfiguration = serde_json::from_value(serde_json::json!({
+        "gateway": {"endpoint":"https://gateway.test", "certificateAuthority":"/etc/native/ca.pem", "bearerEnvironment":"FACTORY_AUTHORITY"},
+        "workspace":"factory", "policyFile":"/etc/native/factory-base.yaml",
+        "cpu":"500m", "memory":"16Gi", "port":8800, "hubIssuer":"https://hub.test",
+        "registrationProfile":"factory-registration", "caps":{"instancesPerUser":3},
+        "imageBuilder":{
+            "buildkit":"tcp://buildkitd.test:1234", "registry":"registry.test:5000",
+            "lore":"registry.test:5000/lore@sha256:8dad0d15745459ae06213192eba0680a68cbb02e71757d16a739f3f9e34c71b4"
+        }
+    }))
+    .unwrap();
+    assert!(!factory.caps.as_ref().unwrap().enforce);
+    plane.factory = Some(factory);
+    let invalid = |plane: &HubControlPlane| {
+        matches!(
+            plane.validate(&crate::catalog_fixture::registry()),
+            Err(HubControlPlaneError::InvalidFactory(_))
+        )
+    };
+    assert!(
+        invalid(&plane),
+        "instances are reached through native forwarding"
+    );
+    plane.native_upstreams = Some(
+        serde_json::from_value(serde_json::json!({
+            "gateway":"https://gateway.test", "certificateAuthority":"/etc/native/ca.pem",
+            "bearerEnvironment":"NATIVE_AUTHORITY", "bindings":[]
+        }))
+        .unwrap(),
+    );
+    plane.validate(&crate::catalog_fixture::registry()).unwrap();
+    for change in [
+        (|f: &mut FactoryConfiguration| f.cpu = "0".into()) as fn(&mut FactoryConfiguration),
+        |f| f.memory = "16GB".into(),
+        |f| f.workspace = "Factory".into(),
+        |f| f.port = 0,
+        |f| f.caps.as_mut().unwrap().instances_per_user = 0,
+        |f| f.gateway.endpoint = url::Url::parse("https://other.test").unwrap(),
+    ] {
+        let mut bad = plane.clone();
+        change(bad.factory.as_mut().unwrap());
+        assert!(invalid(&bad), "{:?}", bad.factory);
+    }
 }

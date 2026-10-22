@@ -10,6 +10,8 @@ struct ControlPlaneWire {
     pub native_upstreams: Option<NativeUpstreams>,
     #[serde(default)]
     pub computers: Option<Computers>,
+    #[serde(default)]
+    pub factory: Option<FactoryConfiguration>,
     pub identity_providers: Vec<IdentityProvider>,
     pub authorization_servers: Vec<ResourceAuthorizationServer>,
     pub profiles: Vec<HubProfile>,
@@ -57,6 +59,7 @@ impl<'de> Deserialize<'de> for HubControlPlane {
             branding: wire.branding,
             native_upstreams: wire.native_upstreams,
             computers: wire.computers,
+            factory: wire.factory,
             identity_providers: wire.identity_providers,
             authorization_servers: wire.authorization_servers,
             profiles: wire.profiles,
