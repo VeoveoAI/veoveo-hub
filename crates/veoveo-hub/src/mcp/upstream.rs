@@ -20,7 +20,8 @@ pub(super) struct HubUpstreamHandler {
     profile_id: HubProfileId,
     principal_id: PrincipalId,
     upstream_server: ServerSlug,
-    downstream: Peer<RoleServer>,
+    /// The client notifications go to; none for a request the Hub makes itself.
+    downstream: Option<Peer<RoleServer>>,
     progress_tokens: HubProgressTokens,
     discovery: std::sync::Arc<CatalogDiscoveryCache>,
     tasks: bool,
@@ -31,7 +32,7 @@ pub(super) struct HubUpstreamHandlerConfig {
     pub(super) profile_id: HubProfileId,
     pub(super) principal_id: PrincipalId,
     pub(super) upstream_server: ServerSlug,
-    pub(super) downstream: Peer<RoleServer>,
+    pub(super) downstream: Option<Peer<RoleServer>>,
     pub(super) progress_tokens: HubProgressTokens,
     pub(super) discovery: std::sync::Arc<CatalogDiscoveryCache>,
     pub(super) tasks: bool,
@@ -86,7 +87,9 @@ impl ClientHandler for HubUpstreamHandler {
             return;
         };
         params.progress_token = downstream_token;
-        let downstream = self.downstream.clone();
+        let Some(downstream) = self.downstream.clone() else {
+            return;
+        };
         forward_notification(self.upstream_server.clone(), "progress", async move {
             downstream.notify_progress(params).await
         })
@@ -120,7 +123,9 @@ impl ClientHandler for HubUpstreamHandler {
                 return;
             }
         }
-        let downstream = self.downstream.clone();
+        let Some(downstream) = self.downstream.clone() else {
+            return;
+        };
         forward_notification(
             self.upstream_server.clone(),
             "resource update",
@@ -133,7 +138,9 @@ impl ClientHandler for HubUpstreamHandler {
         self.discovery
             .invalidate_resource_surfaces(&self.upstream_server)
             .await;
-        let downstream = self.downstream.clone();
+        let Some(downstream) = self.downstream.clone() else {
+            return;
+        };
         forward_notification(self.upstream_server.clone(), "resource list", async move {
             downstream.notify_resource_list_changed().await
         })
@@ -142,7 +149,9 @@ impl ClientHandler for HubUpstreamHandler {
 
     async fn on_tool_list_changed(&self, _context: NotificationContext<RoleClient>) {
         self.discovery.invalidate_tools(&self.upstream_server).await;
-        let downstream = self.downstream.clone();
+        let Some(downstream) = self.downstream.clone() else {
+            return;
+        };
         forward_notification(self.upstream_server.clone(), "tool list", async move {
             downstream.notify_tool_list_changed().await
         })
@@ -153,7 +162,9 @@ impl ClientHandler for HubUpstreamHandler {
         self.discovery
             .invalidate_prompts(&self.upstream_server)
             .await;
-        let downstream = self.downstream.clone();
+        let Some(downstream) = self.downstream.clone() else {
+            return;
+        };
         forward_notification(self.upstream_server.clone(), "prompt list", async move {
             downstream.notify_prompt_list_changed().await
         })

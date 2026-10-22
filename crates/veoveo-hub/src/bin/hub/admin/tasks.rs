@@ -7,18 +7,17 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use veoveo_hub::AuthenticatedSubject;
 use veoveo_hub::control_plane::{HubProfile, PolicyTarget};
+use veoveo_hub::mcp::ServerTaskCancellation;
+use veoveo_hub::{AuthenticatedSubject, HubMcp};
 use veoveo_hub_sdk::ServerSlug;
-use veoveo_task::{TaskError, TaskOwner, TaskRuntime};
 use veoveo_types::TaskId;
 
 use crate::{
     admin::admin_profile_id,
     audit::{
-        AdminAuthorizationRequest, AdminOperationAuditRecord, AdminOperationFailure,
-        AdminOperationStatus, authorize_admin_target_request, internal_error_response,
-        record_admin_target_operation_audit,
+        AdminOperationAuditRecord, AdminOperationFailure, AdminOperationStatus,
+        internal_error_response, record_admin_target_operation_audit,
     },
     runtime::AdminState,
 };
@@ -45,102 +44,36 @@ pub(crate) async fn cancel_task(
         server: server_slug.clone(),
         task_id,
     };
-    let (catalog, profile, subject) = match authorize_admin_target_request(
-        &state,
-        &profile_id,
-        subject,
-        AdminAuthorizationRequest {
-            audit_target: None,
-            action: HubAction::TasksCancel.into(),
-            target: target.clone(),
-            operation: AdministrativeOperation::TaskCancel,
-            started_at,
-        },
-    )
-    .await
-    {
-        Ok(authorized) => authorized,
-        Err(response) => return *response,
-    };
-
-    let deployment = match state
-        .hub_state
-        .task_deployment(&server_slug, task_id, subject.principal.tenant.as_ref())
-        .await
-    {
-        Ok(deployment) => deployment,
-        Err(error) => return internal_error_response(error),
-    };
-    let exposed = deployment.filter(|deployment| {
-        catalog.profile_servers(&profile_id).iter().any(|server| {
-            server.slug == server_slug
-                && server.deployment == *deployment
-                && server.capabilities.tasks
-        })
-    });
-    let Some(deployment) = exposed else {
-        if let Err(error) = record_task_result(
-            &state,
-            &profile,
-            &subject,
-            target,
-            started_at,
-            AdminOperationStatus::Rejected,
-            Some(AdminOperationFailure::TaskRoute),
-        )
-        .await
-        {
-            return internal_error_response(error);
-        }
+    let catalog = state.catalog.current();
+    let Some(profile) = catalog.profile(&profile_id).cloned() else {
         return StatusCode::NOT_FOUND.into_response();
     };
 
-    // The Hub acts for the Task's owner on the server's Tasks; its own kernel
-    // instance owns no Task work.
-    let task_runtime = TaskRuntime::new(
-        state.hub_state.platform_store().clone(),
-        server_slug.clone(),
-        deployment,
-        state.instance.clone(),
+    // The deployment that holds the Task owns its state: the Hub forwards
+    // `tasks/cancel` to it as the caller, after the checks and the policy decision of
+    // the caller's own `tasks/cancel` on the Task's captured composition, which
+    // resolves the Task's deployment even while several deployments share its slug.
+    let hub = HubMcp::new(
+        state.catalog.clone(),
+        profile_id,
+        state.hub_state.clone(),
+        state.internal_token_issuer.clone(),
+        state.upstream_http.clone(),
     );
-    let owner = TaskOwner {
-        principal_key: subject.principal.id.clone(),
-        principal_kind: match subject.principal.kind {
-            veoveo_hub_sdk::PrincipalKind::User => veoveo_task::PrincipalKind::User,
-            veoveo_hub_sdk::PrincipalKind::Service => veoveo_task::PrincipalKind::Service,
-        },
-        issuer: subject.principal.issuer.clone(),
-        subject: subject.principal.subject.clone(),
-        surface: match veoveo_task::TaskSurface::parse(profile_id.as_str()) {
-            Ok(surface) => surface,
-            Err(error) => return internal_error_response(error),
-        },
-        tenant_key: subject.principal.tenant.clone(),
-        data_labels: subject.principal.data_labels.clone(),
-        authority: subject.authority.clone(),
-    };
-    let query = match task_runtime.for_owner(&owner).in_work_context() {
-        Ok(query) => query,
-        Err(error) => return internal_error_response(error),
-    };
-    match query.cancel(task_id).await {
-        Ok(_) => {}
-        Err(TaskError::NotFound(_)) => {
-            if let Err(error) = record_task_result(
-                &state,
-                &profile,
-                &subject,
-                target,
-                started_at,
-                AdminOperationStatus::Rejected,
-                Some(AdminOperationFailure::TaskOwnership),
-            )
-            .await
-            {
-                return internal_error_response(error);
-            }
-            return StatusCode::NOT_FOUND.into_response();
-        }
+    let refusal = match hub
+        .cancel_server_task(&subject, &server_slug, &task_id.to_string())
+        .await
+    {
+        Ok(ServerTaskCancellation::Cancelled) => None,
+        Ok(ServerTaskCancellation::Unrouted) => Some((
+            StatusCode::NOT_FOUND,
+            Some(AdminOperationFailure::TaskRoute),
+        )),
+        Ok(ServerTaskCancellation::Unowned) => Some((
+            StatusCode::NOT_FOUND,
+            Some(AdminOperationFailure::TaskOwnership),
+        )),
+        Ok(ServerTaskCancellation::Denied) => Some((StatusCode::FORBIDDEN, None)),
         Err(error) => {
             return audited_task_failure(
                 &state,
@@ -154,6 +87,22 @@ pub(crate) async fn cancel_task(
             .await;
         }
     };
+    if let Some((status, failure)) = refusal {
+        if let Err(error) = record_task_result(
+            &state,
+            &profile,
+            &subject,
+            target,
+            started_at,
+            AdminOperationStatus::Rejected,
+            failure,
+        )
+        .await
+        {
+            return internal_error_response(error);
+        }
+        return status.into_response();
+    }
     if let Err(error) = record_task_result(
         &state,
         &profile,

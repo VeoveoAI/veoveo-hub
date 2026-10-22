@@ -1,8 +1,8 @@
 //! Data environments. Against the Hub binary, the SDK's Relay fixture runs as two
 //! instances of one slug: one in the installation database and one in a database
 //! `ensure_database` created. Each registers into its own database and its grant names
-//! that database. On each, a Task created through the Hub completes after its Ledger
-//! call from the Task,
+//! that database. On each, the administrative Task cancel reaches the instance's
+//! Task, a Task created through the Hub completes after its Ledger call from the Task,
 //! which the Hub admits only while the Task runs in that instance's database, and once
 //! the Task ended an exchange for it is refused. Without the binary, concurrent
 //! `ensure_database` calls for one name all succeed, and `drop_database_if_unused`
@@ -134,8 +134,8 @@ async fn scenario() {
     let base_client = mcp_client(&hub, token.clone()).await;
     let other_client = mcp_client_selected(&hub, token, Some(selected)).await;
 
-    exercise(&db, &base, &base_client, &stop).await;
-    exercise(&db, &other, &other_client, &stop).await;
+    exercise(&hub, &http, &db, &base, &base_client, &stop).await;
+    exercise(&hub, &http, &db, &other, &other_client, &stop).await;
 }
 
 /// One Relay instance: its registration, its Tasks, its calls through the Hub and the
@@ -148,7 +148,8 @@ struct RelayInstance {
 }
 
 /// Register Relay as `instance`, running its `relay_later` Tasks in core's Task runtime
-/// on the login its registration grants. [`exercise`] starts their worker.
+/// on the login its registration grants. No worker claims them until [`exercise`]
+/// starts one.
 async fn relay_instance(
     hub: &Hub,
     http: &reqwest::Client,
@@ -194,14 +195,58 @@ async fn relay_instance(
     }
 }
 
-/// Run a Task to its end and exchange for it afterwards, checking the Task's row in the
-/// instance's database.
-async fn exercise(db: &TestDb, relay: &RelayInstance, client: &Client, stop: &CancellationToken) {
+/// Cancel a queued Task through the administrative route, then run a Task to its end
+/// and exchange for it afterwards, checking each Task's row in the instance's database.
+async fn exercise(
+    hub: &Hub,
+    http: &reqwest::Client,
+    db: &TestDb,
+    relay: &RelayInstance,
+    client: &Client,
+    stop: &CancellationToken,
+) {
     let deployment = relay.served.metadata.registration.deployment;
     let store = owner_store(db, &relay.database).await;
     // An instance outside the installation database leaves no Task row there.
     let installation =
         (relay.database != DatabaseName::installation(&db.a).unwrap()).then_some(&db.a);
+
+    // No worker claims the Task yet, so it is queued when the administrator's cancel
+    // reaches the instance.
+    let queued = source_task(db, &later(client).await).await;
+    assert_eq!(queued.1, deployment);
+    assert_eq!(
+        task_status(&store, &queued.0).await.as_deref(),
+        Some("queued")
+    );
+    let cancelled = http
+        .post(format!(
+            "{}/admin/local/tasks/relay/{}/cancel",
+            hub.base, queued.0
+        ))
+        .bearer_auth(hub.access_token(http, hub.caller("member")).await)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(cancelled.status(), reqwest::StatusCode::NO_CONTENT);
+    assert!(
+        matches!(
+            task_status(&store, &queued.0).await.as_deref(),
+            Some("cancelled" | "cancel_requested")
+        ),
+        "the cancellation reached the instance's Task"
+    );
+    let unknown = http
+        .post(format!(
+            "{}/admin/local/tasks/relay/{}/cancel",
+            hub.base,
+            TaskId::new()
+        ))
+        .bearer_auth(hub.access_token(http, hub.caller("member")).await)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(unknown.status(), reqwest::StatusCode::NOT_FOUND);
 
     // The worker's Ledger call exchanges with the running Task as its subject, which
     // the Hub admits only after finding the Task live in the instance's database.
@@ -221,6 +266,7 @@ async fn exercise(db: &TestDb, relay: &RelayInstance, client: &Client, stop: &Ca
     );
     if let Some(installation) = installation {
         assert_eq!(task_status(installation, &source).await, None);
+        assert_eq!(task_status(installation, &queued.0).await, None);
     }
 
     // Once the Task ended, it acts for nobody.

@@ -14,7 +14,7 @@ pub use refresh_tokens::{
     HubRefreshRotationRequest, IssuedHubRefreshToken, REFRESH_TOKEN_TTL_SECONDS,
     RefreshTokenDeliveryCipher,
 };
-pub(crate) use task_routes::{HubTaskOwnership, HubTaskRouteDraft};
+pub(crate) use task_routes::{HubTaskOwnership, HubTaskRoute, HubTaskRouteDraft};
 
 /// Shared, installation-wide hub correctness state.
 ///

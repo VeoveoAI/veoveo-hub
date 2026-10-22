@@ -53,6 +53,7 @@ use upstream::{HubUpstreamHandler, HubUpstreamHandlerConfig};
 use upstream_authorized_http::HubAuthorizedHttpClient;
 
 pub use health::{HubServerHealth, HubServerHealthState};
+pub use tasks::ServerTaskCancellation;
 
 pub(super) const HUB_PAGE_SIZE: usize = 100;
 
@@ -122,6 +123,28 @@ impl HubMcp {
         &self,
         server_slug: &ServerSlug,
         downstream: Peer<RoleServer>,
+        subject: &AuthenticatedSubject,
+        tasks: bool,
+    ) -> Result<RequestUpstream, RequestError> {
+        self.connect_upstream(server_slug, Some(downstream), subject, tasks)
+            .await
+    }
+
+    /// A Tasks-capable upstream for a request the Hub makes itself, outside any MCP
+    /// session: the upstream's notifications reach no client.
+    async fn detached_upstream(
+        &self,
+        server_slug: &ServerSlug,
+        subject: &AuthenticatedSubject,
+    ) -> Result<RequestUpstream, RequestError> {
+        self.connect_upstream(server_slug, None, subject, true)
+            .await
+    }
+
+    async fn connect_upstream(
+        &self,
+        server_slug: &ServerSlug,
+        downstream: Option<Peer<RoleServer>>,
         subject: &AuthenticatedSubject,
         tasks: bool,
     ) -> Result<RequestUpstream, RequestError> {

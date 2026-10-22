@@ -45,8 +45,9 @@ pub(super) struct AdminState {
     pub(super) hub_state: HubState,
     pub(super) registrations: veoveo_hub::registration::RegistrationService,
     pub(super) console_stream: crate::admin::ConsoleStreamLimits,
-    /// This process's kernel instance, which also reaps the instances of ended processes.
-    pub(super) instance: Arc<veoveo_store::Instance>,
+    /// What forwarding an administrative Task request to its server needs.
+    pub(super) internal_token_issuer: HubInternalTokenIssuer,
+    pub(super) upstream_http: HubUpstreamHttpClientPool,
 }
 
 #[derive(Clone)]

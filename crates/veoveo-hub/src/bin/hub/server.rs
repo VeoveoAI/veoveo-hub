@@ -242,7 +242,8 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         hub_state: hub_state.clone(),
         registrations,
         console_stream: super::admin::ConsoleStreamLimits::new(),
-        instance: instance.clone(),
+        internal_token_issuer: internal_token_issuer.clone(),
+        upstream_http: upstream_http.clone(),
     };
     let control_watcher = super::control_reload::spawn(admin_state.clone(), ct.clone());
     let workspaces =

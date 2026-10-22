@@ -83,5 +83,7 @@ Listeners are keyed by logical server, deployment and composition, so one reques
 can retain old Task streams while its current catalog selects a replacement. A live
 catalog publication completes the listen after an invalidation hint; reconnect
 re-admits every Task's own capture and current access rather than retaining stale
-subscription authority. The existing administrative native Task path similarly
-reads the Task's stored deployment before invoking Core's owner query.
+subscription authority. The administrative Task cancel finds the caller's route by the
+identifier the server issued, in the caller's tenant and profile, and then follows the
+same path: ownership, capture, current access and a forwarded `tasks/cancel` to the
+route's deployment.

@@ -24,7 +24,6 @@ veoveo-http.workspace = true
 veoveo-oauth.workspace = true
 veoveo-store.workspace = true
 veoveo-hub-sdk.workspace = true
-veoveo-task.workspace = true
 veoveo-types.workspace = true
 veoveo-usage.workspace = true
 veoveo-usage-contract.workspace = true
@@ -81,6 +80,7 @@ zeroize.workspace = true
 veoveo-hub-sdk = { workspace = true, features = ["testing"] }
 veoveo-hub-sdk-fixture.workspace = true
 veoveo-fixtures = { workspace = true, features = ["store", "database-conformance"] }
+veoveo-task.workspace = true
 jsonschema.workspace = true
 rcgen.workspace = true
 schemars.workspace = true

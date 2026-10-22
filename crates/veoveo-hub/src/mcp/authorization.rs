@@ -73,6 +73,22 @@ impl HubMcp {
             tracing::warn!(%task_id, "canonical task record was not found");
             return Err(mcp_invalid_params("unknown task id"));
         };
+        self.authorize_task_route(subject, action, route, trace_id)
+            .await
+    }
+
+    /// Check a Task's route for `subject` as every Task request does: recorded
+    /// ownership, the retained routing capture, current access to the captured
+    /// environment, exposure of the deployment and current policy.
+    pub(super) async fn authorize_task_route(
+        &self,
+        subject: &AuthenticatedSubject,
+        action: HubAction,
+        route: crate::state::HubTaskRoute,
+        trace_id: Option<TraceId>,
+    ) -> Result<CanonicalTaskRoute, McpError> {
+        let task_id = route.id.as_str().to_owned();
+        let canonical_task_id = route.id.clone();
         let tenant_key = subject.authority.tenant.as_str();
         let expected_tenant = deterministic_tenant_id(tenant_key)
             .map_err(|error| mcp_internal(format!("invalid task tenant: {error}")))?;

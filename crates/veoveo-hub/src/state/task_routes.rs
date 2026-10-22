@@ -414,25 +414,35 @@ impl HubState {
         }
     }
 
-    /// Placement identity for the existing owner-scoped administrative Task path.
-    /// This is not a claim: the Core owner query still admits the actual mutation.
-    pub async fn task_deployment(
+    /// The unexpired route of `actor`'s Task of `server` on `profile` in `tenant`, by
+    /// the identifier the server issued. An identifier two routes name has none.
+    pub(crate) async fn owned_task_route(
         &self,
         server: &ServerSlug,
-        task: veoveo_types::TaskId,
-        tenant: Option<&veoveo_types::TenantId>,
-    ) -> Result<Option<DeploymentId>> {
-        let tenant = tenant.map_or("installation", |tenant| tenant.as_str());
-        sqlx::query_file_scalar!(
-            "src/state/task_routes/deployment.sql",
+        source_task_id: &str,
+        profile: &HubProfileId,
+        tenant: &veoveo_types::TenantId,
+        actor: &veoveo_types::PrincipalId,
+    ) -> Result<Option<HubTaskRoute>> {
+        let tenant_key = tenant.as_str();
+        let rows = sqlx::query_file_as!(
+            RouteRow,
+            "src/state/task_routes/owned.sql",
             server.as_str(),
-            task.as_uuid(),
-            tenant
+            source_task_id,
+            deterministic_principal_id(tenant_key, actor.as_str())? as PrincipalId,
+            profile.as_str(),
+            deterministic_tenant_id(tenant_key)? as TenantId,
+            Utc::now(),
         )
-        .fetch_optional(self.store.platform().pool())
-        .await?
-        .map(|id| DeploymentId::parse(id.to_string()).map_err(Into::into))
-        .transpose()
+        .fetch_all(self.store.platform().pool())
+        .await
+        .context("failed to read the Task's route")?;
+        let mut rows = rows.into_iter();
+        let (Some(row), None) = (rows.next(), rows.next()) else {
+            return Ok(None);
+        };
+        HubTaskRoute::try_from(row).map(Some)
     }
 
     async fn task_route_for_source(

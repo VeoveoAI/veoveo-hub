@@ -206,9 +206,9 @@ registration transaction above. The grant names that database at the address and
 with the settings of the server database URL. Roles belong to the instance, so the
 group role and login serve both databases. A server writes the identity rows its
 Tasks need itself. The Hub keeps no connection and no `LISTEN` in an environment's
-database: Task get, update, cancel and subscriptions go to the instance, and the read
-of whether a Task still runs before it acts for its caller opens a pool of one
-connection to the database of the Task's deployment.
+database: Task get, update, cancel and subscriptions go to the instance, and the one
+read of Task state, whether a Task still runs before it acts for its caller, opens a
+pool of one connection to the database of the Task's deployment for that read.
 Registration health reads liveness in the installation database, so it reports an
 instance in a data environment as degraded.
 
@@ -507,6 +507,15 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
+`POST /admin/{profile}/tasks/{server}/{task_id}/cancel` cancels the caller's Task by
+the identifier its server issued. The Hub reads no Task state for it: it finds the
+caller's unexpired route of that Task, applies the checks and the policy decision of
+`tasks/cancel` on the Task's captured composition, and forwards `tasks/cancel` to the
+deployment that holds the Task, without an MCP session of its own. It answers 204, 404
+when no route of the caller's names the Task or the route refuses the caller, 403 when
+policy refuses, and 502 when the server fails the request; each outcome is audited as
+the administrative operation.
+
 ## Persistence
 
 The Hub owns the `hub` schema. Its migrations in `migrations/` run after core's
@@ -579,7 +588,9 @@ kernel instance while it removes such a namespace registration.
 fixture as two instances of one slug, one in the installation database and one in a
 database `ensure_database` created, beside a Ledger namespace server. Each grant names
 its instance's database at the installation database's address, and the server's
-schema exists in each. For each instance, a Task created through the Hub completes after its Ledger call from the Task, which the Hub admits only once it finds
+schema exists in each. For each instance, the administrative cancel of a queued Task
+changes that Task's row in the instance's database, a Task created through the Hub
+completes after its Ledger call from the Task, which the Hub admits only once it finds
 the Task running in that database, the Task's rows are absent from the installation
 database when the instance is elsewhere, and once the Task ended an exchange for it is
 refused with `invalid_grant`. A second test, without the binary, runs four concurrent
