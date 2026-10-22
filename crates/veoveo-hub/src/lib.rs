@@ -8,6 +8,7 @@ pub mod control_plane;
 pub mod data_environment;
 pub mod delegation;
 pub mod execution;
+pub mod factory;
 pub mod http;
 pub mod issuance;
 pub use catalog_admission::HubCatalogAdmission;
