@@ -50,9 +50,9 @@ async fn metadata(State(service): State<RegistrationService>) -> Json<IssuerMeta
     Json(IssuerMetadata {
         issuer: service.issuer().as_str().to_owned(),
         jwks_uri: service.jwks_uri().to_string(),
-        registration_endpoint: service
-            .enabled()
-            .then(|| service.registration_endpoint().to_string()),
+        // Instances register with their own token whether or not the installation
+        // configures a namespace secret, so the endpoint is always advertised.
+        registration_endpoint: Some(service.registration_endpoint().to_string()),
         token_endpoint: service.token_endpoint().to_string(),
         response_types_supported: [],
         grant_types_supported: [veoveo_hub_sdk::calls::TOKEN_EXCHANGE_GRANT_TYPE],

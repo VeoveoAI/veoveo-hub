@@ -199,16 +199,6 @@ impl RegistrationService {
         uri
     }
 
-    /// Whether the installation configures server registration.
-    pub fn enabled(&self) -> bool {
-        self.inner
-            .catalog
-            .current()
-            .control_plane()
-            .registration
-            .is_some()
-    }
-
     /// RFC 7591 §3: register a server presenting an instance's registration token or
     /// the installation's registration secret as its initial access token. The response
     /// grants a new PostgreSQL login in the server's group role and the server's logical
