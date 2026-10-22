@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT deployment, database\nFROM hub.instance\nWHERE repository = $1 AND branch = $2\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deployment",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "deployment"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "database",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "database"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "50bdfed0add8460b301af6de4d763901c6ab8388fdb8350788fad0c9cbf801c3"
+}

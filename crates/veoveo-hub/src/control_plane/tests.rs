@@ -1833,6 +1833,7 @@ fn a_factory_needs_native_forwarding_on_its_gateway_and_valid_defaults() {
         "gateway": {"endpoint":"https://gateway.test", "certificateAuthority":"/etc/native/ca.pem", "bearerEnvironment":"FACTORY_AUTHORITY"},
         "workspace":"factory", "policyFile":"/etc/native/factory-base.yaml",
         "cpu":"500m", "memory":"16Gi", "port":8800, "hubIssuer":"https://hub.test",
+        "loreServer":"grpcs://lore.test:41337",
         "registrationProfile":"factory-registration", "caps":{"instancesPerUser":3},
         "imageBuilder":{
             "buildkit":"tcp://buildkitd.test:1234", "registry":"registry.test:5000",
@@ -1867,6 +1868,7 @@ fn a_factory_needs_native_forwarding_on_its_gateway_and_valid_defaults() {
         |f| f.port = 0,
         |f| f.caps.as_mut().unwrap().instances_per_user = 0,
         |f| f.gateway.endpoint = url::Url::parse("https://other.test").unwrap(),
+        |f| f.lore_server = url::Url::parse("grpcs://lore.test:41337/repository").unwrap(),
     ] {
         let mut bad = plane.clone();
         change(bad.factory.as_mut().unwrap());

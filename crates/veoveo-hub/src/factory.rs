@@ -2,15 +2,24 @@
 //! An instance runs in one OpenShell sandbox, built from its environment image. Its fixed
 //! start command fetches the instance's branch onto the sandbox's persistent disk, and
 //! the branch's own `openshell/run` builds and serves it; OpenShell restarts it whenever
-//! it exits. The Hub creates, restarts, recreates and deletes the sandbox, records what
-//! it applied and why its own steps failed, and reads everything else from OpenShell. It
-//! runs no command inside a sandbox.
+//! it exits. Each push is applied with [`Factory::apply`]: the Hub ensures the branch's
+//! data environment, builds the image, then creates, restarts or recreates the sandbox,
+//! records what it applied and why its own steps failed, and reads everything else from
+//! OpenShell. [`Factory::remove`] ends an instance. The Hub runs no command inside a
+//! sandbox.
 pub mod image;
 mod record;
 mod sandbox;
 mod status;
 
-use std::{collections::HashMap, fmt, future::Future, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt,
+    future::Future,
+    path::PathBuf,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use anyhow::{Context, Result, ensure};
 use openshell_sdk::{OpenShellClient, raw::proto as p};
@@ -23,16 +32,20 @@ pub use sandbox::sandbox_name;
 pub use status::{Condition, Failure, InstanceStatus, Phase, SandboxStatus, Stage};
 
 use crate::{
+    HubCatalogHandle,
     control_plane::FactoryConfiguration,
-    data_environment,
-    registration::{self, NewInstance},
+    data_environment::{self, DatabaseName},
+    execution::BranchName,
+    registration,
 };
 
 /// How long one OpenShell request may take.
 const RPC_TIMEOUT: Duration = Duration::from_secs(30);
-/// How long a sandbox may take to stop or to disappear after its deletion.
+/// How long a sandbox may take to disappear after its deletion.
 const TRANSITION_TIMEOUT: Duration = Duration::from_secs(120);
 const POLL_INTERVAL: Duration = Duration::from_millis(250);
+/// The longest a status read waits for an instance to serve or fail.
+pub const MAX_WAIT: Duration = Duration::from_secs(60);
 
 /// A Lore revision by its whole hash signature: 64 lowercase hexadecimal digits.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
@@ -60,6 +73,15 @@ impl fmt::Display for Revision {
     }
 }
 
+/// A Lore repository ID: 32 lowercase hexadecimal digits.
+fn repository_id(value: &str) -> Result<()> {
+    ensure!(
+        lowercase_hex(value, 32),
+        "a Lore repository ID has 32 lowercase hexadecimal digits"
+    );
+    Ok(())
+}
+
 fn lowercase_hex(value: &str, length: usize) -> bool {
     value.len() == length
         && value
@@ -74,26 +96,24 @@ pub struct Push {
     pub pusher: PrincipalId,
 }
 
-/// What the instance's sandbox runs, from the pushed revision of its repository.
+/// What the pushed revision's `openshell/` holds, read as its pusher.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Source {
-    /// The Lore repository the start command clones the instance's branch from.
-    pub repository: url::Url,
-    /// The environment image built from the revision's `openshell/image/`.
-    pub image: image::PinnedImage,
+pub struct Prepared {
+    /// A checkout of the revision's `openshell/image/`: the environment image's
+    /// `Dockerfile` and the files it copies.
+    pub image_context: PathBuf,
     /// The revision's `openshell/policy.yaml`, which adds network rules to the
     /// installation's base policy.
     pub policy: Option<String>,
 }
 
-/// How a push reached an existing instance's sandbox.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Update {
-    /// The image is unchanged: the policy was set and the sandbox stopped and started.
-    Restarted,
-    /// The image changed, or the instance had no sandbox: a new sandbox was created,
-    /// with an empty disk.
-    Recreated,
+/// What the instance's sandbox runs, from the pushed revision of its repository.
+struct Source {
+    /// The Lore repository the start command clones the instance's branch from.
+    remote: url::Url,
+    /// The environment image built from the revision's `openshell/image/`.
+    image: image::PinnedImage,
+    policy: Option<String>,
 }
 
 /// The factory sandboxes of one installation, in its factory workspace.
@@ -103,19 +123,28 @@ pub struct Factory {
     config: Arc<FactoryConfiguration>,
     /// The installation's base policy, canonical.
     policy: Arc<p::sandbox::v1::SandboxPolicy>,
+    builder: Arc<dyn image::Build>,
+    /// The installation's current configuration, which names the base branch.
+    catalog: HubCatalogHandle,
     store: PlatformStore,
 }
 
 impl Factory {
     /// Connect to the configured gateway with its bearer reference.
-    pub async fn connect(config: FactoryConfiguration, store: PlatformStore) -> Result<Self> {
+    pub async fn connect(
+        config: FactoryConfiguration,
+        catalog: HubCatalogHandle,
+        store: PlatformStore,
+    ) -> Result<Self> {
         let client = crate::computers::connect_gateway(&config.gateway).await?;
-        Self::new(config, client, store)
+        Self::new(config, catalog, client, store)
     }
 
-    /// The factory on `client`, with the base policy read from the configured file.
+    /// The factory on `client`, with the base policy read from the configured file and
+    /// images built by the configured image builder.
     pub fn new(
         config: FactoryConfiguration,
+        catalog: HubCatalogHandle,
         client: OpenShellClient,
         store: PlatformStore,
     ) -> Result<Self> {
@@ -129,208 +158,283 @@ impl Factory {
         let policy = sandbox::policy(&policy, None)?;
         Ok(Self {
             client,
+            builder: Arc::new(config.image_builder.clone()),
             config: Arc::new(config),
             policy: Arc::new(policy),
+            catalog,
             store,
         })
     }
 
-    /// Serve a new instance: create its registration provider, which holds the
-    /// instance's registration token, then its sandbox, unless an enforced cap refuses
-    /// it. `push` names the instance's first pusher and revision.
-    pub async fn create(&self, instance: &NewInstance, source: &Source, push: &Push) -> Result<()> {
-        let deployment = instance.deployment;
-        let branch = record::push(&self.store, deployment, &push.pusher).await?;
-        let name = sandbox_name(deployment);
-        self.recorded(deployment, Stage::Create, async {
-            let mut grpc = self.client.raw_grpc_fresh().await?;
-            call(
-                "create the registration provider",
-                grpc.create_provider(p::CreateProviderRequest {
-                    workspace_scope: scope(&self.config.workspace),
-                    provider: Some(p::Provider {
-                        metadata: Some(p::ObjectMeta {
-                            name: sandbox::registration_provider(&name),
-                            workspace: self.config.workspace.clone(),
-                            ..Default::default()
-                        }),
-                        r#type: self.config.registration_profile.clone(),
-                        credentials: HashMap::from([(
-                            sandbox::REGISTRATION_SECRET.into(),
-                            instance.registration_token.expose_secret().into(),
-                        )]),
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                }),
-            )
-            .await
-        })
-        .await?;
-        self.serve(deployment, &branch, source, push).await
+    /// The same factory building images with `builder`.
+    pub fn with_builder(self, builder: Arc<dyn image::Build>) -> Self {
+        Self { builder, ..self }
     }
 
-    /// Apply a push to an existing instance: restart its sandbox when it runs the
-    /// pushed image, otherwise recreate it.
-    pub async fn update(
+    /// Apply a push of `branch` of the Lore repository `repository`, whose
+    /// `openshell/` was read as `prepared`. Ensures the branch's data environment and
+    /// the instance, builds the image, then creates the sandbox on the first push,
+    /// restarts it when it runs the built image and recreates it otherwise, and
+    /// records the revision and its pusher. A failed step is recorded on the instance
+    /// as `failed{stage, message}` and returned; a failed build leaves the sandbox as it
+    /// was. Pushes to one instance are applied one at a time by the caller.
+    pub async fn apply(
         &self,
-        deployment: DeploymentId,
-        source: &Source,
-        push: &Push,
-    ) -> Result<Update> {
-        let current = self.sandbox(&sandbox_name(deployment)).await?;
-        match current {
-            Some(sandbox) if sandbox::runs(&sandbox, &source.image) => {
-                self.restart(deployment, source.policy.as_deref(), push)
-                    .await?;
-                Ok(Update::Restarted)
-            }
-            Some(_) => {
-                self.recreate(deployment, source, push).await?;
-                Ok(Update::Recreated)
-            }
-            None => {
-                let branch = record::push(&self.store, deployment, &push.pusher).await?;
-                self.serve(deployment, &branch, source, push).await?;
-                Ok(Update::Recreated)
-            }
-        }
-    }
-
-    /// Serve a push whose image is unchanged: set the sandbox's policy, which OpenShell
-    /// keeps when unchanged, then stop and start the sandbox, whose start command
-    /// fetches the branch's latest revision. `policy` is the revision's
-    /// `openshell/policy.yaml`.
-    pub async fn restart(
-        &self,
-        deployment: DeploymentId,
-        policy: Option<&str>,
-        push: &Push,
+        repository: &str,
+        branch: &BranchName,
+        push: Push,
+        prepared: Prepared,
     ) -> Result<()> {
-        record::push(&self.store, deployment, &push.pusher).await?;
+        repository_id(repository)?;
+        let (deployment, database) = match record::instance(&self.store, repository, branch).await?
+        {
+            Some(instance) => instance,
+            None => {
+                let database = self.database(branch)?;
+                let instance =
+                    registration::create_instance(&self.store, repository, &database, branch)
+                        .await?;
+                (instance.deployment, database)
+            }
+        };
+        if !data_environment::is_installation(&self.store, &database) {
+            self.recorded(
+                deployment,
+                Stage::Database,
+                data_environment::ensure_database(&self.store, &database),
+            )
+            .await?;
+        }
         let name = sandbox_name(deployment);
-        self.recorded(deployment, Stage::Restart, async {
-            let policy = sandbox::policy(&self.policy, policy)?;
-            let mut grpc = self.client.raw_grpc_fresh().await?;
-            call(
-                "set the sandbox's policy",
-                grpc.update_config(p::UpdateConfigRequest {
-                    workspace_scope: scope(&self.config.workspace),
-                    sandbox: name.clone(),
-                    policy: Some(policy),
-                    ..Default::default()
-                }),
-            )
-            .await?;
-            call(
-                "stop the sandbox",
-                grpc.stop_sandbox(p::StopSandboxRequest {
-                    workspace_scope: scope(&self.config.workspace),
-                    name: name.clone(),
-                    ..Default::default()
-                }),
-            )
-            .await?;
-            // OpenShell starts a sandbox once its main program has stopped, completed
-            // or failed.
-            self.wait(&name, "stop", |sandbox| {
-                sandbox.is_none_or(|sandbox| {
-                    !matches!(Phase::of(sandbox), Phase::Ready | Phase::Stopping)
-                })
+        let image = self
+            .recorded(deployment, Stage::Build, async {
+                let image = image::ImageName::parse(name.clone())?;
+                Ok(self.builder.build(&prepared.image_context, &image).await?)
             })
             .await?;
-            call(
-                "start the sandbox",
-                grpc.start_sandbox(p::StartSandboxRequest {
-                    workspace_scope: scope(&self.config.workspace),
-                    name: name.clone(),
-                    ..Default::default()
-                }),
-            )
-            .await
-        })
-        .await?;
-        record::applied(&self.store, deployment, &push.revision).await
-    }
-
-    /// Serve a push whose image changed: delete the sandbox and create it again from the
-    /// new image. The new sandbox's disk starts empty; its providers stay.
-    pub async fn recreate(
-        &self,
-        deployment: DeploymentId,
-        source: &Source,
-        push: &Push,
-    ) -> Result<()> {
+        let mut remote = self.config.lore_server.clone();
+        remote.set_path(&format!("/{repository}"));
+        let source = Source {
+            remote,
+            image,
+            policy: prepared.policy,
+        };
         let branch = record::push(&self.store, deployment, &push.pusher).await?;
-        self.recorded(deployment, Stage::Create, async {
-            self.delete_sandbox(deployment).await?;
-            self.create_sandbox(deployment, &branch, source).await
-        })
-        .await?;
-        record::applied(&self.store, deployment, &push.revision).await
-    }
-
-    /// Stop serving an instance: delete its sandbox and providers, then the instance
-    /// and its registrations, then its data environment's database when no other
-    /// instance names it.
-    pub async fn delete(&self, deployment: DeploymentId) -> Result<()> {
-        let name = sandbox_name(deployment);
-        self.recorded(deployment, Stage::Delete, async {
-            self.delete_sandbox(deployment).await?;
-            let mut grpc = self.client.raw_grpc_fresh().await?;
-            for provider in sandbox::providers(&name) {
-                call(
-                    "delete the provider",
-                    grpc.delete_provider(p::DeleteProviderRequest {
-                        workspace_scope: scope(&self.config.workspace),
-                        name: provider,
-                        allow_missing: true,
-                        ..Default::default()
-                    }),
+        let current = self
+            .recorded(deployment, Stage::Create, self.sandbox(&name))
+            .await?;
+        match current {
+            Some(sandbox) if sandbox::runs(&sandbox, &source.image) => {
+                self.recorded(
+                    deployment,
+                    Stage::Restart,
+                    self.restart(&name, &sandbox, source.policy.as_deref()),
                 )
                 .await?;
             }
-            Ok(())
-        })
-        .await?;
-        if let Some(database) = registration::remove_instance(&self.store, deployment).await? {
-            data_environment::drop_database_if_unused(&self.store, &database).await?;
+            Some(_) => {
+                self.recorded(deployment, Stage::Create, async {
+                    self.delete_sandbox(&name).await?;
+                    self.create(deployment, &branch, &source).await
+                })
+                .await?;
+            }
+            None => {
+                self.admit(deployment, &push.pusher).await?;
+                self.recorded(
+                    deployment,
+                    Stage::Create,
+                    self.create(deployment, &branch, &source),
+                )
+                .await?;
+            }
         }
-        Ok(())
+        record::applied(&self.store, deployment, &push.revision).await
+    }
+
+    /// Stop serving `branch` of `repository`: delete the instance's sandbox and
+    /// providers, then the instance and its registrations, then its data environment's
+    /// database when no other instance names it. Nothing happens without an instance.
+    pub async fn remove(&self, repository: &str, branch: &BranchName) -> Result<()> {
+        repository_id(repository)?;
+        match record::instance(&self.store, repository, branch).await? {
+            Some((deployment, _)) => self.delete(deployment).await,
+            None => Ok(()),
+        }
+    }
+
+    /// The status of the instance of `branch` of `repository`, or none without one.
+    /// With a nonzero `wait`, at most [`MAX_WAIT`], it returns as soon as the instance
+    /// settles ([`InstanceStatus::settled`]), or at the end of the wait.
+    pub async fn status(
+        &self,
+        repository: &str,
+        branch: &BranchName,
+        wait: Duration,
+    ) -> Result<Option<InstanceStatus>> {
+        repository_id(repository)?;
+        let Some((deployment, _)) = record::instance(&self.store, repository, branch).await? else {
+            return Ok(None);
+        };
+        let deadline = Instant::now() + wait.min(MAX_WAIT);
+        loop {
+            let Some(status) = self.instance_status(deployment).await? else {
+                return Ok(None);
+            };
+            let now = Instant::now();
+            if status.settled() || now >= deadline {
+                return Ok(Some(status));
+            }
+            tokio::time::sleep(POLL_INTERVAL.min(deadline - now)).await;
+        }
     }
 
     /// The instance's status: its sandbox as OpenShell reports it, and what the Hub
     /// last applied and why its last step failed.
-    pub async fn status(&self, deployment: DeploymentId) -> Result<InstanceStatus> {
-        let record = record::read(&self.store, deployment)
-            .await?
-            .with_context(|| format!("no instance has deployment {deployment}"))?;
-        let sandbox = self.sandbox(&sandbox_name(deployment)).await?;
-        Ok(InstanceStatus {
-            sandbox: sandbox.as_ref().map(SandboxStatus::of),
-            revision: record.revision,
+    async fn instance_status(&self, deployment: DeploymentId) -> Result<Option<InstanceStatus>> {
+        let Some(record) = record::read(&self.store, deployment).await? else {
+            return Ok(None);
+        };
+        let name = sandbox_name(deployment);
+        let sandbox = self.sandbox(&name).await?.as_ref().map(SandboxStatus::of);
+        let ready = sandbox
+            .as_ref()
+            .is_some_and(|sandbox| sandbox.phase == Phase::Ready);
+        Ok(Some(InstanceStatus {
+            deployment,
+            workspace: self.config.workspace.clone(),
+            sandbox_name: name,
+            sandbox,
+            serving_revision: record.revision.clone().filter(|_| ready && record.served),
+            applied_revision: record.revision,
             failed: record.failed,
             warning: record.warning,
-        })
+        }))
     }
 
-    /// Create the sandbox of an instance that has none, unless an enforced cap refuses
-    /// it, and record the pushed revision.
-    async fn serve(
-        &self,
-        deployment: DeploymentId,
-        branch: &crate::execution::BranchName,
-        source: &Source,
-        push: &Push,
-    ) -> Result<()> {
-        self.admit(deployment, &push.pusher).await?;
-        self.recorded(
-            deployment,
-            Stage::Create,
-            self.create_sandbox(deployment, branch, source),
+    /// The database of `branch`'s data environment: the installation database for the
+    /// installation's current base branch, else the branch's own.
+    fn database(&self, branch: &BranchName) -> Result<DatabaseName> {
+        let catalog = self.catalog.current();
+        let base = catalog
+            .control_plane()
+            .execution
+            .as_ref()
+            .and_then(|execution| execution.base_branch.as_ref());
+        if base == Some(branch) {
+            DatabaseName::installation(&self.store)
+        } else {
+            Ok(DatabaseName::of_branch(branch))
+        }
+    }
+
+    /// Serve a push whose image the sandbox runs: set its policy, which OpenShell keeps
+    /// when unchanged, then stop and start it, whose start command fetches the branch's
+    /// latest revision. OpenShell stops a sandbox in any phase in which its program has
+    /// run, including a crash loop, and resets its restart count; a sandbox still
+    /// provisioning or starting for the first time has not run the start command yet and
+    /// fetches the latest revision when it does, so it is left to start. `policy` is
+    /// the revision's `openshell/policy.yaml`.
+    async fn restart(&self, name: &str, sandbox: &p::Sandbox, policy: Option<&str>) -> Result<()> {
+        let policy = sandbox::policy(&self.policy, policy)?;
+        let mut grpc = self.client.raw_grpc_fresh().await?;
+        call(
+            "set the sandbox's policy",
+            grpc.update_config(p::UpdateConfigRequest {
+                workspace_scope: scope(&self.config.workspace),
+                sandbox: name.into(),
+                policy: Some(policy),
+                ..Default::default()
+            }),
         )
         .await?;
-        record::applied(&self.store, deployment, &push.revision).await
+        let status = SandboxStatus::of(sandbox);
+        let started = match status.phase {
+            Phase::Provisioning => false,
+            Phase::Starting => status.restart_count > 0,
+            _ => true,
+        };
+        if !started {
+            return Ok(());
+        }
+        // OpenShell answers once the sandbox stopped, and starts its program at once.
+        call(
+            "stop the sandbox",
+            grpc.stop_sandbox(p::StopSandboxRequest {
+                workspace_scope: scope(&self.config.workspace),
+                name: name.into(),
+                ..Default::default()
+            }),
+        )
+        .await?;
+        call(
+            "start the sandbox",
+            grpc.start_sandbox(p::StartSandboxRequest {
+                workspace_scope: scope(&self.config.workspace),
+                name: name.into(),
+                ..Default::default()
+            }),
+        )
+        .await
+    }
+
+    /// Create the sandbox of an instance that has none. The instance gets a new
+    /// registration token in a new registration provider first, so a sandbox always
+    /// starts with a token the Hub holds, whatever became of an earlier provider: its
+    /// server registers again with it whenever its disk holds no registration.
+    async fn create(
+        &self,
+        deployment: DeploymentId,
+        branch: &BranchName,
+        source: &Source,
+    ) -> Result<()> {
+        let name = sandbox_name(deployment);
+        let policy = sandbox::policy(&self.policy, source.policy.as_deref())?;
+        let token = registration::reissue_token(&self.store, deployment).await?;
+        let mut grpc = self.client.raw_grpc_fresh().await?;
+        let provider = sandbox::registration_provider(&name);
+        call(
+            "delete the previous registration provider",
+            grpc.delete_provider(p::DeleteProviderRequest {
+                workspace_scope: scope(&self.config.workspace),
+                name: provider.clone(),
+                allow_missing: true,
+                ..Default::default()
+            }),
+        )
+        .await?;
+        call(
+            "create the registration provider",
+            grpc.create_provider(p::CreateProviderRequest {
+                workspace_scope: scope(&self.config.workspace),
+                provider: Some(p::Provider {
+                    metadata: Some(p::ObjectMeta {
+                        name: provider,
+                        workspace: self.config.workspace.clone(),
+                        ..Default::default()
+                    }),
+                    r#type: self.config.registration_profile.clone(),
+                    credentials: HashMap::from([(
+                        sandbox::REGISTRATION_SECRET.into(),
+                        token.expose_secret().into(),
+                    )]),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+        )
+        .await?;
+        call(
+            "create the sandbox",
+            grpc.create_sandbox(sandbox::create_request(
+                &self.config,
+                deployment,
+                branch,
+                source,
+                policy,
+            )),
+        )
+        .await
     }
 
     /// Check the per-user cap before a sandbox is created for an instance: above the
@@ -353,43 +457,56 @@ impl Factory {
         record::warn(&self.store, deployment, warning.as_deref()).await
     }
 
-    async fn create_sandbox(
-        &self,
-        deployment: DeploymentId,
-        branch: &crate::execution::BranchName,
-        source: &Source,
-    ) -> Result<()> {
-        let policy = sandbox::policy(&self.policy, source.policy.as_deref())?;
-        let mut grpc = self.client.raw_grpc_fresh().await?;
-        call(
-            "create the sandbox",
-            grpc.create_sandbox(sandbox::create_request(
-                &self.config,
-                deployment,
-                branch,
-                source,
-                policy,
-            )),
-        )
-        .await
+    /// Delete an instance: its sandbox and providers, then the instance and its
+    /// registrations, then its data environment's database when no other instance
+    /// names it.
+    async fn delete(&self, deployment: DeploymentId) -> Result<()> {
+        let name = sandbox_name(deployment);
+        self.recorded(deployment, Stage::Delete, async {
+            self.delete_sandbox(&name).await?;
+            let mut grpc = self.client.raw_grpc_fresh().await?;
+            for provider in sandbox::providers(&name) {
+                call(
+                    "delete the provider",
+                    grpc.delete_provider(p::DeleteProviderRequest {
+                        workspace_scope: scope(&self.config.workspace),
+                        name: provider,
+                        allow_missing: true,
+                        ..Default::default()
+                    }),
+                )
+                .await?;
+            }
+            Ok(())
+        })
+        .await?;
+        if let Some(database) = registration::remove_instance(&self.store, deployment).await? {
+            data_environment::drop_database_if_unused(&self.store, &database).await?;
+        }
+        Ok(())
     }
 
-    /// Delete the instance's sandbox and wait until OpenShell no longer has it.
-    async fn delete_sandbox(&self, deployment: DeploymentId) -> Result<()> {
-        let name = sandbox_name(deployment);
+    /// Delete the sandbox and wait until OpenShell no longer has it.
+    async fn delete_sandbox(&self, name: &str) -> Result<()> {
         let mut grpc = self.client.raw_grpc_fresh().await?;
         call(
             "delete the sandbox",
             grpc.delete_sandbox(p::DeleteSandboxRequest {
                 workspace_scope: scope(&self.config.workspace),
-                name: name.clone(),
+                name: name.into(),
                 allow_missing: true,
                 ..Default::default()
             }),
         )
         .await?;
-        self.wait(&name, "disappear", |sandbox| sandbox.is_none())
-            .await
+        tokio::time::timeout(TRANSITION_TIMEOUT, async {
+            while self.sandbox(name).await?.is_some() {
+                tokio::time::sleep(POLL_INTERVAL).await;
+            }
+            Ok(())
+        })
+        .await
+        .with_context(|| format!("the sandbox did not disappear within {TRANSITION_TIMEOUT:?}"))?
     }
 
     async fn sandbox(&self, name: &str) -> Result<Option<p::Sandbox>> {
@@ -413,27 +530,6 @@ impl Factory {
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
             Err(status) => Err(refused("read the sandbox", &status)),
         }
-    }
-
-    /// Wait until the sandbox, or its absence, satisfies `done`.
-    async fn wait(
-        &self,
-        name: &str,
-        transition: &str,
-        done: impl Fn(Option<&p::Sandbox>) -> bool,
-    ) -> Result<()> {
-        tokio::time::timeout(TRANSITION_TIMEOUT, async {
-            loop {
-                if done(self.sandbox(name).await?.as_ref()) {
-                    return Ok(());
-                }
-                tokio::time::sleep(POLL_INTERVAL).await;
-            }
-        })
-        .await
-        .with_context(|| {
-            format!("the sandbox did not {transition} within {TRANSITION_TIMEOUT:?}")
-        })?
     }
 
     /// Run one step for the instance; when it fails, record why before returning the

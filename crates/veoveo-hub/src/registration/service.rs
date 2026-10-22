@@ -123,12 +123,15 @@ pub struct NewInstance {
     pub registration_token: SecretString,
 }
 
-/// Create an instance that serves `branch` and whose server registers into `database`,
-/// with a random registration token: the installation database, or a data
-/// environment's database that [`crate::data_environment::ensure_database`] created.
-/// Only the token's digest is stored; the token stays valid while the instance exists.
+/// Create an instance that serves `branch` of the Lore repository `repository` and
+/// whose server registers into `database`, with a random registration token: the
+/// installation database, or a data environment's database that
+/// [`crate::data_environment::ensure_database`] created. Only the token's digest is
+/// stored; the token stays valid while the instance exists and until
+/// [`reissue_token`] replaces it.
 pub async fn create_instance(
     store: &veoveo_store::PlatformStore,
+    repository: &str,
     database: &DatabaseName,
     branch: &crate::execution::BranchName,
 ) -> anyhow::Result<NewInstance> {
@@ -138,6 +141,7 @@ pub async fn create_instance(
         .create_instance(
             deployment,
             &digest(registration_token.expose_secret()),
+            repository,
             database,
             branch,
             Utc::now(),
@@ -147,6 +151,20 @@ pub async fn create_instance(
         deployment,
         registration_token,
     })
+}
+
+/// Give the instance of `deployment` a new random registration token, which replaces
+/// its previous one: that token authorizes nothing more. Registrations made with it
+/// stay.
+pub async fn reissue_token(
+    store: &veoveo_store::PlatformStore,
+    deployment: DeploymentId,
+) -> anyhow::Result<SecretString> {
+    let registration_token = random_token()?;
+    RegistrationStore::new(store.clone())
+        .reissue_token(deployment, &digest(registration_token.expose_secret()))
+        .await?;
+    Ok(registration_token)
 }
 
 /// Remove the instance of `deployment`: its registrations end, their logins are
@@ -345,6 +363,10 @@ impl RegistrationService {
                     self.ended(&replaced, RegistrationActivity::Replace).await?;
                     self.reload(&replaced.client_id).await?;
                 }
+                self.inner
+                    .store
+                    .served(request.metadata.registration.deployment)
+                    .await?;
             }
         }
         self.audit(&slug, RegistrationActivity::Register).await?;
@@ -376,6 +398,11 @@ impl RegistrationService {
         bearer: Bearer<'_>,
     ) -> Result<ClientInformation, RegistrationError> {
         let (registration, token) = self.authenticate(client_id, bearer).await?;
+        // A server resumes its saved registration by reading it.
+        self.inner
+            .store
+            .served(registration.metadata.registration.deployment)
+            .await?;
         self.information(
             registration.client_id,
             registration.issued_at,

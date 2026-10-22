@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- No row changes for a deployment outside an instance.\nUPDATE hub.instance\nSET served_at = now()\nWHERE deployment = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fb91eb44e1b7d4746a0aff054c01f7806ebbdd226b9132b5078080b3686ea22d"
+}

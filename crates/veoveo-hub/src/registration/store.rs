@@ -214,12 +214,13 @@ impl RegistrationStore {
         Ok((pin, replaced))
     }
 
-    /// Record a new instance of `branch` in `database` under the digest of its
-    /// registration token.
+    /// Record a new instance of `branch` of `repository` in `database` under the digest
+    /// of its registration token.
     pub async fn create_instance(
         &self,
         deployment: DeploymentId,
         token_digest: &Sha256Digest,
+        repository: &str,
         database: &DatabaseName,
         branch: &BranchName,
         now: DateTime<Utc>,
@@ -228,6 +229,7 @@ impl RegistrationStore {
             "src/registration/store/create_instance.sql",
             deployment.as_uuid(),
             token_digest.as_str(),
+            repository,
             database.as_str(),
             branch.as_str(),
             now,
@@ -235,6 +237,37 @@ impl RegistrationStore {
         .execute(self.store.pool())
         .await
         .context("failed to record the instance")?;
+        Ok(())
+    }
+
+    /// Replace the digest of the instance's registration token.
+    pub async fn reissue_token(
+        &self,
+        deployment: DeploymentId,
+        token_digest: &Sha256Digest,
+    ) -> Result<()> {
+        let replaced = sqlx::query_file!(
+            "src/registration/store/reissue_token.sql",
+            deployment.as_uuid(),
+            token_digest.as_str(),
+        )
+        .execute(self.store.pool())
+        .await
+        .context("failed to replace the instance's registration token")?;
+        anyhow::ensure!(
+            replaced.rows_affected() == 1,
+            "no instance has deployment {deployment}"
+        );
+        Ok(())
+    }
+
+    /// Record that the server of `deployment`, when it is an instance's, registered or
+    /// resumed its registration just now.
+    pub async fn served(&self, deployment: DeploymentId) -> Result<()> {
+        sqlx::query_file!("src/registration/store/served.sql", deployment.as_uuid())
+            .execute(self.store.pool())
+            .await
+            .context("failed to record the instance's server")?;
         Ok(())
     }
 

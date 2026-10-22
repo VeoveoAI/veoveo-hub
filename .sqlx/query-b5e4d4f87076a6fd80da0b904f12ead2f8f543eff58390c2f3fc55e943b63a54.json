@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "-- A push names the instance's latest pusher, whose instances count toward the per-user\n-- cap.\nUPDATE hub.instance\nSET pusher = $2\nWHERE deployment = $1\nRETURNING branch\n",
+  "query": "-- A push names the instance's latest pusher, whose instances count toward the per-user\n-- cap, and the restart or creation that follows ends what the server served.\nUPDATE hub.instance\nSET pusher = $2, served_at = NULL\nWHERE deployment = $1\nRETURNING branch\n",
   "describe": {
     "columns": [
       {
@@ -25,5 +25,5 @@
       false
     ]
   },
-  "hash": "41327e97b2349446f3d68bd4937b98bdf290239d172b9ad0b77d64b4f656946a"
+  "hash": "b5e4d4f87076a6fd80da0b904f12ead2f8f543eff58390c2f3fc55e943b63a54"
 }

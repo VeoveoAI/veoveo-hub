@@ -1,14 +1,20 @@
-//! Factory sandboxes against a fake OpenShell gateway (`factory/gateway.rs`) on a
-//! disposable database with the Hub's migrations. A new instance gets its registration
-//! provider and a sandbox of the pushed image, the default size, the base policy with
-//! the repository's rules added, restart policy Always, the server's settings and the
-//! fixed start command. A push of the same image sets the policy and stops and starts
-//! the sandbox; a push of another image deletes and creates it and keeps its provider.
-//! A failed step is recorded until a later one succeeds. Status reports OpenShell's
-//! phase, exit code, restart count and conditions. Caps warn above the cap and,
-//! enforced, refuse. Deleting an instance whose server registered with the Hub binary
-//! removes its sandbox, provider, instance, registration, login and database. No
-//! OpenShell, Lore or image is involved: images and revisions are synthetic values.
+//! Factory sandboxes against a fake OpenShell gateway (`factory/gateway.rs`) and a fake
+//! image builder, on a disposable database with the Hub's migrations. Each test applies
+//! pushes as the Lore watcher will: the first push of a branch creates its instance in
+//! its data environment, a registration provider with a new token and a sandbox of the
+//! built image, the default size, the base policy with the repository's rules added,
+//! restart policy Always, the server's settings and the fixed start command. A push of
+//! the same image sets the policy and stops and starts the sandbox, whatever its phase
+//! once its program has run, a crash loop included; a push of another image deletes and
+//! creates it with a new token. A failed build is recorded and changes nothing else; a
+//! failed provider creation leaves no dead end. Status reports OpenShell's phase, exit
+//! code, restart count and conditions. Caps warn and, enforced, refuse. Removing an
+//! instance whose server registered with the Hub binary removes its sandbox, provider,
+//! instance, registration, login and database. No OpenShell, Lore, BuildKit or image is
+//! involved: revisions, images and their digests are synthetic, and the fake builder's
+//! digest is the SHA-256 of a `Dockerfile`'s text.
+#[path = "support/catalog_admission.rs"]
+mod catalog_admission;
 #[path = "support/database.rs"]
 mod database;
 #[path = "factory/gateway.rs"]
@@ -18,35 +24,50 @@ mod hub;
 #[path = "support/servers.rs"]
 mod servers;
 
-use std::{collections::HashMap, future::Future, path::Path, time::Duration};
+use std::{
+    collections::HashMap,
+    future::Future,
+    os::unix::process::ExitStatusExt,
+    path::Path,
+    process::ExitStatus,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use database::TestDb;
+use futures::future::BoxFuture;
 use gateway::{Call, Gateway};
 use openshell_sdk::{OpenShellClient, raw::proto as p};
 use prost_types::{Struct, Value, value::Kind};
-use secrecy::ExposeSecret;
+use secrecy::SecretString;
 use serde_json::json;
+use sha2::{Digest, Sha256};
 use veoveo_hub::{
-    HubServerHealthState,
+    HubCatalog, HubCatalogHandle, HubServerHealthState,
     control_plane::FactoryConfiguration,
-    data_environment::{DatabaseName, ensure_database},
+    data_environment::DatabaseName,
     execution::BranchName,
     factory::{
-        Condition, Factory, Failure, Phase, Push, Revision, Source, Stage, Update,
-        image::PinnedImage, sandbox_name,
+        Condition, Factory, Failure, InstanceStatus, Phase, Prepared, Push, Revision, Stage,
+        image::{Build, ImageBuildError, ImageName, PinnedImage},
+        sandbox_name,
     },
-    registration::{NewInstance, create_instance},
+    registration::NewInstance,
 };
 use veoveo_hub_sdk_fixture::ledger::{self, LedgerDomain, LedgerTasks};
 use veoveo_store::PlatformStore;
 use veoveo_types::{DeploymentId, PrincipalId};
 
 /// How long one of these tests may take.
-const BOUND: Duration = Duration::from_secs(120);
+const BOUND: Duration = Duration::from_secs(180);
 const WORKSPACE: &str = "factory";
-const REPOSITORY: &str = "grpcs://lore.internal:41337/repository";
-const IMAGE_A: &str = "registry.internal:5000/environment@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const IMAGE_B: &str = "registry.internal:5000/environment@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+/// The Lore repository every push here belongs to, a synthetic ID.
+const REPOSITORY: &str = "0123456789abcdef0123456789abcdef";
+const LORE: &str = "grpcs://lore.internal:41337";
+/// The installation's base branch, whose instances use the installation database.
+const BASE: &str = "dev";
+/// The settings variable the Hub binary reads the fake gateway's bearer from.
+const GATEWAY_BEARER: &str = "VEOVEO_FACTORY_GATEWAY_TOKEN";
 const BASE_POLICY: &str = r#"version: 1
 filesystem_policy:
   include_workdir: true
@@ -73,10 +94,50 @@ network_policies:
       - path: /**
 "#;
 
+/// An image builder that builds nothing: an image's digest is the SHA-256 of the text
+/// of its context's `Dockerfile`, so unchanged content keeps its digest as with
+/// BuildKit, and a `Dockerfile` that starts with `FAIL` fails with its text as
+/// BuildKit's output. It records the names it was asked to build.
+#[derive(Default)]
+struct Builder {
+    built: Mutex<Vec<String>>,
+}
+
+impl Build for Builder {
+    fn build<'a>(
+        &'a self,
+        context: &'a Path,
+        name: &'a ImageName,
+    ) -> BoxFuture<'a, Result<PinnedImage, ImageBuildError>> {
+        Box::pin(async move {
+            let dockerfile = std::fs::read_to_string(context.join("Dockerfile"))?;
+            self.built.lock().unwrap().push(name.as_str().to_owned());
+            if dockerfile.starts_with("FAIL") {
+                return Err(ImageBuildError::Failed {
+                    status: ExitStatus::from_raw(1 << 8),
+                    output: dockerfile,
+                });
+            }
+            Ok(built(name.as_str(), &dockerfile))
+        })
+    }
+}
+
+/// The image the fake builder returns for `dockerfile` under `name`.
+fn built(name: &str, dockerfile: &str) -> PinnedImage {
+    let digest = hex::encode(Sha256::digest(dockerfile.as_bytes()));
+    PinnedImage::parse(format!(
+        "registry.internal:5000/factory/{name}@sha256:{digest}"
+    ))
+    .unwrap()
+}
+
 struct Fixture {
     db: TestDb,
     gateway: Gateway,
     client: OpenShellClient,
+    catalog: HubCatalogHandle,
+    builder: Arc<Builder>,
     factory: Factory,
     directory: tempfile::TempDir,
 }
@@ -87,35 +148,58 @@ impl Fixture {
         std::fs::write(directory.path().join("factory-base.yaml"), BASE_POLICY).unwrap();
         let db = TestDb::new().await;
         let (gateway, client) = Gateway::start().await;
+        let catalog = catalog();
+        let builder = Arc::new(Builder::default());
         let factory = Factory::new(
             configuration(directory.path(), caps),
+            catalog.clone(),
             client.clone(),
             db.a.clone(),
         )
-        .unwrap();
+        .unwrap()
+        .with_builder(builder.clone());
         Self {
             db,
             gateway,
             client,
+            catalog,
+            builder,
             factory,
             directory,
         }
     }
 
-    /// Another factory on the same gateway and database, with other caps.
+    /// Another factory on the same gateway, database and builder, with other caps.
     fn with_caps(&self, caps: serde_json::Value) -> Factory {
         Factory::new(
             configuration(self.directory.path(), caps),
+            self.catalog.clone(),
             self.client.clone(),
             self.db.a.clone(),
         )
         .unwrap()
+        .with_builder(self.builder.clone())
     }
 
-    /// A new instance of `branch` in the installation database.
-    async fn instance(&self, branch: &str) -> NewInstance {
-        let database = DatabaseName::installation(&self.db.a).unwrap();
-        create_instance(&self.db.a, &database, &BranchName::parse(branch).unwrap())
+    /// A revision's `openshell/` whose image `Dockerfile` is `dockerfile`.
+    fn prepared(&self, dockerfile: &str, policy: Option<&str>) -> Prepared {
+        let context = tempfile::tempdir_in(self.directory.path()).unwrap().keep();
+        std::fs::write(context.join("Dockerfile"), dockerfile).unwrap();
+        Prepared {
+            image_context: context,
+            policy: policy.map(str::to_owned),
+        }
+    }
+
+    async fn apply(&self, branch: &str, push: Push, prepared: Prepared) -> anyhow::Result<()> {
+        self.factory
+            .apply(REPOSITORY, &branch_name(branch), push, prepared)
+            .await
+    }
+
+    async fn status(&self, branch: &str) -> Option<InstanceStatus> {
+        self.factory
+            .status(REPOSITORY, &branch_name(branch), Duration::ZERO)
             .await
             .unwrap()
     }
@@ -123,14 +207,47 @@ impl Fixture {
     fn sandbox(&self, deployment: DeploymentId) -> Option<p::Sandbox> {
         self.gateway.sandbox(WORKSPACE, &sandbox_name(deployment))
     }
+
+    /// The registration token in the instance's registration provider.
+    fn token(&self, deployment: DeploymentId) -> String {
+        let name = format!("{}-registration", sandbox_name(deployment));
+        self.gateway.credentials(WORKSPACE, &name).unwrap()["VEOVEO_REGISTRATION_SECRET"].clone()
+    }
+
+    /// The instance as its server would register: its deployment and the token its
+    /// provider holds.
+    fn instance(&self, deployment: DeploymentId) -> NewInstance {
+        NewInstance {
+            deployment,
+            registration_token: SecretString::from(self.token(deployment)),
+        }
+    }
 }
 
-fn configuration(directory: &Path, caps: serde_json::Value) -> FactoryConfiguration {
-    serde_json::from_value(json!({
+/// The installation's configuration, with the base branch set.
+fn catalog() -> HubCatalogHandle {
+    let directory = tempfile::tempdir().unwrap();
+    let installation = veoveo_hub::local::generate(directory.path(), "http://127.0.0.1:1").unwrap();
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&installation.config).unwrap()).unwrap();
+    config["execution"]["baseBranch"] = json!(BASE);
+    let plane = serde_json::from_value(config).unwrap();
+    HubCatalogHandle::new(Arc::new(
+        HubCatalog::from_control_plane(plane, catalog_admission::binding()).unwrap(),
+    ))
+}
+
+fn configuration_json(
+    directory: &Path,
+    gateway: &str,
+    authority: &Path,
+    caps: serde_json::Value,
+) -> serde_json::Value {
+    json!({
         "gateway": {
-            "endpoint": "https://gateway.example/",
-            "certificateAuthority": "/unused/ca.pem",
-            "bearerEnvironment": "UNUSED"
+            "endpoint": gateway,
+            "certificateAuthority": authority,
+            "bearerEnvironment": GATEWAY_BEARER,
         },
         "workspace": WORKSPACE,
         "policyFile": directory.join("factory-base.yaml"),
@@ -138,23 +255,25 @@ fn configuration(directory: &Path, caps: serde_json::Value) -> FactoryConfigurat
         "memory": "16Gi",
         "port": 8800,
         "hubIssuer": "https://hub.example",
+        "loreServer": LORE,
         "registrationProfile": "vv-factory-registration",
         "imageBuilder": {
             "buildkit": "tcp://buildkitd.internal:1234",
             "registry": "registry.internal:5000",
-            "lore": format!("registry.internal:5000/lore@{}", &IMAGE_A[IMAGE_A.len() - 71..]),
+            "lore": format!("registry.internal:5000/lore@sha256:{}", "a".repeat(64)),
         },
         "caps": caps,
-    }))
-    .unwrap()
+    })
 }
 
-fn source(image: &str, policy: Option<&str>) -> Source {
-    Source {
-        repository: url::Url::parse(REPOSITORY).unwrap(),
-        image: PinnedImage::parse(image).unwrap(),
-        policy: policy.map(str::to_owned),
-    }
+fn configuration(directory: &Path, caps: serde_json::Value) -> FactoryConfiguration {
+    serde_json::from_value(configuration_json(
+        directory,
+        "https://gateway.example/",
+        Path::new("/unused/ca.pem"),
+        caps,
+    ))
+    .unwrap()
 }
 
 /// A synthetic revision, the digit repeated, pushed by `pusher`.
@@ -169,12 +288,21 @@ fn revision_of(digit: char) -> Revision {
     Revision::parse(digit.to_string().repeat(64)).unwrap()
 }
 
+fn branch_name(branch: &str) -> BranchName {
+    BranchName::parse(branch).unwrap()
+}
+
 fn scope() -> Option<p::WorkspaceSelector> {
     Some(p::WorkspaceSelector {
         selection: Some(p::workspace_selector::Selection::Workspace(
             WORKSPACE.into(),
         )),
     })
+}
+
+/// The digest the Hub keeps of a registration token.
+fn digest(token: &str) -> String {
+    format!("sha256:{}", hex::encode(Sha256::digest(token.as_bytes())))
 }
 
 async fn bounded(test: impl Future<Output = ()>) {
@@ -184,54 +312,65 @@ async fn bounded(test: impl Future<Output = ()>) {
 }
 
 #[tokio::test]
-async fn a_new_instance_gets_its_registration_provider_and_sandbox() {
+async fn a_first_push_creates_the_instance_in_its_data_environment() {
     bounded(async {
         let fixture = Fixture::start(json!(null)).await;
-        let instance = fixture.instance("dev/jose/x").await;
-        let name = sandbox_name(instance.deployment);
         fixture
-            .factory
-            .create(
-                &instance,
-                &source(IMAGE_A, Some(REPOSITORY_POLICY)),
-                &push('1', "alice"),
+            .apply(
+                "dev/jose/x",
+                push('1', "alice"),
+                fixture.prepared("FROM a", Some(REPOSITORY_POLICY)),
             )
             .await
             .unwrap();
+        let status = fixture.status("dev/jose/x").await.unwrap();
+        let deployment = status.deployment;
+        let name = sandbox_name(deployment);
+        assert_eq!(
+            *fixture.builder.built.lock().unwrap(),
+            std::slice::from_ref(&name)
+        );
 
         let calls = fixture.gateway.take_calls();
-        let [Call::CreateProvider(provider), Call::CreateSandbox(sandbox)] = calls.as_slice()
+        let [
+            Call::DeleteProvider(previous),
+            Call::CreateProvider(provider),
+            Call::CreateSandbox(sandbox),
+        ] = calls.as_slice()
         else {
             panic!("unexpected requests: {calls:?}");
         };
+        let registration = format!("{name}-registration");
+        assert_eq!(
+            (previous.name.as_str(), previous.allow_missing),
+            (registration.as_str(), true)
+        );
         assert_eq!(provider.workspace_scope, scope());
         let provider = provider.provider.as_ref().unwrap();
-        let registration = format!("{name}-registration");
         assert_eq!(provider.metadata.as_ref().unwrap().name, registration);
         assert_eq!(provider.r#type, "vv-factory-registration");
+        let token = fixture.token(deployment);
         assert_eq!(
             provider.credentials,
-            HashMap::from([(
-                "VEOVEO_REGISTRATION_SECRET".to_owned(),
-                instance.registration_token.expose_secret().to_owned()
-            )])
+            HashMap::from([("VEOVEO_REGISTRATION_SECRET".to_owned(), token.clone())])
+        );
+        assert_eq!(
+            token_digest(&fixture.db.a, deployment).await,
+            digest(&token)
         );
 
         assert_eq!(sandbox.workspace_scope, scope());
         assert_eq!(sandbox.name, name);
         let spec = sandbox.spec.as_ref().unwrap();
         let template = spec.template.as_ref().unwrap();
-        assert_eq!(template.image, IMAGE_A);
+        assert_eq!(template.image, built(&name, "FROM a").as_str());
         assert_eq!(template.resources, Some(limits("8", "16Gi")));
         assert_eq!(spec.restart_policy, p::SandboxRestartPolicy::Always as i32);
         assert_eq!(spec.providers, [registration]);
         assert_eq!(
             spec.environment,
             HashMap::from([
-                (
-                    "VEOVEO_DEPLOYMENT_ID".to_owned(),
-                    instance.deployment.to_string()
-                ),
+                ("VEOVEO_DEPLOYMENT_ID".to_owned(), deployment.to_string()),
                 (
                     "VEOVEO_PUBLIC_BASE_URL".to_owned(),
                     format!("http://{name}.internal:8800")
@@ -254,7 +393,7 @@ async fn a_new_instance_gets_its_registration_provider_and_sandbox() {
                  lore sync --reset \"$2@LATEST\"\n\
                  exec ./openshell/run",
                 "factory",
-                REPOSITORY,
+                &format!("{LORE}/{REPOSITORY}"),
                 "dev/jose/x",
             ]
         );
@@ -265,11 +404,44 @@ async fn a_new_instance_gets_its_registration_provider_and_sandbox() {
         rules.sort();
         assert_eq!(rules, ["hub", "internet", "packages"]);
 
-        let status = fixture.factory.status(instance.deployment).await.unwrap();
-        assert_eq!(status.revision, Some(revision_of('1')));
+        assert_eq!(status.workspace, WORKSPACE);
+        assert_eq!(status.sandbox_name, name);
+        assert_eq!(status.applied_revision, Some(revision_of('1')));
+        assert_eq!(status.serving_revision, None);
         assert_eq!(status.failed, None);
         assert_eq!(status.warning, None);
         assert_eq!(status.sandbox.unwrap().phase, Phase::Provisioning);
+
+        // The branch's data environment has a database of its own, and the base
+        // branch's instances use the installation database.
+        let environment = DatabaseName::of_branch(&branch_name("dev/jose/x"));
+        assert_eq!(
+            instance_database(&fixture.db.a, deployment).await,
+            environment
+        );
+        assert!(database_exists(&fixture.db.a, &environment).await);
+        fixture
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let base = fixture.status(BASE).await.unwrap();
+        assert_eq!(
+            instance_database(&fixture.db.a, base.deployment).await,
+            DatabaseName::installation(&fixture.db.a).unwrap()
+        );
+        assert!(fixture.status("dev/jose/y").await.is_none());
+        assert!(
+            fixture
+                .factory
+                .apply(
+                    "not-a-repository",
+                    &branch_name(BASE),
+                    push('2', "alice"),
+                    fixture.prepared("FROM a", None)
+                )
+                .await
+                .is_err()
+        );
     })
     .await;
 }
@@ -278,56 +450,26 @@ async fn a_new_instance_gets_its_registration_provider_and_sandbox() {
 async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
     bounded(async {
         let fixture = Fixture::start(json!(null)).await;
-        let instance = fixture.instance("dev").await;
-        let deployment = instance.deployment;
-        let name = sandbox_name(deployment);
         fixture
-            .factory
-            .create(&instance, &source(IMAGE_A, None), &push('1', "alice"))
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
             .await
             .unwrap();
+        let deployment = fixture.status(BASE).await.unwrap().deployment;
+        let name = sandbox_name(deployment);
         fixture.gateway.take_calls();
 
-        // OpenShell stops only a ready sandbox. The Hub records why its step failed and
-        // keeps the revision it last applied.
-        let pushed = source(IMAGE_A, Some(REPOSITORY_POLICY));
-        assert!(
-            fixture
-                .factory
-                .update(deployment, &pushed, &push('2', "bob"))
-                .await
-                .is_err()
-        );
-        let status = fixture.factory.status(deployment).await.unwrap();
-        assert_eq!(status.revision, Some(revision_of('1')));
-        let Some(Failure { stage, message }) = status.failed else {
-            panic!("the failed restart is recorded");
-        };
-        assert_eq!(stage, Stage::Restart);
-        assert!(
-            message.contains("OpenShell refused to stop the sandbox: FailedPrecondition"),
-            "{message}"
-        );
-        fixture.gateway.take_calls();
-
+        // A sandbox still provisioning has not run its start command: it fetches the
+        // latest revision when it does, so only its policy is set.
         fixture
-            .gateway
-            .set_phase(WORKSPACE, &name, p::SandboxPhase::Ready);
-        assert_eq!(
-            fixture
-                .factory
-                .update(deployment, &pushed, &push('2', "bob"))
-                .await
-                .unwrap(),
-            Update::Restarted
-        );
+            .apply(
+                BASE,
+                push('2', "bob"),
+                fixture.prepared("FROM a", Some(REPOSITORY_POLICY)),
+            )
+            .await
+            .unwrap();
         let calls = fixture.gateway.take_calls();
-        let [
-            Call::UpdateConfig(update),
-            Call::StopSandbox(stop),
-            Call::StartSandbox(start),
-        ] = calls.as_slice()
-        else {
+        let [Call::UpdateConfig(update)] = calls.as_slice() else {
             panic!("unexpected requests: {calls:?}");
         };
         assert_eq!(
@@ -342,39 +484,267 @@ async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
                 .network_policies
                 .contains_key("packages")
         );
-        assert_eq!(stop.name, name);
-        assert_eq!(start.name, name);
-        let status = fixture.factory.status(deployment).await.unwrap();
-        assert_eq!(status.revision, Some(revision_of('2')));
-        assert_eq!(status.failed, None);
-        assert_eq!(status.sandbox.unwrap().phase, Phase::Ready);
-
         assert_eq!(
-            fixture
-                .factory
-                .update(deployment, &source(IMAGE_B, None), &push('3', "bob"))
-                .await
-                .unwrap(),
-            Update::Recreated
+            fixture.status(BASE).await.unwrap().applied_revision,
+            Some(revision_of('2'))
         );
+
+        fixture
+            .gateway
+            .set_phase(WORKSPACE, &name, p::SandboxPhase::Ready);
+        served(&fixture.db.a, deployment).await;
+        let serving = fixture.status(BASE).await.unwrap();
+        assert_eq!(serving.serving_revision, Some(revision_of('2')));
+        assert!(serving.settled());
+        fixture
+            .apply(BASE, push('3', "bob"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
         let calls = fixture.gateway.take_calls();
-        let [Call::DeleteSandbox(delete), Call::CreateSandbox(create)] = calls.as_slice() else {
+        let [
+            Call::UpdateConfig(update),
+            Call::StopSandbox(stop),
+            Call::StartSandbox(start),
+        ] = calls.as_slice()
+        else {
+            panic!("unexpected requests: {calls:?}");
+        };
+        assert!(
+            !update
+                .policy
+                .as_ref()
+                .unwrap()
+                .network_policies
+                .contains_key("packages")
+        );
+        assert_eq!(
+            (stop.name.as_str(), start.name.as_str()),
+            (name.as_str(), name.as_str())
+        );
+        let restarted = fixture.status(BASE).await.unwrap();
+        assert_eq!(restarted.applied_revision, Some(revision_of('3')));
+        assert_eq!(restarted.failed, None);
+        assert_eq!(restarted.sandbox.unwrap().phase, Phase::Starting);
+        // The restart ended what the server served, until it registers or resumes.
+        assert_eq!(restarted.serving_revision, None);
+        let first_token = fixture.token(deployment);
+
+        fixture
+            .apply(BASE, push('4', "bob"), fixture.prepared("FROM b", None))
+            .await
+            .unwrap();
+        let calls = fixture.gateway.take_calls();
+        let [
+            Call::DeleteSandbox(delete),
+            Call::DeleteProvider(previous),
+            Call::CreateProvider(_),
+            Call::CreateSandbox(create),
+        ] = calls.as_slice()
+        else {
             panic!("unexpected requests: {calls:?}");
         };
         assert_eq!(
             (delete.name.as_str(), delete.allow_missing),
             (name.as_str(), true)
         );
+        assert_eq!(previous.name, format!("{name}-registration"));
         assert_eq!(create.name, name);
         let created = fixture.sandbox(deployment).unwrap();
-        assert_eq!(created.spec.unwrap().template.unwrap().image, IMAGE_B);
+        assert_eq!(
+            created.spec.unwrap().template.unwrap().image,
+            built(&name, "FROM b").as_str()
+        );
+        // The new sandbox's disk is empty, and its server registers with a new token.
+        let token = fixture.token(deployment);
+        assert_ne!(token, first_token);
+        assert_eq!(
+            token_digest(&fixture.db.a, deployment).await,
+            digest(&token)
+        );
         assert_eq!(
             fixture.gateway.providers(WORKSPACE),
             [format!("{name}-registration")]
         );
-        let status = fixture.factory.status(deployment).await.unwrap();
-        assert_eq!(status.revision, Some(revision_of('3')));
-        assert_eq!(status.sandbox.unwrap().phase, Phase::Provisioning);
+        let recreated = fixture.status(BASE).await.unwrap();
+        assert_eq!(recreated.applied_revision, Some(revision_of('4')));
+        assert_eq!(recreated.sandbox.unwrap().phase, Phase::Provisioning);
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_push_restarts_a_crash_looping_sandbox() {
+    bounded(async {
+        let fixture = Fixture::start(json!(null)).await;
+        fixture
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let deployment = fixture.status(BASE).await.unwrap().deployment;
+        let name = sandbox_name(deployment);
+        // A failed program waiting out its backoff, and one OpenShell is restarting.
+        for (revision, phase, restarts) in [
+            ('2', p::SandboxPhase::Error, 3),
+            ('3', p::SandboxPhase::Starting, 2),
+        ] {
+            fixture.gateway.set_status(
+                WORKSPACE,
+                &name,
+                p::SandboxStatus {
+                    phase: phase as i32,
+                    exit_code: Some(101),
+                    restart_count: restarts,
+                    ..Default::default()
+                },
+            );
+            assert!(fixture.status(BASE).await.unwrap().settled());
+            fixture.gateway.take_calls();
+            fixture
+                .apply(
+                    BASE,
+                    push(revision, "alice"),
+                    fixture.prepared("FROM a", None),
+                )
+                .await
+                .unwrap();
+            let calls = fixture.gateway.take_calls();
+            let [
+                Call::UpdateConfig(_),
+                Call::StopSandbox(_),
+                Call::StartSandbox(_),
+            ] = calls.as_slice()
+            else {
+                panic!("unexpected requests in {phase:?}: {calls:?}");
+            };
+            let status = fixture.status(BASE).await.unwrap();
+            let sandbox = status.sandbox.clone().unwrap();
+            assert_eq!((sandbox.phase, sandbox.restart_count), (Phase::Starting, 0));
+            assert_eq!(status.applied_revision, Some(revision_of(revision)));
+            assert_eq!(status.failed, None);
+            assert!(
+                !status.settled(),
+                "the restarted program has not failed yet"
+            );
+        }
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_failed_build_leaves_the_serving_instance_untouched() {
+    bounded(async {
+        let fixture = Fixture::start(json!(null)).await;
+        fixture
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let deployment = fixture.status(BASE).await.unwrap().deployment;
+        let name = sandbox_name(deployment);
+        fixture
+            .gateway
+            .set_phase(WORKSPACE, &name, p::SandboxPhase::Ready);
+        served(&fixture.db.a, deployment).await;
+        let token = fixture.token(deployment);
+        fixture.gateway.take_calls();
+
+        let error = fixture
+            .apply(
+                BASE,
+                push('2', "bob"),
+                fixture.prepared("FAIL: unknown instruction", None),
+            )
+            .await
+            .unwrap_err();
+        assert!(
+            format!("{error:#}").contains("FAIL: unknown instruction"),
+            "{error:#}"
+        );
+        assert_eq!(fixture.gateway.take_calls(), []);
+        let status = fixture.status(BASE).await.unwrap();
+        let Some(Failure { stage, message }) = &status.failed else {
+            panic!("the failed build is recorded");
+        };
+        assert_eq!(*stage, Stage::Build);
+        assert!(message.contains("BuildKit failed the build"), "{message}");
+        assert!(message.contains("FAIL: unknown instruction"), "{message}");
+        assert_eq!(status.applied_revision, Some(revision_of('1')));
+        assert_eq!(status.serving_revision, Some(revision_of('1')));
+        assert_eq!(status.sandbox.as_ref().unwrap().phase, Phase::Ready);
+        assert!(status.settled());
+        assert_eq!(fixture.token(deployment), token);
+        let json = serde_json::to_value(&status).unwrap();
+        assert_eq!(json["failed"]["stage"], "build");
+
+        // The next push that builds is applied and clears the failure.
+        fixture
+            .apply(BASE, push('3', "bob"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let status = fixture.status(BASE).await.unwrap();
+        assert_eq!(status.failed, None);
+        assert_eq!(status.applied_revision, Some(revision_of('3')));
+
+        // A first push that fails to build leaves an instance without a sandbox that
+        // shows why.
+        fixture
+            .apply(
+                "dev/broken",
+                push('1', "bob"),
+                fixture.prepared("FAIL: no base image", None),
+            )
+            .await
+            .unwrap_err();
+        let broken = fixture.status("dev/broken").await.unwrap();
+        assert_eq!(broken.failed.unwrap().stage, Stage::Build);
+        assert_eq!((broken.sandbox, broken.applied_revision), (None, None));
+        assert!(fixture.sandbox(broken.deployment).is_none());
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_failed_provider_creation_gets_a_new_token_on_the_next_push() {
+    bounded(async {
+        let fixture = Fixture::start(json!(null)).await;
+        fixture.gateway.refuse_next(
+            "CreateProvider",
+            tonic::Status::unavailable("the gateway is restarting"),
+        );
+        fixture
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap_err();
+        let status = fixture.status(BASE).await.unwrap();
+        let deployment = status.deployment;
+        let Some(Failure { stage, message }) = status.failed else {
+            panic!("the failed creation is recorded");
+        };
+        assert_eq!(stage, Stage::Create);
+        assert!(message.contains("the gateway is restarting"), "{message}");
+        assert!(fixture.sandbox(deployment).is_none());
+        let lost = token_digest(&fixture.db.a, deployment).await;
+        fixture.gateway.take_calls();
+
+        fixture
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let calls = fixture.gateway.take_calls();
+        let [
+            Call::DeleteProvider(_),
+            Call::CreateProvider(_),
+            Call::CreateSandbox(_),
+        ] = calls.as_slice()
+        else {
+            panic!("unexpected requests: {calls:?}");
+        };
+        let token = fixture.token(deployment);
+        let current = token_digest(&fixture.db.a, deployment).await;
+        assert_eq!(current, digest(&token));
+        assert_ne!(current, lost, "the token no provider received is replaced");
+        let status = fixture.status(BASE).await.unwrap();
+        assert_eq!(status.failed, None);
+        assert_eq!(status.applied_revision, Some(revision_of('1')));
     })
     .await;
 }
@@ -383,13 +753,12 @@ async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
 async fn status_reports_the_sandbox_as_openshell_does() {
     bounded(async {
         let fixture = Fixture::start(json!(null)).await;
-        let instance = fixture.instance("dev").await;
-        let name = sandbox_name(instance.deployment);
         fixture
-            .factory
-            .create(&instance, &source(IMAGE_A, None), &push('1', "alice"))
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
             .await
             .unwrap();
+        let deployment = fixture.status(BASE).await.unwrap().deployment;
+        let name = sandbox_name(deployment);
         let unschedulable = "0/1 nodes are available: 1 Insufficient cpu.";
         fixture.gateway.set_status(
             WORKSPACE,
@@ -408,7 +777,7 @@ async fn status_reports_the_sandbox_as_openshell_does() {
                 ..Default::default()
             },
         );
-        let status = fixture.factory.status(instance.deployment).await.unwrap();
+        let status = fixture.status(BASE).await.unwrap();
         let sandbox = status.sandbox.clone().unwrap();
         assert_eq!(sandbox.phase, Phase::Provisioning);
         assert_eq!(sandbox.exit_code, Some(101));
@@ -424,20 +793,24 @@ async fn status_reports_the_sandbox_as_openshell_does() {
         );
         assert_eq!(status.health().state, HubServerHealthState::Degraded);
         let json = serde_json::to_value(&status).unwrap();
+        assert_eq!(json["deployment"], deployment.to_string());
+        assert_eq!(json["workspace"], WORKSPACE);
+        assert_eq!(json["sandboxName"], name);
         assert_eq!(json["sandbox"]["phase"], "provisioning");
         assert_eq!(json["sandbox"]["exitCode"], 101);
+        assert_eq!(json["sandbox"]["restartCount"], 2);
         assert_eq!(json["sandbox"]["conditions"][0]["type"], "PodScheduled");
-        assert_eq!(json["revision"], "1".repeat(64));
+        assert_eq!(json["appliedRevision"], "1".repeat(64));
+        assert_eq!(json["servingRevision"], serde_json::Value::Null);
 
         for (phase, health) in [
             (p::SandboxPhase::Ready, HubServerHealthState::Healthy),
             (p::SandboxPhase::Error, HubServerHealthState::Offline),
         ] {
             fixture.gateway.set_phase(WORKSPACE, &name, phase);
-            let status = fixture.factory.status(instance.deployment).await.unwrap();
+            let status = fixture.status(BASE).await.unwrap();
             assert_eq!(status.health().state, health);
         }
-        assert!(fixture.factory.status(DeploymentId::new()).await.is_err());
     })
     .await;
 }
@@ -446,35 +819,38 @@ async fn status_reports_the_sandbox_as_openshell_does() {
 async fn caps_warn_above_the_cap_and_refuse_when_enforced() {
     bounded(async {
         let fixture = Fixture::start(json!({"instancesPerUser": 1})).await;
-        let first = fixture.instance("dev/alice/a").await;
-        let second = fixture.instance("dev/alice/b").await;
-        let other = fixture.instance("dev/bob/a").await;
-        for (instance, pusher) in [(&first, "alice"), (&second, "alice"), (&other, "bob")] {
+        for (branch, pusher) in [
+            ("dev/alice/a", "alice"),
+            ("dev/alice/b", "alice"),
+            ("dev/bob/a", "bob"),
+        ] {
             fixture
-                .factory
-                .create(instance, &source(IMAGE_A, None), &push('1', pusher))
+                .apply(branch, push('1', pusher), fixture.prepared("FROM a", None))
                 .await
                 .unwrap();
-            assert!(fixture.sandbox(instance.deployment).is_some());
         }
-        let factory = &fixture.factory;
-        let warning = |deployment| async move { factory.status(deployment).await.unwrap().warning };
-        assert_eq!(warning(first.deployment).await, None);
+        let fixture = &fixture;
+        let warning = |branch| async move { fixture.status(branch).await.unwrap().warning };
+        assert_eq!(warning("dev/alice/a").await, None);
         assert_eq!(
-            warning(second.deployment).await.as_deref(),
+            warning("dev/alice/b").await.as_deref(),
             Some("alice is the latest pusher of 2 instances, above the cap of 1")
         );
-        assert_eq!(warning(other.deployment).await, None);
+        assert_eq!(warning("dev/bob/a").await, None);
 
         let enforced = fixture.with_caps(json!({"instancesPerUser": 1, "enforce": true}));
-        let refused = fixture.instance("dev/alice/c").await;
         let error = enforced
-            .create(&refused, &source(IMAGE_A, None), &push('1', "alice"))
+            .apply(
+                REPOSITORY,
+                &branch_name("dev/alice/c"),
+                push('1', "alice"),
+                fixture.prepared("FROM a", None),
+            )
             .await
             .unwrap_err();
         let message = "alice is the latest pusher of 3 instances, above the cap of 1";
         assert_eq!(error.to_string(), message);
-        let status = enforced.status(refused.deployment).await.unwrap();
+        let status = fixture.status("dev/alice/c").await.unwrap();
         assert_eq!(
             status.failed,
             Some(Failure {
@@ -482,15 +858,14 @@ async fn caps_warn_above_the_cap_and_refuse_when_enforced() {
                 message: message.into()
             })
         );
-        assert_eq!(status.sandbox, None);
-        assert_eq!(status.revision, None);
-        assert!(fixture.sandbox(refused.deployment).is_none());
+        assert_eq!((status.sandbox, status.applied_revision), (None, None));
+        assert!(fixture.sandbox(status.deployment).is_none());
     })
     .await;
 }
 
 #[tokio::test]
-async fn deleting_an_instance_removes_its_sandbox_providers_registrations_and_database() {
+async fn removing_an_instance_deletes_its_sandbox_providers_registrations_and_database() {
     bounded(async {
         let _ = rustls::crypto::ring::default_provider().install_default();
         let fixture = Fixture::start(json!(null)).await;
@@ -498,27 +873,29 @@ async fn deleting_an_instance_removes_its_sandbox_providers_registrations_and_da
         let hub = hub::Hub::start(installation.path(), &fixture.db, Duration::from_secs(60)).await;
         let http = reqwest::Client::new();
         let store = &fixture.db.a;
-        let environment =
-            DatabaseName::parse(format!("factory_{}", uuid::Uuid::new_v4().simple())).unwrap();
-        ensure_database(store, &environment).await.unwrap();
-        let instance = create_instance(store, &environment, &BranchName::parse("feature").unwrap())
-            .await
-            .unwrap();
-        let deployment = instance.deployment;
-        let name = sandbox_name(deployment);
         fixture
-            .factory
-            .create(&instance, &source(IMAGE_A, None), &push('1', "alice"))
+            .apply(
+                "feature",
+                push('1', "alice"),
+                fixture.prepared("FROM a", None),
+            )
             .await
             .unwrap();
+        let deployment = fixture.status("feature").await.unwrap().deployment;
+        let name = sandbox_name(deployment);
+        let environment = instance_database(store, deployment).await;
+        assert_eq!(
+            environment,
+            DatabaseName::of_branch(&branch_name("feature"))
+        );
         // The fixture server stands in for the sandbox's server and registers with the
-        // instance's token.
+        // token of the instance's provider.
         let served = servers::serve_instance(
             &hub,
             &http,
             "ledger",
             ledger::authorization().unwrap(),
-            &instance,
+            &fixture.instance(deployment),
             async |registration, _, _| {
                 servers::hosted::<LedgerDomain>(registration, &http)
                     .handler(|| ledger::hosted(LedgerTasks::default()))
@@ -526,12 +903,24 @@ async fn deleting_an_instance_removes_its_sandbox_providers_registrations_and_da
             },
         )
         .await;
+        fixture
+            .gateway
+            .set_phase(WORKSPACE, &name, p::SandboxPhase::Ready);
+        assert_eq!(
+            fixture.status("feature").await.unwrap().serving_revision,
+            Some(revision_of('1')),
+            "the registration serves the applied revision"
+        );
         let registered = logins(store, deployment).await;
         assert_eq!(registered.len(), 1);
         assert!(role_exists(store, &registered[0]).await);
         fixture.gateway.take_calls();
 
-        fixture.factory.delete(deployment).await.unwrap();
+        fixture
+            .factory
+            .remove(REPOSITORY, &branch_name("feature"))
+            .await
+            .unwrap();
         let calls = fixture.gateway.take_calls();
         let [Call::DeleteSandbox(sandbox), Call::DeleteProvider(provider)] = calls.as_slice()
         else {
@@ -546,8 +935,15 @@ async fn deleting_an_instance_removes_its_sandbox_providers_registrations_and_da
         assert!(fixture.gateway.providers(WORKSPACE).is_empty());
         assert!(logins(store, deployment).await.is_empty());
         assert!(!role_exists(store, &registered[0]).await);
-        assert!(fixture.factory.status(deployment).await.is_err());
+        assert!(fixture.status("feature").await.is_none());
         assert!(!database_exists(store, &environment).await);
+        // Removing what is gone changes nothing.
+        fixture
+            .factory
+            .remove(REPOSITORY, &branch_name("feature"))
+            .await
+            .unwrap();
+        assert_eq!(fixture.gateway.take_calls(), []);
         drop(served);
     })
     .await;
@@ -594,4 +990,28 @@ async fn database_exists(store: &PlatformStore, database: &DatabaseName) -> bool
         .fetch_one(store.pool())
         .await
         .unwrap()
+}
+
+async fn instance_database(store: &PlatformStore, deployment: DeploymentId) -> DatabaseName {
+    let database =
+        sqlx::query_file_scalar!("tests/factory/instance_database.sql", deployment.as_uuid())
+            .fetch_one(store.pool())
+            .await
+            .unwrap();
+    DatabaseName::parse(database).unwrap()
+}
+
+async fn token_digest(store: &PlatformStore, deployment: DeploymentId) -> String {
+    sqlx::query_file_scalar!("tests/factory/token_digest.sql", deployment.as_uuid())
+        .fetch_one(store.pool())
+        .await
+        .unwrap()
+}
+
+/// What the Hub records when the instance's server registers or resumes.
+async fn served(store: &PlatformStore, deployment: DeploymentId) {
+    sqlx::query_file!("tests/factory/served.sql", deployment.as_uuid())
+        .execute(store.pool())
+        .await
+        .unwrap();
 }

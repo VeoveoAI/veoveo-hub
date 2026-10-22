@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.instance\nSET token_digest = $2\nWHERE deployment = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9de1f2d65f1e8f208e5312effde78c09c9437a8ba894a8928f52eb7ebdf838b5"
+}

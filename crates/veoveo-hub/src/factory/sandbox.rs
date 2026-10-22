@@ -124,7 +124,7 @@ pub(super) fn create_request(
             }),
             policy: Some(policy),
             providers: providers(&name),
-            command: start_command(&source.repository, branch),
+            command: start_command(&source.remote, branch),
             restart_policy: p::SandboxRestartPolicy::Always as i32,
             ..Default::default()
         }),

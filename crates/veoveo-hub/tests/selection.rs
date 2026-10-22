@@ -33,6 +33,8 @@ use veoveo_hub::{
 use veoveo_hub_sdk::hosting::{DomainServer, Hosted};
 use veoveo_hub_sdk_fixture::ledger::{self, LedgerDomain, LedgerTasks};
 
+/// The Lore repository of every instance here, a synthetic ID.
+const REPOSITORY: &str = "0123456789abcdef0123456789abcdef";
 /// How long one of these tests may take, Hub start included.
 const BOUND: Duration = Duration::from_secs(120);
 const BASE: &str = "dev";
@@ -67,7 +69,7 @@ impl Fixture {
         )
         .await;
         let http = reqwest::Client::new();
-        let instance = create_instance(&db.a, &installation(&db.a), &branch(BASE))
+        let instance = create_instance(&db.a, REPOSITORY, &installation(&db.a), &branch(BASE))
             .await
             .unwrap();
         let base = serve_instance(
@@ -83,7 +85,7 @@ impl Fixture {
             },
         )
         .await;
-        let instance = create_instance(&db.a, &installation(&db.a), &branch(FEATURE))
+        let instance = create_instance(&db.a, REPOSITORY, &installation(&db.a), &branch(FEATURE))
             .await
             .unwrap();
         let feature = serve_instance(

@@ -1,10 +1,14 @@
 //! A fake OpenShell gateway: an in-process gRPC server that answers the requests the
 //! factory sends from sandboxes and providers it keeps in memory, and records every
-//! request that changes them. Like the real gateway, it stops only a ready sandbox
-//! and starts only a stopped one. Any other method is unimplemented.
+//! request that changes them. Like the real gateway, it stops a sandbox that is ready,
+//! stopping, failed or in an automatic restart, and resets its restart count, answers a
+//! stop of a stopped or completed sandbox without change and refuses one still
+//! provisioning or starting for the first time; it starts a stopped, completed, failed
+//! or starting sandbox at once and answers a start of a ready one without change. Any
+//! other method is unimplemented.
 
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     convert::Infallible,
     future::Future,
     pin::Pin,
@@ -44,6 +48,8 @@ struct State {
     /// By workspace and name.
     sandboxes: BTreeMap<(String, String), p::Sandbox>,
     providers: BTreeMap<(String, String), p::Provider>,
+    /// The refusal the next request of a method answers instead, by method.
+    refusals: BTreeMap<String, Status>,
 }
 
 #[derive(Clone, Default)]
@@ -71,6 +77,25 @@ impl Gateway {
             gateway,
             OpenShellClient::from_parts(channel, EdgeAuthInterceptor::noop()),
         )
+    }
+
+    /// Answer the next request of `method` with `refusal`.
+    pub fn refuse_next(&self, method: &str, refusal: Status) {
+        self.state
+            .lock()
+            .unwrap()
+            .refusals
+            .insert(method.into(), refusal);
+    }
+
+    /// The credentials of a provider.
+    pub fn credentials(&self, workspace: &str, name: &str) -> Option<HashMap<String, String>> {
+        self.state
+            .lock()
+            .unwrap()
+            .providers
+            .get(&(workspace.into(), name.into()))
+            .map(|provider| provider.credentials.clone())
     }
 
     /// The recorded requests, which the next call no longer returns.
@@ -122,6 +147,9 @@ impl Gateway {
 
     fn handle(&self, method: &str, request: http::Request<Body>) -> BoxFuture {
         let state = self.state.clone();
+        if let Some(refusal) = state.lock().unwrap().refusals.remove(method) {
+            return Box::pin(async move { refusal.into_http() });
+        }
         match method {
             "CreateProvider" => unary(request, move |request: p::CreateProviderRequest| {
                 let mut state = state.lock().unwrap();
@@ -224,10 +252,25 @@ impl Gateway {
                     .get_mut(&key)
                     .ok_or_else(|| Status::not_found("sandbox not found"))?;
                 let status = sandbox.status.get_or_insert_default();
-                if status.phase != p::SandboxPhase::Ready as i32 {
-                    return Err(Status::failed_precondition("sandbox must be Ready to stop"));
+                let phase = p::SandboxPhase::try_from(status.phase).unwrap_or_default();
+                let automatic_restart =
+                    phase == p::SandboxPhase::Starting && status.restart_count > 0;
+                match phase {
+                    p::SandboxPhase::Stopped | p::SandboxPhase::Completed => {}
+                    p::SandboxPhase::Ready | p::SandboxPhase::Stopping | p::SandboxPhase::Error => {
+                        status.phase = p::SandboxPhase::Stopped as i32;
+                        status.restart_count = 0;
+                    }
+                    _ if automatic_restart => {
+                        status.phase = p::SandboxPhase::Stopped as i32;
+                        status.restart_count = 0;
+                    }
+                    _ => {
+                        return Err(Status::failed_precondition(format!(
+                            "sandbox must be Ready, Error, or in an automatic restart to stop (current phase: {phase:?})"
+                        )));
+                    }
                 }
-                status.phase = p::SandboxPhase::Stopped as i32;
                 let sandbox = sandbox.clone();
                 state.calls.push(Call::StopSandbox(request));
                 Ok(p::SandboxResponse {
@@ -246,12 +289,18 @@ impl Gateway {
                     .get_mut(&key)
                     .ok_or_else(|| Status::not_found("sandbox not found"))?;
                 let status = sandbox.status.get_or_insert_default();
-                if status.phase != p::SandboxPhase::Stopped as i32 {
-                    return Err(Status::failed_precondition(
-                        "sandbox must be Stopped to start",
-                    ));
+                match p::SandboxPhase::try_from(status.phase).unwrap_or_default() {
+                    p::SandboxPhase::Ready => {}
+                    p::SandboxPhase::Stopped
+                    | p::SandboxPhase::Completed
+                    | p::SandboxPhase::Starting
+                    | p::SandboxPhase::Error => status.phase = p::SandboxPhase::Starting as i32,
+                    phase => {
+                        return Err(Status::failed_precondition(format!(
+                            "sandbox must be Stopped, Completed or a failed main-process Error to start (current phase: {phase:?})"
+                        )));
+                    }
                 }
-                status.phase = p::SandboxPhase::Ready as i32;
                 let sandbox = sandbox.clone();
                 state.calls.push(Call::StartSandbox(request));
                 Ok(p::SandboxResponse {

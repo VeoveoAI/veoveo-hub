@@ -31,6 +31,8 @@ use veoveo_hub_sdk::registration::{
 };
 use veoveo_types::{ResourceScheme, ServerSlug};
 
+/// The Lore repository of every instance here, a synthetic ID.
+const REPOSITORY: &str = "0123456789abcdef0123456789abcdef";
 /// How long one of these tests may take, Hub start included.
 const BOUND: Duration = Duration::from_secs(120);
 
@@ -38,12 +40,22 @@ const BOUND: Duration = Duration::from_secs(120);
 async fn instances_of_one_slug_register_side_by_side_under_different_keys() {
     tokio::time::timeout(BOUND, async {
         let fixture = Fixture::start(Duration::from_secs(60)).await;
-        let a = create_instance(&fixture.db.a, &fixture.installation(), &branch("a"))
-            .await
-            .unwrap();
-        let b = create_instance(&fixture.db.a, &fixture.installation(), &branch("b"))
-            .await
-            .unwrap();
+        let a = create_instance(
+            &fixture.db.a,
+            REPOSITORY,
+            &fixture.installation(),
+            &branch("a"),
+        )
+        .await
+        .unwrap();
+        let b = create_instance(
+            &fixture.db.a,
+            REPOSITORY,
+            &fixture.installation(),
+            &branch("b"),
+        )
+        .await
+        .unwrap();
         assert_ne!(a.deployment, b.deployment);
 
         let first = fixture.instance(&a, a.deployment, Revision::First);
@@ -83,12 +95,22 @@ async fn instances_of_one_slug_register_side_by_side_under_different_keys() {
 async fn an_instance_registration_replaces_the_previous_one_under_the_same_deployment() {
     tokio::time::timeout(BOUND, async {
         let fixture = Fixture::start(Duration::from_secs(60)).await;
-        let a = create_instance(&fixture.db.a, &fixture.installation(), &branch("a"))
-            .await
-            .unwrap();
-        let b = create_instance(&fixture.db.a, &fixture.installation(), &branch("b"))
-            .await
-            .unwrap();
+        let a = create_instance(
+            &fixture.db.a,
+            REPOSITORY,
+            &fixture.installation(),
+            &branch("a"),
+        )
+        .await
+        .unwrap();
+        let b = create_instance(
+            &fixture.db.a,
+            REPOSITORY,
+            &fixture.installation(),
+            &branch("b"),
+        )
+        .await
+        .unwrap();
         let before = fixture.instance(&a, a.deployment, Revision::First);
         let previous = before.register().await.unwrap();
         let other = fixture
@@ -159,12 +181,22 @@ async fn an_instance_token_registers_only_its_deployment_and_other_tokens_take_t
 {
     tokio::time::timeout(BOUND, async {
         let fixture = Fixture::start(Duration::from_secs(60)).await;
-        let a = create_instance(&fixture.db.a, &fixture.installation(), &branch("a"))
-            .await
-            .unwrap();
-        let b = create_instance(&fixture.db.a, &fixture.installation(), &branch("b"))
-            .await
-            .unwrap();
+        let a = create_instance(
+            &fixture.db.a,
+            REPOSITORY,
+            &fixture.installation(),
+            &branch("a"),
+        )
+        .await
+        .unwrap();
+        let b = create_instance(
+            &fixture.db.a,
+            REPOSITORY,
+            &fixture.installation(),
+            &branch("b"),
+        )
+        .await
+        .unwrap();
         let registered = fixture
             .instance(&a, a.deployment, Revision::First)
             .register()
@@ -254,9 +286,14 @@ async fn an_instance_token_registers_only_its_deployment_and_other_tokens_take_t
 async fn housekeeping_never_orphans_or_collects_an_instance_registration() {
     tokio::time::timeout(BOUND, async {
         let fixture = Fixture::start(Duration::from_secs(1)).await;
-        let a = create_instance(&fixture.db.a, &fixture.installation(), &branch("a"))
-            .await
-            .unwrap();
+        let a = create_instance(
+            &fixture.db.a,
+            REPOSITORY,
+            &fixture.installation(),
+            &branch("a"),
+        )
+        .await
+        .unwrap();
         let instance = fixture
             .instance(&a, a.deployment, Revision::First)
             .register()
@@ -303,9 +340,14 @@ async fn housekeeping_never_orphans_or_collects_an_instance_registration() {
 async fn an_update_with_new_metadata_replaces_the_instance_registration_and_its_deployment() {
     tokio::time::timeout(BOUND, async {
         let fixture = Fixture::start(Duration::from_secs(60)).await;
-        let a = create_instance(&fixture.db.a, &fixture.installation(), &branch("a"))
-            .await
-            .unwrap();
+        let a = create_instance(
+            &fixture.db.a,
+            REPOSITORY,
+            &fixture.installation(),
+            &branch("a"),
+        )
+        .await
+        .unwrap();
         let registered = fixture
             .instance(&a, a.deployment, Revision::First)
             .register()

@@ -169,7 +169,7 @@ other token must be the installation's registration secret.
 | Table in the `hub` schema | Holds |
 |---|---|
 | `namespace_claim` | One row per slug: the RFC 7638 thumbprint of the pinned key |
-| `instance` | One row per instance: its deployment ID, the branch it serves, the SHA-256 digest of its registration token, the database its server registers into, and what the Hub records about its factory sandbox: the latest pusher, the revision it last applied, its last failed step and the capacity warning of its creation |
+| `instance` | One row per instance: its deployment ID, the Lore repository and branch it serves, one instance per pair, the SHA-256 digest of its registration token, the database its server registers into, and what the Hub records about its factory sandbox: the latest pusher, the revision it last applied, when its server last registered or resumed, its last failed step and the capacity warning of its creation |
 | `deployment` | One row per deployment: its slug, metadata and storage binding |
 | `registration` | One row per registration: client identifier, deployment, metadata, software statement, SHA-256 digest of the registration access token, its login, and `orphaned_at`, when housekeeping found that login without a live process, which is NULL while it holds one |
 
@@ -192,7 +192,7 @@ user, with the login and its password. The Hub keeps only the login's name.
 An instance is one branch of a server repository, served from its own sandbox.
 `registration::create_instance` gives it a new deployment ID and a random 256-bit
 registration token, of which the Hub stores only the digest; the token stays valid
-while the instance exists. Its one check is that the metadata names the instance's
+while the instance exists, until `registration::reissue_token` replaces it. Its one check is that the metadata names the instance's
 deployment, otherwise `invalid_client_metadata`; the software statement is verified
 against the key the metadata presents. It claims no namespace, pins no key, does not
 expire and is not used up, so several instances of one slug register at once under
@@ -273,41 +273,68 @@ An instance runs in its factory sandbox, one OpenShell sandbox in the workspace 
 recreates and deletes the sandbox, records what OpenShell cannot know, and reads the
 rest from OpenShell. It runs no command inside a sandbox.
 
+`Factory::apply(repository, branch, push, prepared)` applies one push: the Lore
+repository ID, the branch, the revision with its pusher, and the revision's
+`openshell/` as the caller read it, a checkout of `openshell/image/` and the text of
+`openshell/policy.yaml`. It finds the instance of that repository and branch or
+creates it in the branch's data environment: the installation database for the
+current `execution.baseBranch`, otherwise `DatabaseName::of_branch`, the branch name's
+ASCII letters and digits in lowercase with each other run as one underscore, cut to
+fit, an underscore and the first eight hexadecimal digits of the name's SHA-256, at
+most 63 bytes. It ensures that database, builds the image through the configured
+`image::Build`, BuildKit's `ImageBuilder` unless a test supplies its own, named by the
+sandbox, then creates, restarts or recreates the sandbox and records the revision.
+Building changes nothing, so a failed build leaves the sandbox and what it serves as
+they were. The caller applies the pushes of one instance one at a time.
+`Factory::remove(repository, branch)` deletes the instance, if any.
+
 The sandbox is named by the last two groups of the instance's deployment ID, 17
-characters within OpenShell's 19 for a routable name. Creating an instance's sandbox
-first creates its registration provider, `<sandbox>-registration`, of the configured
-`registrationProfile` with the instance's registration token as
-`VEOVEO_REGISTRATION_SECRET`. The sandbox then gets the pushed image by digest, the
+characters within OpenShell's 19 for a routable name. Every creation of an instance's
+sandbox first gives the instance a new registration token and replaces its
+registration provider, `<sandbox>-registration`, of the configured
+`registrationProfile` with that token as `VEOVEO_REGISTRATION_SECRET`: a provider that
+could not be created, or the provider of a sandbox that was replaced, leaves no token
+behind that no sandbox holds. The sandbox then gets the pushed image by digest, the
 configured CPU and memory as Kubernetes limits, restart policy `always`, that provider,
 and the installation's base policy with the network rules of the revision's
 `openshell/policy.yaml` added; a repository policy that sets anything else or reuses a
 base rule's name is refused. Its environment names `VEOVEO_DEPLOYMENT_ID`,
 `VEOVEO_PUBLIC_BASE_URL` (`http://<sandbox>.internal:<port>`), `VEOVEO_PORT` and
-`VEOVEO_HUB_ISSUER`. Its fixed start command clones the branch into `/sandbox/src`
-when no checkout exists, runs `lore sync --reset <branch>@LATEST` and then
-`exec ./openshell/run`; the repository and branch are its arguments.
+`VEOVEO_HUB_ISSUER`. Its fixed start command clones `<loreServer>/<repository>` into
+`/sandbox/src` when no checkout exists, runs `lore sync --reset <branch>@LATEST` and
+then `exec ./openshell/run`; the repository URL and branch are its arguments.
 
 A push applies to an existing instance by the image its sandbox runs. With the same
 image the Hub sets the policy through `UpdateConfig`, which OpenShell keeps when it is
-unchanged, stops the sandbox, waits until its main program no longer runs and starts
-it; the start command fetches the branch's latest revision. With another image, or
-without a sandbox, the Hub deletes the sandbox, waits until OpenShell no longer has
-it, and creates it from the new image with an empty disk; the providers stay.
+unchanged, then stops and starts the sandbox; the start command fetches the branch's
+latest revision. OpenShell's stop answers once the sandbox stopped, from ready, from a
+failed program and from a crash loop's automatic restart, and resets the restart
+count; its start runs the program at once. A sandbox still provisioning, or starting
+for the first time, has not run its start command, which fetches the latest revision
+when it does, and OpenShell would refuse to stop it: the Hub only sets its policy.
+With another image, or without a sandbox, the Hub deletes the sandbox, waits until
+OpenShell no longer has it, and creates it from the new image with an empty disk.
 Deleting an instance deletes its sandbox and providers, then removes the instance and
 its registrations with their logins in one transaction, then drops its database when
 no other instance names it.
 
-Every push records its pusher as the instance's latest pusher. A step that succeeds
-records the pushed revision and clears the last failure; a failed step records
-`failed{stage, message}` with stage `capacity`, `create`, `restart` or `delete`, and
-OpenShell's refusal as its message. Status combines these with OpenShell's phase, the
-main program's last exit code, the restart count and the conditions, which include a
-scheduler's reason such as `Insufficient cpu`. An instance is healthy while its
-sandbox is ready and its last step succeeded, degraded while the sandbox is on its way
-to ready or still serves after a failed step, and offline otherwise. With
-`caps.instancesPerUser`, creating a sandbox for an instance whose latest pusher is the
-latest pusher of more instances records a warning naming the count and the cap; with
-`caps.enforce` the Hub refuses it as `failed{stage: capacity}` instead.
+Every push that built records its pusher as the instance's latest pusher and clears
+when its server last registered or resumed. A registration with the instance's token,
+and an RFC 7592 read of an instance's registration, which is how the SDK resumes,
+record that time. A step that succeeds records the pushed revision and clears the last
+failure; a failed step records `failed{stage, message}` with stage `database`,
+`build`, `capacity`, `create`, `restart` or `delete`, and the cause, such as
+BuildKit's output or OpenShell's refusal, as its message. Status combines these with
+OpenShell's phase, the main program's last exit code, the restart count and the
+conditions, which include a scheduler's reason such as `Insufficient cpu`, and names
+the sandbox and its workspace, which its output in the log store carries. The applied
+revision serves while the sandbox is ready and its server registered or resumed since
+the push. An instance is healthy while its sandbox is ready and its last step
+succeeded, degraded while the sandbox is on its way to ready or still serves after a
+failed step, and offline otherwise. With `caps.instancesPerUser`, creating a sandbox
+for an instance whose latest pusher is the latest pusher of more instances records a
+warning naming the count and the cap; with `caps.enforce` the Hub refuses it as
+`failed{stage: capacity}` instead.
 
 The Hub forwards to an instance through `nativeUpstreams`, which must name the
 factory's gateway: an instance's deployment binds to its sandbox in the factory
@@ -694,18 +721,21 @@ with its cause, that a change completes only the changed principal's listens wit
 tool-list hint, and that a Task started before a change completes on the instance it
 started on, under its captured composition.
 
-`tests/factory.rs` runs the factory against an in-process fake OpenShell gateway
-(`tests/factory/gateway.rs`), which answers the methods the factory sends and, like
-the gateway, stops only a ready sandbox and starts only a stopped one. It checks the
-provider, image, size, restart policy, environment, start command and composed policy
-of a new instance's sandbox; that a push of the same image sets the policy, stops and
-starts the sandbox and records the revision, after a refused stop was recorded as a
-failed restart; that a push of another image deletes and creates the sandbox and keeps
-the provider; that status reports phase, exit code, restart count and a scheduling
-condition; and that caps warn above the cap and, enforced, refuse. Against the binary,
-deleting an instance whose Ledger fixture registered into a data environment removes
-its sandbox, provider, registration, login, instance and database. Images and
-revisions are synthetic values; no OpenShell, Lore or image is involved.
+`tests/factory.rs` applies pushes against an in-process fake OpenShell gateway
+(`tests/factory/gateway.rs`), which answers the methods the factory sends with the
+gateway's stop and start rules, and a fake image builder whose digest is the SHA-256 of
+a `Dockerfile`. It checks a first push's data environment, provider token, image,
+size, restart policy, environment, start command and composed policy; that a push of
+the same image only sets the policy of a provisioning sandbox and otherwise stops and
+starts it, a failed or crash-looping one included, and that a push of another image
+recreates it with a new token; that a failed build is recorded and changes nothing
+else; that a refused provider creation is followed by a new token; that status reports
+phase, exit code, restart count and a scheduling condition; and that caps warn above
+the cap and, enforced, refuse. Against the binary, removing an instance whose Ledger
+fixture registered into a data environment removes its sandbox, provider,
+registration, login, instance and database, and the applied revision serves once the
+fixture registered. Images and revisions are synthetic values; no OpenShell, Lore,
+BuildKit or image is involved.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed

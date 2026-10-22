@@ -3,6 +3,7 @@
 use chrono::Utc;
 use openshell_sdk::raw::proto as p;
 use serde::Serialize;
+use veoveo_types::DeploymentId;
 
 use super::Revision;
 use crate::{HubServerHealth, HubServerHealthState};
@@ -11,11 +12,19 @@ use crate::{HubServerHealth, HubServerHealthState};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstanceStatus {
+    pub deployment: DeploymentId,
+    /// The OpenShell workspace of the instance's sandbox.
+    pub workspace: String,
+    /// The name of the instance's sandbox, which its output in the log store carries.
+    pub sandbox_name: String,
     /// The sandbox as OpenShell reports it; none while OpenShell has no sandbox for the
     /// instance.
     pub sandbox: Option<SandboxStatus>,
     /// The revision the Hub last applied to the sandbox.
-    pub revision: Option<Revision>,
+    pub applied_revision: Option<Revision>,
+    /// The applied revision while it serves: the sandbox is ready and its server
+    /// registered or resumed after the Hub last restarted or created it.
+    pub serving_revision: Option<Revision>,
     /// Why the Hub's last step for the instance failed, until a later one succeeds.
     pub failed: Option<Failure>,
     /// Why the instance was created above a cap.
@@ -32,7 +41,7 @@ pub struct SandboxStatus {
     /// The main program's last exit code; signals count as 128 plus the signal number.
     /// OpenShell clears it once a restarted program becomes ready.
     pub exit_code: Option<i32>,
-    /// Consecutive restarts in the current crash loop.
+    /// Consecutive restarts in the current crash loop; a stop resets it.
     pub restart_count: u32,
     /// OpenShell's readiness and lifecycle conditions, such as a scheduling failure.
     pub conditions: Vec<Condition>,
@@ -77,6 +86,10 @@ pub struct Failure {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Stage {
+    /// Creating or migrating the database of the instance's data environment.
+    Database,
+    /// Building the pushed revision's environment image.
+    Build,
     /// Creating the instance would exceed an enforced cap.
     Capacity,
     /// Creating the instance's provider or sandbox.
@@ -90,6 +103,8 @@ pub enum Stage {
 impl Stage {
     pub(super) fn as_str(self) -> &'static str {
         match self {
+            Self::Database => "database",
+            Self::Build => "build",
             Self::Capacity => "capacity",
             Self::Create => "create",
             Self::Restart => "restart",
@@ -99,6 +114,8 @@ impl Stage {
 
     pub(super) fn parse(value: &str) -> anyhow::Result<Self> {
         Ok(match value {
+            "database" => Self::Database,
+            "build" => Self::Build,
             "capacity" => Self::Capacity,
             "create" => Self::Create,
             "restart" => Self::Restart,
@@ -151,6 +168,19 @@ impl SandboxStatus {
 }
 
 impl InstanceStatus {
+    /// Whether a wait for the instance is over: its applied revision serves, the Hub's
+    /// last step for it failed, or its sandbox's program exited since its last start,
+    /// which OpenShell reports as an error or as a restart.
+    pub fn settled(&self) -> bool {
+        let serves =
+            self.applied_revision.is_some() && self.serving_revision == self.applied_revision;
+        let exited = self
+            .sandbox
+            .as_ref()
+            .is_some_and(|sandbox| sandbox.phase == Phase::Error || sandbox.restart_count > 0);
+        serves || exited || self.failed.is_some()
+    }
+
     /// The instance's health in the Hub's catalog: healthy while its sandbox is ready
     /// and the Hub's last step for it succeeded, degraded while the sandbox is on its
     /// way to ready or still serves after a failed step, offline otherwise.

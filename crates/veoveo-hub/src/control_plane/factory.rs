@@ -29,6 +29,10 @@ pub struct FactoryConfiguration {
     pub port: u16,
     /// The Hub issuer servers register with.
     pub hub_issuer: TokenIssuer,
+    /// The Lore server as factory sandboxes reach it, such as
+    /// `grpcs://lore.veoveo-system.svc.cluster.local:41337`. An instance's start command
+    /// clones `<loreServer>/<repository ID>`.
+    pub lore_server: url::Url,
     /// The global provider profile that carries an instance's registration token into
     /// its sandbox.
     pub registration_profile: String,
@@ -68,6 +72,18 @@ impl FactoryConfiguration {
         {
             return Err(invalid(
                 "factory requires absolute CA and policy paths, a bearer environment variable and a nonzero port",
+            ));
+        }
+        let lore = &self.lore_server;
+        if lore.host_str().is_none()
+            || !lore.username().is_empty()
+            || lore.password().is_some()
+            || !matches!(lore.path(), "" | "/")
+            || lore.query().is_some()
+            || lore.fragment().is_some()
+        {
+            return Err(invalid(
+                "the Lore server is a host and port without credentials, path, query or fragment",
             ));
         }
         if !dns_label(&self.workspace) || !dns_label(&self.registration_profile) {

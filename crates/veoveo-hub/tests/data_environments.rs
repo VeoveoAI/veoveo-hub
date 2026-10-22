@@ -46,6 +46,8 @@ use veoveo_store::{Instance, PlatformStore, StoreConfig};
 use veoveo_task::TaskRuntime;
 use veoveo_types::{DeploymentId, ServerSlug, TaskId};
 
+/// The Lore repository of every instance here, a synthetic ID.
+const REPOSITORY: &str = "0123456789abcdef0123456789abcdef";
 /// How long one of these tests may take, Hub start included.
 const BOUND: Duration = Duration::from_secs(180);
 
@@ -89,7 +91,7 @@ async fn scenario() {
     let base = relay_instance(
         &hub,
         &http,
-        &create_instance(&db.a, &installation, &branch_name("dev"))
+        &create_instance(&db.a, REPOSITORY, &installation, &branch_name("dev"))
             .await
             .unwrap(),
         installation,
@@ -98,7 +100,7 @@ async fn scenario() {
     let other = relay_instance(
         &hub,
         &http,
-        &create_instance(&db.a, &branch, &branch_name("feature"))
+        &create_instance(&db.a, REPOSITORY, &branch, &branch_name("feature"))
             .await
             .unwrap(),
         branch,
@@ -328,7 +330,7 @@ async fn environment_databases_are_created_once_and_dropped_when_unused() {
 
         let used = environment_name();
         ensure_database(&db.a, &used).await.unwrap();
-        create_instance(&db.a, &used, &branch_name("used"))
+        create_instance(&db.a, REPOSITORY, &used, &branch_name("used"))
             .await
             .unwrap();
 
