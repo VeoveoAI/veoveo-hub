@@ -296,7 +296,13 @@ impl Factory {
             return Ok(None);
         };
         let name = sandbox_name(deployment);
-        let sandbox = self.sandbox(&name).await?.as_ref().map(SandboxStatus::of);
+        let found = self.sandbox(&name).await?;
+        let sandbox_id = found
+            .as_ref()
+            .and_then(|sandbox| sandbox.metadata.as_ref())
+            .map(|metadata| metadata.id.clone())
+            .filter(|id| !id.is_empty());
+        let sandbox = found.as_ref().map(SandboxStatus::of);
         let ready = sandbox
             .as_ref()
             .is_some_and(|sandbox| sandbox.phase == Phase::Ready);
@@ -304,6 +310,7 @@ impl Factory {
             deployment,
             workspace: self.config.workspace.clone(),
             sandbox_name: name,
+            sandbox_id,
             sandbox,
             serving_revision: record.revision.clone().filter(|_| ready && record.served),
             applied_revision: record.revision,

@@ -408,6 +408,7 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
 
         assert_eq!(status.workspace, WORKSPACE);
         assert_eq!(status.sandbox_name, name);
+        assert_eq!(status.sandbox_id, Some(format!("{name}-id")));
         assert_eq!(status.applied_revision, Some(revision_of('1')));
         assert_eq!(status.serving_revision, None);
         assert_eq!(status.failed, None);

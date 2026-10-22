@@ -235,6 +235,8 @@ impl Gateway {
                 }
                 let sandbox = p::Sandbox {
                     metadata: Some(p::ObjectMeta {
+                        // The real gateway assigns every sandbox an ID.
+                        id: format!("{}-id", key.1),
                         name: key.1.clone(),
                         workspace: key.0.clone(),
                         ..Default::default()

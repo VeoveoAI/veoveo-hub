@@ -17,6 +17,10 @@ pub struct InstanceStatus {
     pub workspace: String,
     /// The name of the instance's sandbox, which its output in the log store carries.
     pub sandbox_name: String,
+    /// OpenShell's ID of the sandbox while it exists. Its workload and supervisor pods
+    /// both carry it as `openshell.ai/boundary-pair`, so one log query by that label
+    /// returns the server's output and OpenShell's network denials for it.
+    pub sandbox_id: Option<String>,
     /// The sandbox as OpenShell reports it; none while OpenShell has no sandbox for the
     /// instance.
     pub sandbox: Option<SandboxStatus>,
