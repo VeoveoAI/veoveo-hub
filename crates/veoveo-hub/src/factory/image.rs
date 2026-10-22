@@ -9,6 +9,7 @@ use std::{
     process::{ExitStatus, Stdio},
 };
 
+use futures::future::BoxFuture;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::{
@@ -104,6 +105,28 @@ impl ImageBuilder {
             "--metadata-file".into(),
             metadata.into(),
         ]
+    }
+}
+
+/// What builds an instance's environment image: [`ImageBuilder`] with BuildKit, or a
+/// test's own builder.
+pub trait Build: Send + Sync {
+    /// Build the image whose `Dockerfile` and the files it copies are in `context` as
+    /// `name`, and return it by digest.
+    fn build<'a>(
+        &'a self,
+        context: &'a Path,
+        name: &'a ImageName,
+    ) -> BoxFuture<'a, Result<PinnedImage, ImageBuildError>>;
+}
+
+impl Build for ImageBuilder {
+    fn build<'a>(
+        &'a self,
+        context: &'a Path,
+        name: &'a ImageName,
+    ) -> BoxFuture<'a, Result<PinnedImage, ImageBuildError>> {
+        Box::pin(ImageBuilder::build(self, context, name))
     }
 }
 
