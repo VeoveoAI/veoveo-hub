@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "-- A registration that replaces its deployment's binding removes the deployment's\n-- previous registrations. The caller drops each removed registration's login in the\n-- same transaction.\n-- veoveo: unbounded (the registrations of one deployment, which a registration with new metadata replaces)\nDELETE FROM hub.registration\nWHERE deployment = $1\nRETURNING client_id, server, login\n",
+  "query": "-- A registration that replaces its deployment's binding removes the deployment's\n-- previous registrations, and removing an instance removes all of them. The caller\n-- drops each removed registration's login in the same transaction.\n-- veoveo: unbounded (the registrations of one deployment, which a registration with new metadata replaces)\nDELETE FROM hub.registration\nWHERE deployment = $1\nRETURNING client_id, server, login\n",
   "describe": {
     "columns": [
       {
@@ -48,5 +48,5 @@
       false
     ]
   },
-  "hash": "60306b271fbe1505f99df1156bbf72b870be6647e34c0b8ec032f42ccba3d815"
+  "hash": "1c26cb46a94ff434b1b32372c199308bd11c3bd4708dddbe74ee540f2726a8d5"
 }

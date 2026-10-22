@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM hub.instance\nWHERE deployment = $1\nRETURNING database\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "database",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "database"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2437e1cf3dc4c6ec8dc94d37d162934a59668b4c76ca9540ac70ad971a815eef"
+}

@@ -149,6 +149,32 @@ pub async fn create_instance(
     })
 }
 
+/// Remove the instance of `deployment`: its registrations end, their logins are
+/// dropped and its registration token authorizes nothing more. Returns the database its
+/// server registered into, which [`crate::data_environment::drop_database_if_unused`]
+/// may then drop, or none when no instance has the deployment.
+pub async fn remove_instance(
+    store: &veoveo_store::PlatformStore,
+    deployment: DeploymentId,
+) -> anyhow::Result<Option<DatabaseName>> {
+    let Some((database, ended)) = RegistrationStore::new(store.clone())
+        .remove_instance(deployment)
+        .await?
+    else {
+        return Ok(None);
+    };
+    for registration in ended {
+        tracing::info!(
+            server = %registration.server,
+            client_id = %registration.client_id,
+            login = %registration.login,
+            %deployment,
+            "instance removed with its registration"
+        );
+    }
+    Ok(Some(database))
+}
+
 impl RegistrationService {
     pub fn new(
         store: veoveo_store::PlatformStore,

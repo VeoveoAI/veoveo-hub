@@ -292,6 +292,45 @@ impl RegistrationStore {
         Ok(replaced)
     }
 
+    /// Remove an instance and its registrations, dropping their logins, in one
+    /// transaction. Returns the instance's database and the removed registrations, or
+    /// none when no instance has the deployment.
+    pub async fn remove_instance(
+        &self,
+        deployment: DeploymentId,
+    ) -> Result<Option<(DatabaseName, Vec<EndedRegistration>)>> {
+        let mut transaction = self.store.pool().begin().await?;
+        let ended = sqlx::query_file_as!(
+            EndedRow,
+            "src/registration/store/replace_registrations.sql",
+            deployment.as_uuid(),
+        )
+        .fetch_all(&mut *transaction)
+        .await
+        .context("failed to remove the instance's registrations")?
+        .into_iter()
+        .map(EndedRegistration::try_from)
+        .collect::<Result<Vec<_>>>()?;
+        for registration in &ended {
+            drop_login(&mut transaction, &registration.login).await?;
+        }
+        let Some(database) = sqlx::query_file_scalar!(
+            "src/registration/store/delete_instance.sql",
+            deployment.as_uuid()
+        )
+        .fetch_optional(&mut *transaction)
+        .await
+        .context("failed to remove the instance")?
+        else {
+            return Ok(None);
+        };
+        transaction.commit().await?;
+        Ok(Some((
+            DatabaseName::parse(database).context("stored instance database is invalid")?,
+            ended,
+        )))
+    }
+
     /// Whether `deployment` is an instance's.
     pub async fn is_instance(&self, deployment: DeploymentId) -> Result<bool> {
         sqlx::query_file_scalar!(
