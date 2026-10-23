@@ -409,7 +409,7 @@ impl Fixture {
         let material = self.gateway.refresh_material(
             WORKSPACE,
             &format!("{}-lore", sandbox_name(deployment)),
-            "LORE_AUTH_TOKEN",
+            "LORE_ACCESS_TOKEN",
         )?;
         factory::instance_client(
             &self.db.a,

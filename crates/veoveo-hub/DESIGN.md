@@ -297,21 +297,22 @@ provider of a sandbox that was replaced, leaves no token behind that no sandbox 
 It likewise gives the instance's own client a new secret and replaces its Lore provider,
 `<sandbox>-lore`, of the configured `loreProfile`. The Lore provider has no credential
 of its own: the Hub configures the gateway's `oauth2_client_credentials` refresh of
-`LORE_AUTH_TOKEN` with the client, whose identifier is the deployment ID and whose
+`LORE_ACCESS_TOKEN` with the client, whose identifier is the deployment ID and whose
 secret only the gateway keeps; the Hub stores the secret's digest. The sandbox then gets
 the pushed image by digest, the configured CPU and memory as Kubernetes limits, restart
 policy `always`, both providers, and the installation's base policy with the network
 rules of the revision's `openshell/policy.yaml` added; a repository policy that sets
 anything else or reuses a base rule's name is refused. Its environment names
-`VEOVEO_DEPLOYMENT_ID`, `VEOVEO_PUBLIC_BASE_URL` (`http://<sandbox>.internal:<port>`),
-`VEOVEO_PORT` and `VEOVEO_HUB_ISSUER`. Its fixed start command clones
-`<loreServer>/<repository>` into `/sandbox/src` when no checkout exists, runs `lore sync
---reset <branch>@LATEST` and then `exec ./openshell/run`; the repository URL and branch
-are its arguments. Lore runs with `--access-token "$LORE_AUTH_TOKEN"`, the provider's
-placeholder, which the gateway replaces with the real token in Lore's requests. Lore's
-command line requires `--identity` with a token it cannot read; that identity names only
-the checkout's local user, and the Lore server authorizes the token alone, so the start
-command passes `$VEOVEO_DEPLOYMENT_ID`.
+`VEOVEO_DEPLOYMENT_ID`, `LORE_IDENTITY`, `VEOVEO_PUBLIC_BASE_URL`
+(`http://<sandbox>.internal:<port>`), `VEOVEO_PORT` and `VEOVEO_HUB_ISSUER`. Its fixed
+start command clones `<loreServer>/<repository>` into `/sandbox/src` when no checkout
+exists, runs `lore sync --reset <branch>@LATEST` and then `exec ./openshell/run`; the
+repository URL and branch are its arguments. Lore reads its access token from
+`LORE_ACCESS_TOKEN`, the provider's placeholder, which the gateway replaces with the
+real token in Lore's requests. Lore requires an identity with a token it cannot read,
+which it reads from `LORE_IDENTITY`; that identity names only the checkout's local user,
+and the Lore server authorizes the token alone, so the instance names itself with its
+deployment ID. The global Lore profile is the one Computers use.
 
 The instance's client is no installed OAuth client. At `/oauth/token` a
 `client_credentials` request whose client ID is an instance's deployment ID and whose

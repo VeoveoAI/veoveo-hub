@@ -374,7 +374,7 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
             (
                 scope(),
                 lore_provider.as_str(),
-                "LORE_AUTH_TOKEN",
+                "LORE_ACCESS_TOKEN",
                 p::ProviderCredentialRefreshStrategy::Oauth2ClientCredentials as i32,
                 ["client_secret".to_owned()].as_slice(),
             )
@@ -404,7 +404,7 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
         }
         assert_eq!(
             (rotate.provider.as_str(), rotate.credential_key.as_str()),
-            (lore_provider.as_str(), "LORE_AUTH_TOKEN")
+            (lore_provider.as_str(), "LORE_ACCESS_TOKEN")
         );
         let registration = format!("{name}-registration");
         assert_eq!(
@@ -437,6 +437,7 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
             spec.environment,
             HashMap::from([
                 ("VEOVEO_DEPLOYMENT_ID".to_owned(), deployment.to_string()),
+                ("LORE_IDENTITY".to_owned(), deployment.to_string()),
                 (
                     "VEOVEO_PUBLIC_BASE_URL".to_owned(),
                     format!("http://{name}.internal:8800")
@@ -454,9 +455,9 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
                 "/bin/sh",
                 "-c",
                 "set -e\n\
-                 [ -d /sandbox/src/.lore ] || lore --access-token \"$LORE_AUTH_TOKEN\" --identity \"$VEOVEO_DEPLOYMENT_ID\" clone \"$1\" /sandbox/src --branch \"$2\"\n\
+                 [ -d /sandbox/src/.lore ] || lore clone \"$1\" /sandbox/src --branch \"$2\"\n\
                  cd /sandbox/src\n\
-                 lore --access-token \"$LORE_AUTH_TOKEN\" --identity \"$VEOVEO_DEPLOYMENT_ID\" sync --reset \"$2@LATEST\"\n\
+                 lore sync --reset \"$2@LATEST\"\n\
                  exec ./openshell/run",
                 "factory",
                 &format!("{LORE}/{REPOSITORY}"),
@@ -1512,7 +1513,7 @@ async fn an_instances_lore_token_acts_as_its_latest_pusher_under_their_grant() {
             fixture
                 .gateway
                 .credentials(WORKSPACE, &lore(deployment))
-                .unwrap()["LORE_AUTH_TOKEN"]
+                .unwrap()["LORE_ACCESS_TOKEN"]
                 .clone()
         };
 
@@ -1548,7 +1549,7 @@ async fn an_instances_lore_token_acts_as_its_latest_pusher_under_their_grant() {
         hub.publish_control_plane(&plane).await;
         let material = fixture
             .gateway
-            .refresh_material(WORKSPACE, &lore(deployment), "LORE_AUTH_TOKEN")
+            .refresh_material(WORKSPACE, &lore(deployment), "LORE_ACCESS_TOKEN")
             .unwrap();
         let http = reqwest::Client::new();
         let client = [
@@ -1618,7 +1619,7 @@ async fn an_instances_lore_token_acts_as_its_latest_pusher_under_their_grant() {
         );
         let renewed = fixture
             .gateway
-            .refresh_material(WORKSPACE, &lore(deployment), "LORE_AUTH_TOKEN")
+            .refresh_material(WORKSPACE, &lore(deployment), "LORE_ACCESS_TOKEN")
             .unwrap();
         let renewed = [
             ("grant_type", "client_credentials"),

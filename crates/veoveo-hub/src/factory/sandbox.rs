@@ -38,8 +38,15 @@ pub(super) fn providers(sandbox: &str) -> Vec<String> {
 pub(super) const REGISTRATION_SECRET: &str = "VEOVEO_REGISTRATION_SECRET";
 
 /// The variable the Lore profile carries the placeholder of the instance's Lore token
-/// in. The gateway refreshes the credential of this key.
-pub(super) const LORE_TOKEN: &str = "LORE_AUTH_TOKEN";
+/// in, which Lore's command line reads as its access token. The gateway refreshes the
+/// credential of this key.
+pub(super) const LORE_TOKEN: &str = "LORE_ACCESS_TOKEN";
+
+/// The variable Lore's command line reads its identity from. Lore requires an identity
+/// with a token it cannot read, such as the provider's placeholder. That identity only
+/// names the checkout's local user, and the Lore server authorizes the token alone, so
+/// the instance names itself.
+pub(super) const LORE_IDENTITY: &str = "LORE_IDENTITY";
 
 /// The fixed start command, run on every start of the sandbox. The first start clones
 /// the branch onto the sandbox's persistent disk; every start then resets the checkout
@@ -47,23 +54,19 @@ pub(super) const LORE_TOKEN: &str = "LORE_AUTH_TOKEN";
 /// output, and replaces itself with the branch's own program, which builds and serves
 /// it. `$1` is the repository and `$2` the branch.
 ///
-/// Lore runs with the Lore provider's placeholder as its access token, which the gateway
-/// replaces with the real token in Lore's requests. Lore's command line requires an
-/// identity with a token it cannot read. That identity only names the checkout's local
-/// user, and the Lore server authorizes the token alone, so the instance names itself.
+/// Lore runs with the Lore provider's placeholder as its access token, from the
+/// sandbox's environment, which the gateway replaces with the real token in Lore's
+/// requests.
 fn start_command(repository: &url::Url, branch: &BranchName) -> Vec<String> {
-    let lore = format!(r#"lore --access-token "${LORE_TOKEN}" --identity "$VEOVEO_DEPLOYMENT_ID""#);
-    let script = format!(
-        r#"set -e
-[ -d /sandbox/src/.lore ] || {lore} clone "$1" /sandbox/src --branch "$2"
+    let script = r#"set -e
+[ -d /sandbox/src/.lore ] || lore clone "$1" /sandbox/src --branch "$2"
 cd /sandbox/src
-{lore} sync --reset "$2@LATEST"
-exec ./openshell/run"#
-    );
+lore sync --reset "$2@LATEST"
+exec ./openshell/run"#;
     vec![
         "/bin/sh".into(),
         "-c".into(),
-        script,
+        script.into(),
         "factory".into(),
         repository.to_string(),
         branch.to_string(),
@@ -120,6 +123,7 @@ pub(super) fn create_request(
         spec: Some(p::SandboxSpec {
             environment: HashMap::from([
                 ("VEOVEO_DEPLOYMENT_ID".into(), deployment.to_string()),
+                (LORE_IDENTITY.into(), deployment.to_string()),
                 (
                     "VEOVEO_PUBLIC_BASE_URL".into(),
                     public_base_url(&name, config.port),
@@ -206,9 +210,9 @@ mod tests {
         assert_eq!(
             command[2],
             "set -e\n\
-             [ -d /sandbox/src/.lore ] || lore --access-token \"$LORE_AUTH_TOKEN\" --identity \"$VEOVEO_DEPLOYMENT_ID\" clone \"$1\" /sandbox/src --branch \"$2\"\n\
+             [ -d /sandbox/src/.lore ] || lore clone \"$1\" /sandbox/src --branch \"$2\"\n\
              cd /sandbox/src\n\
-             lore --access-token \"$LORE_AUTH_TOKEN\" --identity \"$VEOVEO_DEPLOYMENT_ID\" sync --reset \"$2@LATEST\"\n\
+             lore sync --reset \"$2@LATEST\"\n\
              exec ./openshell/run"
         );
         assert_eq!(
