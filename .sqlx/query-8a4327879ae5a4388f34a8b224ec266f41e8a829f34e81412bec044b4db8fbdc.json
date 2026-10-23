@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Begin replacing a ready Computer's sandbox with one of $5, unless another replacement\n-- runs and is not yet stale. A new operation clears the last failure.\nUPDATE hub.computer\nSET operation_id = $4, operation_started_at = $6, operation_provisioning = $5,\n    operation_notice_shown = false, failure = NULL\nWHERE id = $1 AND tenant = $2 AND principal_id = $3 AND ready\n  AND (operation_id IS NULL OR operation_started_at < $7)\nRETURNING id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Jsonb",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8a4327879ae5a4388f34a8b224ec266f41e8a829f34e81412bec044b4db8fbdc"
+}

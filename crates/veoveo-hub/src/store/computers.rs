@@ -7,7 +7,7 @@ use veoveo_types::{PrincipalId, Sha256Digest, TenantId};
 
 use super::{HubStore, HubStoreError, RefreshFamily, admitted};
 use crate::{
-    computers::{ComputerId, ComputerProvisionSpec},
+    computers::{ComputerFailure, ComputerId, ComputerProvisionSpec, UpdateNotice},
     contract::PkceCodeVerifier,
 };
 
@@ -17,16 +17,30 @@ pub struct Computer {
     pub tenant: TenantId,
     pub principal: PrincipalId,
     pub workspace_request: Uuid,
-    pub template_request: Uuid,
     pub model_provider_request: Uuid,
     pub hub_provider_request: Uuid,
-    pub sandbox_request: Uuid,
     pub handoff: Option<Uuid>,
     pub configure_request: Option<Uuid>,
     pub rotate_request: Option<Uuid>,
     pub family: Option<HubRefreshFamilyId>,
     pub ready: bool,
+    /// The version the Computer's sandbox was last created at.
     pub provisioning: ComputerProvisionSpec,
+    /// The replacement of its sandbox that runs now.
+    pub operation: Option<ComputerOperation>,
+    pub failure: Option<ComputerFailure>,
+    pub update_notice: Option<UpdateNotice>,
+}
+
+/// A replacement of a Computer's sandbox: since when it runs and the version it
+/// creates.
+#[derive(Clone, Debug)]
+pub struct ComputerOperation {
+    pub id: Uuid,
+    pub started_at: DateTime<Utc>,
+    pub provisioning: ComputerProvisionSpec,
+    /// Whether the start page showed its changes.
+    pub notice_shown: bool,
 }
 impl Computer {
     /// The Computer's native workspace and sandbox name.
@@ -46,16 +60,20 @@ struct ComputerRow {
     tenant: String,
     principal_id: String,
     workspace_request: Uuid,
-    template_request: Uuid,
     model_provider_request: Uuid,
     hub_provider_request: Uuid,
-    sandbox_request: Uuid,
     handoff_id: Option<Uuid>,
     configure_request: Option<Uuid>,
     rotate_request: Option<Uuid>,
     family_id: Option<Uuid>,
     ready: bool,
     provisioning: Json<ComputerProvisionSpec>,
+    operation_id: Option<Uuid>,
+    operation_started_at: Option<DateTime<Utc>>,
+    operation_provisioning: Option<Json<ComputerProvisionSpec>>,
+    operation_notice_shown: bool,
+    failure: Option<Json<ComputerFailure>>,
+    update_notice: Option<Json<UpdateNotice>>,
 }
 impl TryFrom<ComputerRow> for Computer {
     type Error = HubStoreError;
@@ -68,10 +86,8 @@ impl TryFrom<ComputerRow> for Computer {
                 PrincipalId::parse(row.principal_id),
             )?,
             workspace_request: row.workspace_request,
-            template_request: row.template_request,
             model_provider_request: row.model_provider_request,
             hub_provider_request: row.hub_provider_request,
-            sandbox_request: row.sandbox_request,
             handoff: row.handoff_id,
             configure_request: row.configure_request,
             rotate_request: row.rotate_request,
@@ -86,6 +102,26 @@ impl TryFrom<ComputerRow> for Computer {
                 .transpose()?,
             ready: row.ready,
             provisioning: row.provisioning.0,
+            operation: match (
+                row.operation_id,
+                row.operation_started_at,
+                row.operation_provisioning,
+            ) {
+                (Some(id), Some(started_at), Some(provisioning)) => Some(ComputerOperation {
+                    id,
+                    started_at,
+                    provisioning: provisioning.0,
+                    notice_shown: row.operation_notice_shown,
+                }),
+                (None, None, None) => None,
+                _ => {
+                    return Err(HubStoreError::InvalidStoredValue {
+                        column: "computer.operation_id",
+                    });
+                }
+            },
+            failure: row.failure.map(|failure| failure.0),
+            update_notice: row.update_notice.map(|notice| notice.0),
         })
     }
 }
@@ -184,8 +220,6 @@ impl HubStore {
             Uuid::now_v7(),
             Uuid::now_v7(),
             Uuid::now_v7(),
-            Uuid::now_v7(),
-            Uuid::now_v7(),
             Utc::now(),
             Json(provisioning) as _
         )
@@ -235,6 +269,103 @@ impl HubStore {
         .await?
         .map(Computer::try_from)
         .transpose()
+    }
+    /// Begin replacing the ready Computer's sandbox with one of `provisioning`, as
+    /// `operation`, unless another replacement that started after `stale_before` runs.
+    /// Clears the last failure. Returns whether it began.
+    pub async fn claim_computer_operation(
+        &self,
+        computer: &Computer,
+        operation: Uuid,
+        provisioning: &ComputerProvisionSpec,
+        now: DateTime<Utc>,
+        stale_before: DateTime<Utc>,
+    ) -> Result<bool, HubStoreError> {
+        Ok(sqlx::query_file!(
+            "src/store/computers/operation_claim.sql",
+            computer.id.as_uuid(),
+            computer.tenant.as_str(),
+            computer.principal.as_str(),
+            operation,
+            Json(provisioning) as _,
+            now,
+            stale_before
+        )
+        .fetch_optional(self.pool())
+        .await?
+        .is_some())
+    }
+    /// Record the version `operation` created as the Computer's, with `notice` unless
+    /// the start page showed the operation's changes. Returns whether `operation` still
+    /// ran.
+    pub async fn finish_computer_operation(
+        &self,
+        computer: &Computer,
+        operation: Uuid,
+        notice: Option<&UpdateNotice>,
+    ) -> Result<bool, HubStoreError> {
+        Ok(sqlx::query_file!(
+            "src/store/computers/operation_finish.sql",
+            computer.id.as_uuid(),
+            computer.tenant.as_str(),
+            computer.principal.as_str(),
+            operation,
+            notice.map(Json) as _
+        )
+        .fetch_optional(self.pool())
+        .await?
+        .is_some())
+    }
+    /// End `operation` with `failure`; the Computer keeps its recorded version.
+    pub async fn fail_computer_operation(
+        &self,
+        computer: &Computer,
+        operation: Uuid,
+        failure: &ComputerFailure,
+    ) -> Result<bool, HubStoreError> {
+        Ok(sqlx::query_file!(
+            "src/store/computers/operation_fail.sql",
+            computer.id.as_uuid(),
+            computer.tenant.as_str(),
+            computer.principal.as_str(),
+            operation,
+            Json(failure) as _
+        )
+        .fetch_optional(self.pool())
+        .await?
+        .is_some())
+    }
+    /// Note that the start page showed `operation`'s changes.
+    pub async fn show_computer_operation(
+        &self,
+        computer: &Computer,
+        operation: Uuid,
+    ) -> Result<(), HubStoreError> {
+        sqlx::query_file!(
+            "src/store/computers/operation_shown.sql",
+            computer.id.as_uuid(),
+            computer.tenant.as_str(),
+            computer.principal.as_str(),
+            operation
+        )
+        .execute(self.pool())
+        .await?;
+        Ok(())
+    }
+    /// The Computer's update notice, once: it is cleared as it is returned.
+    pub async fn take_computer_update_notice(
+        &self,
+        computer: &Computer,
+    ) -> Result<Option<UpdateNotice>, HubStoreError> {
+        Ok(sqlx::query_file!(
+            "src/store/computers/notice_take.sql",
+            computer.id.as_uuid(),
+            computer.tenant.as_str(),
+            computer.principal.as_str()
+        )
+        .fetch_optional(self.pool())
+        .await?
+        .map(|row| row.update_notice.0))
     }
     /// Autocommitted before any native call. Concurrent logins wait behind an active
     /// worker row lock; a crashed worker leaves this durable pending state intact.
@@ -730,6 +861,104 @@ mod tests {
         })
         .await
         .expect("Computer handoff fixture exceeded 90 seconds");
+    }
+
+    #[tokio::test]
+    async fn one_replacement_runs_at_a_time_and_its_notice_is_told_once() {
+        tokio::time::timeout(Duration::from_secs(90), async {
+            let db = crate::test_store::TestDb::new().await;
+            let store = HubStore::new(db.a.clone());
+            let config: crate::control_plane::Computers = serde_json::from_value(serde_json::json!({
+                "gateway":{"endpoint":"https://gateway.example/","certificateAuthority":"/unused/ca","bearerEnvironment":"UNUSED"},
+                "template":{"workspace":"installation","name":"initial"},"policyFile":"/unused/policy","command":["/initial/app"],
+                "oauthClient":"fixture-client","profile":"fixture","workContext":"fixture","port":4096,
+                "hubProvider":{"profile":"fixture-hub","credentialKey":"HUB_REFERENCE"},
+                "modelProvider":{"profile":"fixture-model","credentialKey":"MODEL_REFERENCE","secret":"fixture-secret"},
+                "loreProvider":{"profile":"fixture-lore","credentialKey":"LORE_ACCESS_TOKEN"}
+            })).unwrap();
+            let first = ComputerProvisionSpec::fixture(config.clone());
+            let mut changed = config;
+            changed.command = vec!["/changed/app".into()];
+            let second = ComputerProvisionSpec::fixture(changed);
+            let tenant = TenantId::parse("tenant-a").unwrap();
+            let principal = PrincipalId::parse("fixture-user").unwrap();
+            let computer = store.ensure_computer(&tenant, &principal, &first).await.unwrap();
+            let now = Utc::now();
+            let stale = now - TimeDelta::minutes(11);
+            let operation = Uuid::now_v7();
+            assert!(
+                !store.claim_computer_operation(&computer, operation, &second, now, stale).await.unwrap(),
+                "a Computer without a completed sign-in has no sandbox to replace"
+            );
+            sqlx::query_file!(
+                "src/store/computers/tests/ready.sql",
+                computer.id.as_uuid(),
+                Uuid::now_v7(),
+                computer.tenant.as_str()
+            )
+            .execute(store.pool())
+            .await
+            .unwrap();
+            assert!(store.claim_computer_operation(&computer, operation, &second, now, stale).await.unwrap());
+            assert!(
+                !store.claim_computer_operation(&computer, Uuid::now_v7(), &second, now, stale).await.unwrap(),
+                "one replacement runs at a time"
+            );
+            let read = |store: HubStore| {
+                let computer = computer.clone();
+                async move {
+                    store
+                        .computer(&computer.tenant, &computer.principal, &computer.id)
+                        .await
+                        .unwrap()
+                        .unwrap()
+                }
+            };
+            let running = read(store.clone()).await;
+            assert_eq!(running.operation.as_ref().unwrap().id, operation);
+            assert_eq!(running.provisioning, first, "the version is recorded only once ready");
+            let failure = ComputerFailure {
+                cause: "creating the sandbox".into(),
+                at: now,
+                version: second.version().unwrap(),
+            };
+            assert!(store.fail_computer_operation(&computer, operation, &failure).await.unwrap());
+            assert!(
+                !store.finish_computer_operation(&computer, operation, None).await.unwrap(),
+                "an ended operation records nothing more"
+            );
+            let failed = read(store.clone()).await;
+            assert_eq!((failed.failure, failed.provisioning), (Some(failure), first.clone()));
+
+            // A worker that ended without recording leaves a stale operation, which the
+            // next entry claims again; the new one clears the failure.
+            let abandoned = Uuid::now_v7();
+            assert!(store.claim_computer_operation(&computer, abandoned, &second, stale - TimeDelta::seconds(1), stale).await.unwrap());
+            let operation = Uuid::now_v7();
+            assert!(store.claim_computer_operation(&computer, operation, &second, now, stale).await.unwrap());
+            assert!(read(store.clone()).await.failure.is_none());
+            let notice = UpdateNotice {
+                from: first.version().unwrap(),
+                to: second.version().unwrap(),
+                whats_new: Default::default(),
+            };
+            assert!(store.finish_computer_operation(&computer, operation, Some(&notice)).await.unwrap());
+            let updated = read(store.clone()).await;
+            assert!(updated.operation.is_none());
+            assert_eq!(updated.provisioning, second);
+            assert_eq!(store.take_computer_update_notice(&computer).await.unwrap(), Some(notice.clone()));
+            assert_eq!(store.take_computer_update_notice(&computer).await.unwrap(), None, "told once");
+
+            // The start page showed the changes: the completion records no notice.
+            let operation = Uuid::now_v7();
+            assert!(store.claim_computer_operation(&computer, operation, &first, now, stale).await.unwrap());
+            store.show_computer_operation(&computer, operation).await.unwrap();
+            assert!(store.finish_computer_operation(&computer, operation, Some(&notice)).await.unwrap());
+            assert_eq!(store.take_computer_update_notice(&computer).await.unwrap(), None);
+            assert_eq!(read(store).await.provisioning, first);
+        })
+        .await
+        .expect("the replacement fixture exceeded 90 seconds");
     }
 
     #[tokio::test]

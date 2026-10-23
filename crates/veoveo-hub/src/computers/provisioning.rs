@@ -1,4 +1,13 @@
 //! Native workspace/provider/template lifecycle. No grant is persisted by the Hub.
+//!
+//! [`Installation`] holds what a control revision fixes: the gateway, the policy file's
+//! policy, the model secret and the Hub's resource URL. It reads the installation's
+//! template when a Computer is entered, compared by its object identity and resource
+//! version, and prepares the current version only when that changes; a missing or
+//! invalid template leaves Computers unavailable without stopping the Hub.
+//! [`Provisioner`] acts on one Computer at one recorded version: the custody handoff of
+//! a sign-in, and the replacement of its sandbox, which deletes the sandbox keeping its
+//! home, creates one of that version and waits until it is ready.
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result, ensure};
@@ -6,12 +15,16 @@ use chrono::{DateTime, Utc};
 use openshell_sdk::raw::proto::{self as p, ProviderCredentialRefreshStrategy as Strategy};
 use prost_types::Timestamp;
 use secrecy::{ExposeSecret, SecretString};
+use tokio::{sync::Mutex, time::Instant};
 use uuid::Uuid;
 
 use super::gateway::{Gateway, RPC_TIMEOUT};
 use crate::{
-    HubCatalog, HubSecretResolver, contract::SecretPurpose, control_plane::Computers,
-    custody_client::CustodyClient, store::Computer,
+    HubCatalog, HubSecretResolver,
+    contract::{SecretPurpose, SecretReference},
+    control_plane::Computers,
+    custody_client::CustodyClient,
+    store::Computer,
 };
 
 pub(super) const HUB_PROVIDER: &str = "computer-hub";
@@ -22,13 +35,21 @@ pub(super) const LORE_PROVIDER: &str = "computer-lore";
 /// The providers every Computer's sandbox attaches.
 const PROVIDERS: [&str; 3] = [HUB_PROVIDER, MODEL_PROVIDER, LORE_PROVIDER];
 const RETENTION: &str = "openshell.nvidia.com/retention";
+/// The version a sandbox was created at, in its environment beside `LORE_IDENTITY`.
+pub(super) const COMPUTER_VERSION: &str = "COMPUTER_VERSION";
 pub(super) const READY_TIMEOUT: Duration = Duration::from_secs(120);
+/// How long a deleted sandbox may take to go. Kubernetes stops its Pods within their
+/// grace period, which slow nodes have outlived several times.
+const DELETE_TIMEOUT: Duration = Duration::from_secs(300);
+/// Entries within this long of the last template read share it; tests read it each time.
+const TEMPLATE_RECHECK: Duration = Duration::from_secs(if cfg!(test) { 0 } else { 5 });
 
-/// The Computer's sandbox is missing. Signing in again repairs it: the new sign-in's
-/// custody handoff creates the sandbox.
-#[derive(Debug, thiserror::Error)]
-#[error("Computer native sandbox missing; reauthorize")]
-pub(super) struct Reauthorize;
+/// Why Computers cannot start now: the installation's template or a provider profile
+/// is missing or invalid, or the gateway cannot answer. A Computer whose sandbox runs is
+/// still served.
+#[derive(Debug, Clone, thiserror::Error)]
+#[error("{0}")]
+pub struct Unavailable(pub String);
 
 pub(super) struct LoginGrant {
     pub access: SecretString,
@@ -48,6 +69,27 @@ struct ProviderSeed<'a> {
     expiry: Option<DateTime<Utc>>,
     request_id: Uuid,
 }
+
+/// The current version, or why there is none, as of one read of the template.
+struct Current {
+    /// The template's object ID and resource version. OpenShell has no template update:
+    /// a changed template is a new object, whose resource version starts again at 1.
+    template: Option<(String, u64)>,
+    checked: Instant,
+    result: Result<Provisioner, Unavailable>,
+}
+
+#[derive(Clone)]
+pub(super) struct Installation {
+    pub gateway: Gateway,
+    pub config: Arc<Computers>,
+    policy: p::sandbox::v1::SandboxPolicy,
+    public: String,
+    model_secret: SecretReference,
+    hub_url: String,
+    current: Arc<Mutex<Option<Current>>>,
+}
+
 #[derive(Clone)]
 pub(super) struct Provisioner {
     pub gateway: Gateway,
@@ -81,7 +123,10 @@ fn native_error(operation: &'static str, status: tonic::Status) -> anyhow::Error
     // Native/provider-controlled descriptions never enter browser responses/logs.
     anyhow::anyhow!("Computer native {operation} failed: {}", status.code())
 }
-impl Provisioner {
+impl Installation {
+    /// What does not depend on the template: the policy file, the gateway, the model
+    /// secret and the profile's resource URL. Reads no template, so a missing one
+    /// leaves the Hub running.
     pub async fn prepare(
         config: Arc<Computers>,
         previous: Option<&Self>,
@@ -99,7 +144,154 @@ impl Provisioner {
             }
             _ => Gateway::connect(&config.gateway, config.forwarding_connection_limit).await?,
         };
-        let mut grpc = gateway.client.raw_grpc_fresh().await?;
+        let model_secret = catalog
+            .secret_reference(&config.model_provider.secret)
+            .context("Computer model secret missing")?
+            .clone();
+        let _ = HubSecretResolver::new()
+            .resolve_reference(&model_secret, SecretPurpose::ProviderApiKey)
+            .await?;
+        let hub_url = catalog
+            .profile(&config.profile)
+            .context("Computer profile unavailable")?
+            .protected_resource
+            .to_string();
+        Ok(Self {
+            gateway,
+            config,
+            policy,
+            public: public.to_owned(),
+            model_secret,
+            hub_url,
+            current: Arc::default(),
+        })
+    }
+    /// An installation of already admitted parts, such as a test's fake gateway.
+    #[cfg(test)]
+    pub(super) fn of(provisioner: &Provisioner) -> Self {
+        Self {
+            gateway: provisioner.gateway.clone(),
+            config: provisioner.config.clone(),
+            policy: provisioner.policy.clone(),
+            public: provisioner.public.clone(),
+            model_secret: provisioner.spec.model_secret.clone(),
+            hub_url: provisioner.spec.hub_url.clone(),
+            current: Arc::default(),
+        }
+    }
+    pub fn model_secret(&self) -> &SecretReference {
+        &self.model_secret
+    }
+    pub fn hub_url(&self) -> &str {
+        &self.hub_url
+    }
+    pub fn for_computer(&self, computer: &Computer) -> Result<Provisioner> {
+        self.for_spec(computer.provisioning.clone())
+    }
+    pub fn for_spec(&self, spec: super::ComputerProvisionSpec) -> Result<Provisioner> {
+        ensure!(
+            spec.config.gateway == self.config.gateway,
+            "Computer recorded native gateway differs; explicit replacement required"
+        );
+        Ok(Provisioner {
+            // Forwarding capacity is process-wide live policy, not a per-user
+            // quota. Old instance governance does not allocate another budget.
+            gateway: self.gateway.clone(),
+            config: Arc::new(spec.config.clone()),
+            policy: spec.policy()?,
+            public: self.public.clone(),
+            spec,
+        })
+    }
+    /// The current version. Reads the installation's template, at most once within
+    /// [`TEMPLATE_RECHECK`] across entries, and prepares the version again only when
+    /// the template is another object or another resource version of it.
+    pub async fn current(&self) -> Result<Provisioner, Unavailable> {
+        let mut current = self.current.lock().await;
+        if let Some(known) = current.as_ref()
+            && known.checked.elapsed() < TEMPLATE_RECHECK
+        {
+            return known.result.clone();
+        }
+        let template = match self.read_template().await {
+            Ok(template) => template,
+            Err(unavailable) => {
+                *current = Some(Current {
+                    template: None,
+                    checked: Instant::now(),
+                    result: Err(unavailable.clone()),
+                });
+                return Err(unavailable);
+            }
+        };
+        let identity = template
+            .metadata
+            .as_ref()
+            .map(|metadata| (metadata.id.clone(), metadata.resource_version));
+        if let Some(known) = current.as_mut()
+            && known.template.is_some()
+            && known.template == identity
+        {
+            known.checked = Instant::now();
+            return known.result.clone();
+        }
+        let result = self.version(template).await.map_err(|error| {
+            Unavailable(format!(
+                "the installation's Computer template `{}` is not usable: {error:#}",
+                self.config.template.name
+            ))
+        });
+        if let Err(error) = &result {
+            tracing::warn!(%error, "Computers unavailable");
+        }
+        *current = Some(Current {
+            template: identity,
+            checked: Instant::now(),
+            result: result.clone(),
+        });
+        result
+    }
+    async fn read_template(&self) -> Result<p::SandboxWorkloadTemplate, Unavailable> {
+        let name = &self.config.template;
+        let unavailable = |reason: String| {
+            Unavailable(format!(
+                "the installation's Computer template `{}` in workspace `{}` {reason}",
+                name.name, name.workspace
+            ))
+        };
+        let mut grpc = self
+            .gateway
+            .client
+            .raw_grpc_fresh()
+            .await
+            .map_err(|_| unavailable("cannot be read: the gateway is unreachable".into()))?;
+        let answer = tokio::time::timeout(
+            RPC_TIMEOUT,
+            grpc.get_sandbox_template(p::GetSandboxTemplateRequest {
+                workspace_scope: scope(&name.workspace),
+                name: name.name.clone(),
+            }),
+        )
+        .await
+        .map_err(|_| unavailable("cannot be read: the gateway did not answer".into()))?;
+        match answer {
+            Ok(response) => response
+                .into_inner()
+                .template
+                .ok_or_else(|| unavailable("was answered without its content".into())),
+            Err(status) if status.code() == tonic::Code::NotFound => {
+                Err(unavailable("does not exist".into()))
+            }
+            Err(status) => Err(unavailable(format!(
+                "cannot be read: the gateway answered {}",
+                status.code()
+            ))),
+        }
+    }
+    /// The version of `template`: its backend on the gateway's one driver and the
+    /// provider profiles every sandbox of it attaches, checked now.
+    async fn version(&self, template: p::SandboxWorkloadTemplate) -> Result<Provisioner> {
+        let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
         let info = tokio::time::timeout(
             RPC_TIMEOUT,
             grpc.get_gateway_info(p::GetGatewayInfoRequest {}),
@@ -116,18 +308,6 @@ impl Provisioner {
             info.compute_drivers.len() == 1,
             "Computer requires one selected native driver"
         );
-        let template = tokio::time::timeout(
-            RPC_TIMEOUT,
-            grpc.get_sandbox_template(p::GetSandboxTemplateRequest {
-                workspace_scope: scope(&config.template.workspace),
-                name: config.template.name.clone(),
-            }),
-        )
-        .await?
-        .map_err(|e| native_error("get template", e))?
-        .into_inner()
-        .template
-        .context("native template omitted")?;
         ensure!(
             template
                 .spec
@@ -137,36 +317,21 @@ impl Provisioner {
             "Computer native image unspecified"
         );
         let backend = super::spec::persistence(&info.compute_drivers[0], &template)?;
-        let model_secret = catalog
-            .secret_reference(&config.model_provider.secret)
-            .context("Computer model secret missing")?
-            .clone();
-        let _ = HubSecretResolver::new()
-            .resolve_reference(&model_secret, SecretPurpose::ProviderApiKey)
-            .await?;
-        let hub_url = catalog
-            .profile(&config.profile)
-            .context("Computer profile unavailable")?
-            .protected_resource
-            .to_string();
         let spec = super::ComputerProvisionSpec::new(
-            (*config).clone(),
-            model_secret,
-            hub_url,
+            (*self.config).clone(),
+            self.model_secret.clone(),
+            self.hub_url.clone(),
             backend,
-            &policy,
+            &self.policy,
             &template,
         );
-        let result = Self {
-            gateway,
-            config,
-            policy,
-            public: public.to_owned(),
-            spec,
-        };
-        result.validate_profiles(public).await?;
-        Ok(result)
+        spec.version()?;
+        let provisioner = self.for_spec(spec)?;
+        provisioner.validate_profiles().await?;
+        Ok(provisioner)
     }
+}
+impl Provisioner {
     /// A provisioner of already admitted parts, such as a test's fake gateway.
     #[cfg(test)]
     pub(super) fn of(
@@ -184,25 +349,8 @@ impl Provisioner {
             spec,
         }
     }
-    pub fn for_computer(&self, computer: &Computer) -> Result<Self> {
-        self.for_spec(computer.provisioning.clone())
-    }
-    pub fn for_spec(&self, spec: super::ComputerProvisionSpec) -> Result<Self> {
-        ensure!(
-            spec.backend == self.spec.backend && spec.config.gateway == self.config.gateway,
-            "Computer recorded native backend or gateway differs; explicit replacement required"
-        );
-        Ok(Self {
-            // Forwarding capacity is process-wide live policy, not a per-user
-            // quota. Old instance governance does not allocate another budget.
-            gateway: self.gateway.clone(),
-            config: Arc::new(spec.config.clone()),
-            policy: spec.policy()?,
-            public: self.public.clone(),
-            spec,
-        })
-    }
-    async fn validate_profiles(&self, public: &str) -> Result<()> {
+    async fn validate_profiles(&self) -> Result<()> {
+        let public = &self.public;
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
         for (id, key, refresh) in [
             (
@@ -274,12 +422,14 @@ impl Provisioner {
         }
         Ok(())
     }
-    /// The owner's clone of the installation's template. Its workload's environment
-    /// adds the Computer's base path, the Hub MCP URL and the owner's Lore identity,
-    /// which Lore's command line requires with the Lore provider's placeholder, a token
-    /// it cannot read; the token Hub issues names the same identity.
+    /// The owner's clone of this version's template. Its workload's environment adds
+    /// the Computer's base path, the Hub MCP URL, the version and the owner's Lore
+    /// identity, which Lore's command line requires with the Lore provider's
+    /// placeholder, a token it cannot read; the token Hub issues names the same
+    /// identity.
     fn template(&self, computer: &Computer) -> Result<p::SandboxWorkloadTemplate> {
         let name = computer.native_name();
+        let version = self.spec.version()?;
         let mut template = self.spec.template()?;
         template.metadata = Some(metadata(&name, &name));
         let environment = &mut template
@@ -293,11 +443,15 @@ impl Provisioner {
         environment.insert("PUBLIC_BASE_PATH".into(), computer.base_path());
         environment.insert("COMPUTER_HUB_URL".into(), self.spec.hub_url.clone());
         environment.insert("LORE_IDENTITY".into(), computer.principal.to_string());
+        environment.insert(COMPUTER_VERSION.into(), version.to_string());
         Ok(template)
     }
     /// Runs only while the caller owns the durable handoff row lock. A bounded
     /// cold-path transaction serializes custody, not an exactly-once claim across
-    /// crashes between provider consumption and native durable publication.
+    /// crashes between provider consumption and native durable publication. Custody
+    /// only: the owner's workspace, its providers and their refresh, rotated now. A
+    /// running sandbox keeps running and receives the rotated credentials behind its
+    /// placeholders; entry creates a missing one.
     pub async fn handoff(
         &self,
         _catalog: &HubCatalog,
@@ -306,7 +460,7 @@ impl Provisioner {
     ) -> Result<()> {
         // Profile definitions can be updated by native operators. Recheck their
         // actual recipient/strategy before transferring a new user grant.
-        self.validate_profiles(&self.public).await?;
+        self.validate_profiles().await?;
         let handoff = computer.handoff.context("Computer handoff missing")?;
         let name = computer.native_name();
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
@@ -330,34 +484,6 @@ impl Provisioner {
                 .map_err(|e| native_error("create workspace", e))?;
             }
             Err(e) => return Err(native_error("get workspace", e)),
-        }
-        let template = self.template(computer)?;
-        match tokio::time::timeout(
-            RPC_TIMEOUT,
-            grpc.get_sandbox_template(p::GetSandboxTemplateRequest {
-                workspace_scope: scope(&name),
-                name: name.clone(),
-            }),
-        )
-        .await?
-        {
-            Ok(existing) => ensure!(
-                existing.into_inner().template.and_then(|v| v.spec) == template.spec,
-                "Computer cloned template differs from installation"
-            ),
-            Err(status) if status.code() == tonic::Code::NotFound => {
-                tokio::time::timeout(
-                    RPC_TIMEOUT,
-                    grpc.create_sandbox_template(p::CreateSandboxTemplateRequest {
-                        workspace_scope: scope(&name),
-                        template: Some(template),
-                        request_id: computer.template_request.to_string(),
-                    }),
-                )
-                .await?
-                .map_err(|e| native_error("clone template", e))?;
-            }
-            Err(e) => return Err(native_error("get cloned template", e)),
         }
         let model = HubSecretResolver::new()
             .resolve_reference(&self.spec.model_secret, SecretPurpose::ProviderApiKey)
@@ -398,25 +524,6 @@ impl Provisioner {
             },
         )
         .await?;
-
-        let existing = self.sandbox(&name).await?;
-        if let Some(sandbox) = &existing {
-            self.validate_sandbox(computer, sandbox)?;
-            let phase = phase(sandbox);
-            if phase != p::SandboxPhase::Stopped && phase != p::SandboxPhase::Completed {
-                tokio::time::timeout(
-                    RPC_TIMEOUT,
-                    grpc.stop_sandbox(p::StopSandboxRequest {
-                        workspace_scope: scope(&name),
-                        name: name.clone(),
-                        request_id: request(handoff, "stop"),
-                    }),
-                )
-                .await?
-                .map_err(|e| native_error("stop before custody", e))?;
-                self.wait_phase(&name, p::SandboxPhase::Stopped).await?;
-            }
-        }
         tokio::time::timeout(
             RPC_TIMEOUT,
             grpc.configure_provider_refresh(p::ConfigureProviderRefreshRequest {
@@ -452,37 +559,84 @@ impl Provisioner {
         .await?;
         self.lore_refresh(&name, handoff, &grant.lore).await?;
         drop(grant);
-        if existing.is_none() {
-            tokio::time::timeout(
-                RPC_TIMEOUT,
-                grpc.create_sandbox(self.create_request(computer)),
-            )
-            .await?
-            .map_err(|e| native_error("create sandbox", e))?;
-        } else {
-            tokio::time::timeout(
-                RPC_TIMEOUT,
-                grpc.start_sandbox(p::StartSandboxRequest {
-                    workspace_scope: scope(&name),
-                    name: name.clone(),
-                    request_id: request(handoff, "start"),
-                }),
-            )
-            .await?
-            .map_err(|e| native_error("start sandbox", e))?;
-        }
-        self.wait_phase(&name, p::SandboxPhase::Ready).await?;
-        self.wait_listener(&name).await
+        Ok(())
     }
-    /// The create request of the owner's sandbox, from its cloned template, with the
-    /// installation's policy and command and every Computer provider attached.
-    fn create_request(&self, computer: &Computer) -> p::CreateSandboxRequest {
+    /// Replace the Computer's sandbox with one of this version: delete the sandbox,
+    /// keeping its workspace volume, which the next sandbox of its name adopts; clone
+    /// this version's template for the owner; create the sandbox from it and wait until
+    /// its listener answers. `operation` derives every request ID, so a retried request
+    /// of the same operation is the same native mutation.
+    pub async fn replace(&self, computer: &Computer, operation: Uuid) -> Result<()> {
+        let name = computer.native_name();
+        let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
+        if let Some(sandbox) = self.sandbox(&name).await? {
+            if phase(&sandbox) != p::SandboxPhase::Deleting {
+                tokio::time::timeout(
+                    RPC_TIMEOUT,
+                    grpc.delete_sandbox(p::DeleteSandboxRequest {
+                        workspace_scope: scope(&name),
+                        name: name.clone(),
+                        allow_missing: true,
+                        keep_workspace: true,
+                        request_id: request(operation, "delete"),
+                    }),
+                )
+                .await
+                .context("deleting the sandbox: the gateway did not answer")?
+                .map_err(|e| native_error("delete sandbox", e))
+                .context("deleting the sandbox")?;
+            }
+            self.wait_gone(&name).await?;
+        }
+        tokio::time::timeout(
+            RPC_TIMEOUT,
+            grpc.delete_sandbox_template(p::DeleteSandboxTemplateRequest {
+                workspace_scope: scope(&name),
+                name: name.clone(),
+                allow_missing: true,
+                request_id: request(operation, "delete-template"),
+            }),
+        )
+        .await
+        .context("replacing the template clone: the gateway did not answer")?
+        .map_err(|e| native_error("delete cloned template", e))
+        .context("replacing the template clone")?;
+        tokio::time::timeout(
+            RPC_TIMEOUT,
+            grpc.create_sandbox_template(p::CreateSandboxTemplateRequest {
+                workspace_scope: scope(&name),
+                template: Some(self.template(computer)?),
+                request_id: request(operation, "template"),
+            }),
+        )
+        .await
+        .context("cloning the template: the gateway did not answer")?
+        .map_err(|e| native_error("clone template", e))
+        .context("cloning the template")?;
+        tokio::time::timeout(
+            RPC_TIMEOUT,
+            grpc.create_sandbox(self.create_request(computer, operation)),
+        )
+        .await
+        .context("creating the sandbox: the gateway did not answer")?
+        .map_err(|e| native_error("create sandbox", e))
+        .context("creating the sandbox")?;
+        self.wait_phase(&name, p::SandboxPhase::Ready)
+            .await
+            .context("starting the sandbox")?;
+        self.wait_listener(&name)
+            .await
+            .context("waiting for the Computer to listen")
+    }
+    /// The create request of the owner's sandbox, from its cloned template, with this
+    /// version's policy and command and every Computer provider attached.
+    fn create_request(&self, computer: &Computer, operation: Uuid) -> p::CreateSandboxRequest {
         let name = computer.native_name();
         p::CreateSandboxRequest {
             workspace_scope: scope(&name),
             name: name.clone(),
             workload_template: name,
-            request_id: computer.sandbox_request.to_string(),
+            request_id: request(operation, "create"),
             annotations: HashMap::from([(RETENTION.into(), "persistent".into())]),
             spec: Some(p::SandboxSpec {
                 policy: Some(self.policy.clone()),
@@ -496,8 +650,8 @@ impl Provisioner {
     }
     /// Give the gateway the Computer's own Lore client, with its new secret, as the
     /// refresh of the Lore provider, and refresh the token now: the Hub issues it for
-    /// the owner and every repository the owner is assigned. The sandbox then starts
-    /// with Lore access, from a client the Hub accepts.
+    /// the owner and every repository the owner is assigned. The sandbox then has Lore
+    /// access from a client the Hub accepts.
     async fn lore_refresh(&self, name: &str, handoff: Uuid, client: &CustodyClient) -> Result<()> {
         let key = &self.config.lore_provider.credential_key;
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
@@ -603,40 +757,9 @@ impl Provisioner {
         }
         Ok(())
     }
-    /// Browser entry needs a closed probe because it only redirects afterward.
-    pub async fn ensure_running(&self, computer: &Computer) -> Result<()> {
-        self.resume(computer).await?;
-        self.wait_listener(&computer.native_name()).await
-    }
-
-    /// Native lifecycle recovery for document navigation. Its actual forwarding
-    /// connection performs the bounded listener wait, without an extra probe.
-    pub async fn resume(&self, computer: &Computer) -> Result<()> {
-        let name = computer.native_name();
-        let sandbox = self.sandbox(&name).await?.ok_or(Reauthorize)?;
-        self.validate_sandbox(computer, &sandbox)?;
-        match phase(&sandbox) {
-            p::SandboxPhase::Ready => Ok(()),
-            p::SandboxPhase::Deleting => anyhow::bail!("Computer deletion in progress"),
-            p::SandboxPhase::Starting | p::SandboxPhase::Provisioning => {
-                self.wait_phase(&name, p::SandboxPhase::Ready).await
-            }
-            _ => {
-                let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
-                tokio::time::timeout(
-                    RPC_TIMEOUT,
-                    grpc.start_sandbox(p::StartSandboxRequest {
-                        workspace_scope: scope(&name),
-                        name: name.clone(),
-                        request_id: Uuid::now_v7().to_string(),
-                    }),
-                )
-                .await?
-                .map_err(|e| native_error("resume sandbox", e))?;
-                self.wait_phase(&name, p::SandboxPhase::Ready).await
-            }
-        }
-    }
+    /// Whether the Hub can still serve `sandbox` as this Computer at this version: its
+    /// name, retention, template clone, command, policy, providers, restart policy and
+    /// base path are the ones this version gives.
     pub(super) fn validate_sandbox(&self, computer: &Computer, sandbox: &p::Sandbox) -> Result<()> {
         let name = computer.native_name();
         let spec = sandbox
@@ -656,11 +779,11 @@ impl Provisioner {
                 && spec.providers == PROVIDERS
                 && spec.restart_policy == p::SandboxRestartPolicy::Always as i32
                 && spec.environment.get("PUBLIC_BASE_PATH") == Some(&computer.base_path()),
-            "native Computer governance differs from installation"
+            "its sandbox differs from what its version gives: its name, retention, template, command, policy, providers, restart policy or base path changed"
         );
         Ok(())
     }
-    async fn sandbox(&self, name: &str) -> Result<Option<p::Sandbox>> {
+    pub(super) async fn sandbox(&self, name: &str) -> Result<Option<p::Sandbox>> {
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
         match tokio::time::timeout(
             RPC_TIMEOUT,
@@ -691,28 +814,49 @@ impl Provisioner {
         let _ = task.await;
         Ok(())
     }
-    async fn wait_phase(&self, name: &str, expected: p::SandboxPhase) -> Result<()> {
+    /// Wait until the sandbox is gone.
+    async fn wait_gone(&self, name: &str) -> Result<()> {
+        tokio::time::timeout(DELETE_TIMEOUT, async {
+            while self.sandbox(name).await?.is_some() {
+                tokio::time::sleep(Duration::from_millis(250)).await;
+            }
+            Ok::<_, anyhow::Error>(())
+        })
+        .await
+        .with_context(|| {
+            format!(
+                "the old sandbox was not gone after {} s",
+                DELETE_TIMEOUT.as_secs()
+            )
+        })?
+    }
+    pub(super) async fn wait_phase(&self, name: &str, expected: p::SandboxPhase) -> Result<()> {
         tokio::time::timeout(READY_TIMEOUT, async {
             loop {
                 let sandbox = self
                     .sandbox(name)
                     .await?
-                    .context("native Computer disappeared during transition")?;
+                    .context("the sandbox disappeared while starting")?;
                 let observed = phase(&sandbox);
                 if observed == expected {
                     return Ok(());
                 }
                 ensure!(
-                    observed != p::SandboxPhase::Deleting
-                        && (expected == p::SandboxPhase::Stopped
-                            || observed != p::SandboxPhase::Error),
-                    "native Computer transition failed"
+                    observed != p::SandboxPhase::Deleting && observed != p::SandboxPhase::Error,
+                    "the sandbox entered phase {}",
+                    phase_name(observed)
                 );
                 tokio::time::sleep(Duration::from_millis(250)).await;
             }
         })
         .await
-        .context("Computer native transition deadline")?
+        .with_context(|| {
+            format!(
+                "the sandbox was not {} after {} s",
+                phase_name(expected),
+                READY_TIMEOUT.as_secs()
+            )
+        })?
     }
 }
 /// Refresh a provider's credential now and require a current, unfailed result.
@@ -748,9 +892,23 @@ pub(super) async fn rotate(
     );
     Ok(())
 }
-fn phase(sandbox: &p::Sandbox) -> p::SandboxPhase {
+pub(super) fn phase(sandbox: &p::Sandbox) -> p::SandboxPhase {
     p::SandboxPhase::try_from(sandbox.status.as_ref().map_or(0, |status| status.phase))
         .unwrap_or(p::SandboxPhase::Unknown)
+}
+/// A phase's name, as status reports it.
+pub(super) fn phase_name(phase: p::SandboxPhase) -> &'static str {
+    match phase {
+        p::SandboxPhase::Unspecified | p::SandboxPhase::Unknown => "unknown",
+        p::SandboxPhase::Provisioning => "provisioning",
+        p::SandboxPhase::Ready => "ready",
+        p::SandboxPhase::Error => "error",
+        p::SandboxPhase::Deleting => "deleting",
+        p::SandboxPhase::Stopping => "stopping",
+        p::SandboxPhase::Stopped => "stopped",
+        p::SandboxPhase::Starting => "starting",
+        p::SandboxPhase::Completed => "completed",
+    }
 }
 
 #[cfg(test)]

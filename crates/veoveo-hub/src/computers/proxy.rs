@@ -5,7 +5,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use anyhow::{Result, ensure};
+use anyhow::{Context as _, Result, ensure};
 use axum::{
     body::{Body, Bytes},
     extract::Request,
@@ -21,8 +21,21 @@ use veoveo_types::Sha256Digest;
 use super::{
     ADMISSION_READ_TIMEOUT, BrowserSession, ComputerId, ComputerRuntime, STREAM_ADMISSION_INTERVAL,
     oauth::{SESSION_COOKIE, cookie, denied, digest, private, unavailable},
-    provisioning::Reauthorize,
+    provisioning::{Provisioner, phase},
 };
+use openshell_sdk::raw::proto as p;
+
+/// A page load of a Computer whose sandbox is not ready to serve. Entry creates or
+/// awaits it on the start page.
+#[derive(Debug, thiserror::Error)]
+#[error("the Computer's sandbox is not ready; entry starts it")]
+pub(super) struct Reenter;
+
+/// A page load of a Computer whose last replacement failed or whose sandbox the Hub can
+/// no longer serve safely. The status page offers Restart.
+#[derive(Debug, thiserror::Error)]
+#[error("the Computer needs its owner: {0}")]
+pub(super) struct Attention(String);
 
 type BodyError = Box<dyn std::error::Error + Send + Sync>;
 
@@ -54,10 +67,10 @@ fn document_navigation(request: &Request) -> bool {
             .get("sec-fetch-dest")
             .is_none_or(|value| value == "document")
 }
-/// Entry resolves the current Computer or starts ordinary sign-in. Never carry a stale
-/// mount, session path or caller-supplied return URL forward.
+/// Entry resolves the current Computer, starting it, or starts ordinary sign-in. Never
+/// carry a stale mount, session path or caller-supplied return URL forward.
 fn reenter() -> Response {
-    private(Redirect::to("/computer").into_response())
+    private(Redirect::to(super::pages::OPEN).into_response())
 }
 fn authorization_required(request: &Request) -> Response {
     if document_navigation(request) {
@@ -66,13 +79,48 @@ fn authorization_required(request: &Request) -> Response {
         denied()
     }
 }
-/// A page load of a Computer that signing in again repairs goes back to entry, which
-/// signs in again; anything else, and every other request, answers unavailable.
+/// A page load of a Computer that is not ready goes back to entry, which starts it on
+/// the start page, and one that needs its owner to the status page; anything else, and
+/// every other request, answers unavailable.
 fn unavailable_for(navigation: bool, error: &anyhow::Error) -> Response {
-    if navigation && error.downcast_ref::<Reauthorize>().is_some() {
+    if navigation && error.downcast_ref::<Reenter>().is_some() {
         reenter()
+    } else if navigation && error.downcast_ref::<Attention>().is_some() {
+        private(Redirect::to("/computer").into_response())
     } else {
         unavailable()
+    }
+}
+
+/// A page load serves only a ready sandbox the Hub can serve safely, awaiting one that
+/// OpenShell is still starting. One that is missing, stopped or being replaced goes
+/// back to entry.
+async fn ready_for_navigation(
+    runtime: &ComputerRuntime,
+    provisioner: &Provisioner,
+    session: &BrowserSession,
+) -> Result<()> {
+    let observed = runtime.observe(session.computer()).await?;
+    if observed.operation().is_some() {
+        return Err(Reenter.into());
+    }
+    if let Some(blocked) = observed.blocked {
+        return Err(Attention(blocked).into());
+    }
+    match observed.sandbox.as_ref().map(phase) {
+        Some(p::SandboxPhase::Ready) => Ok(()),
+        None
+        | Some(p::SandboxPhase::Stopped | p::SandboxPhase::Completed | p::SandboxPhase::Deleting) =>
+        {
+            if let Some(failure) = observed.computer.failure {
+                return Err(Attention(failure.cause).into());
+            }
+            Err(Reenter.into())
+        }
+        Some(_) => provisioner
+            .wait_phase(&session.computer().native_name(), p::SandboxPhase::Ready)
+            .await
+            .map_err(|_| Reenter.into()),
     }
 }
 /// Connection-nominated fields are hop-by-hop too. Keep content encoding/length:
@@ -239,14 +287,6 @@ pub(super) async fn forward(runtime: ComputerRuntime, mut request: Request) -> R
         Ok(None) => return authorization_required(&request),
         Err(_) => return unavailable(),
     };
-    let mut runtime = runtime;
-    runtime.provisioner = match runtime.provisioner.for_computer(session.computer()) {
-        Ok(provisioner) => provisioner,
-        Err(error) => {
-            tracing::warn!(%error, "Computer recorded configuration unavailable");
-            return unavailable();
-        }
-    };
     // Canonical mount slash matters to native browser URL resolution.
     if request.uri().path() == session.computer().base_path().trim_end_matches('/') {
         let mut response = StatusCode::PERMANENT_REDIRECT.into_response();
@@ -292,8 +332,12 @@ async fn stream(
     upgrade: bool,
     navigation: bool,
 ) -> Result<Response> {
+    let provisioner = runtime
+        .installation
+        .for_computer(session.computer())
+        .context("Computer recorded configuration unavailable")?;
     if navigation {
-        runtime.provisioner.resume(session.computer()).await?;
+        ready_for_navigation(runtime, &provisioner, session).await?;
     }
     // Fresh admission after a potentially slow native lifecycle operation.
     ensure!(
@@ -310,23 +354,18 @@ async fn stream(
         "Computer admission ended before forwarding"
     );
     let (socket, forward) = if navigation {
-        runtime
-            .provisioner
+        provisioner
             .gateway
             .stream_when_ready(
                 session.computer().native_name(),
-                runtime.provisioner.config.port,
+                provisioner.config.port,
                 super::provisioning::READY_TIMEOUT,
             )
             .await?
     } else {
-        runtime
-            .provisioner
+        provisioner
             .gateway
-            .stream(
-                session.computer().native_name(),
-                runtime.provisioner.config.port,
-            )
+            .stream(session.computer().native_name(), provisioner.config.port)
             .await?
     };
     // A cold listener wait can outlast revocation/expiry. Re-admit before any
@@ -444,7 +483,7 @@ mod tests {
             .unwrap();
         let response = authorization_required(&request);
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
-        assert_eq!(response.headers()[header::LOCATION], "/computer");
+        assert_eq!(response.headers()[header::LOCATION], "/computer/open");
         assert_eq!(
             response.headers()[header::CACHE_CONTROL],
             "private, no-store"
@@ -485,13 +524,21 @@ mod tests {
     }
 
     #[test]
-    fn only_a_page_load_that_signing_in_repairs_goes_back_to_entry() {
-        let missing = anyhow::Error::new(Reauthorize).context("resume the Computer");
+    fn only_a_page_load_goes_back_to_entry_or_status() {
+        let missing = anyhow::Error::new(Reenter).context("enter the Computer");
         let response = unavailable_for(true, &missing);
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        assert_eq!(response.headers()[header::LOCATION], "/computer/open");
+        let failed = anyhow::Error::new(Attention("synthetic cause".into()));
+        let response = unavailable_for(true, &failed);
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
         assert_eq!(response.headers()[header::LOCATION], "/computer");
         for (navigation, error) in [
-            (false, anyhow::Error::new(Reauthorize)),
+            (false, anyhow::Error::new(Reenter)),
+            (
+                false,
+                anyhow::Error::new(Attention("synthetic cause".into())),
+            ),
             (true, anyhow::anyhow!("native Computer forwarding deadline")),
         ] {
             let response = unavailable_for(navigation, &error);

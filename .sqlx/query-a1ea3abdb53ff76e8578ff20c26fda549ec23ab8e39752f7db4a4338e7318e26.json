@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.computer (id, tenant, principal_id, workspace_request, model_provider_request, hub_provider_request, created_at, provisioning)\nVALUES ($1,$2,$3,$4,$5,$6,$7,$8)\nON CONFLICT (tenant, principal_id) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a1ea3abdb53ff76e8578ff20c26fda549ec23ab8e39752f7db4a4338e7318e26"
+}

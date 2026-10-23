@@ -10,7 +10,7 @@ mod device;
 mod execution;
 pub use device::{DeviceApproval, DeviceAuthorization, DevicePoll, NewDeviceAuthorization};
 mod computers;
-pub use computers::{Computer, ComputerHandoff};
+pub use computers::{Computer, ComputerHandoff, ComputerOperation};
 mod control;
 mod refresh;
 mod replay;

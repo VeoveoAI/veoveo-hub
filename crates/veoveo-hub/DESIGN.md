@@ -911,9 +911,10 @@ credential environment are process bootstrap. Configure native transport at star
 (with an empty binding list if necessary); destination changes do not toggle the
 installation between native-only transport and direct TCP. MCP request destinations (workspace,
 sandbox and port), destination additions/removals, and Computer workload defaults
-are live data. Prepare listeners, policy, native template, provider-profile shape,
-secret locators and browser-client binding before committing; failed preparation
-rejects the update without changing the active revision or working runtime.
+are live data. Prepare listeners, policy, secret locators and browser-client binding
+before committing; failed preparation rejects the update without changing the active
+revision or working runtime. The Computer template and provider profiles are read at
+entry instead, below.
 
 Unchanged destination listeners and HTTP clients are shared with the next revision.
 Changed destinations get a new private socket/client; requests retain their old
@@ -930,26 +931,75 @@ retains its initiating client/profile/context and admitted defaults with the
 verifier, so a default update between entry and callback cannot exchange an old
 code with a new client. Consumption is still single-use and browser-bound. Current
 catalog grant/family authority is checked before custody; this does not grandfather
-removed permissions. Initial owner mapping
-creation stores a typed immutable provision snapshot: workload defaults, native
-policy/template protobufs, selected persistence backend and model secret locator,
-never access/refresh tokens or actual model credentials. An existing owner keeps
-that snapshot on reauthorization and resume. The current catalog still controls
-browser/session/client/grant authority. Changes to template, command, policy,
-provider defaults or port affect new or explicitly replaced Computers only; they
-do not restart or rewrite existing instances. The supplied refresh grant's actual
-client ID accompanies custody; it is not inferred from an old provision snapshot.
-Use immutable versioned native template names and policy file paths when changing
-defaults, and publish the new reference through the live control plane. Editing a
-native template under the same name is not watched and does not automatically
-refresh cached defaults for new Computers. The selected profile's resource URL and
-model secret locator also participate in prepared-default reuse. Forwarding
-capacity remains the current process-wide budget, not a recorded per-user quota;
-old instance snapshots reuse that gateway budget. Requests already using an older
-budget generation drain naturally when the installation changes the limit.
-Unchanged runtime data reuses prepared state without a new native RPC on
-a grant-only catalog update. The stable router can enable/disable Computer routes
-from a prepared catalog without rebuilding the server router.
+removed permissions. The current catalog still controls browser/session/client/grant
+authority. The supplied refresh grant's actual client ID accompanies custody; it is
+not inferred from an old provision snapshot. Forwarding capacity remains the current
+process-wide budget, not a recorded per-user quota; old instance snapshots reuse that
+gateway budget. Requests already using an older budget generation drain naturally when
+the installation changes the limit. Unchanged runtime data reuses prepared state
+without a new native RPC on a grant-only catalog update. The stable router can
+enable/disable Computer routes from a prepared catalog without rebuilding the server
+router.
+
+#### Computer versions
+
+A Computer version is everything a new sandbox gets from the installation: the
+template, the policy and the Hub's Computer settings, which a typed provision snapshot
+holds (workload settings, native policy/template protobufs, selected persistence
+backend and model secret locator, never access/refresh tokens or actual model
+credentials). Its name is the first twelve hexadecimal digits of the SHA-256, under
+the domain `https://veoveo.ai/formats/computer-version` and a NUL byte, of a canonical
+document: the template's spec with its environment as a sorted map, OpenShell's
+canonical policy JSON, and the settings without the handbook, the forwarding capacity,
+the gateway connection and the template's and policy file's names. Protobuf maps encode
+in no fixed order, so neither protobuf enters the digest as stored. The same inputs
+name the same version whatever their names or object identity.
+
+The template's annotation `veoveo.ai/release-note` is the version's release note,
+written by whoever publishes the template; its first line is the version's summary.
+OpenShell keeps a template's annotations through creation. What a version brings over
+another lists that note and, with or without one, the mechanical differences: a changed
+image, and each network rule's endpoints (`host:port` and any path) added or removed.
+
+The installation's template is read when a Computer is entered, at most once in five
+seconds across entries, and compared by its object ID and resource version: OpenShell
+has no template update, so a changed template is a new object whose resource version
+starts again at 1. The version is prepared again only on a change: the gateway's one
+driver and its whole-workspace persistence, and the three provider profiles. A missing
+or invalid template or profile leaves Computers unavailable, with a page and a problem
+that say why, and the Hub still starts; a Computer whose sandbox runs is still served.
+The template no longer has to exist before the Hub.
+
+A Computer records the version its sandbox was last created at as `provisioning`. A
+Computer has a sandbox at some version, or none. Entry with none, or with one OpenShell
+reports stopped or completed, creates one at the current version; entry with a ready
+one serves it whatever its version; one still starting is awaited. A sandbox the Hub
+can no longer serve safely, whose name, retention, template clone, command, policy,
+providers, restart policy or base path differ from its recorded version, gets the
+status page with Restart instead of being served. Hub has no stop or resume.
+
+Restart, update, recovery and creation are one replacement, claimed on the Computer
+row (`operation_id`, its start and the provision snapshot it creates) and run detached
+from the request: delete the sandbox with `keep_workspace`, so the next sandbox of its
+name adopts its home; replace the owner's template clone with one of the target version,
+whose environment adds `COMPUTER_VERSION` beside `LORE_IDENTITY`; create the sandbox; wait
+until it is ready and its listener answers; then record the target as `provisioning`.
+Every native request ID derives from the operation's ID. One replacement runs at a time;
+one older than eleven minutes belongs to a worker that ended without recording it, and
+entry may claim another. A restart answers at once and deletes the sandbox only after
+three seconds, so a caller inside the Computer, such as an agent restarting its own,
+receives the answer first. A failure records its cause, time and target version on the
+Computer, which keeps its recorded version; Restart tries again, and Start the previous
+version creates the recorded one. A completed update from one version to another
+records an update notice, from the version the owner was last told of, which a status
+read returns once; when the start page of that replacement showed its changes, none is
+recorded. Each replacement logs its duration.
+
+Migration `0024` adds the operation, failure and notice columns and drops the
+per-Computer template and sandbox request IDs; installations reset Computers instead of
+migrating them. `DeleteSandboxRequest.keep_workspace` comes with the OpenShell pin
+`180b9e5a7`, whose Kubernetes driver keeps the volume; other drivers refuse the delete,
+which a replacement then records as its failure.
 
 Migration `0006` defines the mandatory per-instance snapshot for a reset/reseeded
 development application database. It deliberately has no backfill from current
@@ -995,11 +1045,12 @@ selectors; only their hashes are stored. Grant material is never stored in Hub
 Computer rows, cookies or UI bundles.
 
 A precommitted pending handoff invalidates old browser admission before native
-mutation. An owned worker locks that exact handoff, clones the trusted native
-workload into a distinct owner workspace with its nonsecret external base path,
-creates workspace-local providers, and stops an existing app before replacing its
-Hub refresh material. ConfigureProviderRefresh **and** RotateProviderCredential
-must succeed before Start/ready publication. The existing managed runtime access
+mutation. An owned worker locks that exact handoff, ensures a distinct owner
+workspace, creates workspace-local providers and replaces their Hub refresh material.
+ConfigureProviderRefresh **and** RotateProviderCredential must succeed before ready
+publication. Custody creates, stops or starts no sandbox: a running sandbox keeps
+running and receives the rotated credentials behind its placeholders, and entry creates
+a missing one with the owner's template clone and nonsecret external base path. The existing managed runtime access
 value is never replaced with UpdateProvider; no operator credential export occurs.
 The model seed resolves through the existing trusted Env ProviderApiKey locator.
 Native global profiles and exact refresh recipient are checked before custody.
@@ -1019,7 +1070,7 @@ client a new secret, whose identifier is the Computer's native name and whose di
 the handoff's precommitted beginning stores on the Computer; the token endpoint reads
 it while the worker holds the row lock. The worker ensures workspace-local
 `computer-lore` of the configured `loreProvider` profile, hands the client to the
-gateway's `oauth2_client_credentials` refresh and rotates it before Start, attaches
+gateway's `oauth2_client_credentials` refresh and rotates it; every sandbox attaches
 it with the other providers and names the owner's principal in the clone's
 `LORE_IDENTITY`. At `/oauth/token` a `client_credentials` request whose client ID is
 a Computer's native name and whose `client_secret` matches the stored digest receives
@@ -1039,20 +1090,19 @@ revision imported while none ran, or a replica adopting it. A claim spans every
 revision activated since the last one, so the renewal runs once per installation.
 It runs in the background and is best effort: a Computer that cannot renew is
 logged, and the publication stands. A stopped Computer renews too, since the gateway
-keeps refreshing its provider; one whose handoff is pending rotates in that handoff
-before its sandbox starts. With several replicas, a gateway refresh answered by a
+keeps refreshing its provider; one whose handoff is pending rotates in that handoff. With several replicas, a gateway refresh answered by a
 replica that has not adopted the revision yet carries the earlier assignments.
-Provisioning and browser entry also wait for a successful native ForwardTcp target
+A replacement and browser entry also wait for a successful native ForwardTcp target
 connection under the existing 120-second startup bound. The gateway must return
 ForwardTcp success after the native relay claim, not before target connection.
-Document navigation can resume native lifecycle and wait on its actual forwarding
-connection. Warm asset/API requests open only their real forwarding connection;
+Document navigation awaits a sandbox OpenShell is starting and waits on its actual
+forwarding connection. Warm asset/API requests open only their real forwarding connection;
 there is no extra health endpoint or per-request probe. Retry classification uses
 native status codes, never error text; authorization/invalid-target failures stop
 immediately. A successful TCP connection does not prove application protocol health.
 
-The worker survives HTTP disconnection. Native operations and readiness waits are
-bounded; a crash or ambiguous failure leaves the durable handoff pending and
+The custody worker survives HTTP disconnection. Native operations and readiness waits
+are bounded; a crash or ambiguous failure leaves the durable handoff pending and
 requires reauthorization. The row lock serializes cooperating Hub workers, while
 native request IDs preserve each admitted native mutation's semantics. This is
 not exactly-once grant custody across a crash after provider consumption. No
@@ -1074,16 +1124,44 @@ and releases a bounded connection permit. Proxy responses are private/no-store.
 The online-only native app must be used; mounted UI caches are convenience, not a
 same-origin browser security boundary or a guarantee about previously loaded data.
 
+The browser's routes:
+
+| Route | Behavior |
+|---|---|
+| `GET /computer` | The status page of the session's Computer, or sign-in |
+| `GET /computer/open` | The way in: sign-in, creation of a missing sandbox, the start page while the sandbox is created or started, then the Computer; the status page when a failure or a sandbox the Hub can no longer serve needs the owner |
+| `POST /computer/restart`, `POST /computer/previous` | Same-origin, admitted session: a replacement at the current version, or of the recorded version after a failure; then the start page |
+| `GET /computer/callback` | The sign-in's code exchange and custody, then `/computer/open` |
+
+The start page, shown on every creation, names the version it starts and lists what
+it brings over the recorded one, and reloads itself every two seconds until the
+Computer is ready. The status page names the version the Computer runs and the
+sandbox's phase, an update and what it brings, a running restart, the last failure and
+its cause, a blocking sandbox, and an update not yet told; it offers Restart and,
+after a failure, Start the previous version. Both are plain HTML, with no script or
+style and a CSP of `default-src 'none'; form-action 'self'`.
+
+For bearers, `GET /computer/{profile}/status` and `POST /computer/{profile}/restart`
+serve the caller's own ready Computer to any caller with a tenant whose token the
+profile admits: the Computer's own Hub credential (`COMPUTER_HUB_REFERENCE`, a token of
+the Computers' client) or a registered server calling the Hub for its caller. Status is
+the same JSON as the page's (`version`, `sandbox`, `current`, `currentUnavailable`,
+`updateAvailable`, `whatsNew`, `restart`, `failure`, `blocked`, `updated`) and returns
+an update notice once; restart answers `202` with the status, `409` while one runs, and
+`503` when no Computer can start. `GET /computer/version` publicly names the current
+version and its summary, for a server that names it in a tool description; it carries
+no Computer or owner. A profile named `c` would collide with the mounts under
+`/computer/c/`.
+
 An initial authorization refusal on a browser document navigation redirects to
-the fixed `/computer` entry, and so does a navigation that finds the Computer's
-sandbox missing, which signing in again repairs. A navigation is a GET with
-`Sec-Fetch-Mode: navigate` and, when the browser names it, `Sec-Fetch-Dest:
-document`. Entry resolves the current Computer from a still-valid cookie or starts
-ordinary sign-in; with a valid cookie whose sandbox is missing it starts sign-in, whose
-custody handoff creates the sandbox. It never replays the stale mount or chat URL, and
-it returns to the Computer only once it runs. API/fetch, event-stream and WebSocket
-requests retain `401` or `503`, malformed routes retain `404`, and other operational
-failures retain `503` rather than redirecting into a recovery loop.
+`/computer/open`, and so does a navigation that finds the Computer's sandbox missing,
+stopped or being replaced; one whose last replacement failed with no sandbox left, or
+whose sandbox the Hub can no longer serve safely, goes to `/computer`. A navigation is a
+GET with `Sec-Fetch-Mode: navigate` and, when the browser names it, `Sec-Fetch-Dest:
+document`. Entry never replays the stale mount or chat URL, and it returns to the
+Computer only once it runs. API/fetch, event-stream and WebSocket requests retain `401`
+or `503`, malformed routes retain `404`, and other operational failures retain `503`
+rather than redirecting into a recovery loop.
 
 `POST /computer/logout` is parameterless and same-origin. Only a fresh admitted
 BrowserSession selects its owner and actual native family. A conditional transaction

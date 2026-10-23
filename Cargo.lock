@@ -970,7 +970,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2345,7 +2345,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "openshell-core"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=9724fb1834dec157b4482a1da97338fd8ca1e50c#9724fb1834dec157b4482a1da97338fd8ca1e50c"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=180b9e5a7b9d282c3e4acafb512ab17b08cf7af2#180b9e5a7b9d282c3e4acafb512ab17b08cf7af2"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2381,7 +2381,7 @@ dependencies = [
 [[package]]
 name = "openshell-extension-core"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=9724fb1834dec157b4482a1da97338fd8ca1e50c#9724fb1834dec157b4482a1da97338fd8ca1e50c"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=180b9e5a7b9d282c3e4acafb512ab17b08cf7af2#180b9e5a7b9d282c3e4acafb512ab17b08cf7af2"
 dependencies = [
  "hyper-util",
  "serde",
@@ -2394,7 +2394,7 @@ dependencies = [
 [[package]]
 name = "openshell-policy"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=9724fb1834dec157b4482a1da97338fd8ca1e50c#9724fb1834dec157b4482a1da97338fd8ca1e50c"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=180b9e5a7b9d282c3e4acafb512ab17b08cf7af2#180b9e5a7b9d282c3e4acafb512ab17b08cf7af2"
 dependencies = [
  "hickory-proto",
  "miette",
@@ -2408,7 +2408,7 @@ dependencies = [
 [[package]]
 name = "openshell-policy-schema"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=9724fb1834dec157b4482a1da97338fd8ca1e50c#9724fb1834dec157b4482a1da97338fd8ca1e50c"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=180b9e5a7b9d282c3e4acafb512ab17b08cf7af2#180b9e5a7b9d282c3e4acafb512ab17b08cf7af2"
 dependencies = [
  "miette",
  "noyalib",
@@ -2421,7 +2421,7 @@ dependencies = [
 [[package]]
 name = "openshell-sdk"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=9724fb1834dec157b4482a1da97338fd8ca1e50c#9724fb1834dec157b4482a1da97338fd8ca1e50c"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=180b9e5a7b9d282c3e4acafb512ab17b08cf7af2#180b9e5a7b9d282c3e4acafb512ab17b08cf7af2"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -2995,7 +2995,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3425,7 +3425,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3493,7 +3493,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4236,7 +4236,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.5",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5490,7 +5490,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

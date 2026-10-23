@@ -1,4 +1,4 @@
-use super::provisioning::Provisioner;
+use super::provisioning::Installation;
 use crate::{HubCatalog, HubCatalogHandle, HubState, control_plane::Computers};
 use anyhow::{Context, Result, ensure};
 use axum::{
@@ -15,7 +15,7 @@ use url::Url;
 #[derive(Clone)]
 pub(crate) struct ComputerConfiguration {
     pub(super) config: Arc<Computers>,
-    pub(super) provisioner: Provisioner,
+    pub(super) installation: Installation,
     pub(super) http: Client,
 }
 impl ComputerConfiguration {
@@ -60,20 +60,20 @@ impl ComputerConfiguration {
                     .any(|value| value.as_str() == callback.as_str()),
             "Computer client must use this Hub's native OAuth endpoints and exact callback"
         );
-        let provisioner = match previous.filter(|old| {
+        let installation = match previous.filter(|old| {
             // Guidance changes do not change native provisioning inputs.
             let mut previous_config = old.config.as_ref().clone();
             previous_config.handbook.clone_from(&config.handbook);
             previous_config == *config
-                && old.provisioner.spec.hub_url == profile.protected_resource.as_str()
+                && old.installation.hub_url() == profile.protected_resource.as_str()
                 && catalog.secret_reference(&config.model_provider.secret)
-                    == Some(&old.provisioner.spec.model_secret)
+                    == Some(old.installation.model_secret())
         }) {
-            Some(old) => old.provisioner.clone(),
+            Some(old) => old.installation.clone(),
             None => {
-                Provisioner::prepare(
+                Installation::prepare(
                     config.clone(),
-                    previous.map(|v| &v.provisioner),
+                    previous.map(|v| &v.installation),
                     catalog,
                     public.as_str(),
                 )
@@ -82,7 +82,7 @@ impl ComputerConfiguration {
         };
         Ok(Self {
             config,
-            provisioner,
+            installation,
             http,
         })
     }
@@ -103,16 +103,37 @@ impl ComputerService {
             public: Url::parse(public)?,
         })
     }
-    pub fn router(self) -> Router {
+    /// The browser's routes under `/computer`, the public current version, and the
+    /// status and restart of the caller's Computer at `/computer/{profile}/…` for a
+    /// bearer of that profile, such as the Computer's own Hub credential or a server
+    /// calling the Hub for its caller. A profile named `c` would collide with the
+    /// Computer mounts under `/computer/c/`.
+    pub fn router(self, auth: crate::http::ProfileAuthState) -> Router {
+        let bearer = Self::bearer().layer(axum::middleware::from_fn_with_state(
+            auth,
+            crate::http::authenticate_profile,
+        ));
+        Self::routes(bearer).with_state(self)
+    }
+    fn bearer() -> Router<Self> {
+        Router::new()
+            .route("/computer/{profile}/status", get(super::api::status))
+            .route("/computer/{profile}/restart", post(super::api::restart))
+    }
+    fn routes(bearer: Router<Self>) -> Router<Self> {
         Router::new()
             .route("/computer", get(super::oauth::entry))
             .route("/computer/", get(super::oauth::entry))
+            .route("/computer/open", get(super::oauth::open))
+            .route("/computer/restart", post(super::oauth::restart))
+            .route("/computer/previous", post(super::oauth::previous))
+            .route("/computer/version", get(super::api::version))
             .route("/computer/callback", get(super::oauth::callback))
             .route("/computer/logout", post(super::oauth::logout))
             .route("/computer/c/{computer}", any(super::proxy::forward))
             .route("/computer/c/{computer}/", any(super::proxy::forward))
             .route("/computer/c/{computer}/{*path}", any(super::proxy::forward))
-            .with_state(self)
+            .merge(bearer)
     }
 }
 #[derive(Clone)]
@@ -122,7 +143,7 @@ pub struct ComputerRuntime {
     pub(super) config: Arc<Computers>,
     pub(super) public: Url,
     pub(super) http: Client,
-    pub(super) provisioner: Provisioner,
+    pub(super) installation: Installation,
 }
 impl FromRequestParts<ComputerService> for ComputerRuntime {
     type Rejection = StatusCode;
@@ -142,12 +163,21 @@ impl FromRequestParts<ComputerService> for ComputerRuntime {
             config: config.config.clone(),
             public: state.public.clone(),
             http: config.http.clone(),
-            provisioner: config.provisioner.clone(),
+            installation: config.installation.clone(),
         })
     }
 }
 impl ComputerRuntime {
     pub(super) fn current_http(&self) -> Client {
         self.http.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn the_bearer_routes_sit_beside_the_browser_routes_and_the_mounts() {
+        // Axum refuses conflicting routes when they are added.
+        let _ = super::ComputerService::routes(super::ComputerService::bearer());
     }
 }

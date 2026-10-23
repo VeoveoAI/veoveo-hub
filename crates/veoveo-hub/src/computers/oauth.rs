@@ -105,64 +105,151 @@ pub(super) fn denied() -> Response {
     )
 }
 
-/// Start the session's Computer, or answer false when its sandbox is missing, which a new
-/// sign-in's custody handoff repairs.
-async fn running(runtime: &ComputerRuntime, session: &super::BrowserSession) -> Result<bool> {
-    match runtime
-        .provisioner
-        .for_computer(session.computer())?
-        .ensure_running(session.computer())
-        .await
-    {
-        Ok(()) => Ok(true),
-        Err(error)
-            if error
-                .downcast_ref::<super::provisioning::Reauthorize>()
-                .is_some() =>
-        {
-            tracing::info!("Computer sandbox missing; signing in again sets it up");
-            Ok(false)
+/// The admitted browser session of the request's cookie, if any.
+async fn admitted(
+    runtime: &ComputerRuntime,
+    headers: &HeaderMap,
+) -> Result<Option<(String, super::BrowserSession)>> {
+    let Some(value) = cookie(headers, SESSION_COOKIE)? else {
+        return Ok(None);
+    };
+    Ok(runtime
+        .hub
+        .computer_browser_session(
+            &runtime.catalog.current(),
+            &runtime.config,
+            &digest(&value),
+            None,
+        )
+        .await?
+        .map(|session| (value, session)))
+}
+
+/// `GET /computer`: the status page of the session's Computer, with Restart, or
+/// sign-in.
+pub(super) async fn entry(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
+    let result = async {
+        let Some((_, session)) = admitted(&runtime, &headers).await? else {
+            return sign_in(&runtime).await;
+        };
+        let status = runtime.status(session.computer(), true).await?;
+        Ok(super::pages::status(&status))
+    }
+    .await;
+    result.unwrap_or_else(|error| {
+        // Never log a callback query, provider response, cookie or grant.
+        tracing::warn!(error = %error, "Computer entry unavailable");
+        refused(&error)
+    })
+}
+
+/// `GET /computer/open`: the way into the Computer. Signs in, creates a missing
+/// sandbox at the current version, shows the start page while the sandbox is created or
+/// started, and goes to the Computer once it is ready, or to the status page when a
+/// failure or a sandbox the Hub can no longer serve needs the owner.
+pub(super) async fn open(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
+    let result = async {
+        let Some((value, session)) = admitted(&runtime, &headers).await? else {
+            return sign_in(&runtime).await;
+        };
+        let computer = session.computer();
+        match runtime.enter(computer).await? {
+            super::lifecycle::Entry::Ready => {
+                // Authority may change during entry; do not publish a ready location
+                // based on the earlier admission alone.
+                ensure!(
+                    runtime
+                        .hub
+                        .computer_browser_session(
+                            &runtime.catalog.current(),
+                            &runtime.config,
+                            &digest(&value),
+                            Some(&computer.id)
+                        )
+                        .await?
+                        .is_some(),
+                    "Computer admission ended during entry"
+                );
+                redirect(&computer.base_path())
+            }
+            super::lifecycle::Entry::Starting(Some(operation)) => {
+                let changes =
+                    super::version::whats_new(&computer.provisioning, &operation.provisioning).ok();
+                runtime
+                    .hub
+                    .hub_store()
+                    .show_computer_operation(computer, operation.id)
+                    .await?;
+                Ok(super::pages::starting(
+                    operation.provisioning.info().ok().as_ref(),
+                    changes.as_ref(),
+                ))
+            }
+            super::lifecycle::Entry::Starting(None) => Ok(super::pages::starting(None, None)),
+            super::lifecycle::Entry::Attention => redirect("/computer"),
         }
-        Err(error) => Err(error),
+    }
+    .await;
+    result.unwrap_or_else(|error| {
+        tracing::warn!(error = %error, "Computer entry unavailable");
+        refused(&error)
+    })
+}
+
+/// `POST /computer/restart`: restart the session's Computer at the current version.
+pub(super) async fn restart(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
+    replace(runtime, headers, super::lifecycle::Target::Current).await
+}
+
+/// `POST /computer/previous`: start the version recorded on the session's Computer
+/// again, after a failed restart.
+pub(super) async fn previous(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
+    replace(runtime, headers, super::lifecycle::Target::Previous).await
+}
+
+async fn replace(
+    runtime: ComputerRuntime,
+    headers: HeaderMap,
+    target: super::lifecycle::Target,
+) -> Response {
+    if !super::proxy::same_origin(&runtime, &headers) {
+        return private(
+            Problem::new(
+                StatusCode::FORBIDDEN,
+                "computer-origin-refused",
+                "Computer origin refused",
+            )
+            .into_response(),
+        );
+    }
+    let result = async {
+        let Some((_, session)) = admitted(&runtime, &headers).await? else {
+            return Ok(denied());
+        };
+        // A replacement that already runs is followed on the start page too.
+        runtime.begin(session.computer(), target, true).await?;
+        redirect(super::pages::OPEN)
+    }
+    .await;
+    result.unwrap_or_else(|error| {
+        tracing::warn!(error = %error, "Computer restart refused");
+        refused(&error)
+    })
+}
+
+/// The page of an entry that cannot continue: Computers unavailable and why, or the
+/// generic unavailable answer.
+fn refused(error: &anyhow::Error) -> Response {
+    match error.downcast_ref::<super::provisioning::Unavailable>() {
+        Some(cause) => super::pages::unavailable(&cause.0),
+        None => unavailable(),
     }
 }
 
-pub(super) async fn entry(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
-    match enter(&runtime, &headers).await {
-        Ok(response) => response,
-        Err(error) => {
-            // Never log a callback query, provider response, cookie or grant.
-            tracing::warn!(error = %error, "Computer entry unavailable");
-            unavailable()
-        }
-    }
-}
-async fn enter(runtime: &ComputerRuntime, headers: &HeaderMap) -> Result<Response> {
+/// Ordinary PKCE sign-in at this Hub, with the current version's admitted defaults.
+async fn sign_in(runtime: &ComputerRuntime) -> Result<Response> {
     let catalog = runtime.catalog.current();
-    if let Some(value) = cookie(headers, SESSION_COOKIE)?
-        && let Some(session) = runtime
-            .hub
-            .computer_browser_session(&catalog, &runtime.config, &digest(&value), None)
-            .await?
-        && running(runtime, &session).await?
-    {
-        // Authority may change during the native start; do not publish a
-        // ready location based on the earlier admission alone.
-        ensure!(
-            runtime
-                .hub
-                .computer_browser_session(
-                    &runtime.catalog.current(),
-                    &runtime.config,
-                    &digest(&value),
-                    Some(&session.computer().id)
-                )
-                .await?
-                .is_some(),
-            "Computer admission ended during start"
-        );
-        return redirect(&session.computer().base_path());
-    }
+    let current = runtime.installation.current().await?;
     let state = opaque()?;
     let browser = opaque()?;
     let verifier = PkceCodeVerifier::parse(opaque()?)?;
@@ -175,7 +262,7 @@ async fn enter(runtime: &ComputerRuntime, headers: &HeaderMap) -> Result<Respons
             &digest(&browser),
             &verifier,
             Utc::now() + TimeDelta::seconds(LOGIN_TTL),
-            &runtime.provisioner.spec,
+            &current.spec,
         )
         .await?;
     let profile = catalog
@@ -272,9 +359,9 @@ async fn finish(
         .consume_computer_login(&digest(&callback.state), &digest(&browser))
         .await?
         .context("Computer login expired or consumed")?;
+    let provisioner = runtime.installation.for_spec(login.provisioning)?;
     let mut runtime = runtime.clone();
-    runtime.provisioner = runtime.provisioner.for_spec(login.provisioning)?;
-    runtime.config = runtime.provisioner.config.clone();
+    runtime.config = provisioner.config.clone();
     let verifier = login.verifier;
     ensure!(callback.error.is_none(), "Computer authorization refused");
     let code = OAuthAuthorizationCode::parse(callback.code.context("Computer code missing")?)?;
@@ -397,7 +484,7 @@ async fn finish(
     let computer = runtime
         .hub
         .hub_store()
-        .ensure_computer(tenant, &subject.principal.id, &runtime.provisioner.spec)
+        .ensure_computer(tenant, &subject.principal.id, &provisioner.spec)
         .await?;
     let family_id = subject
         .access_token
@@ -459,7 +546,7 @@ async fn finish(
                 .await?
                 .context("Computer grant authority ended")?;
             worker_runtime
-                .provisioner
+                .installation
                 .for_computer(&claim.computer)?
                 .handoff(&current, &claim.computer, grant)
                 .await?;
@@ -486,7 +573,8 @@ async fn finish(
         .context("Computer custody deadline")?
     });
     worker.await.context("Computer custody worker failed")??;
-    let mut response = redirect(&session.computer().base_path())?;
+    // Entry creates the sandbox, on the start page, when it is missing.
+    let mut response = redirect(super::pages::OPEN)?;
     response.headers_mut().append(
         header::SET_COOKIE,
         set_cookie(

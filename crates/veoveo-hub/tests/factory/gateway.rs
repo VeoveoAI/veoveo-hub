@@ -15,6 +15,10 @@
 //! platform would after starting it. It refuses a TCP forwarding stream to a sandbox it
 //! does not have, and otherwise relays the stream to the address it was given, or accepts
 //! it without relaying bytes. It serves plain gRPC to the test and TLS to the Hub binary.
+//! Like the real gateway, it gives each created template a new object ID and resource
+//! version 1, deletes a template by name, and reports one Kubernetes compute driver; a
+//! deleted sandbox is gone at once, and the request records whether it kept the
+//! workspace.
 
 use std::{
     collections::{BTreeMap, HashMap},
@@ -44,6 +48,7 @@ use tonic_prost::ProstCodec;
 pub enum Call {
     CreateWorkspace(p::CreateWorkspaceRequest),
     CreateSandboxTemplate(p::CreateSandboxTemplateRequest),
+    DeleteSandboxTemplate(p::DeleteSandboxTemplateRequest),
     CreateProvider(p::CreateProviderRequest),
     DeleteProvider(p::DeleteProviderRequest),
     CreateSandbox(p::CreateSandboxRequest),
@@ -212,6 +217,39 @@ impl Gateway {
             .unwrap()
             .profiles
             .insert(profile.id.clone(), profile);
+    }
+
+    /// Serve `template` in `workspace` under its name, as a new object.
+    pub fn set_template(&self, workspace: &str, mut template: p::SandboxWorkloadTemplate) {
+        let metadata = template.metadata.get_or_insert_default();
+        metadata.workspace = workspace.into();
+        metadata.id = uuid::Uuid::new_v4().to_string();
+        metadata.resource_version = 1;
+        let name = metadata.name.clone();
+        self.state
+            .lock()
+            .unwrap()
+            .templates
+            .insert((workspace.into(), name), template);
+    }
+
+    /// Remove the template `name` of `workspace`.
+    pub fn remove_template(&self, workspace: &str, name: &str) {
+        self.state
+            .lock()
+            .unwrap()
+            .templates
+            .remove(&(workspace.into(), name.into()));
+    }
+
+    /// The template `name` of `workspace`.
+    pub fn template(&self, workspace: &str, name: &str) -> Option<p::SandboxWorkloadTemplate> {
+        self.state
+            .lock()
+            .unwrap()
+            .templates
+            .get(&(workspace.into(), name.into()))
+            .cloned()
     }
 
     /// Make every sandbox ready as soon as it is created or started.
@@ -582,7 +620,7 @@ impl Gateway {
             "CreateSandboxTemplate" => {
                 unary(request, move |request: p::CreateSandboxTemplateRequest| {
                     let mut state = state.lock().unwrap();
-                    let template = request.template.clone().unwrap_or_default();
+                    let mut template = request.template.clone().unwrap_or_default();
                     let name = template
                         .metadata
                         .as_ref()
@@ -592,6 +630,9 @@ impl Gateway {
                     if state.templates.contains_key(&key) {
                         return Err(Status::already_exists("template exists"));
                     }
+                    let metadata = template.metadata.get_or_insert_default();
+                    metadata.id = uuid::Uuid::new_v4().to_string();
+                    metadata.resource_version = 1;
                     state.templates.insert(key, template.clone());
                     state.calls.push(Call::CreateSandboxTemplate(request));
                     Ok(p::SandboxTemplateResponse {
@@ -599,6 +640,32 @@ impl Gateway {
                     })
                 })
             }
+            "DeleteSandboxTemplate" => {
+                unary(request, move |request: p::DeleteSandboxTemplateRequest| {
+                    let mut state = state.lock().unwrap();
+                    let key = (
+                        workspace(request.workspace_scope.as_ref())?,
+                        request.name.clone(),
+                    );
+                    if state.templates.remove(&key).is_none() && !request.allow_missing {
+                        return Err(Status::not_found("template not found"));
+                    }
+                    state.calls.push(Call::DeleteSandboxTemplate(request));
+                    Ok(p::DeleteSandboxTemplateResponse::default())
+                })
+            }
+            "GetGatewayInfo" => unary(request, |_: p::GetGatewayInfoRequest| {
+                Ok(p::GetGatewayInfoResponse {
+                    compute_drivers: vec![p::ComputeDriverInfo {
+                        name: "kubernetes".into(),
+                        capabilities: Some(p::ComputeDriverCapabilities {
+                            driver_name: "kubernetes".into(),
+                            ..Default::default()
+                        }),
+                    }],
+                    ..Default::default()
+                })
+            }),
             "GetProvider" => unary(request, move |request: p::GetProviderRequest| {
                 let state = state.lock().unwrap();
                 let key = (workspace(request.workspace_scope.as_ref())?, request.name);

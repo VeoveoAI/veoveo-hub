@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Return the update notice once and clear it.\nWITH shown AS MATERIALIZED (\n    SELECT id, update_notice FROM hub.computer\n    WHERE id = $1 AND tenant = $2 AND principal_id = $3 AND update_notice IS NOT NULL\n    FOR UPDATE\n)\nUPDATE hub.computer AS computer SET update_notice = NULL\nFROM shown WHERE computer.id = shown.id\nRETURNING shown.update_notice AS \"update_notice!: Json<UpdateNotice>\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "update_notice!: Json<UpdateNotice>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "update_notice"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "90dea6e27a85a3bb6ef6efaa8d8f1cff3260a0d37eca161d2df804372e24b794"
+}

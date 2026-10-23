@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, tenant, principal_id, workspace_request, template_request, model_provider_request, hub_provider_request, sandbox_request, handoff_id, configure_request, rotate_request, family_id, ready, provisioning AS \"provisioning: Json<ComputerProvisionSpec>\" FROM hub.computer WHERE id = $1 AND tenant = $2 AND principal_id = $3 FOR UPDATE\n",
+  "query": "SELECT id, tenant, principal_id, workspace_request, model_provider_request, hub_provider_request, handoff_id, configure_request, rotate_request, family_id, ready, provisioning AS \"provisioning: Json<ComputerProvisionSpec>\", operation_id, operation_started_at, operation_provisioning AS \"operation_provisioning: Json<ComputerProvisionSpec>\", operation_notice_shown, failure AS \"failure: Json<ComputerFailure>\", update_notice AS \"update_notice: Json<UpdateNotice>\" FROM hub.computer WHERE id = $1 AND tenant = $2 AND principal_id = $3 FOR UPDATE\n",
   "describe": {
     "columns": [
       {
@@ -49,17 +49,6 @@
       },
       {
         "ordinal": 4,
-        "name": "template_request",
-        "type_info": "Uuid",
-        "origin": {
-          "Table": {
-            "table": "hub.computer",
-            "name": "template_request"
-          }
-        }
-      },
-      {
-        "ordinal": 5,
         "name": "model_provider_request",
         "type_info": "Uuid",
         "origin": {
@@ -70,7 +59,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "hub_provider_request",
         "type_info": "Uuid",
         "origin": {
@@ -81,18 +70,7 @@
         }
       },
       {
-        "ordinal": 7,
-        "name": "sandbox_request",
-        "type_info": "Uuid",
-        "origin": {
-          "Table": {
-            "table": "hub.computer",
-            "name": "sandbox_request"
-          }
-        }
-      },
-      {
-        "ordinal": 8,
+        "ordinal": 6,
         "name": "handoff_id",
         "type_info": "Uuid",
         "origin": {
@@ -103,7 +81,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 7,
         "name": "configure_request",
         "type_info": "Uuid",
         "origin": {
@@ -114,7 +92,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 8,
         "name": "rotate_request",
         "type_info": "Uuid",
         "origin": {
@@ -125,7 +103,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 9,
         "name": "family_id",
         "type_info": "Uuid",
         "origin": {
@@ -136,7 +114,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 10,
         "name": "ready",
         "type_info": "Bool",
         "origin": {
@@ -147,13 +125,79 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 11,
         "name": "provisioning: Json<ComputerProvisionSpec>",
         "type_info": "Jsonb",
         "origin": {
           "Table": {
             "table": "hub.computer",
             "name": "provisioning"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "operation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "operation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "operation_started_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "operation_started_at"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "operation_provisioning: Json<ComputerProvisionSpec>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "operation_provisioning"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "operation_notice_shown",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "operation_notice_shown"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "failure: Json<ComputerFailure>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "failure"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "update_notice: Json<UpdateNotice>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "update_notice"
           }
         }
       }
@@ -172,15 +216,19 @@
       false,
       false,
       false,
-      false,
-      false,
       true,
       true,
       true,
       true,
       false,
-      false
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true
     ]
   },
-  "hash": "3da24746cdfd1eaf3fc7db113b412ad664f8b440486c69f930220d190ce8a532"
+  "hash": "58e75392e6e0880e6c636b55ac6985c88282487e2d8709bf4356b0ea75117879"
 }

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- A completed sign-in, without its refresh family or browser session.\nUPDATE hub.computer SET ready = true, family_id = $2 WHERE id = $1 AND tenant = $3\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f49cb1a166654564d92297255f2833ea15bb0b1d9bf902ce14ab66f9c68a9ebf"
+}
