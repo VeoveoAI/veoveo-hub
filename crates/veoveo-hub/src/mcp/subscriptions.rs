@@ -117,7 +117,11 @@ impl HubMcp {
             for manifest in snapshot.catalog().profile_servers(&self.profile_id) {
                 let mut filter =
                     super::discovery_watch::catalog_change_filter(&manifest.capabilities);
-                if accepted.tools_list_changed != Some(true) {
+                if accepted.tools_list_changed != Some(true)
+                    || self
+                        .discovery_watches
+                        .unchanging(catalog_generation, &manifest.slug)
+                {
                     filter.tools_list_changed = None;
                 }
                 if accepted.resources_list_changed != Some(true) {
@@ -221,7 +225,7 @@ impl HubMcp {
                         route,
                         downstream,
                         subject,
-                        required,
+                        (catalog_generation, required),
                     )
                     .await;
                 (server, required, result)
@@ -242,7 +246,9 @@ impl HubMcp {
                 () = context.cancelled() => return Ok(()),
                 opened = pending.next(), if !pending_done => {
                     match opened {
-                        Some((server, _, Ok(opened))) => {
+                        // The server advertises no change this listen asked it for.
+                        Some((_, _, Ok(None))) => {}
+                        Some((server, _, Ok(Some(opened)))) => {
                             task_routes.insert(server, (opened.hub, opened.task_ids));
                             notifications.push(opened.notifications);
                             upstream_connections.push(opened.connection);
@@ -352,8 +358,8 @@ impl HubMcp {
         route: UpstreamSubscriptionRoute,
         downstream: rmcp::service::Peer<rmcp::service::RoleServer>,
         subject: crate::AuthenticatedSubject,
-        required: bool,
-    ) -> Result<OpenedUpstreamSubscription, McpError> {
+        (generation, required): (u64, bool),
+    ) -> Result<Option<OpenedUpstreamSubscription>, McpError> {
         let server = &key.0;
         let needs_tasks = route.filter.task_ids.is_some();
         let upstream = self
@@ -365,27 +371,39 @@ impl HubMcp {
             .peer_info()
             .ok_or_else(|| mcp_internal(format!("upstream `{server}` was not discovered")))?;
         let effective = route.filter.supported_by(&observed.capabilities);
-        if effective != route.filter {
+        // Resource and Task subscriptions are the caller's; a server that cannot deliver
+        // them fails the listen. A list change the server does not advertise is one it
+        // never sends.
+        if effective.resource_subscriptions != route.filter.resource_subscriptions
+            || effective.task_ids != route.filter.task_ids
+        {
             return Err(mcp_internal(format!(
                 "upstream `{server}` does not support the accepted subscription filter"
             )));
         }
+        if route.filter.tools_list_changed == Some(true) && effective.tools_list_changed.is_none() {
+            self.discovery_watches
+                .learned_unchanging(generation, server);
+        }
+        if effective == SubscriptionFilter::new() {
+            return Ok(None);
+        }
         let subscription = upstream
             .peer
-            .listen(effective)
+            .listen(effective.clone())
             .await
             .map_err(upstream_error)?;
-        if subscription.acknowledged() != &route.filter {
+        if subscription.acknowledged() != &effective {
             return Err(mcp_internal(format!(
                 "upstream `{server}` narrowed the accepted subscription filter"
             )));
         }
-        Ok(OpenedUpstreamSubscription {
+        Ok(Some(OpenedUpstreamSubscription {
             hub: self.clone(),
             task_ids: route.task_ids,
             connection: upstream,
             notifications: Box::pin(routed_notifications(key, required, subscription)),
-        })
+        }))
     }
 
     async fn project_subscription_notification(

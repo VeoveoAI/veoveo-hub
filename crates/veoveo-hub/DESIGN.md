@@ -416,7 +416,13 @@ Tools are listed as `{slug}__{tool}`.
 
 Discovery caches the admitted descriptors per catalog generation, caller authority and
 OAuth client. A registered server's tools, resources, templates and prompts change
-only with its declarations, which start a new generation. List pages use an opaque
+with its declarations, which start a new generation, and its tool descriptions also
+while it runs when it advertises `tools.listChanged`. For such a server the Hub keeps a
+`subscriptions/listen` for tool-list changes open beside each cached tool list, empties
+the server's cached tools on a change, and opens one for every client listen that asks
+for tool-list changes, passing the notification on. A server whose discovered
+capabilities do not advertise the change is remembered for the generation and never
+watched. List pages use an opaque
 cursor of at most 16 KiB that carries the surface and the last returned identity, so
 each page uses the caller's current admission on any replica.
 
