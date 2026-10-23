@@ -187,7 +187,21 @@ fn lore(root: &Path, token: &str) -> tokio::process::Command {
         .env("LORE_GLOBAL_PATH", state.join("global"))
         .env("LORE_AUTH_PATH", state.join("auth"))
         .args(["--access-token", token]);
+    pass_trust_roots(&mut command, |name| std::env::var_os(name));
     command
+}
+
+/// Keep the trust roots the Hub itself uses for Lore's TLS, which the sandbox supplies,
+/// in a command whose environment was cleared.
+fn pass_trust_roots(
+    command: &mut tokio::process::Command,
+    lookup: impl Fn(&str) -> Option<std::ffi::OsString>,
+) {
+    for name in ["SSL_CERT_FILE", "SSL_CERT_DIR"] {
+        if let Some(value) = lookup(name) {
+            command.env(name, value);
+        }
+    }
 }
 
 /// Run a Lore command to completion. Its failure keeps the end of its error output, and
@@ -227,6 +241,24 @@ async fn run(mut command: tokio::process::Command, operation: &str) -> Result<()
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lore_keeps_the_trust_roots_of_a_cleared_environment() {
+        let mut command = tokio::process::Command::new("/usr/local/bin/lore");
+        command.env_clear();
+        pass_trust_roots(&mut command, |name| {
+            (name == "SSL_CERT_FILE").then(|| "/etc/ssl/bundle.pem".into())
+        });
+        let envs = command
+            .as_std()
+            .get_envs()
+            .map(|(name, value)| (name.to_owned(), value.map(ToOwned::to_owned)))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            envs,
+            [("SSL_CERT_FILE".into(), Some("/etc/ssl/bundle.pem".into()))]
+        );
+    }
 
     fn node(path: &str, node_type: NodeType, mode: FileMode, size: u64) -> TreeNode {
         TreeNode {
