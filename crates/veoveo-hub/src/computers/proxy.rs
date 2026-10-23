@@ -21,6 +21,7 @@ use veoveo_types::Sha256Digest;
 use super::{
     ADMISSION_READ_TIMEOUT, BrowserSession, ComputerId, ComputerRuntime, STREAM_ADMISSION_INTERVAL,
     oauth::{SESSION_COOKIE, cookie, denied, digest, private, unavailable},
+    provisioning::Reauthorize,
 };
 
 type BodyError = Box<dyn std::error::Error + Send + Sync>;
@@ -39,6 +40,8 @@ fn websocket(request: &Request) -> bool {
             .get(header::UPGRADE)
             .is_some_and(|v| v.as_bytes().eq_ignore_ascii_case(b"websocket"))
 }
+/// A browser's top-level page load: a GET the browser marks as a navigation, of a
+/// document when it names the destination.
 fn document_navigation(request: &Request) -> bool {
     request.method() == Method::GET
         && !websocket(request)
@@ -49,15 +52,27 @@ fn document_navigation(request: &Request) -> bool {
         && request
             .headers()
             .get("sec-fetch-dest")
-            .is_some_and(|value| value == "document")
+            .is_none_or(|value| value == "document")
+}
+/// Entry resolves the current Computer or starts ordinary sign-in. Never carry a stale
+/// mount, session path or caller-supplied return URL forward.
+fn reenter() -> Response {
+    private(Redirect::to("/computer").into_response())
 }
 fn authorization_required(request: &Request) -> Response {
     if document_navigation(request) {
-        // Entry resolves the current Computer or starts ordinary sign-in. Never
-        // carry a stale mount, session path or caller-supplied return URL forward.
-        private(Redirect::to("/computer").into_response())
+        reenter()
     } else {
         denied()
+    }
+}
+/// A page load of a Computer that signing in again repairs goes back to entry, which
+/// signs in again; anything else, and every other request, answers unavailable.
+fn unavailable_for(navigation: bool, error: &anyhow::Error) -> Response {
+    if navigation && error.downcast_ref::<Reauthorize>().is_some() {
+        reenter()
+    } else {
+        unavailable()
     }
 }
 /// Connection-nominated fields are hop-by-hop too. Keep content encoding/length:
@@ -189,6 +204,7 @@ pub(super) async fn forward(runtime: ComputerRuntime, mut request: Request) -> R
         return private(crate::problem::Problem::not_found().into_response());
     };
     let upgrade = websocket(&request);
+    let navigation = document_navigation(&request);
     if (upgrade
         || !matches!(
             *request.method(),
@@ -256,13 +272,14 @@ pub(super) async fn forward(runtime: ComputerRuntime, mut request: Request) -> R
         &mut request,
         &path,
         upgrade,
+        navigation,
     )
     .await
     {
         Ok(response) => response,
         Err(error) => {
             tracing::debug!(computer = %id, error = %error, "Computer transport unavailable");
-            unavailable()
+            unavailable_for(navigation, &error)
         }
     }
 }
@@ -273,8 +290,8 @@ async fn stream(
     request: &mut Request,
     path: &str,
     upgrade: bool,
+    navigation: bool,
 ) -> Result<Response> {
-    let navigation = document_navigation(request);
     if navigation {
         runtime.provisioner.resume(session.computer()).await?;
     }
@@ -468,6 +485,22 @@ mod tests {
     }
 
     #[test]
+    fn only_a_page_load_that_signing_in_repairs_goes_back_to_entry() {
+        let missing = anyhow::Error::new(Reauthorize).context("resume the Computer");
+        let response = unavailable_for(true, &missing);
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        assert_eq!(response.headers()[header::LOCATION], "/computer");
+        for (navigation, error) in [
+            (false, anyhow::Error::new(Reauthorize)),
+            (true, anyhow::anyhow!("native Computer forwarding deadline")),
+        ] {
+            let response = unavailable_for(navigation, &error);
+            assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+            assert!(!response.headers().contains_key(header::LOCATION));
+        }
+    }
+
+    #[test]
     fn proxy_strips_credentials_nominated_hops_and_cors_without_decoding_entities() {
         let mut headers = HeaderMap::new();
         for (key, value) in [
@@ -598,3 +631,6 @@ mod transport_tests {
         }).await.expect("event stream fixture deadline");
     }
 }
+
+#[cfg(test)]
+mod forward_tests;

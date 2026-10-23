@@ -24,6 +24,12 @@ const PROVIDERS: [&str; 3] = [HUB_PROVIDER, MODEL_PROVIDER, LORE_PROVIDER];
 const RETENTION: &str = "openshell.nvidia.com/retention";
 pub(super) const READY_TIMEOUT: Duration = Duration::from_secs(120);
 
+/// The Computer's sandbox is missing. Signing in again repairs it: the new sign-in's
+/// custody handoff creates the sandbox.
+#[derive(Debug, thiserror::Error)]
+#[error("Computer native sandbox missing; reauthorize")]
+pub(super) struct Reauthorize;
+
 pub(super) struct LoginGrant {
     pub access: SecretString,
     pub client: veoveo_hub_sdk::OAuthClientId,
@@ -55,7 +61,7 @@ fn scope(name: &str) -> Option<p::WorkspaceSelector> {
         selection: Some(p::workspace_selector::Selection::Workspace(name.into())),
     })
 }
-fn metadata(name: &str, workspace: &str) -> p::ObjectMeta {
+pub(super) fn metadata(name: &str, workspace: &str) -> p::ObjectMeta {
     p::ObjectMeta {
         name: name.into(),
         workspace: workspace.into(),
@@ -160,6 +166,23 @@ impl Provisioner {
         };
         result.validate_profiles(public).await?;
         Ok(result)
+    }
+    /// A provisioner of already admitted parts, such as a test's fake gateway.
+    #[cfg(test)]
+    pub(super) fn of(
+        gateway: Gateway,
+        config: Arc<Computers>,
+        policy: p::sandbox::v1::SandboxPolicy,
+        public: &str,
+        spec: super::ComputerProvisionSpec,
+    ) -> Self {
+        Self {
+            gateway,
+            config,
+            policy,
+            public: public.into(),
+            spec,
+        }
     }
     pub fn for_computer(&self, computer: &Computer) -> Result<Self> {
         self.for_spec(computer.provisioning.clone())
@@ -590,10 +613,7 @@ impl Provisioner {
     /// connection performs the bounded listener wait, without an extra probe.
     pub async fn resume(&self, computer: &Computer) -> Result<()> {
         let name = computer.native_name();
-        let sandbox = self
-            .sandbox(&name)
-            .await?
-            .context("Computer native sandbox missing; reauthorize")?;
+        let sandbox = self.sandbox(&name).await?.ok_or(Reauthorize)?;
         self.validate_sandbox(computer, &sandbox)?;
         match phase(&sandbox) {
             p::SandboxPhase::Ready => Ok(()),

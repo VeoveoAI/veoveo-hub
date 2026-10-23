@@ -105,6 +105,28 @@ pub(super) fn denied() -> Response {
     )
 }
 
+/// Start the session's Computer, or answer false when its sandbox is missing, which a new
+/// sign-in's custody handoff repairs.
+async fn running(runtime: &ComputerRuntime, session: &super::BrowserSession) -> Result<bool> {
+    match runtime
+        .provisioner
+        .for_computer(session.computer())?
+        .ensure_running(session.computer())
+        .await
+    {
+        Ok(()) => Ok(true),
+        Err(error)
+            if error
+                .downcast_ref::<super::provisioning::Reauthorize>()
+                .is_some() =>
+        {
+            tracing::info!("Computer sandbox missing; signing in again sets it up");
+            Ok(false)
+        }
+        Err(error) => Err(error),
+    }
+}
+
 pub(super) async fn entry(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
     match enter(&runtime, &headers).await {
         Ok(response) => response,
@@ -122,12 +144,8 @@ async fn enter(runtime: &ComputerRuntime, headers: &HeaderMap) -> Result<Respons
             .hub
             .computer_browser_session(&catalog, &runtime.config, &digest(&value), None)
             .await?
+        && running(runtime, &session).await?
     {
-        runtime
-            .provisioner
-            .for_computer(session.computer())?
-            .ensure_running(session.computer())
-            .await?;
         // Authority may change during the native start; do not publish a
         // ready location based on the earlier admission alone.
         ensure!(

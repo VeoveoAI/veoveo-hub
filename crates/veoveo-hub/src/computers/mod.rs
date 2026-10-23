@@ -15,6 +15,8 @@ mod oauth;
 mod onboarding;
 mod provisioning;
 mod proxy;
+#[cfg(test)]
+mod test_fixture;
 pub use onboarding::{ComputerOnboarding, ComputerOnboardingContext, ComputerOnboardingStatus};
 pub(crate) mod runtime;
 pub use runtime::{ComputerRuntime, ComputerService};

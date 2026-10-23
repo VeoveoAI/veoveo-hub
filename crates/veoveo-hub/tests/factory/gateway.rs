@@ -12,8 +12,9 @@
 //! `oauth2_client_credentials` refresh, a rotation mints the credential there with the
 //! provider's refresh material; a rotation it does not mint reports a synthetic expiry.
 //! When told to, it makes a created or started sandbox ready at once, as the compute
-//! platform would after starting it, and it accepts every TCP forwarding stream without
-//! relaying bytes. It serves plain gRPC to the test and TLS to the Hub binary.
+//! platform would after starting it. It refuses a TCP forwarding stream to a sandbox it
+//! does not have, and otherwise relays the stream to the address it was given, or accepts
+//! it without relaying bytes. It serves plain gRPC to the test and TLS to the Hub binary.
 
 use std::{
     collections::{BTreeMap, HashMap},
@@ -72,6 +73,8 @@ struct State {
     profiles: BTreeMap<String, p::ProviderProfile>,
     /// Whether a created or started sandbox is ready at once.
     ready_on_start: bool,
+    /// Where a TCP forwarding stream is relayed, when set.
+    forward_to: Option<std::net::SocketAddr>,
 }
 
 #[derive(Clone, Default)]
@@ -214,6 +217,11 @@ impl Gateway {
     /// Make every sandbox ready as soon as it is created or started.
     pub fn ready_on_start(&self) {
         self.state.lock().unwrap().ready_on_start = true;
+    }
+
+    /// Relay every TCP forwarding stream to `address`, as to the sandbox's listener.
+    pub fn forward_to(&self, address: std::net::SocketAddr) {
+        self.state.lock().unwrap().forward_to = Some(address);
     }
 
     /// Replace a sandbox's status, as the compute platform's observations would.
@@ -617,7 +625,7 @@ impl Gateway {
             }),
             "ForwardTcp" => Box::pin(async move {
                 Grpc::new(ProstCodec::<p::TcpForwardFrame, p::TcpForwardFrame>::default())
-                    .streaming(Accept, request)
+                    .streaming(Forward { state }, request)
                     .await
             }),
             other => {
@@ -638,15 +646,79 @@ fn workspace(scope: Option<&p::WorkspaceSelector>) -> Result<String, Status> {
 
 type BoxFuture = Pin<Box<dyn Future<Output = http::Response<Body>> + Send>>;
 
-/// A forwarding stream that the target accepted and that relays nothing, open until the
-/// caller ends it.
-struct Accept;
-impl tonic::server::StreamingService<p::TcpForwardFrame> for Accept {
+type Frames = Pin<Box<dyn futures::Stream<Item = Result<p::TcpForwardFrame, Status>> + Send>>;
+
+/// A forwarding stream to a sandbox: refused without the sandbox, relayed to the
+/// configured address, or accepted and open until the caller ends it.
+struct Forward {
+    state: Arc<Mutex<State>>,
+}
+impl tonic::server::StreamingService<p::TcpForwardFrame> for Forward {
     type Response = p::TcpForwardFrame;
-    type ResponseStream = futures::stream::Pending<Result<p::TcpForwardFrame, Status>>;
-    type Future = std::future::Ready<Result<tonic::Response<Self::ResponseStream>, Status>>;
-    fn call(&mut self, _: tonic::Request<tonic::Streaming<p::TcpForwardFrame>>) -> Self::Future {
-        std::future::ready(Ok(tonic::Response::new(futures::stream::pending())))
+    type ResponseStream = Frames;
+    type Future =
+        Pin<Box<dyn Future<Output = Result<tonic::Response<Frames>, Status>> + Send + 'static>>;
+    fn call(
+        &mut self,
+        request: tonic::Request<tonic::Streaming<p::TcpForwardFrame>>,
+    ) -> Self::Future {
+        use futures::StreamExt;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let state = self.state.clone();
+        Box::pin(async move {
+            let mut frames = request.into_inner();
+            let Some(p::TcpForwardFrame {
+                payload: Some(p::tcp_forward_frame::Payload::Init(init)),
+            }) = frames.message().await?
+            else {
+                return Err(Status::invalid_argument(
+                    "a forwarding stream starts with init",
+                ));
+            };
+            let target = {
+                let state = state.lock().unwrap();
+                if !state
+                    .sandboxes
+                    .contains_key(&(init.workspace.clone(), init.sandbox.clone()))
+                {
+                    return Err(Status::not_found("sandbox not found"));
+                }
+                state.forward_to
+            };
+            let Some(target) = target else {
+                return Ok(tonic::Response::new(
+                    Box::pin(futures::stream::pending()) as Frames
+                ));
+            };
+            let socket = tokio::net::TcpStream::connect(target)
+                .await
+                .map_err(|error| Status::unavailable(error.to_string()))?;
+            let (read, mut write) = socket.into_split();
+            tokio::spawn(async move {
+                while let Ok(Some(frame)) = frames.message().await {
+                    if let Some(p::tcp_forward_frame::Payload::Data(bytes)) = frame.payload
+                        && write.write_all(&bytes).await.is_err()
+                    {
+                        break;
+                    }
+                }
+                let _ = write.shutdown().await;
+            });
+            let relayed = futures::stream::unfold(read, |mut read| async move {
+                let mut buffer = vec![0; 16 * 1024];
+                match read.read(&mut buffer).await {
+                    Ok(0) | Err(_) => None,
+                    Ok(count) => {
+                        buffer.truncate(count);
+                        let frame = p::TcpForwardFrame {
+                            payload: Some(p::tcp_forward_frame::Payload::Data(buffer)),
+                        };
+                        Some((Ok(frame), read))
+                    }
+                }
+            });
+            Ok(tonic::Response::new(relayed.boxed() as Frames))
+        })
     }
 }
 

@@ -1067,10 +1067,15 @@ The online-only native app must be used; mounted UI caches are convenience, not 
 same-origin browser security boundary or a guarantee about previously loaded data.
 
 An initial authorization refusal on a browser document navigation redirects to
-the fixed `/computer` entry. Entry resolves the current Computer from a still-valid
-cookie or starts ordinary sign-in; it never replays the stale mount or chat URL.
-API/fetch and WebSocket requests retain `401`, malformed routes retain `404`, and
-operational failures retain `503` rather than redirecting into a recovery loop.
+the fixed `/computer` entry, and so does a navigation that finds the Computer's
+sandbox missing, which signing in again repairs. A navigation is a GET with
+`Sec-Fetch-Mode: navigate` and, when the browser names it, `Sec-Fetch-Dest:
+document`. Entry resolves the current Computer from a still-valid cookie or starts
+ordinary sign-in; with a valid cookie whose sandbox is missing it starts sign-in, whose
+custody handoff creates the sandbox. It never replays the stale mount or chat URL, and
+it returns to the Computer only once it runs. API/fetch, event-stream and WebSocket
+requests retain `401` or `503`, malformed routes retain `404`, and other operational
+failures retain `503` rather than redirecting into a recovery loop.
 
 `POST /computer/logout` is parameterless and same-origin. Only a fresh admitted
 BrowserSession selects its owner and actual native family. A conditional transaction
