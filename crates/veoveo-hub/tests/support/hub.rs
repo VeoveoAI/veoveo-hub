@@ -3,6 +3,7 @@
 #![allow(dead_code, reason = "Each integration test uses part of the fixture")]
 
 use std::{
+    fs::File,
     net::{Ipv4Addr, SocketAddr, TcpListener},
     path::{Path, PathBuf},
     process::Stdio,
@@ -25,6 +26,35 @@ pub struct Hub {
     log: PathBuf,
     child: Child,
     command: Command,
+    /// This fixture's claim on its port, released when the test process ends.
+    _port: File,
+}
+
+/// A free loopback port no other Hub fixture holds. The Hub binds its port only at the
+/// end of its startup, so a port that was merely free could be chosen by another test
+/// process meanwhile; each fixture therefore locks a claim file for its port, which the
+/// operating system releases when the process ends.
+fn claim_port() -> (u16, File) {
+    loop {
+        let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        let claim =
+            File::create(std::env::temp_dir().join(format!("veoveo-hub-port-{port}"))).unwrap();
+        if claim.try_lock().is_ok() {
+            return (port, claim);
+        }
+    }
+}
+
+/// The number of times the Hub logged that it listens.
+fn listening(log: &Path) -> usize {
+    std::fs::read_to_string(log)
+        .unwrap_or_default()
+        .matches(r#""message":"listening""#)
+        .count()
 }
 
 impl Hub {
@@ -43,11 +73,7 @@ impl Hub {
         settings: &[(&str, String)],
         configure: impl FnOnce(&mut serde_json::Value),
     ) -> Self {
-        let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
-            .unwrap()
-            .local_addr()
-            .unwrap()
-            .port();
+        let (port, claim) = claim_port();
         let base = format!("http://127.0.0.1:{port}");
         let installation = veoveo_hub::local::generate(directory, &base).unwrap();
         let mut config: serde_json::Value =
@@ -107,15 +133,16 @@ impl Hub {
             .stderr(output)
             .kill_on_drop(true);
         let child = command.spawn().unwrap();
-        let hub = Self {
+        let mut hub = Self {
             base,
             installation,
             secrets,
             log,
             child,
             command,
+            _port: claim,
         };
-        hub.ready().await;
+        hub.ready(0).await;
         hub
     }
 
@@ -123,14 +150,22 @@ impl Hub {
     pub async fn restart(&mut self) {
         self.child.kill().await.unwrap();
         self.child.wait().await.unwrap();
+        let before = listening(&self.log);
         self.child = self.command.spawn().unwrap();
-        self.ready().await;
+        self.ready(before).await;
     }
 
-    async fn ready(&self) {
+    /// Wait until this fixture's own process, which logged `listening` `before` times
+    /// already, listens on its port and reports ready. A probe answered before then
+    /// could come from another process.
+    async fn ready(&mut self, before: usize) {
         let http = reqwest::Client::new();
         for _ in 0..300 {
-            if let Ok(response) = http.get(format!("{}/readyz", self.base)).send().await
+            if self.child.try_wait().unwrap().is_some() {
+                break;
+            }
+            if listening(&self.log) > before
+                && let Ok(response) = http.get(format!("{}/readyz", self.base)).send().await
                 && response.status() == reqwest::StatusCode::OK
             {
                 let live = http
