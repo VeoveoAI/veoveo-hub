@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.control_active\nSET activated_revision = revision\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "ea3b64e6c6bc3e56003d91e1378bb82800c8c4dd477a09e01f268107869e41fa"
+}

@@ -276,6 +276,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         upstream_http: upstream_http.clone(),
     };
     let control_watcher = super::control_reload::spawn(admin_state.clone(), ct.clone());
+    let activation_store = admin_state.control_store.clone();
     let workspaces =
         crate::contributions::lore::workspace::WorkspaceService::new(admin_state.clone());
     let computers = veoveo_hub::computers::ComputerService::new(
@@ -366,6 +367,9 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(listen_address)
         .await
         .with_context(|| format!("listen on {listen_address}"))?;
+    // A revision imported or published while no Hub ran is applied once the Hub listens,
+    // since the gateway's renewals call its token endpoint.
+    crate::contributions::after_activation(&activation_store, hub_state.hub_store());
     tracing::info!(
         service = "veoveo-hub",
         address = %listen_address,

@@ -201,6 +201,23 @@ impl HubStore {
         .await?
         .try_into()
     }
+    /// The Computer the principal owns in the tenant, if any.
+    pub async fn owned_computer(
+        &self,
+        tenant: &TenantId,
+        principal: &PrincipalId,
+    ) -> Result<Option<Computer>, HubStoreError> {
+        sqlx::query_file_as!(
+            ComputerRow,
+            "src/store/computers/owner.sql",
+            tenant.as_str(),
+            principal.as_str()
+        )
+        .fetch_optional(self.pool())
+        .await?
+        .map(Computer::try_from)
+        .transpose()
+    }
     pub async fn computer(
         &self,
         tenant: &TenantId,

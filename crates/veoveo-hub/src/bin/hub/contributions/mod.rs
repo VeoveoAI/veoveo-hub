@@ -33,6 +33,17 @@ static BINDINGS: LazyLock<anyhow::Result<Bindings>> = LazyLock::new(|| {
         lore,
     })
 });
+/// Apply what the active revision's activation changes outside the Hub, once per
+/// installation, in the background: after a publication, at startup and after a
+/// replica adopts a revision, none of which it may fail or delay.
+pub(crate) fn after_activation(
+    control_store: &veoveo_hub::HubControlStore,
+    store: &veoveo_hub::store::HubStore,
+) {
+    let (control_store, store) = (control_store.clone(), store.clone());
+    tokio::spawn(async move { lore::renewal::after_activation(&control_store, &store).await });
+}
+
 pub fn bindings() -> anyhow::Result<&'static Bindings> {
     BINDINGS
         .as_ref()

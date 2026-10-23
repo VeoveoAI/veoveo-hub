@@ -1019,9 +1019,21 @@ the owner's Lore token for the installation's one Lore deployment, with one nati
 resource entry for every repository the owner is assigned there and none without an
 assignment: the entries the deployment's public client would obtain one repository at
 a time. The client requests no scope or resource. A native name is never UUID-shaped,
-so a Computer's client and an instance's are never taken for each other. A newly
-assigned repository is in the Computer's token after the gateway's next refresh,
-within the deployment's token lifetime.
+so a Computer's client and an instance's are never taken for each other.
+
+When a revision adds, removes or changes a principal's Lore assignments, Hub at once
+asks the gateway to rotate the `computer-lore` credential of the ready Computer that
+principal owns, on the gateway it was provisioned on; the gateway mints a token with
+the current assignments behind the sandbox's unchanged placeholder. Whichever process
+first sees the revision active claims its activation on `hub.control_active`: the
+publisher of an administrative or contribution publication, a Hub starting on a
+revision imported while none ran, or a replica adopting it. A claim spans every
+revision activated since the last one, so the renewal runs once per installation.
+It runs in the background and is best effort: a Computer that cannot renew is
+logged, and the publication stands. A stopped Computer renews too, since the gateway
+keeps refreshing its provider; one whose handoff is pending rotates in that handoff
+before its sandbox starts. With several replicas, a gateway refresh answered by a
+replica that has not adopted the revision yet carries the earlier assignments.
 Provisioning and browser entry also wait for a successful native ForwardTcp target
 connection under the existing 120-second startup bound. The gateway must return
 ForwardTcp success after the native relay claim, not before target connection.

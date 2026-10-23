@@ -55,15 +55,17 @@ pub(super) fn spawn(state: AdminState, stop: CancellationToken) -> tokio::task::
                     return;
                 }
             };
-            if reconcile_needed
-                && let Err(error) = reconcile(
-                    &state.control_store,
-                    &state.catalog,
-                    &state.http,
-                    &state.publication,
-                    &state.public_base_url,
-                )
-                .await
+            if !reconcile_needed {
+                continue;
+            }
+            if let Err(error) = reconcile(
+                &state.control_store,
+                &state.catalog,
+                &state.http,
+                &state.publication,
+                &state.public_base_url,
+            )
+            .await
             {
                 // A failed adoption must not leave an issuer serving indefinitely
                 // with rights older than the revision it was told became active.
@@ -71,6 +73,11 @@ pub(super) fn spawn(state: AdminState, stop: CancellationToken) -> tokio::task::
                 stop.cancel();
                 return;
             }
+            // The publisher usually claimed the activation already.
+            crate::contributions::after_activation(
+                &state.control_store,
+                state.hub_state.hub_store(),
+            );
         }
     })
 }

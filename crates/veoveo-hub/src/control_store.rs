@@ -134,6 +134,15 @@ impl HubControlStore {
             .context("failed to publish hub control-plane revision")
     }
 
+    /// Claim the activation of the active revision, once per installation: the change
+    /// from the revision last claimed, whichever Hub process published or adopted it.
+    pub async fn claim_activation(&self) -> Result<Option<crate::store::ControlActivation>> {
+        self.store
+            .claim_control_activation()
+            .await
+            .context("failed to claim the active hub control-plane revision's activation")
+    }
+
     pub fn platform_store(&self) -> &PlatformStore {
         self.store.platform()
     }

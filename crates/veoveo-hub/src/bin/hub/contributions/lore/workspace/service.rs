@@ -305,6 +305,10 @@ impl WorkspaceService {
                 Ok(()) => {
                     replace_http_client(&self.state.http, http);
                     replace_catalog(&self.state.catalog, Arc::new(prepared))?;
+                    crate::contributions::after_activation(
+                        &self.state.control_store,
+                        self.state.hub_state.hub_store(),
+                    );
                     return Ok(());
                 }
                 Err(error) if veoveo_hub::is_revision_conflict(&error) => continue,

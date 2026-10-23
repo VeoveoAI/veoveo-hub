@@ -6,6 +6,7 @@ pub(crate) mod factory;
 pub(crate) mod instance;
 pub(crate) mod instance_client;
 pub(crate) mod person;
+pub(crate) mod renewal;
 pub(crate) mod workspace;
 use anyhow::{Context, Result, ensure};
 use schemars::JsonSchema;
@@ -225,7 +226,12 @@ impl CatalogSection for Lore {
 impl Lore {
     /// The section of the installation's current configuration.
     pub(crate) fn of(catalog: &veoveo_hub::HubCatalog) -> Result<Self> {
-        match catalog.control_plane().extensions.get("lore") {
+        Self::of_plane(catalog.control_plane())
+    }
+
+    /// The section of a configuration.
+    pub(crate) fn of_plane(plane: &veoveo_hub::control_plane::HubControlPlane) -> Result<Self> {
+        match plane.extensions.get("lore") {
             Some(value) => Ok(serde_json::from_value(value.clone())?),
             None => Ok(Self::default()),
         }

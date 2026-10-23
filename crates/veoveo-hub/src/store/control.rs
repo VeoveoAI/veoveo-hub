@@ -41,7 +41,58 @@ pub struct ControlPublication<'a> {
     pub objects: &'a [ControlObject],
 }
 
+/// A change of the active revision that one Hub process claimed: the configuration it
+/// replaced, if any, and the one now active.
+#[derive(Clone, Debug)]
+pub struct ControlActivation {
+    pub previous: Option<HubControlPlane>,
+    pub revision: HubControlPlaneRevisionId,
+    pub active: HubControlPlane,
+}
+
 impl HubStore {
+    /// Claim the change from the last claimed revision to the active one, once per
+    /// installation, or none when no process has a change to claim. A claim waits for
+    /// a publication in progress and spans every revision activated since the last
+    /// claim.
+    pub async fn claim_control_activation(
+        &self,
+    ) -> Result<Option<ControlActivation>, HubStoreError> {
+        let mut transaction = self.pool().begin().await?;
+        let pointer = sqlx::query_file!("src/store/control/activation_lock.sql")
+            .fetch_one(&mut *transaction)
+            .await?;
+        let Some(active) = pointer.revision else {
+            return Ok(None);
+        };
+        if pointer.activated_revision.as_ref() == Some(&active) {
+            return Ok(None);
+        }
+        sqlx::query_file!("src/store/control/activation_claim.sql")
+            .execute(&mut *transaction)
+            .await?;
+        let mut plane = async |id: &str| {
+            sqlx::query_file_scalar!("src/store/control/revision_plane.sql", id)
+                .fetch_one(&mut *transaction)
+                .await
+                .map(|plane| plane.0)
+        };
+        let previous = match &pointer.activated_revision {
+            Some(previous) => Some(plane(previous).await?),
+            None => None,
+        };
+        let claimed = ControlActivation {
+            previous,
+            active: plane(&active).await?,
+            revision: admitted(
+                "control_active.revision",
+                HubControlPlaneRevisionId::parse(active),
+            )?,
+        };
+        transaction.commit().await?;
+        Ok(Some(claimed))
+    }
+
     /// The active revision, or none before the first publication.
     pub async fn active_control_revision(
         &self,

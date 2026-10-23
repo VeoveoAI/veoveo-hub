@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Claims serialize with publications on the single pointer row.\nSELECT revision, activated_revision\nFROM hub.control_active\nFOR UPDATE\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.control_active",
+            "name": "revision"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "activated_revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.control_active",
+            "name": "activated_revision"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "faf815b00f7a46614ac9d0a1998c48df245b0a89d380c0de161e2f22aff38dcc"
+}

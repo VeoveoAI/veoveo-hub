@@ -415,7 +415,8 @@ impl Provisioner {
         )
         .await?
         .map_err(|e| native_error("configure refresh custody", e))?;
-        self.rotate(
+        rotate(
+            &self.gateway.client,
             &name,
             HUB_PROVIDER,
             &self.config.hub_provider.credential_key,
@@ -486,7 +487,8 @@ impl Provisioner {
         )
         .await?
         .map_err(|e| native_error("configure Lore refresh custody", e))?;
-        self.rotate(
+        rotate(
+            &self.gateway.client,
             name,
             LORE_PROVIDER,
             key,
@@ -494,39 +496,6 @@ impl Provisioner {
             "rotate Lore credential",
         )
         .await
-    }
-    /// Refresh a provider's credential now and require a current, unfailed result.
-    async fn rotate(
-        &self,
-        name: &str,
-        provider: &str,
-        key: &str,
-        request_id: String,
-        operation: &'static str,
-    ) -> Result<()> {
-        let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
-        let rotated = tokio::time::timeout(
-            RPC_TIMEOUT,
-            grpc.rotate_provider_credential(p::RotateProviderCredentialRequest {
-                workspace_scope: scope(name),
-                provider: provider.into(),
-                credential_key: key.into(),
-                request_id,
-            }),
-        )
-        .await?
-        .map_err(|e| native_error(operation, e))?
-        .into_inner()
-        .status
-        .context("native rotation omitted status")?;
-        ensure!(
-            rotated
-                .expiration_time
-                .is_some_and(|expiry| expiry.seconds > Utc::now().timestamp())
-                && rotated.failure_code.is_empty(),
-            "Computer credential rotation not ready"
-        );
-        Ok(())
     }
     async fn ensure_provider(&self, computer: &Computer, seed: ProviderSeed<'_>) -> Result<()> {
         let ProviderSeed {
@@ -725,6 +694,39 @@ impl Provisioner {
         .await
         .context("Computer native transition deadline")?
     }
+}
+/// Refresh a provider's credential now and require a current, unfailed result.
+pub(super) async fn rotate(
+    client: &openshell_sdk::OpenShellClient,
+    name: &str,
+    provider: &str,
+    key: &str,
+    request_id: String,
+    operation: &'static str,
+) -> Result<()> {
+    let mut grpc = client.raw_grpc_fresh().await?;
+    let rotated = tokio::time::timeout(
+        RPC_TIMEOUT,
+        grpc.rotate_provider_credential(p::RotateProviderCredentialRequest {
+            workspace_scope: scope(name),
+            provider: provider.into(),
+            credential_key: key.into(),
+            request_id,
+        }),
+    )
+    .await?
+    .map_err(|e| native_error(operation, e))?
+    .into_inner()
+    .status
+    .context("native rotation omitted status")?;
+    ensure!(
+        rotated
+            .expiration_time
+            .is_some_and(|expiry| expiry.seconds > Utc::now().timestamp())
+            && rotated.failure_code.is_empty(),
+        "Computer credential rotation not ready"
+    );
+    Ok(())
 }
 fn phase(sandbox: &p::Sandbox) -> p::SandboxPhase {
     p::SandboxPhase::try_from(sandbox.status.as_ref().map_or(0, |status| status.phase))
