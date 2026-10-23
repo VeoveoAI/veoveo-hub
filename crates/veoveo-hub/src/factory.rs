@@ -45,7 +45,15 @@ use crate::{
 /// How long one OpenShell request may take.
 const RPC_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long a sandbox may take to disappear after its deletion.
-const TRANSITION_TIMEOUT: Duration = Duration::from_secs(120);
+const TRANSITION_TIMEOUT: Duration = Duration::from_secs(if cfg!(test) { 3 } else { 120 });
+/// How long a delete's answer is awaited. OpenShell answers a delete once the sandbox is
+/// gone, which a Pod's stop can make longer than one request, and finishes a delete it
+/// has taken even when the request ends; after this the sandbox's absence is awaited.
+const DELETE_ANSWER: Duration = if cfg!(test) {
+    Duration::from_millis(500)
+} else {
+    RPC_TIMEOUT
+};
 const POLL_INTERVAL: Duration = Duration::from_millis(250);
 /// The longest a status read waits for an instance to serve or fail.
 pub const MAX_WAIT: Duration = Duration::from_secs(60);
@@ -583,48 +591,11 @@ impl Factory {
 
     /// Delete the sandbox and wait until OpenShell no longer has it.
     async fn delete_sandbox(&self, name: &str) -> Result<()> {
-        let mut grpc = self.client.raw_grpc_fresh().await?;
-        call(
-            "delete the sandbox",
-            grpc.delete_sandbox(p::DeleteSandboxRequest {
-                workspace_scope: scope(&self.config.workspace),
-                name: name.into(),
-                allow_missing: true,
-                ..Default::default()
-            }),
-        )
-        .await?;
-        tokio::time::timeout(TRANSITION_TIMEOUT, async {
-            while self.sandbox(name).await?.is_some() {
-                tokio::time::sleep(POLL_INTERVAL).await;
-            }
-            Ok(())
-        })
-        .await
-        .with_context(|| format!("the sandbox did not disappear within {TRANSITION_TIMEOUT:?}"))?
+        delete_sandbox(&self.client, &self.config.workspace, name).await
     }
 
     async fn sandbox(&self, name: &str) -> Result<Option<p::Sandbox>> {
-        let mut grpc = self.client.raw_grpc_fresh().await?;
-        let answer = tokio::time::timeout(
-            RPC_TIMEOUT,
-            grpc.get_sandbox(p::GetSandboxRequest {
-                workspace_scope: scope(&self.config.workspace),
-                name: name.into(),
-            }),
-        )
-        .await
-        .context("OpenShell did not answer a sandbox read in time")?;
-        match answer {
-            Ok(response) => Ok(Some(
-                response
-                    .into_inner()
-                    .sandbox
-                    .context("OpenShell answered without the sandbox")?,
-            )),
-            Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(status) => Err(refused("read the sandbox", &status)),
-        }
+        read_sandbox(&self.client, &self.config.workspace, name).await
     }
 
     /// Run one step for the instance; when it fails, record why before returning the
@@ -644,6 +615,79 @@ impl Factory {
             }
         }
         result
+    }
+}
+
+/// Delete the sandbox and wait until it is gone, for at most [`TRANSITION_TIMEOUT`];
+/// past it, say what OpenShell still reports. An unanswered delete is no failure: see
+/// [`DELETE_ANSWER`].
+async fn delete_sandbox(client: &OpenShellClient, workspace: &str, name: &str) -> Result<()> {
+    let mut grpc = client.raw_grpc_fresh().await?;
+    let answer = tokio::time::timeout(
+        DELETE_ANSWER,
+        grpc.delete_sandbox(p::DeleteSandboxRequest {
+            workspace_scope: scope(workspace),
+            name: name.into(),
+            allow_missing: true,
+            ..Default::default()
+        }),
+    )
+    .await;
+    match answer {
+        Ok(answer) => {
+            answer.map_err(|status| refused("delete the sandbox", &status))?;
+        }
+        Err(_) => tracing::info!(
+            sandbox = %name,
+            "OpenShell has not answered the delete within {DELETE_ANSWER:?}; waiting for the sandbox to go"
+        ),
+    }
+    let deadline = tokio::time::Instant::now() + TRANSITION_TIMEOUT;
+    loop {
+        let Some(sandbox) = read_sandbox(client, workspace, name).await? else {
+            return Ok(());
+        };
+        if tokio::time::Instant::now() >= deadline {
+            let pod = sandbox
+                .status
+                .as_ref()
+                .map(|status| status.agent_pod.as_str())
+                .filter(|pod| !pod.is_empty())
+                .map(|pod| format!(" on Pod {pod}"))
+                .unwrap_or_default();
+            anyhow::bail!(
+                "the sandbox did not disappear within {TRANSITION_TIMEOUT:?}; it is still{pod}: {}",
+                serde_json::to_string(&status::SandboxStatus::of(&sandbox))?
+            );
+        }
+        tokio::time::sleep(POLL_INTERVAL).await;
+    }
+}
+
+async fn read_sandbox(
+    client: &OpenShellClient,
+    workspace: &str,
+    name: &str,
+) -> Result<Option<p::Sandbox>> {
+    let mut grpc = client.raw_grpc_fresh().await?;
+    let answer = tokio::time::timeout(
+        RPC_TIMEOUT,
+        grpc.get_sandbox(p::GetSandboxRequest {
+            workspace_scope: scope(workspace),
+            name: name.into(),
+        }),
+    )
+    .await
+    .context("OpenShell did not answer a sandbox read in time")?;
+    match answer {
+        Ok(response) => Ok(Some(
+            response
+                .into_inner()
+                .sandbox
+                .context("OpenShell answered without the sandbox")?,
+        )),
+        Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
+        Err(status) => Err(refused("read the sandbox", &status)),
     }
 }
 
@@ -679,6 +723,73 @@ fn refused(operation: &str, status: &tonic::Status) -> anyhow::Error {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use crate::test_gateway as fake;
+
+    const WORKSPACE: &str = "vv-factory";
+
+    /// A fake gateway holding one ready sandbox named `name`.
+    async fn gateway_with(name: &str) -> (fake::Gateway, OpenShellClient) {
+        let (fake, client) = fake::Gateway::start().await;
+        fake.ready_on_start();
+        client
+            .raw_grpc_fresh()
+            .await
+            .unwrap()
+            .create_sandbox(p::CreateSandboxRequest {
+                workspace_scope: scope(WORKSPACE),
+                name: name.into(),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        (fake, client)
+    }
+
+    #[tokio::test]
+    async fn a_delete_answered_after_its_deadline_waits_for_the_sandbox_to_go() {
+        let (fake, client) = gateway_with("server").await;
+        // As while the Pod stops, OpenShell answers once the sandbox is gone, three
+        // times later than the factory awaits the answer.
+        fake.delete_slowly(Some(Duration::from_millis(1500)));
+        let started = std::time::Instant::now();
+        delete_sandbox(&client, WORKSPACE, "server").await.unwrap();
+        assert!(started.elapsed() >= Duration::from_millis(1500));
+        assert!(fake.sandbox(WORKSPACE, "server").is_none());
+    }
+
+    #[tokio::test]
+    async fn a_sandbox_that_does_not_go_fails_the_delete_with_what_openshell_reports() {
+        let (fake, client) = gateway_with("server").await;
+        fake.set_status(
+            WORKSPACE,
+            "server",
+            p::SandboxStatus {
+                phase: p::SandboxPhase::Ready as i32,
+                agent_pod: "server-pod".into(),
+                conditions: vec![p::SandboxCondition {
+                    r#type: "Ready".into(),
+                    status: "False".into(),
+                    reason: "Terminating".into(),
+                    message: "the workload has not exited".into(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        fake.delete_slowly(None);
+        let error = delete_sandbox(&client, WORKSPACE, "server")
+            .await
+            .unwrap_err()
+            .to_string();
+        assert_eq!(
+            error,
+            "the sandbox did not disappear within 3s; it is still on Pod server-pod: \
+             {\"phase\":\"deleting\",\"exitCode\":null,\"restartCount\":0,\"conditions\":\
+             [{\"type\":\"Ready\",\"status\":\"False\",\"reason\":\"Terminating\",\
+             \"message\":\"the workload has not exited\"}]}"
+        );
+    }
 
     #[test]
     fn revisions_are_whole_hash_signatures() {

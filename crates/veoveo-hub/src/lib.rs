@@ -35,6 +35,11 @@ pub mod secrets;
 pub mod selection;
 pub mod state;
 pub mod store;
+/// The fake OpenShell gateway the Computer and factory tests share.
+#[cfg(test)]
+#[allow(dead_code, reason = "each test module uses part of the fake gateway")]
+#[path = "../tests/factory/gateway.rs"]
+mod test_gateway;
 #[cfg(test)]
 mod test_store;
 mod tool_name;

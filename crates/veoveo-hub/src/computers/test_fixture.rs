@@ -2,9 +2,7 @@
 //! serving the installation's template, a provisioner on it with the test catalog's
 //! browser client, profile and Work Context, an owner's Computer and the handoff of its
 //! next sign-in. Every credential is a synthetic string.
-#[allow(dead_code, reason = "the Computer tests use part of the fake gateway")]
-#[path = "../../tests/factory/gateway.rs"]
-pub(super) mod fake;
+pub(super) use crate::test_gateway as fake;
 
 use std::{collections::HashMap, num::NonZeroUsize, sync::Arc};
 
