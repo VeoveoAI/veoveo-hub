@@ -26,7 +26,7 @@ fn principal() -> Principal {
         authenticated_at: None,
     }
 }
-fn plane() -> HubControlPlane {
+pub(super) fn plane() -> HubControlPlane {
     let mut plane: HubControlPlane =
         serde_json::from_str(include_str!("../../../../../testdata/hub.json")).unwrap();
     let section = serde_json::json!({

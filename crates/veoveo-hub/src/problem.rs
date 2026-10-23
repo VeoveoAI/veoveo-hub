@@ -7,6 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
+use std::collections::BTreeMap;
 
 pub const PROBLEM_JSON: &str = "application/problem+json";
 
@@ -17,6 +18,7 @@ pub struct Problem {
     code: &'static str,
     title: &'static str,
     detail: Option<String>,
+    extensions: BTreeMap<&'static str, serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -27,6 +29,8 @@ struct ProblemBody<'a> {
     status: u16,
     #[serde(skip_serializing_if = "Option::is_none")]
     detail: Option<&'a str>,
+    #[serde(flatten)]
+    extensions: &'a BTreeMap<&'static str, serde_json::Value>,
 }
 
 impl Problem {
@@ -36,12 +40,23 @@ impl Problem {
             code,
             title,
             detail: None,
+            extensions: BTreeMap::new(),
         }
     }
 
     /// Occurrence-specific copy that names no secret and no request content.
     pub fn detail(mut self, detail: impl Into<String>) -> Self {
         self.detail = Some(detail.into());
+        self
+    }
+
+    /// An extension member (RFC 9457 §3.2), such as the identifier of what the request
+    /// created before it failed. It names no secret and no request content.
+    pub fn extension(mut self, name: &'static str, value: impl Serialize) -> Self {
+        self.extensions.insert(
+            name,
+            serde_json::to_value(value).unwrap_or(serde_json::Value::Null),
+        );
         self
     }
 
@@ -69,6 +84,7 @@ impl IntoResponse for Problem {
             title: self.title,
             status: self.status.as_u16(),
             detail: self.detail.as_deref(),
+            extensions: &self.extensions,
         };
         (
             self.status,

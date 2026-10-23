@@ -13,10 +13,17 @@ use veoveo_hub::{
 
 use super::Lore;
 
+/// Held while this process claims an activation and renews its Computers, so that a
+/// request that waits for the renewal of its own publication waits for one this
+/// process's other path claimed first.
+static CLAIMING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 /// Claim the active revision's activation and renew the Lore access of every Computer
 /// whose owner's assignments it changed. Best effort: a failure is logged and never
-/// fails or delays the revision's publication or adoption.
+/// fails a publication or an adoption. A caller that awaits it returns once this
+/// process renewed the Computers of every activation it saw.
 pub(crate) async fn after_activation(control_store: &HubControlStore, store: &HubStore) {
+    let _claiming = CLAIMING.lock().await;
     let activation = match control_store.claim_activation().await {
         Ok(Some(activation)) => activation,
         Ok(None) => return,

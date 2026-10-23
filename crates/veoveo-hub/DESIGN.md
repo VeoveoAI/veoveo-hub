@@ -674,6 +674,7 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 | `/admin/{profile}/...` | Configuration, audit, JWT revocation, Task cancellation, server health and usage |
 | `PUT`/`DELETE /selection/{profile}/{server}` | The caller's branch for a server, or back to the base branch; 204 |
 | `PUT /factory/{profile}/watch?repository=<id>` | The Hub watches a Lore repository as the caller; 204, or 403 without the caller's grant |
+| `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
@@ -1123,6 +1124,25 @@ admission; rights are not copied into the family. Explicitly configured
 resolver and request the same owner target, with no human session or inferred
 service-account/administrator repository permission. Existing private-key clients
 and registered-server delegation keep their original proof contracts.
+
+Whoever creates a repository owns it, in one step. `POST /lore/{profile}/repositories`
+with `{"name"}` and an optional `"id"` takes any authenticated caller with a tenant,
+directly or through a server that calls the Hub for them, with no administrator role
+and no quota. The Hub creates the repository in the one Lore deployment as the
+caller, with a Lore login token it issues for them through the deployment's public
+client, so Lore records them as creator. It then publishes one revision that
+registers the repository, titled by its name, and assigns the caller `owner`, as the
+personal workspace does for its creator. The publication takes the process's
+publication lock and is built again on a revision conflict. The route answers 201
+with `{id, name, remote}`, where `remote` is `<deployment endpoint>/<id>`, once this
+process has renewed the Lore access of the caller's Computers. Lore answers a repeat
+creation of the same ID and name with the existing record, so a call with the `id`
+of a repository Lore records the caller as creating registers it, such as after a
+failed publication; that failure answers 503 with the repository's `id`. Another
+creator answers 409 `repository-claimed`, a registered repository without the
+caller's owner assignment answers 409 `repository-registered`, since a creator never
+restores an assignment an administrator removed, and a registered repository the
+caller owns answers 200 unchanged. Sharing, listing and deletion are separate.
 
 The native HTTP fixture approves a synthetic identity through trusted fixture
 state, checks actual hosted HTTP/JWT/persistence/live-publication behavior, and

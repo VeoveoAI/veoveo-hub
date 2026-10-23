@@ -1,5 +1,5 @@
 //! Native personal workspace provisioning, owned by the executable contribution.
-mod client;
+pub(crate) mod client;
 mod descriptor;
 mod service;
 mod store;
