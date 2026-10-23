@@ -7,3 +7,13 @@ slow-timeout = { period = "60s", terminate-after = 5 }
 
 [profile.ci.junit]
 path = "junit.xml"
+
+# This test asserts that a catalog client refreshes within its advertised TTL, a
+# deadline that competing tests on a busy machine can push it past. It runs alone.
+[[profile.default.overrides]]
+filter = "test(=simultaneous_selected_revisions_keep_discovery_delegation_and_retained_tasks)"
+threads-required = "num-test-threads"
+
+[[profile.ci.overrides]]
+filter = "test(=simultaneous_selected_revisions_keep_discovery_delegation_and_retained_tasks)"
+threads-required = "num-test-threads"
