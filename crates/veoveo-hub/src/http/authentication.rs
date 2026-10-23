@@ -49,21 +49,31 @@ pub fn profile_from_request(request: &Request) -> Option<HubProfileId> {
 }
 pub async fn authenticate_profile(
     State(state): State<ProfileAuthState>,
+    request: Request,
+    next: Next,
+) -> axum::response::Response {
+    let Some(profile_id) = profile_from_request(&request) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    authenticate_for_profile(&state, &profile_id, request, next).await
+}
+/// Admit the request's bearer for `profile_id`, as [`authenticate_profile`] does for
+/// the profile its route names, for a route whose profile is fixed by configuration.
+pub async fn authenticate_for_profile(
+    state: &ProfileAuthState,
+    profile_id: &HubProfileId,
     mut request: Request,
     next: Next,
 ) -> axum::response::Response {
     let started_at = Instant::now();
-    let Some(profile_id) = profile_from_request(&request) else {
-        return StatusCode::NOT_FOUND.into_response();
-    };
     let catalog = current_catalog(&state.catalog);
-    let Some(profile) = catalog.profile(&profile_id) else {
+    let Some(profile) = catalog.profile(profile_id) else {
         return StatusCode::NOT_FOUND.into_response();
     };
     let Some(authorization_server) = catalog.authorization_server(&profile.authorization_server)
     else {
         if let Err(err) = record_auth_audit(
-            &state,
+            state,
             profile,
             AuthOutcome::Deny,
             AuthReasonCode::UnknownAuthorizationServer,
@@ -74,12 +84,12 @@ pub async fn authenticate_profile(
         {
             return auth_audit_error_response(err);
         }
-        return bearer_challenge(&state, profile, None, "unknown authorization server");
+        return bearer_challenge(state, profile, None, "unknown authorization server");
     };
 
     let Some(header) = request.headers().get(AUTHORIZATION) else {
         if let Err(err) = record_auth_audit(
-            &state,
+            state,
             profile,
             AuthOutcome::Deny,
             AuthReasonCode::MissingAuthorizationHeader,
@@ -90,7 +100,7 @@ pub async fn authenticate_profile(
         {
             return auth_audit_error_response(err);
         }
-        return bearer_challenge(&state, profile, None, "missing authorization header");
+        return bearer_challenge(state, profile, None, "missing authorization header");
     };
     let token = match header
         .to_str()
@@ -101,7 +111,7 @@ pub async fn authenticate_profile(
         Err(err) => {
             tracing::warn!("rejected hub request: {err}");
             if let Err(err) = record_auth_audit(
-                &state,
+                state,
                 profile,
                 AuthOutcome::Deny,
                 AuthReasonCode::InvalidAuthorizationHeader,
@@ -118,7 +128,7 @@ pub async fn authenticate_profile(
                 AuthError::InvalidAuthorizationScheme => None,
                 _ => Some(BearerError::InvalidRequest),
             };
-            return bearer_challenge(&state, profile, error, "invalid authorization header");
+            return bearer_challenge(state, profile, error, "invalid authorization header");
         }
     };
 
@@ -128,12 +138,12 @@ pub async fn authenticate_profile(
     match state.delegation.admit(token.as_str(), profile).await {
         ExchangedAdmission::NotExchanged => {}
         ExchangedAdmission::Admitted(subject) => {
-            return admit_exchanged(&state, profile, *subject, request, next, started_at).await;
+            return admit_exchanged(state, profile, *subject, request, next, started_at).await;
         }
         ExchangedAdmission::Refused(reason) => {
             tracing::warn!(profile = %profile.id, reason, "rejected an exchanged token");
             if let Err(err) = record_auth_audit(
-                &state,
+                state,
                 profile,
                 AuthOutcome::Deny,
                 AuthReasonCode::InvalidBearerToken,
@@ -144,7 +154,7 @@ pub async fn authenticate_profile(
             {
                 return auth_audit_error_response(err);
             }
-            return bearer_challenge(&state, profile, Some(BearerError::InvalidToken), reason);
+            return bearer_challenge(state, profile, Some(BearerError::InvalidToken), reason);
         }
         ExchangedAdmission::Unavailable(error) => {
             tracing::error!(%error, "failed to judge an exchanged token");
@@ -165,7 +175,7 @@ pub async fn authenticate_profile(
         Err(err) => {
             tracing::warn!("failed to load resource authorization server JWKS: {err}");
             if let Err(err) = record_auth_audit(
-                &state,
+                state,
                 profile,
                 AuthOutcome::Deny,
                 AuthReasonCode::AuthorizationServerUnavailable,
@@ -197,7 +207,7 @@ pub async fn authenticate_profile(
         Err(err) => {
             tracing::error!("invalid hub auth config: {err}");
             if let Err(err) = record_auth_audit(
-                &state,
+                state,
                 profile,
                 AuthOutcome::Deny,
                 AuthReasonCode::InvalidAuthConfig,
@@ -240,12 +250,11 @@ pub async fn authenticate_profile(
                 ),
             };
             if let Err(err) =
-                record_auth_audit(&state, profile, AuthOutcome::Deny, reason, None, started_at)
-                    .await
+                record_auth_audit(state, profile, AuthOutcome::Deny, reason, None, started_at).await
             {
                 return auth_audit_error_response(err);
             }
-            return bearer_challenge(&state, profile, Some(error), detail);
+            return bearer_challenge(state, profile, Some(error), detail);
         }
     };
     let subject = match state
@@ -257,7 +266,7 @@ pub async fn authenticate_profile(
         Err(err) => {
             tracing::warn!("rejected hub authority: {err}");
             if let Err(err) = record_auth_audit(
-                &state,
+                state,
                 profile,
                 AuthOutcome::Deny,
                 AuthReasonCode::InvalidBearerToken,
@@ -269,7 +278,7 @@ pub async fn authenticate_profile(
                 return auth_audit_error_response(err);
             }
             return bearer_challenge(
-                &state,
+                state,
                 profile,
                 Some(BearerError::InvalidToken),
                 "invalid invocation authority",
@@ -292,7 +301,7 @@ pub async fn authenticate_profile(
                 Ok(false) => (
                     AuthReasonCode::TokenRevoked,
                     bearer_challenge(
-                        &state,
+                        state,
                         profile,
                         Some(BearerError::InvalidToken),
                         "session revoked or expired",
@@ -308,7 +317,7 @@ pub async fn authenticate_profile(
                 Ok(true) => unreachable!(),
             };
             if let Err(error) = record_auth_audit(
-                &state,
+                state,
                 profile,
                 AuthOutcome::Deny,
                 reason,
@@ -341,7 +350,7 @@ pub async fn authenticate_profile(
                     "rejected revoked hub token"
                 );
                 if let Err(err) = record_auth_audit(
-                    &state,
+                    state,
                     profile,
                     AuthOutcome::Deny,
                     AuthReasonCode::TokenRevoked,
@@ -353,7 +362,7 @@ pub async fn authenticate_profile(
                     return auth_audit_error_response(err);
                 }
                 return bearer_challenge(
-                    &state,
+                    state,
                     profile,
                     Some(BearerError::InvalidToken),
                     "token revoked",
@@ -363,7 +372,7 @@ pub async fn authenticate_profile(
             Err(err) => {
                 tracing::error!("failed to check hub token revocation state: {err}");
                 if let Err(err) = record_auth_audit(
-                    &state,
+                    state,
                     profile,
                     AuthOutcome::Deny,
                     AuthReasonCode::AuthStateUnavailable,
@@ -378,10 +387,10 @@ pub async fn authenticate_profile(
             }
         }
     }
-    if let Err(err) = sync_principal_directory(&state, &subject).await {
+    if let Err(err) = sync_principal_directory(state, &subject).await {
         tracing::error!(%err, principal = %subject.principal.id, "failed to synchronize authenticated principal display metadata");
         if let Err(audit_error) = record_auth_audit(
-            &state,
+            state,
             profile,
             AuthOutcome::Deny,
             AuthReasonCode::AuthStateUnavailable,
@@ -395,7 +404,7 @@ pub async fn authenticate_profile(
         return StatusCode::INTERNAL_SERVER_ERROR.into_response();
     }
     if let Err(err) = record_auth_audit(
-        &state,
+        state,
         profile,
         AuthOutcome::Allow,
         AuthReasonCode::AuthAllow,

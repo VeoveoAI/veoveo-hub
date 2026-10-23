@@ -14,8 +14,10 @@ use super::{
     version::{VersionInfo, WhatsNew},
 };
 
-/// Where the start page goes again until the Computer is ready.
-pub(super) const OPEN: &str = "/computer/open";
+/// The way in, where the start page reloads until the Computer is ready.
+pub(super) const ENTRY: &str = "/computer";
+/// The status page.
+pub(super) const STATUS: &str = "/computer/status";
 
 fn escaped(value: &str) -> String {
     value
@@ -105,7 +107,7 @@ pub(super) fn starting(target: Option<&VersionInfo>, changes: Option<&WhatsNew>)
     if let Some(changes) = changes {
         body.push_str(&whats_new(changes));
     }
-    body.push_str("<p><a href=\"/computer\">Status</a></p>");
+    let _ = write!(body, "<p><a href=\"{STATUS}\">Status</a></p>");
     page(
         StatusCode::OK,
         "Starting your Computer",
@@ -136,14 +138,14 @@ pub(super) fn status(status: &ComputerStatus) -> Response {
     if let Some(restart) = &status.restart {
         let _ = write!(
             body,
-            "<p>Restarting to {} since {}. <a href=\"{OPEN}\">Follow it</a></p>",
+            "<p>Restarting to {} since {}. <a href=\"{ENTRY}\">Follow it</a></p>",
             version(&restart.version),
             escaped(&restart.since.to_rfc3339())
         );
     } else if status.sandbox == "ready" && status.blocked.is_none() {
-        let _ = write!(body, "<p><a href=\"{OPEN}\">Open your Computer</a></p>");
+        let _ = write!(body, "<p><a href=\"{ENTRY}\">Open your Computer</a></p>");
     } else if status.failure.is_none() {
-        let _ = write!(body, "<p><a href=\"{OPEN}\">Start your Computer</a></p>");
+        let _ = write!(body, "<p><a href=\"{ENTRY}\">Start your Computer</a></p>");
     }
     let _ = write!(
         body,

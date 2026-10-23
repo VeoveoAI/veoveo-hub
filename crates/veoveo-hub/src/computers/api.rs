@@ -1,11 +1,12 @@
-//! The Computer's routes for bearers: `GET /computer/{profile}/status` and `POST
-//! /computer/{profile}/restart` for the caller's own Computer, for any caller with a
-//! tenant whose token the profile admits: the Computer's own Hub credential, or a
+//! The Computer's actions: `GET /computer/status`, `POST /computer/restart` and `POST
+//! /computer/previous`, for the owner's browser session, or for a bearer with a tenant
+//! whose token the Computers' profile admits: the Computer's own Hub credential, or a
 //! server calling the Hub for its caller. And `GET /computer/version`, the current
-//! version and its summary, public, for a server that names it in a tool's description.
+//! version and its summary only, public, for a server that names it in a tool's
+//! description.
 use axum::{
     Extension, Json,
-    http::{HeaderValue, StatusCode, header},
+    http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
 
@@ -68,12 +69,18 @@ fn no_store(mut response: Response) -> Response {
     response
 }
 
-/// The caller's Computer's status. An update completed since the caller was last told
-/// is in it once.
+/// `GET /computer/status`: for a bearer, the caller's Computer's status as JSON, with
+/// an update completed since the caller was last told in it once; for the owner's
+/// browser session, the status page, with Restart. A browser without a session signs
+/// in at `/computer`.
 pub(super) async fn status(
     runtime: ComputerRuntime,
-    Extension(subject): Extension<AuthenticatedSubject>,
+    subject: Option<Extension<AuthenticatedSubject>>,
+    headers: HeaderMap,
 ) -> Response {
+    let Some(Extension(subject)) = subject else {
+        return browser_status(&runtime, &headers).await;
+    };
     let computer = match owned(&runtime, &subject).await {
         Ok(computer) => computer,
         Err(response) => return *response,
@@ -87,18 +94,59 @@ pub(super) async fn status(
     }
 }
 
-/// Restart the caller's Computer at the current version. Answers 202 with its status
-/// at once; the restart deletes the sandbox only after a short wait, so a caller inside
-/// the Computer receives the answer first.
+async fn browser_status(runtime: &ComputerRuntime, headers: &HeaderMap) -> Response {
+    let result = async {
+        let Some((_, session)) = super::oauth::admitted(runtime, headers).await? else {
+            return super::oauth::redirect(super::pages::ENTRY);
+        };
+        let status = runtime.status(session.computer(), true).await?;
+        Ok(super::pages::status(&status))
+    }
+    .await;
+    result.unwrap_or_else(|error| {
+        tracing::warn!(error = %error, "Computer status unavailable");
+        super::oauth::refused(&error)
+    })
+}
+
+/// `POST /computer/restart`: restart the caller's Computer at the current version.
 pub(super) async fn restart(
     runtime: ComputerRuntime,
-    Extension(subject): Extension<AuthenticatedSubject>,
+    subject: Option<Extension<AuthenticatedSubject>>,
+    headers: HeaderMap,
 ) -> Response {
+    act(runtime, subject, headers, Target::Current).await
+}
+
+/// `POST /computer/previous`: start the version recorded on the caller's Computer
+/// again, after a failed restart.
+pub(super) async fn previous(
+    runtime: ComputerRuntime,
+    subject: Option<Extension<AuthenticatedSubject>>,
+    headers: HeaderMap,
+) -> Response {
+    act(runtime, subject, headers, Target::Previous).await
+}
+
+/// Begin a replacement of `target`. A bearer gets `202` with the status at once, or
+/// `409` while one runs; the owner's browser session, from this origin only, goes to
+/// `/computer`, which follows the replacement on the start page. The replacement
+/// deletes the sandbox only after a short wait, so a caller inside the Computer receives
+/// the answer first.
+async fn act(
+    runtime: ComputerRuntime,
+    subject: Option<Extension<AuthenticatedSubject>>,
+    headers: HeaderMap,
+    target: Target,
+) -> Response {
+    let Some(Extension(subject)) = subject else {
+        return browser_act(&runtime, &headers, target).await;
+    };
     let computer = match owned(&runtime, &subject).await {
         Ok(computer) => computer,
         Err(response) => return *response,
     };
-    match runtime.begin(&computer, Target::Current, true).await {
+    match runtime.begin(&computer, target, true).await {
         Ok(Begun::Started) => {}
         Ok(Begun::Running) => {
             return Problem::new(
@@ -124,6 +172,32 @@ pub(super) async fn restart(
     }
 }
 
+async fn browser_act(runtime: &ComputerRuntime, headers: &HeaderMap, target: Target) -> Response {
+    if !super::proxy::same_origin(runtime, headers) {
+        return super::oauth::private(
+            Problem::new(
+                StatusCode::FORBIDDEN,
+                "computer-origin-refused",
+                "Computer origin refused",
+            )
+            .into_response(),
+        );
+    }
+    let result = async {
+        let Some((_, session)) = super::oauth::admitted(runtime, headers).await? else {
+            return Ok(super::oauth::denied());
+        };
+        // A replacement that already runs is followed on the start page too.
+        runtime.begin(session.computer(), target, true).await?;
+        super::oauth::redirect(super::pages::ENTRY)
+    }
+    .await;
+    result.unwrap_or_else(|error| {
+        tracing::warn!(error = %error, "Computer restart refused");
+        super::oauth::refused(&error)
+    })
+}
+
 /// The current version and its summary.
 pub(super) async fn version(runtime: ComputerRuntime) -> Response {
     let current = match runtime.installation.current().await {
@@ -138,3 +212,6 @@ pub(super) async fn version(runtime: ComputerRuntime) -> Response {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

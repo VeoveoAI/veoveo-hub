@@ -422,7 +422,10 @@ while it runs when it advertises `tools.listChanged`. For such a server the Hub 
 the server's cached tools on a change, and opens one for every client listen that asks
 for tool-list changes, passing the notification on. A server whose discovered
 capabilities do not advertise the change is remembered for the generation and never
-watched. List pages use an opaque
+watched. Known limit: the watch beside a cached tool list is per catalog generation,
+caller and authority, so a server that advertises the change, such as console, holds
+one listen per caller, and those listens count toward the replica's cap of 256
+discovery watches; a discovery beyond it fails until watches end. List pages use an opaque
 cursor of at most 16 KiB that carries the surface and the last returned identity, so
 each page uses the caller's current admission on any replica.
 
@@ -1130,14 +1133,15 @@ and releases a bounded connection permit. Proxy responses are private/no-store.
 The online-only native app must be used; mounted UI caches are convenience, not a
 same-origin browser security boundary or a guarantee about previously loaded data.
 
-The browser's routes:
+The Computer's routes:
 
 | Route | Behavior |
 |---|---|
-| `GET /computer` | The status page of the session's Computer, or sign-in |
-| `GET /computer/open` | The way in: sign-in, creation of a missing sandbox, the start page while the sandbox is created or started, then the Computer; the status page when a failure or a sandbox the Hub can no longer serve needs the owner |
-| `POST /computer/restart`, `POST /computer/previous` | Same-origin, admitted session: a replacement at the current version, or of the recorded version after a failure; then the start page |
-| `GET /computer/callback` | The sign-in's code exchange and custody, then `/computer/open` |
+| `GET /computer` | The way in: sign-in, creation of a missing sandbox, the start page while the sandbox is created or started, then the Computer; the status page when a failure or a sandbox the Hub can no longer serve needs the owner |
+| `GET /computer/status` | The owner's status page, or the status as JSON for a bearer |
+| `POST /computer/restart`, `POST /computer/previous` | A replacement at the current version, or of the recorded version after a failure: for the owner's session, from this origin only, then `/computer`; for a bearer, `202` with the status, `409` while one runs, `503` when no Computer can start |
+| `GET /computer/version` | Public: the current version and its release note's first line only, for a server that names it in a tool description |
+| `GET /computer/callback` | The sign-in's code exchange and custody, then `/computer` |
 
 The start page, shown on every creation, names the version it starts and lists what
 it brings over the recorded one, and reloads itself every two seconds until the
@@ -1147,22 +1151,21 @@ its cause, a blocking sandbox, and an update not yet told; it offers Restart and
 after a failure, Start the previous version. Both are plain HTML, with no script or
 style and a CSP of `default-src 'none'; form-action 'self'`.
 
-For bearers, `GET /computer/{profile}/status` and `POST /computer/{profile}/restart`
-serve the caller's own ready Computer to any caller with a tenant whose token the
-profile admits: the Computer's own Hub credential (`COMPUTER_HUB_REFERENCE`, a token of
-the Computers' client) or a registered server calling the Hub for its caller. Status is
-the same JSON as the page's (`version`, `sandbox`, `current`, `currentUnavailable`,
-`updateAvailable`, `whatsNew`, `restart`, `failure`, `blocked`, `updated`) and returns
-an update notice once; restart answers `202` with the status, `409` while one runs, and
-`503` when no Computer can start. `GET /computer/version` publicly names the current
-version and its summary, for a server that names it in a tool description; it carries
-no Computer or owner. A profile named `c` would collide with the mounts under
-`/computer/c/`.
+Each action path takes either caller. A request with an `Authorization` header is a
+bearer's, which the Hub admits for `computers.profile`, the one Computers profile, as
+any profile route admits its bearers: the Computer's own Hub credential
+(`COMPUTER_HUB_REFERENCE`, a token of the Computers' client) or a registered server
+calling the Hub for a caller who reached it through that profile. It serves the
+caller's own ready Computer, found by tenant and principal. Without one, the owner's
+browser session cookie decides; a browser without a session goes to `/computer` to
+sign in. Status JSON (`version`, `sandbox`, `current`, `currentUnavailable`,
+`updateAvailable`, `whatsNew`, `restart`, `failure`, `blocked`, `updated`) and the page
+both return an update notice once.
 
 An initial authorization refusal on a browser document navigation redirects to
-`/computer/open`, and so does a navigation that finds the Computer's sandbox missing,
+`/computer`, and so does a navigation that finds the Computer's sandbox missing,
 stopped or being replaced; one whose last replacement failed with no sandbox left, or
-whose sandbox the Hub can no longer serve safely, goes to `/computer`. A navigation is a
+whose sandbox the Hub can no longer serve safely, goes to `/computer/status`. A navigation is a
 GET with `Sec-Fetch-Mode: navigate` and, when the browser names it, `Sec-Fetch-Dest:
 document`. Entry never replays the stale mount or chat URL, and it returns to the
 Computer only once it runs. API/fetch, event-stream and WebSocket requests retain `401`

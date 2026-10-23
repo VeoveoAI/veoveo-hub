@@ -70,7 +70,7 @@ fn document_navigation(request: &Request) -> bool {
 /// Entry resolves the current Computer, starting it, or starts ordinary sign-in. Never
 /// carry a stale mount, session path or caller-supplied return URL forward.
 fn reenter() -> Response {
-    private(Redirect::to(super::pages::OPEN).into_response())
+    private(Redirect::to(super::pages::ENTRY).into_response())
 }
 fn authorization_required(request: &Request) -> Response {
     if document_navigation(request) {
@@ -86,7 +86,7 @@ fn unavailable_for(navigation: bool, error: &anyhow::Error) -> Response {
     if navigation && error.downcast_ref::<Reenter>().is_some() {
         reenter()
     } else if navigation && error.downcast_ref::<Attention>().is_some() {
-        private(Redirect::to("/computer").into_response())
+        private(Redirect::to(super::pages::STATUS).into_response())
     } else {
         unavailable()
     }
@@ -483,7 +483,7 @@ mod tests {
             .unwrap();
         let response = authorization_required(&request);
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
-        assert_eq!(response.headers()[header::LOCATION], "/computer/open");
+        assert_eq!(response.headers()[header::LOCATION], "/computer");
         assert_eq!(
             response.headers()[header::CACHE_CONTROL],
             "private, no-store"
@@ -528,11 +528,11 @@ mod tests {
         let missing = anyhow::Error::new(Reenter).context("enter the Computer");
         let response = unavailable_for(true, &missing);
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
-        assert_eq!(response.headers()[header::LOCATION], "/computer/open");
+        assert_eq!(response.headers()[header::LOCATION], "/computer");
         let failed = anyhow::Error::new(Attention("synthetic cause".into()));
         let response = unavailable_for(true, &failed);
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
-        assert_eq!(response.headers()[header::LOCATION], "/computer");
+        assert_eq!(response.headers()[header::LOCATION], "/computer/status");
         for (navigation, error) in [
             (false, anyhow::Error::new(Reenter)),
             (

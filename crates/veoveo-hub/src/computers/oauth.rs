@@ -76,7 +76,7 @@ pub(super) fn private(mut response: Response) -> Response {
         .insert(header::PRAGMA, HeaderValue::from_static("no-cache"));
     response
 }
-fn redirect(location: &str) -> Result<Response> {
+pub(super) fn redirect(location: &str) -> Result<Response> {
     let mut response = StatusCode::SEE_OTHER.into_response();
     response
         .headers_mut()
@@ -106,7 +106,7 @@ pub(super) fn denied() -> Response {
 }
 
 /// The admitted browser session of the request's cookie, if any.
-async fn admitted(
+pub(super) async fn admitted(
     runtime: &ComputerRuntime,
     headers: &HeaderMap,
 ) -> Result<Option<(String, super::BrowserSession)>> {
@@ -125,29 +125,11 @@ async fn admitted(
         .map(|session| (value, session)))
 }
 
-/// `GET /computer`: the status page of the session's Computer, with Restart, or
-/// sign-in.
+/// `GET /computer`: the way into the Computer. Signs in, creates a missing sandbox at
+/// the current version, shows the start page while the sandbox is created or started,
+/// and goes to the Computer once it is ready, or to the status page when a failure or a
+/// sandbox the Hub can no longer serve needs the owner.
 pub(super) async fn entry(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
-    let result = async {
-        let Some((_, session)) = admitted(&runtime, &headers).await? else {
-            return sign_in(&runtime).await;
-        };
-        let status = runtime.status(session.computer(), true).await?;
-        Ok(super::pages::status(&status))
-    }
-    .await;
-    result.unwrap_or_else(|error| {
-        // Never log a callback query, provider response, cookie or grant.
-        tracing::warn!(error = %error, "Computer entry unavailable");
-        refused(&error)
-    })
-}
-
-/// `GET /computer/open`: the way into the Computer. Signs in, creates a missing
-/// sandbox at the current version, shows the start page while the sandbox is created or
-/// started, and goes to the Computer once it is ready, or to the status page when a
-/// failure or a sandbox the Hub can no longer serve needs the owner.
-pub(super) async fn open(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
     let result = async {
         let Some((value, session)) = admitted(&runtime, &headers).await? else {
             return sign_in(&runtime).await;
@@ -186,60 +168,20 @@ pub(super) async fn open(runtime: ComputerRuntime, headers: HeaderMap) -> Respon
                 ))
             }
             super::lifecycle::Entry::Starting(None) => Ok(super::pages::starting(None, None)),
-            super::lifecycle::Entry::Attention => redirect("/computer"),
+            super::lifecycle::Entry::Attention => redirect(super::pages::STATUS),
         }
     }
     .await;
     result.unwrap_or_else(|error| {
+        // Never log a callback query, provider response, cookie or grant.
         tracing::warn!(error = %error, "Computer entry unavailable");
-        refused(&error)
-    })
-}
-
-/// `POST /computer/restart`: restart the session's Computer at the current version.
-pub(super) async fn restart(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
-    replace(runtime, headers, super::lifecycle::Target::Current).await
-}
-
-/// `POST /computer/previous`: start the version recorded on the session's Computer
-/// again, after a failed restart.
-pub(super) async fn previous(runtime: ComputerRuntime, headers: HeaderMap) -> Response {
-    replace(runtime, headers, super::lifecycle::Target::Previous).await
-}
-
-async fn replace(
-    runtime: ComputerRuntime,
-    headers: HeaderMap,
-    target: super::lifecycle::Target,
-) -> Response {
-    if !super::proxy::same_origin(&runtime, &headers) {
-        return private(
-            Problem::new(
-                StatusCode::FORBIDDEN,
-                "computer-origin-refused",
-                "Computer origin refused",
-            )
-            .into_response(),
-        );
-    }
-    let result = async {
-        let Some((_, session)) = admitted(&runtime, &headers).await? else {
-            return Ok(denied());
-        };
-        // A replacement that already runs is followed on the start page too.
-        runtime.begin(session.computer(), target, true).await?;
-        redirect(super::pages::OPEN)
-    }
-    .await;
-    result.unwrap_or_else(|error| {
-        tracing::warn!(error = %error, "Computer restart refused");
         refused(&error)
     })
 }
 
 /// The page of an entry that cannot continue: Computers unavailable and why, or the
 /// generic unavailable answer.
-fn refused(error: &anyhow::Error) -> Response {
+pub(super) fn refused(error: &anyhow::Error) -> Response {
     match error.downcast_ref::<super::provisioning::Unavailable>() {
         Some(cause) => super::pages::unavailable(&cause.0),
         None => unavailable(),
@@ -574,7 +516,7 @@ async fn finish(
     });
     worker.await.context("Computer custody worker failed")??;
     // Entry creates the sandbox, on the start page, when it is missing.
-    let mut response = redirect(super::pages::OPEN)?;
+    let mut response = redirect(super::pages::ENTRY)?;
     response.headers_mut().append(
         header::SET_COOKIE,
         set_cookie(

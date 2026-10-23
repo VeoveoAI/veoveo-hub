@@ -16,7 +16,8 @@ use openshell_sdk::raw::proto::{self as p, ProviderCredentialRefreshStrategy as 
 
 use super::forward;
 use crate::computers::{
-    oauth::{SESSION_COOKIE, digest, entry, open},
+    api::status,
+    oauth::{SESSION_COOKIE, digest, entry},
     test_fixture::{catalog, gateway, hub, installation, ready_computer, runtime},
 };
 
@@ -128,7 +129,7 @@ async fn a_page_load_of_a_computer_without_its_sandbox_goes_back_to_entry() {
         ] {
             let response = forward(runtime.clone(), page).await;
             assert_eq!(response.status(), StatusCode::SEE_OTHER);
-            assert_eq!(response.headers()[header::LOCATION], "/computer/open");
+            assert_eq!(response.headers()[header::LOCATION], "/computer");
             assert_eq!(
                 response.headers()[header::CACHE_CONTROL],
                 "private, no-store"
@@ -150,14 +151,14 @@ async fn a_page_load_of_a_computer_without_its_sandbox_goes_back_to_entry() {
             header::COOKIE,
             format!("{SESSION_COOKIE}={COOKIE}").parse().unwrap(),
         );
-        let response = open(runtime.clone(), headers.clone()).await;
+        let response = entry(runtime.clone(), headers.clone()).await;
         assert_eq!(response.status(), StatusCode::OK);
         let start = response.into_body().collect().await.unwrap().to_bytes();
         let start = std::str::from_utf8(&start).unwrap();
         assert!(start.contains("http-equiv=refresh"), "{start}");
         assert!(start.contains("Starting your Computer"), "{start}");
         let location = loop {
-            let response = open(runtime.clone(), headers.clone()).await;
+            let response = entry(runtime.clone(), headers.clone()).await;
             if response.status() == StatusCode::SEE_OTHER {
                 break response.headers()[header::LOCATION]
                     .to_str()
@@ -174,7 +175,7 @@ async fn a_page_load_of_a_computer_without_its_sandbox_goes_back_to_entry() {
         assert!(fake.sandbox(&name, &name).is_some());
 
         // The status page names the version and offers Restart.
-        let response = entry(runtime.clone(), headers).await;
+        let response = status(runtime.clone(), None, headers).await;
         assert_eq!(response.status(), StatusCode::OK);
         let status = response.into_body().collect().await.unwrap().to_bytes();
         let status = std::str::from_utf8(&status).unwrap();

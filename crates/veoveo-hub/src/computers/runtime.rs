@@ -103,38 +103,73 @@ impl ComputerService {
             public: Url::parse(public)?,
         })
     }
-    /// The browser's routes under `/computer`, the public current version, and the
-    /// status and restart of the caller's Computer at `/computer/{profile}/…` for a
-    /// bearer of that profile, such as the Computer's own Hub credential or a server
-    /// calling the Hub for its caller. A profile named `c` would collide with the
-    /// Computer mounts under `/computer/c/`.
+    /// The browser's routes under `/computer` and the public current version. The
+    /// Computer's actions, `GET /computer/status` and `POST /computer/restart` and
+    /// `/computer/previous`, admit either the owner's browser session or a bearer of
+    /// the Computers' profile, such as the Computer's own Hub credential or a server
+    /// calling the Hub for its caller.
     pub fn router(self, auth: crate::http::ProfileAuthState) -> Router {
-        let bearer = Self::bearer().layer(axum::middleware::from_fn_with_state(
-            auth,
-            crate::http::authenticate_profile,
+        let actions = Self::actions().layer(axum::middleware::from_fn_with_state(
+            Bearers {
+                service: self.clone(),
+                auth,
+            },
+            bearer,
         ));
-        Self::routes(bearer).with_state(self)
+        Self::routes(actions).with_state(self)
     }
-    fn bearer() -> Router<Self> {
+    fn actions() -> Router<Self> {
         Router::new()
-            .route("/computer/{profile}/status", get(super::api::status))
-            .route("/computer/{profile}/restart", post(super::api::restart))
+            .route("/computer/status", get(super::api::status))
+            .route("/computer/restart", post(super::api::restart))
+            .route("/computer/previous", post(super::api::previous))
     }
-    fn routes(bearer: Router<Self>) -> Router<Self> {
+    fn routes(actions: Router<Self>) -> Router<Self> {
         Router::new()
             .route("/computer", get(super::oauth::entry))
             .route("/computer/", get(super::oauth::entry))
-            .route("/computer/open", get(super::oauth::open))
-            .route("/computer/restart", post(super::oauth::restart))
-            .route("/computer/previous", post(super::oauth::previous))
             .route("/computer/version", get(super::api::version))
             .route("/computer/callback", get(super::oauth::callback))
             .route("/computer/logout", post(super::oauth::logout))
             .route("/computer/c/{computer}", any(super::proxy::forward))
             .route("/computer/c/{computer}/", any(super::proxy::forward))
             .route("/computer/c/{computer}/{*path}", any(super::proxy::forward))
-            .merge(bearer)
+            .merge(actions)
     }
+}
+
+/// What a bearer on a Computer action is admitted with.
+#[derive(Clone)]
+struct Bearers {
+    service: ComputerService,
+    auth: crate::http::ProfileAuthState,
+}
+
+/// A request with an `Authorization` header is a bearer's: the Hub admits it for the
+/// one Computers profile and gives the action its subject. One without is the
+/// browser's, which the action admits by its session cookie.
+async fn bearer(
+    axum::extract::State(bearers): axum::extract::State<Bearers>,
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    if !request
+        .headers()
+        .contains_key(axum::http::header::AUTHORIZATION)
+    {
+        return next.run(request).await;
+    }
+    let catalog = bearers.service.catalog.current();
+    let Some(profile) = catalog
+        .control_plane()
+        .computers
+        .as_ref()
+        .map(|computers| computers.profile.clone())
+    else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    crate::http::authenticate_for_profile(&bearers.auth, &profile, request, next).await
 }
 #[derive(Clone)]
 pub struct ComputerRuntime {
@@ -176,8 +211,8 @@ impl ComputerRuntime {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn the_bearer_routes_sit_beside_the_browser_routes_and_the_mounts() {
+    fn the_action_routes_sit_beside_the_browser_routes_and_the_mounts() {
         // Axum refuses conflicting routes when they are added.
-        let _ = super::ComputerService::routes(super::ComputerService::bearer());
+        let _ = super::ComputerService::routes(super::ComputerService::actions());
     }
 }
