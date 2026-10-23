@@ -10,3 +10,5 @@ pub use authentication::{
 };
 
 pub mod action_audit;
+mod expected;
+pub use expected::{ExpectedServerError, UnexpectedServerErrors, expected};

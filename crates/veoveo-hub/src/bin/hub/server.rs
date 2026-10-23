@@ -360,8 +360,12 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         ))
         .merge(probes)
         .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
+            // A server error the Hub answers on purpose, such as Computers being
+            // unavailable, is logged where its cause is known, not as a failure here.
+            TraceLayer::new(tower_http::classify::SharedClassifier::new(
+                veoveo_hub::http::UnexpectedServerErrors,
+            ))
+            .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
         );
 
     let listener = tokio::net::TcpListener::bind(listen_address)

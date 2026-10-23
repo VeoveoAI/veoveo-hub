@@ -54,6 +54,16 @@ fn version(info: &VersionInfo) -> String {
     }
 }
 
+/// `text` as the end of a sentence: with a period, unless it ends with its own
+/// punctuation, as a release note's summary may.
+fn ended(text: &str) -> String {
+    if text.ends_with(['.', '!', '?']) {
+        text.to_owned()
+    } else {
+        format!("{text}.")
+    }
+}
+
 fn whats_new(changes: &WhatsNew) -> String {
     let mut items = String::new();
     if let Some(note) = &changes.note {
@@ -99,7 +109,7 @@ pub(super) fn starting(target: Option<&VersionInfo>, changes: Option<&WhatsNew>)
     let mut body = String::new();
     match target {
         Some(target) => {
-            let _ = write!(body, "<p>Starting {}.</p>", version(target));
+            let _ = write!(body, "<p>Starting {}</p>", ended(&version(target)));
         }
         None => body.push_str("<p>Your Computer is starting.</p>"),
     }
@@ -138,9 +148,9 @@ pub(super) fn status(status: &ComputerStatus) -> Response {
     if let Some(restart) = &status.restart {
         let _ = write!(
             body,
-            "<p>Restarting to {} since {}. <a href=\"{ENTRY}\">Follow it</a></p>",
-            version(&restart.version),
-            escaped(&restart.since.to_rfc3339())
+            "<p>Restarting since {} to {} <a href=\"{ENTRY}\">Follow it</a></p>",
+            escaped(&restart.since.to_rfc3339()),
+            ended(&version(&restart.version))
         );
     } else if status.sandbox == "ready" && status.blocked.is_none() {
         let _ = write!(body, "<p><a href=\"{ENTRY}\">Open your Computer</a></p>");
@@ -149,9 +159,9 @@ pub(super) fn status(status: &ComputerStatus) -> Response {
     }
     let _ = write!(
         body,
-        "<p>Your Computer is at {}. Its sandbox is {}.</p>",
-        version(&status.version),
-        status.sandbox
+        "<p>Its sandbox is {}. Your Computer is at {}</p>",
+        status.sandbox,
+        ended(&version(&status.version))
     );
     if let Some(updated) = &status.updated {
         let _ = write!(
@@ -164,7 +174,11 @@ pub(super) fn status(status: &ComputerStatus) -> Response {
     }
     match (&status.current, &status.current_unavailable) {
         (Some(current), _) if status.update_available => {
-            let _ = write!(body, "<p>An update is available: {}.</p>", version(current));
+            let _ = write!(
+                body,
+                "<p>An update is available: {}</p>",
+                ended(&version(current))
+            );
             if let Some(changes) = &status.whats_new {
                 body.push_str(&whats_new(changes));
             }
@@ -202,7 +216,9 @@ pub(super) fn status(status: &ComputerStatus) -> Response {
 
 /// No Computer can start now, and why.
 pub(super) fn unavailable(cause: &str) -> Response {
-    page(
+    // The Hub logs the cause when Computers become unavailable: this page is an
+    // expected server error, not a failure of the request.
+    crate::http::expected(page(
         StatusCode::SERVICE_UNAVAILABLE,
         "Computers are unavailable",
         "",
@@ -210,12 +226,19 @@ pub(super) fn unavailable(cause: &str) -> Response {
             "<p>{}.</p><p>A Computer that runs is still served. Try again later.</p>",
             escaped(cause)
         ),
-    )
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_summary_ends_its_sentence_once() {
+        assert_eq!(ended("Faster builds"), "Faster builds.");
+        assert_eq!(ended("Your home is kept."), "Your home is kept.");
+        assert_eq!(ended("Try it now!"), "Try it now!");
+    }
 
     #[test]
     fn page_text_is_escaped() {

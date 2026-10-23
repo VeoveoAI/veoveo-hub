@@ -227,3 +227,39 @@ async fn a_lore_profile_that_cannot_own_the_clients_refresh_is_refused_before_cu
     .await
     .expect("the handoff test exceeded its bound");
 }
+
+#[tokio::test]
+async fn availability_is_logged_on_each_change_and_not_on_each_read() {
+    use super::{Availability, Unavailable, availability};
+    let (_fake, provisioner) = gateway(Strategy::Oauth2ClientCredentials).await;
+    let available = Ok(provisioner);
+    let missing = Err(Unavailable("the template does not exist".into()));
+    let invalid = Err(Unavailable("the template is not usable".into()));
+    assert_eq!(availability(None, &available), Availability::Unchanged);
+    assert_eq!(
+        availability(None, &missing),
+        Availability::Unavailable("the template does not exist")
+    );
+    assert_eq!(
+        availability(Some(&available), &missing),
+        Availability::Unavailable("the template does not exist")
+    );
+    assert_eq!(
+        availability(Some(&missing), &missing),
+        Availability::Unchanged,
+        "the same cause is told once"
+    );
+    assert_eq!(
+        availability(Some(&missing), &invalid),
+        Availability::Unavailable("the template is not usable"),
+        "a new cause is told"
+    );
+    assert_eq!(
+        availability(Some(&invalid), &available),
+        Availability::Restored
+    );
+    assert_eq!(
+        availability(Some(&available), &available),
+        Availability::Unchanged
+    );
+}

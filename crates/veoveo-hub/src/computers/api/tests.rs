@@ -87,7 +87,7 @@ async fn a_bearer_gets_json_and_a_browser_gets_pages_on_the_same_paths() {
         assert!(
             std::str::from_utf8(&text)
                 .unwrap()
-                .contains("Restarting to")
+                .contains("Restarting since")
         );
 
         // A browser action needs this origin, then follows the restart at /computer.

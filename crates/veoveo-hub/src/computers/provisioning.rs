@@ -216,12 +216,14 @@ impl Installation {
         let template = match self.read_template().await {
             Ok(template) => template,
             Err(unavailable) => {
+                let result = Err(unavailable);
+                log_change(current.as_ref().map(|known| &known.result), &result);
                 *current = Some(Current {
                     template: None,
                     checked: Instant::now(),
-                    result: Err(unavailable.clone()),
+                    result: result.clone(),
                 });
-                return Err(unavailable);
+                return result;
             }
         };
         let identity = template
@@ -241,9 +243,7 @@ impl Installation {
                 self.config.template.name
             ))
         });
-        if let Err(error) = &result {
-            tracing::warn!(%error, "Computers unavailable");
-        }
+        log_change(current.as_ref().map(|known| &known.result), &result);
         *current = Some(Current {
             template: identity,
             checked: Instant::now(),
@@ -859,6 +859,51 @@ impl Provisioner {
         })?
     }
 }
+/// How Computers' availability changed between two reads of the template.
+#[derive(Debug, PartialEq, Eq)]
+enum Availability<'a> {
+    Unchanged,
+    /// They became unavailable, or the reason changed.
+    Unavailable(&'a str),
+    /// They are available again after being unavailable.
+    Restored,
+}
+fn availability<'a>(
+    previous: Option<&Result<Provisioner, Unavailable>>,
+    next: &'a Result<Provisioner, Unavailable>,
+) -> Availability<'a> {
+    match (previous, next) {
+        (Some(Err(before)), Err(now)) if before.0 == now.0 => Availability::Unchanged,
+        (_, Err(now)) => Availability::Unavailable(&now.0),
+        (Some(Err(_)), Ok(_)) => Availability::Restored,
+        (_, Ok(_)) => Availability::Unchanged,
+    }
+}
+/// Log a change of Computers' availability once, not on every request that sees it.
+fn log_change(
+    previous: Option<&Result<Provisioner, Unavailable>>,
+    next: &Result<Provisioner, Unavailable>,
+) {
+    match availability(previous, next) {
+        Availability::Unchanged => {}
+        Availability::Unavailable(cause) => {
+            tracing::warn!(
+                cause,
+                "Computers are unavailable: no new Computer sandbox can start"
+            );
+        }
+        Availability::Restored => {
+            let version = next
+                .as_ref()
+                .ok()
+                .and_then(|current| current.spec.version().ok())
+                .map(|version| version.to_string())
+                .unwrap_or_default();
+            tracing::info!(%version, "Computers are available again");
+        }
+    }
+}
+
 /// Refresh a provider's credential now and require a current, unfailed result.
 pub(super) async fn rotate(
     client: &openshell_sdk::OpenShellClient,

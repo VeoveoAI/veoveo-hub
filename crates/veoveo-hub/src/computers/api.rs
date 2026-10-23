@@ -62,6 +62,12 @@ fn unavailable(cause: &str) -> Response {
     .into_response()
 }
 
+/// No Computer can start now, for the cause the Hub logs when it changes: an expected
+/// server error, not a failure of the request.
+fn computers_unavailable(cause: &str) -> Response {
+    crate::http::expected(unavailable(cause))
+}
+
 fn no_store(mut response: Response) -> Response {
     response
         .headers_mut()
@@ -158,7 +164,7 @@ async fn act(
         }
         Err(error) => {
             return match error.downcast_ref::<Unavailable>() {
-                Some(cause) => unavailable(&cause.0),
+                Some(cause) => computers_unavailable(&cause.0),
                 None => {
                     tracing::warn!(computer = %computer.id, "Computer restart refused: {error:#}");
                     unavailable("the Computer cannot restart now")
@@ -202,7 +208,7 @@ async fn browser_act(runtime: &ComputerRuntime, headers: &HeaderMap, target: Tar
 pub(super) async fn version(runtime: ComputerRuntime) -> Response {
     let current = match runtime.installation.current().await {
         Ok(current) => current,
-        Err(cause) => return no_store(unavailable(&cause.0)),
+        Err(cause) => return no_store(computers_unavailable(&cause.0)),
     };
     match current.spec.info() {
         Ok(info) => no_store(Json(info).into_response()),
