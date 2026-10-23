@@ -117,9 +117,7 @@ fn deployment(
     catalog: &HubCatalog,
 ) -> Result<(DeploymentId, RegisteredProtectedResource<'_>), &'static str> {
     let section = Lore::of(catalog).map_err(|_| "the Lore section is invalid")?;
-    let [deployment] = section.deployments.as_slice() else {
-        return Err("the installation registers no single Lore deployment");
-    };
+    let deployment = section.sole_deployment()?;
     let resource = catalog
         .registered_protected_resource(&deployment.audience)
         .ok_or("the Lore deployment's resource is not registered")?;

@@ -1,11 +1,11 @@
 use anyhow::{Context, Result, ensure};
 use chrono::{DateTime, Utc};
-use std::{collections::BTreeSet, future::Future, pin::Pin, sync::Arc};
+use std::{future::Future, pin::Pin};
 use veoveo_audit_contract::{AuditActor, AuditContext, AuditPrincipalKind, AuditRequest};
 use veoveo_hub::{
     HubCatalog,
     computers::{ComputerOnboarding, ComputerOnboardingContext},
-    control_plane::{HubControlPlaneRevision, HubControlPlaneRevisionSource},
+    control_plane::HubControlPlaneRevisionSource,
     token_profile::{ProfileRequest, TokenContext, TokenIssueError},
 };
 use veoveo_hub_sdk::{OAuthClientId, Principal, PrincipalKind};
@@ -16,8 +16,11 @@ use super::{
     descriptor::WorkspaceDescriptor,
 };
 use crate::{
-    contributions::lore::{Assignment, Deployment, Lore, NativeAction, Repository},
-    runtime::{AdminState, build_http_client, replace_catalog, replace_http_client},
+    contributions::lore::{
+        Deployment, Lore, Owned,
+        publication::{Author, Publisher},
+    },
+    runtime::AdminState,
 };
 
 #[derive(Clone)]
@@ -230,130 +233,72 @@ impl WorkspaceService {
         deployment: &Deployment,
         repository: &lore_proto::lore::model::v1::Repository,
     ) -> Result<()> {
-        let _publication = self.state.publication.lock().await;
-        for _ in 0..4 {
-            if let Some(browser) = authority.browser {
-                browser.recheck().await?;
-            }
-            ensure!(
-                authority.expires_at > Utc::now(),
-                "workspace caller expired before publication"
-            );
-            if self.store.published(association).await? {
-                return Ok(());
-            }
-            let previous = self
-                .state
-                .control_store
-                .load_active_revision()
-                .await?
-                .context("active control plane missing")?;
-            let current = HubCatalog::from_control_plane(
-                previous.control_plane.clone(),
-                self.state.catalog.current().admission(),
-            )?;
-            let mut section = Self::section(&current)?;
-            let active = section
-                .deployments
-                .iter()
-                .find(|d| d.id == association.deployment)
-                .context("workspace deployment withdrawn")?;
-            ensure!(
-                serde_json::to_value(active)? == serde_json::to_value(deployment)?,
-                "native deployment changed before workspace publication"
-            );
-            TokenContext::admit(
-                &current,
-                &active.audience,
-                &authority.client,
-                &authority.principal,
-                &authority.work_context,
-                &active.login_scopes,
-                None,
-            )
-            .map_err(|_| WorkspaceDenied::Client)?;
-            merge_created(&mut section, association, &repository.name)?;
-            let mut plane = previous.control_plane.clone();
-            plane
-                .extensions
-                .insert("lore".into(), serde_json::to_value(section)?);
-            let catalog = HubCatalog::from_control_plane(plane.clone(), current.admission())?;
-            self.state.catalog.validate_replacement(&catalog)?;
-            let http = build_http_client(&catalog)?;
-            let prepared = catalog
-                .prepare_runtime(
-                    Some(&self.state.catalog.current()),
-                    &self.state.public_base_url,
-                    http.clone(),
-                )
-                .await?;
-            let revision = HubControlPlaneRevision {
-                revision_id: association.publication_id.clone(),
-                sha256: hex::encode(prepared.configuration_sha256()),
-                source: HubControlPlaneRevisionSource::Contribution,
-                applied_at: Utc::now(),
-                applied_by: authority.principal.id.clone(),
-                tenant: authority.principal.tenant.clone(),
-                control_plane: plane,
-            };
-            match self
-                .state
-                .control_store
-                .record_revision_on(Some(&previous), &revision, &authority.audit)
-                .await
-            {
-                Ok(()) => {
-                    replace_http_client(&self.state.http, http);
-                    replace_catalog(&self.state.catalog, Arc::new(prepared))?;
-                    crate::contributions::after_activation(
-                        &self.state.control_store,
-                        self.state.hub_state.hub_store(),
+        let author = Author {
+            source: HubControlPlaneRevisionSource::Contribution,
+            principal: &authority.principal.id,
+            tenant: authority.principal.tenant.as_ref(),
+            audit: &authority.audit,
+        };
+        let store = &self.store;
+        let published = Publisher::of(&self.state)
+            .publish(
+                &author,
+                || Ok(association.publication_id.clone()),
+                move || async move {
+                    if let Some(browser) = authority.browser {
+                        browser.recheck().await?;
+                    }
+                    ensure!(
+                        authority.expires_at > Utc::now(),
+                        "workspace caller expired before publication"
                     );
-                    return Ok(());
-                }
-                Err(error) if veoveo_hub::is_revision_conflict(&error) => continue,
-                Err(error) => return Err(error),
-            }
+                    Ok(!store.published(association).await?)
+                },
+                |current, section| {
+                    let active = section
+                        .deployments
+                        .iter()
+                        .find(|d| d.id == association.deployment)
+                        .context("workspace deployment withdrawn")?;
+                    ensure!(
+                        serde_json::to_value(active)? == serde_json::to_value(deployment)?,
+                        "native deployment changed before workspace publication"
+                    );
+                    TokenContext::admit(
+                        current,
+                        &active.audience,
+                        &authority.client,
+                        &authority.principal,
+                        &authority.work_context,
+                        &active.login_scopes,
+                        None,
+                    )
+                    .map_err(|_| WorkspaceDenied::Client)?;
+                    merge_created(section, association, &repository.name)?;
+                    Ok(true)
+                },
+            )
+            .await
+            .context("workspace publication conflicted; retry the retained reservation")?;
+        if published.is_some() {
+            crate::contributions::after_activation(
+                &self.state.control_store,
+                self.state.hub_state.hub_store(),
+            );
         }
-        anyhow::bail!("workspace publication conflicted; retry the retained reservation")
+        Ok(())
     }
 }
 fn merge_created(section: &mut Lore, association: &Association, title: &str) -> Result<()> {
-    if let Some(existing) = section
-        .repositories
-        .iter()
-        .find(|r| r.deployment == association.deployment && r.id == association.repository)
-    {
-        ensure!(
-            existing.tenant == association.tenant,
-            WorkspaceDenied::Assignment
-        );
-        ensure!(
-            section
-                .assignments
-                .iter()
-                .any(|a| a.deployment == association.deployment
-                    && a.repository == association.repository
-                    && a.tenant == association.tenant
-                    && a.principal == association.principal
-                    && a.actions.contains(&NativeAction::Owner)),
-            WorkspaceDenied::Assignment
-        );
-    } else {
-        section.repositories.push(Repository {
-            deployment: association.deployment.clone(),
-            id: association.repository.clone(),
-            tenant: association.tenant.clone(),
-            title: title.into(),
-        });
-        section.assignments.push(Assignment {
-            deployment: association.deployment.clone(),
-            repository: association.repository.clone(),
-            tenant: association.tenant.clone(),
-            principal: association.principal.clone(),
-            actions: BTreeSet::from([NativeAction::Owner]),
-        });
-    }
+    section
+        .register_owned(&Owned {
+            deployment: &association.deployment,
+            repository: &association.repository,
+            tenant: &association.tenant,
+            principal: &association.principal,
+            title,
+        })
+        .map_err(|_| WorkspaceDenied::Assignment)?;
     Ok(())
 }
 fn failure(error: &anyhow::Error) -> Status {
@@ -583,7 +528,8 @@ async fn select(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::contributions::lore::{DeploymentId, RepositoryId};
+    use crate::contributions::lore::{DeploymentId, NativeAction, Repository, RepositoryId};
+    use std::collections::BTreeSet;
     use veoveo_types::{PrincipalId, TenantId};
 
     #[test]

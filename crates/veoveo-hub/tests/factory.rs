@@ -31,6 +31,8 @@ mod database;
 mod gateway;
 #[path = "support/hub.rs"]
 mod hub;
+#[path = "factory/lore.rs"]
+mod lore;
 #[path = "support/servers.rs"]
 mod servers;
 
@@ -2067,6 +2069,178 @@ async fn an_assignment_change_renews_its_owners_computer_lore_access_at_once() {
         hub.publish_control_plane(&plane).await;
         renewed(&fixture, &bob, both).await;
         assert_eq!(rotated(&fixture), [bob.native_name()]);
+    })
+    .await;
+}
+
+/// The answer to a repository creation by `caller` with `body`.
+async fn create_repository(
+    http: &reqwest::Client,
+    hub: &hub::Hub,
+    caller: &str,
+    body: serde_json::Value,
+) -> (reqwest::StatusCode, serde_json::Value) {
+    let token = hub.access_token(http, hub.caller(caller)).await;
+    let response = http
+        .post(format!("{}/lore/local/repositories", hub.base))
+        .bearer_auth(token)
+        .json(&body)
+        .send()
+        .await
+        .unwrap();
+    (response.status(), response.json().await.unwrap())
+}
+
+#[tokio::test]
+async fn a_person_creates_a_repository_and_owns_it_at_once() {
+    bounded(async {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let fixture = Fixture::start(json!(null)).await;
+        let installation = tempfile::tempdir().unwrap();
+        let (endpoint, authority) = fixture.gateway.serve_tls().await;
+        let authority_file = installation.path().join("gateway-ca.pem");
+        std::fs::write(&authority_file, authority).unwrap();
+        let gateway = json!({
+            "endpoint": endpoint.as_str(),
+            "certificateAuthority": authority_file,
+            "bearerEnvironment": GATEWAY_BEARER,
+        });
+        // The Hub trusts the fake Lore's authority as its platform roots.
+        let (lore, lore_endpoint, lore_authority) = lore::FakeLore::serve().await;
+        let lore_authority_file = installation.path().join("lore-ca.pem");
+        std::fs::write(&lore_authority_file, lore_authority).unwrap();
+        let hub_directory = installation.path().join("hub");
+        std::fs::create_dir(&hub_directory).unwrap();
+        let endpoint_text = lore_endpoint.to_string();
+        let hub = hub::Hub::start_with(
+            &hub_directory,
+            &fixture.db,
+            Duration::from_secs(60),
+            &[
+                (GATEWAY_BEARER, "synthetic-gateway-bearer".to_owned()),
+                ("SSL_CERT_FILE", lore_authority_file.display().to_string()),
+            ],
+            |config| {
+                native_section(config);
+                config["lore"]["deployments"][0]["endpoint"] = json!(endpoint_text);
+            },
+        )
+        .await;
+        fixture
+            .gateway
+            .set_token_url(format!("{}/oauth/token", hub.base));
+        let issuer = hub.control_plane().await["authorizationServers"][0]["issuer"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let member = format!("{issuer}#acceptance-member");
+        let store = HubStore::new(fixture.db.a.clone());
+        let computer = ready_computer(&fixture, &store, &gateway, &member, "member-secret").await;
+        let _ = fixture.gateway.take_calls();
+        let http = reqwest::Client::new();
+
+        // A person creates a repository: Lore records them as its creator, and the Hub
+        // answers once their Computer's token carries it as theirs.
+        let (status, created) =
+            create_repository(&http, &hub, "member", json!({"name": "alpha"})).await;
+        assert_eq!(status, reqwest::StatusCode::CREATED, "{created}");
+        let id = created["id"].as_str().unwrap().to_owned();
+        assert_eq!(created["name"], "alpha");
+        assert_eq!(created["remote"], format!("{lore_endpoint}/{id}"));
+        assert_eq!(lore.creator(&id), Some(member.clone()));
+        let token = &lore.tokens()[0];
+        assert_eq!(token["identity"], member);
+        assert_eq!(
+            token["resources"],
+            json!([]),
+            "a login token carries no repository"
+        );
+        assert_eq!(rotated(&fixture), [computer.native_name()]);
+        let credential = fixture
+            .gateway
+            .credentials(&computer.native_name(), "computer-lore")
+            .unwrap()["LORE_ACCESS_TOKEN"]
+            .clone();
+        let resources = claims(&credential)["resources"].clone();
+        assert!(
+            resources
+                .as_array()
+                .unwrap()
+                .contains(&json!({"resource_id": id, "permission": ["owner"]})),
+            "{resources}"
+        );
+        let owners = |plane: &serde_json::Value, id: &str| {
+            plane["lore"]["assignments"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|a| a["repository"] == id)
+                .map(|a| {
+                    (
+                        a["principal"].as_str().unwrap().to_owned(),
+                        a["actions"].clone(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        let plane = hub.control_plane().await;
+        assert_eq!(owners(&plane, &id), [(member.clone(), json!(["owner"]))]);
+
+        // Another person cannot claim it through its ID, and owns nothing of it.
+        let (status, refused) =
+            create_repository(&http, &hub, "admin", json!({"name": "alpha", "id": id})).await;
+        assert_eq!(status, reqwest::StatusCode::CONFLICT, "{refused}");
+        assert_eq!(
+            refused["type"],
+            "https://veoveo.ai/problems/repository-claimed"
+        );
+        assert_eq!(
+            owners(&hub.control_plane().await, &id),
+            [(member.clone(), json!(["owner"]))]
+        );
+
+        // Its creator calling again changes nothing.
+        let (status, again) =
+            create_repository(&http, &hub, "member", json!({"name": "alpha", "id": id})).await;
+        assert_eq!(
+            (status, again["id"].clone()),
+            (reqwest::StatusCode::OK, json!(id))
+        );
+
+        // A repository Lore holds as the caller's creation but nobody registered, as
+        // after a publication that failed, registers with its ID; another person's
+        // does not.
+        let unregistered = "0f1e2d3c4b5a69788796a5b4c3d2e1f0";
+        lore.seed(unregistered, "beta", &member);
+        let (status, refused) = create_repository(
+            &http,
+            &hub,
+            "admin",
+            json!({"name": "beta", "id": unregistered}),
+        )
+        .await;
+        assert_eq!(status, reqwest::StatusCode::CONFLICT, "{refused}");
+        let (status, registered) = create_repository(
+            &http,
+            &hub,
+            "member",
+            json!({"name": "beta", "id": unregistered}),
+        )
+        .await;
+        assert_eq!(status, reqwest::StatusCode::CREATED, "{registered}");
+        assert_eq!(
+            owners(&hub.control_plane().await, unregistered),
+            [(member.clone(), json!(["owner"]))]
+        );
+
+        // Lore refuses a name another repository holds.
+        let (status, taken) =
+            create_repository(&http, &hub, "member", json!({"name": "alpha"})).await;
+        assert_eq!(status, reqwest::StatusCode::CONFLICT, "{taken}");
+        assert_eq!(
+            taken["type"],
+            "https://veoveo.ai/problems/repository-exists"
+        );
     })
     .await;
 }

@@ -13,12 +13,13 @@ use tonic::{
 };
 
 use super::{Association, BranchId};
+use crate::contributions::lore::RepositoryId;
 #[derive(Debug, thiserror::Error)]
 #[error("native workspace request refused: {0}")]
-pub(super) struct NativeRefusal(pub tonic::Code);
+pub(crate) struct NativeRefusal(pub tonic::Code);
 use crate::contributions::lore::Deployment;
 
-pub(super) struct Client(RepositoryServiceClient<Channel>);
+pub(crate) struct Client(RepositoryServiceClient<Channel>);
 impl Client {
     pub async fn connect(deployment: &Deployment) -> Result<Self> {
         let channel = deployment
@@ -36,11 +37,31 @@ impl Client {
             .default_branch
             .as_ref()
             .context("reserved native branch missing")?;
+        self.create_repository(
+            &association.repository,
+            branch,
+            &association.name,
+            "Personal workspace",
+            token,
+        )
+        .await
+    }
+    /// Create the repository `id` with its default branch `main` as the token's person,
+    /// whom Lore records as its creator. Lore answers a repository of that ID and name
+    /// that exists already, whoever created it, with its record unchanged.
+    pub async fn create_repository(
+        &mut self,
+        id: &RepositoryId,
+        branch: &BranchId,
+        name: &str,
+        description: &str,
+        token: &str,
+    ) -> Result<Repository> {
         let request = RepositoryCreateRequest {
-            id: hex::decode(association.repository.as_str())?.into(),
+            id: hex::decode(id.as_str())?.into(),
             default_branch_id: hex::decode(branch.as_str())?.into(),
-            name: association.name.clone(),
-            description: "Personal workspace".into(),
+            name: name.into(),
+            description: description.into(),
             default_branch_name: "main".into(),
             creator: None,
         };

@@ -65,6 +65,28 @@ pub(crate) async fn issue_assigned(
     tenant: &TenantId,
     person: &PrincipalId,
 ) -> Result<IssuedAccessToken, TokenIssueError> {
+    issue_typed(catalog, deployment, tenant, person, &Request::Assigned).await
+}
+
+/// Issue `person` of `tenant` a Lore login token for the deployment: it names the person
+/// and carries no repository rights, which is what Lore requires to create a repository.
+pub(crate) async fn issue_login(
+    catalog: &HubCatalog,
+    deployment: &DeploymentId,
+    tenant: &TenantId,
+    person: &PrincipalId,
+) -> Result<IssuedAccessToken, TokenIssueError> {
+    issue_typed(catalog, deployment, tenant, person, &Request::Login).await
+}
+
+/// Issue `person` of `tenant` the token of a typed request of the Lore profile.
+async fn issue_typed(
+    catalog: &HubCatalog,
+    deployment: &DeploymentId,
+    tenant: &TenantId,
+    person: &PrincipalId,
+    request: &Request,
+) -> Result<IssuedAccessToken, TokenIssueError> {
     let section = Lore::of(catalog).map_err(TokenIssueError::Unavailable)?;
     let deployment = section
         .deployments
@@ -79,7 +101,7 @@ pub(crate) async fn issue_assigned(
     let token = authorize_token(
         &bindings.lore,
         context,
-        &Request::Assigned,
+        request,
         &bindings.profiles.claim_registry(),
     )?;
     issue_profile_token(token, None).await

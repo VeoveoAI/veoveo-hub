@@ -6,7 +6,9 @@ pub(crate) mod factory;
 pub(crate) mod instance;
 pub(crate) mod instance_client;
 pub(crate) mod person;
+pub(crate) mod publication;
 pub(crate) mod renewal;
+pub(crate) mod repositories;
 pub(crate) mod workspace;
 use anyhow::{Context, Result, ensure};
 use schemars::JsonSchema;
@@ -237,6 +239,59 @@ impl Lore {
         }
     }
 
+    /// The installation's one Lore deployment, which Computers and the repositories
+    /// people create use. A token has one audience, so several deployments leave it
+    /// undetermined.
+    pub(crate) fn sole_deployment(&self) -> std::result::Result<&Deployment, &'static str> {
+        match self.deployments.as_slice() {
+            [deployment] => Ok(deployment),
+            _ => Err("the installation registers no single Lore deployment"),
+        }
+    }
+
+    /// Register a repository its creator owns, with the creator's owner assignment.
+    /// An already registered repository changes nothing and is admitted only while its
+    /// creator still holds that assignment in its tenant: a creator never restores an
+    /// assignment an administrator removed. Answers whether the section changed.
+    pub(crate) fn register_owned(
+        &mut self,
+        owned: &Owned<'_>,
+    ) -> std::result::Result<bool, OwnershipRefused> {
+        if let Some(existing) = self
+            .repositories
+            .iter()
+            .find(|r| &r.deployment == owned.deployment && &r.id == owned.repository)
+        {
+            let owns = &existing.tenant == owned.tenant
+                && self.assignments.iter().any(|a| {
+                    &a.deployment == owned.deployment
+                        && &a.repository == owned.repository
+                        && &a.tenant == owned.tenant
+                        && &a.principal == owned.principal
+                        && a.actions.contains(&NativeAction::Owner)
+                });
+            return if owns {
+                Ok(false)
+            } else {
+                Err(OwnershipRefused)
+            };
+        }
+        self.repositories.push(Repository {
+            deployment: owned.deployment.clone(),
+            id: owned.repository.clone(),
+            tenant: owned.tenant.clone(),
+            title: owned.title.to_owned(),
+        });
+        self.assignments.push(Assignment {
+            deployment: owned.deployment.clone(),
+            repository: owned.repository.clone(),
+            tenant: owned.tenant.clone(),
+            principal: owned.principal.clone(),
+            actions: BTreeSet::from([NativeAction::Owner]),
+        });
+        Ok(true)
+    }
+
     /// The principal's own assignments on `repository` in its tenant, one per native
     /// deployment: every Lore grant the Hub issues or honors rests on one.
     fn assignments<'a>(
@@ -335,6 +390,21 @@ impl Lore {
 pub struct Profile {
     pub key: SectionKey<Lore>,
 }
+
+/// A repository its creator registers as its owner.
+pub(crate) struct Owned<'a> {
+    pub deployment: &'a DeploymentId,
+    pub repository: &'a RepositoryId,
+    pub tenant: &'a TenantId,
+    pub principal: &'a PrincipalId,
+    pub title: &'a str,
+}
+
+/// The repository is registered already and its creator holds no owner assignment on
+/// it, or it belongs to another tenant.
+#[derive(Debug, thiserror::Error)]
+#[error("the repository is registered without its creator's owner assignment")]
+pub(crate) struct OwnershipRefused;
 pub enum Request {
     Login,
     Exchange {
