@@ -72,10 +72,12 @@ async fn qualify() {
     let password = random_text();
     let directory = tempfile::tempdir().unwrap();
     let db = TestDb::new().await;
+    // The Hub's default grace: nothing here ends a registration, and a busy machine
+    // that delays a server's instance must not end one either.
     let hub = Hub::start_with(
         directory.path(),
         &db,
-        Duration::from_secs(5),
+        Duration::from_secs(60),
         &[
             ("VEOVEO_KEYCLOAK_CLIENT_SECRET", client_secret.clone()),
             ("VEOVEO_REFRESH_DELIVERY_WINDOW_SECONDS", "1".to_owned()),
