@@ -26,7 +26,7 @@ use veoveo_store::PlatformStore;
 use veoveo_types::PrincipalId;
 
 use super::{Lore, Refused, Watched, store::WatchStore};
-use crate::contributions::lore::{RepositoryId, workspace::BranchId};
+use crate::contributions::lore::{BranchId, RepositoryId};
 
 /// How long a follower waits before it subscribes again after a subscription ended.
 const RESUBSCRIBE: Duration = Duration::from_secs(5);

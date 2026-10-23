@@ -24,14 +24,11 @@ use veoveo_hub::{
 };
 
 use super::{
-    Lore, Owned, OwnershipRefused, RepositoryId,
+    BranchId, Lore, Owned, OwnershipRefused, RepositoryId,
     person::issue_login,
     publication::{Author, Publisher},
     renewal,
-    workspace::{
-        BranchId,
-        client::{Client, NativeRefusal},
-    },
+    repository_client::{Client, NativeRefusal},
 };
 use crate::runtime::AdminState;
 

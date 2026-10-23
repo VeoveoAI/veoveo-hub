@@ -277,17 +277,13 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     };
     let control_watcher = super::control_reload::spawn(admin_state.clone(), ct.clone());
     let activation_store = admin_state.control_store.clone();
-    let workspaces =
-        crate::contributions::lore::workspace::WorkspaceService::new(admin_state.clone());
     let computers = veoveo_hub::computers::ComputerService::new(
         catalog.clone(),
         hub_state.clone(),
         deployment.base_url(),
-    )?
-    .with_onboarding(Arc::new(workspaces.clone()));
+    )?;
     router = router
         .merge(computers.router())
-        .merge(workspaces.router(auth_state.clone()))
         .merge(crate::contributions::lore::repositories::router(
             admin_state.clone(),
             auth_state.clone(),
@@ -504,6 +500,7 @@ async fn dynamic_mcp_profile(
             return veoveo_hub::problem::Problem::new(status, code, title).into_response();
         }
     };
+    let client = subject.access_token.oauth_client_id.clone();
     request.extensions_mut().insert(subject);
     let handler = {
         let mut services = state.services.write();
@@ -520,7 +517,7 @@ async fn dynamic_mcp_profile(
             })
             .clone()
     }
-    .for_admission(&snapshot, admitted);
+    .for_admission(&snapshot, admitted, client);
     build_profile_mcp_service(&state, handler)
         .oneshot(request)
         .await

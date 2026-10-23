@@ -40,7 +40,7 @@ use super::{
     store::{PrepareFailure, WatchStatus},
     watch::Watches,
 };
-use crate::contributions::lore::{DeploymentId, RepositoryId, workspace::BranchId};
+use crate::contributions::lore::{BranchId, DeploymentId, RepositoryId};
 
 const REPOSITORY: &str = "0123456789abcdef0123456789abcdef";
 const BOUND: Duration = Duration::from_secs(60);

@@ -30,7 +30,7 @@ use veoveo_types::{PrincipalId, TenantId};
 
 use super::{BoxFuture, Branch, Events, Lore as LoreProtocol, Refused, Watched};
 use crate::contributions::lore::{
-    Deployment, DeploymentId, Lore, RepositoryId, person::issue, workspace::BranchId,
+    BranchId, Deployment, DeploymentId, Lore, RepositoryId, person::issue,
 };
 
 const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);

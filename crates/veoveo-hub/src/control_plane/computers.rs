@@ -15,9 +15,10 @@ use crate::contract::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Computers {
-    /// Public Computer guidance delivered from current control on admitted entry.
-    /// Plain Markdown only; connection values remain in their native inputs.
-    /// None skips replacement; Some("") explicitly clears the managed text.
+    /// Public Computer guidance, served from current control as the MCP server
+    /// instructions of the Computers' profile to Computer clients; the Hub writes
+    /// nothing into a Computer. Plain Markdown only; connection values remain in
+    /// their native inputs. None or blank text serves no handbook.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub handbook: Option<String>,
     pub gateway: ComputerGateway,

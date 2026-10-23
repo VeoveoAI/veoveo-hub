@@ -9,7 +9,7 @@ pub(crate) mod person;
 pub(crate) mod publication;
 pub(crate) mod renewal;
 pub(crate) mod repositories;
-pub(crate) mod workspace;
+pub(crate) mod repository_client;
 use anyhow::{Context, Result, ensure};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -30,6 +30,9 @@ use veoveo_types::{
 pub struct DeploymentId(String);
 #[veoveo_types::id(text(RepositoryIds))]
 pub struct RepositoryId(String);
+/// A native branch ID, in the canonical form of a repository ID.
+#[veoveo_types::id(text(RepositoryIds))]
+pub struct BranchId(String);
 #[doc(hidden)]
 pub struct RepositoryIds;
 impl veoveo_types::IdProfile for RepositoryIds {
@@ -165,10 +168,6 @@ pub struct Lore {
     pub deployments: Vec<Deployment>,
     pub repositories: Vec<Repository>,
     pub assignments: Vec<Assignment>,
-    /// Optional first-use default only. Existing owner associations retain their
-    /// selected deployment and repository when the installation changes this.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub personal_workspace: Option<workspace::PersonalWorkspace>,
 }
 impl CatalogSection for Lore {
     fn validate(&self, facts: &CatalogFacts) -> std::result::Result<(), ExtensionError> {
@@ -348,12 +347,6 @@ impl Lore {
             );
         }
         let mut repositories = BTreeSet::new();
-        if let Some(default) = &self.personal_workspace {
-            ensure!(
-                deployments.contains(&default.deployment),
-                "unknown personal workspace deployment"
-            );
-        }
         for r in &self.repositories {
             ensure!(
                 deployments.contains(&r.deployment)

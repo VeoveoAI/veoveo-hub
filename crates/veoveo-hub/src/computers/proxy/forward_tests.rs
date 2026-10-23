@@ -134,8 +134,6 @@ async fn a_page_load_of_a_computer_without_its_sandbox_goes_back_to_entry() {
             .await
             .unwrap();
         let runtime = ComputerRuntime {
-            onboarding: None,
-            onboarding_jobs: Default::default(),
             catalog: HubCatalogHandle::new(Arc::new(catalog)),
             hub,
             config: Arc::new(config),

@@ -161,7 +161,6 @@ async fn enter(runtime: &ComputerRuntime, headers: &HeaderMap) -> Result<Respons
                 .is_some(),
             "Computer admission ended during start"
         );
-        runtime.onboard(session.clone());
         return redirect(&session.computer().base_path());
     }
     let state = opaque()?;
@@ -487,9 +486,6 @@ async fn finish(
         .context("Computer custody deadline")?
     });
     worker.await.context("Computer custody worker failed")??;
-    // Optional contribution work cannot roll back completed native custody or
-    // turn a ready Computer into a generic login failure.
-    runtime.onboard(session.clone());
     let mut response = redirect(&session.computer().base_path())?;
     response.headers_mut().append(
         header::SET_COOKIE,

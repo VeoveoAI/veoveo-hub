@@ -40,7 +40,7 @@ use rmcp::{
     transport::streamable_http_client::StreamableHttpClientTransportConfig,
 };
 use sha2::{Digest, Sha256};
-use veoveo_hub_sdk::{HubInternalTokenIssuer, HubProfileId, Principal, ServerSlug};
+use veoveo_hub_sdk::{HubInternalTokenIssuer, HubProfileId, OAuthClientId, Principal, ServerSlug};
 use veoveo_types::InvocationAuthority;
 
 use crate::{
@@ -76,6 +76,8 @@ pub struct HubMcp {
     progress_tokens: progress::HubProgressTokens,
     /// Why this operation's selection routes no instance of a server.
     unavailable: Arc<std::collections::BTreeMap<ServerSlug, crate::execution::Unavailable>>,
+    /// The admitted caller's OAuth client, which selects caller-specific instructions.
+    client: Option<OAuthClientId>,
 }
 
 impl HubMcp {
@@ -97,6 +99,7 @@ impl HubMcp {
             discovery_watches: Default::default(),
             progress_tokens: progress::HubProgressTokens::default(),
             unavailable: Default::default(),
+            client: None,
         }
     }
 
@@ -113,14 +116,17 @@ impl HubMcp {
         }
     }
 
-    /// One fresh admission: its composition, and why it serves no instance of a server.
+    /// One fresh admission of a caller of `client`: its composition, and why it serves
+    /// no instance of a server.
     pub fn for_admission(
         &self,
         snapshot: &crate::HubCatalogSnapshot,
         admitted: crate::execution::Admitted,
+        client: OAuthClientId,
     ) -> Self {
         Self {
             unavailable: Arc::new(admitted.unavailable),
+            client: Some(client),
             ..self.for_execution(snapshot, &admitted.composition)
         }
     }

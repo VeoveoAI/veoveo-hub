@@ -12,11 +12,9 @@ pub use session::{ADMISSION_READ_TIMEOUT, BrowserSession, STREAM_ADMISSION_INTER
 mod gateway;
 pub(crate) use gateway::connect as connect_gateway;
 mod oauth;
-mod onboarding;
 mod provisioning;
 mod proxy;
+pub(crate) mod runtime;
 #[cfg(test)]
 mod test_fixture;
-pub use onboarding::{ComputerOnboarding, ComputerOnboardingContext, ComputerOnboardingStatus};
-pub(crate) mod runtime;
 pub use runtime::{ComputerRuntime, ComputerService};

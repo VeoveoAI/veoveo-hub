@@ -34,7 +34,7 @@ pub(crate) struct Watched {
 /// A branch of a repository as Lore reports it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Branch {
-    pub id: super::workspace::BranchId,
+    pub id: super::BranchId,
     pub name: String,
     pub latest: Revision,
     /// Deleted or archived; Lore keeps the record of either.
@@ -71,7 +71,7 @@ pub(crate) trait Lore: Send + Sync + 'static {
         &'a self,
         person: &'a PrincipalId,
         watched: &'a Watched,
-        id: &'a super::workspace::BranchId,
+        id: &'a super::BranchId,
     ) -> BoxFuture<'a, Result<Branch>>;
     /// Who committed the revision.
     fn committer<'a>(

@@ -977,6 +977,13 @@ Browser input selects no image, policy, secret,
 provider profile or forwarding target. Both credential keys name native runtime
 **environment aliases**, rather than logical profile credential names.
 
+A Computer's `/sandbox` is its owner's home, and the Hub writes nothing into it: it
+runs no command in a Computer. The installation's `computers.handbook` is served as
+the MCP server instructions of `/mcp/{computers.profile}` to callers whose token
+belongs to `computers.oauthClient`, after the Hub's own one-line description; other
+callers of the Hub never receive it. Each discovery reads the current catalog, so an
+edit reaches a client on its next connection.
+
 `GET /computer` admits the existing opaque host-only session cookie or starts an
 ordinary PKCE authorization against this Hub's existing OAuth endpoints. A bounded
 single-use database state binds the verifier to a separate initiating-browser
@@ -1136,8 +1143,8 @@ directly or through a server that calls the Hub for them, with no administrator 
 and no quota. The Hub creates the repository in the one Lore deployment as the
 caller, with a Lore login token it issues for them through the deployment's public
 client, so Lore records them as creator. It then publishes one revision that
-registers the repository, titled by its name, and assigns the caller `owner`, as the
-personal workspace does for its creator. The publication takes the process's
+registers the repository, titled by its name, and assigns the caller `owner`. The
+Hub prepares no personal repository of its own. The publication takes the process's
 publication lock and is built again on a revision conflict. The route answers 201
 with `{id, name, remote}`, where `remote` is `<deployment endpoint>/<id>`, once this
 process has renewed the Lore access of the caller's Computers. Lore answers a repeat
