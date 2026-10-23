@@ -1,8 +1,10 @@
 //! A fake OpenShell gateway: an in-process gRPC server that answers the requests the
 //! factory sends from sandboxes and providers it keeps in memory, and records every
-//! request that changes them. Like the real gateway, it stops a sandbox that is ready,
-//! stopping, failed or in an automatic restart, and resets its restart count, answers a
-//! stop of a stopped or completed sandbox without change and refuses one still
+//! request that changes them. Like the real gateway, it records a created sandbox's
+//! policy in its canonical form and refuses `UpdateConfig`, which needs the
+//! `config:write` scope the Hub's identity does not hold. It stops a sandbox that is
+//! ready, stopping, failed or in an automatic restart, and resets its restart count,
+//! answers a stop of a stopped or completed sandbox without change and refuses one still
 //! provisioning or starting for the first time; it starts a stopped, completed, failed
 //! or starting sandbox at once and answers a start of a ready one without change. Any
 //! other method is unimplemented. Once given the token endpoint of a profile's
@@ -39,7 +41,6 @@ pub enum Call {
     CreateProvider(p::CreateProviderRequest),
     DeleteProvider(p::DeleteProviderRequest),
     CreateSandbox(p::CreateSandboxRequest),
-    UpdateConfig(p::UpdateConfigRequest),
     StopSandbox(p::StopSandboxRequest),
     StartSandbox(p::StartSandboxRequest),
     DeleteSandbox(p::DeleteSandboxRequest),
@@ -262,6 +263,12 @@ impl Gateway {
                         return Err(Status::failed_precondition("provider not found"));
                     }
                 }
+                let mut spec = request.spec.clone();
+                if let Some(policy) = spec.as_mut().and_then(|spec| spec.policy.as_mut()) {
+                    *policy =
+                        openshell_policy::validate_and_canonicalize_sandbox_policy(policy.clone())
+                            .map_err(|error| Status::invalid_argument(error.to_string()))?;
+                }
                 let sandbox = p::Sandbox {
                     metadata: Some(p::ObjectMeta {
                         // The real gateway assigns every sandbox an ID.
@@ -270,7 +277,7 @@ impl Gateway {
                         workspace: key.0.clone(),
                         ..Default::default()
                     }),
-                    spec: request.spec.clone(),
+                    spec,
                     status: Some(p::SandboxStatus {
                         phase: p::SandboxPhase::Provisioning as i32,
                         ..Default::default()
@@ -297,17 +304,10 @@ impl Gateway {
                     ..Default::default()
                 })
             }),
-            "UpdateConfig" => unary(request, move |request: p::UpdateConfigRequest| {
-                let mut state = state.lock().unwrap();
-                let key = (
-                    workspace(request.workspace_scope.as_ref())?,
-                    request.sandbox.clone(),
-                );
-                if !state.sandboxes.contains_key(&key) {
-                    return Err(Status::not_found("sandbox not found"));
-                }
-                state.calls.push(Call::UpdateConfig(request));
-                Ok(p::UpdateConfigResponse::default())
+            "UpdateConfig" => unary(request, |_: p::UpdateConfigRequest| {
+                Err::<p::UpdateConfigResponse, _>(Status::permission_denied(
+                    "scope 'config:write' required",
+                ))
             }),
             "StopSandbox" => unary(request, move |request: p::StopSandboxRequest| {
                 let mut state = state.lock().unwrap();

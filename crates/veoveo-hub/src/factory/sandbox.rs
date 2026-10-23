@@ -112,7 +112,6 @@ pub(super) fn create_request(
     deployment: DeploymentId,
     branch: &BranchName,
     source: &Source,
-    policy: p::sandbox::v1::SandboxPolicy,
 ) -> p::CreateSandboxRequest {
     let name = sandbox_name(deployment);
     p::CreateSandboxRequest {
@@ -133,7 +132,7 @@ pub(super) fn create_request(
                 resources: Some(limits(&config.cpu, &config.memory)),
                 ..Default::default()
             }),
-            policy: Some(policy),
+            policy: Some(source.policy.clone()),
             providers: providers(&name),
             command: start_command(&source.remote, branch),
             restart_policy: p::SandboxRestartPolicy::Always as i32,
@@ -143,18 +142,20 @@ pub(super) fn create_request(
     }
 }
 
-/// The image a sandbox runs, as OpenShell recorded its create request.
-pub(super) fn image(sandbox: &p::Sandbox) -> Option<&str> {
-    sandbox
-        .spec
-        .as_ref()
-        .and_then(|spec| spec.template.as_ref())
-        .map(|template| template.image.as_str())
-}
-
-/// Whether the sandbox runs this image.
-pub(super) fn runs(sandbox: &p::Sandbox, image: &PinnedImage) -> bool {
-    self::image(sandbox) == Some(image.as_str())
+/// Whether the sandbox runs this image under this policy, as OpenShell recorded its
+/// create request. OpenShell records a created sandbox's policy in its canonical form,
+/// which [`policy`] returns, so an unchanged policy compares equal.
+pub(super) fn runs(
+    sandbox: &p::Sandbox,
+    image: &PinnedImage,
+    policy: &p::sandbox::v1::SandboxPolicy,
+) -> bool {
+    sandbox.spec.as_ref().is_some_and(|spec| {
+        spec.template
+            .as_ref()
+            .is_some_and(|template| template.image == image.as_str())
+            && spec.policy.as_ref() == Some(policy)
+    })
 }
 
 /// Kubernetes resource limits, which OpenShell's Kubernetes driver applies to the
@@ -234,6 +235,12 @@ mod tests {
         let mut names = added.network_policies.keys().collect::<Vec<_>>();
         names.sort();
         assert_eq!(names, ["internet", "packages"]);
+        // OpenShell records a created sandbox's policy canonicalized again, which leaves
+        // it unchanged, so a push with the same policy compares equal.
+        assert_eq!(
+            openshell_policy::validate_and_canonicalize_sandbox_policy(added.clone()).unwrap(),
+            added
+        );
         assert!(
             policy(
                 &base,

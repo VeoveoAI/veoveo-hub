@@ -4,10 +4,12 @@
 //! its data environment, a registration provider with a new token and a sandbox of the
 //! built image, the default size, the base policy with the repository's rules added,
 //! restart policy Always, the server's settings and the fixed start command. A push of
-//! the same image sets the policy and stops and starts the sandbox, whatever its phase
-//! once its program has run, a crash loop included; a push of another image deletes and
-//! creates it with a new token. A failed build is recorded and changes nothing else; a
-//! failed provider creation leaves no dead end. Status reports OpenShell's phase, exit
+//! the same image and policy stops and starts the sandbox, whatever its phase once its
+//! program has run, a crash loop included; a push of another image or another policy
+//! deletes and creates it with a new token. No push updates a sandbox's configuration,
+//! which the fake gateway refuses as it would the Hub's identity. A failed build and a
+//! refused repository policy are recorded and change nothing else; a failed provider
+//! creation leaves no dead end. Status reports OpenShell's phase, exit
 //! code, restart count and conditions. Caps warn and, enforced, refuse. Removing an
 //! instance whose server registered with the Hub binary removes its sandbox, provider,
 //! instance, registration, login and database. The Hub binary's status route waits for
@@ -515,8 +517,9 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
 async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
     bounded(async {
         let fixture = Fixture::start(json!(null)).await;
+        let prepared = |dockerfile| fixture.prepared(dockerfile, Some(REPOSITORY_POLICY));
         fixture
-            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
+            .apply(BASE, push('1', "alice"), prepared("FROM a"))
             .await
             .unwrap();
         let deployment = fixture.status(BASE).await.unwrap().deployment;
@@ -524,37 +527,17 @@ async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
         fixture.gateway.take_calls();
 
         // A sandbox still provisioning has not run its start command: it fetches the
-        // latest revision when it does, so only its policy is set.
+        // latest revision when it does, so only its Lore token is refreshed, and the
+        // sandbox starts as the new pusher.
         fixture
-            .apply(
-                BASE,
-                push('2', "bob"),
-                fixture.prepared("FROM a", Some(REPOSITORY_POLICY)),
-            )
+            .apply(BASE, push('2', "bob"), prepared("FROM a"))
             .await
             .unwrap();
-        // The Lore token is refreshed first, so the sandbox starts as the new pusher.
         let calls = fixture.gateway.take_calls();
-        let [
-            Call::RotateProviderCredential(rotate),
-            Call::UpdateConfig(update),
-        ] = calls.as_slice()
-        else {
+        let [Call::RotateProviderCredential(rotate)] = calls.as_slice() else {
             panic!("unexpected requests: {calls:?}");
         };
         assert_eq!(rotate.provider, format!("{name}-lore"));
-        assert_eq!(
-            (update.workspace_scope.clone(), update.sandbox.as_str()),
-            (scope(), name.as_str())
-        );
-        assert!(
-            update
-                .policy
-                .as_ref()
-                .unwrap()
-                .network_policies
-                .contains_key("packages")
-        );
         assert_eq!(
             fixture.status(BASE).await.unwrap().applied_revision,
             Some(revision_of('2'))
@@ -568,31 +551,23 @@ async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
         assert_eq!(serving.serving_revision, Some(revision_of('2')));
         assert!(serving.settled());
         fixture
-            .apply(BASE, push('3', "bob"), fixture.prepared("FROM a", None))
+            .apply(BASE, push('3', "bob"), prepared("FROM a"))
             .await
             .unwrap();
         let calls = fixture.gateway.take_calls();
         let [
             Call::RotateProviderCredential(_),
-            Call::UpdateConfig(update),
             Call::StopSandbox(stop),
             Call::StartSandbox(start),
         ] = calls.as_slice()
         else {
             panic!("unexpected requests: {calls:?}");
         };
-        assert!(
-            !update
-                .policy
-                .as_ref()
-                .unwrap()
-                .network_policies
-                .contains_key("packages")
-        );
         assert_eq!(
-            (stop.name.as_str(), start.name.as_str()),
-            (name.as_str(), name.as_str())
+            (stop.workspace_scope.clone(), stop.name.as_str()),
+            (scope(), name.as_str())
         );
+        assert_eq!(start.name, name);
         let restarted = fixture.status(BASE).await.unwrap();
         assert_eq!(restarted.applied_revision, Some(revision_of('3')));
         assert_eq!(restarted.failed, None);
@@ -602,7 +577,7 @@ async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
         let first_token = fixture.token(deployment);
 
         fixture
-            .apply(BASE, push('4', "bob"), fixture.prepared("FROM b", None))
+            .apply(BASE, push('4', "bob"), prepared("FROM b"))
             .await
             .unwrap();
         let calls = fixture.gateway.take_calls();
@@ -650,6 +625,144 @@ async fn a_push_restarts_an_unchanged_image_and_recreates_a_changed_one() {
 }
 
 #[tokio::test]
+async fn a_push_recreates_a_sandbox_whose_policy_changed() {
+    bounded(async {
+        let fixture = Fixture::start(json!(null)).await;
+        fixture
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let deployment = fixture.status(BASE).await.unwrap().deployment;
+        let name = sandbox_name(deployment);
+        let rules = || {
+            let sandbox = fixture.sandbox(deployment).unwrap();
+            let mut rules = sandbox
+                .spec
+                .unwrap()
+                .policy
+                .unwrap()
+                .network_policies
+                .into_keys()
+                .collect::<Vec<_>>();
+            rules.sort();
+            rules
+        };
+        assert_eq!(rules(), ["hub", "internet"]);
+        let ready = async || {
+            fixture
+                .gateway
+                .set_phase(WORKSPACE, &name, p::SandboxPhase::Ready);
+            served(&fixture.db.a, deployment).await;
+            fixture.gateway.take_calls();
+        };
+        ready().await;
+        let first_token = fixture.token(deployment);
+
+        // The same image with the repository's rules added: OpenShell's identity for the
+        // Hub cannot update the sandbox's policy, so the Hub replaces the sandbox, whose
+        // disk starts empty and whose server registers with a new token.
+        fixture
+            .apply(
+                BASE,
+                push('2', "bob"),
+                fixture.prepared("FROM a", Some(REPOSITORY_POLICY)),
+            )
+            .await
+            .unwrap();
+        let calls = fixture.gateway.take_calls();
+        let [
+            Call::DeleteSandbox(delete),
+            Call::DeleteProvider(_),
+            Call::CreateProvider(_),
+            Call::DeleteProvider(_),
+            Call::CreateProvider(_),
+            Call::ConfigureProviderRefresh(_),
+            Call::RotateProviderCredential(_),
+            Call::CreateSandbox(create),
+        ] = calls.as_slice()
+        else {
+            panic!("unexpected requests: {calls:?}");
+        };
+        assert_eq!((delete.name.as_str(), create.name.as_str()), (name.as_str(), name.as_str()));
+        assert_eq!(
+            create.spec.as_ref().unwrap().template.as_ref().unwrap().image,
+            built(&name, "FROM a").as_str()
+        );
+        assert_eq!(rules(), ["hub", "internet", "packages"]);
+        assert_ne!(fixture.token(deployment), first_token);
+        let recreated = fixture.status(BASE).await.unwrap();
+        assert_eq!(recreated.applied_revision, Some(revision_of('2')));
+        assert_eq!(recreated.serving_revision, None);
+        assert_eq!(recreated.failed, None);
+        assert_eq!(recreated.sandbox.unwrap().phase, Phase::Provisioning);
+
+        // The same repository policy again compares equal to the one OpenShell recorded
+        // in its canonical form: the sandbox restarts.
+        ready().await;
+        fixture
+            .apply(
+                BASE,
+                push('3', "bob"),
+                fixture.prepared("FROM a", Some(REPOSITORY_POLICY)),
+            )
+            .await
+            .unwrap();
+        let calls = fixture.gateway.take_calls();
+        let [
+            Call::RotateProviderCredential(_),
+            Call::StopSandbox(_),
+            Call::StartSandbox(_),
+        ] = calls.as_slice()
+        else {
+            panic!("unexpected requests: {calls:?}");
+        };
+
+        // Removing the repository's rules replaces the sandbox again.
+        ready().await;
+        fixture
+            .apply(BASE, push('4', "bob"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let calls = fixture.gateway.take_calls();
+        let [Call::DeleteSandbox(_), .., Call::CreateSandbox(_)] = calls.as_slice() else {
+            panic!("unexpected requests: {calls:?}");
+        };
+        assert_eq!(rules(), ["hub", "internet"]);
+
+        // A repository policy the Hub refuses is recorded and changes nothing else.
+        ready().await;
+        let token = fixture.token(deployment);
+        let error = fixture
+            .apply(
+                BASE,
+                push('5', "bob"),
+                fixture.prepared(
+                    "FROM a",
+                    Some("version: 1\nnetwork_policies:\n  internet:\n    endpoints:\n      - {host: packages.example, port: 443}\n    binaries:\n      - path: /**\n"),
+                ),
+            )
+            .await
+            .unwrap_err();
+        assert!(format!("{error:#}").contains("redefines"), "{error:#}");
+        assert_eq!(fixture.gateway.take_calls(), []);
+        let status = fixture.status(BASE).await.unwrap();
+        let Some(Failure { stage, message }) = &status.failed else {
+            panic!("the refused policy is recorded");
+        };
+        assert_eq!(*stage, Stage::Create);
+        assert!(
+            message.contains("the installation's network policy `internet`"),
+            "{message}"
+        );
+        assert_eq!(status.applied_revision, Some(revision_of('4')));
+        assert_eq!(status.serving_revision, Some(revision_of('4')));
+        assert_eq!(fixture.token(deployment), token);
+        assert_eq!(rules(), ["hub", "internet"]);
+    })
+    .await;
+}
+
+#[tokio::test]
 async fn a_push_restarts_a_crash_looping_sandbox() {
     bounded(async {
         let fixture = Fixture::start(json!(null)).await;
@@ -687,7 +800,6 @@ async fn a_push_restarts_a_crash_looping_sandbox() {
             let calls = fixture.gateway.take_calls();
             let [
                 Call::RotateProviderCredential(_),
-                Call::UpdateConfig(_),
                 Call::StopSandbox(_),
                 Call::StartSandbox(_),
             ] = calls.as_slice()

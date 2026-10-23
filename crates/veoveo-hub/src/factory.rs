@@ -5,7 +5,9 @@
 //! it exits. Each push is applied with [`Factory::apply`]: the Hub ensures the branch's
 //! data environment, builds the image, then creates, restarts or recreates the sandbox,
 //! records what it applied and why its own steps failed, and reads everything else from
-//! OpenShell. [`Factory::remove`] ends an instance. The Hub runs no command inside a
+//! OpenShell, including the image and policy a sandbox was created with. A sandbox's
+//! policy changes only with a new sandbox: the Hub never updates a sandbox's
+//! configuration. [`Factory::remove`] ends an instance. The Hub runs no command inside a
 //! sandbox.
 pub mod image;
 mod record;
@@ -140,7 +142,9 @@ struct Source {
     remote: url::Url,
     /// The environment image built from the revision's `openshell/image/`.
     image: image::PinnedImage,
-    policy: Option<String>,
+    /// The installation's base policy with the network rules of the revision's
+    /// `openshell/policy.yaml` added, canonical.
+    policy: p::sandbox::v1::SandboxPolicy,
 }
 
 /// The factory sandboxes of one installation, in its factory workspace.
@@ -201,10 +205,11 @@ impl Factory {
     /// Apply a push of `branch` of the Lore repository `repository`, whose
     /// `openshell/` was read as `prepared`. Ensures the branch's data environment and
     /// the instance, builds the image, then creates the sandbox on the first push,
-    /// restarts it when it runs the built image and recreates it otherwise, and
-    /// records the revision and its pusher. A failed step is recorded on the instance
-    /// as `failed{stage, message}` and returned; a failed build leaves the sandbox as it
-    /// was. Pushes to one instance are applied one at a time by the caller.
+    /// restarts it when it runs the built image under the revision's policy and
+    /// recreates it otherwise, and records the revision and its pusher. A failed step
+    /// is recorded on the instance as `failed{stage, message}` and returned; a failed
+    /// build, or a repository policy the Hub refuses, leaves the sandbox as it was.
+    /// Pushes to one instance are applied one at a time by the caller.
     pub async fn apply(
         &self,
         repository: &str,
@@ -239,25 +244,26 @@ impl Factory {
                 Ok(self.builder.build(&prepared.image_context, &image).await?)
             })
             .await?;
+        let policy = self
+            .recorded(deployment, Stage::Create, async {
+                sandbox::policy(&self.policy, prepared.policy.as_deref())
+            })
+            .await?;
         let mut remote = self.config.lore_server.clone();
         remote.set_path(&format!("/{repository}"));
         let source = Source {
             remote,
             image,
-            policy: prepared.policy,
+            policy,
         };
         let branch = record::push(&self.store, deployment, &push.pusher).await?;
         let current = self
             .recorded(deployment, Stage::Create, self.sandbox(&name))
             .await?;
         match current {
-            Some(sandbox) if sandbox::runs(&sandbox, &source.image) => {
-                self.recorded(
-                    deployment,
-                    Stage::Restart,
-                    self.restart(&name, &sandbox, source.policy.as_deref()),
-                )
-                .await?;
+            Some(sandbox) if sandbox::runs(&sandbox, &source.image, &source.policy) => {
+                self.recorded(deployment, Stage::Restart, self.restart(&name, &sandbox))
+                    .await?;
             }
             Some(_) => {
                 self.recorded(deployment, Stage::Create, async {
@@ -362,27 +368,14 @@ impl Factory {
         }
     }
 
-    /// Serve a push whose image the sandbox runs: set its policy, which OpenShell keeps
-    /// when unchanged, then stop and start it, whose start command fetches the branch's
-    /// latest revision. OpenShell stops a sandbox in any phase in which its program has
-    /// run, including a crash loop, and resets its restart count; a sandbox still
-    /// provisioning or starting for the first time has not run the start command yet and
-    /// fetches the latest revision when it does, so it is left to start. `policy` is
-    /// the revision's `openshell/policy.yaml`.
-    async fn restart(&self, name: &str, sandbox: &p::Sandbox, policy: Option<&str>) -> Result<()> {
-        let policy = sandbox::policy(&self.policy, policy)?;
+    /// Serve a push whose image and policy the sandbox runs: stop and start it, whose
+    /// start command fetches the branch's latest revision. OpenShell stops a sandbox in
+    /// any phase in which its program has run, including a crash loop, and resets its
+    /// restart count; a sandbox still provisioning or starting for the first time has
+    /// not run the start command yet and fetches the latest revision when it does, so
+    /// it is left to start.
+    async fn restart(&self, name: &str, sandbox: &p::Sandbox) -> Result<()> {
         self.refresh_lore(name).await?;
-        let mut grpc = self.client.raw_grpc_fresh().await?;
-        call(
-            "set the sandbox's policy",
-            grpc.update_config(p::UpdateConfigRequest {
-                workspace_scope: scope(&self.config.workspace),
-                sandbox: name.into(),
-                policy: Some(policy),
-                ..Default::default()
-            }),
-        )
-        .await?;
         let status = SandboxStatus::of(sandbox);
         let started = match status.phase {
             Phase::Provisioning => false,
@@ -393,6 +386,7 @@ impl Factory {
             return Ok(());
         }
         // OpenShell answers once the sandbox stopped, and starts its program at once.
+        let mut grpc = self.client.raw_grpc_fresh().await?;
         call(
             "stop the sandbox",
             grpc.stop_sandbox(p::StopSandboxRequest {
@@ -426,7 +420,6 @@ impl Factory {
         source: &Source,
     ) -> Result<()> {
         let name = sandbox_name(deployment);
-        let policy = sandbox::policy(&self.policy, source.policy.as_deref())?;
         let token = registration::reissue_token(&self.store, deployment).await?;
         let mut grpc = self.client.raw_grpc_fresh().await?;
         let provider = sandbox::registration_provider(&name);
@@ -471,7 +464,6 @@ impl Factory {
                 deployment,
                 branch,
                 source,
-                policy,
             )),
         )
         .await

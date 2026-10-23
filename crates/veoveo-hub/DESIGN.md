@@ -324,16 +324,21 @@ and holds no assignment of its own; a pusher without the grant is refused with
 `invalid_grant`. Before every sandbox creation and restart the Hub rotates the
 credential, so the sandbox starts as the latest pusher.
 
-A push applies to an existing instance by the image its sandbox runs. With the same
-image the Hub sets the policy through `UpdateConfig`, which OpenShell keeps when it is
-unchanged, then stops and starts the sandbox; the start command fetches the branch's
-latest revision. OpenShell's stop answers once the sandbox stopped, from ready, from a
-failed program and from a crash loop's automatic restart, and resets the restart
-count; its start runs the program at once. A sandbox still provisioning, or starting
-for the first time, has not run its start command, which fetches the latest revision
-when it does, and OpenShell would refuse to stop it: the Hub only sets its policy.
-With another image, or without a sandbox, the Hub deletes the sandbox, waits until
-OpenShell no longer has it, and creates it from the new image with an empty disk.
+A push applies to an existing instance by the image and the policy its sandbox runs,
+which OpenShell reports as the sandbox's spec: the policy in the canonical form
+OpenShell records at creation, which is the form the Hub composes. The Hub never
+updates a sandbox's configuration; OpenShell's `UpdateConfig` needs `config:write`,
+which the Hub's identity does not hold. With the same image and policy the Hub stops
+and starts the sandbox; the start command fetches the branch's latest revision.
+OpenShell's stop answers once the sandbox stopped, from ready, from a failed program
+and from a crash loop's automatic restart, and resets the restart count; its start
+runs the program at once. A sandbox still provisioning, or starting for the first
+time, has not run its start command, which fetches the latest revision when it does,
+and OpenShell would refuse to stop it: the Hub leaves it to start. With another image
+or another policy, or without a sandbox, the Hub deletes the sandbox, waits until
+OpenShell no longer has it, and creates it from the new image and policy with an empty
+disk. A repository policy the Hub refuses is recorded as `failed{stage: create}` and,
+like a failed build, leaves the sandbox as it was.
 Deleting an instance deletes its sandbox and providers, then removes the instance and
 its registrations with their logins in one transaction, then drops its database when
 no other instance names it.
@@ -784,9 +789,12 @@ started on, under its captured composition.
 gateway's stop and start rules, and a fake image builder whose digest is the SHA-256 of
 a `Dockerfile`. It checks a first push's data environment, provider token, image, size,
 restart policy, environment, start command and composed policy; that a push of the same
-image only sets the policy of a provisioning sandbox and otherwise stops and starts it,
-a failed or crash-looping one included, and that a push of another image recreates it
-with a new token; that a failed build is recorded and changes nothing else; that a
+image and policy leaves a provisioning sandbox to start and otherwise stops and starts
+it, a failed or crash-looping one included, and that a push of another image, or of a
+changed repository policy, recreates it with a new token; that no push updates a
+sandbox's configuration, which the fake gateway refuses as `PermissionDenied` like
+OpenShell for the Hub's identity; that a failed build or a refused repository policy
+is recorded and changes nothing else; that a
 refused provider creation is followed by a new token; that status reports phase, exit
 code, restart count and a scheduling condition; and that caps warn above the cap and,
 enforced, refuse. Against the binary, removing an instance whose Ledger fixture
