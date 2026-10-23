@@ -2345,7 +2345,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "openshell-core"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=180b9e5a7b9d282c3e4acafb512ab17b08cf7af2#180b9e5a7b9d282c3e4acafb512ab17b08cf7af2"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=a52a9110d73e1c5b3b2903638a4407906255f975#a52a9110d73e1c5b3b2903638a4407906255f975"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2381,7 +2381,7 @@ dependencies = [
 [[package]]
 name = "openshell-extension-core"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=180b9e5a7b9d282c3e4acafb512ab17b08cf7af2#180b9e5a7b9d282c3e4acafb512ab17b08cf7af2"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=a52a9110d73e1c5b3b2903638a4407906255f975#a52a9110d73e1c5b3b2903638a4407906255f975"
 dependencies = [
  "hyper-util",
  "serde",
@@ -2394,7 +2394,7 @@ dependencies = [
 [[package]]
 name = "openshell-policy"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=180b9e5a7b9d282c3e4acafb512ab17b08cf7af2#180b9e5a7b9d282c3e4acafb512ab17b08cf7af2"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=a52a9110d73e1c5b3b2903638a4407906255f975#a52a9110d73e1c5b3b2903638a4407906255f975"
 dependencies = [
  "hickory-proto",
  "miette",
@@ -2408,7 +2408,7 @@ dependencies = [
 [[package]]
 name = "openshell-policy-schema"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=180b9e5a7b9d282c3e4acafb512ab17b08cf7af2#180b9e5a7b9d282c3e4acafb512ab17b08cf7af2"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=a52a9110d73e1c5b3b2903638a4407906255f975#a52a9110d73e1c5b3b2903638a4407906255f975"
 dependencies = [
  "miette",
  "noyalib",
@@ -2421,7 +2421,7 @@ dependencies = [
 [[package]]
 name = "openshell-sdk"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=180b9e5a7b9d282c3e4acafb512ab17b08cf7af2#180b9e5a7b9d282c3e4acafb512ab17b08cf7af2"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=a52a9110d73e1c5b3b2903638a4407906255f975#a52a9110d73e1c5b3b2903638a4407906255f975"
 dependencies = [
  "async-stream",
  "async-trait",
