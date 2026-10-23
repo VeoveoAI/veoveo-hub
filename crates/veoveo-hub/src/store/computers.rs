@@ -1,6 +1,5 @@
 //! Durable owner mapping, single-use PKCE state and fail-closed custody transitions.
 use chrono::{DateTime, Utc};
-use sha2::{Digest, Sha256};
 use sqlx::{Postgres, Transaction, types::Json};
 use uuid::Uuid;
 use veoveo_hub_sdk::HubRefreshFamilyId;
@@ -30,21 +29,9 @@ pub struct Computer {
     pub provisioning: ComputerProvisionSpec,
 }
 impl Computer {
-    /// Native OpenShell DNS-routable workspace/sandbox names are limited to 19
-    /// characters. Keep the full ID in Hub ownership and the cloned base path.
+    /// The Computer's native workspace and sandbox name.
     pub fn native_name(&self) -> String {
-        const ALPHABET: &[u8; 32] = b"abcdefghijklmnopqrstuvwxyz234567";
-        let digest = Sha256::digest(self.id.as_uuid().as_bytes());
-        let mut name = String::with_capacity(19);
-        name.push('c');
-        // Encode the first 90 digest bits as 18 lowercase base32 characters.
-        for bit in (0..90).step_by(5) {
-            let byte = bit / 8;
-            let window = (u16::from(digest[byte]) << 8) | u16::from(digest[byte + 1]);
-            let index = usize::from((window >> (11 - bit % 8)) & 31);
-            name.push(char::from(ALPHABET[index]));
-        }
-        name
+        self.id.native_name()
     }
     pub fn base_path(&self) -> String {
         format!("/computer/c/{}/", self.id)
@@ -234,7 +221,14 @@ impl HubStore {
     }
     /// Autocommitted before any native call. Concurrent logins wait behind an active
     /// worker row lock; a crashed worker leaves this durable pending state intact.
-    pub async fn begin_computer_handoff(&self, computer: &Computer) -> Result<Uuid, HubStoreError> {
+    /// It also records the digest of the new secret of the Computer's own Lore client,
+    /// committed before the handoff rotates the Lore provider with that secret: the
+    /// token endpoint reads it while the handoff holds the row lock.
+    pub async fn begin_computer_handoff(
+        &self,
+        computer: &Computer,
+        lore_client: &Sha256Digest,
+    ) -> Result<Uuid, HubStoreError> {
         let handoff = Uuid::now_v7();
         sqlx::query_file!(
             "src/store/computers/begin.sql",
@@ -243,11 +237,32 @@ impl HubStore {
             computer.principal.as_str(),
             handoff,
             Uuid::now_v7(),
-            Uuid::now_v7()
+            Uuid::now_v7(),
+            lore_client.as_str()
         )
         .fetch_one(self.pool())
         .await?;
         Ok(handoff)
+    }
+    /// The Computer whose own Lore client's secret has this digest, and its owner.
+    pub async fn computer_of_lore_client(
+        &self,
+        digest: &Sha256Digest,
+    ) -> Result<Option<(ComputerId, TenantId, PrincipalId)>, HubStoreError> {
+        sqlx::query_file!("src/store/computers/lore_client.sql", digest.as_str())
+            .fetch_optional(self.pool())
+            .await?
+            .map(|row| {
+                Ok((
+                    admitted("computer.id", ComputerId::parse(row.id.to_string()))?,
+                    admitted("computer.tenant", TenantId::parse(row.tenant))?,
+                    admitted(
+                        "computer.principal_id",
+                        PrincipalId::parse(row.principal_id),
+                    )?,
+                ))
+            })
+            .transpose()
     }
     pub async fn lock_computer_handoff(
         &self,
@@ -399,7 +414,8 @@ mod tests {
                 "template":{"workspace":"installation", "name":"initial"}, "policyFile":"/unused/policy", "command":["/initial/app"],
                 "oauthClient":"fixture-client", "profile":"fixture", "workContext":"fixture", "port":4096,
                 "hubProvider":{"profile":"fixture-hub", "credentialKey":"HUB_REFERENCE"},
-                "modelProvider":{"profile":"fixture-model", "credentialKey":"MODEL_REFERENCE", "secret":"fixture-secret"}
+                "modelProvider":{"profile":"fixture-model", "credentialKey":"MODEL_REFERENCE", "secret":"fixture-secret"},
+                "loreProvider":{"profile":"fixture-lore", "credentialKey":"LORE_ACCESS_TOKEN"}
             })).unwrap();
             let provisioning = ComputerProvisionSpec::fixture(config.clone());
             let computer = first
@@ -449,7 +465,11 @@ mod tests {
                 .await
                 .unwrap();
             let digest = Sha256Digest::from_bytes([7; 32]);
-            let first_id = first.begin_computer_handoff(&computer).await.unwrap();
+            let first_lore = Sha256Digest::from_bytes([11; 32]);
+            let first_id = first
+                .begin_computer_handoff(&computer, &first_lore)
+                .await
+                .unwrap();
             for (tenant, principal) in [
                 (
                     TenantId::parse("tenant-b").unwrap(),
@@ -482,7 +502,24 @@ mod tests {
                 .await
                 .unwrap()
                 .unwrap();
-            let next = second.begin_computer_handoff(&computer);
+            let owner = Some((
+                computer.id.clone(),
+                computer.tenant.clone(),
+                computer.principal.clone(),
+            ));
+            assert_eq!(
+                tokio::time::timeout(
+                    Duration::from_secs(5),
+                    second.computer_of_lore_client(&first_lore)
+                )
+                .await
+                .expect("the custody worker's row lock must not block the Lore client")
+                .unwrap(),
+                owner,
+                "the handoff rotates the Lore provider while it holds the row lock"
+            );
+            let second_lore = Sha256Digest::from_bytes([12; 32]);
+            let next = second.begin_computer_handoff(&computer, &second_lore);
             tokio::pin!(next);
             assert!(
                 tokio::time::timeout(Duration::from_millis(100), &mut next)
@@ -496,6 +533,18 @@ mod tests {
                 .unwrap();
             let next_id = next.await.unwrap();
             assert_ne!(next_id, first_id);
+            assert!(
+                first
+                    .computer_of_lore_client(&first_lore)
+                    .await
+                    .unwrap()
+                    .is_none(),
+                "a later handoff revokes the earlier Lore client secret"
+            );
+            assert_eq!(
+                first.computer_of_lore_client(&second_lore).await.unwrap(),
+                owner
+            );
             let (pending, _) = first.computer_session(&digest).await.unwrap().unwrap();
             assert!(!pending.ready);
             assert!(
@@ -679,7 +728,8 @@ mod tests {
             "template":{"workspace":"installation","name":"initial"},"policyFile":"/unused/policy","command":["/initial/app"],
             "oauthClient":"fixture-client","profile":"fixture","workContext":"fixture","port":4096,
             "hubProvider":{"profile":"fixture-hub","credentialKey":"HUB_REFERENCE"},
-            "modelProvider":{"profile":"fixture-model","credentialKey":"MODEL_REFERENCE","secret":"fixture-secret"}
+            "modelProvider":{"profile":"fixture-model","credentialKey":"MODEL_REFERENCE","secret":"fixture-secret"},
+            "loreProvider":{"profile":"fixture-lore","credentialKey":"LORE_ACCESS_TOKEN"}
         })).unwrap();
         let provisioning = ComputerProvisionSpec::fixture(config);
         store

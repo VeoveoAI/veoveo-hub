@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE hub.computer SET ready = false, family_id = NULL, handoff_id = $4, configure_request = $5, rotate_request = $6\nWHERE id = $1 AND tenant = $2 AND principal_id = $3 RETURNING id\n",
+  "query": "UPDATE hub.computer SET ready = false, family_id = NULL, handoff_id = $4, configure_request = $5, rotate_request = $6, lore_client_digest = $7\nWHERE id = $1 AND tenant = $2 AND principal_id = $3 RETURNING id\n",
   "describe": {
     "columns": [
       {
@@ -22,12 +22,13 @@
         "Text",
         "Uuid",
         "Uuid",
-        "Uuid"
+        "Uuid",
+        "Text"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "29ead59860d9db911302c5c7663628a960fc785b7afb57a20fe13c3809e9de5c"
+  "hash": "7e08de0de748f8a1dda2a1e2dd3b7bc02dc1ae08cce345630432541c081b3055"
 }

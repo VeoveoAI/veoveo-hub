@@ -1,5 +1,7 @@
 //! Native Lore wire contribution. All deployments and assignments come from the
 //! admitted control-plane revision; only native protocol types live in code.
+pub(crate) mod client_token;
+pub(crate) mod computer_client;
 pub(crate) mod factory;
 pub(crate) mod instance;
 pub(crate) mod instance_client;
@@ -323,6 +325,7 @@ impl Lore {
     }
 }
 
+#[derive(Clone)]
 pub struct Profile {
     pub key: SectionKey<Lore>,
 }
@@ -332,6 +335,10 @@ pub enum Request {
         resource: Option<String>,
         scope: Option<String>,
     },
+    /// One token for every repository the principal is assigned on the deployment,
+    /// none when they are assigned none. No protocol request asks for it: the Hub
+    /// issues it to a Computer's own client, for the Computer's owner.
+    Assigned,
 }
 impl Request {
     pub fn from_protocol(request: ProfileRequest<'_>) -> Result<Self> {
@@ -347,7 +354,8 @@ impl Request {
 pub struct AuthorizedGrant {
     identity: PrincipalId,
     recipient: String,
-    resource: Option<NativeGrant>,
+    purpose: TokenPurpose,
+    resources: Vec<NativeGrant>,
     lifetime: TokenLifetime,
     scopes: BTreeSet<ScopeName>,
 }
@@ -387,8 +395,8 @@ impl TokenProfile for Profile {
             "native login scope set changed"
         );
         let mut issued_scopes = context.scopes().clone();
-        let resource = match request {
-            Request::Login => None,
+        let (purpose, resources) = match request {
+            Request::Login => (TokenPurpose::Login, Vec::new()),
             Request::Exchange { resource, scope } => {
                 ensure!(resource.is_none(), "deployment expects one scope target");
                 let id = deployment
@@ -414,26 +422,58 @@ impl TokenProfile for Profile {
                     .assignments(&id, tenant, &context.principal().id)
                     .find(|a| a.deployment == deployment.id)
                     .context("native repository assignment denied")?;
-                Some(NativeGrant {
-                    resource_id: deployment.resource_id_template.render(&id),
-                    permission: assignment.actions.clone(),
-                })
+                (
+                    TokenPurpose::Resource,
+                    vec![NativeGrant {
+                        resource_id: deployment.resource_id_template.render(&id),
+                        permission: assignment.actions.clone(),
+                    }],
+                )
+            }
+            Request::Assigned => {
+                let tenant = context
+                    .principal()
+                    .tenant
+                    .as_ref()
+                    .context("native principal has no tenant")?;
+                // Admission keeps every assignment on a repository registered for its
+                // deployment and tenant.
+                let assigned = section
+                    .assignments
+                    .iter()
+                    .filter(|a| {
+                        a.deployment == deployment.id
+                            && &a.tenant == tenant
+                            && a.principal == context.principal().id
+                    })
+                    .collect::<Vec<_>>();
+                issued_scopes = assigned
+                    .iter()
+                    .map(|a| ScopeName::parse(deployment.scope_template.render(&a.repository)))
+                    .collect::<Result<_, _>>()?;
+                (
+                    TokenPurpose::Resource,
+                    assigned
+                        .into_iter()
+                        .map(|a| NativeGrant {
+                            resource_id: deployment.resource_id_template.render(&a.repository),
+                            permission: a.actions.clone(),
+                        })
+                        .collect(),
+                )
             }
         };
         Ok(AuthorizedGrant {
             identity: context.principal().id.clone(),
             recipient: deployment.recipient()?,
-            resource,
+            purpose,
+            resources,
             lifetime: deployment.token_lifetime_seconds,
             scopes: issued_scopes,
         })
     }
     fn purpose(&self, grant: &AuthorizedGrant) -> TokenPurpose {
-        if grant.resource.is_some() {
-            TokenPurpose::Resource
-        } else {
-            TokenPurpose::Login
-        }
+        grant.purpose
     }
     fn lifetime(&self, grant: &AuthorizedGrant) -> TokenLifetime {
         grant.lifetime
@@ -445,7 +485,7 @@ impl TokenProfile for Profile {
         Claims {
             identity: grant.identity.clone(),
             root_domains: vec![grant.recipient.clone()],
-            resources: grant.resource.iter().cloned().collect(),
+            resources: grant.resources.clone(),
         }
     }
 }

@@ -1,6 +1,7 @@
 //! A fake OpenShell gateway: an in-process gRPC server that answers the requests the
-//! factory sends from sandboxes and providers it keeps in memory, and records every
-//! request that changes them. Like the real gateway, it records a created sandbox's
+//! factory and a Computer's custody handoff send from the workspaces, templates,
+//! profiles, sandboxes and providers it keeps in memory, and records every request that
+//! changes them. Like the real gateway, it records a created sandbox's
 //! policy in its canonical form and refuses `UpdateConfig`, which needs the
 //! `config:write` scope the Hub's identity does not hold. It stops a sandbox that is
 //! ready, stopping, failed or in an automatic restart, and resets its restart count,
@@ -9,8 +10,10 @@
 //! or starting sandbox at once and answers a start of a ready one without change. Any
 //! other method is unimplemented. Once given the token endpoint of a profile's
 //! `oauth2_client_credentials` refresh, a rotation mints the credential there with the
-//! provider's refresh material. It serves plain gRPC to the test and TLS to the Hub
-//! binary.
+//! provider's refresh material; a rotation it does not mint reports a synthetic expiry.
+//! When told to, it makes a created or started sandbox ready at once, as the compute
+//! platform would after starting it, and it accepts every TCP forwarding stream without
+//! relaying bytes. It serves plain gRPC to the test and TLS to the Hub binary.
 
 use std::{
     collections::{BTreeMap, HashMap},
@@ -38,6 +41,8 @@ use tonic_prost::ProstCodec;
     reason = "a test records a handful of requests"
 )]
 pub enum Call {
+    CreateWorkspace(p::CreateWorkspaceRequest),
+    CreateSandboxTemplate(p::CreateSandboxTemplateRequest),
     CreateProvider(p::CreateProviderRequest),
     DeleteProvider(p::DeleteProviderRequest),
     CreateSandbox(p::CreateSandboxRequest),
@@ -56,10 +61,17 @@ struct State {
     providers: BTreeMap<(String, String), p::Provider>,
     /// The refusal the next request of a method answers instead, by method.
     refusals: BTreeMap<String, Status>,
-    /// Refresh material by workspace, provider and credential key.
-    refresh: BTreeMap<(String, String, String), std::collections::HashMap<String, String>>,
+    /// Refresh configuration by workspace, provider and credential key.
+    refresh: BTreeMap<(String, String, String), p::ConfigureProviderRefreshRequest>,
     /// Where a rotation mints, when set.
     token_url: Option<String>,
+    workspaces: std::collections::BTreeSet<String>,
+    /// By workspace and name.
+    templates: BTreeMap<(String, String), p::SandboxWorkloadTemplate>,
+    /// Global provider profiles by ID.
+    profiles: BTreeMap<String, p::ProviderProfile>,
+    /// Whether a created or started sandbox is ready at once.
+    ready_on_start: bool,
 }
 
 #[derive(Clone, Default)]
@@ -187,7 +199,21 @@ impl Gateway {
             .unwrap()
             .refresh
             .get(&(workspace.into(), provider.into(), key.into()))
-            .cloned()
+            .map(|refresh| refresh.material.clone())
+    }
+
+    /// Serve `profile` as a global provider profile.
+    pub fn set_profile(&self, profile: p::ProviderProfile) {
+        self.state
+            .lock()
+            .unwrap()
+            .profiles
+            .insert(profile.id.clone(), profile);
+    }
+
+    /// Make every sandbox ready as soon as it is created or started.
+    pub fn ready_on_start(&self) {
+        self.state.lock().unwrap().ready_on_start = true;
     }
 
     /// Replace a sandbox's status, as the compute platform's observations would.
@@ -264,24 +290,46 @@ impl Gateway {
                     }
                 }
                 let mut spec = request.spec.clone();
+                // A sandbox created from a workload template runs with its environment.
+                if let Some(workload) = state
+                    .templates
+                    .get(&(key.0.clone(), request.workload_template.clone()))
+                    .and_then(|template| template.spec.as_ref())
+                    .and_then(|template| template.workload.as_ref())
+                    && let Some(spec) = spec.as_mut()
+                {
+                    spec.environment.extend(workload.environment.clone());
+                }
                 if let Some(policy) = spec.as_mut().and_then(|spec| spec.policy.as_mut()) {
                     *policy =
                         openshell_policy::validate_and_canonicalize_sandbox_policy(policy.clone())
                             .map_err(|error| Status::invalid_argument(error.to_string()))?;
                 }
+                let phase = if state.ready_on_start {
+                    p::SandboxPhase::Ready
+                } else {
+                    p::SandboxPhase::Provisioning
+                };
                 let sandbox = p::Sandbox {
                     metadata: Some(p::ObjectMeta {
                         // The real gateway assigns every sandbox an ID.
                         id: format!("{}-id", key.1),
                         name: key.1.clone(),
                         workspace: key.0.clone(),
+                        annotations: request.annotations.clone(),
                         ..Default::default()
                     }),
                     spec,
                     status: Some(p::SandboxStatus {
-                        phase: p::SandboxPhase::Provisioning as i32,
+                        phase: phase as i32,
                         ..Default::default()
                     }),
+                    created_from_workload_template: (!request.workload_template.is_empty()).then(
+                        || p::SandboxWorkloadTemplateProvenance {
+                            name: request.workload_template.clone(),
+                            ..Default::default()
+                        },
+                    ),
                     ..Default::default()
                 };
                 state.sandboxes.insert(key, sandbox.clone());
@@ -352,6 +400,11 @@ impl Gateway {
                     workspace(request.workspace_scope.as_ref())?,
                     request.name.clone(),
                 );
+                let started = if state.ready_on_start {
+                    p::SandboxPhase::Ready
+                } else {
+                    p::SandboxPhase::Starting
+                };
                 let sandbox = state
                     .sandboxes
                     .get_mut(&key)
@@ -362,7 +415,7 @@ impl Gateway {
                     p::SandboxPhase::Stopped
                     | p::SandboxPhase::Completed
                     | p::SandboxPhase::Starting
-                    | p::SandboxPhase::Error => status.phase = p::SandboxPhase::Starting as i32,
+                    | p::SandboxPhase::Error => status.phase = started as i32,
                     phase => {
                         return Err(Status::failed_precondition(format!(
                             "sandbox must be Stopped, Completed or a failed main-process Error to start (current phase: {phase:?})"
@@ -399,20 +452,13 @@ impl Gateway {
                     {
                         return Err(Status::not_found("provider not found"));
                     }
-                    if request.strategy
-                        != p::ProviderCredentialRefreshStrategy::Oauth2ClientCredentials as i32
-                    {
-                        return Err(Status::unimplemented(
-                            "the fake gateway refreshes only with client credentials",
-                        ));
-                    }
                     state.refresh.insert(
                         (
                             workspace,
                             request.provider.clone(),
                             request.credential_key.clone(),
                         ),
-                        request.material.clone(),
+                        request.clone(),
                     );
                     state.calls.push(Call::ConfigureProviderRefresh(request));
                     Ok(p::ConfigureProviderRefreshResponse::default())
@@ -426,17 +472,34 @@ impl Gateway {
                         request.provider.clone(),
                         request.credential_key.clone(),
                     );
-                    let (material, token_url) = {
+                    let (refresh, token_url) = {
                         let mut state = state.lock().unwrap();
                         state.calls.push(Call::RotateProviderCredential(request));
-                        let material = state.refresh.get(&key).cloned().ok_or_else(|| {
+                        let refresh = state.refresh.get(&key).cloned().ok_or_else(|| {
                             Status::failed_precondition("the credential has no refresh")
                         })?;
-                        (material, state.token_url.clone())
+                        (refresh, state.token_url.clone())
                     };
+                    let rotated = |expires_in: i64| p::RotateProviderCredentialResponse {
+                        status: Some(p::ProviderCredentialRefreshStatus {
+                            provider: key.1.clone(),
+                            credential_key: key.2.clone(),
+                            strategy: refresh.strategy,
+                            expiration_time: Some(prost_types::Timestamp {
+                                seconds: chrono::Utc::now().timestamp() + expires_in,
+                                nanos: 0,
+                            }),
+                            ..Default::default()
+                        }),
+                    };
+                    let token_url = token_url.filter(|_| {
+                        refresh.strategy
+                            == p::ProviderCredentialRefreshStrategy::Oauth2ClientCredentials as i32
+                    });
                     let Some(token_url) = token_url else {
-                        return Ok(p::RotateProviderCredentialResponse::default());
+                        return Ok(rotated(300));
                     };
+                    let material = &refresh.material;
                     let form = url::form_urlencoded::Serializer::new(String::new())
                         .append_pair("grant_type", "client_credentials")
                         .append_pair("client_id", &material["client_id"])
@@ -463,15 +526,100 @@ impl Gateway {
                         .as_str()
                         .ok_or_else(|| Status::internal("no access token"))?
                         .to_owned();
+                    let expires_in = body["expires_in"].as_i64().unwrap_or_default();
                     let mut state = state.lock().unwrap();
                     let provider = state
                         .providers
-                        .get_mut(&(key.0, key.1))
+                        .get_mut(&(key.0.clone(), key.1.clone()))
                         .ok_or_else(|| Status::not_found("provider not found"))?;
-                    provider.credentials.insert(key.2, token);
-                    Ok(p::RotateProviderCredentialResponse::default())
+                    provider.credentials.insert(key.2.clone(), token);
+                    Ok(rotated(expires_in))
                 },
             ),
+            "GetWorkspace" => unary(request, move |request: p::GetWorkspaceRequest| {
+                let state = state.lock().unwrap();
+                if !state.workspaces.contains(&request.name) {
+                    return Err(Status::not_found("workspace not found"));
+                }
+                Ok(p::GetWorkspaceResponse {
+                    workspace: Some(p::Workspace {
+                        metadata: Some(p::ObjectMeta {
+                            name: request.name,
+                            ..Default::default()
+                        }),
+                        ..Default::default()
+                    }),
+                })
+            }),
+            "CreateWorkspace" => unary(request, move |request: p::CreateWorkspaceRequest| {
+                let mut state = state.lock().unwrap();
+                if !state.workspaces.insert(request.name.clone()) {
+                    return Err(Status::already_exists("workspace exists"));
+                }
+                state.calls.push(Call::CreateWorkspace(request));
+                Ok(p::CreateWorkspaceResponse::default())
+            }),
+            "GetSandboxTemplate" => unary(request, move |request: p::GetSandboxTemplateRequest| {
+                let state = state.lock().unwrap();
+                let key = (workspace(request.workspace_scope.as_ref())?, request.name);
+                let template = state
+                    .templates
+                    .get(&key)
+                    .cloned()
+                    .ok_or_else(|| Status::not_found("template not found"))?;
+                Ok(p::SandboxTemplateResponse {
+                    template: Some(template),
+                })
+            }),
+            "CreateSandboxTemplate" => {
+                unary(request, move |request: p::CreateSandboxTemplateRequest| {
+                    let mut state = state.lock().unwrap();
+                    let template = request.template.clone().unwrap_or_default();
+                    let name = template
+                        .metadata
+                        .as_ref()
+                        .map(|m| m.name.clone())
+                        .unwrap_or_default();
+                    let key = (workspace(request.workspace_scope.as_ref())?, name);
+                    if state.templates.contains_key(&key) {
+                        return Err(Status::already_exists("template exists"));
+                    }
+                    state.templates.insert(key, template.clone());
+                    state.calls.push(Call::CreateSandboxTemplate(request));
+                    Ok(p::SandboxTemplateResponse {
+                        template: Some(template),
+                    })
+                })
+            }
+            "GetProvider" => unary(request, move |request: p::GetProviderRequest| {
+                let state = state.lock().unwrap();
+                let key = (workspace(request.workspace_scope.as_ref())?, request.name);
+                let provider = state
+                    .providers
+                    .get(&key)
+                    .cloned()
+                    .ok_or_else(|| Status::not_found("provider not found"))?;
+                Ok(p::ProviderResponse {
+                    provider: Some(provider),
+                    ..Default::default()
+                })
+            }),
+            "GetProviderProfile" => unary(request, move |request: p::GetProviderProfileRequest| {
+                let state = state.lock().unwrap();
+                let profile = state
+                    .profiles
+                    .get(&request.id)
+                    .cloned()
+                    .ok_or_else(|| Status::not_found("profile not found"))?;
+                Ok(p::ProviderProfileResponse {
+                    profile: Some(profile),
+                })
+            }),
+            "ForwardTcp" => Box::pin(async move {
+                Grpc::new(ProstCodec::<p::TcpForwardFrame, p::TcpForwardFrame>::default())
+                    .streaming(Accept, request)
+                    .await
+            }),
             other => {
                 let status = Status::unimplemented(format!("the fake gateway has no {other}"));
                 Box::pin(async move { status.into_http() })
@@ -489,6 +637,18 @@ fn workspace(scope: Option<&p::WorkspaceSelector>) -> Result<String, Status> {
 }
 
 type BoxFuture = Pin<Box<dyn Future<Output = http::Response<Body>> + Send>>;
+
+/// A forwarding stream that the target accepted and that relays nothing, open until the
+/// caller ends it.
+struct Accept;
+impl tonic::server::StreamingService<p::TcpForwardFrame> for Accept {
+    type Response = p::TcpForwardFrame;
+    type ResponseStream = futures::stream::Pending<Result<p::TcpForwardFrame, Status>>;
+    type Future = std::future::Ready<Result<tonic::Response<Self::ResponseStream>, Status>>;
+    fn call(&mut self, _: tonic::Request<tonic::Streaming<p::TcpForwardFrame>>) -> Self::Future {
+        std::future::ready(Ok(tonic::Response::new(futures::stream::pending())))
+    }
+}
 
 /// Answer one unary request with `handle`.
 fn unary<Request, Response, Handle>(request: http::Request<Body>, handle: Handle) -> BoxFuture

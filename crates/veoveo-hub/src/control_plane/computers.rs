@@ -37,6 +37,10 @@ pub struct Computers {
     pub forwarding_connection_limit: NonZeroUsize,
     pub hub_provider: ComputerRefreshProvider,
     pub model_provider: ComputerStaticProvider,
+    /// The owner's Lore access. The gateway refreshes it with the Computer's own Hub
+    /// client, whose tokens act as the owner for every repository the owner is
+    /// assigned; the sandbox's Lore command line reads the credential's placeholder.
+    pub lore_provider: ComputerRefreshProvider,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -111,6 +115,8 @@ impl Computers {
             &self.hub_provider.credential_key,
             &self.model_provider.profile,
             &self.model_provider.credential_key,
+            &self.lore_provider.profile,
+            &self.lore_provider.credential_key,
         ]
         .into_iter()
         .any(|name| name.is_empty() || name.len() > 253 || name.chars().any(char::is_whitespace))

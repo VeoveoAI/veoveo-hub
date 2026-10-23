@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result, ensure};
 use chrono::{DateTime, Utc};
-use openshell_sdk::raw::proto as p;
+use openshell_sdk::raw::proto::{self as p, ProviderCredentialRefreshStrategy as Strategy};
 use prost_types::Timestamp;
 use secrecy::{ExposeSecret, SecretString};
 use uuid::Uuid;
@@ -11,11 +11,16 @@ use uuid::Uuid;
 use super::gateway::{Gateway, RPC_TIMEOUT};
 use crate::{
     HubCatalog, HubSecretResolver, contract::SecretPurpose, control_plane::Computers,
-    store::Computer,
+    custody_client::CustodyClient, store::Computer,
 };
 
 pub(super) const HUB_PROVIDER: &str = "computer-hub";
 pub(super) const MODEL_PROVIDER: &str = "computer-model";
+/// The owner's Lore access: a token the gateway refreshes with the Computer's own Hub
+/// client, for the owner and every repository the owner is assigned.
+pub(super) const LORE_PROVIDER: &str = "computer-lore";
+/// The providers every Computer's sandbox attaches.
+const PROVIDERS: [&str; 3] = [HUB_PROVIDER, MODEL_PROVIDER, LORE_PROVIDER];
 const RETENTION: &str = "openshell.nvidia.com/retention";
 pub(super) const READY_TIMEOUT: Duration = Duration::from_secs(120);
 
@@ -24,12 +29,16 @@ pub(super) struct LoginGrant {
     pub client: veoveo_hub_sdk::OAuthClientId,
     pub refresh: SecretString,
     pub access_expiry: DateTime<Utc>,
+    /// The Computer's own Lore client with the new secret whose digest the handoff's
+    /// beginning recorded.
+    pub lore: CustodyClient,
 }
 struct ProviderSeed<'a> {
     name: &'a str,
     profile: &'a str,
     key: &'a str,
-    value: &'a str,
+    /// The credential the provider is created with; none for one the gateway mints.
+    value: Option<&'a str>,
     expiry: Option<DateTime<Utc>>,
     request_id: Uuid,
 }
@@ -176,12 +185,17 @@ impl Provisioner {
             (
                 &self.config.hub_provider.profile,
                 &self.config.hub_provider.credential_key,
-                true,
+                Some(Strategy::Oauth2RefreshToken),
             ),
             (
                 &self.config.model_provider.profile,
                 &self.config.model_provider.credential_key,
-                false,
+                None,
+            ),
+            (
+                &self.config.lore_provider.profile,
+                &self.config.lore_provider.credential_key,
+                Some(Strategy::Oauth2ClientCredentials),
             ),
         ] {
             let profile = tokio::time::timeout(
@@ -213,19 +227,20 @@ impl Provisioner {
                     && credential.token_grant.is_none(),
                 "Computer profile credential shape differs from installation"
             );
-            if refresh {
+            // The Hub profile refreshes the user's grant and the Lore profile mints with
+            // the Computer's own client, both at this Hub's token endpoint.
+            if let Some(expected) = refresh {
                 let strategy = credential
                     .refresh
                     .as_ref()
-                    .context("Computer Hub profile has no native refresh strategy")?;
+                    .context("Computer refreshing profile has no native refresh strategy")?;
                 ensure!(
-                    strategy.strategy
-                        == p::ProviderCredentialRefreshStrategy::Oauth2RefreshToken as i32
+                    strategy.strategy == expected as i32
                         && strategy.scopes.is_empty()
                         && strategy.token_url
                             == format!("{}/oauth/token", public.trim_end_matches('/'))
                         && !credential.stable_placeholder,
-                    "Computer Hub profile cannot own this refresh grant"
+                    "Computer refreshing profile cannot own this refresh grant"
                 );
             } else {
                 ensure!(
@@ -236,8 +251,26 @@ impl Provisioner {
         }
         Ok(())
     }
-    async fn source_template(&self) -> Result<p::SandboxWorkloadTemplate> {
-        self.spec.template()
+    /// The owner's clone of the installation's template. Its workload's environment
+    /// adds the Computer's base path, the Hub MCP URL and the owner's Lore identity,
+    /// which Lore's command line requires with the Lore provider's placeholder, a token
+    /// it cannot read; the token Hub issues names the same identity.
+    fn template(&self, computer: &Computer) -> Result<p::SandboxWorkloadTemplate> {
+        let name = computer.native_name();
+        let mut template = self.spec.template()?;
+        template.metadata = Some(metadata(&name, &name));
+        let environment = &mut template
+            .spec
+            .as_mut()
+            .context("native template has no spec")?
+            .workload
+            .as_mut()
+            .context("native template has no workload")?
+            .environment;
+        environment.insert("PUBLIC_BASE_PATH".into(), computer.base_path());
+        environment.insert("COMPUTER_HUB_URL".into(), self.spec.hub_url.clone());
+        environment.insert("LORE_IDENTITY".into(), computer.principal.to_string());
+        Ok(template)
     }
     /// Runs only while the caller owns the durable handoff row lock. A bounded
     /// cold-path transaction serializes custody, not an exactly-once claim across
@@ -275,22 +308,7 @@ impl Provisioner {
             }
             Err(e) => return Err(native_error("get workspace", e)),
         }
-        let mut template = self.source_template().await?;
-        template.metadata = Some(metadata(&name, &name));
-        let spec = template
-            .spec
-            .as_mut()
-            .context("native template has no spec")?;
-        spec.workload
-            .as_mut()
-            .context("native template has no workload")?
-            .environment
-            .insert("PUBLIC_BASE_PATH".into(), computer.base_path());
-        spec.workload
-            .as_mut()
-            .context("native template has no workload")?
-            .environment
-            .insert("COMPUTER_HUB_URL".into(), self.spec.hub_url.clone());
+        let template = self.template(computer)?;
         match tokio::time::timeout(
             RPC_TIMEOUT,
             grpc.get_sandbox_template(p::GetSandboxTemplateRequest {
@@ -327,7 +345,7 @@ impl Provisioner {
                 name: MODEL_PROVIDER,
                 profile: &self.config.model_provider.profile,
                 key: &self.config.model_provider.credential_key,
-                value: model.expose_secret(),
+                value: Some(model.expose_secret()),
                 expiry: None,
                 request_id: computer.model_provider_request,
             },
@@ -339,9 +357,21 @@ impl Provisioner {
                 name: HUB_PROVIDER,
                 profile: &self.config.hub_provider.profile,
                 key: &self.config.hub_provider.credential_key,
-                value: grant.access.expose_secret(),
+                value: Some(grant.access.expose_secret()),
                 expiry: Some(grant.access_expiry),
                 request_id: computer.hub_provider_request,
+            },
+        )
+        .await?;
+        self.ensure_provider(
+            computer,
+            ProviderSeed {
+                name: LORE_PROVIDER,
+                profile: &self.config.lore_provider.profile,
+                key: &self.config.lore_provider.credential_key,
+                value: None,
+                expiry: None,
+                request_id: Uuid::new_v5(&handoff, b"lore-provider"),
             },
         )
         .await?;
@@ -385,49 +415,23 @@ impl Provisioner {
         )
         .await?
         .map_err(|e| native_error("configure refresh custody", e))?;
-        let rotated = tokio::time::timeout(
-            RPC_TIMEOUT,
-            grpc.rotate_provider_credential(p::RotateProviderCredentialRequest {
-                workspace_scope: scope(&name),
-                provider: HUB_PROVIDER.into(),
-                credential_key: self.config.hub_provider.credential_key.clone(),
-                request_id: computer
-                    .rotate_request
-                    .context("Computer rotate ID missing")?
-                    .to_string(),
-            }),
+        self.rotate(
+            &name,
+            HUB_PROVIDER,
+            &self.config.hub_provider.credential_key,
+            computer
+                .rotate_request
+                .context("Computer rotate ID missing")?
+                .to_string(),
+            "rotate user credential",
         )
-        .await?
-        .map_err(|e| native_error("rotate user credential", e))?
-        .into_inner()
-        .status
-        .context("native rotation omitted status")?;
-        ensure!(
-            rotated
-                .expiration_time
-                .is_some_and(|expiry| expiry.seconds > Utc::now().timestamp())
-                && rotated.failure_code.is_empty(),
-            "Computer credential rotation not ready"
-        );
+        .await?;
+        self.lore_refresh(&name, handoff, &grant.lore).await?;
         drop(grant);
         if existing.is_none() {
             tokio::time::timeout(
                 RPC_TIMEOUT,
-                grpc.create_sandbox(p::CreateSandboxRequest {
-                    workspace_scope: scope(&name),
-                    name: name.clone(),
-                    workload_template: name.clone(),
-                    request_id: computer.sandbox_request.to_string(),
-                    annotations: HashMap::from([(RETENTION.into(), "persistent".into())]),
-                    spec: Some(p::SandboxSpec {
-                        policy: Some(self.policy.clone()),
-                        command: self.config.command.clone(),
-                        providers: vec![HUB_PROVIDER.into(), MODEL_PROVIDER.into()],
-                        restart_policy: p::SandboxRestartPolicy::Always as i32,
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                }),
+                grpc.create_sandbox(self.create_request(computer)),
             )
             .await?
             .map_err(|e| native_error("create sandbox", e))?;
@@ -445,6 +449,84 @@ impl Provisioner {
         }
         self.wait_phase(&name, p::SandboxPhase::Ready).await?;
         self.wait_listener(&name).await
+    }
+    /// The create request of the owner's sandbox, from its cloned template, with the
+    /// installation's policy and command and every Computer provider attached.
+    fn create_request(&self, computer: &Computer) -> p::CreateSandboxRequest {
+        let name = computer.native_name();
+        p::CreateSandboxRequest {
+            workspace_scope: scope(&name),
+            name: name.clone(),
+            workload_template: name,
+            request_id: computer.sandbox_request.to_string(),
+            annotations: HashMap::from([(RETENTION.into(), "persistent".into())]),
+            spec: Some(p::SandboxSpec {
+                policy: Some(self.policy.clone()),
+                command: self.config.command.clone(),
+                providers: PROVIDERS.map(String::from).to_vec(),
+                restart_policy: p::SandboxRestartPolicy::Always as i32,
+                ..Default::default()
+            }),
+            ..Default::default()
+        }
+    }
+    /// Give the gateway the Computer's own Lore client, with its new secret, as the
+    /// refresh of the Lore provider, and refresh the token now: the Hub issues it for
+    /// the owner and every repository the owner is assigned. The sandbox then starts
+    /// with Lore access, from a client the Hub accepts.
+    async fn lore_refresh(&self, name: &str, handoff: Uuid, client: &CustodyClient) -> Result<()> {
+        let key = &self.config.lore_provider.credential_key;
+        let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
+        tokio::time::timeout(
+            RPC_TIMEOUT,
+            grpc.configure_provider_refresh(p::ConfigureProviderRefreshRequest {
+                request_id: request(handoff, "configure-lore"),
+                ..client.refresh(scope(name), LORE_PROVIDER.into(), key.clone())
+            }),
+        )
+        .await?
+        .map_err(|e| native_error("configure Lore refresh custody", e))?;
+        self.rotate(
+            name,
+            LORE_PROVIDER,
+            key,
+            request(handoff, "rotate-lore"),
+            "rotate Lore credential",
+        )
+        .await
+    }
+    /// Refresh a provider's credential now and require a current, unfailed result.
+    async fn rotate(
+        &self,
+        name: &str,
+        provider: &str,
+        key: &str,
+        request_id: String,
+        operation: &'static str,
+    ) -> Result<()> {
+        let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
+        let rotated = tokio::time::timeout(
+            RPC_TIMEOUT,
+            grpc.rotate_provider_credential(p::RotateProviderCredentialRequest {
+                workspace_scope: scope(name),
+                provider: provider.into(),
+                credential_key: key.into(),
+                request_id,
+            }),
+        )
+        .await?
+        .map_err(|e| native_error(operation, e))?
+        .into_inner()
+        .status
+        .context("native rotation omitted status")?;
+        ensure!(
+            rotated
+                .expiration_time
+                .is_some_and(|expiry| expiry.seconds > Utc::now().timestamp())
+                && rotated.failure_code.is_empty(),
+            "Computer credential rotation not ready"
+        );
+        Ok(())
     }
     async fn ensure_provider(&self, computer: &Computer, seed: ProviderSeed<'_>) -> Result<()> {
         let ProviderSeed {
@@ -479,7 +561,8 @@ impl Provisioner {
                             .as_ref()
                             .is_some_and(|m| m.name == name && m.workspace == workspace)
                         && provider.config.is_empty()
-                        && provider.credentials.contains_key(key),
+                        // The gateway writes a minted credential at its first rotation.
+                        && (value.is_none() || provider.credentials.contains_key(key)),
                     "Computer provider differs from trusted installation"
                 );
             }
@@ -511,7 +594,9 @@ impl Provisioner {
                         provider: Some(p::Provider {
                             metadata: Some(metadata(name, &workspace)),
                             r#type: profile.id,
-                            credentials: HashMap::from([(env.clone(), value.into())]),
+                            credentials: value
+                                .map(|value| HashMap::from([(env.clone(), value.into())]))
+                                .unwrap_or_default(),
                             credential_expiration_times: expiry
                                 .map(|e| HashMap::from([(env, timestamp(e))]))
                                 .unwrap_or_default(),
@@ -579,7 +664,7 @@ impl Provisioner {
                     .is_some_and(|v| v.name == name)
                 && spec.command == self.config.command
                 && spec.policy.as_ref() == Some(&self.policy)
-                && spec.providers == [HUB_PROVIDER.to_owned(), MODEL_PROVIDER.to_owned()]
+                && spec.providers == PROVIDERS
                 && spec.restart_policy == p::SandboxRestartPolicy::Always as i32
                 && spec.environment.get("PUBLIC_BASE_PATH") == Some(&computer.base_path()),
             "native Computer governance differs from installation"
@@ -645,3 +730,6 @@ fn phase(sandbox: &p::Sandbox) -> p::SandboxPhase {
     p::SandboxPhase::try_from(sandbox.status.as_ref().map_or(0, |status| status.phase))
         .unwrap_or(p::SandboxPhase::Unknown)
 }
+
+#[cfg(test)]
+mod tests;

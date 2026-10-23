@@ -1005,6 +1005,23 @@ current automatic-persistence contract, not a new authorization rule. Unknown
 backends fail closed. Create also sets native persistent retention, the admitted
 policy/command and `Always` restart policy.
 Native gateway lifecycle owns missing-runtime recovery and runtime identities.
+
+The owner reaches Lore with that one login. Each handoff gives the Computer's own OAuth
+client a new secret, whose identifier is the Computer's native name and whose digest
+the handoff's precommitted beginning stores on the Computer; the token endpoint reads
+it while the worker holds the row lock. The worker ensures workspace-local
+`computer-lore` of the configured `loreProvider` profile, hands the client to the
+gateway's `oauth2_client_credentials` refresh and rotates it before Start, attaches
+it with the other providers and names the owner's principal in the clone's
+`LORE_IDENTITY`. At `/oauth/token` a `client_credentials` request whose client ID is
+a Computer's native name and whose `client_secret` matches the stored digest receives
+the owner's Lore token for the installation's one Lore deployment, with one native
+resource entry for every repository the owner is assigned there and none without an
+assignment: the entries the deployment's public client would obtain one repository at
+a time. The client requests no scope or resource. A native name is never UUID-shaped,
+so a Computer's client and an instance's are never taken for each other. A newly
+assigned repository is in the Computer's token after the gateway's next refresh,
+within the deployment's token lifetime.
 Provisioning and browser entry also wait for a successful native ForwardTcp target
 connection under the existing 120-second startup bound. The gateway must return
 ForwardTcp success after the native relay claim, not before target connection.

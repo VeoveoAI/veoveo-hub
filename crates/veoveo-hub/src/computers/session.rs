@@ -172,7 +172,8 @@ mod tests {
                 "policyFile": "/unused/policy", "command": ["/unused/app"],
                 "oauthClient": "operator-local-public", "profile": "operator", "workContext": "operations", "port": 4096,
                 "hubProvider": {"profile": "fixture-hub", "credentialKey": "HUB_REFERENCE"},
-                "modelProvider": {"profile": "fixture-model", "credentialKey": "MODEL_REFERENCE", "secret": "unused"}
+                "modelProvider": {"profile": "fixture-model", "credentialKey": "MODEL_REFERENCE", "secret": "unused"},
+                "loreProvider": {"profile": "fixture-lore", "credentialKey": "LORE_ACCESS_TOKEN"}
             })).unwrap();
             let profile = catalog.profile(&config.profile).unwrap();
             let principal = Principal {
@@ -187,7 +188,7 @@ mod tests {
                 scopes: &principal.scopes, now: Utc::now(),
             }).await.unwrap();
             let computer = hub.hub_store().ensure_computer(principal.tenant.as_ref().unwrap(), &principal.id, &crate::computers::ComputerProvisionSpec::fixture(config.clone())).await.unwrap();
-            let pending = hub.hub_store().begin_computer_handoff(&computer).await.unwrap();
+            let pending = hub.hub_store().begin_computer_handoff(&computer, &Sha256Digest::from_bytes([43; 32])).await.unwrap();
             let digest = Sha256Digest::from_bytes([42; 32]);
             hub.hub_store().lock_computer_handoff(&computer, pending).await.unwrap().unwrap()
                 .complete(&issued.grant.family_id, &digest).await.unwrap();

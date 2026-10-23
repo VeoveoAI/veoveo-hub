@@ -1,18 +1,20 @@
 //! A person's Lore token, as the Hub issues it when it acts in Lore for them: the token
 //! the deployment's public client would obtain for the person through the Hub's
-//! exchange, admitted against their current assignment on every issue.
+//! exchange, admitted against their current assignments on every issue.
 use anyhow::{Context, Result};
 use veoveo_hub::{
     HubCatalog,
     contract::{OAuthClientAuthMethod, OAuthGrantType},
     control_plane::OAuthClientRegistration,
     issuance::IssuedAccessToken,
-    token_profile::{ProfileRequest, TokenContext, TokenIssueError},
+    token_profile::{
+        ProfileRequest, TokenContext, TokenIssueError, authorize_token, issue_profile_token,
+    },
 };
 use veoveo_hub_sdk::{Principal, PrincipalKind, TokenIssuer, TokenSubject};
 use veoveo_types::{PrincipalId, TenantId};
 
-use super::{Deployment, DeploymentId, Lore, RepositoryId};
+use super::{Deployment, DeploymentId, Lore, RepositoryId, Request};
 
 /// Issue `person` a token for the deployment's repository under their current grant:
 /// the token the person would obtain through the Hub's exchange with the deployment's
@@ -38,16 +40,7 @@ pub(crate) async fn issue(
         .with_context(|| format!("the Lore repository {repository} is not registered"))?;
     let principal = person_of(catalog, person, tenant)?;
     let client = exchange_client(catalog, deployment).map_err(TokenIssueError::Unavailable)?;
-    let context = TokenContext::admit(
-        catalog,
-        &deployment.audience,
-        &client.id,
-        &principal,
-        &client.default_work_context,
-        &deployment.login_scopes,
-        None,
-    )
-    .map_err(TokenIssueError::Unavailable)?;
+    let context = admit(catalog, deployment, client, &principal)?;
     let scope = deployment.scope_template.render(repository);
     crate::contributions::bindings()
         .map_err(TokenIssueError::Unavailable)?
@@ -61,6 +54,54 @@ pub(crate) async fn issue(
             None,
         )
         .await
+}
+
+/// Issue `person` of `tenant` one token for every repository they are assigned on the
+/// deployment, with one resource entry each and none without an assignment: the
+/// deployment's public client would obtain the same entries one repository at a time.
+pub(crate) async fn issue_assigned(
+    catalog: &HubCatalog,
+    deployment: &DeploymentId,
+    tenant: &TenantId,
+    person: &PrincipalId,
+) -> Result<IssuedAccessToken, TokenIssueError> {
+    let section = Lore::of(catalog).map_err(TokenIssueError::Unavailable)?;
+    let deployment = section
+        .deployments
+        .iter()
+        .find(|candidate| &candidate.id == deployment)
+        .with_context(|| format!("the Lore deployment {deployment} is not registered"))
+        .map_err(TokenIssueError::Unavailable)?;
+    let principal = person_of(catalog, person, tenant.clone())?;
+    let client = exchange_client(catalog, deployment).map_err(TokenIssueError::Unavailable)?;
+    let context = admit(catalog, deployment, client, &principal)?;
+    let bindings = crate::contributions::bindings().map_err(TokenIssueError::Unavailable)?;
+    let token = authorize_token(
+        &bindings.lore,
+        context,
+        &Request::Assigned,
+        &bindings.profiles.claim_registry(),
+    )?;
+    issue_profile_token(token, None).await
+}
+
+/// The person's token context with the deployment's public client and login scopes.
+fn admit<'a>(
+    catalog: &'a HubCatalog,
+    deployment: &'a Deployment,
+    client: &'a OAuthClientRegistration,
+    principal: &'a Principal,
+) -> Result<TokenContext<'a>, TokenIssueError> {
+    TokenContext::admit(
+        catalog,
+        &deployment.audience,
+        &client.id,
+        principal,
+        &client.default_work_context,
+        &deployment.login_scopes,
+        None,
+    )
+    .map_err(TokenIssueError::Unavailable)
 }
 
 /// The Hub principal of `id` in the repository's tenant. A Hub principal ID names its

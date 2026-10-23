@@ -1781,7 +1781,8 @@ fn computer_bootstrap_admits_only_fixed_direct_clients_and_env_provider_seeds() 
         "policyFile":"/etc/native/computer-policy.yaml", "command":["/usr/local/bin/computer"],
         "oauthClient":"operator-local-public", "profile":"default", "workContext":"default", "port":4096,
         "hubProvider":{"profile":"computer-user", "credentialKey":"access_token"},
-        "modelProvider":{"profile":"computer-model", "credentialKey":"api_key", "secret":"computer-model-seed"}
+        "modelProvider":{"profile":"computer-model", "credentialKey":"api_key", "secret":"computer-model-seed"},
+        "loreProvider":{"profile":"lore", "credentialKey":"LORE_ACCESS_TOKEN"}
     })).unwrap();
     assert_eq!(computers.forwarding_connection_limit.get(), 512);
     let mut zero = serde_json::to_value(&computers).unwrap();

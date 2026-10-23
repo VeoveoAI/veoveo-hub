@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The Computer whose own Lore client presents a secret with this digest, and its owner.\n-- veoveo: all tenants (a Computer's Lore client is addressed by its secret's digest, which names one Computer and its tenant)\nSELECT id, tenant, principal_id FROM hub.computer WHERE lore_client_digest = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "tenant",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "tenant"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "principal_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "principal_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "fe7e911567b66692b3715a867dce9df90a96beec5af43b06fa1502a87575a396"
+}

@@ -5,20 +5,15 @@
 use std::time::Instant;
 
 use axum::{http::StatusCode, response::Response};
-use veoveo_hub::{
-    HubCatalog,
-    contract::{AuthMethod, AuthOutcome, AuthReasonCode},
-    token_profile::TokenIssueError,
-};
+use veoveo_hub::{HubCatalog, token_profile::TokenIssueError};
 use veoveo_types::{DeploymentId as InstanceId, OAuthClientId};
 
-use super::{DeploymentId, Lore, RepositoryId, person::issue};
-use crate::{
-    audit::{AuthAuditRecord, auth_audit_error_response, record_protocol_auth_audit},
-    http_util::{TokenResponse, oauth_error_response, scope_string, token_response},
-    oauth_grants::TokenRequest,
-    runtime::AppState,
+use super::{
+    DeploymentId, Lore, RepositoryId,
+    client_token::{self, invalid_client},
+    person::issue,
 };
+use crate::{http_util::oauth_error_response, oauth_grants::TokenRequest, runtime::AppState};
 
 /// The answer to a client-credentials request of an instance's client, or none when the
 /// request's client is an installed client or names no instance.
@@ -44,19 +39,9 @@ async fn answer(
     request: &TokenRequest,
 ) -> Response {
     let started_at = Instant::now();
-    let invalid_client = || {
-        oauth_error_response(
-            StatusCode::BAD_REQUEST,
-            "invalid_client",
-            "client authentication failed",
-        )
-    };
-    let Some(secret) = request.client_secret.as_deref() else {
+    let Some(secret) = client_token::secret(request) else {
         return invalid_client();
     };
-    if request.client_assertion.is_some() || request.client_assertion_type.is_some() {
-        return invalid_client();
-    }
     let instance = match veoveo_hub::factory::instance_client(
         state.hub_state.platform_store(),
         client.as_str(),
@@ -120,65 +105,26 @@ async fn answer(
             "the Lore deployment is unavailable",
         );
     };
-    let authorization_server = catalog.authorization_server(resource.authorization_server());
-    let audit = |outcome, reason| AuthAuditRecord {
-        authorization_server,
-        client_id: Some(client),
-        principal: None,
-        outcome,
-        reason,
-        started_at,
-    };
-    let method = AuthMethod::ClientCredentialsSecretPost;
-    match issue(catalog, &pusher, &deployment, &id).await {
-        Ok(token) => {
-            if let Err(error) = record_protocol_auth_audit(
-                &state.hub_state,
-                resource.audit_target(),
-                audit(AuthOutcome::Allow, AuthReasonCode::AuthAllow),
-                method,
-            )
-            .await
-            {
-                return auth_audit_error_response(error);
-            }
-            token_response(TokenResponse {
-                expires_in: token.expires_in(),
-                scope: scope_string(&token.scopes),
-                access_token: token.access_token,
-                token_type: "Bearer",
-                refresh_token: None,
-                refresh_token_expires_in: None,
-            })
-        }
+    let issued = issue(catalog, &pusher, &deployment, &id).await;
+    match &issued {
+        Ok(_) => {}
         Err(TokenIssueError::Denied(error)) => {
             tracing::info!(%client, %pusher, "the instance's pusher holds no grant: {error:#}");
-            if let Err(error) = record_protocol_auth_audit(
-                &state.hub_state,
-                resource.audit_target(),
-                audit(AuthOutcome::Deny, AuthReasonCode::PolicyDenied),
-                method,
-            )
-            .await
-            {
-                return auth_audit_error_response(error);
-            }
-            // RFC 6749 §5.2: the person the client acts for no longer holds the grant.
-            oauth_error_response(
-                StatusCode::BAD_REQUEST,
-                "invalid_grant",
-                "the instance's latest pusher holds no grant on its repository",
-            )
         }
         Err(TokenIssueError::Unavailable(error)) => {
             tracing::error!(%client, "failed to issue an instance's Lore token: {error:#}");
-            oauth_error_response(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "server_error",
-                "the Lore token is unavailable",
-            )
         }
     }
+    client_token::answer(
+        state,
+        catalog,
+        client,
+        resource,
+        started_at,
+        issued,
+        "the instance's latest pusher holds no grant on its repository",
+    )
+    .await
 }
 
 /// The one Lore deployment that registers the instance's repository.

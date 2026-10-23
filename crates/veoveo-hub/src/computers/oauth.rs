@@ -16,6 +16,7 @@ use super::{ComputerRuntime, provisioning::LoginGrant};
 use crate::{
     BearerToken, JwtAuthConfig, JwtVerifier,
     contract::{OAuthAuthorizationCode, PkceCodeVerifier},
+    custody_client::CustodyClient,
     http::{auth_support::allowed_hub_jwt_algorithms, load_resource_authorization_jwks},
     problem::Problem,
 };
@@ -398,16 +399,19 @@ async fn finish(
         .context("Computer grant authority denied")?;
     let cookie = opaque()?;
     let cookie_digest = digest(&cookie);
+    // Each handoff gives the Computer's own Lore client a new secret.
+    let lore = CustodyClient::new(computer.native_name())?;
     let handoff = runtime
         .hub
         .hub_store()
-        .begin_computer_handoff(&computer)
+        .begin_computer_handoff(&computer, &lore.digest())
         .await?;
     let grant = LoginGrant {
         client: runtime.config.oauth_client.clone(),
         access: tokens.access_token,
         refresh: tokens.refresh_token,
         access_expiry: subject.access_token.expires_at,
+        lore,
     };
     let worker_runtime = runtime.clone();
     // Detached ownership is deliberate: disconnect/cancellation cannot abandon a

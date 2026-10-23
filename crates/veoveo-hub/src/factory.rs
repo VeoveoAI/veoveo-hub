@@ -36,6 +36,7 @@ pub use status::{Condition, Failure, InstanceStatus, Phase, SandboxStatus, Stage
 use crate::{
     HubCatalogHandle,
     control_plane::FactoryConfiguration,
+    custody_client::CustodyClient,
     data_environment::{self, DatabaseName},
     execution::BranchName,
     registration,
@@ -473,13 +474,8 @@ impl Factory {
     /// credential: the gateway resolves the token at runtime, refreshing it with the
     /// client.
     async fn lore_provider(&self, deployment: DeploymentId, name: &str) -> Result<()> {
-        let secret = registration::random_token()?;
-        record::client(
-            &self.store,
-            deployment,
-            &registration::digest(secret.expose_secret()),
-        )
-        .await?;
+        let client = CustodyClient::new(deployment.to_string())?;
+        record::client(&self.store, deployment, &client.digest()).await?;
         let provider = sandbox::lore_provider(name);
         let mut grpc = self.client.raw_grpc_fresh().await?;
         call(
@@ -511,18 +507,11 @@ impl Factory {
         .await?;
         call(
             "configure the refresh of the Lore provider",
-            grpc.configure_provider_refresh(p::ConfigureProviderRefreshRequest {
-                workspace_scope: scope(&self.config.workspace),
+            grpc.configure_provider_refresh(client.refresh(
+                scope(&self.config.workspace),
                 provider,
-                credential_key: sandbox::LORE_TOKEN.into(),
-                strategy: p::ProviderCredentialRefreshStrategy::Oauth2ClientCredentials as i32,
-                material: HashMap::from([
-                    ("client_id".into(), deployment.to_string()),
-                    ("client_secret".into(), secret.expose_secret().into()),
-                ]),
-                secret_material_keys: vec!["client_secret".into()],
-                ..Default::default()
-            }),
+                sandbox::LORE_TOKEN.into(),
+            )),
         )
         .await
     }

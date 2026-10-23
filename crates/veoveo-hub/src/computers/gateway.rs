@@ -85,6 +85,16 @@ impl Gateway {
         })
     }
 
+    /// A gateway on an already connected client, such as a test's fake.
+    #[cfg(test)]
+    pub(super) fn of(client: OpenShellClient, limit: NonZeroUsize) -> Self {
+        Self {
+            client,
+            permits: Arc::new(Semaphore::new(limit.get())),
+            limit,
+        }
+    }
+
     pub fn with_limit(&self, limit: NonZeroUsize) -> Self {
         if self.limit == limit {
             return self.clone();

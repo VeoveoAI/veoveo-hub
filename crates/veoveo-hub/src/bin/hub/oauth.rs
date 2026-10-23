@@ -75,9 +75,15 @@ pub(super) async fn token_endpoint(
     };
     request.client_id = client_id.to_string();
     // An instance's own client authenticates with its secret and acts for the instance's
-    // latest pusher; it is no installed client.
+    // latest pusher, and a Computer's for the Computer's owner; neither is an installed
+    // client.
     if let Some(response) =
         crate::contributions::instance_token(&state, &catalog, &client_id, &request).await
+    {
+        return response;
+    }
+    if let Some(response) =
+        crate::contributions::computer_token(&state, &catalog, &client_id, &request).await
     {
         return response;
     }

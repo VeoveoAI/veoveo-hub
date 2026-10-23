@@ -14,13 +14,19 @@
 //! instance whose server registered with the Hub binary removes its sandbox, provider,
 //! instance, registration, login and database. The Hub binary's status route waits for
 //! the applied revision to serve or fail, for callers with a grant on the repository
-//! only. No OpenShell, Lore, BuildKit or image is involved: revisions, images and their
-//! digests are synthetic, and the fake builder's digest is the SHA-256 of a
-//! `Dockerfile`'s text.
+//! only. An instance's own client receives its latest pusher's Lore token, and a
+//! Computer's own client its owner's, for every repository the owner is assigned; neither
+//! client is taken for the other. No OpenShell, Lore, BuildKit or image is involved:
+//! revisions, images and their digests are synthetic, and the fake builder's digest is
+//! the SHA-256 of a `Dockerfile`'s text.
 #[path = "support/catalog_admission.rs"]
 mod catalog_admission;
 #[path = "support/database.rs"]
 mod database;
+#[allow(
+    dead_code,
+    reason = "these tests use the factory's part of the fake gateway"
+)]
 #[path = "factory/gateway.rs"]
 mod gateway;
 #[path = "support/hub.rs"]
@@ -48,6 +54,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use veoveo_hub::{
     HubCatalog, HubCatalogHandle, HubServerHealthState,
+    computers::ComputerProvisionSpec,
     control_plane::FactoryConfiguration,
     data_environment::DatabaseName,
     execution::BranchName,
@@ -58,10 +65,11 @@ use veoveo_hub::{
         sandbox_name,
     },
     registration::NewInstance,
+    store::{Computer, HubStore},
 };
 use veoveo_hub_sdk_fixture::ledger::{self, LedgerDomain, LedgerTasks};
 use veoveo_store::PlatformStore;
-use veoveo_types::{DeploymentId, PrincipalId};
+use veoveo_types::{DeploymentId, PrincipalId, Sha256Digest, TenantId};
 
 /// How long one of these tests may take.
 const BOUND: Duration = Duration::from_secs(180);
@@ -1638,6 +1646,200 @@ async fn an_instances_lore_token_acts_as_its_latest_pusher_under_their_grant() {
         assert_eq!(
             refresh(&http, &hub, &renewed).await.1["error"],
             "invalid_client"
+        );
+    })
+    .await;
+}
+
+/// A second repository of the Lore deployment, which only Alice may use.
+const SECOND: &str = "fedcba9876543210fedcba9876543210";
+/// A person with no Lore assignment.
+const CAROL: &str = "https://identity.example#carol";
+
+/// The digest the Hub keeps of a Computer's Lore client secret.
+fn secret_digest(secret: &str) -> Sha256Digest {
+    Sha256Digest::from_bytes(Sha256::digest(secret.as_bytes()).into())
+}
+
+/// The Computer of `owner` with its own Lore client's `secret`, as the beginning of a
+/// custody handoff records it. Its provisioning defaults are synthetic: no native
+/// workload exists.
+async fn computer(store: &HubStore, owner: &str, secret: &str) -> Computer {
+    let provisioning: ComputerProvisionSpec = serde_json::from_value(json!({
+        "config": {
+            "gateway": {"endpoint": "https://gateway.example/", "certificateAuthority": "/unused/ca", "bearerEnvironment": "UNUSED"},
+            "template": {"workspace": "installation", "name": "computer"},
+            "policyFile": "/unused/policy", "command": ["/unused/app"],
+            "oauthClient": "computer-browser", "profile": "computer", "workContext": "local", "port": 4096,
+            "hubProvider": {"profile": "vv-computer-hub", "credentialKey": "COMPUTER_HUB_REFERENCE"},
+            "modelProvider": {"profile": "vv-computer-model", "credentialKey": "DEEPINFRA_API_KEY", "secret": "unused"},
+            "loreProvider": {"profile": "vv-lore", "credentialKey": "LORE_ACCESS_TOKEN"}
+        },
+        "modelSecret": {
+            "id": "unused", "source": "env", "purpose": "provider_api_key",
+            "locator": "UNUSED_FIXTURE_KEY", "owner": {"kind": "hub"}, "metadata": {}
+        },
+        "hubUrl": "https://hub.example/mcp/computer",
+        "backend": "kubernetes",
+        "policy": [],
+        "template": []
+    }))
+    .unwrap();
+    let computer = store
+        .ensure_computer(
+            &TenantId::parse("local").unwrap(),
+            &PrincipalId::parse(owner).unwrap(),
+            &provisioning,
+        )
+        .await
+        .unwrap();
+    store
+        .begin_computer_handoff(&computer, &secret_digest(secret))
+        .await
+        .unwrap();
+    computer
+}
+
+#[tokio::test]
+async fn a_computers_lore_token_acts_as_its_owner_for_every_assigned_repository() {
+    bounded(async {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let fixture = Fixture::start(json!(null)).await;
+        let installation = tempfile::tempdir().unwrap();
+        let hub = hub::Hub::start_with(
+            installation.path(),
+            &fixture.db,
+            Duration::from_secs(60),
+            &[],
+            |config| {
+                native_section(config);
+                config["lore"]["repositories"].as_array_mut().unwrap().push(
+                    json!({"deployment": "source", "id": SECOND, "tenant": "local", "title": "Second"}),
+                );
+                config["lore"]["assignments"].as_array_mut().unwrap().push(json!({
+                    "deployment": "source", "repository": SECOND, "tenant": "local",
+                    "principal": ALICE, "actions": ["owner"]
+                }));
+            },
+        )
+        .await;
+        let store = HubStore::new(fixture.db.a.clone());
+        let http = reqwest::Client::new();
+        let request = |client: &str, secret: &str| {
+            [
+                ("grant_type", "client_credentials".to_owned()),
+                ("client_id", client.to_owned()),
+                ("client_secret", secret.to_owned()),
+            ]
+        };
+        let issue = async |client: &str, secret: &str, extra: &[(&str, &str)]| {
+            let pairs = request(client, secret);
+            let mut form = pairs
+                .iter()
+                .map(|(name, value)| (*name, value.as_str()))
+                .collect::<Vec<_>>();
+            form.extend_from_slice(extra);
+            refresh(&http, &hub, &form).await
+        };
+        let alice = computer(&store, ALICE, "alice-secret").await;
+        let bob = computer(&store, BOB, "bob-secret").await;
+        let carol = computer(&store, CAROL, "carol-secret").await;
+
+        // One token as the owner, with one resource entry per assigned repository.
+        let (status, issued) = issue(&alice.native_name(), "alice-secret", &[]).await;
+        assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
+        assert_eq!(
+            issued["scope"],
+            format!("source-{REPOSITORY} source-{SECOND}")
+        );
+        let token = claims(issued["access_token"].as_str().unwrap());
+        assert_eq!(token["identity"], ALICE);
+        assert_eq!(token["aud"], NATIVE_RESOURCE);
+        assert_eq!(token["root_domains"], json!(["lore.internal"]));
+        assert_eq!(
+            token["resources"],
+            json!([
+                {"resource_id": REPOSITORY, "permission": []},
+                {"resource_id": SECOND, "permission": ["owner"]}
+            ])
+        );
+        assert_eq!(token["https://veoveo.ai/claims/token-purpose"], "resource");
+        let (_, issued) = issue(&bob.native_name(), "bob-secret", &[]).await;
+        assert_eq!(
+            claims(issued["access_token"].as_str().unwrap())["resources"],
+            json!([{"resource_id": REPOSITORY, "permission": []}])
+        );
+
+        // An owner without assignments gets a valid token without resources.
+        let (status, issued) = issue(&carol.native_name(), "carol-secret", &[]).await;
+        assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
+        let token = claims(issued["access_token"].as_str().unwrap());
+        assert_eq!(token["identity"], CAROL);
+        assert_eq!(token["resources"], json!([]));
+        assert_eq!(token["https://veoveo.ai/claims/token-purpose"], "resource");
+
+        // The client authenticates with its own secret and requests nothing else.
+        for (client, secret) in [
+            (alice.native_name(), "another-secret"),
+            (alice.native_name(), "bob-secret"),
+        ] {
+            assert_eq!(
+                issue(&client, secret, &[]).await.1["error"],
+                "invalid_client"
+            );
+        }
+        let alice_client = alice.native_name();
+        let scoped = issue(&alice_client, "alice-secret", &[("scope", "native:login")]);
+        assert_eq!(scoped.await.1["error"], "invalid_scope");
+        let targeted = issue(&alice_client, "alice-secret", &[("resource", NATIVE_RESOURCE)]);
+        assert_eq!(targeted.await.1["error"], "invalid_target");
+
+        // A later handoff revokes the earlier secret.
+        store
+            .begin_computer_handoff(&alice, &secret_digest("alice-renewed"))
+            .await
+            .unwrap();
+        assert_eq!(
+            issue(&alice_client, "alice-secret", &[]).await.1["error"],
+            "invalid_client"
+        );
+        assert_eq!(
+            issue(&alice_client, "alice-renewed", &[]).await.0,
+            reqwest::StatusCode::OK
+        );
+
+        // An instance's client and a Computer's are never taken for each other.
+        fixture
+            .gateway
+            .set_token_url(format!("{}/oauth/token", hub.base));
+        fixture
+            .apply("dev/alice/y", push('1', ALICE), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let deployment = fixture.status("dev/alice/y").await.unwrap().deployment;
+        let material = fixture
+            .gateway
+            .refresh_material(
+                WORKSPACE,
+                &format!("{}-lore", sandbox_name(deployment)),
+                "LORE_ACCESS_TOKEN",
+            )
+            .unwrap();
+        let instance = deployment.to_string();
+        assert_eq!(
+            issue(&instance, "alice-renewed", &[]).await.1["error"],
+            "invalid_client"
+        );
+        assert_eq!(
+            issue(&alice_client, &material["client_secret"], &[]).await.1["error"],
+            "invalid_client"
+        );
+        let (status, issued) = issue(&instance, &material["client_secret"], &[]).await;
+        assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
+        assert_eq!(issued["scope"], format!("source-{REPOSITORY}"));
+        assert_eq!(
+            claims(issued["access_token"].as_str().unwrap())["resources"],
+            json!([{"resource_id": REPOSITORY, "permission": []}])
         );
     })
     .await;

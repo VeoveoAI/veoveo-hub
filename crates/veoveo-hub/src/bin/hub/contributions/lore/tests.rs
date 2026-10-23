@@ -225,3 +225,47 @@ fn native_templates_and_actions_are_data_with_closed_protocol_encoding() {
         .is_err()
     );
 }
+#[test]
+fn an_assigned_request_carries_each_assignment_of_the_principal_on_the_deployment() {
+    const OTHER: &str = "https://other.example/native";
+    let mut source = plane();
+    let lore = source.extensions.get_mut("lore").unwrap();
+    let mut other = lore["deployments"][0].clone();
+    other["id"] = serde_json::json!("other");
+    other["resourceName"] = serde_json::json!("native-other");
+    other["audience"] = serde_json::json!(OTHER);
+    lore["deployments"].as_array_mut().unwrap().push(other);
+    lore["repositories"].as_array_mut().unwrap().push(
+        serde_json::json!({"deployment":"other","id":FIRST,"tenant":"tenant-a","title":"Elsewhere"}),
+    );
+    lore["assignments"].as_array_mut().unwrap().extend([
+        serde_json::json!({"deployment":"source","repository":SECOND,"tenant":"tenant-a","principal":"native-alice","actions":["owner"]}),
+        serde_json::json!({"deployment":"other","repository":FIRST,"tenant":"tenant-a","principal":"native-alice","actions":["admin"]}),
+    ]);
+    source.oidc_clients[0]
+        .allowed_resources
+        .insert(ProtectedResourceId::parse(OTHER).unwrap());
+    let current = catalog(source);
+    let alice = principal();
+    let grant = authorize(&current, &alice, Request::Assigned).unwrap();
+    assert_eq!(grant["identity"], "native-alice");
+    assert_eq!(
+        grant["resources"],
+        serde_json::json!([
+            {"resource_id":format!("partition-{FIRST}"),"permission":[]},
+            {"resource_id":format!("partition-{SECOND}"),"permission":["owner"]}
+        ]),
+        "every assignment on this deployment, with its own actions, and none on another"
+    );
+    let mut unassigned = alice.clone();
+    unassigned.id = PrincipalId::parse("native-bob").unwrap();
+    let mut elsewhere = alice.clone();
+    elsewhere.tenant = Some(TenantId::parse("tenant-b").unwrap());
+    for principal in [unassigned, elsewhere] {
+        assert_eq!(
+            authorize(&current, &principal, Request::Assigned).unwrap()["resources"],
+            serde_json::json!([]),
+            "no assignment of this principal in its tenant is a token without resources"
+        );
+    }
+}
