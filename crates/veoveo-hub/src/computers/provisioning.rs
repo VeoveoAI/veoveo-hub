@@ -569,41 +569,50 @@ impl Provisioner {
         drop(grant);
         Ok(())
     }
+    /// Delete the Computer's sandbox, keeping its workspace volume, which the next
+    /// sandbox of its name adopts, and wait until it is gone. `operation` derives the
+    /// delete's request ID.
+    pub async fn remove(&self, computer: &Computer, operation: Uuid) -> Result<()> {
+        let name = computer.native_name();
+        let Some(sandbox) = self.sandbox(&name).await? else {
+            return Ok(());
+        };
+        if phase(&sandbox) != p::SandboxPhase::Deleting {
+            let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
+            let answer = tokio::time::timeout(
+                DELETE_ANSWER,
+                grpc.delete_sandbox(p::DeleteSandboxRequest {
+                    workspace_scope: scope(&name),
+                    name: name.clone(),
+                    allow_missing: true,
+                    keep_workspace: true,
+                    request_id: request(operation, "delete"),
+                }),
+            )
+            .await;
+            match answer {
+                Ok(answer) => {
+                    answer
+                        .map_err(|e| native_error("delete sandbox", e))
+                        .context("deleting the sandbox")?;
+                }
+                Err(_) => tracing::info!(
+                    sandbox = %name,
+                    "the gateway has not answered the delete within {DELETE_ANSWER:?}; waiting for the sandbox to go"
+                ),
+            }
+        }
+        self.wait_gone(&name).await
+    }
     /// Replace the Computer's sandbox with one of this version: delete the sandbox,
     /// keeping its workspace volume, which the next sandbox of its name adopts; clone
     /// this version's template for the owner; create the sandbox from it and wait until
     /// its listener answers. `operation` derives every request ID, so a retried request
     /// of the same operation is the same native mutation.
     pub async fn replace(&self, computer: &Computer, operation: Uuid) -> Result<()> {
+        self.remove(computer, operation).await?;
         let name = computer.native_name();
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
-        if let Some(sandbox) = self.sandbox(&name).await? {
-            if phase(&sandbox) != p::SandboxPhase::Deleting {
-                let answer = tokio::time::timeout(
-                    DELETE_ANSWER,
-                    grpc.delete_sandbox(p::DeleteSandboxRequest {
-                        workspace_scope: scope(&name),
-                        name: name.clone(),
-                        allow_missing: true,
-                        keep_workspace: true,
-                        request_id: request(operation, "delete"),
-                    }),
-                )
-                .await;
-                match answer {
-                    Ok(answer) => {
-                        answer
-                            .map_err(|e| native_error("delete sandbox", e))
-                            .context("deleting the sandbox")?;
-                    }
-                    Err(_) => tracing::info!(
-                        sandbox = %name,
-                        "the gateway has not answered the delete within {DELETE_ANSWER:?}; waiting for the sandbox to go"
-                    ),
-                }
-            }
-            self.wait_gone(&name).await?;
-        }
         tokio::time::timeout(
             RPC_TIMEOUT,
             grpc.delete_sandbox_template(p::DeleteSandboxTemplateRequest {
@@ -830,7 +839,6 @@ impl Provisioner {
         let _ = task.await;
         Ok(())
     }
-    /// Wait until the sandbox is gone.
     /// Wait until the sandbox is gone, for at most [`DELETE_TIMEOUT`]; past it, say what
     /// still runs.
     async fn wait_gone(&self, name: &str) -> Result<()> {

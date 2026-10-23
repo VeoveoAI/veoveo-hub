@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, tenant, principal_id, workspace_request, model_provider_request, hub_provider_request, handoff_id, configure_request, rotate_request, family_id, ready, provisioning AS \"provisioning: Json<ComputerProvisionSpec>\", operation_id, operation_started_at, operation_provisioning AS \"operation_provisioning: Json<ComputerProvisionSpec>\", operation_notice_shown, failure AS \"failure: Json<ComputerFailure>\", update_notice AS \"update_notice: Json<UpdateNotice>\" FROM hub.computer WHERE id = $1 AND tenant = $2 AND principal_id = $3 FOR UPDATE\n",
+  "query": "SELECT id, tenant, principal_id, workspace_request, model_provider_request, hub_provider_request, handoff_id, configure_request, rotate_request, family_id, ready, provisioning AS \"provisioning: Json<ComputerProvisionSpec>\", operation_id, operation_started_at, operation_provisioning AS \"operation_provisioning: Json<ComputerProvisionSpec>\", operation_notice_shown, failure AS \"failure: Json<ComputerFailure>\", update_notice AS \"update_notice: Json<UpdateNotice>\", collected_at FROM hub.computer WHERE id = $1 AND tenant = $2 AND principal_id = $3\n",
   "describe": {
     "columns": [
       {
@@ -200,6 +200,17 @@
             "name": "update_notice"
           }
         }
+      },
+      {
+        "ordinal": 18,
+        "name": "collected_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "collected_at"
+          }
+        }
       }
     ],
     "parameters": {
@@ -227,8 +238,9 @@
       true,
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "58e75392e6e0880e6c636b55ac6985c88282487e2d8709bf4356b0ea75117879"
+  "hash": "64f9868c1bd3d10436c04d35d2a12d2e64e923be9881f660817f52a6dbb2a677"
 }

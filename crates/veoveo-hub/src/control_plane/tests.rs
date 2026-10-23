@@ -1797,6 +1797,19 @@ fn computer_bootstrap_admits_only_fixed_direct_clients_and_env_provider_seeds() 
             .get(),
         768
     );
+    // Collection is off unless set, in whole seconds above zero.
+    assert_eq!(computers.collect_after_seconds, None);
+    let mut collecting = serde_json::to_value(&computers).unwrap();
+    collecting["collectAfterSeconds"] = serde_json::json!(7200);
+    assert_eq!(
+        serde_json::from_value::<Computers>(collecting.clone())
+            .unwrap()
+            .collect_after_seconds
+            .map(std::num::NonZeroU64::get),
+        Some(7200)
+    );
+    collecting["collectAfterSeconds"] = serde_json::json!(0);
+    assert!(serde_json::from_value::<Computers>(collecting).is_err());
     plane.computers = Some(computers);
     plane.validate(&crate::catalog_fixture::registry()).unwrap();
     let mut bad = plane.clone();

@@ -1,6 +1,9 @@
 //! Trusted installation inputs for private, owner-scoped native Computers.
 //! No browser request selects a gateway, image, provider profile or secret.
-use std::{num::NonZeroUsize, path::PathBuf};
+use std::{
+    num::{NonZeroU64, NonZeroUsize},
+    path::PathBuf,
+};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -36,6 +39,12 @@ pub struct Computers {
     /// Global bound on simultaneous native Computer forwarding connections.
     #[serde(default = "default_forwarding_connection_limit")]
     pub forwarding_connection_limit: NonZeroUsize,
+    /// How long a Computer stays idle, with no browser request through the Hub and no
+    /// network traffic from its sandbox, before the Hub deletes its sandbox, keeping
+    /// its home; the next entry creates it at the current version. None never
+    /// collects.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collect_after_seconds: Option<NonZeroU64>,
     pub hub_provider: ComputerRefreshProvider,
     pub model_provider: ComputerStaticProvider,
     /// The owner's Lore access. The gateway refreshes it with the Computer's own Hub

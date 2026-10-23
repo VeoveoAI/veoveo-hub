@@ -1,4 +1,7 @@
-use super::provisioning::Installation;
+use super::{
+    collection::{BrowserRequests, Collection},
+    provisioning::Installation,
+};
 use crate::{HubCatalog, HubCatalogHandle, HubState, control_plane::Computers};
 use anyhow::{Context, Result, ensure};
 use axum::{
@@ -61,9 +64,10 @@ impl ComputerConfiguration {
             "Computer client must use this Hub's native OAuth endpoints and exact callback"
         );
         let installation = match previous.filter(|old| {
-            // Guidance changes do not change native provisioning inputs.
+            // Guidance and collection changes do not change native provisioning inputs.
             let mut previous_config = old.config.as_ref().clone();
             previous_config.handbook.clone_from(&config.handbook);
+            previous_config.collect_after_seconds = config.collect_after_seconds;
             previous_config == *config
                 && old.installation.hub_url() == profile.protected_resource.as_str()
                 && catalog.secret_reference(&config.model_provider.secret)
@@ -94,6 +98,8 @@ pub struct ComputerService {
     catalog: HubCatalogHandle,
     hub: HubState,
     public: Url,
+    browser: Arc<BrowserRequests>,
+    started: chrono::DateTime<chrono::Utc>,
 }
 impl ComputerService {
     pub fn new(catalog: HubCatalogHandle, hub: HubState, public: &str) -> Result<Self> {
@@ -101,7 +107,20 @@ impl ComputerService {
             catalog,
             hub,
             public: Url::parse(public)?,
+            browser: Arc::default(),
+            started: chrono::Utc::now(),
         })
+    }
+    /// Collect idle Computers until `stop`, with the browser requests this service
+    /// forwards. Computers count as active from the service's creation.
+    pub fn collect(&self, stop: tokio_util::sync::CancellationToken) {
+        Collection {
+            catalog: self.catalog.clone(),
+            hub: self.hub.clone(),
+            browser: self.browser.clone(),
+            started: self.started,
+        }
+        .spawn(stop);
     }
     /// The browser's routes under `/computer` and the public current version. The
     /// Computer's actions, `GET /computer/status` and `POST /computer/restart` and
@@ -179,6 +198,8 @@ pub struct ComputerRuntime {
     pub(super) public: Url,
     pub(super) http: Client,
     pub(super) installation: Installation,
+    /// The last browser request forwarded to each Computer, for collection.
+    pub(super) browser: Arc<BrowserRequests>,
 }
 impl FromRequestParts<ComputerService> for ComputerRuntime {
     type Rejection = StatusCode;
@@ -199,6 +220,7 @@ impl FromRequestParts<ComputerService> for ComputerRuntime {
             public: state.public.clone(),
             http: config.http.clone(),
             installation: config.installation.clone(),
+            browser: state.browser.clone(),
         })
     }
 }

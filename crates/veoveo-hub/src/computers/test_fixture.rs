@@ -174,6 +174,7 @@ pub(super) fn computer(provisioner: &Provisioner) -> Computer {
         operation: None,
         failure: None,
         update_notice: None,
+        collected_at: None,
     }
 }
 
@@ -299,5 +300,6 @@ pub(super) fn runtime(
         public: url::Url::parse(&format!("{PUBLIC}/")).unwrap(),
         http: reqwest::Client::new(),
         installation,
+        browser: Default::default(),
     }
 }

@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- End a collection: when it deleted the sandbox, record when ($5); a collection that did\n-- not leaves the Computer as it was, with no failure, for the next sweep.\nUPDATE hub.computer\nSET collected_at = COALESCE($5, collected_at), operation_id = NULL,\n    operation_started_at = NULL, operation_provisioning = NULL, operation_notice_shown = false\nWHERE id = $1 AND tenant = $2 AND principal_id = $3 AND operation_id = $4\nRETURNING id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7e374dd9eca774ff41b95fd8ffdffdb08ade1dd7ab39f4219c855686de13cd71"
+}

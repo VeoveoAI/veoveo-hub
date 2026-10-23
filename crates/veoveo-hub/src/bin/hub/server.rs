@@ -282,6 +282,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         hub_state.clone(),
         deployment.base_url(),
     )?;
+    computers.collect(ct.child_token());
     router = router
         .merge(computers.router(auth_state.clone()))
         .merge(crate::contributions::lore::repositories::router(

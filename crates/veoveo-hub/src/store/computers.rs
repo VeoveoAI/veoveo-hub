@@ -30,6 +30,8 @@ pub struct Computer {
     pub operation: Option<ComputerOperation>,
     pub failure: Option<ComputerFailure>,
     pub update_notice: Option<UpdateNotice>,
+    /// When collection deleted its idle sandbox, until an operation creates one again.
+    pub collected_at: Option<DateTime<Utc>>,
 }
 
 /// A replacement of a Computer's sandbox: since when it runs and the version it
@@ -74,6 +76,7 @@ struct ComputerRow {
     operation_notice_shown: bool,
     failure: Option<Json<ComputerFailure>>,
     update_notice: Option<Json<UpdateNotice>>,
+    collected_at: Option<DateTime<Utc>>,
 }
 impl TryFrom<ComputerRow> for Computer {
     type Error = HubStoreError;
@@ -122,6 +125,7 @@ impl TryFrom<ComputerRow> for Computer {
             },
             failure: row.failure.map(|failure| failure.0),
             update_notice: row.update_notice.map(|notice| notice.0),
+            collected_at: row.collected_at,
         })
     }
 }
@@ -330,6 +334,44 @@ impl HubStore {
             computer.principal.as_str(),
             operation,
             Json(failure) as _
+        )
+        .fetch_optional(self.pool())
+        .await?
+        .is_some())
+    }
+    /// Every ready Computer with no replacement running, or only one that began before
+    /// `stale_before`: those collection may consider.
+    pub async fn collectable_computers(
+        &self,
+        stale_before: DateTime<Utc>,
+    ) -> Result<Vec<Computer>, HubStoreError> {
+        sqlx::query_file_as!(
+            ComputerRow,
+            "src/store/computers/collectable.sql",
+            stale_before
+        )
+        .fetch_all(self.pool())
+        .await?
+        .into_iter()
+        .map(Computer::try_from)
+        .collect()
+    }
+    /// End the collection `operation`, recording `collected_at` when it deleted the
+    /// sandbox; without, the Computer stays as it was, with no failure. Returns whether
+    /// `operation` still ran.
+    pub async fn end_computer_collection(
+        &self,
+        computer: &Computer,
+        operation: Uuid,
+        collected_at: Option<DateTime<Utc>>,
+    ) -> Result<bool, HubStoreError> {
+        Ok(sqlx::query_file!(
+            "src/store/computers/collection_end.sql",
+            computer.id.as_uuid(),
+            computer.tenant.as_str(),
+            computer.principal.as_str(),
+            operation,
+            collected_at
         )
         .fetch_optional(self.pool())
         .await?

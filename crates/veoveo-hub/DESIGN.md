@@ -960,7 +960,8 @@ credentials). Its name is the first twelve hexadecimal digits of the SHA-256, un
 the domain `https://veoveo.ai/formats/computer-version` and a NUL byte, of a canonical
 document: the template's spec with its environment as a sorted map, OpenShell's
 canonical policy JSON, and the settings without the handbook, the forwarding capacity,
-the gateway connection and the template's and policy file's names. Protobuf maps encode
+the collection setting, the gateway connection and the template's and policy file's
+names. Protobuf maps encode
 in no fixed order, so neither protobuf enters the digest as stored. The same inputs
 name the same version whatever their names or object identity.
 
@@ -993,7 +994,13 @@ from the request: delete the sandbox with `keep_workspace`, so the next sandbox 
 name adopts its home; replace the owner's template clone with one of the target version,
 whose environment adds `COMPUTER_VERSION` beside `LORE_IDENTITY`; create the sandbox; wait
 until it is ready and its listener answers; then record the target as `provisioning`.
-Every native request ID derives from the operation's ID. One replacement runs at a time;
+Every native request ID derives from the operation's ID. The gateway answers a delete
+only once the sandbox is gone, which a Pod's stop can make longer than one request
+(measured 38.6 s on 2026-10-23, when a Computer's Pod outlived its 30 s grace), and it
+finishes a delete it has accepted after the request ends; so the delete's answer is
+awaited for one RPC deadline and then the sandbox's absence for at most five minutes,
+and a replacement that times out names the phase, Pod and conditions that still run.
+One replacement runs at a time;
 one older than eleven minutes belongs to a worker that ended without recording it, and
 entry may claim another. A restart answers at once and deletes the sandbox only after
 three seconds, so a caller inside the Computer, such as an agent restarting its own,
@@ -1009,6 +1016,49 @@ per-Computer template and sandbox request IDs; installations reset Computers ins
 migrating them. `DeleteSandboxRequest.keep_workspace` comes with the OpenShell pin
 `180b9e5a7`, whose Kubernetes driver keeps the volume; other drivers refuse the delete,
 which a replacement then records as its failure.
+
+#### Computer collection
+
+With `computers.collectAfterSeconds` set (the installation example sets 7200), the Hub
+deletes the sandbox of a Computer idle that long, keeping its home, and records the
+Computer as collected (`collected_at`, migration `0025`). Idle means both: no browser
+request through the Hub, and no network traffic from the sandbox. A working agent calls
+its model through OpenShell's proxy whatever its client, so the second covers work
+without a browser. A long job with no traffic is collected; that is the accepted cost.
+Without the setting nothing is collected. It is not part of the Computer version.
+
+The proxy records, in memory, the time of each browser request it forwards to a
+Computer. OpenShell records the sandbox's traffic as `SandboxStatus.last_activity_time`
+(pin `a52a9110d`): the latest 10-second activity summary from the supervisor that held
+an allowed proxied connection or L7 request, written at most once a minute and kept
+across gateway restarts. A long-lived connection counts once, when it opens. A sandbox
+with no recorded traffic counts from its creation. Both times count from no earlier
+than the Hub's start: browser requests are lost when the Hub stops, so after a restart
+every Computer is active from then, and a restart never collects in a burst. Measured
+on 2026-10-23 from 21:04:39 to 21:19Z, the owner's Computer with no browser tab made no
+proxied connection or L7 request at all, and the Hub forwarded nothing once the tab
+closed.
+
+Every five minutes a sweep reads each ready Computer with no replacement running and its
+sandbox. It collects one whose sandbox is ready and both of whose idle times have reached
+the setting, through the one lifecycle path: it claims the operation on the Computer row
+with the recorded version, as a restart does, so entry shows the start page meanwhile
+and no restart, update or creation runs beside it; it deletes the sandbox with
+`keep_workspace` and waits until it is gone; then it ends the operation and records
+`collected_at`. A sandbox that is not ready, such as one being created or deleted, and a
+Computer whose replacement runs are never collected. A browser request between the
+decision and the claim keeps the Computer. A collection that fails ends the operation
+without a failure, so the Computer stays as it was for the next sweep; it logs WARN with
+the cause. Each collection logs INFO with the Computer, its version, both idle durations
+and how long the delete took.
+
+A collected Computer is one with no sandbox. Its next entry creates one at the current
+version, records that version and clears `collected_at`, and the update notice tells of
+a version change as after any creation. The status reports `collected` until then.
+
+The browser record is per Hub process. With several Hub replicas serving browser
+requests, one replica would not see another's and could collect a Computer in use
+through it; the record then belongs on the Computer row.
 
 Migration `0006` defines the mandatory per-instance snapshot for a reset/reseeded
 development application database. It deliberately has no backfill from current

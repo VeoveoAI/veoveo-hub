@@ -1,7 +1,7 @@
 //! A Computer's page loads and requests through `forward`, against the fake OpenShell
 //! gateway, which relays the sandbox's forwarding stream to a local HTTP server standing
 //! in for the app, and a disposable database holding the owner's browser session. A
-//! working Computer answers. Once its sandbox is gone, a page load goes back to entry,
+//! working Computer answers, and the Hub records the browser's request for collection. Once its sandbox is gone, a page load goes back to entry,
 //! which creates it again at the current version on the start page, while the event
 //! stream and a fetch keep answering unavailable. Every credential and answer is
 //! synthetic.
@@ -101,9 +101,18 @@ async fn a_page_load_of_a_computer_without_its_sandbox_goes_back_to_entry() {
             )
         };
 
-        // A working Computer answers its page loads and its requests.
+        // A working Computer answers its page loads and its requests, and each request
+        // the Hub forwards keeps it from collection.
+        assert!(runtime.browser.last(&computer.id).is_none());
+        let before = chrono::Utc::now();
         let response = forward(runtime.clone(), page()).await;
         assert_eq!(response.status(), StatusCode::OK);
+        assert!(
+            runtime
+                .browser
+                .last(&computer.id)
+                .is_some_and(|at| at >= before)
+        );
         let body = response.into_body().collect().await.unwrap().to_bytes();
         assert_eq!(&body[..], b"synthetic app page");
         assert_eq!(

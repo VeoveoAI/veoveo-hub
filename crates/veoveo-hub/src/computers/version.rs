@@ -219,6 +219,7 @@ fn canonical(spec: &ComputerProvisionSpec) -> Result<serde_json::Value> {
     for key in [
         "handbook",
         "forwardingConnectionLimit",
+        "collectAfterSeconds",
         "gateway",
         "template",
         "policyFile",

@@ -4,6 +4,8 @@
 //! same replacement, which runs detached: delete the sandbox keeping its home, create
 //! one of the target version, wait until it is ready and record that version on the
 //! Computer. A failure records its cause; the Computer keeps the version it had.
+//! Collection (`collection.rs`) claims the same operation to delete an idle Computer's
+//! sandbox, keeping its home, and leaves it with none.
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -21,10 +23,10 @@ use crate::store::{Computer, ComputerOperation, HubStore};
 
 /// How long one replacement may take: the old sandbox's deletion and the new one's
 /// start, each bounded on its own.
-const OPERATION_DEADLINE: Duration = Duration::from_secs(600);
+pub(super) const OPERATION_DEADLINE: Duration = Duration::from_secs(600);
 /// A replacement this old belongs to a worker that ended without recording it, such as
 /// a Hub that stopped; entry may begin another.
-const OPERATION_STALE: TimeDelta = TimeDelta::seconds(660);
+pub(super) const OPERATION_STALE: TimeDelta = TimeDelta::seconds(660);
 /// How long a restart waits before it deletes the sandbox, so that its answer reaches
 /// a caller inside the Computer, such as an agent restarting its own Computer, first.
 const ANSWER_FIRST: Duration = Duration::from_secs(3);
@@ -64,7 +66,7 @@ impl Observed {
     }
 }
 
-fn running(computer: &Computer) -> Option<&ComputerOperation> {
+pub(super) fn running(computer: &Computer) -> Option<&ComputerOperation> {
     computer
         .operation
         .as_ref()
@@ -121,6 +123,10 @@ pub struct ComputerStatus {
     /// An update completed since the owner was last told, told once.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated: Option<UpdateNotice>,
+    /// When collection deleted its idle sandbox, keeping its home; entry creates it
+    /// again.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collected: Option<DateTime<Utc>>,
 }
 
 impl ComputerRuntime {
@@ -271,6 +277,7 @@ impl ComputerRuntime {
             failure: computer.failure.clone(),
             blocked: observed.blocked.clone(),
             updated,
+            collected: computer.collected_at,
         })
     }
 }

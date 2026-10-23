@@ -287,6 +287,8 @@ pub(super) async fn forward(runtime: ComputerRuntime, mut request: Request) -> R
         Ok(None) => return authorization_required(&request),
         Err(_) => return unavailable(),
     };
+    // The owner's browser uses the Computer: it is not idle.
+    runtime.browser.record(&id, chrono::Utc::now());
     // Canonical mount slash matters to native browser URL resolution.
     if request.uri().path() == session.computer().base_path().trim_end_matches('/') {
         let mut response = StatusCode::PERMANENT_REDIRECT.into_response();

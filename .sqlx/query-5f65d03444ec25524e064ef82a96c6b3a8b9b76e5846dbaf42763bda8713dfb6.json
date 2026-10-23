@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Record the version the operation created, and its update notice unless the start page\n-- showed the operation's changes. A Computer with a sandbox is no longer collected.\nUPDATE hub.computer\nSET provisioning = operation_provisioning,\n    update_notice = CASE WHEN operation_notice_shown THEN NULL ELSE $5::jsonb END,\n    operation_id = NULL, operation_started_at = NULL, operation_provisioning = NULL,\n    operation_notice_shown = false, collected_at = NULL\nWHERE id = $1 AND tenant = $2 AND principal_id = $3 AND operation_id = $4\nRETURNING id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5f65d03444ec25524e064ef82a96c6b3a8b9b76e5846dbaf42763bda8713dfb6"
+}

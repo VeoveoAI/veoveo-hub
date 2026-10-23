@@ -118,7 +118,8 @@ fn a_version_names_what_a_sandbox_gets_and_nothing_else() {
             .all(|byte| byte.is_ascii_hexdigit())
     );
 
-    // Another object, name, environment order, handbook or policy file path.
+    // Another object, name, environment order, handbook, policy file path, connection
+    // limit or collection setting.
     let mut reversed = environment;
     reversed.reverse();
     let mut same = spec(
@@ -129,6 +130,7 @@ fn a_version_names_what_a_sandbox_gets_and_nothing_else() {
     same.config.policy_file = "/etc/veoveo/hub/computer-v2.yaml".into();
     same.config.template.name = "computer-v2".into();
     same.config.forwarding_connection_limit = std::num::NonZeroUsize::new(7).unwrap();
+    same.config.collect_after_seconds = std::num::NonZeroU64::new(60);
     assert_eq!(
         same.version().unwrap(),
         version,
