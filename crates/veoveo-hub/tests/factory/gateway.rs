@@ -18,7 +18,9 @@
 //! Like the real gateway, it gives each created template a new object ID and resource
 //! version 1, deletes a template by name, and reports one Kubernetes compute driver; a
 //! deleted sandbox is gone at once, and the request records whether it kept the
-//! workspace.
+//! workspace. When told to, a delete instead marks the sandbox deleting and, like the
+//! real gateway, answers only once the sandbox is gone, which a request that ends
+//! before then does not stop; or it never ends, as a pod that does not stop.
 
 use std::{
     collections::{BTreeMap, HashMap},
@@ -80,6 +82,9 @@ struct State {
     ready_on_start: bool,
     /// Where a TCP forwarding stream is relayed, when set.
     forward_to: Option<std::net::SocketAddr>,
+    /// How long a sandbox takes to go once deleted, when it does not go at once; `None`
+    /// inside keeps it deleting for good.
+    deletion: Option<Option<std::time::Duration>>,
 }
 
 #[derive(Clone, Default)]
@@ -255,6 +260,12 @@ impl Gateway {
     /// Make every sandbox ready as soon as it is created or started.
     pub fn ready_on_start(&self) {
         self.state.lock().unwrap().ready_on_start = true;
+    }
+
+    /// Make a deleted sandbox deleting until `after` passes, then gone, and answer its
+    /// delete only then; with `None` it stays deleting and the delete never answers.
+    pub fn delete_slowly(&self, after: Option<std::time::Duration>) {
+        self.state.lock().unwrap().deletion = Some(after);
     }
 
     /// Relay every TCP forwarding stream to `address`, as to the sandbox's listener.
@@ -475,18 +486,26 @@ impl Gateway {
                     ..Default::default()
                 })
             }),
-            "DeleteSandbox" => unary(request, move |request: p::DeleteSandboxRequest| {
-                let mut state = state.lock().unwrap();
-                let key = (
-                    workspace(request.workspace_scope.as_ref())?,
-                    request.name.clone(),
-                );
-                if state.sandboxes.remove(&key).is_none() && !request.allow_missing {
-                    return Err(Status::not_found("sandbox not found"));
+            "DeleteSandbox" => {
+                let deletion = state.lock().unwrap().deletion;
+                if let Some(after) = deletion {
+                    return unary_async(request, move |request: p::DeleteSandboxRequest| {
+                        delete_slowly(state, request, after)
+                    });
                 }
-                state.calls.push(Call::DeleteSandbox(request));
-                Ok(p::DeleteSandboxResponse::default())
-            }),
+                unary(request, move |request: p::DeleteSandboxRequest| {
+                    let mut state = state.lock().unwrap();
+                    let key = (
+                        workspace(request.workspace_scope.as_ref())?,
+                        request.name.clone(),
+                    );
+                    if state.sandboxes.remove(&key).is_none() && !request.allow_missing {
+                        return Err(Status::not_found("sandbox not found"));
+                    }
+                    state.calls.push(Call::DeleteSandbox(request));
+                    Ok(p::DeleteSandboxResponse::default())
+                })
+            }
             "ConfigureProviderRefresh" => unary(
                 request,
                 move |request: p::ConfigureProviderRefreshRequest| {
@@ -812,6 +831,48 @@ where
         Grpc::new(ProstCodec::<Response, Request>::default())
             .unary(Once(Some(handle)), request)
             .await
+    })
+}
+
+/// A delete that marks the sandbox deleting, removes it after `after` in a task of its
+/// own, so a request that ends first does not stop it, and answers once it is gone; with
+/// no `after`, the sandbox stays deleting and the answer never comes.
+fn delete_slowly(
+    state: Arc<Mutex<State>>,
+    request: p::DeleteSandboxRequest,
+    after: Option<std::time::Duration>,
+) -> Pin<Box<dyn Future<Output = Result<p::DeleteSandboxResponse, Status>> + Send>> {
+    let key = match workspace(request.workspace_scope.as_ref()) {
+        Ok(workspace) => (workspace, request.name.clone()),
+        Err(status) => return Box::pin(std::future::ready(Err(status))),
+    };
+    {
+        let mut locked = state.lock().unwrap();
+        match locked.sandboxes.get_mut(&key) {
+            Some(sandbox) => {
+                sandbox.status.get_or_insert_default().phase = p::SandboxPhase::Deleting as i32;
+            }
+            None if request.allow_missing => {}
+            None => {
+                return Box::pin(std::future::ready(Err(Status::not_found(
+                    "sandbox not found",
+                ))));
+            }
+        }
+        locked.calls.push(Call::DeleteSandbox(request));
+    }
+    let Some(after) = after else {
+        return Box::pin(std::future::pending());
+    };
+    let (gone, answer) = tokio::sync::oneshot::channel();
+    tokio::spawn(async move {
+        tokio::time::sleep(after).await;
+        state.lock().unwrap().sandboxes.remove(&key);
+        let _ = gone.send(());
+    });
+    Box::pin(async move {
+        let _ = answer.await;
+        Ok(p::DeleteSandboxResponse::default())
     })
 }
 

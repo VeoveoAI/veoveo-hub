@@ -40,7 +40,15 @@ pub(super) const COMPUTER_VERSION: &str = "COMPUTER_VERSION";
 pub(super) const READY_TIMEOUT: Duration = Duration::from_secs(120);
 /// How long a deleted sandbox may take to go. Kubernetes stops its Pods within their
 /// grace period, which slow nodes have outlived several times.
-const DELETE_TIMEOUT: Duration = Duration::from_secs(300);
+const DELETE_TIMEOUT: Duration = Duration::from_secs(if cfg!(test) { 3 } else { 300 });
+/// How long a delete's answer is awaited. The gateway answers once the sandbox is gone,
+/// which a Pod's stop can make longer than one request, and it finishes a delete it has
+/// taken even when the request ends; after this the sandbox's absence is awaited.
+const DELETE_ANSWER: Duration = if cfg!(test) {
+    Duration::from_millis(500)
+} else {
+    RPC_TIMEOUT
+};
 /// Entries within this long of the last template read share it; tests read it each time.
 const TEMPLATE_RECHECK: Duration = Duration::from_secs(if cfg!(test) { 0 } else { 5 });
 
@@ -571,8 +579,8 @@ impl Provisioner {
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
         if let Some(sandbox) = self.sandbox(&name).await? {
             if phase(&sandbox) != p::SandboxPhase::Deleting {
-                tokio::time::timeout(
-                    RPC_TIMEOUT,
+                let answer = tokio::time::timeout(
+                    DELETE_ANSWER,
                     grpc.delete_sandbox(p::DeleteSandboxRequest {
                         workspace_scope: scope(&name),
                         name: name.clone(),
@@ -581,10 +589,18 @@ impl Provisioner {
                         request_id: request(operation, "delete"),
                     }),
                 )
-                .await
-                .context("deleting the sandbox: the gateway did not answer")?
-                .map_err(|e| native_error("delete sandbox", e))
-                .context("deleting the sandbox")?;
+                .await;
+                match answer {
+                    Ok(answer) => {
+                        answer
+                            .map_err(|e| native_error("delete sandbox", e))
+                            .context("deleting the sandbox")?;
+                    }
+                    Err(_) => tracing::info!(
+                        sandbox = %name,
+                        "the gateway has not answered the delete within {DELETE_ANSWER:?}; waiting for the sandbox to go"
+                    ),
+                }
             }
             self.wait_gone(&name).await?;
         }
@@ -815,20 +831,23 @@ impl Provisioner {
         Ok(())
     }
     /// Wait until the sandbox is gone.
+    /// Wait until the sandbox is gone, for at most [`DELETE_TIMEOUT`]; past it, say what
+    /// still runs.
     async fn wait_gone(&self, name: &str) -> Result<()> {
-        tokio::time::timeout(DELETE_TIMEOUT, async {
-            while self.sandbox(name).await?.is_some() {
-                tokio::time::sleep(Duration::from_millis(250)).await;
+        let deadline = Instant::now() + DELETE_TIMEOUT;
+        loop {
+            let Some(sandbox) = self.sandbox(name).await? else {
+                return Ok(());
+            };
+            if Instant::now() >= deadline {
+                anyhow::bail!(
+                    "the old sandbox was not gone after {} s: {}",
+                    DELETE_TIMEOUT.as_secs(),
+                    still_running(&sandbox)
+                );
             }
-            Ok::<_, anyhow::Error>(())
-        })
-        .await
-        .with_context(|| {
-            format!(
-                "the old sandbox was not gone after {} s",
-                DELETE_TIMEOUT.as_secs()
-            )
-        })?
+            tokio::time::sleep(Duration::from_millis(250)).await;
+        }
     }
     pub(super) async fn wait_phase(&self, name: &str, expected: p::SandboxPhase) -> Result<()> {
         tokio::time::timeout(READY_TIMEOUT, async {
@@ -940,6 +959,25 @@ pub(super) async fn rotate(
 pub(super) fn phase(sandbox: &p::Sandbox) -> p::SandboxPhase {
     p::SandboxPhase::try_from(sandbox.status.as_ref().map_or(0, |status| status.phase))
         .unwrap_or(p::SandboxPhase::Unknown)
+}
+/// What a sandbox that has not gone still holds: its phase, its Pod and the conditions
+/// the gateway last observed.
+fn still_running(sandbox: &p::Sandbox) -> String {
+    let status = sandbox.status.clone().unwrap_or_default();
+    let mut text = format!("it is still {}", phase_name(phase(sandbox)));
+    if !status.agent_pod.is_empty() {
+        text.push_str(&format!(" with Pod {}", status.agent_pod));
+    }
+    for condition in &status.conditions {
+        text.push_str(&format!("; {} {}", condition.r#type, condition.status));
+        if !condition.reason.is_empty() {
+            text.push_str(&format!(" ({})", condition.reason));
+        }
+        if !condition.message.is_empty() {
+            text.push_str(&format!(": {}", condition.message));
+        }
+    }
+    text
 }
 /// A phase's name, as status reports it.
 pub(super) fn phase_name(phase: p::SandboxPhase) -> &'static str {

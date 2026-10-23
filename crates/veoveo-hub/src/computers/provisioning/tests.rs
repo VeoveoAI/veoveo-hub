@@ -211,6 +211,103 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
     .expect("the handoff test exceeded its bound");
 }
 
+/// The owner's Computer with custody handed off and a ready sandbox of its version, on
+/// the fake gateway, whose recorded calls are cleared.
+async fn computer_with_sandbox() -> (
+    super::super::test_fixture::fake::Gateway,
+    super::Provisioner,
+    crate::store::Computer,
+) {
+    let (fake, provisioner) = gateway(Strategy::Oauth2ClientCredentials).await;
+    let (computer, grant) = next_login(&computer(&provisioner));
+    provisioner
+        .handoff(&catalog(), &computer, grant)
+        .await
+        .unwrap();
+    provisioner
+        .replace(&computer, uuid::Uuid::now_v7())
+        .await
+        .unwrap();
+    fake.take_calls();
+    (fake, provisioner, computer)
+}
+
+#[tokio::test]
+async fn a_replacement_waits_for_the_sandbox_to_go_when_the_delete_answers_after_its_deadline() {
+    tokio::time::timeout(Duration::from_secs(60), async {
+        let (fake, provisioner, computer) = computer_with_sandbox().await;
+        let name = computer.native_name();
+        // Like the real gateway while the Pod stops, the delete answers once the sandbox
+        // is gone, three times later than the replacement awaits its answer.
+        fake.delete_slowly(Some(Duration::from_millis(1500)));
+        let started = std::time::Instant::now();
+        provisioner
+            .replace(&computer, uuid::Uuid::now_v7())
+            .await
+            .unwrap();
+        assert!(started.elapsed() >= Duration::from_millis(1500));
+        let calls = fake.take_calls();
+        let [
+            Call::DeleteSandbox(delete),
+            Call::DeleteSandboxTemplate(_),
+            Call::CreateSandboxTemplate(_),
+            Call::CreateSandbox(_),
+        ] = calls.as_slice()
+        else {
+            panic!("the replacement sent {calls:#?}");
+        };
+        assert!(delete.keep_workspace);
+        assert_eq!(
+            super::phase(&fake.sandbox(&name, &name).unwrap()),
+            p::SandboxPhase::Ready,
+            "the new sandbox runs"
+        );
+    })
+    .await
+    .expect("the replacement test exceeded its bound");
+}
+
+#[tokio::test]
+async fn a_sandbox_that_does_not_go_fails_the_replacement_with_what_still_runs() {
+    tokio::time::timeout(Duration::from_secs(60), async {
+        let (fake, provisioner, computer) = computer_with_sandbox().await;
+        let name = computer.native_name();
+        fake.set_status(
+            &name,
+            &name,
+            p::SandboxStatus {
+                phase: p::SandboxPhase::Ready as i32,
+                agent_pod: "computer-pod".into(),
+                conditions: vec![p::SandboxCondition {
+                    r#type: "Ready".into(),
+                    status: "False".into(),
+                    reason: "Terminating".into(),
+                    message: "the workload has not exited".into(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        fake.delete_slowly(None);
+        let error = provisioner
+            .replace(&computer, uuid::Uuid::now_v7())
+            .await
+            .unwrap_err();
+        assert_eq!(
+            format!("{error:#}"),
+            "the old sandbox was not gone after 3 s: it is still deleting with Pod \
+             computer-pod; Ready False (Terminating): the workload has not exited"
+        );
+        let calls = fake.take_calls();
+        assert!(
+            matches!(calls.as_slice(), [Call::DeleteSandbox(_)]),
+            "nothing replaces a sandbox that has not gone: {calls:#?}"
+        );
+    })
+    .await
+    .expect("the replacement test exceeded its bound");
+}
+
 #[tokio::test]
 async fn a_lore_profile_that_cannot_own_the_clients_refresh_is_refused_before_custody() {
     tokio::time::timeout(Duration::from_secs(60), async {
