@@ -57,6 +57,43 @@ fn a_server_routes_to_its_newest_registered_deployment() {
 }
 
 #[test]
+fn a_server_whose_newest_deployment_ended_routes_to_an_older_live_one() {
+    let now = Utc::now();
+    let deployment = |age: i64, orphaned: bool| {
+        let mut server =
+            crate::test_catalog::registered_server("ledger", "https://ledger.test/mcp");
+        server.registered_at = now - TimeDelta::minutes(age);
+        server.orphaned = orphaned;
+        server
+    };
+    // The newest deployment's process ended: housekeeping marked its registration.
+    let (ended, live) = (deployment(1, true), deployment(30, false));
+    let (ended_id, live_id) = (ended.deployment, live.deployment);
+    let registrations = RegistrationSnapshot::new([ended, live]);
+    let namespace = &registrations.namespaces()[&slug("ledger")];
+    assert_eq!(
+        (namespace.routed, namespace.set_aside.clone()),
+        (live_id, vec![ended_id])
+    );
+    assert_eq!(
+        selection::route(&registrations, None, &BTreeMap::new())
+            .composition
+            .components()[&slug("ledger")],
+        selected(live_id)
+    );
+
+    // With every deployment ended, the newest still routes, as before, until the grace
+    // period removes its registration or its process registers again.
+    let (newest, older) = (deployment(1, true), deployment(30, true));
+    let newest_id = newest.deployment;
+    let registrations = RegistrationSnapshot::new([newest, older]);
+    assert_eq!(
+        registrations.namespaces()[&slug("ledger")].routed,
+        newest_id
+    );
+}
+
+#[test]
 fn instances_take_a_server_away_from_its_registered_deployment() {
     let namespace = crate::test_catalog::registered_server("ledger", "https://ledger.test/mcp");
     let mut instance =

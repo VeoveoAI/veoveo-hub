@@ -30,9 +30,9 @@ const REGISTRATION_TABLE: &str = "registration";
 #[derive(Default)]
 pub(crate) struct LiveRegistrations {
     rows: BTreeMap<OAuthClientId, StoredRegistration>,
-    /// The client and metadata of every routed server, to replace the catalog only
-    /// when routing changes.
-    routed: Vec<(OAuthClientId, ClientMetadata)>,
+    /// The client, metadata and liveness of every routed server, to replace the catalog
+    /// only when routing changes.
+    routed: Vec<(OAuthClientId, ClientMetadata, bool)>,
     /// The slugs with deployments set aside, as last logged.
     set_aside: BTreeMap<ServerSlug, Namespace>,
 }
@@ -94,24 +94,33 @@ impl RegistrationService {
         }
     }
 
-    /// Retain every deployment, each by its newest registration. A slug whose
-    /// deployments that are not instances have several registered routes to the newest;
-    /// the others are set aside, which is logged once each time it changes.
+    /// Retain every deployment, each by its newest registration whose process lives,
+    /// else its newest. A slug whose deployments that are not instances have several
+    /// registered routes to the newest live one; the others are set aside, which is
+    /// logged once each time it changes.
     fn route(&self) {
         let mut live = self.inner.live.write();
+        // A deployment's newest registration whose process lives, else its newest.
         let mut chosen: BTreeMap<DeploymentId, &StoredRegistration> = BTreeMap::new();
+        let order = |row: &StoredRegistration| (row.orphaned_at.is_none(), row.issued_at);
         for row in live.rows.values() {
             let deployment = row.metadata.registration.deployment;
             match chosen.get(&deployment) {
-                Some(current) if current.issued_at >= row.issued_at => {}
+                Some(current) if order(current) >= order(row) => {}
                 _ => {
                     chosen.insert(deployment, row);
                 }
             }
         }
-        let routed: Vec<(OAuthClientId, ClientMetadata)> = chosen
+        let routed: Vec<(OAuthClientId, ClientMetadata, bool)> = chosen
             .values()
-            .map(|row| (row.client_id.clone(), row.metadata.clone()))
+            .map(|row| {
+                (
+                    row.client_id.clone(),
+                    row.metadata.clone(),
+                    row.orphaned_at.is_some(),
+                )
+            })
             .collect();
         if routed == live.routed {
             return;
@@ -177,7 +186,7 @@ impl RegistrationService {
             .read()
             .routed
             .iter()
-            .map(|(client_id, _)| client_id.clone())
+            .map(|(client_id, _, _)| client_id.clone())
             .collect::<Vec<_>>();
         let now = Utc::now();
         Ok(self
@@ -266,5 +275,6 @@ fn registered(row: &StoredRegistration) -> RegisteredServer {
         capabilities: ServerCapabilities::from_declaration(&row.metadata.authorization),
         branch: row.branch.clone(),
         registered_at: row.issued_at,
+        orphaned: row.orphaned_at.is_some(),
     }
 }

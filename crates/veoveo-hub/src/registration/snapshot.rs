@@ -50,6 +50,9 @@ pub struct RegisteredServer {
     pub branch: Option<crate::execution::BranchName>,
     /// When its newest registration was issued.
     pub registered_at: DateTime<Utc>,
+    /// Whether housekeeping found that registration's login without a live kernel
+    /// instance: its process ended, and the grace period has not removed it yet.
+    pub orphaned: bool,
 }
 
 impl RegisteredServer {
@@ -67,7 +70,7 @@ pub struct RegistrationSnapshot {
 }
 
 /// The deployments of one slug that are not instances: the one requests route to, the
-/// newest registered, and those it sets aside.
+/// newest registered whose process lives, and those it sets aside.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Namespace {
     pub routed: DeploymentId,
@@ -92,10 +95,15 @@ impl RegistrationSnapshot {
         let namespaces = by_slug
             .into_iter()
             .map(|(slug, mut deployments)| {
-                // Newest first; equal times order by deployment so every replica agrees.
+                // Live before orphaned, then newest first; equal times order by
+                // deployment so every replica agrees. When every deployment is
+                // orphaned, the newest still routes until the grace period removes it.
                 deployments.sort_by(|left, right| {
-                    (right.registered_at, right.deployment)
-                        .cmp(&(left.registered_at, left.deployment))
+                    (!right.orphaned, right.registered_at, right.deployment).cmp(&(
+                        !left.orphaned,
+                        left.registered_at,
+                        left.deployment,
+                    ))
                 });
                 let namespace = Namespace {
                     routed: deployments[0].deployment,
@@ -114,7 +122,7 @@ impl RegistrationSnapshot {
     }
 
     /// Each slug's deployments that are not instances, by the deployment requests route
-    /// to: the newest registered.
+    /// to: the newest registered whose process lives, or the newest when none does.
     pub fn namespaces(&self) -> &BTreeMap<ServerSlug, Namespace> {
         &self.namespaces
     }

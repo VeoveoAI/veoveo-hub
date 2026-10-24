@@ -43,8 +43,15 @@ included. Registrations and health remain independent per deployment.
 
 Registering is serving: no enrollment step publishes a deployment. A slug with no
 instances routes to its deployment that has registrations. When several deployments
-of one slug have them, the newest registration wins: the others are set aside, not
-made unavailable, so moving to a new deployment needs no gap. Each replica logs one
+of one slug have them, the newest registration whose process lives wins: the others
+are set aside, not made unavailable, so moving to a new deployment needs no gap. A
+registration is dead once housekeeping has set its `orphaned_at` (its login holds no
+live kernel instance), so a slug whose newest deployment ended routes to a live older
+one at once instead of failing for the grace period. Setting or clearing that mark
+notifies the `hub` channel (migration `0027`), so every replica follows it; Hub
+probes nothing else. When every deployment of a slug is orphaned, the newest still
+routes, and its requests fail as before until the grace period removes its
+registration or a process registers it again. Each replica logs one
 WARN naming the slug, the deployment it routes to and the ones it set aside, and
 logs again only when that changes, with an INFO once one deployment remains. Our
 redeploys keep their deployment ID, so this happens only when a new deployment

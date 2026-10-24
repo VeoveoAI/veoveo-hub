@@ -360,6 +360,7 @@ mod tests {
             capabilities: Default::default(),
             branch: None,
             registered_at: chrono::Utc::now(),
+            orphaned: false,
         }
     }
 
