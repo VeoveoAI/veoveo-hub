@@ -131,6 +131,17 @@ fn native_error(operation: &'static str, status: tonic::Status) -> anyhow::Error
     // Native/provider-controlled descriptions never enter browser responses/logs.
     anyhow::anyhow!("Computer native {operation} failed: {}", status.code())
 }
+/// A refused create. OpenShell refuses it before any change while the previous
+/// sandbox of the Computer's name still stops, by its reason, not its message;
+/// a restart then succeeds once it has stopped.
+fn create_refused(status: tonic::Status) -> anyhow::Error {
+    let reason = openshell_sdk::SdkError::from_status(status.clone()).reason();
+    if reason.as_deref() == Some(openshell_sdk::error::PREVIOUS_SANDBOX_TERMINATING) {
+        anyhow::anyhow!("the previous Computer is still stopping; try again")
+    } else {
+        native_error("create sandbox", status)
+    }
+}
 impl Installation {
     /// What does not depend on the template: the policy file, the gateway, the model
     /// secret and the profile's resource URL. Reads no template, so a missing one
@@ -644,7 +655,7 @@ impl Provisioner {
         )
         .await
         .context("creating the sandbox: the gateway did not answer")?
-        .map_err(|e| native_error("create sandbox", e))
+        .map_err(create_refused)
         .context("creating the sandbox")?;
         self.wait_phase(&name, p::SandboxPhase::Ready)
             .await

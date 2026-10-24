@@ -29,8 +29,8 @@ veoveo-hub-sdk = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "a9
 veoveo-hub-sdk-fixture = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "a930cc69262186c0a5db473cd6d544e397cab309" }
 
 aws-lc-rs = "1.18.0"
-openshell-sdk = { git = "https://github.com/VeoveoAI/OpenShell", rev = "a52a9110d73e1c5b3b2903638a4407906255f975", version = "0.0.0" }
-openshell-policy = { git = "https://github.com/VeoveoAI/OpenShell", rev = "a52a9110d73e1c5b3b2903638a4407906255f975", version = "0.0.0" }
+openshell-sdk = { git = "https://github.com/VeoveoAI/OpenShell", rev = "c28524bdda5145f45db3285a0b5876e8d5dfff15", version = "0.0.0" }
+openshell-policy = { git = "https://github.com/VeoveoAI/OpenShell", rev = "c28524bdda5145f45db3285a0b5876e8d5dfff15", version = "0.0.0" }
 tokio-stream = "0.1"
 anyhow = "=1.0.104"
 async-stream = "0.3.6"

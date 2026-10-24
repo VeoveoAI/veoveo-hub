@@ -224,3 +224,63 @@ async fn entry_creates_a_restart_updates_and_a_failure_keeps_the_version() {
     .await
     .expect("the lifecycle test exceeded its bound");
 }
+
+#[tokio::test]
+async fn a_restart_refused_while_the_previous_computer_stops_says_so_and_a_retry_succeeds() {
+    use openshell_sdk::error::{
+        ERROR_DOMAIN, ErrorDetails, PREVIOUS_SANDBOX_TERMINATING, StatusExt,
+    };
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let (fake, provisioner) = gateway(Strategy::Oauth2ClientCredentials).await;
+        let db = crate::test_store::TestDb::new().await;
+        let hub = hub(&db);
+        let catalog = catalog();
+        let computer = ready_computer(
+            &hub,
+            &catalog,
+            &provisioner,
+            &Sha256Digest::from_bytes([9; 32]),
+        )
+        .await;
+        let runtime = runtime(hub, catalog, installation(&provisioner));
+        let name = computer.native_name();
+        runtime.enter(&computer).await.unwrap();
+        let computer = settled(&runtime, &computer).await;
+
+        // OpenShell refuses the create before any change: a Pod of the previous
+        // sandbox of the name still terminates.
+        fake.refuse_next(
+            "CreateSandbox",
+            tonic::Status::with_error_details(
+                tonic::Code::FailedPrecondition,
+                "workload Pod of the previous sandbox of this name is still terminating",
+                ErrorDetails::with_error_info(
+                    PREVIOUS_SANDBOX_TERMINATING,
+                    ERROR_DOMAIN,
+                    std::collections::HashMap::new(),
+                ),
+            ),
+        );
+        runtime
+            .begin(&computer, Target::Current, false)
+            .await
+            .unwrap();
+        let computer = settled(&runtime, &computer).await;
+        let failure = computer.failure.clone().unwrap();
+        assert_eq!(
+            failure.cause,
+            "creating the sandbox: the previous Computer is still stopping; try again"
+        );
+
+        // The retry the cause asks for creates it.
+        runtime
+            .begin(&computer, Target::Current, false)
+            .await
+            .unwrap();
+        let computer = settled(&runtime, &computer).await;
+        assert!(computer.failure.is_none());
+        assert!(fake.sandbox(&name, &name).is_some());
+    })
+    .await
+    .expect("the refused-restart test exceeded its bound");
+}

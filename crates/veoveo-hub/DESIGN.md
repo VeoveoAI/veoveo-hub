@@ -1000,6 +1000,14 @@ only once the sandbox is gone, which a Pod's stop can make longer than one reque
 finishes a delete it has accepted after the request ends; so the delete's answer is
 awaited for one RPC deadline and then the sandbox's absence for at most five minutes,
 and a replacement that times out names the phase, Pod and conditions that still run.
+Absence means the old Pod is gone too: OpenShell deletes the Sandbox resource with
+foreground propagation and reports the sandbox `Deleting` until its Pod has gone. Before
+that, on 2026-10-23, the gateway reported a restarted Computer gone while its Pod still
+ran out its grace; the create met the old Pod, and its rollback deleted the kept home
+it had adopted. OpenShell now keeps an adopted home through any failed create, and
+refuses a create while a Pod of the name still exists, with reason
+`PREVIOUS_SANDBOX_TERMINATING`, which the replacement records as "the previous Computer
+is still stopping; try again". The factory awaits the same absence.
 One replacement runs at a time;
 one older than eleven minutes belongs to a worker that ended without recording it, and
 entry may claim another. A restart answers at once and deletes the sandbox only after
@@ -1029,7 +1037,7 @@ Without the setting nothing is collected. It is not part of the Computer version
 
 The proxy records, in memory, the time of each browser request it forwards to a
 Computer. OpenShell records the sandbox's traffic as `SandboxStatus.last_activity_time`
-(pin `a52a9110d`): the latest 10-second activity summary from the supervisor that held
+(pin `c28524bdd`): the latest 10-second activity summary from the supervisor that held
 an allowed proxied connection or L7 request, written at most once a minute and kept
 across gateway restarts. A long-lived connection counts once, when it opens. A sandbox
 with no recorded traffic counts from its creation. Both times count from no earlier
