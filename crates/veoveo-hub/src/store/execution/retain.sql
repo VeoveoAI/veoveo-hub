@@ -1,3 +1,3 @@
-INSERT INTO hub.execution_composition (revision, environment, canonical)
-VALUES ($1, $2, $3)
+INSERT INTO hub.execution_composition (revision, canonical)
+VALUES ($1, $2)
 ON CONFLICT (revision) DO NOTHING

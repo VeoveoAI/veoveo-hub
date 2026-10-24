@@ -24,7 +24,6 @@ fn deployment(index: u8) -> DeploymentId {
 
 fn capture() -> veoveo_hub_sdk::ResolvedComposition {
     veoveo_hub_sdk::ResolvedComposition::new(
-        EnvironmentId::parse("019a5b30-0000-7000-8000-000000000003").unwrap(),
         [
             ("upstream-a", deployment(1)),
             ("another-server", deployment(2)),
@@ -267,10 +266,7 @@ async fn same_deployment_retry_preserves_first_execution_capture() {
     let state = HubState::new(db.a.clone());
     let input = draft();
     let (canonical, first) = state.create_task_route(input.clone()).await.unwrap();
-    let second = veoveo_hub_sdk::ResolvedComposition::new(
-        EnvironmentId::new(),
-        capture().components().clone(),
-    );
+    let second = veoveo_hub_sdk::ResolvedComposition::new(capture().components().clone());
     state.hub_store().retain_composition(&second).await.unwrap();
     let mut retry = input;
     retry.execution = second.context();
@@ -293,8 +289,7 @@ async fn identical_source_tasks_from_two_deployments_never_share_a_route() {
             deployment: deployment(4),
         },
     );
-    let composition =
-        veoveo_hub_sdk::ResolvedComposition::new(input.execution.environment, components);
+    let composition = veoveo_hub_sdk::ResolvedComposition::new(components);
     state
         .hub_store()
         .retain_composition(&composition)

@@ -84,14 +84,12 @@ pub async fn serve(
     build: impl AsyncFnOnce(&Registration, &ClientMetadata, &ServerKeyPair) -> HostedServer,
 ) -> Served {
     let key = ServerKeyPair::generate().unwrap();
-    let served = serve_revision(hub, http, slug, declaration, &key, build).await;
-    hub.enroll(&served.metadata).await;
-    served
+    serve_revision(hub, http, slug, declaration, &key, build).await
 }
 
-/// Another installation-owned fixture revision. This uses its synthetic namespace
-/// owner's signer, not an application user's authority. It never changes serving
-/// selection.
+/// Another installation-owned fixture deployment, registered with its synthetic
+/// namespace owner's signer, not an application user's authority. Registering is
+/// serving: once registered, the newest deployment of a slug serves it.
 pub async fn serve_revision(
     hub: &Hub,
     http: &reqwest::Client,
@@ -227,25 +225,22 @@ pub fn hosted<D: veoveo_hub_sdk::hosting::DomainServer>(
 
 /// An MCP client of the local profile that presents `token`.
 pub async fn mcp_client(hub: &Hub, token: String) -> RunningService<RoleClient, ClientConfig> {
-    mcp_client_selected(hub, token, None).await
+    mcp_client_with(hub, token, &[]).await
 }
 
-/// The typed untrusted selector is sent with every stateless MCP request, including
-/// initialize, discovery, Tasks and subscription reconnects.
-pub async fn mcp_client_selected(
+/// [`mcp_client`] sending `headers` with every request.
+pub async fn mcp_client_with(
     hub: &Hub,
     token: String,
-    environment: Option<veoveo_hub_sdk::EnvironmentId>,
+    headers: &[(&'static str, &str)],
 ) -> RunningService<RoleClient, ClientConfig> {
     let mut transport =
         StreamableHttpClientTransportConfig::with_uri(hub.installation.resource.clone())
             .auth_header(token);
-    if let Some(environment) = environment {
-        let selector =
-            veoveo_hub_sdk::EnvironmentSelector::parse(&environment.to_string()).unwrap();
+    for (name, value) in headers {
         transport.custom_headers.insert(
-            reqwest::header::HeaderName::from_static(veoveo_hub_sdk::ENVIRONMENT_HEADER),
-            selector.environment().to_string().parse().unwrap(),
+            reqwest::header::HeaderName::from_static(name),
+            value.parse().unwrap(),
         );
     }
     ClientConfig::new(

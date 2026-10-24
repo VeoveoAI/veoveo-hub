@@ -108,7 +108,6 @@ async fn qualify() {
         key,
     );
     let registration = client.register().await.unwrap();
-    hub.enroll(client.metadata()).await;
     assert_eq!(registration.access_tokens().issuer.as_str(), hub.base);
 
     // The grant is a login in the server's group role: it migrates the server's own

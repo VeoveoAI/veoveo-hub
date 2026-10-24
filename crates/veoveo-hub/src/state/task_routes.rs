@@ -6,8 +6,7 @@ use anyhow::{Context, Result, anyhow, bail, ensure};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, TimeDelta, Utc};
 use veoveo_hub_sdk::{
-    CanonicalTaskId, DeploymentId, EnvironmentId, ExecutionContext, HubProfileId, Principal,
-    ServerSlug,
+    CanonicalTaskId, DeploymentId, ExecutionContext, HubProfileId, Principal, ServerSlug,
 };
 use veoveo_store::{
     PrincipalId, PrincipalKind, TenantId, WorkContextId, deterministic_principal_id,
@@ -115,7 +114,6 @@ struct RouteRow {
     profile: String,
     server: String,
     deployment: uuid::Uuid,
-    environment: uuid::Uuid,
     composition: String,
     source_task_id: String,
     authority_digest: String,
@@ -158,7 +156,6 @@ impl TryFrom<RouteRow> for HubTaskRoute {
             server: ServerSlug::parse(row.server)?,
             deployment: DeploymentId::parse(row.deployment.to_string())?,
             execution: ExecutionContext {
-                environment: EnvironmentId::parse(row.environment.to_string())?,
                 composition: serde_json::from_value(serde_json::Value::String(row.composition))?,
             },
             source_task_id: row.source_task_id,
@@ -306,7 +303,6 @@ impl HubState {
             expires_at,
             delegated_caller,
             draft.deployment.as_uuid(),
-            draft.execution.environment.as_uuid(),
             draft.execution.composition.digest().as_str(),
         )
         .execute(self.store.platform().pool())

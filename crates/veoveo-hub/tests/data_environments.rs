@@ -124,7 +124,6 @@ async fn scenario() {
 
     // The base branch's instance serves by default; selecting the other branch serves
     // the instance in the data environment.
-    hub.enroll(&base.served.metadata).await;
     let mut control = hub.control_plane().await;
     control["execution"]["baseBranch"] = json!("dev");
     hub.publish_control_plane(&control).await;

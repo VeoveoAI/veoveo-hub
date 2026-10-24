@@ -1,6 +1,8 @@
 //! The registered servers one catalog generation routes to.
 
 use std::{collections::BTreeMap, sync::Arc};
+
+use chrono::{DateTime, Utc};
 use veoveo_hub_sdk::registration::{AuthorizationDeclaration, ServerEndpoint, ServerVersion};
 use veoveo_types::{DeploymentId, OAuthClientId, ResourceScheme, ServerSlug};
 
@@ -46,6 +48,11 @@ pub struct RegisteredServer {
     pub capabilities: ServerCapabilities,
     /// The branch this deployment serves, when it is an instance.
     pub branch: Option<crate::execution::BranchName>,
+    /// When its newest registration was issued.
+    pub registered_at: DateTime<Utc>,
+    /// Whether housekeeping found that registration's login without a live kernel
+    /// instance: its process ended, and the grace period has not removed it yet.
+    pub orphaned: bool,
 }
 
 impl RegisteredServer {
@@ -59,16 +66,65 @@ impl RegisteredServer {
 #[derive(Debug, Clone, Default)]
 pub struct RegistrationSnapshot {
     servers: BTreeMap<DeploymentId, Arc<RegisteredServer>>,
+    namespaces: BTreeMap<ServerSlug, Namespace>,
+}
+
+/// The deployments of one slug that are not instances: the one requests route to, the
+/// newest registered whose process lives, and those it sets aside.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Namespace {
+    pub routed: DeploymentId,
+    pub set_aside: Vec<DeploymentId>,
 }
 
 impl RegistrationSnapshot {
     pub fn new(servers: impl IntoIterator<Item = RegisteredServer>) -> Self {
-        Self {
-            servers: servers
+        Self::of(
+            servers
                 .into_iter()
                 .map(|server| (server.deployment, Arc::new(server)))
                 .collect(),
+        )
+    }
+
+    fn of(servers: BTreeMap<DeploymentId, Arc<RegisteredServer>>) -> Self {
+        let mut by_slug = BTreeMap::<&ServerSlug, Vec<&RegisteredServer>>::new();
+        for server in servers.values().filter(|server| server.branch.is_none()) {
+            by_slug.entry(&server.slug).or_default().push(server);
         }
+        let namespaces = by_slug
+            .into_iter()
+            .map(|(slug, mut deployments)| {
+                // Live before orphaned, then newest first; equal times order by
+                // deployment so every replica agrees. When every deployment is
+                // orphaned, the newest still routes until the grace period removes it.
+                deployments.sort_by(|left, right| {
+                    (!right.orphaned, right.registered_at, right.deployment).cmp(&(
+                        !left.orphaned,
+                        left.registered_at,
+                        left.deployment,
+                    ))
+                });
+                let namespace = Namespace {
+                    routed: deployments[0].deployment,
+                    set_aside: deployments[1..]
+                        .iter()
+                        .map(|server| server.deployment)
+                        .collect(),
+                };
+                (slug.clone(), namespace)
+            })
+            .collect();
+        Self {
+            servers,
+            namespaces,
+        }
+    }
+
+    /// Each slug's deployments that are not instances, by the deployment requests route
+    /// to: the newest registered whose process lives, or the newest when none does.
+    pub fn namespaces(&self) -> &BTreeMap<ServerSlug, Namespace> {
+        &self.namespaces
     }
 
     pub fn get(&self, slug: &ServerSlug) -> Option<&RegisteredServer> {
@@ -84,8 +140,8 @@ impl RegistrationSnapshot {
     /// Explicit unavailable selections produce no route and never inherit a base here.
     /// A deployment cannot be projected under another logical namespace.
     pub fn selected(&self, composition: &veoveo_hub_sdk::ResolvedComposition) -> Self {
-        Self {
-            servers: composition
+        Self::of(
+            composition
                 .components()
                 .iter()
                 .filter_map(|(slug, selection)| {
@@ -97,7 +153,7 @@ impl RegistrationSnapshot {
                     (&server.slug == slug).then(|| (*deployment, server.clone()))
                 })
                 .collect(),
-        }
+        )
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &RegisteredServer> {
@@ -116,7 +172,7 @@ impl RegistrationSnapshot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use veoveo_hub_sdk::{EnvironmentId, ResolvedComponent, ResolvedComposition};
+    use veoveo_hub_sdk::{ResolvedComponent, ResolvedComposition};
 
     #[test]
     fn independently_registered_deployments_cannot_take_a_logical_route() {
@@ -130,24 +186,18 @@ mod tests {
         let registrations = RegistrationSnapshot::new([base, replacement]);
         assert_eq!(registrations.len(), 2);
         assert!(registrations.get(&slug).is_none());
-        let base = ResolvedComposition::new(
-            EnvironmentId::new(),
-            BTreeMap::from([(
-                slug.clone(),
-                ResolvedComponent::Deployment {
-                    deployment: base_id,
-                },
-            )]),
-        );
-        let owned = ResolvedComposition::new(
-            EnvironmentId::new(),
-            BTreeMap::from([(
-                slug.clone(),
-                ResolvedComponent::Deployment {
-                    deployment: replacement_id,
-                },
-            )]),
-        );
+        let base = ResolvedComposition::new(BTreeMap::from([(
+            slug.clone(),
+            ResolvedComponent::Deployment {
+                deployment: base_id,
+            },
+        )]));
+        let owned = ResolvedComposition::new(BTreeMap::from([(
+            slug.clone(),
+            ResolvedComponent::Deployment {
+                deployment: replacement_id,
+            },
+        )]));
         assert_eq!(
             registrations.selected(&base).get(&slug).unwrap().deployment,
             base_id
@@ -160,10 +210,10 @@ mod tests {
                 .deployment,
             replacement_id
         );
-        let unavailable = ResolvedComposition::new(
-            EnvironmentId::new(),
-            BTreeMap::from([(slug.clone(), ResolvedComponent::Unavailable {})]),
-        );
+        let unavailable = ResolvedComposition::new(BTreeMap::from([(
+            slug.clone(),
+            ResolvedComponent::Unavailable {},
+        )]));
         assert!(registrations.selected(&unavailable).get(&slug).is_none());
     }
 
@@ -177,13 +227,10 @@ mod tests {
             ("observatory", DeploymentId::new()),
             ("foreign", deployment),
         ] {
-            let composition = ResolvedComposition::new(
-                EnvironmentId::new(),
-                BTreeMap::from([(
-                    ServerSlug::parse(slug).unwrap(),
-                    ResolvedComponent::Deployment { deployment },
-                )]),
-            );
+            let composition = ResolvedComposition::new(BTreeMap::from([(
+                ServerSlug::parse(slug).unwrap(),
+                ResolvedComponent::Deployment { deployment },
+            )]));
             assert!(registrations.selected(&composition).is_empty());
         }
     }

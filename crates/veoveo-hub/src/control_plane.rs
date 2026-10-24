@@ -177,11 +177,6 @@ impl HubControlPlane {
         &self,
         registry: &crate::contract::CatalogRegistry,
     ) -> Result<crate::contract::AdmittedCatalogSections, HubControlPlaneError> {
-        if let Some(execution) = &self.execution {
-            execution
-                .validate()
-                .map_err(HubControlPlaneError::InvalidExecution)?;
-        }
         registry
             .check_reserved(
                 HUB_CORE_FIELDS,
@@ -274,16 +269,6 @@ impl HubControlPlane {
         for tenant in &self.tenants {
             if !tenants.insert(tenant.id.clone()) {
                 return Err(HubControlPlaneError::DuplicateTenant(tenant.id.clone()));
-            }
-        }
-        if let Some(execution) = &self.execution {
-            for (environment, record) in &execution.environments {
-                if !tenants.contains(&record.owner.tenant) {
-                    return Err(HubControlPlaneError::UnknownEnvironmentTenant {
-                        environment: *environment,
-                        tenant: record.owner.tenant.clone(),
-                    });
-                }
             }
         }
         for identity_provider in &self.identity_providers {

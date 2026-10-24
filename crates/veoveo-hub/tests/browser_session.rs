@@ -473,14 +473,6 @@ fn browser_login(config: &mut Value, keycloak: &TestKeycloak) {
             "metadata": {}
         }),
     );
-    let environment = config["execution"]["defaultEnvironment"]
-        .as_str()
-        .unwrap()
-        .to_owned();
-    config["execution"]["environments"][&environment]["readers"]
-        .as_array_mut()
-        .unwrap()
-        .push(json!(format!("{issuer}#{USER}")));
     config["authorization"]["grants"]
         .as_array_mut()
         .unwrap()

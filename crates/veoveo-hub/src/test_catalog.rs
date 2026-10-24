@@ -57,6 +57,8 @@ pub fn registered_server(slug: &str, endpoint: &str) -> crate::registration::Reg
         ),
         capabilities: Default::default(),
         branch: None,
+        registered_at: chrono::Utc::now(),
+        orphaned: false,
     }
 }
 

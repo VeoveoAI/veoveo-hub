@@ -78,7 +78,7 @@ impl Hub {
         let installation = veoveo_hub::local::generate(directory, &base).unwrap();
         let mut config: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&installation.config).unwrap()).unwrap();
-        // These fixtures explicitly publish base enrollment after registration.
+        // These fixtures publish control-plane changes as the acceptance administrator.
         // A business admin role does not itself authorize kernel administration.
         let issuer = config["authorizationServers"][0]["issuer"]
             .as_str()
@@ -88,7 +88,7 @@ impl Hub {
             .as_array_mut()
             .unwrap()
             .push(serde_json::json!({
-                "id": "fixture-base-enrollment", "effect": "allow",
+                "id": "fixture-control-plane", "effect": "allow",
                 "actions": ["admin_read", "admin_write"], "profiles": ["local"],
                 "principalIds": [format!("{issuer}#acceptance-admin")], "tenantIds": ["local"]
             }));
@@ -244,21 +244,6 @@ impl Hub {
             "{}",
             response.text().await.unwrap()
         );
-    }
-
-    /// Explicit trusted base enrollment. Registration alone never changes serving
-    /// selection, even when another deployment has the same logical namespace.
-    pub async fn enroll(&self, metadata: &veoveo_hub_sdk::registration::ClientMetadata) {
-        let mut document = self.control_plane().await;
-        let environment = document["execution"]["defaultEnvironment"]
-            .as_str()
-            .unwrap()
-            .to_owned();
-        document["execution"]["environments"][&environment]["components"]
-            [metadata.slug().as_str()] = serde_json::json!({
-            "kind": "deployment", "deployment": metadata.registration.deployment
-        });
-        self.publish_control_plane(&document).await;
     }
 
     /// The caller's RFC 7523 assertion signer, under its key's thumbprint.

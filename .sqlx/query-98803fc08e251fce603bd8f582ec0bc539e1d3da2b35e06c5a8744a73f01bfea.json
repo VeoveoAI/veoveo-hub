@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    r.id,\n    r.tenant AS \"tenant: TenantId\",\n    r.owner AS \"owner: PrincipalId\",\n    r.work_context AS \"work_context: WorkContextId\",\n    r.profile,\n    r.server,\n    r.deployment,\n    r.environment,\n    r.composition,\n    r.source_task_id,\n    r.authority_digest,\n    p.principal_key AS owner_key,\n    r.owner_kind AS \"owner_kind: PrincipalKind\",\n    r.owner_issuer,\n    r.owner_subject,\n    r.invocation_mode,\n    r.initiator,\n    r.delegation_id,\n    r.data_labels,\n    r.expires_at\nFROM hub.task_route AS r\nJOIN identity.principal AS p ON p.id = r.owner AND p.tenant = r.tenant\nWHERE r.id = $1 AND r.tenant = $2 AND r.expires_at > $3\n",
+  "query": "-- The unexpired route of the caller's Task of one server on one profile, by the\n-- identifier the server issued. A server issues each Task identifier once, so a second\n-- row means the identifier is ambiguous.\nSELECT\n    r.id,\n    r.tenant AS \"tenant: TenantId\",\n    r.owner AS \"owner: PrincipalId\",\n    r.work_context AS \"work_context: WorkContextId\",\n    r.profile,\n    r.server,\n    r.deployment,\n    r.composition,\n    r.source_task_id,\n    r.authority_digest,\n    p.principal_key AS owner_key,\n    r.owner_kind AS \"owner_kind: PrincipalKind\",\n    r.owner_issuer,\n    r.owner_subject,\n    r.invocation_mode,\n    r.initiator,\n    r.delegation_id,\n    r.data_labels,\n    r.expires_at\nFROM hub.task_route AS r\nJOIN identity.principal AS p ON p.id = r.owner AND p.tenant = r.tenant\nWHERE r.server = $1 AND r.source_task_id = $2 AND r.owner = $3 AND r.profile = $4 AND r.tenant = $5\n    AND r.expires_at > $6\nLIMIT 2\n",
   "describe": {
     "columns": [
       {
@@ -82,17 +82,6 @@
       },
       {
         "ordinal": 7,
-        "name": "environment",
-        "type_info": "Uuid",
-        "origin": {
-          "Table": {
-            "table": "hub.task_route",
-            "name": "environment"
-          }
-        }
-      },
-      {
-        "ordinal": 8,
         "name": "composition",
         "type_info": "Text",
         "origin": {
@@ -103,7 +92,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "source_task_id",
         "type_info": "Text",
         "origin": {
@@ -114,7 +103,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "authority_digest",
         "type_info": "Text",
         "origin": {
@@ -125,7 +114,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "owner_key",
         "type_info": "Text",
         "origin": {
@@ -136,7 +125,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "owner_kind: PrincipalKind",
         "type_info": "Text",
         "origin": {
@@ -147,7 +136,7 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 12,
         "name": "owner_issuer",
         "type_info": "Text",
         "origin": {
@@ -158,7 +147,7 @@
         }
       },
       {
-        "ordinal": 14,
+        "ordinal": 13,
         "name": "owner_subject",
         "type_info": "Text",
         "origin": {
@@ -169,7 +158,7 @@
         }
       },
       {
-        "ordinal": 15,
+        "ordinal": 14,
         "name": "invocation_mode",
         "type_info": "Text",
         "origin": {
@@ -180,7 +169,7 @@
         }
       },
       {
-        "ordinal": 16,
+        "ordinal": 15,
         "name": "initiator",
         "type_info": "Text",
         "origin": {
@@ -191,7 +180,7 @@
         }
       },
       {
-        "ordinal": 17,
+        "ordinal": 16,
         "name": "delegation_id",
         "type_info": "Text",
         "origin": {
@@ -202,7 +191,7 @@
         }
       },
       {
-        "ordinal": 18,
+        "ordinal": 17,
         "name": "data_labels",
         "type_info": "TextArray",
         "origin": {
@@ -213,7 +202,7 @@
         }
       },
       {
-        "ordinal": 19,
+        "ordinal": 18,
         "name": "expires_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -226,6 +215,9 @@
     ],
     "parameters": {
       "Left": [
+        "Text",
+        "Text",
+        "Uuid",
         "Text",
         "Uuid",
         "Timestamptz"
@@ -247,12 +239,11 @@
       false,
       false,
       false,
-      false,
       true,
       true,
       false,
       false
     ]
   },
-  "hash": "719b26c99608a55fd6ec342e9cd3d934652fe3950e8e60d34746fb021067f8ce"
+  "hash": "98803fc08e251fce603bd8f582ec0bc539e1d3da2b35e06c5a8744a73f01bfea"
 }

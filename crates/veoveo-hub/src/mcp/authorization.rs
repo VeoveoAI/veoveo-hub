@@ -116,25 +116,11 @@ impl HubMcp {
             return Err(mcp_invalid_params("unknown task id"));
         }
         // Task ownership is checked before using its retained routing capture.
-        // Current selection may differ; current environment and domain policy still apply.
+        // Current routing may differ; current domain policy still applies.
         if subject.delegation.is_some() && subject.execution.as_ref() != Some(&route.execution) {
             return Err(mcp_invalid_params("unknown task id"));
         }
         let snapshot = self.live_catalog.snapshot();
-        let configuration = snapshot
-            .catalog()
-            .control_plane()
-            .execution
-            .as_ref()
-            .ok_or_else(|| mcp_invalid_request("execution routing is unavailable"))?;
-        let tenant = subject
-            .principal
-            .tenant
-            .as_ref()
-            .ok_or_else(|| mcp_invalid_params("unknown task id"))?;
-        configuration
-            .authorize_capture(route.execution.environment, tenant, &subject.principal.id)
-            .map_err(|_| mcp_invalid_params("unknown task id"))?;
         let composition = self
             .state
             .hub_store()

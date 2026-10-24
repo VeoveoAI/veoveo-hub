@@ -1,21 +1,15 @@
-//! Capture one authenticated request's selection. Headers never carry authority.
+//! Capture one authenticated request's routing. Headers never carry authority.
 use std::collections::BTreeMap;
 
-use veoveo_hub_sdk::{
-    DeploymentId, EnvironmentSelector, ResolvedComponent, ResolvedComposition, ServerSlug,
-};
+use veoveo_hub_sdk::{DeploymentId, ResolvedComponent, ResolvedComposition, ServerSlug};
 
-use super::{BranchName, EnvironmentBase, ExecutionError};
+use super::BranchName;
 use crate::{AuthenticatedSubject, HubCatalog, HubState, registration::RegistrationSnapshot};
 
 mod kernel;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExecutionAdmissionError {
-    #[error("MCP execution routing requires an explicitly configured default environment")]
-    Unconfigured,
-    #[error(transparent)]
-    Selection(#[from] ExecutionError),
     #[error("captured execution composition is unavailable")]
     MissingCapture,
     #[error("execution composition storage is unavailable: {0}")]
@@ -44,30 +38,15 @@ pub struct Admitted {
     pub unavailable: BTreeMap<ServerSlug, Unavailable>,
 }
 
+/// The request's routing: the composition it already captured, as a delegated call or
+/// a retained Task carries it, or else a new one from the current registrations and
+/// the principal's selection, which is retained before it routes anything.
 pub async fn admit_execution(
     state: &HubState,
     catalog: &HubCatalog,
     subject: &mut AuthenticatedSubject,
-    selector: Option<EnvironmentSelector>,
 ) -> Result<Admitted, ExecutionAdmissionError> {
-    let configuration = catalog
-        .control_plane()
-        .execution
-        .as_ref()
-        .ok_or(ExecutionAdmissionError::Unconfigured)?;
-    // Execution selection belongs to the authenticated principal, independently of
-    // business WorkContext membership/output authority. Delegation retains it.
-    let tenant = subject
-        .principal
-        .tenant
-        .as_ref()
-        .ok_or(ExecutionError::Forbidden)?;
-    let principal = &subject.principal.id;
     let admitted = if let Some(captured) = &subject.execution {
-        if selector.is_some_and(|selector| selector.environment() != captured.environment) {
-            return Err(ExecutionError::Forbidden.into());
-        }
-        configuration.authorize_capture(captured.environment, tenant, principal)?;
         let composition = state
             .hub_store()
             .composition(&captured.composition)
@@ -79,35 +58,13 @@ pub async fn admit_execution(
             unavailable: BTreeMap::new(),
         }
     } else {
-        let environment = selector.map_or(configuration.default_environment, |selector| {
-            selector.environment()
-        });
-        configuration.authorize_capture(environment, tenant, principal)?;
-        let mut pins = BTreeMap::new();
-        let mut current = environment;
-        // Only the first reachable pin is needed; it already captures inherited targets.
-        while let Some(base) = &configuration.environments[&current].base {
-            match base {
-                EnvironmentBase::Follow { environment } => current = *environment,
-                EnvironmentBase::Pin { revision, .. } => {
-                    let composition = state
-                        .hub_store()
-                        .composition(revision)
-                        .await?
-                        .ok_or(ExecutionAdmissionError::MissingCapture)?;
-                    pins.insert(revision.clone(), composition);
-                    break;
-                }
-            }
-        }
-        let configured = configuration.resolve(environment, tenant, principal, &pins)?;
-        let selection = state.hub_store().selection(principal).await?;
-        let admitted = select_instances(
-            configured,
-            catalog.registrations(),
-            configuration.base_branch.as_ref(),
-            &selection,
-        );
+        let base = catalog
+            .control_plane()
+            .execution
+            .as_ref()
+            .and_then(|execution| execution.base_branch.as_ref());
+        let selection = state.hub_store().selection(&subject.principal.id).await?;
+        let admitted = route(catalog.registrations(), base, &selection);
         state
             .hub_store()
             .retain_composition(&admitted.composition)
@@ -118,12 +75,34 @@ pub async fn admit_execution(
     Ok(admitted)
 }
 
+/// Route each server to its newest registered deployment that is not an instance, then
+/// [`select_instances`] over it.
+pub(super) fn route(
+    registrations: &RegistrationSnapshot,
+    base: Option<&BranchName>,
+    selection: &BTreeMap<ServerSlug, BranchName>,
+) -> Admitted {
+    let routed = registrations
+        .namespaces()
+        .iter()
+        .map(|(server, namespace)| {
+            (
+                server.clone(),
+                ResolvedComponent::Deployment {
+                    deployment: namespace.routed,
+                },
+            )
+        })
+        .collect();
+    select_instances(routed, registrations, base, selection)
+}
+
 /// Route each server that has registered instances, or that `selection` names, to the
 /// instance of its selected branch, or else of the base branch. A server without that
-/// instance is unavailable, never served by another branch or by the configured
-/// component. Other servers keep their configured component.
+/// instance is unavailable, never served by another branch or by a deployment that is
+/// not an instance. Other servers keep their deployment in `routed`.
 pub(super) fn select_instances(
-    configured: ResolvedComposition,
+    routed: BTreeMap<ServerSlug, ResolvedComponent>,
     registrations: &RegistrationSnapshot,
     base: Option<&BranchName>,
     selection: &BTreeMap<ServerSlug, BranchName>,
@@ -140,7 +119,7 @@ pub(super) fn select_instances(
     for server in selection.keys() {
         instances.entry(server).or_default();
     }
-    let mut components = configured.components().clone();
+    let mut components = routed;
     let mut unavailable = BTreeMap::new();
     for (server, served) in instances {
         let component = match instance(&served, selection.get(server), base) {
@@ -153,7 +132,7 @@ pub(super) fn select_instances(
         components.insert(server.clone(), component);
     }
     Admitted {
-        composition: ResolvedComposition::new(configured.context().environment, components),
+        composition: ResolvedComposition::new(components),
         unavailable,
     }
 }

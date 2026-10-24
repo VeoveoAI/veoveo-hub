@@ -1,250 +1,122 @@
+use std::collections::BTreeMap;
+
+use chrono::{TimeDelta, Utc};
+use veoveo_hub_sdk::{DeploymentId, ResolvedComponent, ServerSlug};
+
 use super::*;
-use veoveo_hub_sdk::DeploymentId;
-
-fn owner() -> EnvironmentOwner {
-    EnvironmentOwner {
-        tenant: TenantId::parse("tenant").unwrap(),
-        principal: PrincipalId::parse("author").unwrap(),
-    }
-}
-
-fn record(
-    base: Option<EnvironmentBase>,
-    components: &[(&str, ResolvedComponent)],
-) -> EnvironmentRecord {
-    EnvironmentRecord {
-        owner: owner(),
-        display_name: "Label only".to_owned(),
-        readers: BTreeSet::new(),
-        base,
-        components: components
-            .iter()
-            .map(|(slug, value)| (ServerSlug::parse(slug).unwrap(), value.clone()))
-            .collect(),
-    }
-}
+use crate::registration::RegistrationSnapshot;
 
 fn selected(deployment: DeploymentId) -> ResolvedComponent {
     ResolvedComponent::Deployment { deployment }
 }
 
 #[test]
-fn independent_overrides_inherit_without_taking_each_others_routes() {
-    let base = EnvironmentId::new();
-    let first = EnvironmentId::new();
-    let second = EnvironmentId::new();
-    let a = DeploymentId::new();
-    let b = DeploymentId::new();
-    let c = DeploymentId::new();
-    let mut config = ExecutionConfiguration {
-        default_environment: base,
-        environments: BTreeMap::from([
-            (base, record(None, &[("observatory", selected(a))])),
-            (
-                first,
-                record(
-                    Some(EnvironmentBase::Follow { environment: base }),
-                    &[("observatory", selected(b))],
-                ),
-            ),
-            (
-                second,
-                record(
-                    Some(EnvironmentBase::Follow { environment: base }),
-                    &[("observatory", selected(c))],
-                ),
-            ),
-        ]),
-        base_branch: None,
+fn a_server_routes_to_its_newest_registered_deployment() {
+    let now = Utc::now();
+    let deployment = |slug: &str, age: i64| {
+        let mut server = crate::test_catalog::registered_server(slug, "https://server.test/mcp");
+        server.registered_at = now - TimeDelta::minutes(age);
+        server
     };
-    let resolve = |config: &ExecutionConfiguration, id| {
-        config
-            .resolve(id, &owner().tenant, &owner().principal, &BTreeMap::new())
-            .unwrap()
-    };
-    let base_before = resolve(&config, base);
-    let second_before = resolve(&config, second);
-    config
-        .environments
-        .get_mut(&first)
-        .unwrap()
-        .components
-        .insert(
-            ServerSlug::parse("observatory").unwrap(),
-            ResolvedComponent::Unavailable {},
-        );
-    assert_eq!(resolve(&config, base), base_before);
-    assert_eq!(resolve(&config, second), second_before);
-    assert_eq!(
-        resolve(&config, first).components()[&ServerSlug::parse("observatory").unwrap()],
-        ResolvedComponent::Unavailable {}
+    let (old, new, other) = (
+        deployment("ledger", 30),
+        deployment("ledger", 1),
+        deployment("relay", 90),
     );
-    config
-        .environments
-        .get_mut(&first)
-        .unwrap()
-        .components
-        .clear();
-    assert_eq!(
-        resolve(&config, first).components(),
-        base_before.components()
-    );
-    config.environments.get_mut(&first).unwrap().base = None;
-    assert!(resolve(&config, first).components().is_empty());
-}
+    let (old_id, new_id, other_id) = (old.deployment, new.deployment, other.deployment);
+    let registrations = RegistrationSnapshot::new([old, new, other]);
 
-#[test]
-fn pins_retain_exact_selection_while_followers_advance_and_labels_do_not_hash() {
-    let base = EnvironmentId::new();
-    let follower = EnvironmentId::new();
-    let pin = EnvironmentId::new();
-    let mut config = ExecutionConfiguration {
-        default_environment: base,
-        environments: BTreeMap::from([
-            (
-                base,
-                record(None, &[("observatory", selected(DeploymentId::new()))]),
-            ),
-            (
-                follower,
-                record(Some(EnvironmentBase::Follow { environment: base }), &[]),
-            ),
-        ]),
-        base_branch: None,
-    };
-    let original = config
-        .resolve(base, &owner().tenant, &owner().principal, &BTreeMap::new())
-        .unwrap();
-    let pins = BTreeMap::from([(original.revision().clone(), original.clone())]);
-    config.environments.insert(
-        pin,
-        record(
-            Some(EnvironmentBase::Pin {
-                environment: base,
-                revision: original.revision().clone(),
-            }),
-            &[],
-        ),
-    );
-    config
-        .environments
-        .get_mut(&base)
-        .unwrap()
-        .components
-        .insert(
-            ServerSlug::parse("observatory").unwrap(),
-            selected(DeploymentId::new()),
-        );
-    let pinned = config
-        .resolve(pin, &owner().tenant, &owner().principal, &pins)
-        .unwrap();
-    let followed = config
-        .resolve(follower, &owner().tenant, &owner().principal, &pins)
-        .unwrap();
-    assert_eq!(pinned.components(), original.components());
-    assert_ne!(followed.components(), pinned.components());
-    config.environments.get_mut(&pin).unwrap().display_name = "Renamed".to_owned();
+    let admitted = selection::route(&registrations, None, &BTreeMap::new());
     assert_eq!(
-        config
-            .resolve(pin, &owner().tenant, &owner().principal, &pins)
-            .unwrap(),
-        pinned
+        admitted.composition.components(),
+        &BTreeMap::from([
+            (slug("ledger"), selected(new_id)),
+            (slug("relay"), selected(other_id))
+        ]),
+        "registering is serving: no enrollment, and the newest of several wins"
+    );
+    assert!(admitted.unavailable.is_empty());
+    let namespace = &registrations.namespaces()[&slug("ledger")];
+    assert_eq!(
+        (namespace.routed, namespace.set_aside.clone()),
+        (new_id, vec![old_id])
+    );
+    assert!(
+        registrations.namespaces()[&slug("relay")]
+            .set_aside
+            .is_empty()
+    );
+
+    // The same registrations route the same way, so retained captures stay equal.
+    assert_eq!(
+        selection::route(&registrations, None, &BTreeMap::new())
+            .composition
+            .revision(),
+        admitted.composition.revision()
     );
 }
 
 #[test]
-fn cycles_cross_tenant_access_and_revoked_base_access_are_rejected() {
-    let base = EnvironmentId::new();
-    let child = EnvironmentId::new();
-    let mut config = ExecutionConfiguration {
-        default_environment: base,
-        environments: BTreeMap::from([
-            (base, record(None, &[])),
-            (
-                child,
-                record(Some(EnvironmentBase::Follow { environment: base }), &[]),
-            ),
-        ]),
-        base_branch: None,
+fn a_server_whose_newest_deployment_ended_routes_to_an_older_live_one() {
+    let now = Utc::now();
+    let deployment = |age: i64, orphaned: bool| {
+        let mut server =
+            crate::test_catalog::registered_server("ledger", "https://ledger.test/mcp");
+        server.registered_at = now - TimeDelta::minutes(age);
+        server.orphaned = orphaned;
+        server
     };
-    config.environments.get_mut(&base).unwrap().base =
-        Some(EnvironmentBase::Follow { environment: child });
-    assert_eq!(config.validate(), Err(ExecutionError::Cycle));
-    config.environments.get_mut(&base).unwrap().base = None;
+    // The newest deployment's process ended: housekeeping marked its registration.
+    let (ended, live) = (deployment(1, true), deployment(30, false));
+    let (ended_id, live_id) = (ended.deployment, live.deployment);
+    let registrations = RegistrationSnapshot::new([ended, live]);
+    let namespace = &registrations.namespaces()[&slug("ledger")];
     assert_eq!(
-        config.resolve(
-            child,
-            &TenantId::parse("other").unwrap(),
-            &owner().principal,
-            &BTreeMap::new()
-        ),
-        Err(ExecutionError::Forbidden)
+        (namespace.routed, namespace.set_aside.clone()),
+        (live_id, vec![ended_id])
     );
-    config.environments.get_mut(&base).unwrap().owner.principal =
-        PrincipalId::parse("base-owner").unwrap();
-    assert!(config.validate().is_ok());
     assert_eq!(
-        config.resolve(child, &owner().tenant, &owner().principal, &BTreeMap::new()),
-        Err(ExecutionError::Forbidden)
+        selection::route(&registrations, None, &BTreeMap::new())
+            .composition
+            .components()[&slug("ledger")],
+        selected(live_id)
     );
-    config
-        .environments
-        .get_mut(&base)
-        .unwrap()
-        .readers
-        .insert(owner().principal);
-    assert!(config.validate().is_ok());
+
+    // With every deployment ended, the newest still routes, as before, until the grace
+    // period removes its registration or its process registers again.
+    let (newest, older) = (deployment(1, true), deployment(30, true));
+    let newest_id = newest.deployment;
+    let registrations = RegistrationSnapshot::new([newest, older]);
     assert_eq!(
-        config.resolve(
-            child,
-            &owner().tenant,
-            &PrincipalId::parse("stranger").unwrap(),
-            &BTreeMap::new()
-        ),
-        Err(ExecutionError::Forbidden)
+        registrations.namespaces()[&slug("ledger")].routed,
+        newest_id
     );
 }
 
 #[test]
-fn retained_capture_checks_selected_access_without_reinterpreting_current_base() {
-    let base = EnvironmentId::new();
-    let child = EnvironmentId::new();
-    let mut config = ExecutionConfiguration {
-        default_environment: base,
-        environments: BTreeMap::from([
-            (
-                base,
-                record(None, &[("observatory", selected(DeploymentId::new()))]),
-            ),
-            (
-                child,
-                record(Some(EnvironmentBase::Follow { environment: base }), &[]),
-            ),
-        ]),
-        base_branch: None,
-    };
-    let captured = config
-        .resolve(child, &owner().tenant, &owner().principal, &BTreeMap::new())
-        .unwrap();
-    config.environments.get_mut(&base).unwrap().owner.principal =
-        PrincipalId::parse("different-owner").unwrap();
-    assert_eq!(
-        config.resolve(child, &owner().tenant, &owner().principal, &BTreeMap::new()),
-        Err(ExecutionError::Forbidden)
+fn instances_take_a_server_away_from_its_registered_deployment() {
+    let namespace = crate::test_catalog::registered_server("ledger", "https://ledger.test/mcp");
+    let mut instance =
+        crate::test_catalog::registered_server("ledger", "https://instance.test/mcp");
+    instance.branch = Some(branch("dev"));
+    let instance_id = instance.deployment;
+    let registrations = RegistrationSnapshot::new([namespace, instance]);
+    assert!(
+        registrations.namespaces()[&slug("ledger")]
+            .set_aside
+            .is_empty(),
+        "an instance is not one of the slug's registered deployments"
     );
+    let admitted = selection::route(&registrations, Some(&branch("dev")), &BTreeMap::new());
     assert_eq!(
-        config.authorize_capture(
-            captured.context().environment,
-            &owner().tenant,
-            &owner().principal
-        ),
-        Ok(())
+        admitted.composition.components()[&slug("ledger")],
+        selected(instance_id)
     );
-    config.environments.get_mut(&child).unwrap().owner.principal =
-        PrincipalId::parse("different-owner").unwrap();
+    let admitted = selection::route(&registrations, Some(&branch("main")), &BTreeMap::new());
     assert_eq!(
-        config.authorize_capture(child, &owner().tenant, &owner().principal),
-        Err(ExecutionError::Forbidden)
+        admitted.composition.components()[&slug("ledger")],
+        ResolvedComponent::Unavailable {},
+        "a server with instances never falls back to its other deployment"
     );
 }
 
@@ -278,13 +150,10 @@ fn a_selection_routes_its_branch_and_never_falls_back() {
     let dev = instance("observatory", "dev");
     let feature = instance("observatory", "dev/jose/x");
     let (dev_id, feature_id) = (dev.deployment, feature.deployment);
-    let configured = ResolvedComposition::new(
-        EnvironmentId::new(),
-        BTreeMap::from([
-            (slug("observatory"), selected(DeploymentId::new())),
-            (slug("relay"), selected(DeploymentId::new())),
-        ]),
-    );
+    let routed = BTreeMap::from([
+        (slug("observatory"), selected(DeploymentId::new())),
+        (slug("relay"), selected(DeploymentId::new())),
+    ]);
     let registrations = RegistrationSnapshot::new([dev, feature]);
     let base = branch("dev");
     let resolve = |base: Option<&BranchName>, selection: &[(&str, &str)]| {
@@ -292,7 +161,7 @@ fn a_selection_routes_its_branch_and_never_falls_back() {
             .iter()
             .map(|(server, name)| (slug(server), branch(name)))
             .collect();
-        select_instances(configured.clone(), &registrations, base, &selection)
+        select_instances(routed.clone(), &registrations, base, &selection)
     };
 
     let unselected = resolve(Some(&base), &[]);
@@ -302,8 +171,8 @@ fn a_selection_routes_its_branch_and_never_falls_back() {
     );
     assert_eq!(
         unselected.composition.components()[&slug("relay")],
-        configured.components()[&slug("relay")],
-        "a server without instances keeps its configured component"
+        routed[&slug("relay")],
+        "a server without instances keeps its routed deployment"
     );
     assert!(unselected.unavailable.is_empty());
 
@@ -356,13 +225,13 @@ fn a_selection_routes_its_branch_and_never_falls_back() {
         instance("observatory", "dev"),
         instance("observatory", "dev"),
     ]);
-    let ambiguous = select_instances(configured.clone(), &twice, Some(&base), &BTreeMap::new());
+    let ambiguous = select_instances(routed.clone(), &twice, Some(&base), &BTreeMap::new());
     assert_eq!(
         ambiguous.unavailable[&slug("observatory")],
         Unavailable::Ambiguous(base.clone())
     );
     let explicitly_ambiguous = select_instances(
-        configured,
+        routed,
         &twice,
         None,
         &BTreeMap::from([(slug("observatory"), base.clone())]),

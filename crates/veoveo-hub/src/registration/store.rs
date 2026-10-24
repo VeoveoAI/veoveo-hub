@@ -22,6 +22,9 @@ pub(crate) struct StoredRegistration {
     pub software_statement: SoftwareStatement,
     pub token_digest: Sha256Digest,
     pub issued_at: DateTime<Utc>,
+    /// When housekeeping found its login without a live kernel instance, until it
+    /// holds one again.
+    pub orphaned_at: Option<DateTime<Utc>>,
     /// The branch of the instance the registration's deployment is, if it is one.
     pub branch: Option<BranchName>,
 }
@@ -33,6 +36,7 @@ struct RegistrationRow {
     software_statement: String,
     access_token_digest: String,
     issued_at: DateTime<Utc>,
+    orphaned_at: Option<DateTime<Utc>>,
     branch: Option<String>,
 }
 
@@ -54,6 +58,7 @@ impl TryFrom<RegistrationRow> for StoredRegistration {
             token_digest: Sha256Digest::parse(row.access_token_digest)
                 .context("stored registration access token digest is malformed")?,
             issued_at: row.issued_at,
+            orphaned_at: row.orphaned_at,
             branch: row
                 .branch
                 .map(BranchName::parse)

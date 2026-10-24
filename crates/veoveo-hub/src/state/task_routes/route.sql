@@ -6,7 +6,6 @@ SELECT
     r.profile,
     r.server,
     r.deployment,
-    r.environment,
     r.composition,
     r.source_task_id,
     r.authority_digest,
