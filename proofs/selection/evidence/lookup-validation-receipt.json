@@ -1,0 +1,115 @@
+{
+  "scope": "Aeneas-to-Lean correctness proof for the shared selection lookup kernel, including a legal semantic mutant",
+  "repository": "veoveo-hub",
+  "base_revision": "9ea2a657e622c9e2f8aad0c545204dc5a83b6a24",
+  "coder_frozen_source": {
+    "archive": ".cache/lean-pilot/lookup-evidence/final-inputs/proof-source-1.tar",
+    "archive_sha256": "99cc921571ca7444a643346f23d1859516c352eae0ce3e6a9515530c7832df94",
+    "manifest": ".cache/lean-pilot/lookup-evidence/final-inputs/proof-source-1.json",
+    "manifest_sha256": "ccfad389145bf8778627d8dee1a5b14bdb9908dfb7fc08dde42f153172144aa0",
+    "proof_sha256": "648e7e3f5a74401d1936bd3741e9562e86421ab2e6ad676a124fb02e2bbdb192",
+    "lakefile_sha256": "d531f3aef2ee40eadb2f3ae5ee7a55675d4ec973f11c3886c1b01eb5c2452005",
+    "rust_harness_sha256": "3f229b7474ebe68a19c74e1316022a4e82da52c473925b75bf271cb7a6db2bbe",
+    "duplicate_mutant_patch_sha256": "253c665b01b4d61151f194b9cee54d4ad4ff7e4a6512855b476550350a2f90f9",
+    "base_snapshot_archive": ".cache/lean-pilot/lookup-evidence/final-inputs/selection-proof-main-9ea2a65.tar.gz",
+    "base_snapshot_archive_sha256": "10d6e312aa9175820600fcc0019bc671970770bef0ad666ec5084202305debca"
+  },
+  "production_inputs": {
+    "kernel_path": "crates/veoveo-hub/src/execution/selection/kernel.rs",
+    "kernel_sha256_baseline_and_restored": "3f0b53882fd043a3292184d3e3f71799de77058175fcd58ef51f82ce7abfe7c1",
+    "kernel_sha256_mutant": "8f3ed017976cd273acd50236244635596c8a5448413061ba63957b84304bfe1f",
+    "generated_model_sha256_baseline_and_restored": "949f66438af4be34f2c68ad5b83ab7ccf951538da60b2b436ec74866dad61951",
+    "generated_model_sha256_mutant": "b0e8f5a9a86bf927a85f81205503c9550a41ff658d7d0806512f218e4e1a3cf3",
+    "prior_selection_proof_sha256": "dcbbb168a631c1c2ce44be69028a24239bbe6ac8d51b01f3ea384a8029ea1c23"
+  },
+  "toolchain": {
+    "host": "Linux x86_64",
+    "aeneas_revision": "nightly-2026.10.23-fdebf20",
+    "aeneas_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "charon_revision": "de8736f7c995ac54dc490345cef9ea5143c06c62",
+    "charon_sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+    "rust_toolchain": "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+    "lean": "leanprover/lean4:v4.35.0",
+    "lean_revision": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38"
+  },
+  "commands": {
+    "environment": "RUSTUP_HOME=/home/rozgo/.cache/lean-pilot/rustup; CARGO_HOME=/home/rozgo/.cache/lean-pilot/cargo; RUSTUP_TOOLCHAIN=nightly-2026-09-17-x86_64-unknown-linux-gnu; PATH includes Lean 4.35, Aeneas, pinned rustup toolchain, cargo bin, and /home/rozgo/.cargo/bin",
+    "rust_format": "cd proofs/selection/rust && cargo fmt --check --manifest-path Cargo.toml",
+    "rust_test": "cd proofs/selection/rust && cargo test --locked --manifest-path Cargo.toml --lib",
+    "rust_check_mutant": "cd proofs/selection/rust && cargo check --locked --manifest-path Cargo.toml --lib",
+    "charon": "cd proofs/selection/rust && charon cargo --preset=aeneas",
+    "aeneas": "cd proofs/selection/rust && aeneas -backend lean -dest ../ hub_selection_proof.llbc",
+    "lake_build": "cd proofs/selection && lake build",
+    "lean_proof": "cd proofs/selection && lake env lean LookupProof.lean",
+    "mutant_application": "From the disposable snapshot root: patch -p1 < proofs/selection/duplicate-mutant.patch"
+  },
+  "phases": {
+    "baseline_fresh_snapshot": {
+      "result": "pass",
+      "cargo_fmt": {"exit": 0, "seconds": 0.09},
+      "cargo_test": {"exit": 0, "passed": 2, "failed": 0, "seconds": 0.41},
+      "charon": {"exit": 0, "seconds": 0.28},
+      "aeneas": {"exit": 0, "wall_seconds": 0.96, "reported_seconds": 0.782164},
+      "fresh_generated_model_sha256": "949f66438af4be34f2c68ad5b83ab7ccf951538da60b2b436ec74866dad61951",
+      "lake_build": {"exit": 0, "seconds": 1.10, "jobs": 1800},
+      "lean_proof": {"exit": 0, "seconds": 3.04},
+      "axioms_for_all_five_new_theorems": ["propext", "Classical.choice", "Quot.sound"],
+      "sorryAx": false
+    },
+    "duplicate_return_mutant": {
+      "mutation": "On a repeated matching branch, return the prior Unique result rather than Ambiguous; the changed branch compiles as legal Rust.",
+      "mutant_kernel_sha256": "8f3ed017976cd273acd50236244635596c8a5448413061ba63957b84304bfe1f",
+      "cargo_check": {"exit": 0, "seconds": 0.06},
+      "rust_counterexample": {"expected_exit": 101, "actual_exit": 101, "seconds": 0.10, "observed": "Unique(42)", "expected": "Ambiguous"},
+      "charon": {"exit": 0, "seconds": 0.14},
+      "aeneas": {"exit": 0, "wall_seconds": 0.72, "reported_seconds": 0.559861},
+      "mutant_generated_model_sha256": "b0e8f5a9a86bf927a85f81205503c9550a41ff658d7d0806512f218e4e1a3cf3",
+      "generated_module_build": {"exit": 0, "seconds": 3.79},
+      "old_selection_proof": {"exit": 0, "seconds": 2.54},
+      "lookup_dependency_build": {"exit": 0, "seconds": 2.79},
+      "unchanged_lookup_proof": {
+        "expected_exit": 1,
+        "actual_exit": 1,
+        "seconds": 3.02,
+        "semantic_failure": "case pos.Unique has an unsolved False goal for duplicate classification",
+        "sorryAx_after_failed_elaboration": true
+      },
+      "note": "An initial direct Lean invocation before building SelectionProof failed with unknown module prefix; the dependency target was then built successfully before the recorded semantic failure."
+    },
+    "restored_fresh_snapshot": {
+      "result": "pass",
+      "cargo_fmt": {"exit": 0, "seconds": 0.02},
+      "cargo_test": {"exit": 0, "passed": 2, "failed": 0, "seconds": 0.13},
+      "charon": {"exit": 0, "seconds": 0.16},
+      "aeneas": {"exit": 0, "wall_seconds": 0.71, "reported_seconds": 0.541254},
+      "fresh_generated_model_sha256": "949f66438af4be34f2c68ad5b83ab7ccf951538da60b2b436ec74866dad61951",
+      "restored_kernel_sha256": "3f0b53882fd043a3292184d3e3f71799de77058175fcd58ef51f82ce7abfe7c1",
+      "lake_build": {"exit": 0, "seconds": 7.55, "jobs": 1800},
+      "lean_proof": {"exit": 0, "seconds": 3.04},
+      "axioms_for_all_five_new_theorems": ["propext", "Classical.choice", "Quot.sound"],
+      "sorryAx": false
+    }
+  },
+  "evidence_directory": ".cache/lean-pilot/lookup-evidence/final-validation",
+  "retained_log_sha256": {
+    "baseline/final-lean-proof.log": "b432ab146f31653e40746f405c54fc0da4b7decf560b35e6298c9a7ea7b21748",
+    "baseline/charon.log": "c3c74e0572ef53c0afd2d59a9da798c44eab3d3a77e2766e4c58cb0518852085",
+    "baseline/aeneas.log": "d6e0b1a7ceddf22ea360af06b8f6a66475cf8ea82032a25851154d62d46307da",
+    "mutant/cargo-check.log": "647ee9192784133c8bb6db983f0f7087ee59666b0328e6bcd585213764434264",
+    "mutant/generated-build.log": "cd92e00e2e53d30e5abcea0b199db2ba30c0136c81efad6fedeee65399d3f6d7",
+    "mutant/old-proof.log": "f47d21633597b97a71cb716508d89ba85750311525b505fc15dc591b22555ad1",
+    "mutant/new-proof.log": "b6140f6400a9b06fc2a89750671c59b06a49f06864111fdc47d75685ac8f08e6",
+    "mutant/rust-counterexample.log": "0961b69cc90d0dd6ee3ce0d1a40de8569e8097d08133a5e42849e2374b7c51da",
+    "restored/lean-proof.log": "020802738cb36c6979e6d2a76e59060a4b65c84b85ea5c5fdfe51c8053ed09fa",
+    "restored/charon.log": "52edb1026d1ddd78e7ee97a69158176549dbbcd6957c8501989a65eed8696d81",
+    "restored/aeneas.log": "bf1bba07d33b788a8a2dcea4047bfa38b17557ac212db9b9c02fa445610be5b9",
+    "restored/cargo-test.log": "bcb7d5649082b3c9dc3999dee18d623eb05e07ccfead50968867ba93a5b21739"
+  },
+  "setup_corrections": [
+    "The first baseline Charon invocation omitted /home/rozgo/.cargo/bin from PATH and exited 101 because Charon could not find rustup. Adding that existing path, without installing or changing tools, made Charon pass.",
+    "The first baseline Aeneas invocation used the proof directory rather than proofs/selection/rust as its working directory and exited 1 because the LLBC file was not found. Rerunning from the Rust crate directory with the documented command passed.",
+    "The first mutant direct proof invocation preceded building the SelectionProof dependency and exited 1 with unknown module prefix. After lake build SelectionProof passed, the unchanged lookup theorem failed at the expected duplicate-match False goal."
+  ],
+  "scope_boundary": "Three independent snapshots used isolated .lake/build directories and shared the pinned immutable Lake package cache. This validates the pure lookup kernel and its formal theorem correspondence; it is not a full Hub build, Docker gate, or deployment."
+}

@@ -10,4 +10,7 @@ package hubSelectionPilot
 @[default_target]
 lean_lib SelectionProof
 
+@[default_target]
+lean_lib LookupProof
+
 lean_lib HubSelectionProof

@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/execution/selection/kernel.rs
++++ b/crates/veoveo-hub/src/execution/selection/kernel.rs
+@@ -24,7 +24,7 @@
+         if candidate == branch {
+             match found {
+                 Matches::Missing => found = Matches::Unique(deployment),
+-                Matches::Unique(_) | Matches::Ambiguous => return Matches::Ambiguous,
++                Matches::Unique(_) | Matches::Ambiguous => return found,
+             }
+         }
+         index += 1;
