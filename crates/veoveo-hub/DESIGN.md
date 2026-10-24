@@ -970,6 +970,12 @@ written by whoever publishes the template; its first line is the version's summa
 OpenShell keeps a template's annotations through creation. What a version brings over
 another lists that note and, with or without one, the mechanical differences: a changed
 image, and each network rule's endpoints (`host:port` and any path) added or removed.
+The JSON status carries those differences as they are; the start and status pages say
+them for people: "The Computer's software was updated" for a new image, and where the
+Computer can now, or can no longer, connect, without image references or rule names.
+The status page says what the Computer is doing in plain words (running, starting,
+stopping, asleep after collection, or failed with its cause) and what the person can
+do; the JSON keeps the sandbox's phase.
 
 The installation's template is read when a Computer is entered, at most once in five
 seconds across entries, and compared by its object ID and resource version: OpenShell
