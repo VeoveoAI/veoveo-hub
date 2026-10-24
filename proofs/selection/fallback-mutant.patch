@@ -1,0 +1,17 @@
+--- a/crates/veoveo-hub/src/execution/selection/kernel.rs
++++ b/crates/veoveo-hub/src/execution/selection/kernel.rs
+@@ -41,7 +41,13 @@
+ ) -> Result<D, Failure<B>> {
+     match selected {
+         Some(branch) => match lookup(served, branch) {
+-            Matches::Missing => Err(Failure::SelectedMissing(branch)),
++            Matches::Missing => match base {
++                Some(fallback) => match lookup(served, fallback) {
++                    Matches::Unique(deployment) => Ok(deployment),
++                    _ => Err(Failure::SelectedMissing(branch)),
++                },
++                None => Err(Failure::SelectedMissing(branch)),
++            },
+             Matches::Unique(deployment) => Ok(deployment),
+             Matches::Ambiguous => Err(Failure::Ambiguous(branch)),
+         },

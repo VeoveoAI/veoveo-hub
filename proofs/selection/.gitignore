@@ -1,0 +1,6 @@
+.lake/
+rust/target/
+rust/*.llbc
+evidence/*.log
+evidence/implementation-final-*.json
+snapshots/

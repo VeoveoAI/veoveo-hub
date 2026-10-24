@@ -361,4 +361,14 @@ fn a_selection_routes_its_branch_and_never_falls_back() {
         ambiguous.unavailable[&slug("observatory")],
         Unavailable::Ambiguous(base.clone())
     );
+    let explicitly_ambiguous = select_instances(
+        configured,
+        &twice,
+        None,
+        &BTreeMap::from([(slug("observatory"), base.clone())]),
+    );
+    assert_eq!(
+        explicitly_ambiguous.unavailable[&slug("observatory")],
+        Unavailable::Ambiguous(base)
+    );
 }

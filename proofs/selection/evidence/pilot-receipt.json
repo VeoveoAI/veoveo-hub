@@ -1,0 +1,138 @@
+{
+  "pilot": "Hub selection kernel Aeneas-to-Lean proof and semantic mutant",
+  "host": "Linux x86_64 for Aeneas, Charon, Lean, Rust extraction and Hub adapter regression",
+  "source": {
+    "hub_base_revision": "3f2663d71fc5a87983d8a33a23c50a0d97aa25cb",
+    "diagnostic_archive_sha256": "39f8b9ddb1e0192846526674373bd8dff8083fe2e9bfa2dc50040a354d5f19fe",
+    "proof1_archive_sha256": "8cc9b6942dbb00264e6260dcd673afc0cfe9c399e2eba84a1d598596b2373fdf",
+    "final_v2_archive_sha256": "ebd50cfd0f574be34c2ff2b1485556526bb14e4089da92d0254bc16c3721d8bc",
+    "final_v2_manifest_sha256": "c5413c8da5f6178181acba817a209f876f64bdb2036215d713091a51b53e5ad6",
+    "changed_since_proof1": "Rust test harness only: proofs/selection/rust/src/lib.rs import/call qualification cleanup; README and portable Lake lock/manifest updates. Production kernel and Lean proof source are unchanged.",
+    "production_kernel_sha256": "3f0b53882fd043a3292184d3e3f71799de77058175fcd58ef51f82ce7abfe7c1",
+    "production_adapter_sha256": "a747f885afe0b50a2264864d88cd132cb05e034489199db69c51526cc88d2b1e",
+    "lean_proof_sha256": "dcbbb168a631c1c2ce44be69028a24239bbe6ac8d51b01f3ea384a8029ea1c23",
+    "generated_baseline_and_restored_lean_sha256": "949f66438af4be34f2c68ad5b83ab7ccf951538da60b2b436ec74866dad61951",
+    "generated_mutant_lean_sha256": "01828614e3b57421de0be65bebeb1accd70af71b7535d5a52a41b064f94bfa84",
+    "portable_lake_manifest_sha256": "82ce65b4816bee7c38816026cb387ebb2460460c95cc8947bb9cf7843fb0e3b8",
+    "aeneas_backend_lake_manifest_sha256": "14e04fb0abf42c95fabccc050f11715f9cb7e86316a26a55a87c89b95a72a5a3"
+  },
+  "toolchain": {
+    "aeneas_tag": "nightly-2026.10.23-fdebf20",
+    "aeneas_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "aeneas_linux_asset_sha256": "7601054b3cdd6b1af312057ead9490b93afbd8d466aac371cbaba26ddf6397eb",
+    "aeneas_binary_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "charon_revision": "de8736f7c995ac54dc490345cef9ea5143c06c62",
+    "charon_binary_sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+    "charon_driver_sha256": "0bbfebd1e1cc5715e9b3b85cea8a321c13fb07d218847b692243c9cad054a96d",
+    "rust_toolchain": "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+    "rustc": "1.100.0-nightly (923c95cdf 2026-09-16)",
+    "lean_pin": "leanprover/lean4:v4.35.0",
+    "lean_revision": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+    "lean_binary_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "lean_linux_asset_sha256": "7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d",
+    "installation_root": "/home/rozgo/.cache/lean-pilot/toolchain",
+    "isolated_rustup_home": "/home/rozgo/.cache/lean-pilot/rustup",
+    "isolated_cargo_home": "/home/rozgo/.cache/lean-pilot/cargo"
+  },
+  "commands": {
+    "environment": [
+      "RUSTUP_HOME=/home/rozgo/.cache/lean-pilot/rustup",
+      "CARGO_HOME=/home/rozgo/.cache/lean-pilot/cargo",
+      "RUSTUP_TOOLCHAIN=nightly-2026-09-17-x86_64-unknown-linux-gnu",
+      "PATH=/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release:/home/rozgo/.cache/lean-pilot/rustup/toolchains/nightly-2026-09-17-x86_64-unknown-linux-gnu/bin:/home/rozgo/.cache/lean-pilot/cargo/bin:/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin:$PATH"
+    ],
+    "extract": [
+      "cd proofs/selection/rust && charon cargo --preset=aeneas",
+      "cd proofs/selection/rust && aeneas -backend lean -dest ../ hub_selection_proof.llbc"
+    ],
+    "proof": [
+      "cd proofs/selection && lake build",
+      "cd proofs/selection && lake env lean SelectionProof.lean"
+    ],
+    "format_and_rust": [
+      "rustfmt --edition 2024 --check crates/veoveo-hub/src/execution/selection.rs crates/veoveo-hub/src/execution/tests.rs crates/veoveo-hub/src/execution/selection/kernel.rs",
+      "cd proofs/selection/rust && cargo fmt --check",
+      "cd proofs/selection/rust && cargo test --locked --lib"
+    ],
+    "focused_hub_regression": "cargo test --locked -p veoveo-hub --lib a_selection_routes_its_branch_and_never_falls_back"
+  },
+  "phases": {
+    "baseline": {
+      "charon_exit": 0,
+      "charon_wall_seconds": 16,
+      "aeneas_exit": 0,
+      "aeneas_reported_seconds": 0.57291,
+      "lake_build_exit": 0,
+      "lake_build_plus_explicit_proof_wall_seconds": 84,
+      "lean_proof_exit": 0,
+      "axioms": ["propext", "Classical.choice", "Quot.sound"],
+      "generated_sha256": "949f66438af4be34f2c68ad5b83ab7ccf951538da60b2b436ec74866dad61951"
+    },
+    "mutant": {
+      "cargo_check_exit": 0,
+      "cargo_check_reported_seconds": 0.25,
+      "rust_counterexample_exit": 101,
+      "rust_counterexample": "expected Err(SelectedMissing(2)); observed Ok(42)",
+      "charon_exit": 0,
+      "aeneas_exit": 0,
+      "aeneas_reported_seconds": 0.565032,
+      "generated_sha256": "01828614e3b57421de0be65bebeb1accd70af71b7535d5a52a41b064f94bfa84",
+      "generated_lean_build_exit": 0,
+      "generated_lean_build_reported_seconds": 1.9,
+      "full_lake_build_exit": 1,
+      "lean_proof_exit": 1,
+      "failing_goals": ["explicit_selection_ignores_base", "missing_selection_is_unavailable"],
+      "sorryAx": "appeared in theorem axiom output only after the expected failed elaboration"
+    },
+    "restored": {
+      "rust_test_exit": 0,
+      "rust_test_passed": 1,
+      "charon_exit": 0,
+      "aeneas_exit": 0,
+      "aeneas_reported_seconds": 0.561419,
+      "generated_sha256": "949f66438af4be34f2c68ad5b83ab7ccf951538da60b2b436ec74866dad61951",
+      "lake_build_exit": 0,
+      "lake_build_wall_seconds": 6,
+      "lean_proof_exit": 0,
+      "lean_proof_wall_seconds": 2,
+      "sorryAx": false
+    },
+    "final_v2_format_and_test": {
+      "source_lib_sha256": "34acf50b92354a965acac894d38a1645f96df0b05d736c4e4d09413c5381d5a9",
+      "cargo_fmt_check_exit": 0,
+      "cargo_test_exit": 0,
+      "tests_passed": 1,
+      "test_reported_seconds": 0.12,
+      "wall_seconds": 3.7
+    },
+    "production_rustfmt": {"exit": 0},
+    "focused_hub_regression": {
+      "image": "veoveo-hub-check:e0-v5",
+      "image_id": "e23a1c31e474",
+      "host": "Linux x86_64",
+      "rustc": "1.99.0 (b940084d7 2026-09-28)",
+      "exit": 0,
+      "tests_passed": 1,
+      "tests_filtered": 240,
+      "wall_seconds": 63,
+      "execution": "ephemeral container, frozen Git archive plus final-v2 overlay, network enabled only for missing pinned Git dependency fetch, existing image target cache reused; container removed after test"
+    }
+  },
+  "evidence_dir": ".cache/lean-pilot/evidence",
+  "important_log_sha256": {
+    "baseline_charon.log": "16728e190f62b9da5f6432f41fbed29ba989328bb5f7b2327639079a8167e37d",
+    "baseline_aeneas.log": "a420c35dfb5cbc9e2bf9dc1b91c26bca494cf2d974e96ded6cc8ae1d0619bd64",
+    "baseline_lake_build.log": "252db31d9e102b04e6321be7d3b8394973e13bb49229e2a2c935adb95af4873e",
+    "baseline_proof.log": "b10e3f517a587c3ac56e0ab618cc100578c9ed2b22f4766efa09d4bdd9727ade",
+    "mutant_cargo_check.log": "7004df608a9b9bdd2231fb677354927b055bf261ff64c1768319c50c137c7b2b",
+    "mutant_rust_counterexample.log": "9ef4cc0cdfe6a497333f148c830b1a4aadf032cd6be9f880a8f3b5de0b141b30",
+    "mutant_charon.log": "943b768ed13ec68e52eb3864897a20d6e2e905cbea238f33c8a6e6f462ca5e97",
+    "mutant_aeneas.log": "ee3c09db92abef47fadd10d58c8675fecd19507866c50e1067073cdff00ddefa",
+    "mutant_lake_build.log": "0ab758f533d33e369a4c24a636089b61a2ac00e6b615740ac04614a266897403",
+    "mutant_proof_direct.log": "ff54c12411c135bbdc1597b0ac4bf17689a4a3603a6b879810fbbe9d81263a6f",
+    "restored_cargo_test.log": "b5a6976e52f40f9cb8b77c252c80884810dcfe91b401ff2ed5f6d41544e4de97",
+    "restored_lake_build.log": "b5d1348ae4e863223b1ca581d5d94b51f83c365ebb6cf3dc8e1666e7b27ba789",
+    "restored_proof.log": "b10e3f517a587c3ac56e0ab618cc100578c9ed2b22f4766efa09d4bdd9727ade",
+    "hub_adapter_regression.log": "930a4da1447fc16d82d77682f38342b83e7d678990e788a92e2d7a9b60ceea39"
+  }
+}

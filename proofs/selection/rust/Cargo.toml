@@ -1,0 +1,9 @@
+[package]
+name = "hub-selection-proof"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Intentionally independent: extraction uses Charon's compiler, not Hub's toolchain
+# or dependency graph. The production code itself is shared through #[path].
+[workspace]

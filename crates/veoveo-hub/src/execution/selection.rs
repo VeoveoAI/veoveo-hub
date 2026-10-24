@@ -8,6 +8,8 @@ use veoveo_hub_sdk::{
 use super::{BranchName, EnvironmentBase, ExecutionError};
 use crate::{AuthenticatedSubject, HubCatalog, HubState, registration::RegistrationSnapshot};
 
+mod kernel;
+
 #[derive(Debug, thiserror::Error)]
 pub enum ExecutionAdmissionError {
     #[error("MCP execution routing requires an explicitly configured default environment")]
@@ -162,15 +164,10 @@ fn instance(
     selected: Option<&BranchName>,
     base: Option<&BranchName>,
 ) -> Result<DeploymentId, Unavailable> {
-    let (branch, missing) = match (selected, base) {
-        (Some(branch), _) => (branch, Unavailable::Selected(branch.clone())),
-        (None, Some(branch)) => (branch, Unavailable::Base(branch.clone())),
-        (None, None) => return Err(Unavailable::NoBaseBranch),
-    };
-    let mut matching = served.iter().filter(|(served, _)| *served == branch);
-    match (matching.next(), matching.next()) {
-        (Some((_, deployment)), None) => Ok(*deployment),
-        (None, _) => Err(missing),
-        (Some(_), Some(_)) => Err(Unavailable::Ambiguous(branch.clone())),
-    }
+    kernel::resolve(served, selected, base).map_err(|cause| match cause {
+        kernel::Failure::SelectedMissing(branch) => Unavailable::Selected(branch.clone()),
+        kernel::Failure::BaseMissing(branch) => Unavailable::Base(branch.clone()),
+        kernel::Failure::NoBase => Unavailable::NoBaseBranch,
+        kernel::Failure::Ambiguous(branch) => Unavailable::Ambiguous(branch.clone()),
+    })
 }

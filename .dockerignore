@@ -4,3 +4,9 @@ target
 .env.*
 **/.env
 **/.env.*
+proofs/selection/.lake
+proofs/selection/rust/target
+proofs/selection/rust/*.llbc
+proofs/selection/evidence/*.log
+proofs/selection/evidence/implementation-final-*.json
+proofs/selection/snapshots
