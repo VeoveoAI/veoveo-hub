@@ -73,12 +73,10 @@ Context. Different deployments can project the same opaque source Task ID withou
 colliding. Current registration of the exact immutable deployment may resume after
 a process restart; no lookup substitutes the newest registration of another deployment.
 
-A Task's current request can select a different environment. After owner/provenance
-checks, Task routing restores the original retained composition and checks current
-access to that captured environment. Current base ancestry is irrelevant to the old
-capture. Current component/data policy still applies, and a delegated request must
-already carry the same capture. Revoked captured-environment access cannot be
-recovered by selecting another environment containing the same deployment.
+A Task's current request can route a slug to another deployment. After
+owner/provenance checks, Task routing restores the original retained composition, so a
+Task keeps the deployment that created it. Current component/data policy still
+applies, and a delegated request must already carry the same capture.
 Listeners are keyed by logical server, deployment and composition, so one request
 can retain old Task streams while its current catalog selects a replacement. A live
 catalog publication completes the listen after an invalidation hint; reconnect

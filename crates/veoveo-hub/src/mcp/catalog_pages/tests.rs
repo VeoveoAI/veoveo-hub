@@ -174,10 +174,12 @@ fn duplicate_upstream_identities_are_rejected_instead_of_hidden_by_pagination() 
 #[test]
 fn a_catalog_cursor_cannot_continue_in_another_composition() {
     let first = page((0..205).map(template).collect(), None).unwrap();
-    let different = veoveo_hub_sdk::ResolvedComposition::new(
-        veoveo_hub_sdk::EnvironmentId::new(),
-        std::collections::BTreeMap::new(),
-    );
+    let different = veoveo_hub_sdk::ResolvedComposition::new(std::collections::BTreeMap::from([(
+        veoveo_hub_sdk::ServerSlug::parse("observatory").unwrap(),
+        veoveo_hub_sdk::ResolvedComponent::Deployment {
+            deployment: veoveo_hub_sdk::DeploymentId::new(),
+        },
+    )]));
     assert!(
         super::page(
             (0..205).map(template).collect(),

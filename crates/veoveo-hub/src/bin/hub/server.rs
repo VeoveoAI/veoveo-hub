@@ -461,10 +461,6 @@ async fn dynamic_mcp_profile(
     if snapshot.catalog().profile(&profile_id).is_none() {
         return StatusCode::NOT_FOUND.into_response();
     }
-    let selector = match environment_selector(request.headers()) {
-        Ok(selector) => selector,
-        Err(problem) => return problem.into_response(),
-    };
     let Some(mut subject) = request
         .extensions()
         .get::<veoveo_hub::AuthenticatedSubject>()
@@ -476,33 +472,18 @@ async fn dynamic_mcp_profile(
         &state.hub_state,
         snapshot.catalog(),
         &mut subject,
-        selector,
     )
     .await
     {
         Ok(admitted) => admitted,
         Err(error) => {
-            let forbidden = matches!(
-                error,
-                veoveo_hub::execution::ExecutionAdmissionError::Selection(_)
-            );
-            if !forbidden {
-                tracing::error!(%error, "execution selection unavailable");
-            }
-            let (status, code, title) = if forbidden {
-                (
-                    StatusCode::FORBIDDEN,
-                    "execution-selection-denied",
-                    "Execution selection denied",
-                )
-            } else {
-                (
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    "execution-unavailable",
-                    "Execution unavailable",
-                )
-            };
-            return veoveo_hub::problem::Problem::new(status, code, title).into_response();
+            tracing::error!(%error, "execution routing unavailable");
+            return veoveo_hub::problem::Problem::new(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "execution-unavailable",
+                "Execution unavailable",
+            )
+            .into_response();
         }
     };
     let client = subject.access_token.oauth_client_id.clone();
@@ -527,29 +508,6 @@ async fn dynamic_mcp_profile(
         .oneshot(request)
         .await
         .into_response()
-}
-
-fn environment_selector(
-    headers: &axum::http::HeaderMap,
-) -> Result<Option<veoveo_hub_sdk::EnvironmentSelector>, veoveo_hub::problem::Problem> {
-    let invalid = || {
-        veoveo_hub::problem::Problem::new(
-            StatusCode::BAD_REQUEST,
-            "invalid-environment-selector",
-            "Invalid environment selector",
-        )
-    };
-    let mut values = headers.get_all(veoveo_hub_sdk::ENVIRONMENT_HEADER).iter();
-    let Some(value) = values.next() else {
-        return Ok(None);
-    };
-    if values.next().is_some() {
-        return Err(invalid());
-    }
-    let value = value.to_str().map_err(|_| invalid())?;
-    veoveo_hub_sdk::EnvironmentSelector::parse(value)
-        .map(Some)
-        .map_err(|_| invalid())
 }
 
 fn build_profile_mcp_service(state: &DynamicMcpState, hub_mcp: HubMcp) -> Router {
@@ -595,40 +553,6 @@ async fn readyz(State(state): State<AppState>) -> axum::response::Response {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn environment_selection_has_one_typed_untrusted_header() {
-        use axum::http::{HeaderMap, HeaderValue};
-        use veoveo_hub_sdk::{ENVIRONMENT_HEADER, EnvironmentId};
-        let mut headers = HeaderMap::new();
-        assert!(environment_selector(&headers).unwrap().is_none());
-        let environment = EnvironmentId::new();
-        headers.insert(
-            ENVIRONMENT_HEADER,
-            HeaderValue::from_str(&environment.to_string()).unwrap(),
-        );
-        assert_eq!(
-            environment_selector(&headers)
-                .unwrap()
-                .unwrap()
-                .environment(),
-            environment
-        );
-        headers.append(
-            ENVIRONMENT_HEADER,
-            HeaderValue::from_static("019a5b30-0000-7000-8000-000000000001"),
-        );
-        assert!(environment_selector(&headers).is_err());
-        headers.insert(ENVIRONMENT_HEADER, HeaderValue::from_static("production"));
-        assert!(environment_selector(&headers).is_err());
-        headers.insert(
-            ENVIRONMENT_HEADER,
-            HeaderValue::from_static(
-                "019a5b30-0000-7000-8000-000000000001,019a5b30-0000-7000-8000-000000000002",
-            ),
-        );
-        assert!(environment_selector(&headers).is_err());
-    }
 
     #[test]
     fn production_allowed_hosts_use_public_authority_only() {

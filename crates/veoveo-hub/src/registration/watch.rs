@@ -12,11 +12,11 @@ use futures::StreamExt;
 use tokio_util::sync::CancellationToken;
 use veoveo_hub_sdk::registration::ClientMetadata;
 use veoveo_store::ChangeSignal;
-use veoveo_types::{DeploymentId, OAuthClientId};
+use veoveo_types::{DeploymentId, OAuthClientId, ServerSlug};
 
 use super::{
     RegisteredServer, RegistrationService, RegistrationSnapshot, ServerCapabilities,
-    store::StoredRegistration,
+    snapshot::Namespace, store::StoredRegistration,
 };
 use crate::{HubServerHealth, HubServerHealthState};
 
@@ -33,6 +33,8 @@ pub(crate) struct LiveRegistrations {
     /// The client and metadata of every routed server, to replace the catalog only
     /// when routing changes.
     routed: Vec<(OAuthClientId, ClientMetadata)>,
+    /// The slugs with deployments set aside, as last logged.
+    set_aside: BTreeMap<ServerSlug, Namespace>,
 }
 
 impl RegistrationService {
@@ -92,8 +94,9 @@ impl RegistrationService {
         }
     }
 
-    /// Retain every deployment. A process can resume the same deployment;
-    /// a different deployment never takes over another environment's logical route.
+    /// Retain every deployment, each by its newest registration. A slug whose
+    /// deployments that are not instances have several registered routes to the newest;
+    /// the others are set aside, which is logged once each time it changes.
     fn route(&self) {
         let mut live = self.inner.live.write();
         let mut chosen: BTreeMap<DeploymentId, &StoredRegistration> = BTreeMap::new();
@@ -118,6 +121,32 @@ impl RegistrationService {
             servers = ?snapshot.iter().map(|server| server.slug.as_str()).collect::<Vec<_>>(),
             "registered servers changed"
         );
+        let set_aside: BTreeMap<ServerSlug, Namespace> = snapshot
+            .namespaces()
+            .iter()
+            .filter(|(_, namespace)| !namespace.set_aside.is_empty())
+            .map(|(slug, namespace)| (slug.clone(), namespace.clone()))
+            .collect();
+        for (slug, namespace) in &set_aside {
+            if live.set_aside.get(slug) != Some(namespace) {
+                tracing::warn!(
+                    server = %slug,
+                    routed = %namespace.routed,
+                    set_aside = ?namespace.set_aside,
+                    "several deployments of a server are registered; requests route to the newest"
+                );
+            }
+        }
+        for (slug, namespace) in &live.set_aside {
+            if !set_aside.contains_key(slug) {
+                tracing::info!(
+                    server = %slug,
+                    previously_set_aside = ?namespace.set_aside,
+                    "one deployment of a server is registered again"
+                );
+            }
+        }
+        live.set_aside = set_aside;
         live.routed = routed;
         drop(live);
         self.inner.catalog.replace_registrations(snapshot);
@@ -236,5 +265,6 @@ fn registered(row: &StoredRegistration) -> RegisteredServer {
         authorization: Arc::new(row.metadata.authorization.clone()),
         capabilities: ServerCapabilities::from_declaration(&row.metadata.authorization),
         branch: row.branch.clone(),
+        registered_at: row.issued_at,
     }
 }

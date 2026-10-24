@@ -171,7 +171,6 @@ async fn qualify() {
     )
     .unwrap();
     let _registered = registration.register().await.unwrap();
-    hub.enroll(registration.metadata()).await;
 
     let (opened, mut openings) = mpsc::unbounded_channel();
     let (cuts, mut cut_streams) = mpsc::unbounded_channel();

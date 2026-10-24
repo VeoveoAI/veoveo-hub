@@ -29,15 +29,8 @@ Neither its code nor its configuration names a server.
 
 ## Execution Composition And Deployment Identity
 
-The live control plane's `execution` section is an internal routing output. It
-declares an explicit default, owned environments, optional pinned or following
-bases, and owned logical-component selections. A missing component inherits; an
-explicit `unavailable` selection does not fall back. Display names convey no
-authority. Fresh selection checks tenant, reader/owner and base-sharing access;
-cycles and missing references are rejected. A pin shares one retained readable
-composition, rather than recomposing its current ancestors. Deployment references
-and pins are admitted before publication; health is checked at use, so temporary
-target failure cannot block an unrelated revision.
+There are no named environments. The live control plane's `execution` section holds
+only `baseBranch`; routing comes from registrations and each principal's selection.
 
 RFC 7591 metadata carries a deployment ID. A deployment registers either with the
 installation's registration secret under the key its logical namespace is pinned
@@ -46,28 +39,36 @@ receives the namespace's explicit `shared_logical_schema` storage binding. Share
 schema is an explicit data binding, not owner isolation. A registration of a
 namespace deployment with new metadata, under the pinned key, replaces its contract,
 endpoint and storage, and an instance's every registration replaces them, key
-included. Registrations and health remain independent per deployment; a namespace
-registration alone never selects a serving component, and an instance serves through
-selection.
+included. Registrations and health remain independent per deployment.
 
-Each authenticated stateless MCP operation admits at most one `veoveo-environment`
-header, an untrusted typed selector, or uses the configured default. The resource
-URL stays `/mcp/{profile}`. The Hub resolves and retains the SDK's canonical immutable
-composition once, then selects exact registered deployments for all surfaces.
-Signed downstream context keeps this same capture while the target deployment
-changes per hop. Descriptor caches and catalog continuation are scoped to that
-composition; a continuation from another composition is refused. Domain collection
-cursors remain owned by their servers. HTTP pools use deployment plus endpoint.
-Publication hints complete existing listens normally, requiring native re-listen
-and current admission instead of silently keeping a stale selection alive.
+Registering is serving: no enrollment step publishes a deployment. A slug with no
+instances routes to its deployment that has registrations. When several deployments
+of one slug have them, the newest registration wins: the others are set aside, not
+made unavailable, so moving to a new deployment needs no gap. Each replica logs one
+WARN naming the slug, the deployment it routes to and the ones it set aside, and
+logs again only when that changes, with an INFO once one deployment remains. Our
+redeploys keep their deployment ID, so this happens only when a new deployment
+replaces an old one.
+
+Each authenticated stateless MCP operation routes on its own; a client selects
+nothing, and the retired `veoveo-environment` header is ignored. The resource URL
+stays `/mcp/{profile}`. The Hub resolves and retains the SDK's canonical immutable
+composition (`formatVersion` 2, from slug to deployment) once, then selects exact
+registered deployments for all surfaces. Signed downstream context keeps this same
+capture while the target deployment changes per hop. Descriptor caches and catalog
+continuation are scoped to that composition; a continuation from another composition
+is refused. Domain collection cursors remain owned by their servers. HTTP pools use
+deployment plus endpoint. Publication hints complete existing listens normally,
+requiring native re-listen and current admission instead of silently keeping a stale
+selection alive.
 
 Each authenticated principal's selection, `hub.selection`, names a branch per
-server. A fresh admission starts from the environment's composition; each server
-that has registered instances, or that the selection names, then routes to the
-instance of the selected branch, or else of the configured `execution.baseBranch`.
-When that instance is missing, when several instances serve that branch, or when no
-base branch is configured, the component is `unavailable`, never another branch or
-the configured component, and a tool call to that server answers with the cause.
+server. Each server that has registered instances, or that the selection names,
+routes to the instance of the selected branch, or else of the configured
+`execution.baseBranch`, instead of its registered deployment. When that instance is
+missing, when several instances serve that branch, or when no base branch is
+configured, the component is `unavailable`, never another branch or the server's
+other deployment, and a tool call to that server answers with the cause.
 `PUT /selection/{profile}/{server}` with `{"branch": "…"}` and `DELETE` of the same
 path change the caller's own selection and nothing else, so authentication is their
 only check; a delegated caller changes the selection of the principal it carries.
@@ -77,17 +78,17 @@ completes only that principal's open listens with a list-changed hint.
 Tasks persist exact deployment and composition before the projected response.
 A native retry of the same Task preserves its first capture. Later reads, changes,
 cancellation, delegated work and re-listened Task filters use that capture while
-checking current selected-environment access and component/data policy. Editing
-current selection or base ancestry cannot retarget retained work. Revoking access
-to the captured environment denies it even if another readable environment selects
-the same deployment. Current native destination bindings remain authoritative: old
-bindings must be retained while work drains; explicit withdrawal makes that work
-unavailable and is never undone from historical provenance. Core's independent
-Task deployment affinity prevents same-namespace workers sharing a schema from
-claiming or recovering one another's work.
+checking current component/data policy, so a newer registration or a selection change
+cannot retarget retained work. Current native destination bindings remain
+authoritative: old bindings must be retained while work drains; explicit withdrawal
+makes that work unavailable and is never undone from historical provenance. Core's
+independent Task deployment affinity prevents same-namespace workers sharing a schema
+from claiming or recovering one another's work. Migration `0026` drops the
+environment columns of `hub.execution_composition` and `hub.task_route` and removes
+their rows, whose version 1 records no longer read.
 
-This boundary does not build or run deployments; routing outputs enter through
-control-plane publication, instance registrations and selection. Public provider callbacks need their own
+This boundary does not build or run deployments; routing inputs enter through
+registrations, instance registrations and selection. Public provider callbacks need their own
 deployment-qualified ingress proof; MCP routing alone does not establish it.
 
 ## Process

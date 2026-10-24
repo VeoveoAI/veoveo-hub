@@ -322,7 +322,6 @@ impl DelegationService {
             &self.inner.hub,
             snapshot.catalog(),
             &mut authenticated,
-            None,
         )
         .await
         .map_err(|error| {

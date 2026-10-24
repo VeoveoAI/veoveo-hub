@@ -4,11 +4,6 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HubControlPlaneError {
-    InvalidExecution(crate::execution::ExecutionError),
-    UnknownEnvironmentTenant {
-        environment: veoveo_hub_sdk::EnvironmentId,
-        tenant: TenantId,
-    },
     InvalidComputers(&'static str),
     InvalidFactory(&'static str),
     DuplicateRole(veoveo_types::RoleId),
@@ -270,14 +265,6 @@ impl AuthorizationServerEndpoint {
 impl fmt::Display for HubControlPlaneError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidExecution(error) => write!(f, "invalid execution configuration: {error}"),
-            Self::UnknownEnvironmentTenant {
-                environment,
-                tenant,
-            } => write!(
-                f,
-                "execution environment {environment} names unknown tenant {tenant}"
-            ),
             Self::InvalidComputers(reason) => {
                 write!(f, "invalid Computers configuration: {reason}")
             }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    r.id,\n    r.tenant AS \"tenant: TenantId\",\n    r.owner AS \"owner: PrincipalId\",\n    r.work_context AS \"work_context: WorkContextId\",\n    r.profile,\n    r.server,\n    r.deployment,\n    r.environment,\n    r.composition,\n    r.source_task_id,\n    r.authority_digest,\n    p.principal_key AS owner_key,\n    r.owner_kind AS \"owner_kind: PrincipalKind\",\n    r.owner_issuer,\n    r.owner_subject,\n    r.invocation_mode,\n    r.initiator,\n    r.delegation_id,\n    r.data_labels,\n    r.expires_at\nFROM hub.task_route AS r\nJOIN identity.principal AS p ON p.id = r.owner AND p.tenant = r.tenant\nWHERE r.server = $1 AND r.source_task_id = $2 AND r.owner = $3 AND r.profile = $4 AND r.tenant = $5\n    AND r.deployment = $6\n",
+  "query": "SELECT\n    r.id,\n    r.tenant AS \"tenant: TenantId\",\n    r.owner AS \"owner: PrincipalId\",\n    r.work_context AS \"work_context: WorkContextId\",\n    r.profile,\n    r.server,\n    r.deployment,\n    r.composition,\n    r.source_task_id,\n    r.authority_digest,\n    p.principal_key AS owner_key,\n    r.owner_kind AS \"owner_kind: PrincipalKind\",\n    r.owner_issuer,\n    r.owner_subject,\n    r.invocation_mode,\n    r.initiator,\n    r.delegation_id,\n    r.data_labels,\n    r.expires_at\nFROM hub.task_route AS r\nJOIN identity.principal AS p ON p.id = r.owner AND p.tenant = r.tenant\nWHERE r.server = $1 AND r.source_task_id = $2 AND r.owner = $3 AND r.profile = $4 AND r.tenant = $5\n    AND r.deployment = $6\n",
   "describe": {
     "columns": [
       {
@@ -82,17 +82,6 @@
       },
       {
         "ordinal": 7,
-        "name": "environment",
-        "type_info": "Uuid",
-        "origin": {
-          "Table": {
-            "table": "hub.task_route",
-            "name": "environment"
-          }
-        }
-      },
-      {
-        "ordinal": 8,
         "name": "composition",
         "type_info": "Text",
         "origin": {
@@ -103,7 +92,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "source_task_id",
         "type_info": "Text",
         "origin": {
@@ -114,7 +103,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "authority_digest",
         "type_info": "Text",
         "origin": {
@@ -125,7 +114,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "owner_key",
         "type_info": "Text",
         "origin": {
@@ -136,7 +125,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "owner_kind: PrincipalKind",
         "type_info": "Text",
         "origin": {
@@ -147,7 +136,7 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 12,
         "name": "owner_issuer",
         "type_info": "Text",
         "origin": {
@@ -158,7 +147,7 @@
         }
       },
       {
-        "ordinal": 14,
+        "ordinal": 13,
         "name": "owner_subject",
         "type_info": "Text",
         "origin": {
@@ -169,7 +158,7 @@
         }
       },
       {
-        "ordinal": 15,
+        "ordinal": 14,
         "name": "invocation_mode",
         "type_info": "Text",
         "origin": {
@@ -180,7 +169,7 @@
         }
       },
       {
-        "ordinal": 16,
+        "ordinal": 15,
         "name": "initiator",
         "type_info": "Text",
         "origin": {
@@ -191,7 +180,7 @@
         }
       },
       {
-        "ordinal": 17,
+        "ordinal": 16,
         "name": "delegation_id",
         "type_info": "Text",
         "origin": {
@@ -202,7 +191,7 @@
         }
       },
       {
-        "ordinal": 18,
+        "ordinal": 17,
         "name": "data_labels",
         "type_info": "TextArray",
         "origin": {
@@ -213,7 +202,7 @@
         }
       },
       {
-        "ordinal": 19,
+        "ordinal": 18,
         "name": "expires_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -250,12 +239,11 @@
       false,
       false,
       false,
-      false,
       true,
       true,
       false,
       false
     ]
   },
-  "hash": "3bf36e2e443aabf0de45c42ea42de358e660bb1b39326caafa55eb23627b5ce1"
+  "hash": "3b6165058c1f982c35a0b32c7010e1f50b8daa90fb05392bebad9747181e27b1"
 }
