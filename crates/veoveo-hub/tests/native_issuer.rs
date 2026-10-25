@@ -408,14 +408,38 @@ async fn qualify() {
         .as_array_mut()
         .unwrap()
         .retain(|a| a["principal"] != "native-user");
-    let response = http
+    // A publication names the revision it is based on; without it nothing changes.
+    let unconditional = http
         .put(format!("{}/admin/local/control-plane", hub.base))
         .bearer_auth(&admin)
         .json(&replacement)
         .send()
         .await
         .unwrap();
+    assert_eq!(
+        unconditional.status(),
+        reqwest::StatusCode::PRECONDITION_REQUIRED
+    );
+    let read = hub.control_plane_tag().await;
+    let response = http
+        .put(format!("{}/admin/local/control-plane", hub.base))
+        .bearer_auth(&admin)
+        .header(reqwest::header::IF_MATCH, &read)
+        .json(&replacement)
+        .send()
+        .await
+        .unwrap();
     assert_eq!(response.status(), reqwest::StatusCode::OK);
+    // The revision it was based on is no longer active: a stale document is refused.
+    let stale = http
+        .put(format!("{}/admin/local/control-plane", hub.base))
+        .bearer_auth(&admin)
+        .header(reqwest::header::IF_MATCH, &read)
+        .json(&replacement)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(stale.status(), reqwest::StatusCode::PRECONDITION_FAILED);
     // The same running process immediately uses the newly published assignments.
     let (_, refused) = form(
         &http,
@@ -449,12 +473,30 @@ async fn qualify() {
     let mut right = replacement;
     right["metadata"]["publisher"] = json!("right");
     let endpoint = format!("{}/admin/local/control-plane", hub.base);
+    // Two publications based on the same revision: one becomes active, the other is
+    // refused, so neither overwrites the other unseen.
+    let based_on = hub.control_plane_tag().await;
     let (one, two) = tokio::join!(
-        http.put(&endpoint).bearer_auth(&admin).json(&left).send(),
-        http.put(&endpoint).bearer_auth(&admin).json(&right).send()
+        http.put(&endpoint)
+            .bearer_auth(&admin)
+            .header(reqwest::header::IF_MATCH, &based_on)
+            .json(&left)
+            .send(),
+        http.put(&endpoint)
+            .bearer_auth(&admin)
+            .header(reqwest::header::IF_MATCH, &based_on)
+            .json(&right)
+            .send()
     );
-    assert_eq!(one.unwrap().status(), reqwest::StatusCode::OK);
-    assert_eq!(two.unwrap().status(), reqwest::StatusCode::OK);
+    let mut statuses = [one.unwrap().status(), two.unwrap().status()];
+    statuses.sort();
+    assert_eq!(
+        statuses,
+        [
+            reqwest::StatusCode::OK,
+            reqwest::StatusCode::PRECONDITION_FAILED
+        ]
+    );
     let observed: Value = http
         .get(&endpoint)
         .bearer_auth(&admin)

@@ -6,7 +6,7 @@ use veoveo_hub::contract::HubAction;
 use axum::{
     Json,
     extract::{Extension, Path as AxumPath, State},
-    http::StatusCode,
+    http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use chrono::Utc;
@@ -136,7 +136,10 @@ pub(crate) async fn read_control_plane(
         return internal_error_response(err);
     }
 
-    Json(ControlPlaneReadResult {
+    let entity_tag = revision_id
+        .as_ref()
+        .and_then(|revision_id| HeaderValue::from_str(&entity_tag(revision_id)).ok());
+    let mut response = Json(ControlPlaneReadResult {
         status: "ok",
         revision_id,
         sha256,
@@ -144,13 +147,32 @@ pub(crate) async fn read_control_plane(
         profiles: catalog.profile_count(),
         control_plane: catalog.control_plane().clone(),
     })
-    .into_response()
+    .into_response();
+    if let Some(entity_tag) = entity_tag {
+        response.headers_mut().insert(header::ETAG, entity_tag);
+    }
+    response
+}
+
+/// A revision as a strong entity tag, RFC 9110 §8.8.3.
+fn entity_tag(revision_id: &HubControlPlaneRevisionId) -> String {
+    format!("\"{revision_id}\"")
+}
+
+/// The revision `If-Match` names, RFC 9110 §13.1.1: one strong entity tag. `None` when
+/// the header is absent, or names a weak tag, a list or `*`, none of which names the one
+/// revision a publication succeeds.
+pub(crate) fn expected_revision(headers: &HeaderMap) -> Option<String> {
+    let value = headers.get(header::IF_MATCH)?.to_str().ok()?.trim();
+    let tag = value.strip_prefix('"')?.strip_suffix('"')?;
+    (!tag.is_empty() && !tag.contains(['"', ','])).then(|| tag.to_owned())
 }
 
 pub(crate) async fn update_control_plane(
     State(state): State<AdminState>,
     AxumPath(profile): AxumPath<String>,
     Extension(subject): Extension<AuthenticatedSubject>,
+    headers: HeaderMap,
     RequestJson(control_plane): RequestJson<HubControlPlane>,
 ) -> Response {
     // The durable publication and this process's swap are one ordered operation.
@@ -172,6 +194,71 @@ pub(crate) async fn update_control_plane(
     {
         Ok(authorized) => authorized,
         Err(response) => return *response,
+    };
+    let precondition_failure = |status, failure| AdminOperationAuditRecord {
+        audit_target: None,
+        action: HubAction::AdminWrite.into(),
+        operation: AdministrativeOperation::ControlPlane,
+        started_at,
+        status,
+        failure: Some(failure),
+    };
+    let Some(expected) = expected_revision(&headers) else {
+        if let Err(audit_err) = record_admin_operation_audit(
+            &state,
+            &profile,
+            &subject,
+            precondition_failure(
+                AdminOperationStatus::Rejected,
+                AdminOperationFailure::RevisionPrecondition,
+            ),
+        )
+        .await
+        {
+            return internal_error_response(audit_err);
+        }
+        return veoveo_hub::problem::Problem::new(
+            StatusCode::PRECONDITION_REQUIRED,
+            "control-plane-precondition-required",
+            "Control plane precondition required",
+        )
+        .detail("name the revision this document is based on as If-Match: \"<revisionId>\"")
+        .into_response();
+    };
+    let active = match state.control_store.load_active_revision().await {
+        Ok(active) => active,
+        Err(err) => {
+            if let Err(audit_err) = record_admin_operation_audit(
+                &state,
+                &profile,
+                &subject,
+                precondition_failure(
+                    AdminOperationStatus::Failed,
+                    AdminOperationFailure::LatestRevisionRead,
+                ),
+            )
+            .await
+            {
+                return internal_error_response(audit_err);
+            }
+            return internal_error_response(err);
+        }
+    };
+    let Some(based_on) = active.filter(|active| active.revision_id.to_string() == expected) else {
+        if let Err(audit_err) = record_admin_operation_audit(
+            &state,
+            &profile,
+            &subject,
+            precondition_failure(
+                AdminOperationStatus::Rejected,
+                AdminOperationFailure::RevisionPrecondition,
+            ),
+        )
+        .await
+        {
+            return internal_error_response(audit_err);
+        }
+        return revision_changed(&state).await;
     };
 
     let new_catalog =
@@ -325,7 +412,7 @@ pub(crate) async fn update_control_plane(
     let audit_context = subject.audit_context();
     if let Err(err) = state
         .control_store
-        .record_revision(&revision, &audit_context)
+        .record_revision_on(Some(&based_on), &revision, &audit_context)
         .await
     {
         tracing::error!("failed to persist hub control-plane revision: {err}");
@@ -347,13 +434,7 @@ pub(crate) async fn update_control_plane(
             return internal_error_response(audit_err);
         }
         if veoveo_hub::is_revision_conflict(&err) {
-            return veoveo_hub::problem::Problem::new(
-                StatusCode::CONFLICT,
-                "control-plane-revision-changed",
-                "Control plane changed",
-            )
-            .detail("another revision became active; read the control plane and retry")
-            .into_response();
+            return revision_changed(&state).await;
         }
         return internal_error_response(err);
     }
@@ -384,4 +465,55 @@ pub(crate) async fn update_control_plane(
         profiles,
     })
     .into_response()
+}
+
+/// 412: the revision a publication is based on is no longer active. The detail names
+/// the active one, which the client reads, changes and publishes again.
+async fn revision_changed(state: &AdminState) -> Response {
+    let active = match state.control_store.load_active_revision_head().await {
+        Ok(Some(head)) => head.revision_id.to_string(),
+        Ok(None) => "none".to_owned(),
+        Err(err) => return internal_error_response(err),
+    };
+    veoveo_hub::problem::Problem::new(
+        StatusCode::PRECONDITION_FAILED,
+        "control-plane-revision-changed",
+        "Control plane changed",
+    )
+    .detail(format!(
+        "the active revision is {active}; read the control plane, apply the change to it and publish with its revision in If-Match"
+    ))
+    .into_response()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn with_if_match(value: &str) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(header::IF_MATCH, HeaderValue::from_str(value).unwrap());
+        headers
+    }
+
+    #[test]
+    fn if_match_names_one_revision_as_a_strong_entity_tag() {
+        let id = "gcp-0199e3a0-0000-7000-8000-000000000000";
+        assert_eq!(
+            expected_revision(&with_if_match(&format!("\"{id}\""))).as_deref(),
+            Some(id)
+        );
+        assert_eq!(
+            expected_revision(&with_if_match(&format!(" \"{id}\" "))).as_deref(),
+            Some(id)
+        );
+        for refused in ["*", id, "W/\"gcp-1\"", "\"gcp-1\", \"gcp-2\"", "\"\""] {
+            assert_eq!(
+                expected_revision(&with_if_match(refused)),
+                None,
+                "{refused}"
+            );
+        }
+        assert_eq!(expected_revision(&HeaderMap::new()), None);
+    }
 }

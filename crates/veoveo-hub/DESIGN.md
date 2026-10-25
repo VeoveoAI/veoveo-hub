@@ -763,6 +763,20 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
+`GET /admin/{profile}/control-plane` answers the active control plane with its
+revision ID, in the body as `revisionId` and as the strong entity tag
+`ETag: "<revision id>"` (RFC 9110 §8.8.3). `PUT /admin/{profile}/control-plane`
+publishes a complete control plane as the successor of the revision its author read,
+which `If-Match: "<revision id>"` names (RFC 9110 §13.1.1). A request without that
+precondition answers 428 `control-plane-precondition-required` (RFC 6585), and one whose
+revision is no longer active answers 412 `control-plane-revision-changed`, naming the
+active revision in its detail; nothing is published, and the request is audited as
+rejected. The check and the commit are one: the revision is recorded as the successor
+of the one `If-Match` names, so a publication that becomes active between them also
+answers 412. A client reads the control plane again, applies its change to that
+revision and publishes again, so what others published in between, such as a
+repository someone created, is never overwritten by a stale document.
+
 `POST /admin/{profile}/tasks/{server}/{task_id}/cancel` cancels the caller's Task by
 the identifier its server issued. The Hub reads no Task state for it: it finds the
 caller's unexpired route of that Task, applies the checks and the policy decision of

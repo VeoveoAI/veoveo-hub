@@ -70,6 +70,8 @@ pub enum AdminOperationFailure {
     PersistJwtRevocation,
     PruneJwtRevocations,
     RevisionId,
+    /// A publication named no revision in `If-Match`, or one that is no longer active.
+    RevisionPrecondition,
     TaskOwnership,
     TaskRoute,
 }

@@ -228,12 +228,32 @@ impl Hub {
         response.json::<serde_json::Value>().await.unwrap()["controlPlane"].take()
     }
 
+    /// The active revision's entity tag, which a publication names in `If-Match`.
+    pub async fn control_plane_tag(&self) -> String {
+        let http = reqwest::Client::new();
+        let token = self.access_token(&http, self.caller("admin")).await;
+        let response = http
+            .get(format!("{}/admin/local/control-plane", self.base))
+            .bearer_auth(token)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(response.status(), reqwest::StatusCode::OK);
+        response.headers()[reqwest::header::ETAG]
+            .to_str()
+            .unwrap()
+            .to_owned()
+    }
+
+    /// Publishes `document` over the revision active now.
     pub async fn publish_control_plane(&self, document: &serde_json::Value) {
+        let tag = self.control_plane_tag().await;
         let http = reqwest::Client::new();
         let token = self.access_token(&http, self.caller("admin")).await;
         let response = http
             .put(format!("{}/admin/local/control-plane", self.base))
             .bearer_auth(token)
+            .header(reqwest::header::IF_MATCH, tag)
             .json(document)
             .send()
             .await
