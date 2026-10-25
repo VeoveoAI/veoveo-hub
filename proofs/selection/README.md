@@ -1,5 +1,8 @@
 # Selection resolver proof pilot
 
+See the [Hub proof and evidence map](../README.md) for system-level properties,
+priorities and source applicability beyond this pilot.
+
 This manually invoked pilot checks the production resolver's rule: an explicit branch
 selection determines the result, including unavailability; an available base
 cannot replace a missing explicit selection. It is not a proof of the Hub as a

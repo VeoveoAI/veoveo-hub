@@ -14,6 +14,9 @@ token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-
 every server follows. The Hub owns its control plane, its policy evaluator and the
 `hub` database schema.
 
+The [proof and evidence map](proofs/README.md) tracks important system invariants,
+manual formal verification and the limits of existing coverage.
+
 ## Gate
 
 ```sh
