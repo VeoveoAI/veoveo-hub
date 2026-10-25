@@ -288,8 +288,7 @@ fn configuration(directory: &Path) -> veoveo_hub::control_plane::FactoryConfigur
         },
         "workspace": WORKSPACE,
         "policyFile": directory.join("factory-base.yaml"),
-        "cpu": "8",
-        "memory": "16Gi",
+        "template": {"workspace": "installation", "name": "factory-v1"},
         "port": 8800,
         "hubIssuer": "https://hub.example",
         "loreServer": "grpcs://lore.internal:41337",
@@ -298,7 +297,6 @@ fn configuration(directory: &Path) -> veoveo_hub::control_plane::FactoryConfigur
         "imageBuilder": {
             "buildkit": "tcp://buildkitd.internal:1234",
             "registry": "registry.internal:5000",
-            "lore": format!("registry.internal:5000/lore@sha256:{}", "a".repeat(64)),
         },
     }))
     .unwrap()
@@ -321,6 +319,16 @@ impl Fixture {
         HubStore::new(db.a.clone()).migrate().await.unwrap();
         let directory = tempfile::tempdir().unwrap();
         let (gateway, client) = gateway::Gateway::start().await;
+        gateway.set_template(
+            "installation",
+            openshell_sdk::raw::proto::SandboxWorkloadTemplate {
+                metadata: Some(openshell_sdk::raw::proto::ObjectMeta {
+                    name: "factory-v1".into(),
+                    ..Default::default()
+                }),
+                spec: Some(Default::default()),
+            },
+        );
         let builder = Arc::new(Builder::default());
         let factory = Factory::new(
             configuration(directory.path()),

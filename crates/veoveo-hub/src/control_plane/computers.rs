@@ -62,6 +62,8 @@ pub struct ComputerGateway {
     pub bearer_environment: String,
 }
 
+/// An OpenShell workload template by its workspace and name: the installation's
+/// Computer template, or its factory template.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ComputerTemplate {

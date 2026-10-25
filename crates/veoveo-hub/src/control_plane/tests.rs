@@ -1846,17 +1846,19 @@ fn a_factory_needs_native_forwarding_on_its_gateway_and_valid_defaults() {
     let factory: FactoryConfiguration = serde_json::from_value(serde_json::json!({
         "gateway": {"endpoint":"https://gateway.test", "certificateAuthority":"/etc/native/ca.pem", "bearerEnvironment":"FACTORY_AUTHORITY"},
         "workspace":"factory", "policyFile":"/etc/native/factory-base.yaml",
-        "cpu":"500m", "memory":"16Gi", "port":8800, "hubIssuer":"https://hub.test",
+        "template":{"workspace":"installation", "name":"factory-v1"},
+        "port":8800, "hubIssuer":"https://hub.test",
         "loreServer":"grpcs://lore.test:41337",
         "registrationProfile":"factory-registration", "loreProfile":"factory-lore",
         "caps":{"instancesPerUser":3},
-        "imageBuilder":{
-            "buildkit":"tcp://buildkitd.test:1234", "registry":"registry.test:5000",
-            "lore":"registry.test:5000/lore@sha256:8dad0d15745459ae06213192eba0680a68cbb02e71757d16a739f3f9e34c71b4"
-        }
+        "imageBuilder":{"buildkit":"tcp://buildkitd.test:1234", "registry":"registry.test:5000"}
     }))
     .unwrap();
     assert!(!factory.caps.as_ref().unwrap().enforce);
+    // The factory template sizes every sandbox; the section names no size of its own.
+    let mut sized = serde_json::to_value(&factory).unwrap();
+    sized["cpu"] = "500m".into();
+    assert!(serde_json::from_value::<FactoryConfiguration>(sized).is_err());
     plane.factory = Some(factory);
     let invalid = |plane: &HubControlPlane| {
         matches!(
@@ -1877,9 +1879,10 @@ fn a_factory_needs_native_forwarding_on_its_gateway_and_valid_defaults() {
     );
     plane.validate(&crate::catalog_fixture::registry()).unwrap();
     for change in [
-        (|f: &mut FactoryConfiguration| f.cpu = "0".into()) as fn(&mut FactoryConfiguration),
-        |f| f.memory = "16GB".into(),
-        |f| f.workspace = "Factory".into(),
+        (|f: &mut FactoryConfiguration| f.workspace = "Factory".into())
+            as fn(&mut FactoryConfiguration),
+        |f| f.template.workspace = "Installation".into(),
+        |f| f.template.name = "factory_v1".into(),
         |f| f.lore_profile = "vv_factory_lore".into(),
         |f| f.port = 0,
         |f| f.caps.as_mut().unwrap().instances_per_user = 0,

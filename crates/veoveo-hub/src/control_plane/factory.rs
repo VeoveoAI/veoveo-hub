@@ -6,7 +6,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use veoveo_hub_sdk::TokenIssuer;
 
-use super::{ComputerGateway, HubControlPlane, HubControlPlaneError};
+use super::{ComputerGateway, ComputerTemplate, HubControlPlane, HubControlPlaneError};
 use crate::factory::image::ImageBuilder;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -21,10 +21,10 @@ pub struct FactoryConfiguration {
     /// repository's own policy adds network rules to it. Use an immutable versioned file
     /// path for each policy revision.
     pub policy_file: PathBuf,
-    /// The CPU limit of every factory sandbox, a Kubernetes quantity such as `8` or `500m`.
-    pub cpu: String,
-    /// The memory limit of every factory sandbox, a Kubernetes quantity such as `16Gi`.
-    pub memory: String,
+    /// The installation's factory template: the OpenShell workload template whose CPU,
+    /// memory and driver configuration every factory sandbox gets, with its branch's
+    /// image. The Hub reads it on every push.
+    pub template: ComputerTemplate,
     /// The loopback port every factory sandbox's server listens on.
     pub port: u16,
     /// The Hub issuer servers register with.
@@ -91,16 +91,13 @@ impl FactoryConfiguration {
             ));
         }
         if !dns_label(&self.workspace)
+            || !dns_label(&self.template.workspace)
+            || !dns_label(&self.template.name)
             || !dns_label(&self.registration_profile)
             || !dns_label(&self.lore_profile)
         {
             return Err(invalid(
-                "the workspace and the provider profiles are lowercase DNS labels",
-            ));
-        }
-        if !cpu_quantity(&self.cpu) || !memory_quantity(&self.memory) {
-            return Err(invalid(
-                "cpu is a positive number of cores or millicores and memory a positive byte quantity",
+                "the workspaces, the template and the provider profiles are lowercase DNS labels",
             ));
         }
         if self
@@ -121,23 +118,4 @@ fn dns_label(value: &str) -> bool {
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
         && !value.starts_with('-')
         && !value.ends_with('-')
-}
-
-fn cpu_quantity(value: &str) -> bool {
-    match value.strip_suffix('m') {
-        Some(millicores) => millicores.parse::<u64>().is_ok_and(|v| v > 0),
-        None => value.parse::<f64>().is_ok_and(|v| v.is_finite() && v > 0.0),
-    }
-}
-
-fn memory_quantity(value: &str) -> bool {
-    let digits = value
-        .find(|c: char| !c.is_ascii_digit())
-        .unwrap_or(value.len());
-    let (number, suffix) = value.split_at(digits);
-    number.parse::<u128>().is_ok_and(|v| v > 0)
-        && matches!(
-            suffix,
-            "" | "Ki" | "Mi" | "Gi" | "Ti" | "Pi" | "Ei" | "K" | "M" | "G" | "T" | "P" | "E"
-        )
 }

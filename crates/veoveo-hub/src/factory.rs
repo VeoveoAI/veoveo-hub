@@ -1,14 +1,16 @@
 //! Factory sandboxes: each branch of a repository with `openshell/run`, built and served.
-//! An instance runs in one OpenShell sandbox, built from its environment image. Its fixed
-//! start command fetches the instance's branch onto the sandbox's persistent disk, and
-//! the branch's own `openshell/run` builds and serves it; OpenShell restarts it whenever
-//! it exits. Each push is applied with [`Factory::apply`]: the Hub ensures the branch's
-//! data environment, builds the image, then creates, restarts or recreates the sandbox,
-//! records what it applied and why its own steps failed, and reads everything else from
-//! OpenShell, including the image and policy a sandbox was created with. A sandbox's
-//! policy changes only with a new sandbox: the Hub never updates a sandbox's
-//! configuration. [`Factory::remove`] ends an instance. The Hub runs no command inside a
-//! sandbox.
+//! An instance runs in one OpenShell sandbox, built from its environment image, with the
+//! size and driver configuration of the installation's factory template, which mounts
+//! Lore's command line ([`LORE`]). Its fixed start command fetches the instance's branch
+//! onto the sandbox's persistent disk, and the branch's own `openshell/run` builds and
+//! serves it; OpenShell restarts it whenever it exits. Each push is applied with
+//! [`Factory::apply`]: the Hub ensures the branch's data environment, builds the image,
+//! reads the factory template, then creates, restarts or recreates the sandbox, records
+//! what it applied and why its own steps failed, and reads everything else from
+//! OpenShell, including the image, policy, size and driver configuration a sandbox was
+//! created with. A sandbox's configuration changes only with a new sandbox: the Hub
+//! never updates it. [`Factory::remove`] ends an instance. The Hub runs no command inside
+//! a sandbox.
 pub mod image;
 mod record;
 mod sandbox;
@@ -30,7 +32,7 @@ use serde::Serialize;
 use veoveo_store::PlatformStore;
 use veoveo_types::{DeploymentId, PrincipalId};
 
-pub use sandbox::sandbox_name;
+pub use sandbox::{LORE, sandbox_name};
 pub use status::{Condition, Failure, InstanceStatus, Phase, SandboxStatus, Stage};
 
 use crate::{
@@ -154,6 +156,8 @@ struct Source {
     /// The installation's base policy with the network rules of the revision's
     /// `openshell/policy.yaml` added, canonical.
     policy: p::sandbox::v1::SandboxPolicy,
+    /// The size and driver configuration of the installation's factory template.
+    shape: sandbox::Shape,
 }
 
 /// The factory sandboxes of one installation, in its factory workspace.
@@ -213,12 +217,14 @@ impl Factory {
 
     /// Apply a push of `branch` of the Lore repository `repository`, whose
     /// `openshell/` was read as `prepared`. Ensures the branch's data environment and
-    /// the instance, builds the image, then creates the sandbox on the first push,
-    /// restarts it when it runs the built image under the revision's policy and
+    /// the instance, builds the image, reads the factory template, then creates the
+    /// sandbox on the first push, restarts it when it runs the built image under the
+    /// revision's policy with the template's size and driver configuration and
     /// recreates it otherwise, and records the revision and its pusher. A failed step
     /// is recorded on the instance as `failed{stage, message}` and returned; a failed
-    /// build, or a repository policy the Hub refuses, leaves the sandbox as it was.
-    /// Pushes to one instance are applied one at a time by the caller.
+    /// build, a repository policy the Hub refuses or a factory template it cannot use
+    /// leaves the sandbox as it was. Pushes to one instance are applied one at a time
+    /// by the caller.
     pub async fn apply(
         &self,
         repository: &str,
@@ -258,19 +264,23 @@ impl Factory {
                 sandbox::policy(&self.policy, prepared.policy.as_deref())
             })
             .await?;
+        let shape = self
+            .recorded(deployment, Stage::Create, self.shape())
+            .await?;
         let mut remote = self.config.lore_server.clone();
         remote.set_path(&format!("/{repository}"));
         let source = Source {
             remote,
             image,
             policy,
+            shape,
         };
         let branch = record::push(&self.store, deployment, &push.pusher).await?;
         let current = self
             .recorded(deployment, Stage::Create, self.sandbox(&name))
             .await?;
         match current {
-            Some(sandbox) if sandbox::runs(&sandbox, &source.image, &source.policy) => {
+            Some(sandbox) if sandbox::runs(&sandbox, &source) => {
                 self.recorded(deployment, Stage::Restart, self.restart(&name, &sandbox))
                     .await?;
             }
@@ -538,6 +548,36 @@ impl Factory {
             }),
         )
         .await
+    }
+
+    /// What the installation's factory template gives the instance's sandbox, read now.
+    async fn shape(&self) -> Result<sandbox::Shape> {
+        let template = &self.config.template;
+        let named = format!(
+            "the factory template `{}` in workspace `{}`",
+            template.name, template.workspace
+        );
+        let mut grpc = self.client.raw_grpc_fresh().await?;
+        let answer = tokio::time::timeout(
+            RPC_TIMEOUT,
+            grpc.get_sandbox_template(p::GetSandboxTemplateRequest {
+                workspace_scope: scope(&template.workspace),
+                name: template.name.clone(),
+            }),
+        )
+        .await
+        .with_context(|| format!("OpenShell did not answer a read of {named} in time"))?;
+        let found = match answer {
+            Ok(response) => response
+                .into_inner()
+                .template
+                .with_context(|| format!("OpenShell answered without {named}"))?,
+            Err(status) if status.code() == tonic::Code::NotFound => {
+                anyhow::bail!("{named} does not exist")
+            }
+            Err(status) => return Err(refused(&format!("read {named}"), &status)),
+        };
+        sandbox::Shape::of(&found).with_context(|| format!("{named} is not usable"))
     }
 
     /// Check the per-user cap before a sandbox is created for an instance: above the

@@ -314,10 +314,10 @@ It likewise gives the instance's own client a new secret and replaces its Lore p
 of its own: the Hub configures the gateway's `oauth2_client_credentials` refresh of
 `LORE_ACCESS_TOKEN` with the client, whose identifier is the deployment ID and whose
 secret only the gateway keeps; the Hub stores the secret's digest. The sandbox then gets
-the pushed image by digest, the configured CPU and memory as Kubernetes limits, restart
-policy `always`, both providers, and the installation's base policy with the network
-rules of the revision's `openshell/policy.yaml` added; a repository policy that sets
-anything else or reuses a base rule's name is refused. Its environment names
+the pushed image by digest, the factory template's size and driver configuration,
+restart policy `always`, both providers, and the installation's base policy with the
+network rules of the revision's `openshell/policy.yaml` added; a repository policy that
+sets anything else or reuses a base rule's name is refused. Its environment names
 `VEOVEO_DEPLOYMENT_ID`, `LORE_IDENTITY`, `VEOVEO_PUBLIC_BASE_URL`
 (`http://<sandbox>.internal:<port>`), `VEOVEO_PORT` and `VEOVEO_HUB_ISSUER`. Its fixed
 start command clones `<loreServer>/<repository>` into `/sandbox/src` when no checkout
@@ -328,6 +328,24 @@ real token in Lore's requests. Lore requires an identity with a token it cannot 
 which it reads from `LORE_IDENTITY`; that identity names only the checkout's local user,
 and the Lore server authorizes the token alone, so the instance names itself with its
 deployment ID. The global Lore profile is the one Computers use.
+
+The factory template, which `factory.template` names by workspace and name, is an
+OpenShell workload template the installation owns, like the Computer template. It gives
+every instance's sandbox its size, as CPU and memory, and its driver configuration,
+such as the installation's read-only mounts. The Hub reads it on every push by name
+and creates the sandbox inline from it with the branch's image, because OpenShell does
+not let a create that names a template set its own image: the template's CPU and
+memory become Kubernetes limits and its driver configuration is passed unchanged. The
+template sets nothing else; one that names an image, environment or a GPU is refused,
+and a missing one fails the push, both as `failed{stage: create}`, leaving the sandbox
+as it was. The template may appear before or after the Hub starts.
+
+Lore's command line comes from the installation's Lore image, which the Hub's sandbox
+and every factory sandbox mount read-only at `/opt/veoveo/lore`. The Hub runs it as
+`/opt/veoveo/lore/usr/local/bin/lore`, and so does an instance's start command; that
+path is the installation's contract, and no image the Hub builds or runs carries Lore.
+A repository's `openshell/image/` holds only the toolchain that builds the branch, and
+BuildKit builds it from that context alone.
 
 The instance's client is no installed OAuth client. At `/oauth/token` a
 `client_credentials` request whose client ID is an instance's deployment ID and whose
@@ -340,21 +358,24 @@ and holds no assignment of its own; a pusher without the grant is refused with
 `invalid_grant`. Before every sandbox creation and restart the Hub rotates the
 credential, so the sandbox starts as the latest pusher.
 
-A push applies to an existing instance by the image and the policy its sandbox runs,
-which OpenShell reports as the sandbox's spec: the policy in the canonical form
-OpenShell records at creation, which is the form the Hub composes. The Hub never
-updates a sandbox's configuration; OpenShell's `UpdateConfig` needs `config:write`,
-which the Hub's identity does not hold. With the same image and policy the Hub stops
-and starts the sandbox; the start command fetches the branch's latest revision.
-OpenShell's stop answers once the sandbox stopped, from ready, from a failed program
-and from a crash loop's automatic restart, and resets the restart count; its start
-runs the program at once. A sandbox still provisioning, or starting for the first
-time, has not run its start command, which fetches the latest revision when it does,
-and OpenShell would refuse to stop it: the Hub leaves it to start. With another image
-or another policy, or without a sandbox, the Hub deletes the sandbox, waits until
-OpenShell no longer has it, and creates it from the new image and policy with an empty
-disk. A repository policy the Hub refuses is recorded as `failed{stage: create}` and,
-like a failed build, leaves the sandbox as it was.
+A push applies to an existing instance by the image, the policy, the size and the
+driver configuration its sandbox runs, which OpenShell reports as the sandbox's spec:
+the policy in the canonical form OpenShell records at creation, which is the form the
+Hub composes, and the size and driver configuration as the Hub passed them. The Hub
+never updates a sandbox's configuration; OpenShell's `UpdateConfig` needs
+`config:write`, which the Hub's identity does not hold. With the same image, policy,
+size and driver configuration the Hub stops and starts the sandbox; the start command
+fetches the branch's latest revision. OpenShell's stop answers once the sandbox
+stopped, from ready, from a failed program and from a crash loop's automatic restart,
+and resets the restart count; its start runs the program at once. A sandbox still
+provisioning, or starting for the first time, has not run its start command, which
+fetches the latest revision when it does, and OpenShell would refuse to stop it: the
+Hub leaves it to start. With another image or another policy, a factory template whose
+size or driver configuration changed, or without a sandbox, the Hub deletes the
+sandbox, waits until OpenShell no longer has it, and creates it from the new image,
+policy and template with an empty disk, so a changed template reaches each instance at
+its next push. A repository policy the Hub refuses is recorded as
+`failed{stage: create}` and, like a failed build, leaves the sandbox as it was.
 Deleting an instance deletes its sandbox and providers, then removes the instance and
 its registrations with their logins in one transaction, then drops its database when
 no other instance names it.
@@ -813,11 +834,15 @@ started on, under its captured composition.
 `tests/factory.rs` applies pushes against an in-process fake OpenShell gateway
 (`tests/factory/gateway.rs`), which answers the methods the factory sends with the
 gateway's stop and start rules, and a fake image builder whose digest is the SHA-256 of
-a `Dockerfile`. It checks a first push's data environment, provider token, image, size,
-restart policy, environment, start command and composed policy; that a push of the same
-image and policy leaves a provisioning sandbox to start and otherwise stops and starts
-it, a failed or crash-looping one included, and that a push of another image, or of a
-changed repository policy, recreates it with a new token; that no push updates a
+a `Dockerfile`. It checks a first push's data environment, provider token, image, the
+factory template's size and driver configuration, restart policy, environment, start
+command and composed policy; that a push of the same image and policy leaves a
+provisioning sandbox to start and otherwise stops and starts it, a failed or
+crash-looping one included, and that a push of another image, of a changed repository
+policy or after the factory template's size or driver configuration changed recreates
+it with a new token, while the same template published again as a new object restarts
+it; that a missing factory template, or one that names an image, is recorded as a
+failed creation and changes nothing else; that no push updates a
 sandbox's configuration, which the fake gateway refuses as `PermissionDenied` like
 OpenShell for the Hub's identity; that a failed build or a refused repository policy
 is recorded and changes nothing else; that a

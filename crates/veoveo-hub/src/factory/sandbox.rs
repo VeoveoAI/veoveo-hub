@@ -1,13 +1,13 @@
-//! The OpenShell sandbox of one instance: its name, providers, policy and the fixed
-//! start command, as the Hub creates it.
+//! The OpenShell sandbox of one instance: its name, providers, policy, size and driver
+//! configuration and the fixed start command, as the Hub creates it.
 use std::collections::{BTreeMap, HashMap};
 
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use openshell_sdk::raw::proto as p;
 use prost_types::{Struct, Value, value::Kind};
 use veoveo_types::DeploymentId;
 
-use super::{Source, image::PinnedImage};
+use super::Source;
 use crate::{control_plane::FactoryConfiguration, execution::BranchName};
 
 /// The name of the instance's sandbox: the last two groups of its deployment ID, which
@@ -42,6 +42,11 @@ pub(super) const REGISTRATION_SECRET: &str = "VEOVEO_REGISTRATION_SECRET";
 /// credential of this key.
 pub(super) const LORE_TOKEN: &str = "LORE_ACCESS_TOKEN";
 
+/// Lore's command line, from the installation's Lore image, which the Hub's sandbox and
+/// every factory sandbox mount read-only at `/opt/veoveo/lore`. The path is the
+/// installation's contract; no image the Hub builds or runs carries Lore.
+pub const LORE: &str = "/opt/veoveo/lore/usr/local/bin/lore";
+
 /// The variable Lore's command line reads its identity from. Lore requires an identity
 /// with a token it cannot read, such as the provider's placeholder. That identity only
 /// names the checkout's local user, and the Lore server authorizes the token alone, so
@@ -54,23 +59,54 @@ pub(super) const LORE_IDENTITY: &str = "LORE_IDENTITY";
 /// output, and replaces itself with the branch's own program, which builds and serves
 /// it. `$1` is the repository and `$2` the branch.
 ///
-/// Lore runs with the Lore provider's placeholder as its access token, from the
-/// sandbox's environment, which the gateway replaces with the real token in Lore's
+/// Lore runs from [`LORE`] with the Lore provider's placeholder as its access token, from
+/// the sandbox's environment, which the gateway replaces with the real token in Lore's
 /// requests.
 fn start_command(repository: &url::Url, branch: &BranchName) -> Vec<String> {
-    let script = r#"set -e
-[ -d /sandbox/src/.lore ] || lore clone "$1" /sandbox/src --branch "$2"
+    let script = format!(
+        r#"set -e
+[ -d /sandbox/src/.lore ] || {LORE} clone "$1" /sandbox/src --branch "$2"
 cd /sandbox/src
-lore sync --reset "$2@LATEST"
-exec ./openshell/run"#;
+{LORE} sync --reset "$2@LATEST"
+exec ./openshell/run"#
+    );
     vec![
         "/bin/sh".into(),
         "-c".into(),
-        script.into(),
+        script,
         "factory".into(),
         repository.to_string(),
         branch.to_string(),
     ]
+}
+
+/// What the installation's factory template gives every instance's sandbox: its size
+/// as Kubernetes limits and its driver configuration, as OpenShell records them in the
+/// sandbox's spec. The branch gives the image and the Hub the environment.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct Shape {
+    resources: Option<Struct>,
+    driver_config: Option<Struct>,
+}
+
+impl Shape {
+    /// The shape of the factory template, which sets only CPU, memory and driver
+    /// configuration. OpenShell refuses a create that names a template and sets its own
+    /// image, so the Hub creates every sandbox inline from the template's parts.
+    pub(super) fn of(template: &p::SandboxWorkloadTemplate) -> Result<Self> {
+        let spec = template.spec.as_ref().context("it has no spec")?;
+        let workload = spec.workload.clone().unwrap_or_default();
+        let resources = workload.resources.unwrap_or_default();
+        ensure!(
+            workload.image.is_empty() && workload.environment.is_empty() && resources.gpu.is_none(),
+            "it may set only CPU, memory and driver configuration: the Hub gives each instance its \
+             image and environment, and a GPU is not available to instances"
+        );
+        Ok(Self {
+            resources: limits(&resources.cpu, &resources.memory),
+            driver_config: spec.driver_config.clone(),
+        })
+    }
 }
 
 /// The URL the Hub reaches the instance's server at, through native forwarding to the
@@ -133,7 +169,8 @@ pub(super) fn create_request(
             ]),
             template: Some(p::SandboxTemplate {
                 image: source.image.as_str().into(),
-                resources: Some(limits(&config.cpu, &config.memory)),
+                resources: source.shape.resources.clone(),
+                driver_config: source.shape.driver_config.clone(),
                 ..Default::default()
             }),
             policy: Some(source.policy.clone()),
@@ -146,41 +183,44 @@ pub(super) fn create_request(
     }
 }
 
-/// Whether the sandbox runs this image under this policy, as OpenShell recorded its
-/// create request. OpenShell records a created sandbox's policy in its canonical form,
-/// which [`policy`] returns, so an unchanged policy compares equal.
-pub(super) fn runs(
-    sandbox: &p::Sandbox,
-    image: &PinnedImage,
-    policy: &p::sandbox::v1::SandboxPolicy,
-) -> bool {
+/// Whether the sandbox runs this source: its image, under its policy, with its shape, as
+/// OpenShell recorded its create request. OpenShell records a created sandbox's policy in
+/// its canonical form, which [`policy`] returns, so an unchanged policy compares equal,
+/// and its size and driver configuration as they were sent.
+pub(super) fn runs(sandbox: &p::Sandbox, source: &Source) -> bool {
     sandbox.spec.as_ref().is_some_and(|spec| {
-        spec.template
-            .as_ref()
-            .is_some_and(|template| template.image == image.as_str())
-            && spec.policy.as_ref() == Some(policy)
+        spec.template.as_ref().is_some_and(|template| {
+            template.image == source.image.as_str()
+                && template.resources == source.shape.resources
+                && template.driver_config == source.shape.driver_config
+        }) && spec.policy.as_ref() == Some(&source.policy)
     })
 }
 
 /// Kubernetes resource limits, which OpenShell's Kubernetes driver applies to the
-/// sandbox's workload container.
-fn limits(cpu: &str, memory: &str) -> Struct {
-    let text = |value: &str| Value {
-        kind: Some(Kind::StringValue(value.into())),
-    };
-    Struct {
+/// sandbox's workload container, as OpenShell makes them of a template's CPU and memory:
+/// the quantities it names, or none.
+fn limits(cpu: &str, memory: &str) -> Option<Struct> {
+    let fields = [("cpu", cpu), ("memory", memory)]
+        .into_iter()
+        .filter(|(_, quantity)| !quantity.is_empty())
+        .map(|(name, quantity)| {
+            (
+                name.to_owned(),
+                Value {
+                    kind: Some(Kind::StringValue(quantity.into())),
+                },
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    (!fields.is_empty()).then(|| Struct {
         fields: BTreeMap::from([(
             "limits".into(),
             Value {
-                kind: Some(Kind::StructValue(Struct {
-                    fields: BTreeMap::from([
-                        ("cpu".into(), text(cpu)),
-                        ("memory".into(), text(memory)),
-                    ]),
-                })),
+                kind: Some(Kind::StructValue(Struct { fields })),
             },
         )]),
-    }
+    })
 }
 
 #[cfg(test)]
@@ -210,9 +250,9 @@ mod tests {
         assert_eq!(
             command[2],
             "set -e\n\
-             [ -d /sandbox/src/.lore ] || lore clone \"$1\" /sandbox/src --branch \"$2\"\n\
+             [ -d /sandbox/src/.lore ] || /opt/veoveo/lore/usr/local/bin/lore clone \"$1\" /sandbox/src --branch \"$2\"\n\
              cd /sandbox/src\n\
-             lore sync --reset \"$2@LATEST\"\n\
+             /opt/veoveo/lore/usr/local/bin/lore sync --reset \"$2@LATEST\"\n\
              exec ./openshell/run"
         );
         assert_eq!(
@@ -223,6 +263,77 @@ mod tests {
                 "dev/jose/it's"
             ]
         );
+    }
+
+    #[test]
+    fn the_factory_template_gives_size_and_driver_configuration_only() {
+        let driver_config = Struct {
+            fields: BTreeMap::from([(
+                "kubernetes".into(),
+                Value {
+                    kind: Some(Kind::StructValue(Struct::default())),
+                },
+            )]),
+        };
+        let template = |workload: p::SandboxWorkloadConfig| p::SandboxWorkloadTemplate {
+            spec: Some(p::SandboxWorkloadTemplateSpec {
+                workload: Some(workload),
+                driver_config: Some(driver_config.clone()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let sized = |cpu: &str, memory: &str| p::SandboxWorkloadConfig {
+            resources: Some(p::SandboxResources {
+                cpu: cpu.into(),
+                memory: memory.into(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let shape = Shape::of(&template(sized("4", "8Gi"))).unwrap();
+        assert_eq!(shape.resources, limits("4", "8Gi"));
+        assert_eq!(shape.driver_config.as_ref(), Some(&driver_config));
+        let text = |value: &str| Value {
+            kind: Some(Kind::StringValue(value.into())),
+        };
+        assert_eq!(
+            limits("500m", ""),
+            Some(Struct {
+                fields: BTreeMap::from([(
+                    "limits".into(),
+                    Value {
+                        kind: Some(Kind::StructValue(Struct {
+                            fields: BTreeMap::from([("cpu".into(), text("500m"))]),
+                        })),
+                    },
+                )]),
+            })
+        );
+        assert_eq!(
+            Shape::of(&template(Default::default())).unwrap().resources,
+            None
+        );
+        for refused in [
+            p::SandboxWorkloadConfig {
+                image: "registry.internal:5000/factory-base@sha256:0".into(),
+                ..sized("4", "8Gi")
+            },
+            p::SandboxWorkloadConfig {
+                environment: HashMap::from([("A".into(), "b".into())]),
+                ..sized("4", "8Gi")
+            },
+            p::SandboxWorkloadConfig {
+                resources: Some(p::SandboxResources {
+                    gpu: Some(Default::default()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        ] {
+            assert!(Shape::of(&template(refused)).is_err());
+        }
+        assert!(Shape::of(&p::SandboxWorkloadTemplate::default()).is_err());
     }
 
     #[test]

@@ -14,7 +14,7 @@ use lore_proto::lore::thin_client::v1::{
 };
 use tokio::io::AsyncReadExt;
 use tonic::{Request, transport::Channel};
-use veoveo_hub::factory::{Prepared, Revision};
+use veoveo_hub::factory::{LORE, Prepared, Revision};
 
 /// The directory a repository's factory files live in.
 const ROOT: &str = "openshell";
@@ -175,10 +175,11 @@ pub(super) fn prepared(directory: &Path) -> Result<Prepared> {
     })
 }
 
-/// Lore's command line with its state confined to `root`.
+/// Lore's command line, from the Lore image the Hub's sandbox mounts, with its state
+/// confined to `root`.
 fn lore(root: &Path, token: &str) -> tokio::process::Command {
     let state = root.join("lore");
-    let mut command = tokio::process::Command::new("/usr/local/bin/lore");
+    let mut command = tokio::process::Command::new(LORE);
     command
         .env_clear()
         .env("HOME", state.join("home"))
@@ -244,7 +245,7 @@ mod tests {
 
     #[test]
     fn lore_keeps_the_trust_roots_of_a_cleared_environment() {
-        let mut command = tokio::process::Command::new("/usr/local/bin/lore");
+        let mut command = tokio::process::Command::new(LORE);
         command.env_clear();
         pass_trust_roots(&mut command, |name| {
             (name == "SSL_CERT_FILE").then(|| "/etc/ssl/bundle.pem".into())

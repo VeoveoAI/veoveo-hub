@@ -2,11 +2,13 @@
 //! image builder, on a disposable database with the Hub's migrations. Each test applies
 //! pushes as the Lore watcher will: the first push of a branch creates its instance in
 //! its data environment, a registration provider with a new token and a sandbox of the
-//! built image, the default size, the base policy with the repository's rules added,
-//! restart policy Always, the server's settings and the fixed start command. A push of
-//! the same image and policy stops and starts the sandbox, whatever its phase once its
-//! program has run, a crash loop included; a push of another image or another policy
-//! deletes and creates it with a new token. No push updates a sandbox's configuration,
+//! built image, the factory template's size and driver configuration, the base policy
+//! with the repository's rules added, restart policy Always, the server's settings and
+//! the fixed start command, which runs the mounted Lore. A push of the same image,
+//! policy and template stops and starts the sandbox, whatever its phase once its program
+//! has run, a crash loop included; a push of another image or another policy, or after
+//! the template's size or driver configuration changed, deletes and creates it with a
+//! new token, and a missing or unusable template is recorded and changes nothing else. No push updates a sandbox's configuration,
 //! which the fake gateway refuses as it would the Hub's identity. A failed build and a
 //! refused repository policy are recorded and change nothing else; a failed provider
 //! creation leaves no dead end. Status reports OpenShell's phase, exit
@@ -85,6 +87,11 @@ const REPOSITORY: &str = "0123456789abcdef0123456789abcdef";
 const LORE: &str = "grpcs://lore.internal:41337";
 /// The installation's base branch, whose instances use the installation database.
 const BASE: &str = "dev";
+/// The installation's factory template, and the Lore image its driver configuration
+/// mounts, a synthetic reference.
+const TEMPLATE_WORKSPACE: &str = "installation";
+const TEMPLATE: &str = "factory-v1";
+const LORE_IMAGE: &str = "registry.internal:5000/veoveo/lore@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 /// The settings variable the Hub binary reads the fake gateway's bearer from.
 const GATEWAY_BEARER: &str = "VEOVEO_FACTORY_GATEWAY_TOKEN";
 const BASE_POLICY: &str = r#"version: 1
@@ -167,6 +174,10 @@ impl Fixture {
         std::fs::write(directory.path().join("factory-base.yaml"), BASE_POLICY).unwrap();
         let db = TestDb::new().await;
         let (gateway, client) = Gateway::start().await;
+        gateway.set_template(
+            TEMPLATE_WORKSPACE,
+            factory_template("8", "16Gi", LORE_IMAGE),
+        );
         let catalog = catalog();
         let builder = Arc::new(Builder::default());
         let factory = Factory::new(
@@ -243,6 +254,59 @@ impl Fixture {
     }
 }
 
+/// The installation's factory template: `cpu` and `memory`, and a driver configuration
+/// that mounts `lore` read-only at `/opt/veoveo/lore`.
+fn factory_template(cpu: &str, memory: &str, lore: &str) -> p::SandboxWorkloadTemplate {
+    p::SandboxWorkloadTemplate {
+        metadata: Some(p::ObjectMeta {
+            name: TEMPLATE.into(),
+            ..Default::default()
+        }),
+        spec: Some(p::SandboxWorkloadTemplateSpec {
+            workload: Some(p::SandboxWorkloadConfig {
+                resources: Some(p::SandboxResources {
+                    cpu: cpu.into(),
+                    memory: memory.into(),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            driver_config: Some(driver_config(lore)),
+            ..Default::default()
+        }),
+    }
+}
+
+/// The driver configuration of a factory template that mounts `lore`.
+fn driver_config(lore: &str) -> Struct {
+    fn value(json: serde_json::Value) -> Value {
+        Value {
+            kind: Some(match json {
+                serde_json::Value::Object(map) => Kind::StructValue(Struct {
+                    fields: map.into_iter().map(|(k, v)| (k, value(v))).collect(),
+                }),
+                serde_json::Value::Array(items) => Kind::ListValue(prost_types::ListValue {
+                    values: items.into_iter().map(value).collect(),
+                }),
+                serde_json::Value::Bool(v) => Kind::BoolValue(v),
+                serde_json::Value::String(v) => Kind::StringValue(v),
+                other => panic!("no fixture value {other}"),
+            }),
+        }
+    }
+    let Some(Kind::StructValue(config)) = value(json!({"kubernetes": {
+        "volumes": [{"name": "lore", "image": {"reference": lore}}],
+        "containers": {"agent": {"volume_mounts": [
+            {"name": "lore", "mount_path": "/opt/veoveo/lore", "read_only": true}
+        ]}}
+    }}))
+    .kind
+    else {
+        unreachable!("the driver configuration is an object")
+    };
+    config
+}
+
 /// The installation's configuration, with the base branch set.
 fn catalog() -> HubCatalogHandle {
     let directory = tempfile::tempdir().unwrap();
@@ -270,8 +334,7 @@ fn configuration_json(
         },
         "workspace": WORKSPACE,
         "policyFile": directory.join("factory-base.yaml"),
-        "cpu": "8",
-        "memory": "16Gi",
+        "template": {"workspace": TEMPLATE_WORKSPACE, "name": TEMPLATE},
         "port": 8800,
         "hubIssuer": "https://hub.example",
         "loreServer": LORE,
@@ -280,7 +343,6 @@ fn configuration_json(
         "imageBuilder": {
             "buildkit": "tcp://buildkitd.internal:1234",
             "registry": "registry.internal:5000",
-            "lore": format!("registry.internal:5000/lore@sha256:{}", "a".repeat(64)),
         },
         "caps": caps,
     })
@@ -445,6 +507,7 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
         let template = spec.template.as_ref().unwrap();
         assert_eq!(template.image, built(&name, "FROM a").as_str());
         assert_eq!(template.resources, Some(limits("8", "16Gi")));
+        assert_eq!(template.driver_config, Some(driver_config(LORE_IMAGE)));
         assert_eq!(spec.restart_policy, p::SandboxRestartPolicy::Always as i32);
         assert_eq!(spec.providers, [registration, lore_provider]);
         assert_eq!(
@@ -469,9 +532,9 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
                 "/bin/sh",
                 "-c",
                 "set -e\n\
-                 [ -d /sandbox/src/.lore ] || lore clone \"$1\" /sandbox/src --branch \"$2\"\n\
+                 [ -d /sandbox/src/.lore ] || /opt/veoveo/lore/usr/local/bin/lore clone \"$1\" /sandbox/src --branch \"$2\"\n\
                  cd /sandbox/src\n\
-                 lore sync --reset \"$2@LATEST\"\n\
+                 /opt/veoveo/lore/usr/local/bin/lore sync --reset \"$2@LATEST\"\n\
                  exec ./openshell/run",
                 "factory",
                 &format!("{LORE}/{REPOSITORY}"),
@@ -773,6 +836,143 @@ async fn a_push_recreates_a_sandbox_whose_policy_changed() {
         assert_eq!(status.serving_revision, Some(revision_of('4')));
         assert_eq!(fixture.token(deployment), token);
         assert_eq!(rules(), ["hub", "internet"]);
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_push_recreates_a_sandbox_whose_factory_template_changed() {
+    bounded(async {
+        let fixture = Fixture::start(json!(null)).await;
+        let prepared = || fixture.prepared("FROM a", None);
+        fixture
+            .apply(BASE, push('1', "alice"), prepared())
+            .await
+            .unwrap();
+        let deployment = fixture.status(BASE).await.unwrap().deployment;
+        let name = sandbox_name(deployment);
+        let ready = async || {
+            fixture
+                .gateway
+                .set_phase(WORKSPACE, &name, p::SandboxPhase::Ready);
+            served(&fixture.db.a, deployment).await;
+            fixture.gateway.take_calls();
+        };
+        let template = || {
+            fixture
+                .sandbox(deployment)
+                .unwrap()
+                .spec
+                .unwrap()
+                .template
+                .unwrap()
+        };
+        let restarted = |calls: &[Call]| {
+            matches!(
+                calls,
+                [
+                    Call::RotateProviderCredential(_),
+                    Call::StopSandbox(_),
+                    Call::StartSandbox(_),
+                ]
+            )
+        };
+        let recreated =
+            |calls: &[Call]| matches!(calls, [Call::DeleteSandbox(_), .., Call::CreateSandbox(_)]);
+
+        // The template published again as a new object with the same size and driver
+        // configuration changes nothing the sandbox runs: it restarts.
+        ready().await;
+        fixture.gateway.set_template(
+            TEMPLATE_WORKSPACE,
+            factory_template("8", "16Gi", LORE_IMAGE),
+        );
+        fixture
+            .apply(BASE, push('2', "alice"), prepared())
+            .await
+            .unwrap();
+        let calls = fixture.gateway.take_calls();
+        assert!(restarted(&calls), "unexpected requests: {calls:?}");
+
+        // Another size recreates the sandbox with it at the next push.
+        ready().await;
+        fixture.gateway.set_template(
+            TEMPLATE_WORKSPACE,
+            factory_template("8", "32Gi", LORE_IMAGE),
+        );
+        fixture
+            .apply(BASE, push('3', "alice"), prepared())
+            .await
+            .unwrap();
+        let calls = fixture.gateway.take_calls();
+        assert!(recreated(&calls), "unexpected requests: {calls:?}");
+        assert_eq!(template().resources, Some(limits("8", "32Gi")));
+
+        // So does another driver configuration, such as a new Lore image.
+        ready().await;
+        let upgraded = format!(
+            "registry.internal:5000/veoveo/lore@sha256:{}",
+            "b".repeat(64)
+        );
+        fixture
+            .gateway
+            .set_template(TEMPLATE_WORKSPACE, factory_template("8", "32Gi", &upgraded));
+        fixture
+            .apply(BASE, push('4', "alice"), prepared())
+            .await
+            .unwrap();
+        let calls = fixture.gateway.take_calls();
+        assert!(recreated(&calls), "unexpected requests: {calls:?}");
+        let created = template();
+        assert_eq!(created.driver_config, Some(driver_config(&upgraded)));
+        assert_eq!(created.image, built(&name, "FROM a").as_str());
+
+        // A missing template, or one that names an image, fails the push at its creation
+        // and leaves the serving sandbox as it was.
+        ready().await;
+        fixture
+            .gateway
+            .remove_template(TEMPLATE_WORKSPACE, TEMPLATE);
+        let mut imaged = factory_template("8", "32Gi", &upgraded);
+        imaged
+            .spec
+            .as_mut()
+            .unwrap()
+            .workload
+            .as_mut()
+            .unwrap()
+            .image = "registry.internal:5000/veoveo/factory@sha256:0".into();
+        for (revision, published, cause) in [
+            (
+                '5',
+                None,
+                "the factory template `factory-v1` in workspace `installation` does not exist",
+            ),
+            (
+                '6',
+                Some(imaged),
+                "the factory template `factory-v1` in workspace `installation` is not usable",
+            ),
+        ] {
+            if let Some(published) = published {
+                fixture.gateway.set_template(TEMPLATE_WORKSPACE, published);
+            }
+            let error = fixture
+                .apply(BASE, push(revision, "alice"), prepared())
+                .await
+                .unwrap_err();
+            assert!(format!("{error:#}").contains(cause), "{error:#}");
+            assert_eq!(fixture.gateway.take_calls(), []);
+            let status = fixture.status(BASE).await.unwrap();
+            let Some(Failure { stage, message }) = &status.failed else {
+                panic!("the unusable template is recorded");
+            };
+            assert_eq!(*stage, Stage::Create);
+            assert!(message.contains(cause), "{message}");
+            assert_eq!(status.applied_revision, Some(revision_of('4')));
+            assert_eq!(status.serving_revision, Some(revision_of('4')));
+            assert_eq!(template().driver_config, Some(driver_config(&upgraded)));
+        }
     })
     .await;
 }

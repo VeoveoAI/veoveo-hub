@@ -1,7 +1,8 @@
 //! The image builder: BuildKit builds a branch's environment image from a checkout of its
-//! `openshell/image/` and pushes it to the installation's registry. Hub builds on every
-//! push and compares the digests BuildKit returns; its cache returns an unchanged image,
-//! with the same digest, without building again.
+//! `openshell/image/` alone and pushes it to the installation's registry. Hub builds on
+//! every push and compares the digests BuildKit returns; its cache returns an unchanged
+//! image, with the same digest, without building again. The image carries no platform
+//! tool: Lore's command line reaches the sandbox from the installation's own image.
 
 use std::{
     ffi::OsString,
@@ -37,9 +38,6 @@ pub struct ImageBuilder {
     /// The registry images are pushed to, by the name BuildKit resolves, such as
     /// `registry.veoveo-system.svc.cluster.local:5000`.
     pub registry: RegistryHost,
-    /// The image whose `/usr/local/bin/lore` environment images copy through the named
-    /// build context `lore`.
-    pub lore: PinnedImage,
 }
 
 impl ImageBuilder {
@@ -78,8 +76,8 @@ impl ImageBuilder {
         format!("{}/{REPOSITORY_PATH}/{name}", self.registry)
     }
 
-    /// buildctl's arguments for building `context` with the `lore` context, pushing it
-    /// to `repository` and writing the build's metadata to `metadata`.
+    /// buildctl's arguments for building `context`, pushing it to `repository` and
+    /// writing the build's metadata to `metadata`.
     fn arguments(&self, context: &Path, repository: &str, metadata: &Path) -> Vec<OsString> {
         let local = |name: &str| {
             let mut local = OsString::from(format!("{name}="));
@@ -98,8 +96,6 @@ impl ImageBuilder {
             local("context"),
             "--local".into(),
             local("dockerfile"),
-            "--opt".into(),
-            format!("context:lore=docker-image://{}", self.lore).into(),
             "--output".into(),
             format!("type=image,name={repository},push=true").into(),
             "--metadata-file".into(),
@@ -323,22 +319,18 @@ mod tests {
         serde_json::from_value(serde_json::json!({
             "buildkit": "tcp://buildkitd.veoveo-system.svc.cluster.local:1234",
             "registry": "registry.veoveo-system.svc.cluster.local:5000",
-            "lore": format!("registry.veoveo-system.svc.cluster.local:5000/lore@{DIGEST}"),
         }))
         .unwrap()
     }
 
     #[test]
-    fn buildctl_builds_the_context_with_the_lore_context_and_pushes_it_under_factory() {
+    fn buildctl_builds_the_context_alone_and_pushes_it_under_factory() {
         let builder = builder();
         let repository = builder.repository(&ImageName::parse("time-dev").unwrap());
         let arguments = builder.arguments(
             Path::new("/tmp/checkout/openshell/image"),
             &repository,
             Path::new("/tmp/build/metadata.json"),
-        );
-        let lore = format!(
-            "context:lore=docker-image://registry.veoveo-system.svc.cluster.local:5000/lore@{DIGEST}"
         );
         assert_eq!(
             arguments,
@@ -354,8 +346,6 @@ mod tests {
                 "context=/tmp/checkout/openshell/image",
                 "--local",
                 "dockerfile=/tmp/checkout/openshell/image",
-                "--opt",
-                &lore,
                 "--output",
                 "type=image,name=registry.veoveo-system.svc.cluster.local:5000/factory/time-dev,push=true",
                 "--metadata-file",
@@ -366,19 +356,20 @@ mod tests {
     }
 
     #[test]
-    fn the_configuration_names_buildkit_the_registry_and_a_pinned_lore_image() {
+    fn the_configuration_names_buildkit_and_the_registry_only() {
         let mut configuration = serde_json::to_value(builder()).unwrap();
         assert_eq!(
             configuration,
             serde_json::json!({
                 "buildkit": "tcp://buildkitd.veoveo-system.svc.cluster.local:1234",
                 "registry": "registry.veoveo-system.svc.cluster.local:5000",
-                "lore": format!("registry.veoveo-system.svc.cluster.local:5000/lore@{DIGEST}"),
             })
         );
-        configuration["lore"] = "registry.veoveo-system.svc.cluster.local:5000/lore:v1".into();
+        // No build context is configured: environment images copy no platform tool.
+        configuration["lore"] =
+            format!("registry.veoveo-system.svc.cluster.local:5000/lore@{DIGEST}").into();
         assert!(serde_json::from_value::<ImageBuilder>(configuration.clone()).is_err());
-        configuration["lore"] = format!("lore@{DIGEST}").into();
+        configuration.as_object_mut().unwrap().remove("lore");
         configuration["insecure"] = true.into();
         assert!(serde_json::from_value::<ImageBuilder>(configuration).is_err());
     }
@@ -481,7 +472,7 @@ mod tests {
     /// and its registry, then a `Dockerfile` BuildKit refuses. The file named by
     /// `VEOVEO_IMAGE_BUILDER_TEST_CONFIG` holds `{"builder": …, "context": …, "name": …}`.
     #[tokio::test]
-    #[ignore = "requires a BuildKit daemon, its registry and a Lore CLI image"]
+    #[ignore = "requires a BuildKit daemon and its registry"]
     async fn an_unchanged_image_builds_again_with_the_same_digest() -> anyhow::Result<()> {
         #[derive(Deserialize)]
         struct Probe {
