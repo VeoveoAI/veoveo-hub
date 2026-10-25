@@ -32,8 +32,8 @@ docker build --target dev -t veoveo-hub:dev .
 Use this image as the component-owned toolchain environment. Installation factories
 and deployed services run through native OpenShell; the former Compose Hub service
 and application edge route are retired. See the installation's
-[native setup](../veoveo-template-installation/openshell/README.md) and the current
-[Hub/Time integration gates](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md#subsequent-adoption).
+[native setup](https://github.com/VeoveoAI/veoveo-template-installation/blob/main/openshell/README.md) and the recorded
+[Hub/Time integration gates](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/OPENSHELL_HARDCUT_PLAN.md#subsequent-adoption).
 The earlier native deployment is qualified in its recorded scope. Native upstream
 placements are authoritative live control data. Revision publication prepares
 replacement transport generations and preserves retained exact bindings; changing
