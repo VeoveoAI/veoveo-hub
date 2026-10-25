@@ -48,8 +48,14 @@ pub(super) async fn discover<S: ClientHandler + Clone>(
             Ok(running) => return Ok(running),
             Err(error) if attempt == 0 && recoverable(&error) => {
                 // Discover is read-only. No tool, Task or domain request has been
-                // dispatched, even when the caller intends a mutation afterward.
+                // dispatched, even when the caller intends a mutation afterward. A
+                // server whose sandbox is replaced closes its connections this way: a
+                // reconnect, not a failure of the Hub.
+                let (server, deployment) = http.server();
                 tracing::warn!(
+                    %server,
+                    %deployment,
+                    %error,
                     "retrying upstream discovery once on new connections after a transport failure"
                 );
                 http = http.reconnected().map_err(RequestError::from)?;

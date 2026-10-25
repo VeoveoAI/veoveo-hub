@@ -149,6 +149,29 @@ The configuration's `secrets` section names the remaining secrets, such as the
 registration secret and the hosted authorization server's signing key, by
 environment variable. The process also reads a `.env` file in its working directory.
 
+## Logging
+
+An expected, planned unavailability logs at INFO, or at WARN where an operator should
+notice it, and never at ERROR; ERROR is for failures. The HTTP trace layer logs every
+server error response as a failure, except one the Hub answers on purpose and marks
+expected (`http::expected`), whose cause the code that answers it logs once, at the
+level the cause deserves.
+
+- **The Computer proxy.** A request the proxy cannot forward gets its own `503`,
+  marked expected, and one line, `Computer request answered unavailable`, with the
+  Computer and the reason. It logs INFO when the owner's admission ended, or when the
+  Hub's record shows a replacement running or the sandbox missing, starting, stopping,
+  stopped or being deleted; WARN when forwarding capacity is exhausted, the Computer
+  needs its owner (its last replacement failed, its sandbox is in error, or the Hub can
+  no longer serve it safely) or its ready sandbox does not answer; ERROR when the Hub
+  cannot read the Computer's state or the gateway refuses the Hub's authentication or
+  configuration. A cause the forwarding error names decides first; otherwise the Hub
+  observes the Computer after the failure.
+- **Registered servers.** A server's connection that closes, as when its sandbox is
+  replaced, is a reconnect: discovery and idempotent requests retry once on new
+  connections ([Upstream Transport](#upstream-transport)), each logging one WARN that
+  names the server and the transport error.
+
 ## Configuration
 
 The installation configuration holds identity providers, the hosted authorization

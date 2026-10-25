@@ -102,6 +102,11 @@ impl HubAuthorizedHttpClient {
         })
     }
 
+    /// The server this client calls and the deployment it routes to.
+    pub(super) fn server(&self) -> (&ServerSlug, veoveo_hub_sdk::DeploymentId) {
+        (&self.server, self.deployment)
+    }
+
     /// The same authorization over a new client for the server, after a
     /// connection-level failure showed its pooled connections are stale.
     pub(super) fn reconnected(&self) -> Result<Self, McpError> {
