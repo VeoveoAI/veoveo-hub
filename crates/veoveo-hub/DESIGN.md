@@ -780,7 +780,8 @@ macros against the metadata in `.sqlx`; tests keep theirs under `tests/`. No Rus
 builds SQL text, except `CREATE DATABASE` and `DROP DATABASE`, which take no
 parameter and run only outside transactions and functions; their text names a
 validated database name. `.sqlx` also holds the metadata of the core crates' queries, because
-the check stage compiles them offline from an empty target directory.
+the check and release builds compile them offline, from a cold target directory as well
+as from the build host's cached one.
 
 `tests/database_conformance.rs` holds the Hub's own statements to core's
 [database rules](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/docs/DATABASE.md#server-schema-rules)
