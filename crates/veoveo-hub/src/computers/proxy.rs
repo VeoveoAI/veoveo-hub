@@ -20,6 +20,7 @@ use veoveo_types::Sha256Digest;
 
 use super::{
     ADMISSION_READ_TIMEOUT, BrowserSession, ComputerId, ComputerRuntime, STREAM_ADMISSION_INTERVAL,
+    gateway::ForwardError,
     oauth::{SESSION_COOKIE, cookie, denied, digest, private, unavailable},
     provisioning::{Provisioner, phase},
 };
@@ -36,6 +37,108 @@ pub(super) struct Reenter;
 #[derive(Debug, thiserror::Error)]
 #[error("the Computer needs its owner: {0}")]
 pub(super) struct Attention(String);
+
+/// The owner's browser admission ended while a request was being forwarded.
+#[derive(Debug, thiserror::Error)]
+#[error("Computer admission ended {0}")]
+struct AdmissionEnded(&'static str);
+
+/// How the Hub logs a Computer request it answers unavailable itself. Its answer is
+/// marked expected, so the HTTP trace layer does not log it again as a failure.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Unforwarded {
+    /// Planned: the owner's admission ended, or the Hub is replacing, starting or
+    /// stopping the sandbox or has collected it. INFO.
+    Planned(&'static str),
+    /// An operator should notice: forwarding capacity is exhausted, the Computer needs
+    /// its owner, or its ready sandbox does not answer. WARN.
+    Notable(&'static str),
+    /// A failure of the Hub: it cannot read the Computer's state, or the gateway
+    /// refuses its authentication or configuration. ERROR.
+    Failed(&'static str),
+}
+
+/// What the Hub's record and the gateway say about a Computer whose request failed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Serving {
+    /// A replacement, collection or first start runs now.
+    Replacing,
+    /// No sandbox, or one that is starting, stopping, stopped or being deleted.
+    NotRunning,
+    /// The last replacement failed, the sandbox is in error, or the Hub can no longer
+    /// serve it safely.
+    NeedsOwner,
+    /// The sandbox is ready.
+    Ready,
+}
+
+fn serving(observed: &super::lifecycle::Observed) -> Serving {
+    if observed.operation().is_some() {
+        return Serving::Replacing;
+    }
+    if observed.blocked.is_some() || observed.computer.failure.is_some() {
+        return Serving::NeedsOwner;
+    }
+    match observed.phase() {
+        Some(p::SandboxPhase::Ready) => Serving::Ready,
+        None
+        | Some(
+            p::SandboxPhase::Provisioning
+            | p::SandboxPhase::Stopping
+            | p::SandboxPhase::Stopped
+            | p::SandboxPhase::Completed
+            | p::SandboxPhase::Deleting,
+        ) => Serving::NotRunning,
+        Some(_) => Serving::NeedsOwner,
+    }
+}
+
+/// The cause `error` itself names for keeping a request from its Computer, if any.
+fn named_cause(error: &anyhow::Error) -> Option<Unforwarded> {
+    if error.downcast_ref::<AdmissionEnded>().is_some() {
+        return Some(Unforwarded::Planned("the owner's admission ended"));
+    }
+    match error.downcast_ref::<ForwardError>()? {
+        ForwardError::Capacity => Some(Unforwarded::Notable(
+            "Computer forwarding capacity is exhausted",
+        )),
+        ForwardError::Authentication | ForwardError::Configuration => Some(Unforwarded::Failed(
+            "the gateway refused the Hub's forwarding",
+        )),
+        ForwardError::Refused(_) | ForwardError::Transport | ForwardError::Deadline => None,
+    }
+}
+
+/// The cause of an unforwarded request from what the Hub observed of its Computer after
+/// the failure; `None` when the Hub could not observe it.
+fn observed_cause(serving: Option<Serving>) -> Unforwarded {
+    match serving {
+        Some(Serving::Replacing) => Unforwarded::Planned("the Hub is replacing its sandbox"),
+        Some(Serving::NotRunning) => Unforwarded::Planned("its sandbox is not running"),
+        Some(Serving::NeedsOwner) => Unforwarded::Notable("the Computer needs its owner"),
+        Some(Serving::Ready) => Unforwarded::Notable("its ready sandbox did not answer"),
+        None => Unforwarded::Failed("the Hub could not read the Computer's state"),
+    }
+}
+
+impl Unforwarded {
+    fn log(self, computer: &ComputerId, error: &anyhow::Error) {
+        match self {
+            Self::Planned(reason) => tracing::info!(
+                %computer, reason, error = format!("{error:#}"),
+                "Computer request answered unavailable"
+            ),
+            Self::Notable(reason) => tracing::warn!(
+                %computer, reason, error = format!("{error:#}"),
+                "Computer request answered unavailable"
+            ),
+            Self::Failed(reason) => tracing::error!(
+                %computer, reason, error = format!("{error:#}"),
+                "Computer request answered unavailable"
+            ),
+        }
+    }
+}
 
 type BodyError = Box<dyn std::error::Error + Send + Sync>;
 
@@ -81,15 +184,22 @@ fn authorization_required(request: &Request) -> Response {
 }
 /// A page load of a Computer that is not ready goes back to entry, which starts it on
 /// the start page, and one that needs its owner to the status page; anything else, and
-/// every other request, answers unavailable.
+/// every other request, answers unavailable. The caller logs why the request was not
+/// forwarded, so the unavailable answer is marked expected.
 fn unavailable_for(navigation: bool, error: &anyhow::Error) -> Response {
-    if navigation && error.downcast_ref::<Reenter>().is_some() {
-        reenter()
-    } else if navigation && error.downcast_ref::<Attention>().is_some() {
-        private(Redirect::to(super::pages::STATUS).into_response())
+    if navigation && redirected(error) {
+        if error.downcast_ref::<Reenter>().is_some() {
+            reenter()
+        } else {
+            private(Redirect::to(super::pages::STATUS).into_response())
+        }
     } else {
-        unavailable()
+        crate::http::expected(unavailable())
     }
+}
+/// Whether a page load that failed with `error` goes back to entry or to the status page.
+fn redirected(error: &anyhow::Error) -> bool {
+    error.downcast_ref::<Reenter>().is_some() || error.downcast_ref::<Attention>().is_some()
 }
 
 /// A page load serves only a ready sandbox the Hub can serve safely, awaiting one that
@@ -319,8 +429,23 @@ pub(super) async fn forward(runtime: ComputerRuntime, mut request: Request) -> R
     .await
     {
         Ok(response) => response,
+        Err(error) if navigation && redirected(&error) => {
+            tracing::debug!(computer = %id, error = %error, "Computer page load redirected");
+            unavailable_for(navigation, &error)
+        }
         Err(error) => {
-            tracing::debug!(computer = %id, error = %error, "Computer transport unavailable");
+            let cause = match named_cause(&error) {
+                Some(cause) => cause,
+                None => observed_cause(
+                    runtime
+                        .observe(session.computer())
+                        .await
+                        .ok()
+                        .as_ref()
+                        .map(serving),
+                ),
+            };
+            cause.log(&id, &error);
             unavailable_for(navigation, &error)
         }
     }
@@ -353,7 +478,7 @@ async fn stream(
             )
             .await?
             .is_some(),
-        "Computer admission ended before forwarding"
+        AdmissionEnded("before forwarding")
     );
     let (socket, forward) = if navigation {
         provisioner
@@ -386,7 +511,7 @@ async fn stream(
         _ => {
             drop(socket);
             forward.abort();
-            anyhow::bail!("Computer admission ended while connecting");
+            return Err(AdmissionEnded("while connecting").into());
         }
     }
     let (mut sender, connection) =
@@ -546,7 +671,57 @@ mod tests {
             let response = unavailable_for(navigation, &error);
             assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
             assert!(!response.headers().contains_key(header::LOCATION));
+            // The proxy logs why; the trace layer does not log the answer as a failure.
+            assert!(matches!(
+                tower_http::classify::ClassifyResponse::classify_response(
+                    crate::http::UnexpectedServerErrors,
+                    &response
+                ),
+                tower_http::classify::ClassifiedResponse::Ready(Ok(()))
+            ));
         }
+    }
+
+    #[test]
+    fn a_planned_unavailability_is_never_an_error() {
+        let named = |error: anyhow::Error| named_cause(&error);
+        assert!(matches!(
+            named(AdmissionEnded("while connecting").into()),
+            Some(Unforwarded::Planned(_))
+        ));
+        assert!(matches!(
+            named(ForwardError::Capacity.into()),
+            Some(Unforwarded::Notable(_))
+        ));
+        for refused in [ForwardError::Authentication, ForwardError::Configuration] {
+            assert!(matches!(
+                named(refused.into()),
+                Some(Unforwarded::Failed(_))
+            ));
+        }
+        // A sandbox that cannot be reached, however the forwarding ended, is judged by
+        // what the Hub observes of the Computer.
+        for unreachable in [
+            anyhow::Error::new(ForwardError::Refused(tonic::Code::Unavailable)),
+            anyhow::Error::new(ForwardError::Transport),
+            anyhow::Error::new(ForwardError::Deadline),
+            anyhow::anyhow!("connection closed before message completed"),
+        ] {
+            assert_eq!(named(unreachable), None);
+        }
+        for serving in [Serving::Replacing, Serving::NotRunning] {
+            assert!(matches!(
+                observed_cause(Some(serving)),
+                Unforwarded::Planned(_)
+            ));
+        }
+        for serving in [Serving::NeedsOwner, Serving::Ready] {
+            assert!(matches!(
+                observed_cause(Some(serving)),
+                Unforwarded::Notable(_)
+            ));
+        }
+        assert!(matches!(observed_cause(None), Unforwarded::Failed(_)));
     }
 
     #[test]

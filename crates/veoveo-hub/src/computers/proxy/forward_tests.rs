@@ -5,7 +5,10 @@
 //! which creates it again at the current version on the start page, while the event
 //! stream and a fetch keep answering unavailable. Every credential and answer is
 //! synthetic.
-use std::time::Duration;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use axum::{
     body::Body,
@@ -13,6 +16,8 @@ use axum::{
 };
 use http_body_util::BodyExt;
 use openshell_sdk::raw::proto::{self as p, ProviderCredentialRefreshStrategy as Strategy};
+use tower_http::classify::{ClassifiedResponse, ClassifyResponse};
+use tracing_subscriber::{Layer, layer::SubscriberExt};
 
 use super::forward;
 use crate::computers::{
@@ -20,6 +25,57 @@ use crate::computers::{
     oauth::{SESSION_COOKIE, digest, entry},
     test_fixture::{catalog, gateway, hub, installation, ready_computer, runtime},
 };
+use crate::http::UnexpectedServerErrors;
+
+/// The level and reason of each "Computer request answered unavailable" line logged on
+/// this thread while the capture's guard lives.
+#[derive(Clone, Default)]
+struct UnavailableLog(Arc<Mutex<Vec<(tracing::Level, String)>>>);
+
+impl UnavailableLog {
+    fn capture() -> (Self, tracing::subscriber::DefaultGuard) {
+        let log = Self::default();
+        let guard =
+            tracing::subscriber::set_default(tracing_subscriber::registry().with(log.clone()));
+        (log, guard)
+    }
+
+    fn take(&self) -> Vec<(tracing::Level, String)> {
+        std::mem::take(&mut self.0.lock().unwrap())
+    }
+}
+
+#[derive(Default)]
+struct Fields {
+    message: String,
+    reason: String,
+}
+
+impl tracing::field::Visit for Fields {
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        if field.name() == "reason" {
+            value.clone_into(&mut self.reason);
+        }
+    }
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        if field.name() == "message" {
+            self.message = format!("{value:?}");
+        }
+    }
+}
+
+impl<S: tracing::Subscriber> Layer<S> for UnavailableLog {
+    fn on_event(&self, event: &tracing::Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
+        let mut fields = Fields::default();
+        event.record(&mut fields);
+        if fields.message == "Computer request answered unavailable" {
+            self.0
+                .lock()
+                .unwrap()
+                .push((*event.metadata().level(), fields.reason));
+        }
+    }
+}
 
 /// The browser's session cookie, a synthetic random selector.
 const COOKIE: &str = "5ad1c0de5ad1c0de5ad1c0de5ad1c0de5ad1c0de5ad1c0de5ad1c0de5ad1c0de";
@@ -144,13 +200,31 @@ async fn a_page_load_of_a_computer_without_its_sandbox_goes_back_to_entry() {
                 "private, no-store"
             );
         }
-        // The event stream, a fetch and a nested document keep answering unavailable.
+        // The event stream, a fetch and a nested document keep answering unavailable,
+        // which the Hub logs at INFO as planned: the sandbox is not running. The trace
+        // layer does not log the answers as failures.
         let frame = request(&id, "/session/old", "navigate", Some("iframe"), "text/html");
+        let (unavailable, logging) = UnavailableLog::capture();
         for request in [events(), fetch(), frame] {
             let response = forward(runtime.clone(), request).await;
             assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
             assert!(!response.headers().contains_key(header::LOCATION));
+            assert!(matches!(
+                UnexpectedServerErrors.classify_response(&response),
+                ClassifiedResponse::Ready(Ok(()))
+            ));
         }
+        drop(logging);
+        assert_eq!(
+            unavailable.take(),
+            vec![
+                (
+                    tracing::Level::INFO,
+                    "its sandbox is not running".to_owned()
+                );
+                3
+            ]
+        );
 
         // Entry, with the same session, creates the sandbox again at the current
         // version on the start page, which reloads itself, and then goes to the
