@@ -14,7 +14,7 @@ mod usage;
 
 use veoveo_hub_sdk::HubProfileId;
 
-pub(super) use control_plane::{read_control_plane, update_control_plane};
+pub(super) use control_plane::{read_control_plane, update_control_plane, validate_control_plane};
 pub(super) use jwt_revocations::{prune_jwt_revocations, revoke_jwt};
 pub(super) use server_health::read_server_health;
 pub(super) use tasks::cancel_task;

@@ -43,6 +43,9 @@ const OCSF_ENTITY_MANAGEMENT: AuditOcsfClass = AuditOcsfClass {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, veoveo_types::Vocabulary)]
 pub enum AdministrativeOperation {
     ControlPlane,
+    /// A control-plane document validated and prepared as a publication would be, and
+    /// not published.
+    ControlPlaneValidation,
     JwtRevoke,
     JwtPrune,
     ServerHealth,

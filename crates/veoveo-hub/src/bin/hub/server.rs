@@ -29,7 +29,7 @@ use veoveo_hub_sdk::{
 use super::{
     admin::{
         cancel_task, prune_jwt_revocations, read_control_plane, read_server_health, revoke_jwt,
-        update_control_plane,
+        update_control_plane, validate_control_plane,
     },
     auth::{
         authenticate_mcp, authorization_server_jwks, authorization_server_metadata,
@@ -307,6 +307,10 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         .route(
             "/admin/{profile}/control-plane",
             get(read_control_plane).put(update_control_plane),
+        )
+        .route(
+            "/admin/{profile}/control-plane/validate",
+            post(validate_control_plane),
         )
         .route(
             "/admin/{profile}/console/audit/views",

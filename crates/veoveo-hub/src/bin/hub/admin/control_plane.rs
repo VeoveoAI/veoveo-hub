@@ -13,7 +13,7 @@ use chrono::Utc;
 use serde::Serialize;
 use veoveo_hub::control_plane::{
     HubControlPlane, HubControlPlaneRevision, HubControlPlaneRevisionId,
-    HubControlPlaneRevisionSource,
+    HubControlPlaneRevisionSource, HubProfile,
 };
 use veoveo_hub::{AuthenticatedSubject, HubCatalog, new_hub_control_plane_revision_id};
 
@@ -155,6 +155,16 @@ pub(crate) async fn read_control_plane(
 }
 
 /// A revision as a strong entity tag, RFC 9110 §8.8.3.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ControlPlaneValidationResult {
+    status: &'static str,
+    sha256: String,
+    servers: usize,
+    profiles: usize,
+    control_plane: HubControlPlane,
+}
+
 fn entity_tag(revision_id: &HubControlPlaneRevisionId) -> String {
     format!("\"{revision_id}\"")
 }
@@ -261,122 +271,25 @@ pub(crate) async fn update_control_plane(
         return revision_changed(&state).await;
     };
 
-    let new_catalog =
-        match HubCatalog::from_control_plane(control_plane, state.catalog.current().admission())
-            .and_then(|catalog| {
-                // Reject changes to stable gateway/auth bootstrap before preparation.
-                // replace() repeats this check under its write lock.
-                state.catalog.validate_replacement(&catalog)?;
-                Ok(catalog)
-            }) {
-            Ok(catalog) => Arc::new(catalog),
-            Err(err) => {
-                tracing::warn!("rejected invalid hub control plane update: {err}");
-                if let Err(audit_err) = record_admin_operation_audit(
+    let Prepared {
+        catalog: new_catalog,
+        http: new_http,
+        sha256,
+    } = match prepare_publication(&state, control_plane).await {
+        Ok(prepared) => prepared,
+        Err(refusal) => {
+            return refusal
+                .answer(
                     &state,
                     &profile,
                     &subject,
-                    AdminOperationAuditRecord {
-                        audit_target: None,
-                        action: HubAction::AdminWrite.into(),
-                        operation: AdministrativeOperation::ControlPlane,
-                        started_at,
-                        status: AdminOperationStatus::Rejected,
-                        failure: Some(AdminOperationFailure::InvalidControlPlane),
-                    },
+                    AdministrativeOperation::ControlPlane,
+                    started_at,
                 )
-                .await
-                {
-                    return internal_error_response(audit_err);
-                }
-                return (StatusCode::BAD_REQUEST, "invalid hub control plane").into_response();
-            }
-        };
-    let new_http = match build_http_client(&new_catalog) {
-        Ok(client) => client,
-        Err(err) => {
-            tracing::error!("failed to rebuild hub HTTP client: {err}");
-            if let Err(audit_err) = record_admin_operation_audit(
-                &state,
-                &profile,
-                &subject,
-                AdminOperationAuditRecord {
-                    audit_target: None,
-                    action: HubAction::AdminWrite.into(),
-                    operation: AdministrativeOperation::ControlPlane,
-                    started_at,
-                    status: AdminOperationStatus::Failed,
-                    failure: Some(AdminOperationFailure::BuildHttpClient),
-                },
-            )
-            .await
-            {
-                return internal_error_response(audit_err);
-            }
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "failed to rebuild hub HTTP client",
-            )
-                .into_response();
-        }
-    };
-    let new_catalog = match new_catalog
-        .as_ref()
-        .clone()
-        .prepare_runtime(
-            Some(&state.catalog.current()),
-            &state.public_base_url,
-            new_http.clone(),
-        )
-        .await
-    {
-        Ok(catalog) => Arc::new(catalog),
-        Err(error) => {
-            tracing::warn!(%error, "rejected unprepared runtime configuration");
-            if let Err(error) = record_admin_operation_audit(
-                &state,
-                &profile,
-                &subject,
-                AdminOperationAuditRecord {
-                    audit_target: None,
-                    action: HubAction::AdminWrite.into(),
-                    operation: AdministrativeOperation::ControlPlane,
-                    started_at,
-                    status: AdminOperationStatus::Rejected,
-                    failure: Some(AdminOperationFailure::InvalidControlPlane),
-                },
-            )
-            .await
-            {
-                return internal_error_response(error);
-            }
-            return (StatusCode::BAD_REQUEST, "invalid runtime configuration").into_response();
+                .await;
         }
     };
     let control_plane = new_catalog.control_plane().clone();
-    let sha256 = match control_plane_sha256(&control_plane) {
-        Ok(sha256) => sha256,
-        Err(err) => {
-            if let Err(audit_err) = record_admin_operation_audit(
-                &state,
-                &profile,
-                &subject,
-                AdminOperationAuditRecord {
-                    audit_target: None,
-                    action: HubAction::AdminWrite.into(),
-                    operation: AdministrativeOperation::ControlPlane,
-                    started_at,
-                    status: AdminOperationStatus::Failed,
-                    failure: Some(AdminOperationFailure::ControlPlaneSha),
-                },
-            )
-            .await
-            {
-                return internal_error_response(audit_err);
-            }
-            return internal_error_response(err);
-        }
-    };
     let revision_id = match new_hub_control_plane_revision_id() {
         Ok(revision_id) => revision_id,
         Err(err) => {
@@ -465,6 +378,192 @@ pub(crate) async fn update_control_plane(
         profiles,
     })
     .into_response()
+}
+
+/// What publishing a document would make active, without publishing it: Hub validates
+/// and prepares the document as a publication does and answers it as Hub would keep and
+/// serve it, with its SHA-256, so a client learns whether publishing changes anything.
+pub(crate) async fn validate_control_plane(
+    State(state): State<AdminState>,
+    AxumPath(profile): AxumPath<String>,
+    Extension(subject): Extension<AuthenticatedSubject>,
+    RequestJson(control_plane): RequestJson<HubControlPlane>,
+) -> Response {
+    let started_at = Instant::now();
+    let Some(profile_id) = admin_profile_id(profile) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let operation = AdministrativeOperation::ControlPlaneValidation;
+    let (_catalog, profile, subject) = match authorize_admin_request(
+        &state,
+        &profile_id,
+        subject,
+        HubAction::AdminWrite,
+        operation,
+        started_at,
+    )
+    .await
+    {
+        Ok(authorized) => authorized,
+        Err(response) => return *response,
+    };
+    let prepared = match prepare_publication(&state, control_plane).await {
+        Ok(prepared) => prepared,
+        Err(refusal) => {
+            return refusal
+                .answer(&state, &profile, &subject, operation, started_at)
+                .await;
+        }
+    };
+    if let Err(err) = record_admin_operation_audit(
+        &state,
+        &profile,
+        &subject,
+        AdminOperationAuditRecord {
+            audit_target: None,
+            action: HubAction::AdminWrite.into(),
+            operation,
+            started_at,
+            status: AdminOperationStatus::Succeeded,
+            failure: None,
+        },
+    )
+    .await
+    {
+        return internal_error_response(err);
+    }
+    Json(ControlPlaneValidationResult {
+        status: "valid",
+        sha256: prepared.sha256,
+        servers: prepared.catalog.server_count(),
+        profiles: prepared.catalog.profile_count(),
+        control_plane: prepared.catalog.control_plane().clone(),
+    })
+    .into_response()
+}
+
+/// A document prepared for publication: its catalog, that catalog's HTTP client and the
+/// SHA-256 of the control plane as Hub keeps it.
+struct Prepared {
+    catalog: Arc<HubCatalog>,
+    http: reqwest::Client,
+    sha256: String,
+}
+
+/// Why a document cannot be published, as audited and as answered.
+struct Refusal {
+    status: AdminOperationStatus,
+    failure: AdminOperationFailure,
+    response: Response,
+}
+
+impl Refusal {
+    /// 400 `control-plane-invalid`: Hub refuses the document, for `reason`.
+    fn invalid(reason: &anyhow::Error) -> Box<Self> {
+        Box::new(Self {
+            status: AdminOperationStatus::Rejected,
+            failure: AdminOperationFailure::InvalidControlPlane,
+            response: veoveo_hub::problem::Problem::new(
+                StatusCode::BAD_REQUEST,
+                "control-plane-invalid",
+                "Invalid control plane",
+            )
+            .detail(format!("{reason:#}"))
+            .into_response(),
+        })
+    }
+
+    fn failed(failure: AdminOperationFailure, response: Response) -> Box<Self> {
+        Box::new(Self {
+            status: AdminOperationStatus::Failed,
+            failure,
+            response,
+        })
+    }
+
+    /// Audits the refusal as `operation` and answers it.
+    async fn answer(
+        self: Box<Self>,
+        state: &AdminState,
+        profile: &HubProfile,
+        subject: &AuthenticatedSubject,
+        operation: AdministrativeOperation,
+        started_at: Instant,
+    ) -> Response {
+        if let Err(audit_err) = record_admin_operation_audit(
+            state,
+            profile,
+            subject,
+            AdminOperationAuditRecord {
+                audit_target: None,
+                action: HubAction::AdminWrite.into(),
+                operation,
+                started_at,
+                status: self.status,
+                failure: Some(self.failure),
+            },
+        )
+        .await
+        {
+            return internal_error_response(audit_err);
+        }
+        self.response
+    }
+}
+
+/// Validates and prepares `control_plane` as the successor of the control plane active
+/// now, as a publication does, and changes nothing. Validation and publication share it,
+/// so a document validates exactly when its publication would be admitted.
+async fn prepare_publication(
+    state: &AdminState,
+    control_plane: HubControlPlane,
+) -> Result<Prepared, Box<Refusal>> {
+    let catalog =
+        HubCatalog::from_control_plane(control_plane, state.catalog.current().admission())
+            .and_then(|catalog| {
+                // Reject changes to stable gateway/auth bootstrap before preparation.
+                // replace() repeats this check under its write lock.
+                state.catalog.validate_replacement(&catalog)?;
+                Ok(catalog)
+            })
+            .map_err(|err| {
+                tracing::warn!("rejected invalid hub control plane: {err}");
+                Refusal::invalid(&err)
+            })?;
+    let http = build_http_client(&catalog).map_err(|err| {
+        tracing::error!("failed to rebuild hub HTTP client: {err}");
+        Refusal::failed(
+            AdminOperationFailure::BuildHttpClient,
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "failed to rebuild hub HTTP client",
+            )
+                .into_response(),
+        )
+    })?;
+    let catalog = catalog
+        .prepare_runtime(
+            Some(&state.catalog.current()),
+            &state.public_base_url,
+            http.clone(),
+        )
+        .await
+        .map(Arc::new)
+        .map_err(|err| {
+            tracing::warn!(error = %err, "rejected unprepared runtime configuration");
+            Refusal::invalid(&err)
+        })?;
+    let sha256 = control_plane_sha256(catalog.control_plane()).map_err(|err| {
+        Refusal::failed(
+            AdminOperationFailure::ControlPlaneSha,
+            internal_error_response(err),
+        )
+    })?;
+    Ok(Prepared {
+        catalog,
+        http,
+        sha256,
+    })
 }
 
 /// 412: the revision a publication is based on is no longer active. The detail names

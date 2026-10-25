@@ -765,17 +765,34 @@ Every route except the probes requires a `Host` header naming the issuer's host.
 
 `GET /admin/{profile}/control-plane` answers the active control plane with its
 revision ID, in the body as `revisionId` and as the strong entity tag
-`ETag: "<revision id>"` (RFC 9110 §8.8.3). `PUT /admin/{profile}/control-plane`
-publishes a complete control plane as the successor of the revision its author read,
-which `If-Match: "<revision id>"` names (RFC 9110 §13.1.1). A request without that
-precondition answers 428 `control-plane-precondition-required` (RFC 6585), and one whose
-revision is no longer active answers 412 `control-plane-revision-changed`, naming the
-active revision in its detail; nothing is published, and the request is audited as
+`ETag: "<revision id>"` (RFC 9110 §8.8.3), and `sha256`, the SHA-256 of the control
+plane as Hub keeps and serves it: Hub's own serialization of `HubControlPlane`, with
+every default written, which the revision records. `revisionId` and the entity tag are
+present only when the served control plane is the active revision's.
+`PUT /admin/{profile}/control-plane` publishes a complete control plane as the
+successor of the revision its author read, which `If-Match: "<revision id>"` names
+(RFC 9110 §13.1.1). A request without that precondition answers 428
+`control-plane-precondition-required` (RFC 6585), and one whose revision is no longer
+active answers 412 `control-plane-revision-changed`, naming the active revision in its
+detail; nothing is published, and the request is audited as
 rejected. The check and the commit are one: the revision is recorded as the successor
 of the one `If-Match` names, so a publication that becomes active between them also
 answers 412. A client reads the control plane again, applies its change to that
 revision and publishes again, so what others published in between, such as a
-repository someone created, is never overwritten by a stale document.
+repository someone created, is never overwritten by a stale document. A document
+Hub refuses answers 400 `control-plane-invalid` with the reason in its detail.
+
+`POST /admin/{profile}/control-plane/validate` answers what publishing the document in
+its body would make active, and publishes nothing. It is authorized as the `PUT` is,
+as `admin_write`, and validates and prepares the document exactly as a publication
+does, against the control plane active now; it answers `controlPlane`, the document as
+Hub would keep and serve it, with its `sha256`, `servers` and `profiles`. A document a
+publication would refuse is refused alike, 400 `control-plane-invalid` with the
+reason. An installer compares that `sha256` with the `GET`'s to learn whether
+publishing would change anything, and compares the two documents to show what, without
+reproducing Hub's serialization; it then publishes the same document with `If-Match`.
+Each request is audited as the `control_plane_validation` operation; it takes no
+`If-Match`, since it changes no revision.
 
 `POST /admin/{profile}/tasks/{server}/{task_id}/cancel` cancels the caller's Task by
 the identifier its server issued. The Hub reads no Task state for it: it finds the
