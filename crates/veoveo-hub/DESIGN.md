@@ -1019,17 +1019,14 @@ name adopts its home; replace the owner's template clone with one of the target 
 whose environment adds `COMPUTER_VERSION` beside `LORE_IDENTITY`; create the sandbox; wait
 until it is ready and its listener answers; then record the target as `provisioning`.
 Every native request ID derives from the operation's ID. The gateway answers a delete
-only once the sandbox is gone, which a Pod's stop can make longer than one request
-(measured 38.6 s on 2026-10-23, when a Computer's Pod outlived its 30 s grace), and it
+only once the sandbox is gone, which a Pod's stop can make longer than one request,
+for instance when a Computer's Pod outlives its 30 s grace, and it
 finishes a delete it has accepted after the request ends; so the delete's answer is
 awaited for one RPC deadline and then the sandbox's absence for at most five minutes,
 and a replacement that times out names the phase, Pod and conditions that still run.
 Absence means the old Pod is gone too: OpenShell deletes the Sandbox resource with
-foreground propagation and reports the sandbox `Deleting` until its Pod has gone. Before
-that, on 2026-10-23, the gateway reported a restarted Computer gone while its Pod still
-ran out its grace; the create met the old Pod, and its rollback deleted the kept home
-it had adopted. OpenShell now keeps an adopted home through any failed create, and
-refuses a create while a Pod of the name still exists, with reason
+foreground propagation and reports the sandbox `Deleting` until its Pod has gone.
+OpenShell keeps an adopted home through any failed create, and refuses a create while a Pod of the name still exists, with reason
 `PREVIOUS_SANDBOX_TERMINATING`, which the replacement records as "the previous Computer
 is still stopping; try again". The factory awaits the same absence.
 One replacement runs at a time;
@@ -1066,10 +1063,7 @@ an allowed proxied connection or L7 request, written at most once a minute and k
 across gateway restarts. A long-lived connection counts once, when it opens. A sandbox
 with no recorded traffic counts from its creation. Both times count from no earlier
 than the Hub's start: browser requests are lost when the Hub stops, so after a restart
-every Computer is active from then, and a restart never collects in a burst. Measured
-on 2026-10-23 from 21:04:39 to 21:19Z, the owner's Computer with no browser tab made no
-proxied connection or L7 request at all, and the Hub forwarded nothing once the tab
-closed.
+every Computer is active from then, and a restart never collects in a burst.
 
 Every five minutes a sweep reads each ready Computer with no replacement running and its
 sandbox. It collects one whose sandbox is ready and both of whose idle times have reached
@@ -1097,12 +1091,8 @@ development application database. It deliberately has no backfill from current
 defaults and does not attempt to migrate old Computer state. Native workload or
 storage deletion is not performed by this schema change. Installation must add the
 exact `GetGatewayInfo` POST and `config:read` to the dedicated control authority;
-no native authorization implementation changes. SDK/policy `9724fb1` already
-provide this API. Comparing them with maintained fork `846de5fa` found no production
-SDK/policy changes and no changes to the public management/ForwardTcp/policy fields
-used here; internal gateway/supervisor protocol additions still require matching
-maintained runtime images. Kubernetes deployment qualification remains separate
-from the Rust component tests.
+no native authorization implementation changes. Gateway and supervisor protocol
+additions require matching maintained runtime images.
 
 ### Private Computer browser ingress
 
@@ -1113,7 +1103,7 @@ The gateway authority has explicit workspace/provider/sandbox provisioning right
 it never enters the Computer. The trusted bearer environment must hold a native
 mediated reference whose management credential renews under OpenShell custody.
 `raw_grpc_fresh` opens an authenticated call; it does not refresh a copied expiring
-JWT. Reference mediation for that dedicated authority needs deployment qualification.
+JWT.
 Browser input selects no image, policy, secret,
 provider profile or forwarding target. Both credential keys name native runtime
 **environment aliases**, rather than logical profile credential names.
@@ -1269,11 +1259,6 @@ record rewrite. Other owners' declarations and stored evidence remain intact.
 Generic stored-record reading and sealing do not deserialize this owner enum.
 Coordinate Hub versions: an older binary can re-declare older documentation, and
 an older consumer explicitly decoding this enum may reject the new method.
-
-This source path still needs native image/gateway, browser OAuth/owner-isolation,
-revocation/streaming and user-agent acceptance on the selected installation. Local
-protocol fixtures and database keepers do not establish live identity/provider,
-private source transport or model-inference qualification.
 
 ### Native contributed credential lifecycle
 
