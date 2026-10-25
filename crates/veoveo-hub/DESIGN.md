@@ -907,8 +907,11 @@ binding, the audit vocabulary and readers, and the control store.
 
 ## Contract Compliance
 
-- Several versions of one slug may hold registrations; the newest routes until
-  session version selection exists.
+- Several deployments of one slug may hold registrations. A server without
+  instances routes to its newest registration whose process lives; a server with
+  instances routes each person to the instance of the branch their selection names,
+  or else of the base branch, as [Execution Composition](#execution-composition-and-deployment-identity)
+  describes.
 - A namespace server stays registered only while its registration's login holds a
   live kernel instance; a server that never starts one is removed after the grace
   period. An instance's registration stays until the instance registers again.
