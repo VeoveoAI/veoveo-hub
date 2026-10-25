@@ -347,6 +347,21 @@ path is the installation's contract, and no image the Hub builds or runs carries
 A repository's `openshell/image/` holds only the toolchain that builds the branch, and
 BuildKit builds it from that context alone.
 
+Builds share no writable cache. Every build sets BuildKit's
+`BUILDKIT_CACHE_MOUNT_NS` build option, which a `Dockerfile` cannot set, to
+`image::CacheNamespace::of(repository, branch)`: the SHA-256, in 64 lowercase
+hexadecimal digits, of the repository ID, a zero byte and the branch name. The
+Dockerfile frontend prefixes it to every `RUN --mount=type=cache` id, so no branch
+opens another's cache mount. BuildKit keys a cached step by its instruction and inputs
+and not by what a cache mount held, so a cache mount's content must not outlive its
+build: the Hub runs `buildctl prune --all --filter type==exec.cachemount` before every
+build, whose failure fails the build as `failed{stage: build}`, and again after it,
+whatever its outcome, logging a WARN when that prune fails. A prune spares a cache
+mount a running build holds, and may empty one between two steps of a concurrent
+build; layers stay cached, so an unchanged `openshell/image/` builds to the same
+digest. The Hub's policy reaches BuildKit as plain TCP for `buildctl`, which carries
+the prune as it carries the build.
+
 The instance's client is no installed OAuth client. At `/oauth/token` a
 `client_credentials` request whose client ID is an instance's deployment ID and whose
 `client_secret` matches its digest receives the Lore token of the instance's latest
