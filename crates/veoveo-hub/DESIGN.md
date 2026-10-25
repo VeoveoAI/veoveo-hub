@@ -1296,6 +1296,16 @@ resolver and request the same owner target, with no human session or inferred
 service-account/administrator repository permission. Existing private-key clients
 and registered-server delegation keep their original proof contracts.
 
+Every Lore token names its person by Hub principal ID in its `identity` claim, so the
+pusher a Lore branch event names is a Hub principal. Its `resources` hold one entry per
+repository the person is assigned, with that assignment's native actions as
+`permission`, and `root_domains` names the private Lore recipient's host. An
+assignment without actions still allows Lore's ordinary unprotected operations, writes
+included; no read-only role is inferred from it. Only an explicit assignment grants a
+repository: neither the installation's administrator role nor Work Context membership
+does. Removing an assignment stops further issuance, while tokens already issued keep
+their rights until they expire under the deployment's token lifetime.
+
 Whoever creates a repository owns it, in one step. `POST /lore/{profile}/repositories`
 with `{"name"}` and an optional `"id"` takes any authenticated caller with a tenant,
 directly or through a server that calls the Hub for them, with no administrator role
