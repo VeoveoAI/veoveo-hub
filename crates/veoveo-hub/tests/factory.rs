@@ -66,7 +66,7 @@ use veoveo_hub::{
     factory::{
         self, Condition, Factory, Failure, InstanceClient, InstanceStatus, Phase, Prepared, Push,
         Revision, Stage,
-        image::{Build, ImageBuildError, ImageName, PinnedImage},
+        image::{Build, CacheNamespace, ImageBuildError, ImageName, PinnedImage},
         sandbox_name,
     },
     registration::NewInstance,
@@ -123,10 +123,12 @@ network_policies:
 /// An image builder that builds nothing: an image's digest is the SHA-256 of the text
 /// of its context's `Dockerfile`, so unchanged content keeps its digest as with
 /// BuildKit, and a `Dockerfile` that starts with `FAIL` fails with its text as
-/// BuildKit's output. It records the names it was asked to build.
+/// BuildKit's output. It records the names it was asked to build and the cache
+/// namespaces it was given.
 #[derive(Default)]
 struct Builder {
     built: Mutex<Vec<String>>,
+    caches: Mutex<Vec<CacheNamespace>>,
 }
 
 impl Build for Builder {
@@ -134,10 +136,12 @@ impl Build for Builder {
         &'a self,
         context: &'a Path,
         name: &'a ImageName,
+        cache: &'a CacheNamespace,
     ) -> BoxFuture<'a, Result<PinnedImage, ImageBuildError>> {
         Box::pin(async move {
             let dockerfile = std::fs::read_to_string(context.join("Dockerfile"))?;
             self.built.lock().unwrap().push(name.as_str().to_owned());
+            self.caches.lock().unwrap().push(cache.clone());
             if dockerfile.starts_with("FAIL") {
                 return Err(ImageBuildError::Failed {
                     status: ExitStatus::from_raw(1 << 8),
@@ -411,6 +415,11 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
         assert_eq!(
             *fixture.builder.built.lock().unwrap(),
             std::slice::from_ref(&name)
+        );
+        // The build's cache mounts are the branch's own.
+        assert_eq!(
+            *fixture.builder.caches.lock().unwrap(),
+            [CacheNamespace::of(REPOSITORY, &branch_name("dev/jose/x"))]
         );
 
         let calls = fixture.gateway.take_calls();

@@ -256,7 +256,11 @@ impl Factory {
         let image = self
             .recorded(deployment, Stage::Build, async {
                 let image = image::ImageName::parse(name.clone())?;
-                Ok(self.builder.build(&prepared.image_context, &image).await?)
+                let cache = image::CacheNamespace::of(repository, branch);
+                Ok(self
+                    .builder
+                    .build(&prepared.image_context, &image, &cache)
+                    .await?)
             })
             .await?;
         let policy = self
