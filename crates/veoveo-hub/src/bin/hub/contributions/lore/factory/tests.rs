@@ -28,7 +28,7 @@ use veoveo_hub::{
     execution::BranchName,
     factory::{
         self, Factory, Prepared, Push, Revision,
-        image::{Build, ImageBuildError, ImageName, PinnedImage},
+        image::{Build, CacheNamespace, ImageBuildError, ImageName, PinnedImage},
         sandbox_name,
     },
     store::HubStore,
@@ -243,6 +243,7 @@ impl Build for Builder {
         &'a self,
         context: &'a Path,
         name: &'a ImageName,
+        _cache: &'a CacheNamespace,
     ) -> Building<'a, Result<PinnedImage, ImageBuildError>> {
         Box::pin(async move {
             let dockerfile = std::fs::read_to_string(context.join("Dockerfile"))?;

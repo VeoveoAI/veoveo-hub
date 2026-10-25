@@ -1,8 +1,15 @@
 //! The image builder: BuildKit builds a branch's environment image from a checkout of its
 //! `openshell/image/` alone and pushes it to the installation's registry. Hub builds on
-//! every push and compares the digests BuildKit returns; its cache returns an unchanged
-//! image, with the same digest, without building again. The image carries no platform
-//! tool: Lore's command line reaches the sandbox from the installation's own image.
+//! every push and compares the digests BuildKit returns; its layer cache returns an
+//! unchanged image, with the same digest, without building again. The image carries no
+//! platform tool: Lore's command line reaches the sandbox from the installation's own
+//! image.
+//!
+//! Builds share no writable cache. Every build names its branch's [`CacheNamespace`],
+//! so its `RUN --mount=type=cache` directories are apart from every other branch's, and
+//! Hub prunes BuildKit's cache mounts before and after every build, so one lives for one
+//! build only. BuildKit keys a cached step by its instruction and inputs, not by what a
+//! cache mount held, so a cache mount's content must never outlive its build.
 
 use std::{
     ffi::OsString,
@@ -13,11 +20,14 @@ use std::{
 use futures::future::BoxFuture;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest as _, Sha256};
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
     process::Command,
 };
 use veoveo_types::{IdProfile, IdProfileSpec, IdentifierError, Sha256Digest};
+
+use crate::execution::BranchName;
 
 /// BuildKit's client, on the runtime image's `PATH`.
 const BUILDCTL: &str = "buildctl";
@@ -41,30 +51,42 @@ pub struct ImageBuilder {
 }
 
 impl ImageBuilder {
-    /// Build the image whose `Dockerfile` and the files it copies are in `context`, push
-    /// it as `<registry>/factory/<name>` and return it by digest. Dropping the future
-    /// stops buildctl, which ends the build.
+    /// Build the image whose `Dockerfile` and the files it copies are in `context`, with
+    /// its cache mounts in `cache`, push it as `<registry>/factory/<name>` and return it
+    /// by digest. BuildKit's cache mounts are pruned first, which must succeed, and again
+    /// after the build, whatever its outcome; a failure then is logged, and the next
+    /// build's first prune removes what it left. Dropping the future stops buildctl,
+    /// which ends the build.
     pub async fn build(
         &self,
         context: &Path,
         name: &ImageName,
+        cache: &CacheNamespace,
+    ) -> Result<PinnedImage, ImageBuildError> {
+        self.prune_cache_mounts()
+            .await
+            .map_err(ImageBuildError::Prune)?;
+        let built = self.build_pruned(context, name, cache).await;
+        if let Err(error) = self.prune_cache_mounts().await {
+            tracing::warn!(
+                image = %name,
+                %error,
+                "BuildKit's cache mounts were not pruned after a build; the next build prunes them first"
+            );
+        }
+        built
+    }
+
+    async fn build_pruned(
+        &self,
+        context: &Path,
+        name: &ImageName,
+        cache: &CacheNamespace,
     ) -> Result<PinnedImage, ImageBuildError> {
         let repository = self.repository(name);
         let scratch = tempfile::tempdir()?;
         let metadata = scratch.path().join("metadata.json");
-        let mut buildctl = Command::new(BUILDCTL)
-            .args(self.arguments(context, &repository, &metadata))
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .kill_on_drop(true)
-            .spawn()?;
-        let progress = buildctl
-            .stderr
-            .take()
-            .expect("buildctl's standard error is piped");
-        let output = tail(progress, FAILURE_OUTPUT_LIMIT).await?;
-        let status = buildctl.wait().await?;
+        let (status, output) = run(self.arguments(context, &repository, cache, &metadata)).await?;
         if !status.success() {
             return Err(ImageBuildError::Failed { status, output });
         }
@@ -72,13 +94,29 @@ impl ImageBuilder {
         Ok(PinnedImage(format!("{repository}@{digest}")))
     }
 
+    /// Delete every cache mount BuildKit holds and no build uses now. Layers stay cached.
+    async fn prune_cache_mounts(&self) -> Result<(), PruneError> {
+        let (status, output) = run(self.prune_arguments()).await?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(PruneError::Failed { status, output })
+        }
+    }
+
     fn repository(&self, name: &ImageName) -> String {
         format!("{}/{REPOSITORY_PATH}/{name}", self.registry)
     }
 
-    /// buildctl's arguments for building `context`, pushing it to `repository` and
-    /// writing the build's metadata to `metadata`.
-    fn arguments(&self, context: &Path, repository: &str, metadata: &Path) -> Vec<OsString> {
+    /// buildctl's arguments for building `context` with its cache mounts in `cache`,
+    /// pushing it to `repository` and writing the build's metadata to `metadata`.
+    fn arguments(
+        &self,
+        context: &Path,
+        repository: &str,
+        cache: &CacheNamespace,
+        metadata: &Path,
+    ) -> Vec<OsString> {
         let local = |name: &str| {
             let mut local = OsString::from(format!("{name}="));
             local.push(context);
@@ -92,6 +130,8 @@ impl ImageBuilder {
             "plain".into(),
             "--frontend".into(),
             "dockerfile.v0".into(),
+            "--opt".into(),
+            format!("build-arg:{CACHE_MOUNT_NAMESPACE}={}", cache.0).into(),
             "--local".into(),
             local("context"),
             "--local".into(),
@@ -102,17 +142,72 @@ impl ImageBuilder {
             metadata.into(),
         ]
     }
+
+    /// buildctl's arguments for pruning every cache mount, internal ones included.
+    fn prune_arguments(&self) -> Vec<OsString> {
+        vec![
+            "--addr".into(),
+            self.buildkit.as_str().into(),
+            "prune".into(),
+            "--all".into(),
+            "--filter".into(),
+            "type==exec.cachemount".into(),
+        ]
+    }
+}
+
+/// Run buildctl with `arguments` and return its status and the end of its progress
+/// output, which it writes to standard error.
+async fn run(arguments: Vec<OsString>) -> std::io::Result<(ExitStatus, String)> {
+    let mut buildctl = Command::new(BUILDCTL)
+        .args(arguments)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()?;
+    let progress = buildctl
+        .stderr
+        .take()
+        .expect("buildctl's standard error is piped");
+    let output = tail(progress, FAILURE_OUTPUT_LIMIT).await?;
+    Ok((buildctl.wait().await?, output))
+}
+
+/// The build argument the Dockerfile frontend prefixes to every cache mount's id. A
+/// `Dockerfile` cannot set it; only the client's build options do.
+const CACHE_MOUNT_NAMESPACE: &str = "BUILDKIT_CACHE_MOUNT_NS";
+
+/// The namespace of one branch's cache mounts: the SHA-256, as 64 lowercase hexadecimal
+/// digits, of its Lore repository ID, a zero byte and its branch name. Every branch has
+/// its own, of one length, and the same one at every push.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CacheNamespace(String);
+
+impl CacheNamespace {
+    pub fn of(repository: &str, branch: &BranchName) -> Self {
+        let mut hash = Sha256::new();
+        hash.update(repository.as_bytes());
+        hash.update([0]);
+        hash.update(branch.as_str().as_bytes());
+        Self(hex::encode(hash.finalize()))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 /// What builds an instance's environment image: [`ImageBuilder`] with BuildKit, or a
 /// test's own builder.
 pub trait Build: Send + Sync {
     /// Build the image whose `Dockerfile` and the files it copies are in `context` as
-    /// `name`, and return it by digest.
+    /// `name`, with its cache mounts in `cache`, and return it by digest.
     fn build<'a>(
         &'a self,
         context: &'a Path,
         name: &'a ImageName,
+        cache: &'a CacheNamespace,
     ) -> BoxFuture<'a, Result<PinnedImage, ImageBuildError>>;
 }
 
@@ -121,8 +216,9 @@ impl Build for ImageBuilder {
         &'a self,
         context: &'a Path,
         name: &'a ImageName,
+        cache: &'a CacheNamespace,
     ) -> BoxFuture<'a, Result<PinnedImage, ImageBuildError>> {
-        Box::pin(ImageBuilder::build(self, context, name))
+        Box::pin(ImageBuilder::build(self, context, name, cache))
     }
 }
 
@@ -138,6 +234,18 @@ pub enum ImageBuildError {
     Failed { status: ExitStatus, output: String },
     #[error("BuildKit's build metadata names no image digest: {0}")]
     Metadata(#[source] serde_json::Error),
+    /// The cache mounts of earlier builds could not be pruned, so nothing was built.
+    #[error("BuildKit's cache mounts could not be pruned before the build: {0}")]
+    Prune(#[source] PruneError),
+}
+
+/// Why BuildKit's cache mounts were not pruned.
+#[derive(Debug, thiserror::Error)]
+pub enum PruneError {
+    #[error("running buildctl: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("BuildKit failed the prune ({status}):\n{output}")]
+    Failed { status: ExitStatus, output: String },
 }
 
 /// The pushed image's digest from buildctl's `--metadata-file`.
@@ -314,6 +422,7 @@ mod tests {
     use super::*;
 
     const DIGEST: &str = "sha256:8dad0d15745459ae06213192eba0680a68cbb02e71757d16a739f3f9e34c71b4";
+    const REPOSITORY: &str = "0194b726b34e72b0b45550b88a967076";
 
     fn builder() -> ImageBuilder {
         serde_json::from_value(serde_json::json!({
@@ -327,9 +436,12 @@ mod tests {
     fn buildctl_builds_the_context_alone_and_pushes_it_under_factory() {
         let builder = builder();
         let repository = builder.repository(&ImageName::parse("time-dev").unwrap());
+        let cache = CacheNamespace::of(REPOSITORY, &BranchName::parse("dev").unwrap());
+        let namespace = format!("build-arg:BUILDKIT_CACHE_MOUNT_NS={}", cache.as_str());
         let arguments = builder.arguments(
             Path::new("/tmp/checkout/openshell/image"),
             &repository,
+            &cache,
             Path::new("/tmp/build/metadata.json"),
         );
         assert_eq!(
@@ -342,6 +454,8 @@ mod tests {
                 "plain",
                 "--frontend",
                 "dockerfile.v0",
+                "--opt",
+                namespace.as_str(),
                 "--local",
                 "context=/tmp/checkout/openshell/image",
                 "--local",
@@ -352,6 +466,51 @@ mod tests {
                 "/tmp/build/metadata.json",
             ]
             .map(OsString::from)
+        );
+    }
+
+    #[test]
+    fn every_build_prunes_only_cache_mounts() {
+        assert_eq!(
+            builder().prune_arguments(),
+            [
+                "--addr",
+                "tcp://buildkitd.veoveo-system.svc.cluster.local:1234",
+                "prune",
+                "--all",
+                "--filter",
+                "type==exec.cachemount",
+            ]
+            .map(OsString::from)
+        );
+    }
+
+    #[test]
+    fn each_branch_has_its_own_cache_namespace_of_one_length() {
+        let branch = |name: &str| BranchName::parse(name).unwrap();
+        let dev = CacheNamespace::of(REPOSITORY, &branch("dev"));
+        assert_eq!(dev, CacheNamespace::of(REPOSITORY, &branch("dev")));
+        let others = [
+            CacheNamespace::of(REPOSITORY, &branch("main")),
+            CacheNamespace::of(REPOSITORY, &branch("dev2")),
+            CacheNamespace::of("0194b726b34e72b0b45550b88a967077", &branch("dev")),
+        ];
+        for namespace in others.iter().chain([&dev]) {
+            assert_eq!(namespace.as_str().len(), 64);
+            assert!(
+                namespace
+                    .as_str()
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            );
+        }
+        for other in &others {
+            assert_ne!(&dev, other);
+        }
+        // SHA-256 of the repository ID, a zero byte and the branch name.
+        assert_eq!(
+            CacheNamespace::of("r", &branch("b")).as_str(),
+            hex::encode(Sha256::digest(b"r\0b"))
         );
     }
 
@@ -469,8 +628,9 @@ mod tests {
     }
 
     /// A deployed check: builds an environment image twice against a running BuildKit
-    /// and its registry, then a `Dockerfile` BuildKit refuses. The file named by
-    /// `VEOVEO_IMAGE_BUILDER_TEST_CONFIG` holds `{"builder": …, "context": …, "name": …}`.
+    /// and its registry, then a `Dockerfile` BuildKit refuses, and finds no cache mount
+    /// left after each build. The file named by `VEOVEO_IMAGE_BUILDER_TEST_CONFIG` holds
+    /// `{"builder": …, "context": …, "name": …}`.
     #[tokio::test]
     #[ignore = "requires a BuildKit daemon and its registry"]
     async fn an_unchanged_image_builds_again_with_the_same_digest() -> anyhow::Result<()> {
@@ -482,11 +642,31 @@ mod tests {
         }
         let path = std::env::var("VEOVEO_IMAGE_BUILDER_TEST_CONFIG")?;
         let probe: Probe = serde_json::from_slice(&std::fs::read(path)?)?;
+        let cache = CacheNamespace::of(REPOSITORY, &BranchName::parse("probe")?);
+        let cache_mounts = || async {
+            let listed = Command::new(BUILDCTL)
+                .args(["--addr", probe.builder.buildkit.as_str(), "du", "--filter"])
+                .arg("type==exec.cachemount")
+                .args(["--format", "{{json .}}"])
+                .output()
+                .await?;
+            ensure!(listed.status.success(), "buildctl du failed");
+            // buildctl writes the records as one JSON array, or `null` when there are none.
+            let records: Option<Vec<serde_json::Value>> = serde_json::from_slice(&listed.stdout)?;
+            anyhow::Ok(records.map_or(0, |records| records.len()))
+        };
         let started = Instant::now();
-        let first = probe.builder.build(&probe.context, &probe.name).await?;
+        let first = probe
+            .builder
+            .build(&probe.context, &probe.name, &cache)
+            .await?;
         let first_took = started.elapsed();
+        ensure!(cache_mounts().await? == 0, "a build leaves no cache mount");
         let started = Instant::now();
-        let second = probe.builder.build(&probe.context, &probe.name).await?;
+        let second = probe
+            .builder
+            .build(&probe.context, &probe.name, &cache)
+            .await?;
         let second_took = started.elapsed();
         eprintln!("first build {first} in {first_took:?}");
         eprintln!("second build {second} in {second_took:?}");
@@ -499,13 +679,17 @@ mod tests {
         let started = Instant::now();
         let error = probe
             .builder
-            .build(refused.path(), &probe.name)
+            .build(refused.path(), &probe.name, &cache)
             .await
             .err()
             .context("BuildKit refuses an unknown instruction")?;
         eprintln!("refused in {:?}: {error}", started.elapsed());
         ensure!(matches!(error, ImageBuildError::Failed { .. }));
         ensure!(error.to_string().contains("unknown instruction"), "{error}");
+        ensure!(
+            cache_mounts().await? == 0,
+            "a failed build leaves no cache mount"
+        );
         Ok(())
     }
 }
