@@ -2,6 +2,9 @@
 
 These rules apply to veoveo-hub.
 
+- The Hub's design is in [crates/veoveo-hub/DESIGN.md](crates/veoveo-hub/DESIGN.md) and
+  the `DESIGN.md` beside each module it covers; the platform's is in the
+  [architecture](https://github.com/VeoveoAI/veoveo-docs/blob/main/ARCHITECTURE.md). Change the design in the same change as the code.
 - Use upstream runtimes such as PostgreSQL and Keycloak unmodified. Adapt through
   supported configuration.
 - Every name, identifier, format, wire field and protocol element follows a published
