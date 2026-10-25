@@ -46,10 +46,21 @@ WORKDIR /home/sandbox/src
 COPY --chown=sandbox:sandbox . .
 
 FROM source AS check
+# The check and build steps keep Cargo's registry, its Git checkouts and the workspace
+# target in BuildKit cache mounts of the build host, so consecutive checks reuse compiled
+# crates. They run as the sandbox user, so these caches are its own, apart from the
+# root-owned registry cache of the dev stage's cargo install. Factory builds never use them.
 # The committed .sqlx query metadata must match the Hub's queries against the kernel
-# migrations of the pinned veoveo-core checkout followed by the Hub's own migrations.
-RUN cargo fetch --locked \
-    && store="$(echo /usr/local/cargo/git/checkouts/veoveo-core-*/*/platform/store)" \
+# migrations of the pinned veoveo-core checkout followed by the Hub's own migrations. The
+# Git cache may hold other core checkouts, so the store is the revision Cargo.lock pins.
+RUN --mount=type=cache,id=veoveo-hub-cargo-registry,target=/usr/local/cargo/registry,uid=1000,sharing=locked \
+    --mount=type=cache,id=veoveo-hub-cargo-git,target=/usr/local/cargo/git,uid=1000,sharing=locked \
+    --mount=type=cache,id=veoveo-hub-target,target=/home/sandbox/src/target,uid=1000,sharing=locked \
+    cargo fetch --locked \
+    && core="$(sed -n 's|^source = "git+https://github.com/VeoveoAI/veoveo-core?rev=[0-9a-f]*#\([0-9a-f]\{7\}\)[0-9a-f]*"$|\1|p' Cargo.lock | sort -u)" \
+    && test "$(echo "${core}" | wc -w)" -eq 1 \
+    && store="$(echo /usr/local/cargo/git/checkouts/veoveo-core-*/"${core}"/platform/store)" \
+    && test -d "${store}" \
     && hub=crates/veoveo-hub \
     && initdb --pgdata /tmp/sqlx/data --username postgres --auth=trust --no-instructions --no-sync \
     && pg_ctl start --pgdata /tmp/sqlx/data --wait --silent \
@@ -63,7 +74,10 @@ RUN cargo fetch --locked \
         -- --all-targets --all-features \
     && pg_ctl stop --pgdata /tmp/sqlx/data --mode fast --wait --silent \
     && rm -rf /tmp/sqlx
-RUN cargo fmt --check \
+RUN --mount=type=cache,id=veoveo-hub-cargo-registry,target=/usr/local/cargo/registry,uid=1000,sharing=locked \
+    --mount=type=cache,id=veoveo-hub-cargo-git,target=/usr/local/cargo/git,uid=1000,sharing=locked \
+    --mount=type=cache,id=veoveo-hub-target,target=/home/sandbox/src/target,uid=1000,sharing=locked \
+    cargo fmt --check \
     && cargo clippy --locked --all-targets --all-features -- -D warnings \
     && cargo deny --locked check \
     && cargo hack check --each-feature --no-dev-deps \
@@ -71,7 +85,11 @@ RUN cargo fmt --check \
 
 FROM source AS build
 ARG COMPONENT
-RUN cargo build --locked --release --bin "${COMPONENT}" \
+# target/ is a cache mount, so the binary leaves it in the same step.
+RUN --mount=type=cache,id=veoveo-hub-cargo-registry,target=/usr/local/cargo/registry,uid=1000,sharing=locked \
+    --mount=type=cache,id=veoveo-hub-cargo-git,target=/usr/local/cargo/git,uid=1000,sharing=locked \
+    --mount=type=cache,id=veoveo-hub-target,target=/home/sandbox/src/target,uid=1000,sharing=locked \
+    cargo build --locked --release --bin "${COMPONENT}" \
     && cp "target/release/${COMPONENT}" /home/sandbox/component
 
 FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f AS runtime
