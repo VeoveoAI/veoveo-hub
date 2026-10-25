@@ -681,9 +681,11 @@ through core's confined functions.
 ## Upstream Transport
 
 The workspace pins RMCP 3.5.0 from `VeoveoAI/rust-sdk` at
-`917e7914c93975fc1eddbff8792f1e2de933bc17`, the revision `veoveo-hub-sdk` pins. The fork
-exposes HTTP rejection status and body through `StreamableHttpError::HttpResponse` and
-keeps exact Task subscription filters. Each registered server has its own pooled HTTP
+`faa4e9d57dcb834740b6053c483ed2de7b8b8076`, the revision `veoveo-hub-sdk` pins. The fork
+exposes HTTP rejection status and body through `StreamableHttpError::HttpResponse`,
+keeps exact Task subscription filters, and ends a client worker whose first request
+failed with that error at DEBUG once the caller has received it, since the caller
+decides what it means; a worker fatal no caller received stays ERROR. Each registered server has its own pooled HTTP
 client. A server can restart behind its port forward while the forward keeps the
 Hub's side of every pooled connection open, so those connections fail only when the
 next request goes out. A request that fails in its connection, unsent or with its
