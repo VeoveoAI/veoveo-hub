@@ -241,6 +241,13 @@ Registration health reads liveness in the installation database, which does not 
 an instance's server in a data environment, so it reports no instance; an instance's
 health comes from its factory sandbox.
 
+A data environment's database has core's audit and usage schemas but neither a sealer
+nor prepared partitions: the Hub runs the audit sealer and prepares the usage ledger's
+monthly partitions only in the installation database. Audit records a server writes
+in a data environment therefore stay unsealed and are absent from the Hub's audit
+console and exports, its usage records land in the ledger's default partition and are
+absent from the Hub's daily totals, and both go with the database when it is dropped.
+
 A server takes its group role, applies its own migrations in its schema and holds a
 kernel instance on its login while it serves. An RFC 7592 update keeps the
 registration's deployment and slug, and with them its login; another deployment or
