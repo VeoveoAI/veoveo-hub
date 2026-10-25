@@ -1312,8 +1312,9 @@ repository the person is assigned, with that assignment's native actions as
 `permission`, and `root_domains` names the private Lore recipient's host. An
 assignment without actions still allows Lore's ordinary unprotected operations, writes
 included; no read-only role is inferred from it. Only an explicit assignment grants a
-repository: neither the installation's administrator role nor Work Context membership
-does. Removing an assignment stops further issuance, while tokens already issued keep
+repository. Creating a repository through the Hub makes its creator the owner; no
+other grant is automatic, and no administrator role or Work Context membership grants
+repositories. Removing an assignment stops further issuance, while tokens already issued keep
 their rights until they expire under the deployment's token lifetime.
 
 Whoever creates a repository owns it, in one step. `POST /lore/{profile}/repositories`
