@@ -1323,5 +1323,4 @@ caller owns answers 200 unchanged. Sharing, listing and deletion are separate.
 
 The native HTTP fixture approves a synthetic identity through trusted fixture
 state, checks actual hosted HTTP/JWT/persistence/live-publication behavior, and
-restarts against a stale seed. It does not establish Entra interaction or actual
-native CLI/server acceptance; those remain deployment qualification.
+restarts against a stale seed; its identity is synthetic, not an Entra sign-in.
