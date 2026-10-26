@@ -177,52 +177,6 @@ async fn concurrent_publications_activate_one_revision_and_refuse_the_other() {
     assert_eq!(revision_count(&db.a).await, 2);
 }
 
-/// Whichever Hub process first sees a revision active, by publishing it, starting on it
-/// or adopting it, claims the change from the revision claimed before it, once per
-/// installation; a claim spans every revision activated since the last one.
-#[tokio::test]
-async fn one_process_claims_each_activation_from_the_last_claimed_revision() {
-    let db = fixture::TestDb::new().await;
-    let left = HubControlStore::from_platform_store(db.a.clone(), catalog_admission::binding());
-    let right = HubControlStore::from_platform_store(db.b.clone(), catalog_admission::binding());
-    let context = audit_context();
-    assert!(left.claim_activation().await.unwrap().is_none());
-    let mut first_plane = empty_control_plane();
-    first_plane.metadata = serde_json::json!({"revision": "first"});
-    let first = revision("gcp-claim-first", "1".repeat(64), first_plane.clone());
-    left.record_revision(&first, &context).await.unwrap();
-    let (one, other) = tokio::join!(left.claim_activation(), right.claim_activation());
-    let claims = [one.unwrap(), other.unwrap()];
-    assert_eq!(claims.iter().flatten().count(), 1, "one process claims it");
-    let claimed = claims.into_iter().flatten().next().unwrap();
-    assert_eq!(claimed.revision, first.revision_id);
-    assert!(
-        claimed.previous.is_none(),
-        "the first revision replaces nothing"
-    );
-    assert_eq!(claimed.active, first_plane);
-    assert!(right.claim_activation().await.unwrap().is_none());
-
-    let mut later = Vec::new();
-    for (id, digit) in [("gcp-claim-second", '2'), ("gcp-claim-third", '3')] {
-        let mut plane = empty_control_plane();
-        plane.metadata = serde_json::json!({"revision": id});
-        let next = revision(id, digit.to_string().repeat(64), plane.clone());
-        right.record_revision(&next, &context).await.unwrap();
-        later.push((next, plane));
-    }
-    let claimed = left.claim_activation().await.unwrap().unwrap();
-    assert_eq!(claimed.revision, later[1].0.revision_id);
-    assert_eq!(
-        claimed.previous.as_ref(),
-        Some(&first_plane),
-        "the claim spans every revision since the last claimed one"
-    );
-    assert_eq!(claimed.active, later[1].1);
-    assert!(left.claim_activation().await.unwrap().is_none());
-    assert!(right.claim_activation().await.unwrap().is_none());
-}
-
 async fn revision_count(store: &PlatformStore) -> i64 {
     sqlx::query_file_scalar!("tests/control_store/revision_count.sql")
         .fetch_one(store.pool())

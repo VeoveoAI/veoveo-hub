@@ -4,7 +4,7 @@ mod identity;
 mod lore_client;
 mod spec;
 pub use identity::{ComputerId, is_native_name};
-pub use lore_client::{ComputerOwner, LoreRenewal, lore_client, renew_lore_access};
+pub use lore_client::{ComputerOwner, lore_client};
 pub use spec::ComputerProvisionSpec;
 mod session;
 pub use session::{ADMISSION_READ_TIMEOUT, BrowserSession, STREAM_ADMISSION_INTERVAL};

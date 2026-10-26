@@ -57,9 +57,8 @@ use secrecy::SecretString;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use veoveo_hub::{
-    HubCatalog, HubCatalogHandle, HubRefreshIssueRequest, HubServerHealthState, HubState,
+    HubCatalog, HubCatalogHandle, HubServerHealthState,
     computers::ComputerProvisionSpec,
-    contract::{AuthorizationServerId, PrincipalDisplayName},
     control_plane::FactoryConfiguration,
     data_environment::DatabaseName,
     execution::BranchName,
@@ -72,12 +71,9 @@ use veoveo_hub::{
     registration::NewInstance,
     store::{Computer, HubStore},
 };
-use veoveo_hub_sdk::{
-    OAuthClientId, Principal, PrincipalKind, ProtectedResourceId, TokenIssuer, TokenSubject,
-};
 use veoveo_hub_sdk_fixture::ledger::{self, LedgerDomain, LedgerTasks};
 use veoveo_store::PlatformStore;
-use veoveo_types::{DeploymentId, PrincipalId, Sha256Digest, TenantId, WorkContextId};
+use veoveo_types::{DeploymentId, PrincipalId, Sha256Digest, TenantId};
 
 /// How long one of these tests may take.
 const BOUND: Duration = Duration::from_secs(180);
@@ -2070,217 +2066,6 @@ async fn a_computers_lore_token_acts_as_its_owner_for_every_assigned_repository(
     .await;
 }
 
-/// A ready Computer of `owner` on the fake gateway: its custody handoff completed and
-/// configured its Lore provider's refresh there with its own client's `secret`.
-async fn ready_computer(
-    fixture: &Fixture,
-    store: &HubStore,
-    gateway: &serde_json::Value,
-    owner: &str,
-    secret: &str,
-) -> Computer {
-    let (computer, handoff) = computer_on(store, owner, secret, gateway.clone()).await;
-    let principal = Principal {
-        id: PrincipalId::parse(owner).unwrap(),
-        kind: PrincipalKind::User,
-        issuer: TokenIssuer::parse("https://identity.example").unwrap(),
-        subject: TokenSubject::parse(owner.rsplit('#').next().unwrap()).unwrap(),
-        tenant: Some(TenantId::parse("local").unwrap()),
-        groups: Default::default(),
-        group_roles: Default::default(),
-        roles: Default::default(),
-        scopes: Default::default(),
-        data_labels: Default::default(),
-        assurances: Default::default(),
-        authenticated_at: None,
-    };
-    let family = HubState::new(fixture.db.a.clone())
-        .issue_refresh_token(HubRefreshIssueRequest {
-            authorization_server: &AuthorizationServerId::parse("local").unwrap(),
-            protected_resource: &ProtectedResourceId::parse("https://hub.example/mcp/computer")
-                .unwrap(),
-            oauth_client_id: &OAuthClientId::parse("computer-browser").unwrap(),
-            work_context: &WorkContextId::parse("local").unwrap(),
-            principal: &principal,
-            principal_display_name: &PrincipalDisplayName::new("Owner").unwrap(),
-            scopes: &Default::default(),
-            now: chrono::Utc::now(),
-        })
-        .await
-        .unwrap()
-        .grant
-        .family_id;
-    store
-        .lock_computer_handoff(&computer, handoff)
-        .await
-        .unwrap()
-        .unwrap()
-        .complete(&family, &secret_digest(&format!("{secret}-cookie")))
-        .await
-        .unwrap();
-    let name = computer.native_name();
-    let workspace = Some(p::workspace_selector(name.clone()));
-    let mut grpc = fixture.client.raw_grpc_fresh().await.unwrap();
-    grpc.create_provider(p::CreateProviderRequest {
-        workspace_scope: workspace.clone(),
-        provider: Some(p::Provider {
-            metadata: Some(p::ObjectMeta {
-                name: "computer-lore".into(),
-                workspace: name.clone(),
-                ..Default::default()
-            }),
-            r#type: "vv-lore".into(),
-            ..Default::default()
-        }),
-        ..Default::default()
-    })
-    .await
-    .unwrap();
-    grpc.configure_provider_refresh(p::ConfigureProviderRefreshRequest {
-        workspace_scope: workspace,
-        provider: "computer-lore".into(),
-        credential_key: "LORE_ACCESS_TOKEN".into(),
-        strategy: p::ProviderCredentialRefreshStrategy::Oauth2ClientCredentials as i32,
-        material: HashMap::from([
-            ("client_id".into(), name),
-            ("client_secret".into(), secret.into()),
-        ]),
-        secret_material_keys: vec!["client_secret".into()],
-        ..Default::default()
-    })
-    .await
-    .unwrap();
-    computer
-}
-
-/// Wait until the Computer's Lore credential carries `resources`, as the gateway minted
-/// it at the Hub.
-async fn renewed(fixture: &Fixture, computer: &Computer, resources: serde_json::Value) {
-    let name = computer.native_name();
-    for _ in 0..100 {
-        let token = fixture
-            .gateway
-            .credentials(&name, "computer-lore")
-            .and_then(|credentials| credentials.get("LORE_ACCESS_TOKEN").cloned());
-        if token.is_some_and(|token| claims(&token)["resources"] == resources) {
-            return;
-        }
-        tokio::time::sleep(Duration::from_millis(100)).await;
-    }
-    panic!("{name}'s Lore credential never carried {resources}");
-}
-
-/// The workspaces whose provider credentials the Hub rotated since the last call.
-fn rotated(fixture: &Fixture) -> Vec<String> {
-    fixture
-        .gateway
-        .take_calls()
-        .into_iter()
-        .filter_map(|call| match call {
-            Call::RotateProviderCredential(rotation) => {
-                match rotation.workspace_scope?.selection? {
-                    p::workspace_selector::Selection::Workspace(name) => Some(name),
-                    _ => None,
-                }
-            }
-            _ => None,
-        })
-        .collect()
-}
-
-#[tokio::test]
-async fn an_assignment_change_renews_its_owners_computer_lore_access_at_once() {
-    bounded(async {
-        let _ = rustls::crypto::ring::default_provider().install_default();
-        let fixture = Fixture::start(json!(null)).await;
-        let installation = tempfile::tempdir().unwrap();
-        let (endpoint, authority) = fixture.gateway.serve_tls().await;
-        let authority_file = installation.path().join("gateway-ca.pem");
-        std::fs::write(&authority_file, authority).unwrap();
-        let gateway = json!({
-            "endpoint": endpoint.as_str(),
-            "certificateAuthority": authority_file,
-            "bearerEnvironment": GATEWAY_BEARER,
-        });
-        let store = HubStore::new(fixture.db.a.clone());
-        let alice = ready_computer(&fixture, &store, &gateway, ALICE, "alice-secret").await;
-        let bob = ready_computer(&fixture, &store, &gateway, BOB, "bob-secret").await;
-        let _ = fixture.gateway.take_calls();
-
-        // A Hub that starts on a revision whose activation no Hub claimed yet, such as
-        // one imported while no Hub ran, renews the Computers of the owners it assigns.
-        let hub_directory = installation.path().join("hub");
-        std::fs::create_dir(&hub_directory).unwrap();
-        let hub = hub::Hub::start_with(
-            &hub_directory,
-            &fixture.db,
-            Duration::from_secs(60),
-            &[(GATEWAY_BEARER, "synthetic-gateway-bearer".to_owned())],
-            |config| {
-                native_section(config);
-                config["lore"]["repositories"].as_array_mut().unwrap().push(
-                    json!({"deployment": "source", "id": SECOND, "tenant": "local", "title": "Second"}),
-                );
-            },
-        )
-        .await;
-        fixture
-            .gateway
-            .set_token_url(format!("{}/oauth/token", hub.base));
-        let mut started = Vec::new();
-        for _ in 0..100 {
-            started.extend(rotated(&fixture));
-            if started.len() >= 2 {
-                break;
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-        started.sort();
-        let mut both_computers = vec![alice.native_name(), bob.native_name()];
-        both_computers.sort();
-        assert_eq!(started, both_computers);
-
-        let first = json!([{"resource_id": REPOSITORY, "permission": []}]);
-        let both = json!([
-            {"resource_id": REPOSITORY, "permission": []},
-            {"resource_id": SECOND, "permission": []}
-        ]);
-        let assign = |plane: &mut serde_json::Value, principal: &str| {
-            plane["lore"]["assignments"].as_array_mut().unwrap().push(json!({
-                "deployment": "source", "repository": SECOND, "tenant": "local",
-                "principal": principal, "actions": []
-            }));
-        };
-
-        // An assignment published through the admin route renews its owner's Computer
-        // at once, and only that one.
-        let mut plane = hub.control_plane().await;
-        assign(&mut plane, ALICE);
-        hub.publish_control_plane(&plane).await;
-        renewed(&fixture, &alice, both.clone()).await;
-        assert_eq!(rotated(&fixture), [alice.native_name()]);
-
-        // Its removal renews it too.
-        plane["lore"]["assignments"]
-            .as_array_mut()
-            .unwrap()
-            .retain(|assignment| assignment["repository"] != SECOND);
-        hub.publish_control_plane(&plane).await;
-        renewed(&fixture, &alice, first).await;
-        assert_eq!(rotated(&fixture), [alice.native_name()]);
-
-        // A publication that changes no assignment renews nothing: after it and one that
-        // assigns Bob, only Bob's Computer renewed.
-        plane["metadata"] = json!({"note": "unrelated"});
-        hub.publish_control_plane(&plane).await;
-        assign(&mut plane, BOB);
-        hub.publish_control_plane(&plane).await;
-        renewed(&fixture, &bob, both).await;
-        assert_eq!(rotated(&fixture), [bob.native_name()]);
-    })
-    .await;
-}
-
 /// The answer to a repository creation by `caller` with `body`.
 async fn create_repository(
     http: &reqwest::Client,
@@ -2305,14 +2090,6 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         let _ = rustls::crypto::ring::default_provider().install_default();
         let fixture = Fixture::start(json!(null)).await;
         let installation = tempfile::tempdir().unwrap();
-        let (endpoint, authority) = fixture.gateway.serve_tls().await;
-        let authority_file = installation.path().join("gateway-ca.pem");
-        std::fs::write(&authority_file, authority).unwrap();
-        let gateway = json!({
-            "endpoint": endpoint.as_str(),
-            "certificateAuthority": authority_file,
-            "bearerEnvironment": GATEWAY_BEARER,
-        });
         // The Hub trusts the fake Lore's authority as its platform roots.
         let (lore, lore_endpoint, lore_authority) = lore::FakeLore::serve().await;
         let lore_authority_file = installation.path().join("lore-ca.pem");
@@ -2324,31 +2101,25 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
             &hub_directory,
             &fixture.db,
             Duration::from_secs(60),
-            &[
-                (GATEWAY_BEARER, "synthetic-gateway-bearer".to_owned()),
-                ("SSL_CERT_FILE", lore_authority_file.display().to_string()),
-            ],
+            &[("SSL_CERT_FILE", lore_authority_file.display().to_string())],
             |config| {
                 native_section(config);
                 config["lore"]["deployments"][0]["endpoint"] = json!(endpoint_text);
             },
         )
         .await;
-        fixture
-            .gateway
-            .set_token_url(format!("{}/oauth/token", hub.base));
         let issuer = hub.control_plane().await["authorizationServers"][0]["issuer"]
             .as_str()
             .unwrap()
             .to_owned();
         let member = format!("{issuer}#acceptance-member");
         let store = HubStore::new(fixture.db.a.clone());
-        let computer = ready_computer(&fixture, &store, &gateway, &member, "member-secret").await;
-        let _ = fixture.gateway.take_calls();
+        let computer = computer(&store, &member, "member-secret").await;
         let http = reqwest::Client::new();
 
         // A person creates a repository: Lore records them as its creator, and the Hub
-        // answers once their Computer's token carries it as theirs.
+        // answers once the revision is active, so the next token their Computer's client
+        // obtains holds it as theirs.
         let (status, created) =
             create_repository(&http, &hub, "member", json!({"name": "alpha"})).await;
         assert_eq!(status, reqwest::StatusCode::CREATED, "{created}");
@@ -2363,13 +2134,18 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
             json!([]),
             "a login token carries no repository"
         );
-        assert_eq!(rotated(&fixture), [computer.native_name()]);
-        let credential = fixture
-            .gateway
-            .credentials(&computer.native_name(), "computer-lore")
-            .unwrap()["LORE_ACCESS_TOKEN"]
-            .clone();
-        let resources = claims(&credential)["resources"].clone();
+        let (status, issued) = refresh(
+            &http,
+            &hub,
+            &[
+                ("grant_type", "client_credentials"),
+                ("client_id", &computer.native_name()),
+                ("client_secret", "member-secret"),
+            ],
+        )
+        .await;
+        assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
+        let resources = claims(issued["access_token"].as_str().unwrap())["resources"].clone();
         assert!(
             resources
                 .as_array()

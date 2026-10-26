@@ -8,7 +8,6 @@ pub(crate) mod instance;
 pub(crate) mod instance_client;
 pub(crate) mod person;
 pub(crate) mod publication;
-pub(crate) mod renewal;
 pub(crate) mod repositories;
 pub(crate) mod repository_client;
 use anyhow::{Context, Result, ensure};

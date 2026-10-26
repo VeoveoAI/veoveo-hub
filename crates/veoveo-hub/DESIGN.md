@@ -1295,7 +1295,9 @@ name is never UUID-shaped, so a Computer's client and an instance's are never ta
 each other.
 
 An assignment or group change needs no renewal: every repository token lives the
-deployment's token lifetime, so a change reaches each Computer within it.
+deployment's token lifetime, so a change reaches each Computer within it. No process
+claims a revision's activation any longer, and migration `0028` drops the claim's
+column from `hub.control_active`.
 A replacement and browser entry also wait for a successful native ForwardTcp target
 connection under the existing 120-second startup bound. The gateway must return
 ForwardTcp success after the native relay claim, not before target connection.

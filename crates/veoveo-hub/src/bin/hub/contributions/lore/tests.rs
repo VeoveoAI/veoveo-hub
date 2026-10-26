@@ -270,53 +270,6 @@ fn an_assigned_request_carries_each_assignment_of_the_principal_on_the_deploymen
     }
 }
 #[test]
-fn changed_owners_are_those_whose_assignments_were_added_removed_or_changed() {
-    use veoveo_hub::computers::ComputerOwner;
-    let owner = |principal: &str| ComputerOwner {
-        tenant: TenantId::parse("tenant-a").unwrap(),
-        principal: PrincipalId::parse(principal).unwrap(),
-    };
-    let base = plane();
-    let with = |change: &dyn Fn(&mut serde_json::Value)| {
-        let mut changed = plane();
-        change(changed.extensions.get_mut("lore").unwrap());
-        changed
-    };
-    let changed = |previous: Option<&HubControlPlane>, active: &HubControlPlane| {
-        super::renewal::changed_owners(previous, active)
-            .unwrap()
-            .into_iter()
-            .collect::<Vec<_>>()
-    };
-    let added = with(&|lore| {
-        lore["assignments"].as_array_mut().unwrap().push(serde_json::json!(
-            {"deployment":"source","repository":SECOND,"tenant":"tenant-a","principal":"native-bob","actions":[]}
-        ));
-    });
-    assert_eq!(changed(Some(&base), &added), [owner("native-bob")]);
-    assert_eq!(
-        changed(Some(&added), &base),
-        [owner("native-bob")],
-        "removal"
-    );
-    let promoted = with(&|lore| {
-        lore["assignments"][0]["actions"] = serde_json::json!(["owner"]);
-    });
-    assert_eq!(changed(Some(&base), &promoted), [owner("native-alice")]);
-    let retitled = with(&|lore| {
-        lore["repositories"][0]["title"] = serde_json::json!("Renamed");
-    });
-    assert_eq!(changed(Some(&base), &retitled), []);
-    let mut unrelated = plane();
-    unrelated.metadata = serde_json::json!({"note": "unrelated"});
-    assert_eq!(changed(Some(&base), &unrelated), []);
-    assert_eq!(
-        changed(None, &base),
-        [owner("native-alice")],
-        "a first revision assigns its owners"
-    );
-}
-#[test]
 fn only_an_exchange_for_one_repository_names_it_as_a_scope() {
     let current = catalog(plane());
     let alice = principal();

@@ -18,7 +18,7 @@ mod revocations;
 mod selection;
 mod task_routes;
 
-pub use control::{ControlActivation, ControlObject, ControlPublication};
+pub use control::{ControlObject, ControlPublication};
 pub use refresh::{
     NewRefreshFamily, NewRefreshToken, RefreshBinding, RefreshDeliveryEnvelope, RefreshFamily,
     RefreshPrincipal, RefreshRetention, RefreshRevocation, RefreshRotation, RefreshToken,

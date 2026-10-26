@@ -4,11 +4,11 @@
 //! for them. The Hub creates the repository in the installation's one Lore deployment
 //! as the caller, with a Lore login token it issues for them, so Lore records them as its
 //! creator. It then publishes one control-plane revision that registers the repository
-//! and assigns the caller its owner, and answers once this process renewed the Lore
-//! access of the caller's Computers. Calling again with the `id` of a repository Lore
-//! records the caller as creating registers it, such as one whose publication failed;
-//! nobody else can claim it, and an owner assignment an administrator removed stays
-//! removed. Sharing, listing and deletion are separate.
+//! and assigns the caller its owner, and answers once that revision is active in this
+//! process, so the caller's next repository token holds it. Calling again with the `id`
+//! of a repository Lore records the caller as creating registers it, such as one whose
+//! publication failed; nobody else can claim it, and an owner assignment an
+//! administrator removed stays removed. Sharing and deletion are separate.
 use anyhow::Result;
 use axum::{
     Extension, Json, Router,
@@ -27,7 +27,6 @@ use super::{
     BranchId, Lore, Owned, OwnershipRefused, RepositoryId,
     person::issue_login,
     publication::{Author, Publisher},
-    renewal,
     repository_client::{Client, NativeRefusal},
 };
 use crate::runtime::AdminState;
@@ -200,10 +199,6 @@ async fn create(
                 .into_response();
         }
     };
-    // The caller's first push must not meet a token issued before this revision.
-    if published.is_some() {
-        renewal::after_activation(&state.control_store, state.hub_state.hub_store()).await;
-    }
     let mut remote = deployment.endpoint.clone();
     remote.set_path(&format!("/{id}"));
     let status = if published.is_some() {

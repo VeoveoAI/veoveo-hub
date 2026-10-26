@@ -943,7 +943,7 @@ fn log_change(
 }
 
 /// Refresh a provider's credential now and require a current, unfailed result.
-pub(super) async fn rotate(
+async fn rotate(
     client: &openshell_sdk::OpenShellClient,
     name: &str,
     provider: &str,

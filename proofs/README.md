@@ -43,7 +43,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-TASK-01 | Captured Task routing and retry integrity | unproved | **Next investigation:** trace creation through dispatch |
 | HUB-AUTH-01 | Current policy and delegated authority do not amplify access | unproved | Isolate an existing permission/rule decision |
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | unproved | Specify the pure current-family decision first |
-| HUB-CONFIG-01 | Coherent live configuration publication | unproved | Model transaction/CAS and activation-claim semantics |
+| HUB-CONFIG-01 | Coherent live configuration publication | unproved | Model transaction/CAS semantics |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Trace broader routing beyond the linked kernel |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
@@ -127,17 +127,15 @@ the family; bounded duplicate delivery and replay handling retain their distinct
 
 **Invariant/failure prevented.** Publication compares the expected active revision and
 commits revision objects, WorkContexts, active pointer and audit together. A losing
-concurrent publication does not partly apply. Activation claims coalesce changes
-through one database claim; that is not exactly-once external lifecycle execution.
+concurrent publication does not partly apply.
 
-- **Source:** [publish_control_revision/claim_control_activation](../crates/veoveo-hub/src/store/control.rs#L54)
+- **Source:** [publish_control_revision](../crates/veoveo-hub/src/store/control.rs#L82)
   and [control SQL](../crates/veoveo-hub/src/store/control/lock_active.sql).
 - **Tests:** [control_store](../crates/veoveo-hub/tests/control_store.rs#L22):
-  `publishes_immutable_revisions_and_moves_active_pointer_atomically`,
-  `concurrent_publications_activate_one_revision_and_refuse_the_other`, and
-  `one_process_claims_each_activation_from_the_last_claimed_revision`.
+  `publishes_immutable_revisions_and_moves_active_pointer_atomically` and
+  `concurrent_publications_activate_one_revision_and_refuse_the_other`.
 - **Boundary/effort:** substantial: SQL transaction/lock semantics are central, not
-  incidental I/O around a pure helper. A first abstract CAS/claim model can clarify
+  incidental I/O around a pure helper. A first abstract CAS model can clarify
   intent, assuming PostgreSQL atomicity/isolation and correct transaction scope.
 - **Residual/next:** justify model-to-SQL correspondence before claiming coverage.
   Process failure, replica notification and OpenShell effects are separate; preserve

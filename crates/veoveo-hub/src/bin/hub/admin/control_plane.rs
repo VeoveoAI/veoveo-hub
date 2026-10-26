@@ -360,7 +360,6 @@ pub(crate) async fn update_control_plane(
     if let Err(err) = replace_catalog(&state.catalog, new_catalog) {
         return internal_error_response(err);
     }
-    crate::contributions::after_activation(&state.control_store, state.hub_state.hub_store());
     tracing::info!(
         profile = %profile.id,
         principal = %subject.principal.id,

@@ -73,11 +73,6 @@ pub(super) fn spawn(state: AdminState, stop: CancellationToken) -> tokio::task::
                 stop.cancel();
                 return;
             }
-            // The publisher usually claimed the activation already.
-            crate::contributions::after_activation(
-                &state.control_store,
-                state.hub_state.hub_store(),
-            );
         }
     })
 }
