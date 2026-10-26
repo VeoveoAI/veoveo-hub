@@ -373,15 +373,18 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
         );
 
-    let listener = tokio::net::TcpListener::bind(listen_address)
-        .await
-        .with_context(|| format!("listen on {listen_address}"))?;
+    let listener = match passed_listener()? {
+        Some(listener) => listener,
+        None => tokio::net::TcpListener::bind(listen_address)
+            .await
+            .with_context(|| format!("listen on {listen_address}"))?,
+    };
     // A revision imported or published while no Hub ran is applied once the Hub listens,
     // since the gateway's renewals call its token endpoint.
     crate::contributions::after_activation(&activation_store, hub_state.hub_store());
     tracing::info!(
         service = "veoveo-hub",
-        address = %listen_address,
+        address = %listener.local_addr()?,
         issuer = %deployment.base_url(),
         profile_count = initial_catalog.profile_count(),
         "listening"
@@ -452,6 +455,33 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     sealed?;
     cleanup??;
     Ok(())
+}
+
+/// The listening socket the process that started the Hub passed it, by the socket
+/// activation protocol of sd_listen_fds(3): `LISTEN_FDS=1` and the socket at file
+/// descriptor 3, for this process when `LISTEN_PID` is set and names it.
+fn passed_listener() -> anyhow::Result<Option<tokio::net::TcpListener>> {
+    use std::os::fd::FromRawFd as _;
+    let Ok(count) = std::env::var("LISTEN_FDS") else {
+        return Ok(None);
+    };
+    if std::env::var("LISTEN_PID").is_ok_and(|pid| pid != std::process::id().to_string()) {
+        return Ok(None);
+    }
+    anyhow::ensure!(
+        count == "1",
+        "LISTEN_FDS passes {count} sockets; the Hub listens on one"
+    );
+    // SAFETY: by the protocol, file descriptor 3 is the listening socket passed to this
+    // process, and nothing else in it owns that descriptor.
+    let passed = unsafe { std::net::TcpListener::from_raw_fd(3) };
+    // The duplicate closes on exec, so the Hub's own child processes never inherit it.
+    let listener = passed
+        .try_clone()
+        .context("duplicate the passed socket at file descriptor 3")?;
+    drop(passed);
+    listener.set_nonblocking(true)?;
+    Ok(Some(tokio::net::TcpListener::from_std(listener)?))
 }
 
 async fn dynamic_mcp_profile(

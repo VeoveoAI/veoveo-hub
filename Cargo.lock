@@ -5043,6 +5043,7 @@ dependencies = [
  "hyper-util",
  "jsonschema",
  "jsonwebtoken",
+ "libc",
  "lore-proto",
  "openshell-policy",
  "openshell-sdk",

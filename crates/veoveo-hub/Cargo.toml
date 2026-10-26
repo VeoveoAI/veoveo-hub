@@ -88,3 +88,5 @@ schemars.workspace = true
 tonic-prost.workspace = true
 # The registration test migrates the fixture server's schema.
 sqlx = { workspace = true, features = ["migrate"] }
+# The Hub fixture passes each Hub process its listening socket.
+libc.workspace = true

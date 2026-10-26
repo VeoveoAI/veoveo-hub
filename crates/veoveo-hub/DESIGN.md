@@ -115,7 +115,9 @@ deployment-qualified ingress proof; MCP routing alone does not establish it.
    replace installation configuration, use trusted `import-control-plane` while
    the hosted process is stopped; routine changes use the live administrative API.
 5. Load registrations and start the native registration and active-control-revision
-   listeners, retention and housekeeping loops, then listen on `VEOVEO_LISTEN_ADDRESS`.
+   listeners, retention and housekeeping loops, then listen: on the socket the process
+   that started the Hub passed it, by sd_listen_fds(3)'s protocol, or else on
+   `VEOVEO_LISTEN_ADDRESS`.
    Active revisions emit kernel notifications only after commit; each replica also
    reconciles on initial subscription and reconnection.
 
@@ -133,6 +135,7 @@ each registration's login and creates each data environment's database. The othe
 | Variable | Meaning |
 |---|---|
 | `VEOVEO_LISTEN_ADDRESS` | Socket address, `127.0.0.1:8080` by default |
+| `LISTEN_FDS`, `LISTEN_PID` | A listening socket passed at file descriptor 3 (`LISTEN_FDS=1`, and `LISTEN_PID`, when set, naming the Hub's process), on which the Hub listens instead of `VEOVEO_LISTEN_ADDRESS` |
 | `VEOVEO_ISSUER` | The Hub's public origin: its RFC 8414 issuer, the `iss` of forwarded tokens and the base of every URL it announces |
 | `VEOVEO_CONFIG` | Installation configuration file |
 | `VEOVEO_DATABASE_URL`, `VEOVEO_DATABASE_PASSWORD` | The installation database as a `postgres://` URL naming host, database and user, and the user's password |
@@ -845,6 +848,10 @@ reconciliation read every registration and every process instance of the install
 by design, and each such statement carries a `-- veoveo:` marker with its reason.
 
 ## Qualification
+
+The tests that start the binary bind its loopback socket first and pass it to every Hub
+process they start, so no port is chosen before it is bound and none is free while the
+Hub restarts.
 
 `tests/registration.rs` starts the binary against a fresh PostgreSQL database with a
 generated local installation, registers the SDK's Observatory fixture server with the

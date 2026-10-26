@@ -53,6 +53,7 @@ tonic = "=0.14.6"
 tonic-prost = "=0.14.6"
 jsonschema = "=0.58.6"
 jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["aws_lc_rs", "use_pem"] }
+libc = "0.2.190"
 opentelemetry = "0.32.0"
 opentelemetry_sdk = "0.32.1"
 parking_lot = "0.12.5"

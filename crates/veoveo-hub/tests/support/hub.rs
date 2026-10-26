@@ -3,8 +3,8 @@
 #![allow(dead_code, reason = "Each integration test uses part of the fixture")]
 
 use std::{
-    fs::File,
-    net::{Ipv4Addr, SocketAddr, TcpListener},
+    net::{Ipv4Addr, TcpListener},
+    os::fd::AsRawFd as _,
     path::{Path, PathBuf},
     process::Stdio,
     time::Duration,
@@ -26,26 +26,34 @@ pub struct Hub {
     log: PathBuf,
     child: Child,
     command: Command,
-    /// This fixture's claim on its port, released when the test process ends.
-    _port: File,
+    /// The socket every Hub process of this fixture listens on, held while the fixture
+    /// lives, so no other process can take its port, not even between two Hub processes.
+    _listener: TcpListener,
 }
 
-/// A free loopback port no other Hub fixture holds. The Hub binds its port only at the
-/// end of its startup, so a port that was merely free could be chosen by another test
-/// process meanwhile; each fixture therefore locks a claim file for its port, which the
-/// operating system releases when the process ends.
-fn claim_port() -> (u16, File) {
-    loop {
-        let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
-            .unwrap()
-            .local_addr()
-            .unwrap()
-            .port();
-        let claim =
-            File::create(std::env::temp_dir().join(format!("veoveo-hub-port-{port}"))).unwrap();
-        if claim.try_lock().is_ok() {
-            return (port, claim);
-        }
+/// Passes `listener` to each process `command` starts as its listening socket, by the
+/// socket activation protocol of sd_listen_fds(3): at file descriptor 3, with
+/// `LISTEN_FDS=1`.
+fn pass_listener(command: &mut Command, listener: &TcpListener) {
+    let fd = listener.as_raw_fd();
+    command.env("LISTEN_FDS", "1");
+    // SAFETY: between fork and exec the closure calls only dup2 and fcntl, which are
+    // async-signal-safe, on a descriptor the parent keeps open.
+    unsafe {
+        command.pre_exec(move || {
+            // The copy dup2 makes stays open across exec; a socket that is descriptor 3
+            // already only needs its close-on-exec flag cleared.
+            let result = if fd == 3 {
+                libc::fcntl(3, libc::F_SETFD, 0)
+            } else {
+                libc::dup2(fd, 3)
+            };
+            if result == -1 {
+                Err(std::io::Error::last_os_error())
+            } else {
+                Ok(())
+            }
+        });
     }
 }
 
@@ -73,8 +81,8 @@ impl Hub {
         settings: &[(&str, String)],
         configure: impl FnOnce(&mut serde_json::Value),
     ) -> Self {
-        let (port, claim) = claim_port();
-        let base = format!("http://127.0.0.1:{port}");
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
         let installation = veoveo_hub::local::generate(directory, &base).unwrap();
         let mut config: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&installation.config).unwrap()).unwrap();
@@ -114,10 +122,6 @@ impl Hub {
             .env("PATH", std::env::var_os("PATH").unwrap_or_default())
             .env("RUST_LOG", "warn,veoveo_hub=info")
             .env("NO_COLOR", "1")
-            .env(
-                "VEOVEO_LISTEN_ADDRESS",
-                SocketAddr::from((Ipv4Addr::LOCALHOST, port)).to_string(),
-            )
             .env("VEOVEO_ISSUER", &base)
             .env("VEOVEO_CONFIG", &installation.config)
             .env("VEOVEO_DATABASE_URL", db.url())
@@ -132,6 +136,7 @@ impl Hub {
             .stdout(output.try_clone().unwrap())
             .stderr(output)
             .kill_on_drop(true);
+        pass_listener(&mut command, &listener);
         let child = command.spawn().unwrap();
         let mut hub = Self {
             base,
@@ -140,7 +145,7 @@ impl Hub {
             log,
             child,
             command,
-            _port: claim,
+            _listener: listener,
         };
         hub.ready(0).await;
         hub
@@ -156,8 +161,8 @@ impl Hub {
     }
 
     /// Wait until this fixture's own process, which logged `listening` `before` times
-    /// already, listens on its port and reports ready. A probe answered before then
-    /// could come from another process.
+    /// already, listens on its socket and reports ready. A probe sent before then would
+    /// wait in the socket's queue, whether or not that process ever serves it.
     async fn ready(&mut self, before: usize) {
         let http = reqwest::Client::new();
         for _ in 0..300 {
