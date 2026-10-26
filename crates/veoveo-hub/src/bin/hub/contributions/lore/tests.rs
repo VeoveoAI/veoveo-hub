@@ -355,3 +355,187 @@ fn only_an_exchange_for_one_repository_names_it_as_a_scope() {
         ])
     );
 }
+
+const THIRD: &str = "22222222222222222222222222222222";
+const FOURTH: &str = "33333333333333333333333333333333";
+
+/// A section whose deployment `source` renders `partition-{id}` and in which alice of
+/// tenant-a holds three repositories; bob, alice in another tenant and alice on another
+/// deployment hold others.
+fn listed() -> Lore {
+    let mut section = plane().extensions.remove("lore").unwrap();
+    let mut other = section["deployments"][0].clone();
+    other["id"] = serde_json::json!("other");
+    other["resourceName"] = serde_json::json!("native-other");
+    other["audience"] = serde_json::json!("https://other.example/native");
+    section["deployments"].as_array_mut().unwrap().push(other);
+    let owner: &[&str] = &["owner"];
+    let assignments: [(&str, &str, &str, &str, &[&str]); 6] = [
+        (
+            "source",
+            THIRD,
+            "tenant-a",
+            "native-alice",
+            &["admin", "owner"],
+        ),
+        ("source", FIRST, "tenant-a", "native-alice", &[]),
+        ("source", SECOND, "tenant-a", "native-alice", owner),
+        ("source", FOURTH, "tenant-a", "native-bob", owner),
+        ("source", FOURTH, "tenant-b", "native-alice", owner),
+        ("other", FOURTH, "tenant-a", "native-alice", owner),
+    ];
+    section["assignments"] = assignments
+        .iter()
+        .map(|(deployment, repository, tenant, principal, actions)| {
+            serde_json::json!({"deployment":deployment,"repository":repository,"tenant":tenant,"principal":principal,"actions":actions})
+        })
+        .collect();
+    serde_json::from_value(section).unwrap()
+}
+
+fn lookup(
+    filter: &str,
+    page_size: Option<i32>,
+    page_token: Option<&str>,
+) -> lore_proto::auth::LookupUserPermissionsRequest {
+    lore_proto::auth::LookupUserPermissionsRequest {
+        resource_filter: filter.to_owned(),
+        context_filter: None,
+        page_size,
+        page_token: page_token.map(str::to_owned),
+    }
+}
+
+#[test]
+fn a_listing_names_the_callers_own_assignments_on_the_deployment_in_pages() {
+    let section = listed();
+    let source = &section.deployments[0];
+    let tenant = TenantId::parse("tenant-a").unwrap();
+    let alice = PrincipalId::parse("native-alice").unwrap();
+    let list = |request| super::catalog::listing(&section, source, &tenant, &alice, &request);
+    let entry = |id: &str, permission: &[&str]| lore_proto::auth::ResourcePermission {
+        resource_id: format!("partition-{id}"),
+        permission: permission.iter().map(|name| (*name).to_owned()).collect(),
+    };
+    let all = vec![
+        entry(FIRST, &[]),
+        entry(SECOND, &["owner"]),
+        entry(THIRD, &["owner", "admin"]),
+    ];
+
+    // What Lore sends for its own resource type, and an empty filter: every entry of the
+    // caller, in resource-ID order, on one page.
+    for request in [
+        lookup("partition", None, None),
+        lookup("partition", Some(0), None),
+        lookup("", None, None),
+    ] {
+        let page = list(request).unwrap();
+        assert_eq!(page.resource_permission, all);
+        assert_eq!(page.next_page_token, None);
+    }
+    // Another resource type, and a type that only shares a prefix, name nothing.
+    for filter in ["urc", "part"] {
+        let page = list(lookup(filter, None, None)).unwrap();
+        assert!(page.resource_permission.is_empty(), "{filter}");
+        assert_eq!(page.next_page_token, None);
+    }
+
+    // Two entries a page: the token is the last ID of a page that more follow.
+    let first = list(lookup("partition", Some(2), None)).unwrap();
+    assert_eq!(first.resource_permission, all[..2]);
+    let token = first.next_page_token.unwrap();
+    assert_eq!(token, format!("partition-{SECOND}"));
+    let second = list(lookup("partition", Some(2), Some(&token))).unwrap();
+    assert_eq!(second.resource_permission, all[2..]);
+    assert_eq!(second.next_page_token, None);
+    // A full last page ends the listing too, and a token past every entry names none.
+    let exact = list(lookup("partition", Some(3), None)).unwrap();
+    assert_eq!(exact.resource_permission, all);
+    assert_eq!(exact.next_page_token, None);
+    let past = list(lookup(
+        "partition",
+        None,
+        Some(&format!("partition-{FOURTH}")),
+    ))
+    .unwrap();
+    assert!(past.resource_permission.is_empty());
+    assert_eq!(past.next_page_token, None);
+    // An empty token is the first page.
+    assert_eq!(
+        list(lookup("partition", None, Some("")))
+            .unwrap()
+            .resource_permission,
+        all
+    );
+
+    // Another caller, the caller in another tenant and one with nothing see only theirs.
+    let bob = PrincipalId::parse("native-bob").unwrap();
+    assert_eq!(
+        super::catalog::listing(
+            &section,
+            source,
+            &tenant,
+            &bob,
+            &lookup("partition", None, None)
+        )
+        .unwrap()
+        .resource_permission,
+        vec![entry(FOURTH, &["owner"])]
+    );
+    let elsewhere = TenantId::parse("tenant-b").unwrap();
+    assert_eq!(
+        super::catalog::listing(
+            &section,
+            source,
+            &elsewhere,
+            &alice,
+            &lookup("", None, None)
+        )
+        .unwrap()
+        .resource_permission,
+        vec![entry(FOURTH, &["owner"])]
+    );
+    let carol = PrincipalId::parse("native-carol").unwrap();
+    let none = super::catalog::listing(&section, source, &tenant, &carol, &lookup("", None, None))
+        .unwrap();
+    assert!(none.resource_permission.is_empty());
+    assert_eq!(none.next_page_token, None);
+
+    // What the Hub does not define is refused, never ignored.
+    let mut context = lookup("partition", None, None);
+    context.context_filter = Some(FIRST.to_owned());
+    for (case, request) in [
+        ("a context filter", context),
+        ("a negative page size", lookup("partition", Some(-1), None)),
+        (
+            "a token of another form",
+            lookup("partition", None, Some(&format!("urc-{FIRST}"))),
+        ),
+        (
+            "a token that is no ID",
+            lookup("partition", None, Some("partition-x")),
+        ),
+    ] {
+        assert_eq!(
+            list(request).unwrap_err().code(),
+            tonic::Code::InvalidArgument,
+            "{case}"
+        );
+    }
+}
+
+#[test]
+fn a_listed_action_is_named_as_the_token_names_it() {
+    for action in [
+        NativeAction::Owner,
+        NativeAction::Admin,
+        NativeAction::Obliterate,
+        NativeAction::Migrate,
+    ] {
+        assert_eq!(
+            serde_json::json!(action.as_str()),
+            serde_json::json!(action)
+        );
+    }
+}

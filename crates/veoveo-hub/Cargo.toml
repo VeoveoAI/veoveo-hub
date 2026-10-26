@@ -34,7 +34,7 @@ tempfile.workspace = true
 anyhow.workspace = true
 async-stream.workspace = true
 aws-lc-rs.workspace = true
-axum = { workspace = true, features = ["ws"] }
+axum = { workspace = true, features = ["http2", "ws"] }
 base64.workspace = true
 chacha20poly1305.workspace = true
 chrono.workspace = true
@@ -50,6 +50,7 @@ hyper-util.workspace = true
 prost.workspace = true
 prost-types.workspace = true
 tonic.workspace = true
+tonic-prost.workspace = true
 jsonwebtoken.workspace = true
 opentelemetry.workspace = true
 opentelemetry_sdk.workspace = true
@@ -84,8 +85,6 @@ veoveo-task.workspace = true
 jsonschema.workspace = true
 rcgen.workspace = true
 schemars.workspace = true
-# The factory tests' fake OpenShell gateway answers gRPC through tonic's server.
-tonic-prost.workspace = true
 # The registration test migrates the fixture server's schema.
 sqlx = { workspace = true, features = ["migrate"] }
 # The Hub fixture passes each Hub process its listening socket.

@@ -958,6 +958,21 @@ until a push is prepared; another process resumes every recorded watch as its wa
 and a later watch replaces the follower. The real Lore adapter is exercised only
 against a deployed Lore.
 
+`tests/lore_catalog.rs` starts the binary with one Lore deployment whose resource IDs
+are `urc-{id}` and asks `UrcAuthApi.LookupUserPermissions` over cleartext HTTP/2 on the
+Hub's listener, as Lore's catalog asks it, with a repository token a configured
+`client_secret_post` client obtained for one of its three synthetic assignments. It
+checks that the answer names all three in resource-ID order with their actions and not
+another person's, that Lore's walk of pages of two and of one returns the same entries,
+that another resource type names none and a context filter is refused, that no token,
+a malformed one, one signed by another key, one for another audience, an expired one and
+the Hub's MCP token are refused as `UNAUTHENTICATED`, that `CheckUserPermission` is
+unimplemented, and that a published removal of an assignment leaves it out of the next
+answer to the same token. Unit tests in `src/bin/hub/contributions/lore/tests.rs` check
+the listing's caller, tenant and deployment bounds, filters, pages and refusals, and that
+only an exchange for one repository issues a repository scope. No Lore server is
+involved.
+
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed
 assertion, an unknown client, resource or scope and an unsupported grant, and the MCP

@@ -218,8 +218,9 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             get(authorization_server_metadata),
         )
         .route("/oauth/jwks.json", get(authorization_server_jwks))
-        .with_state(state)
-        .merge(registration::router(registrations.clone()));
+        .with_state(state.clone())
+        .merge(registration::router(registrations.clone()))
+        .merge(crate::contributions::lore::catalog::router(state));
 
     let auth_state = ProfileAuthState {
         catalog: catalog.clone(),

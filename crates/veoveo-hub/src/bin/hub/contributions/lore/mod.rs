@@ -1,5 +1,6 @@
 //! Native Lore wire contribution. All deployments and assignments come from the
 //! admitted control-plane revision; only native protocol types live in code.
+pub(crate) mod catalog;
 pub(crate) mod client_token;
 pub(crate) mod computer_client;
 pub(crate) mod factory;
