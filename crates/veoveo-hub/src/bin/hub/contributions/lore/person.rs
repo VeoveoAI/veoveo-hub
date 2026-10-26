@@ -57,8 +57,9 @@ pub(crate) async fn issue(
 }
 
 /// Issue `person` of `tenant` one token for every repository they are assigned on the
-/// deployment, with one resource entry each and none without an assignment: the
-/// deployment's public client would obtain the same entries one repository at a time.
+/// deployment, with one resource entry each and none without an assignment, and no
+/// scope: the deployment's public client would obtain the same entries one repository
+/// at a time.
 pub(crate) async fn issue_assigned(
     catalog: &HubCatalog,
     deployment: &DeploymentId,

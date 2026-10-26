@@ -1971,14 +1971,13 @@ async fn a_computers_lore_token_acts_as_its_owner_for_every_assigned_repository(
         let bob = computer(&store, BOB, "bob-secret").await;
         let carol = computer(&store, CAROL, "carol-secret").await;
 
-        // One token as the owner, with one resource entry per assigned repository.
+        // One token as the owner, with one resource entry per assigned repository and
+        // no scope that would name each again.
         let (status, issued) = issue(&alice.native_name(), "alice-secret", &[]).await;
         assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
-        assert_eq!(
-            issued["scope"],
-            format!("source-{REPOSITORY} source-{SECOND}")
-        );
+        assert_eq!(issued["scope"], "");
         let token = claims(issued["access_token"].as_str().unwrap());
+        assert!(token.get("scope").is_none(), "{token}");
         assert_eq!(token["identity"], ALICE);
         assert_eq!(token["aud"], NATIVE_RESOURCE);
         assert_eq!(token["root_domains"], json!(["lore.internal"]));

@@ -316,3 +316,42 @@ fn changed_owners_are_those_whose_assignments_were_added_removed_or_changed() {
         "a first revision assigns its owners"
     );
 }
+#[test]
+fn only_an_exchange_for_one_repository_names_it_as_a_scope() {
+    let current = catalog(plane());
+    let alice = principal();
+    let profile = Profile {
+        key: current
+            .admission()
+            .registry()
+            .unwrap()
+            .section_key::<Lore>(&ExtensionName::parse("lore").unwrap())
+            .unwrap(),
+    };
+    let section = Lore::of(&current).unwrap();
+    let scopes = |request: Request| {
+        let context = context(&current, &alice);
+        let grant = profile.authorize(&section, &context, &request).unwrap();
+        profile.issued_scopes(&grant, &context)
+    };
+    let repository = format!("repo/{FIRST}/access");
+    assert_eq!(
+        scopes(Request::Exchange {
+            resource: None,
+            scope: Some(repository.clone()),
+        }),
+        BTreeSet::from([ScopeName::parse(repository).unwrap()])
+    );
+    assert_eq!(
+        scopes(Request::Assigned),
+        BTreeSet::new(),
+        "the token of every assigned repository carries its resources and no scope"
+    );
+    assert_eq!(
+        scopes(Request::Login),
+        BTreeSet::from([
+            ScopeName::parse("native:login").unwrap(),
+            ScopeName::parse("offline_access").unwrap(),
+        ])
+    );
+}

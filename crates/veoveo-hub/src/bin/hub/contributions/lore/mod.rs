@@ -405,8 +405,8 @@ pub enum Request {
         scope: Option<String>,
     },
     /// One token for every repository the principal is assigned on the deployment,
-    /// none when they are assigned none. No protocol request asks for it: the Hub
-    /// issues it to a Computer's own client, for the Computer's owner.
+    /// none when they are assigned none, and no scope. No protocol request asks for it:
+    /// the Hub issues it to a Computer's own client, for the Computer's owner.
     Assigned,
 }
 impl Request {
@@ -516,10 +516,9 @@ impl TokenProfile for Profile {
                             && a.principal == context.principal().id
                     })
                     .collect::<Vec<_>>();
-                issued_scopes = assigned
-                    .iter()
-                    .map(|a| ScopeName::parse(deployment.scope_template.render(&a.repository)))
-                    .collect::<Result<_, _>>()?;
+                // No scope: Lore reads none, and a scope per repository would repeat
+                // each resource entry in a token that already holds them all.
+                issued_scopes = BTreeSet::new();
                 (
                     TokenPurpose::Resource,
                     assigned
