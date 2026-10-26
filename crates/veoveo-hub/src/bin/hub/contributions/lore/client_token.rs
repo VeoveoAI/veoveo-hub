@@ -36,6 +36,12 @@ pub(super) fn secret(request: &TokenRequest) -> Option<&str> {
     request.client_secret.as_deref()
 }
 
+/// The OAuth error a client receives when the person it acts for holds no grant.
+pub(super) struct Denial {
+    pub error: &'static str,
+    pub description: &'static str,
+}
+
 /// The answer with the token `issued` for the client: the token, or `denied` when the
 /// person the client acts for holds no grant, each audited for `resource`.
 pub(super) async fn answer(
@@ -45,7 +51,7 @@ pub(super) async fn answer(
     resource: RegisteredProtectedResource<'_>,
     started_at: Instant,
     issued: Result<IssuedAccessToken, TokenIssueError>,
-    denied: &'static str,
+    denied: Denial,
 ) -> Response {
     let authorization_server = catalog.authorization_server(resource.authorization_server());
     let audit = |outcome, reason| AuthAuditRecord {
@@ -90,7 +96,7 @@ pub(super) async fn answer(
                 return auth_audit_error_response(error);
             }
             // RFC 6749 §5.2: the person the client acts for holds no grant.
-            oauth_error_response(StatusCode::BAD_REQUEST, "invalid_grant", denied)
+            oauth_error_response(StatusCode::BAD_REQUEST, denied.error, denied.description)
         }
         Err(TokenIssueError::Unavailable(_)) => oauth_error_response(
             StatusCode::INTERNAL_SERVER_ERROR,

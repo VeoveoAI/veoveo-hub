@@ -10,7 +10,7 @@ use veoveo_types::{DeploymentId as InstanceId, OAuthClientId};
 
 use super::{
     DeploymentId, Lore, RepositoryId,
-    client_token::{self, invalid_client},
+    client_token::{self, Denial, invalid_client},
     person::issue,
 };
 use crate::{http_util::oauth_error_response, oauth_grants::TokenRequest, runtime::AppState};
@@ -122,7 +122,10 @@ async fn answer(
         resource,
         started_at,
         issued,
-        "the instance's latest pusher holds no grant on its repository",
+        Denial {
+            error: "invalid_grant",
+            description: "the instance's latest pusher holds no grant on its repository",
+        },
     )
     .await
 }

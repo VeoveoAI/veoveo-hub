@@ -226,50 +226,6 @@ fn native_templates_and_actions_are_data_with_closed_protocol_encoding() {
     );
 }
 #[test]
-fn an_assigned_request_carries_each_assignment_of_the_principal_on_the_deployment() {
-    const OTHER: &str = "https://other.example/native";
-    let mut source = plane();
-    let lore = source.extensions.get_mut("lore").unwrap();
-    let mut other = lore["deployments"][0].clone();
-    other["id"] = serde_json::json!("other");
-    other["resourceName"] = serde_json::json!("native-other");
-    other["audience"] = serde_json::json!(OTHER);
-    lore["deployments"].as_array_mut().unwrap().push(other);
-    lore["repositories"].as_array_mut().unwrap().push(
-        serde_json::json!({"deployment":"other","id":FIRST,"tenant":"tenant-a","title":"Elsewhere"}),
-    );
-    lore["assignments"].as_array_mut().unwrap().extend([
-        serde_json::json!({"deployment":"source","repository":SECOND,"tenant":"tenant-a","principal":"native-alice","actions":["owner"]}),
-        serde_json::json!({"deployment":"other","repository":FIRST,"tenant":"tenant-a","principal":"native-alice","actions":["admin"]}),
-    ]);
-    source.oidc_clients[0]
-        .allowed_resources
-        .insert(ProtectedResourceId::parse(OTHER).unwrap());
-    let current = catalog(source);
-    let alice = principal();
-    let grant = authorize(&current, &alice, Request::Assigned).unwrap();
-    assert_eq!(grant["identity"], "native-alice");
-    assert_eq!(
-        grant["resources"],
-        serde_json::json!([
-            {"resource_id":format!("partition-{FIRST}"),"permission":[]},
-            {"resource_id":format!("partition-{SECOND}"),"permission":["owner"]}
-        ]),
-        "every assignment on this deployment, with its own actions, and none on another"
-    );
-    let mut unassigned = alice.clone();
-    unassigned.id = PrincipalId::parse("native-bob").unwrap();
-    let mut elsewhere = alice.clone();
-    elsewhere.tenant = Some(TenantId::parse("tenant-b").unwrap());
-    for principal in [unassigned, elsewhere] {
-        assert_eq!(
-            authorize(&current, &principal, Request::Assigned).unwrap()["resources"],
-            serde_json::json!([]),
-            "no assignment of this principal in its tenant is a token without resources"
-        );
-    }
-}
-#[test]
 fn only_an_exchange_for_one_repository_names_it_as_a_scope() {
     let current = catalog(plane());
     let alice = principal();
@@ -294,11 +250,6 @@ fn only_an_exchange_for_one_repository_names_it_as_a_scope() {
             scope: Some(repository.clone()),
         }),
         BTreeSet::from([ScopeName::parse(repository).unwrap()])
-    );
-    assert_eq!(
-        scopes(Request::Assigned),
-        BTreeSet::new(),
-        "the token of every assigned repository carries its resources and no scope"
     );
     assert_eq!(
         scopes(Request::Login),
@@ -744,4 +695,80 @@ fn groups_and_the_subjects_of_assignments_are_admitted_only_when_coherent() {
         "no group subject appears"
     );
     assert!(written.get("groups").is_none(), "no groups member appears");
+}
+#[test]
+fn a_computers_client_asks_for_its_owners_login_or_one_repositorys_token() {
+    let current = catalog(grouped());
+    let section = Lore::of(&current).unwrap();
+    let deployment = &section.deployments[0];
+    let alice = principal();
+    let requested = |scope: Option<&str>| super::computer_client::requested(deployment, scope);
+
+    // No scope: the owner's login token, which names them and carries no repository.
+    let login = authorize(&current, &alice, requested(None).unwrap()).unwrap();
+    assert_eq!(login["identity"], "native-alice");
+    assert_eq!(login["resources"], serde_json::json!([]));
+
+    // A repository's scope: that repository's token, with the owner's actions on it, own
+    // and through their group.
+    for (id, permission) in [(FIRST, ["owner"]), (SECOND, ["admin"])] {
+        let scope = format!("repo/{id}/access");
+        let grant = authorize(&current, &alice, requested(Some(&scope)).unwrap()).unwrap();
+        assert_eq!(
+            grant["resources"],
+            serde_json::json!([{"resource_id":format!("partition-{id}"),"permission":permission}])
+        );
+    }
+    // A repository the owner holds no grant on is refused at admission.
+    let mut carol = alice.clone();
+    carol.id = PrincipalId::parse("native-carol").unwrap();
+    let first = requested(Some(&format!("repo/{FIRST}/access"))).unwrap();
+    assert!(authorize(&current, &carol, first).is_err());
+    assert_eq!(
+        authorize(&current, &carol, requested(None).unwrap()).unwrap()["resources"],
+        serde_json::json!([]),
+        "an owner without grants still names themselves"
+    );
+
+    // Any other scope is refused before admission.
+    for scope in [
+        "native:login",
+        "offline_access",
+        "",
+        &format!("repo/{FIRST}/access repo/{SECOND}/access"),
+        &format!("repo/{FIRST}x/access"),
+        &format!("partition-{FIRST}"),
+    ] {
+        assert!(requested(Some(scope)).is_err(), "{scope:?}");
+    }
+}
+
+#[test]
+fn no_token_carries_more_than_one_repository() {
+    let current = catalog(grouped());
+    let mut requests = vec![Request::Login];
+    for id in [FIRST, SECOND] {
+        requests.push(Request::Exchange {
+            resource: None,
+            scope: Some(format!("repo/{id}/access")),
+        });
+    }
+    let mut issued = 0;
+    for name in ["native-alice", "native-bob", "native-carol"] {
+        let mut person = principal();
+        person.id = PrincipalId::parse(name).unwrap();
+        for request in &requests {
+            if let Ok(token) = authorize(&current, &person, request.clone()) {
+                issued += 1;
+                assert!(
+                    token["resources"].as_array().unwrap().len() <= 1,
+                    "{name}: {token}"
+                );
+            }
+        }
+    }
+    assert_eq!(
+        issued, 7,
+        "three login tokens, and alice's and bob's two repositories"
+    );
 }

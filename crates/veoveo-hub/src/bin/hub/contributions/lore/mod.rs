@@ -591,16 +591,15 @@ pub(crate) struct Owned<'a> {
 #[derive(Debug, thiserror::Error)]
 #[error("the repository is registered without its creator's owner assignment")]
 pub(crate) struct OwnershipRefused;
+/// What a Lore token is issued for: a login token, which names its person and carries no
+/// repository, or the token of the one repository an exchange's scope names.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Request {
     Login,
     Exchange {
         resource: Option<String>,
         scope: Option<String>,
     },
-    /// One token for every repository the principal is assigned on the deployment,
-    /// none when they are assigned none, and no scope. No protocol request asks for it:
-    /// the Hub issues it to a Computer's own client, for the Computer's owner.
-    Assigned,
 }
 impl Request {
     pub fn from_protocol(request: ProfileRequest<'_>) -> Result<Self> {
@@ -689,36 +688,6 @@ impl TokenProfile for Profile {
                         resource_id: deployment.resource_id_template.render(&id),
                         permission,
                     }],
-                )
-            }
-            Request::Assigned => {
-                let tenant = context
-                    .principal()
-                    .tenant
-                    .as_ref()
-                    .context("native principal has no tenant")?;
-                let assigned = section
-                    .repositories
-                    .iter()
-                    .filter(|r| r.deployment == deployment.id && &r.tenant == tenant)
-                    .filter_map(|r| {
-                        section
-                            .actions(&deployment.id, &r.id, tenant, &context.principal().id)
-                            .map(|actions| (&r.id, actions))
-                    })
-                    .collect::<Vec<_>>();
-                // No scope: Lore reads none, and a scope per repository would repeat
-                // each resource entry in a token that already holds them all.
-                issued_scopes = BTreeSet::new();
-                (
-                    TokenPurpose::Resource,
-                    assigned
-                        .into_iter()
-                        .map(|(repository, permission)| NativeGrant {
-                            resource_id: deployment.resource_id_template.render(repository),
-                            permission,
-                        })
-                        .collect(),
                 )
             }
         };

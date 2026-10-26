@@ -29,8 +29,8 @@ use crate::{
 
 pub(super) const HUB_PROVIDER: &str = "computer-hub";
 pub(super) const MODEL_PROVIDER: &str = "computer-model";
-/// The owner's Lore access: a token the gateway refreshes with the Computer's own Hub
-/// client, for the owner and every repository the owner is assigned.
+/// The owner's Lore access: tokens the gateway refreshes with the Computer's own Lore
+/// client, the owner's login token or one repository's token.
 pub(super) const LORE_PROVIDER: &str = "computer-lore";
 /// The providers every Computer's sandbox attaches.
 const PROVIDERS: [&str; 3] = [HUB_PROVIDER, MODEL_PROVIDER, LORE_PROVIDER];

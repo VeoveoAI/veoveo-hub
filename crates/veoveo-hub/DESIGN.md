@@ -942,8 +942,15 @@ Hub's token endpoint, mints each rotated Lore token with the instance's client: 
 first pusher, for the next pusher after a push, refused with `invalid_grant` once that
 pusher's assignment is removed and recorded as the failed restart, and again for a
 pusher who holds the grant; a wrong secret, a requested scope, the previous sandbox's
-secret and a removed instance are refused. Images and revisions are synthetic values; no
-OpenShell, Lore server, BuildKit or image is involved.
+secret and a removed instance are refused. A Computer's client receives its owner's login
+token, with no repository, without a scope, and with a repository's scope that
+repository's token alone, with the owner's actions on it; a repository the owner holds no
+grant on, another scope, a resource, a wrong or replaced secret and an instance's secret
+are refused. A person who creates a repository through an in-process fake of Lore's
+repository service owns it at once: the answer comes once the revision is active, and the
+repository's next token for their Computer holds it with `owner`; another creator, an
+unregistered creation of theirs and a taken name answer as the creation route says. Images and revisions
+are synthetic values; no OpenShell, Lore server, BuildKit or image is involved.
 
 `src/bin/hub/contributions/lore/factory/tests.rs` runs watching against an in-process
 fake of Lore and the factory itself on the same fake gateway, a fake image builder and
@@ -1295,11 +1302,13 @@ a Computer's native name and whose `client_secret` matches the stored digest rec
 a Lore token of the Computer's owner for the installation's one Lore deployment. With a
 `scope` that names one repository by the deployment's scope template, it is the token of
 that repository, which the deployment's public client would obtain by exchange, admitted
-against the owner's [assignments](#groups-and-sharing) on every issue. Without a
-`scope`, it names the owner and carries no repository, for Lore's listing and the
-requests that name no repository. The client requests no resource. OpenShell asks for
-the repository each Lore request names, under the Computer's provider profile, so no
-token grows with the number of repositories and the Computer never holds one. A native
+against the owner's [assignments](#groups-and-sharing) on every issue; a repository the
+owner holds no grant on is refused with `invalid_scope`, as the exchange refuses it, and so
+is any other scope. Without a `scope`, it is the owner's login token, which names them and
+carries no repository, for Lore's listing and the requests that name no repository. The
+client requests no resource. OpenShell asks for the repository each Lore request names,
+under the Computer's provider profile, so no token grows with the number of repositories
+and the Computer never holds one. A native
 name is never UUID-shaped, so a Computer's client and an instance's are never taken for
 each other.
 

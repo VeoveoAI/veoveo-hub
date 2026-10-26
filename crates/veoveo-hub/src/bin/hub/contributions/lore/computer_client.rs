@@ -1,9 +1,13 @@
 //! The token endpoint for a Computer's own Lore client. The gateway refreshes the
-//! Computer's Lore token with it: each token is the Lore token of the Computer's owner,
-//! with one resource entry for every repository the owner is assigned and none when they
-//! are assigned none. The client requests no scope and holds no grant of its own. Its
-//! identifier is the Computer's native name, which is never UUID-shaped, while an
-//! instance's client is its deployment ID, so neither is taken for the other.
+//! Computer's Lore token with it, and each token is a Lore token of the Computer's owner.
+//! Without a `scope` it is the owner's login token, which names them and carries no
+//! repository, for Lore's listing and the requests that name no repository. With a
+//! `scope` that names one repository by the deployment's scope template it is that
+//! repository's token, which the deployment's public client would obtain by exchange,
+//! admitted against the owner's grant on every issue. No token carries more than one
+//! repository. The client holds no grant of its own. Its identifier is the Computer's
+//! native name, which is never UUID-shaped, while an instance's client is its deployment
+//! ID, so neither is taken for the other.
 use std::time::Instant;
 
 use axum::{http::StatusCode, response::Response};
@@ -11,9 +15,9 @@ use veoveo_hub::{HubCatalog, RegisteredProtectedResource, token_profile::TokenIs
 use veoveo_types::OAuthClientId;
 
 use super::{
-    DeploymentId, Lore,
-    client_token::{self, invalid_client},
-    person::issue_assigned,
+    Deployment, Lore, Request,
+    client_token::{self, Denial, invalid_client},
+    person::issue_typed,
 };
 use crate::{http_util::oauth_error_response, oauth_grants::TokenRequest, runtime::AppState};
 
@@ -32,6 +36,28 @@ pub(crate) async fn token(
         return None;
     }
     Some(answer(state, catalog, client, request).await)
+}
+
+/// What a Computer's client asks of the Lore profile: the owner's login token without a
+/// scope, or the token of the one repository the scope names by the deployment's scope
+/// template. Any other scope is refused.
+pub(super) fn requested(
+    deployment: &Deployment,
+    scope: Option<&str>,
+) -> Result<Request, &'static str> {
+    match scope {
+        None => Ok(Request::Login),
+        Some(scope) => deployment
+            .scope_template
+            .parse(scope)
+            .map(|repository| Request::Exchange {
+                resource: None,
+                scope: Some(deployment.scope_template.render(&repository)),
+            })
+            .map_err(|_| {
+                "a Computer's client requests one repository by the Lore deployment's scope, or no scope"
+            }),
+    }
 }
 
 async fn answer(
@@ -62,13 +88,6 @@ async fn answer(
             );
         }
     };
-    if request.scope.is_some() {
-        return oauth_error_response(
-            StatusCode::BAD_REQUEST,
-            "invalid_scope",
-            "a Computer's client receives its owner's assigned repositories and requests no scope",
-        );
-    }
     // RFC 8707 §2: the client's tokens are for the installation's Lore only.
     if request.resource.is_some() {
         return oauth_error_response(
@@ -88,7 +107,32 @@ async fn answer(
             );
         }
     };
-    let issued = issue_assigned(catalog, &deployment, &owner.tenant, &owner.principal).await;
+    let typed = match requested(&deployment, request.scope.as_deref()) {
+        Ok(typed) => typed,
+        Err(description) => {
+            return oauth_error_response(StatusCode::BAD_REQUEST, "invalid_scope", description);
+        }
+    };
+    // RFC 6749 §5.2: a repository the owner holds no grant on exceeds what they hold, as
+    // the exchange refuses it.
+    let denial = match typed {
+        Request::Login => Denial {
+            error: "invalid_grant",
+            description: "the Computer's owner cannot be issued a Lore token",
+        },
+        Request::Exchange { .. } => Denial {
+            error: "invalid_scope",
+            description: "the Computer's owner holds no grant on the repository",
+        },
+    };
+    let issued = issue_typed(
+        catalog,
+        &deployment.id,
+        &owner.tenant,
+        &owner.principal,
+        &typed,
+    )
+    .await;
     match &issued {
         Ok(_) => {}
         Err(TokenIssueError::Denied(error)) => {
@@ -98,16 +142,7 @@ async fn answer(
             tracing::error!(%client, "failed to issue a Computer's Lore token: {error:#}");
         }
     }
-    client_token::answer(
-        state,
-        catalog,
-        client,
-        resource,
-        started_at,
-        issued,
-        "the Computer's owner cannot be issued a Lore token",
-    )
-    .await
+    client_token::answer(state, catalog, client, resource, started_at, issued, denial).await
 }
 
 /// The installation's one Lore deployment, which every Computer reaches, and its
@@ -115,11 +150,11 @@ async fn answer(
 /// Computer's token undetermined.
 fn deployment(
     catalog: &HubCatalog,
-) -> Result<(DeploymentId, RegisteredProtectedResource<'_>), &'static str> {
+) -> Result<(Deployment, RegisteredProtectedResource<'_>), &'static str> {
     let section = Lore::of(catalog).map_err(|_| "the Lore section is invalid")?;
     let deployment = section.sole_deployment()?;
     let resource = catalog
         .registered_protected_resource(&deployment.audience)
         .ok_or("the Lore deployment's resource is not registered")?;
-    Ok((deployment.id.clone(), resource))
+    Ok((deployment.clone(), resource))
 }

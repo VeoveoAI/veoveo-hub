@@ -17,10 +17,11 @@
 //! instance, registration, login and database. The Hub binary's status route waits for
 //! the applied revision to serve or fail, for callers with a grant on the repository
 //! only. An instance's own client receives its latest pusher's Lore token, and a
-//! Computer's own client its owner's, for every repository the owner is assigned; neither
-//! client is taken for the other. No OpenShell, Lore, BuildKit or image is involved:
-//! revisions, images and their digests are synthetic, and the fake builder's digest is
-//! the SHA-256 of a `Dockerfile`'s text.
+//! Computer's own client its owner's login token, or the token of the one repository its
+//! scope names; neither client is taken for the other. A person who creates a repository
+//! through the fake Lore owns it at once. No OpenShell, Lore, BuildKit or image is
+//! involved: revisions, images and their digests are synthetic, and the fake builder's
+//! digest is the SHA-256 of a `Dockerfile`'s text.
 #[path = "support/catalog_admission.rs"]
 mod catalog_admission;
 #[path = "support/database.rs"]
@@ -1923,7 +1924,7 @@ async fn computer_on(
 }
 
 #[tokio::test]
-async fn a_computers_lore_token_acts_as_its_owner_for_every_assigned_repository() {
+async fn a_computers_lore_token_is_its_owners_login_or_one_repositorys() {
     bounded(async {
         let _ = rustls::crypto::ring::default_provider().install_default();
         let fixture = Fixture::start(json!(null)).await;
@@ -1966,38 +1967,52 @@ async fn a_computers_lore_token_acts_as_its_owner_for_every_assigned_repository(
         let alice = computer(&store, ALICE, "alice-secret").await;
         let bob = computer(&store, BOB, "bob-secret").await;
         let carol = computer(&store, CAROL, "carol-secret").await;
+        let purpose = "https://veoveo.ai/claims/token-purpose";
 
-        // One token as the owner, with one resource entry per assigned repository and
-        // no scope that would name each again.
+        // Without a scope: the owner's login token, which names them and carries no
+        // repository.
         let (status, issued) = issue(&alice.native_name(), "alice-secret", &[]).await;
         assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
-        assert_eq!(issued["scope"], "");
+        assert_eq!(issued["scope"], "native:login offline_access");
         let token = claims(issued["access_token"].as_str().unwrap());
-        assert!(token.get("scope").is_none(), "{token}");
         assert_eq!(token["identity"], ALICE);
         assert_eq!(token["aud"], NATIVE_RESOURCE);
         assert_eq!(token["root_domains"], json!(["lore.internal"]));
+        assert_eq!(token["resources"], json!([]));
+        assert_eq!(token[purpose], "login");
+
+        // With a repository's scope: that repository's token, with the owner's actions on
+        // it, and only that repository.
+        for (id, permission) in [(REPOSITORY, json!([])), (SECOND, json!(["owner"]))] {
+            let scope = format!("source-{id}");
+            let (status, issued) =
+                issue(&alice.native_name(), "alice-secret", &[("scope", &scope)]).await;
+            assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
+            assert_eq!(issued["scope"], scope);
+            let token = claims(issued["access_token"].as_str().unwrap());
+            assert_eq!(token["identity"], ALICE);
+            assert_eq!(
+                token["resources"],
+                json!([{"resource_id": id, "permission": permission}])
+            );
+            assert_eq!(token[purpose], "resource");
+        }
+        let second = format!("source-{SECOND}");
+        let (status, refused) =
+            issue(&bob.native_name(), "bob-secret", &[("scope", &second)]).await;
+        assert_eq!(status, reqwest::StatusCode::BAD_REQUEST);
         assert_eq!(
-            token["resources"],
-            json!([
-                {"resource_id": REPOSITORY, "permission": []},
-                {"resource_id": SECOND, "permission": ["owner"]}
-            ])
-        );
-        assert_eq!(token["https://veoveo.ai/claims/token-purpose"], "resource");
-        let (_, issued) = issue(&bob.native_name(), "bob-secret", &[]).await;
-        assert_eq!(
-            claims(issued["access_token"].as_str().unwrap())["resources"],
-            json!([{"resource_id": REPOSITORY, "permission": []}])
+            refused["error"], "invalid_scope",
+            "a repository the owner holds no grant on"
         );
 
-        // An owner without assignments gets a valid token without resources.
+        // An owner without assignments still gets their login token.
         let (status, issued) = issue(&carol.native_name(), "carol-secret", &[]).await;
         assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
         let token = claims(issued["access_token"].as_str().unwrap());
         assert_eq!(token["identity"], CAROL);
         assert_eq!(token["resources"], json!([]));
-        assert_eq!(token["https://veoveo.ai/claims/token-purpose"], "resource");
+        assert_eq!(token[purpose], "login");
 
         // The client authenticates with its own secret and requests nothing else.
         for (client, secret) in [
@@ -2010,8 +2025,14 @@ async fn a_computers_lore_token_acts_as_its_owner_for_every_assigned_repository(
             );
         }
         let alice_client = alice.native_name();
-        let scoped = issue(&alice_client, "alice-secret", &[("scope", "native:login")]);
-        assert_eq!(scoped.await.1["error"], "invalid_scope");
+        for scope in [
+            "native:login".to_owned(),
+            format!("source-{REPOSITORY} source-{SECOND}"),
+            REPOSITORY.to_owned(),
+        ] {
+            let (_, scoped) = issue(&alice_client, "alice-secret", &[("scope", &scope)]).await;
+            assert_eq!(scoped["error"], "invalid_scope", "{scope}");
+        }
         let targeted = issue(&alice_client, "alice-secret", &[("resource", NATIVE_RESOURCE)]);
         assert_eq!(targeted.await.1["error"], "invalid_target");
 
@@ -2118,8 +2139,8 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         let http = reqwest::Client::new();
 
         // A person creates a repository: Lore records them as its creator, and the Hub
-        // answers once the revision is active, so the next token their Computer's client
-        // obtains holds it as theirs.
+        // answers once the revision is active, so the repository's next token their
+        // Computer's client obtains holds it as theirs.
         let (status, created) =
             create_repository(&http, &hub, "member", json!({"name": "alpha"})).await;
         assert_eq!(status, reqwest::StatusCode::CREATED, "{created}");
@@ -2141,17 +2162,14 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
                 ("grant_type", "client_credentials"),
                 ("client_id", &computer.native_name()),
                 ("client_secret", "member-secret"),
+                ("scope", &format!("source-{id}")),
             ],
         )
         .await;
         assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
-        let resources = claims(issued["access_token"].as_str().unwrap())["resources"].clone();
-        assert!(
-            resources
-                .as_array()
-                .unwrap()
-                .contains(&json!({"resource_id": id, "permission": ["owner"]})),
-            "{resources}"
+        assert_eq!(
+            claims(issued["access_token"].as_str().unwrap())["resources"],
+            json!([{"resource_id": id, "permission": ["owner"]}])
         );
         let owners = |plane: &serde_json::Value, id: &str| {
             plane["lore"]["assignments"]

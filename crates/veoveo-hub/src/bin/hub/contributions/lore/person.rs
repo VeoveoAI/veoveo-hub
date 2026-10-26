@@ -56,19 +56,6 @@ pub(crate) async fn issue(
         .await
 }
 
-/// Issue `person` of `tenant` one token for every repository they are assigned on the
-/// deployment, with one resource entry each and none without an assignment, and no
-/// scope: the deployment's public client would obtain the same entries one repository
-/// at a time.
-pub(crate) async fn issue_assigned(
-    catalog: &HubCatalog,
-    deployment: &DeploymentId,
-    tenant: &TenantId,
-    person: &PrincipalId,
-) -> Result<IssuedAccessToken, TokenIssueError> {
-    issue_typed(catalog, deployment, tenant, person, &Request::Assigned).await
-}
-
 /// Issue `person` of `tenant` a Lore login token for the deployment: it names the person
 /// and carries no repository rights, which is what Lore requires to create a repository.
 pub(crate) async fn issue_login(
@@ -80,8 +67,9 @@ pub(crate) async fn issue_login(
     issue_typed(catalog, deployment, tenant, person, &Request::Login).await
 }
 
-/// Issue `person` of `tenant` the token of a typed request of the Lore profile.
-async fn issue_typed(
+/// Issue `person` of `tenant` the token of a typed request of the Lore profile, as the
+/// deployment's public client would obtain it for them.
+pub(crate) async fn issue_typed(
     catalog: &HubCatalog,
     deployment: &DeploymentId,
     tenant: &TenantId,
