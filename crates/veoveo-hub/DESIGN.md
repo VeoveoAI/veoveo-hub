@@ -21,6 +21,7 @@ Neither its code nor its configuration names a server.
 | JWK Set, RFC 7517, and JWK Thumbprint, RFC 7638 | `/jwks.json` and `/oauth/jwks.json`, served as `application/jwk-set+json`: public Ed25519 keys whose `kid` is the RFC 7638 thumbprint |
 | Protected resource metadata, RFC 9728 | `/.well-known/oauth-protected-resource/mcp/{profile}` |
 | Problem details, RFC 9457 | HTTP API errors outside OAuth endpoints, typed `https://veoveo.ai/problems/<code>` |
+| gRPC over HTTP/2, Lore's `epic_urc.UrcAuthApi` | `LookupUserPermissions` only, on the Hub's own listener, for Lore's repository listing; see [repository listing](#repository-listing) |
 | PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, then the Hub's own `hub` schema, applied at startup; `LISTEN` on the `hub` channel for registration changes; one login role per registration. A database per data environment in the same instance, with core's kernel schemas |
 | OpenTelemetry | `service.name` is `veoveo-hub` |
 | Veoveo installation configuration | `HubControlPlane` in `src/control_plane.rs`, read as JSON |
@@ -117,7 +118,8 @@ deployment-qualified ingress proof; MCP routing alone does not establish it.
 5. Load registrations and start the native registration and active-control-revision
    listeners, retention and housekeeping loops, then listen: on the socket the process
    that started the Hub passed it, by sd_listen_fds(3)'s protocol, or else on
-   `VEOVEO_LISTEN_ADDRESS`.
+   `VEOVEO_LISTEN_ADDRESS`. The listener speaks HTTP/1.1 and cleartext HTTP/2 (prior
+   knowledge), which gRPC needs.
    Active revisions emit kernel notifications only after commit; each replica also
    reconciles on initial subscription and reconnection.
 
@@ -763,6 +765,7 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 | `PUT`/`DELETE /selection/{profile}/{server}` | The caller's branch for a server, or back to the base branch; 204 |
 | `PUT /factory/{profile}/watch?repository=<id>` | The Hub watches a Lore repository as the caller; 204, or 403 without the caller's grant |
 | `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
+| `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person is assigned, for Lore's repository listing |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
@@ -1266,7 +1269,7 @@ a Computer's native name and whose `client_secret` matches the stored digest rec
 the owner's Lore token for the installation's one Lore deployment, with one native
 resource entry for every repository the owner is assigned there and none without an
 assignment: the entries the deployment's public client would obtain one repository at
-a time. The client requests no scope or resource. A native name is never UUID-shaped,
+a time. The token carries no `scope`. The client requests no scope or resource. A native name is never UUID-shaped,
 so a Computer's client and an instance's are never taken for each other.
 
 When a revision adds, removes or changes a principal's Lore assignments, Hub at once
@@ -1408,7 +1411,10 @@ included; no read-only role is inferred from it. Only an explicit assignment gra
 repository. Creating a repository through the Hub makes its creator the owner; no
 other grant is automatic, and no administrator role or Work Context membership grants
 repositories. Removing an assignment stops further issuance, while tokens already issued keep
-their rights until they expire under the deployment's token lifetime.
+their rights until they expire under the deployment's token lifetime. A token's `scope`
+names a repository only when an exchange asked for that one repository, by the
+deployment's scope template; the token of every assigned repository, a Computer's, carries
+no `scope`, since Lore reads none and each name would repeat a resource entry.
 
 Whoever creates a repository owns it, in one step. `POST /lore/{profile}/repositories`
 with `{"name"}` and an optional `"id"` takes any authenticated caller with a tenant,
@@ -1427,8 +1433,37 @@ failed publication; that failure answers 503 with the repository's `id`. Another
 creator answers 409 `repository-claimed`, a registered repository without the
 caller's owner assignment answers 409 `repository-registered`, since a creator never
 restores an assignment an administrator removed, and a registered repository the
-caller owns answers 200 unchanged. Sharing, listing and deletion are separate.
+caller owns answers 200 unchanged. Sharing and deletion are separate, and Lore lists
+repositories through the Hub as [below](#repository-listing).
 
 The native HTTP fixture approves a synthetic identity through trusted fixture
 state, checks actual hosted HTTP/JWT/persistence/live-publication behavior, and
 restarts against a stale seed; its identity is synthetic, not an Entra sign-in.
+
+#### Repository listing
+
+Lore lists repositories through its `auth_service` catalog: for `lore repository list`
+it forwards the caller's token to `UrcAuthApi.LookupUserPermissions` at its
+`repository_catalog_url`, and only then. The Hub answers that one method as gRPC on its
+own listener, at `/epic_urc.UrcAuthApi/LookupUserPermissions`; the installation routes
+Lore there. The token must be a Lore token this Hub issued: `at+jwt`, signed by a Lore
+deployment's authorization server, for that deployment's audience and unexpired, as a
+login or a repository token. A missing token, one the Hub did not issue and one for
+another audience answer `UNAUTHENTICATED`. The answer is the token's person's
+assignments on that deployment in the person's tenant in the active control plane, not
+the token's `resources`, so a listing follows an assignment change before any token is
+renewed: one `ResourcePermission` per assignment, its `resource_id` rendered by the
+deployment's resource-ID template (`urc-{id}` in the installation, the form Lore's
+catalog parses) and its `permission` the assignment's native actions.
+
+Lore sends `resource_filter = "urc"`, no `context_filter` and no `page_size`, and
+follows `next_page_token` until it is absent. The Hub answers the entries whose
+resource ID begins with the filter and `-`, every entry for an empty filter, in
+resource-ID order. A positive `page_size` bounds a page, and none or 0 means every
+entry. `next_page_token` is the last resource ID of a page that more entries follow,
+and a `page_token` continues after that ID, so an assignment published between two
+pages lands in its place and nothing repeats. A `context_filter`, a negative
+`page_size` and a `page_token` that is no resource ID of the deployment answer
+`INVALID_ARGUMENT`. Authorization does not change: Lore authorizes every request from
+the token's `resources` and its `auth_url` stays unset, so the Hub is asked only when
+something lists, and the Hub answers none of `UrcAuthApi`'s other methods.
