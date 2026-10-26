@@ -608,7 +608,8 @@ fn groups_and_the_subjects_of_assignments_are_admitted_only_when_coherent() {
     let group_assignment = |lore: &mut serde_json::Value| -> serde_json::Value {
         lore["assignments"].as_array().unwrap()[1].clone()
     };
-    let refused: [(&str, &dyn Fn(&mut serde_json::Value)); 9] = [
+    type Change<'a> = dyn Fn(&mut serde_json::Value) + 'a;
+    let refused: [(&str, &Change); 9] = [
         ("both subjects", &|lore| {
             lore["assignments"][1]["principal"] = serde_json::json!("native-carol");
         }),
@@ -771,4 +772,326 @@ fn no_token_carries_more_than_one_repository() {
         issued, 7,
         "three login tokens, and alice's and bob's two repositories"
     );
+}
+
+/// The section of [`grouped`]: alice's own assignment on FIRST names no action, and the
+/// group `bioma`, which bob owns and alice belongs to, holds `owner` there.
+fn shared() -> Lore {
+    Lore::of(&catalog(grouped())).unwrap()
+}
+
+fn caller<'a>(tenant: &'a TenantId, principal: &'a PrincipalId) -> super::sharing::Caller<'a> {
+    super::sharing::Caller { tenant, principal }
+}
+
+#[test]
+fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
+    use super::sharing::{Named, Refusal, Setting};
+    let tenant = TenantId::parse("tenant-a").unwrap();
+    let [alice, bob, carol] = ["native-alice", "native-bob", "native-carol"]
+        .map(|principal| PrincipalId::parse(principal).unwrap());
+    let source = DeploymentId::parse("source").unwrap();
+    let [first, second] = [FIRST, SECOND].map(|id| RepositoryId::parse(id).unwrap());
+    let bioma = Named::Group(GroupName::parse("bioma").unwrap());
+    let mut section = shared();
+
+    // Alice and bob own FIRST through bioma; carol, who holds nothing, may not share it.
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &carol),
+            &Named::Person(alice.clone()),
+            Setting::Owner
+        ),
+        Err(Refusal::NotRepositoryOwner)
+    );
+    assert_eq!(
+        section.readable(&source, &first, caller(&tenant, &carol)),
+        Err(Refusal::NotGranted)
+    );
+    // Nor may an owner of SECOND's `admin` share SECOND.
+    assert_eq!(
+        section.set_access(
+            &source,
+            &second,
+            caller(&tenant, &alice),
+            &Named::Person(carol.clone()),
+            Setting::Member
+        ),
+        Err(Refusal::NotRepositoryOwner)
+    );
+
+    // An owner shares with a person, then replaces the level, then removes it.
+    let carol_level = |section: &Lore| {
+        section
+            .access(&source, &first)
+            .find(|a| a.subject == Subject::Principal(carol.clone()))
+            .map(|a| a.actions.iter().copied().collect::<Vec<_>>())
+    };
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(carol.clone()),
+            Setting::Member
+        ),
+        Ok(true)
+    );
+    assert_eq!(carol_level(&section), Some(vec![]));
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(carol.clone()),
+            Setting::Member
+        ),
+        Ok(false)
+    );
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(carol.clone()),
+            Setting::Owner
+        ),
+        Ok(true)
+    );
+    assert_eq!(carol_level(&section), Some(vec![NativeAction::Owner]));
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(carol.clone()),
+            Setting::None
+        ),
+        Ok(true)
+    );
+    assert_eq!(carol_level(&section), None);
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(carol.clone()),
+            Setting::None
+        ),
+        Ok(false)
+    );
+
+    // Bob owns FIRST only through bioma: lowering the group would leave him no owner.
+    let before = section.assignments.clone();
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &bioma,
+            Setting::Member
+        ),
+        Err(Refusal::KeepRepositoryOwner)
+    );
+    assert_eq!(
+        section.assignments, before,
+        "a refused change changes nothing"
+    );
+    // Once his own assignment holds `owner`, it may.
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(bob.clone()),
+            Setting::Owner
+        ),
+        Ok(true)
+    );
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &bioma,
+            Setting::Member
+        ),
+        Ok(true)
+    );
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(bob.clone()),
+            Setting::None
+        ),
+        Err(Refusal::KeepRepositoryOwner)
+    );
+    // An administrator's other actions are replaced by the level an owner sets.
+    section.assignments.iter_mut().for_each(|a| {
+        if a.repository == first && a.subject == Subject::Principal(alice.clone()) {
+            a.actions = BTreeSet::from([NativeAction::Admin, NativeAction::Migrate]);
+        }
+    });
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(alice.clone()),
+            Setting::Member
+        ),
+        Ok(true)
+    );
+    assert!(
+        section
+            .access(&source, &first)
+            .any(|a| a.subject == Subject::Principal(alice.clone()) && a.actions.is_empty())
+    );
+
+    // Unknown repositories and groups, and repositories of another tenant.
+    let elsewhere = TenantId::parse("tenant-b").unwrap();
+    let third = RepositoryId::parse(THIRD).unwrap();
+    assert_eq!(
+        section.set_access(
+            &source,
+            &third,
+            caller(&tenant, &bob),
+            &bioma,
+            Setting::Member
+        ),
+        Err(Refusal::UnknownRepository)
+    );
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&elsewhere, &bob),
+            &bioma,
+            Setting::Member
+        ),
+        Err(Refusal::UnknownRepository)
+    );
+    let unknown = Named::Group(GroupName::parse("nobody").unwrap());
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &unknown,
+            Setting::Member
+        ),
+        Err(Refusal::UnknownGroup)
+    );
+
+    // What the changes leave is still admitted.
+    let mut plane = grouped();
+    plane
+        .extensions
+        .insert("lore".into(), serde_json::to_value(&section).unwrap());
+    assert!(admits(plane));
+}
+
+#[test]
+fn a_group_is_created_by_its_owner_whose_owners_set_its_memberships() {
+    use super::sharing::{Refusal, Setting};
+    let tenant = TenantId::parse("tenant-a").unwrap();
+    let [alice, bob, carol] = ["native-alice", "native-bob", "native-carol"]
+        .map(|principal| PrincipalId::parse(principal).unwrap());
+    let bioma = GroupName::parse("bioma").unwrap();
+    let builders = GroupName::parse("builders").unwrap();
+    let mut section = shared();
+
+    let created = section
+        .create_group(
+            caller(&tenant, &carol),
+            &builders,
+            GroupId::parse(THIRD).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(
+        created.members,
+        [Member {
+            principal: carol.clone(),
+            role: GroupRole::Owner
+        }]
+    );
+    assert_eq!(
+        section
+            .create_group(
+                caller(&tenant, &alice),
+                &bioma,
+                GroupId::parse(FOURTH).unwrap()
+            )
+            .err(),
+        Some(Refusal::GroupTaken)
+    );
+
+    // A member who is no owner, and someone outside the group, change nothing.
+    assert_eq!(
+        section.set_membership(caller(&tenant, &alice), &bioma, &carol, Setting::Member),
+        Err(Refusal::NotGroupOwner)
+    );
+    assert_eq!(
+        section.set_membership(caller(&tenant, &carol), &bioma, &carol, Setting::Member),
+        Err(Refusal::NotGroupOwner)
+    );
+    assert_eq!(
+        section.set_membership(caller(&tenant, &bob), &builders, &carol, Setting::None),
+        Err(Refusal::NotGroupOwner)
+    );
+    let nobody = GroupName::parse("nobody").unwrap();
+    assert_eq!(
+        section.set_membership(caller(&tenant, &bob), &nobody, &carol, Setting::Member),
+        Err(Refusal::UnknownGroup)
+    );
+
+    // An owner adds, promotes and removes members.
+    let role =
+        |section: &Lore, who: &PrincipalId| section.group_named(&tenant, &bioma).unwrap().role(who);
+    assert_eq!(
+        section.set_membership(caller(&tenant, &bob), &bioma, &carol, Setting::Member),
+        Ok(true)
+    );
+    assert_eq!(role(&section, &carol), Some(GroupRole::Member));
+    assert_eq!(
+        section.set_membership(caller(&tenant, &bob), &bioma, &carol, Setting::Member),
+        Ok(false)
+    );
+    assert_eq!(
+        section.set_membership(caller(&tenant, &bob), &bioma, &alice, Setting::Owner),
+        Ok(true)
+    );
+    assert_eq!(
+        section.set_membership(caller(&tenant, &bob), &bioma, &carol, Setting::None),
+        Ok(true)
+    );
+    assert_eq!(role(&section, &carol), None);
+
+    // An owner never lowers or removes themselves, even with another owner beside them.
+    for setting in [Setting::Member, Setting::None] {
+        assert_eq!(
+            section.set_membership(caller(&tenant, &bob), &bioma, &bob, setting),
+            Err(Refusal::KeepGroupOwner)
+        );
+    }
+    assert_eq!(
+        section.set_membership(caller(&tenant, &bob), &bioma, &bob, Setting::Owner),
+        Ok(false)
+    );
+    // Another owner may.
+    assert_eq!(
+        section.set_membership(caller(&tenant, &alice), &bioma, &bob, Setting::None),
+        Ok(true)
+    );
+    assert_eq!(role(&section, &bob), None);
+
+    let mut plane = grouped();
+    plane
+        .extensions
+        .insert("lore".into(), serde_json::to_value(&section).unwrap());
+    assert!(admits(plane));
 }

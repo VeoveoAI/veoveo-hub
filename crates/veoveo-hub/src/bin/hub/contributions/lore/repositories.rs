@@ -8,7 +8,7 @@
 //! process, so the caller's next repository token holds it. Calling again with the `id`
 //! of a repository Lore records the caller as creating registers it, such as one whose
 //! publication failed; nobody else can claim it, and an owner assignment an
-//! administrator removed stays removed. Sharing and deletion are separate.
+//! administrator removed stays removed. Owners share it (`sharing.rs`); deletion is separate.
 use anyhow::Result;
 use axum::{
     Extension, Json, Router,
@@ -60,7 +60,7 @@ pub(crate) fn router(state: AdminState, auth: ProfileAuthState) -> Router {
 }
 
 /// 16 random bytes in lowercase hexadecimal, the form of Lore's IDs.
-fn random_hex() -> Result<String> {
+pub(super) fn random_hex() -> Result<String> {
     let mut bytes = [0_u8; 16];
     getrandom::fill(&mut bytes).map_err(|error| anyhow::anyhow!("random source: {error}"))?;
     Ok(hex::encode(bytes))

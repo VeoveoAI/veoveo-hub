@@ -987,9 +987,35 @@ next revision removed, read alike by the exchange, the listing and the status ro
 check. They check that admission refuses an assignment naming both subjects or neither,
 an unknown group or one of another tenant, a repeated subject on a repository, a repeated
 group ID, a name repeated in a tenant, an invalid name, a repeated member and an unknown
-role, and that today's documents read and write as before. They also check the listing's
-caller, tenant and deployment bounds, filters, pages and refusals, and that only an
-exchange for one repository issues a repository scope. No Lore server is involved.
+role, and that today's documents read and write as before. They check that a Computer's
+client asks for its owner's login token without a scope and for one repository's token
+with that repository's scope, refusing any other scope, that a repository its owner holds
+no grant on is refused at admission, and that no token carries more than one repository.
+They check the sharing changes: an owner shares with a person and with a group, sets a
+level that replaces an administrator's actions and removes it, and is refused, with
+nothing changed, a change that would leave them without `owner`; someone without
+`owner`, an unknown repository or group and another tenant's repository are refused; a
+group's creator is its one member and owner, a name is taken once in a tenant, only an
+owner sets memberships and no owner lowers or removes themselves; and what the changes
+leave is admitted. They also check the listing's caller, tenant and deployment bounds,
+filters, pages and refusals, and that only an exchange for one repository issues a
+repository scope. No Lore server is involved.
+
+`tests/lore_sharing.rs` starts the binary with the native HTTP fixture's configuration,
+records synthetic `hub.person` rows as a sign-in writes them, and calls the access and
+group routes as the acceptance callers. It checks the exact answers: the creator's owner
+entry, a share with a person named by an email in any case and the list that follows,
+by email, and a group created with its creator as owner, listed only to its members.
+It checks the refusals by problem type: reading without a grant, sharing or changing a
+group without being its owner, an email no one signed in with, whose detail asks for a
+sign-in, the caller's own lowering or removal on a repository and in a group, bodies of
+another shape, an unknown repository, group and group name, and a taken name. Sharing
+the repository with a group and adding the `client_secret_post` client's principal to it
+lets that principal's repository token be issued and Lore's listing name the repository
+with `owner`; removing the membership takes both away. An administrator's assignment
+with other actions is listed with them and replaced by the level an owner sets, and a
+principal without a `hub.person` row is listed with a null email and name after the
+people. No identity provider or Lore server is involved.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed
@@ -1495,25 +1521,49 @@ A person who has never signed in cannot be named. The table is the Hub's own
 (`src/person.rs`, migration `0029`), and the Lore contribution resolves an email to a
 person, and a principal to an email and a name, through it.
 
-Each change below takes any authenticated caller with a tenant and publishes one revision
-under the process's publication lock, built again on a revision conflict, like a creation.
-It answers once the revision is active in this process. Refusals are RFC 9457 problems.
+Each route below takes any authenticated caller with a tenant, directly or through a
+server that calls the Hub for them, authenticated as a creation is, and names a
+repository of the installation's one Lore deployment. Each change publishes one revision
+under the process's publication lock, built again on a revision conflict, like a
+creation, and answers once the revision is active in this process; a change that
+changes nothing publishes nothing and answers the same. The routes are in
+`src/bin/hub/contributions/lore/sharing.rs`, and what a caller may change is decided by
+the section alone (`sharing/changes.rs`). Fields that need two words are camelCase.
 
 | Route | Who | Behavior |
 |---|---|---|
-| `GET /lore/{profile}/repositories/{id}/access` | a holder of a grant on it | `{repository, access}`: each assignment's subject, `{person: {email, name}}` or `{group: {name}}`, and its level |
-| `PUT /lore/{profile}/repositories/{id}/access` | an owner of it | `{person: <email>}` or `{group: <name>}`, and `access`: `member`, `owner` or `none`. Sets that subject's assignment, or removes it, and answers the list |
-| `POST /lore/{profile}/groups` | anyone | `{name}`: creates the group with the caller as its owner; 201 with `{id, name}` |
-| `GET /lore/{profile}/groups` | anyone | The caller's groups, each with its members |
-| `PUT /lore/{profile}/groups/{name}/members` | an owner of the group | `{person: <email>, role: member, owner or none}`: sets or removes that membership, and answers the group |
+| `GET /lore/{profile}/repositories/{id}/access` | a holder of a grant on it | The access list |
+| `PUT /lore/{profile}/repositories/{id}/access` | an owner of it | `{"person": "<email>", "access": …}` or `{"group": "<name>", "access": …}`, exactly one of `person` and `group`, with `access` `member`, `owner` or `none`. Sets that subject's assignment, or removes it, and answers the access list |
+| `POST /lore/{profile}/groups` | anyone | `{"name": "<name>"}`: creates the group with the caller as its one member, its owner; 201 with the group |
+| `GET /lore/{profile}/groups` | anyone | `{"groups": [<group>]}`: the groups the caller belongs to, by name |
+| `PUT /lore/{profile}/groups/{name}/members` | an owner of the group | `{"person": "<email>", "role": "member", "owner" or "none"}`: sets or removes that membership, and answers the group |
 
-A level is `member`, an assignment without actions, or `owner`, the `owner` action; an
-assignment an administrator published with other actions is listed with them and
-replaced by the level an owner sets. A change that would leave the caller without
-`owner` on the repository or the group is refused with 409, so neither is ever left
-without an owner. An unknown repository or group answers 404, an unknown email 404
-naming that the person has not signed in, and a taken group name 409. Groups and
-memberships are listed by email and name; IDs stay internal.
+The access list is `{"repository": "<id>", "access": [<entry>]}`, each entry an
+assignment on the repository: `{"person": {"email", "name"}, "access", "actions"}` or
+`{"group": {"name"}, "access", "actions"}`, people by email and then groups by name. A
+group is `{"name", "members": [{"email", "name", "role"}]}`, its members by email. A
+person is named by the email and display name of their last sign-in; one with no
+`hub.person` row, such as a principal an administrator assigned, has both `null` and is
+listed after the people who signed in. `actions` is the assignment's native action set
+as the section stores it, in its canonical order, and `access` its level: `owner` when
+the actions hold `owner`, otherwise `member`. An owner sets a level: `member`, an
+assignment without actions, or `owner`, the `owner` action, which replaces whatever
+actions an administrator published. Groups, assignments and memberships are listed by
+email and name; IDs stay internal.
+
+Refusals are RFC 9457 problems whose title and detail say what to do. A caller without
+a tenant answers 403 `sharing-forbidden`. An unknown repository, one of another tenant
+included, answers 404 `repository-not-found`; reading the access of a repository without
+a grant on it 403 `repository-access-forbidden`, and changing it without `owner` 403
+`repository-owner-required`. An email no one of the tenant has signed in with answers 404
+`person-not-found`, which asks for that person to sign in once, an unknown group 404
+`group-not-found`, a group change by someone who is not its owner 403
+`group-owner-required`, and a taken group name 409 `group-exists`. A change that would
+leave the caller without `owner` on the repository, own or through a group, answers 409
+`repository-owner-kept`, and one that would lower or remove the caller's own owner role
+in a group 409 `group-owner-kept`, so neither is ever left without an owner by these
+routes. A body of another shape answers 400 `invalid-request`, an invalid group name 400
+`invalid-group-name`, and a failed read or publication 503 `sharing-unavailable`.
 
 The native HTTP fixture approves a synthetic identity through trusted fixture
 state, checks actual hosted HTTP/JWT/persistence/live-publication behavior, and
