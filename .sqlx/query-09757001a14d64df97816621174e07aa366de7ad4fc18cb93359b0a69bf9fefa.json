@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The person as this sign-in names them.\nINSERT INTO hub.person (tenant, principal, display_name, email, updated_at)\nVALUES ($1, $2, $3, $4, $5)\nON CONFLICT (tenant, principal) DO UPDATE\nSET display_name = EXCLUDED.display_name, email = EXCLUDED.email, updated_at = EXCLUDED.updated_at\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "09757001a14d64df97816621174e07aa366de7ad4fc18cb93359b0a69bf9fefa"
+}

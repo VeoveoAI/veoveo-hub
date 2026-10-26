@@ -13,7 +13,7 @@ use veoveo_hub::contract::{AuthOutcome, AuthReasonCode};
 use veoveo_hub::control_plane::{
     AuthorizationDestination, HubAuthorizationCodeRecord, HubAuthorizationRequest,
 };
-use veoveo_hub::{HubSecretResolver, OidcIdTokenConfig, OidcIdTokenVerifier};
+use veoveo_hub::{HubSecretResolver, OidcIdTokenConfig, OidcIdTokenVerifier, person::Person};
 
 use crate::{
     audit::{
@@ -388,6 +388,24 @@ pub(crate) async fn authorization_callback(
             Some("Work Context membership is required"),
         )
         .await;
+    }
+    // Every sign-in records its person as the identity provider names them now, so they
+    // can be named by email.
+    if let Some(tenant) = &verified_identity.principal.tenant {
+        let person = Person {
+            tenant: tenant.clone(),
+            principal: verified_identity.principal.id.clone(),
+            name: verified_identity.principal_display_name.clone(),
+            email: verified_identity.email.clone(),
+        };
+        if let Err(error) = state
+            .hub_state
+            .hub_store()
+            .record_person(&person, Utc::now())
+            .await
+        {
+            return internal_error_response(format!("{error:#}"));
+        }
     }
     match &authorization_request.destination {
         AuthorizationDestination::Device { request, browser } => {

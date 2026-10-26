@@ -112,6 +112,10 @@ impl OidcIdTokenVerifier {
         Ok(VerifiedOidcIdentity {
             principal,
             principal_display_name,
+            email: crate::person::Email::from_claims(
+                claims.email.as_deref(),
+                claims.preferred_username.as_deref(),
+            ),
             expires_at: unix_timestamp(claims.exp, "exp")?,
         })
     }

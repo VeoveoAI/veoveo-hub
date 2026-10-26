@@ -1,7 +1,7 @@
 //! The Hub's database state: hosted OAuth requests and codes, refresh-token
 //! families, JWT revocations, replay identifiers, published control-plane revisions with
-//! the identity rows they define, principals' selections, and the cleanup of expired Task
-//! routes. The Hub
+//! the identity rows they define, principals' selections, the people who signed in, and
+//! the cleanup of expired Task routes. The Hub
 //! owns the `hub` schema and applies its migrations after core's kernel migrations.
 //! Registrations and Task routes run their own statements against the same schema.
 
@@ -12,6 +12,7 @@ pub use device::{DeviceApproval, DeviceAuthorization, DevicePoll, NewDeviceAutho
 mod computers;
 pub use computers::{Computer, ComputerHandoff, ComputerOperation};
 mod control;
+mod person;
 mod refresh;
 mod replay;
 mod revocations;

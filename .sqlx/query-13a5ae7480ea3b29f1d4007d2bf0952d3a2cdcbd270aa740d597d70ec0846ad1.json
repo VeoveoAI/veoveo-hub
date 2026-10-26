@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Another person of the tenant gives up the address a sign-in names.\nUPDATE hub.person\nSET email = NULL, updated_at = $4\nWHERE tenant = $1 AND email = $2 AND principal <> $3\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "13a5ae7480ea3b29f1d4007d2bf0952d3a2cdcbd270aa740d597d70ec0846ad1"
+}

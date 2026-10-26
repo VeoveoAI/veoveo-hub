@@ -1013,9 +1013,10 @@ the audit records of exchanges and delegated admissions with the calling server 
 
 `tests/browser_session.rs` logs a user in at a private Keycloak 26.8.1 server through
 the authorization code flow with PKCE: the Hub's authorization endpoint, Keycloak's
-login form, the Hub's callback and the code exchange. It registers the Ledger and
-Relay fixtures and leaves Relay's `relay_later` Tasks unclaimed, so each stays live
-while the test acts for it. A Task created for the user's call exchanges and calls
+login form, the Hub's callback and the code exchange; the callback records the person in
+`hub.person` with Keycloak's name and email. It registers the Ledger and Relay fixtures
+and leaves Relay's `relay_later` Tasks unclaimed, so each stays live while the test acts
+for it. A Task created for the user's call exchanges and calls
 Ledger, and its route keeps the user's session family. After the user logs out, the
 Hub refuses the browser's access and refresh tokens, while a fresh exchange for the
 Task succeeds and the Task-bound tokens are admitted. In a second session, presenting a
@@ -1487,9 +1488,12 @@ group ID, a name repeated in a tenant and a repeated member.
 
 People are named by email. At every sign-in the Hub records the person in `hub.person`:
 tenant, principal, display name and email, which is the identity provider's `email`
-claim, or its `preferred_username` when that is an address, in lowercase. An email
-belongs to one person of a tenant; a sign-in with another person's email takes it over.
-A person who has never signed in cannot be named.
+claim, or its `preferred_username` when that is an address, in lowercase; without either
+the person has no email. An email belongs to one person of a tenant; a sign-in with
+another person's email takes it over, and a sign-in that names no tenant records no one.
+A person who has never signed in cannot be named. The table is the Hub's own
+(`src/person.rs`, migration `0029`), and the Lore contribution resolves an email to a
+person, and a principal to an email and a name, through it.
 
 Each change below takes any authenticated caller with a tenant and publishes one revision
 under the process's publication lock, built again on a revision conflict, like a creation.

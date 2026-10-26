@@ -77,5 +77,7 @@ pub struct VerifiedIdJag {
 pub struct VerifiedOidcIdentity {
     pub principal: Principal,
     pub principal_display_name: PrincipalDisplayName,
+    /// The `email` claim, or `preferred_username` when it is an address, in lowercase.
+    pub email: Option<crate::person::Email>,
     pub expires_at: DateTime<Utc>,
 }

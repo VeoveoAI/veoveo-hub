@@ -26,6 +26,7 @@ pub mod oauth_clients;
 mod oauth_resource;
 pub mod token_profile;
 pub use oauth_resource::RegisteredProtectedResource;
+pub mod person;
 pub mod policy;
 mod principal_audit;
 pub mod problem;

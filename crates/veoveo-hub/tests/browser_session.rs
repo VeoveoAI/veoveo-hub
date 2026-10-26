@@ -228,6 +228,18 @@ async fn qualify() {
         logged_in.contains(&record("hub.authentication", "success", None, Some(&user))),
         "{logged_in:?}"
     );
+    // The sign-in records the person as Keycloak names them, so they can be named by
+    // their email.
+    let person = veoveo_hub::store::HubStore::new(db.a.clone())
+        .person_by_email(
+            &veoveo_types::TenantId::parse("local").unwrap(),
+            &veoveo_hub::person::Email::parse("Alice@Example.test").unwrap(),
+        )
+        .await
+        .unwrap()
+        .expect("the sign-in records its person");
+    assert_eq!(person.principal.as_str(), user);
+    assert_eq!(person.name.as_str(), "Alice Example");
     let first_task = relay_task(&hub, &db, &first).await;
     let mark = sequence(&db).await;
     let inspection: Inspection = act_for(&first_task).await.unwrap();
