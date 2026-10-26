@@ -767,7 +767,7 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 | `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
 | `GET`/`PUT /lore/{profile}/repositories/{id}/access` | Who may reach a repository; an owner shares it with a person or a group ([groups and sharing](#groups-and-sharing)) |
 | `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members` | The caller's groups; creating one; an owner sets a membership |
-| `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person is assigned, for Lore's repository listing |
+| `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person holds a grant on, own or through a group, for Lore's repository listing |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
@@ -949,8 +949,9 @@ grant on, another scope, a resource, a wrong or replaced secret and an instance'
 are refused. A person who creates a repository through an in-process fake of Lore's
 repository service owns it at once: the answer comes once the revision is active, and the
 repository's next token for their Computer holds it with `owner`; another creator, an
-unregistered creation of theirs and a taken name answer as the creation route says. Images and revisions
-are synthetic values; no OpenShell, Lore server, BuildKit or image is involved.
+unregistered creation of theirs and a taken name answer as the creation route says.
+Images and revisions are synthetic values; no OpenShell, Lore server, BuildKit or image
+is involved.
 
 `src/bin/hub/contributions/lore/factory/tests.rs` runs watching against an in-process
 fake of Lore and the factory itself on the same fake gateway, a fake image builder and
@@ -1335,9 +1336,8 @@ is any other scope. Without a `scope`, it is the owner's login token, which name
 carries no repository, for Lore's listing and the requests that name no repository. The
 client requests no resource. OpenShell asks for the repository each Lore request names,
 under the Computer's provider profile, so no token grows with the number of repositories
-and the Computer never holds one. A native
-name is never UUID-shaped, so a Computer's client and an instance's are never taken for
-each other.
+and the Computer never holds one. A native name is never UUID-shaped, so a Computer's
+client and an instance's are never taken for each other.
 
 An assignment or group change needs no renewal: every repository token lives the
 deployment's token lifetime, so a change reaches each Computer within it. No process
