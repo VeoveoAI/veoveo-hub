@@ -1090,8 +1090,12 @@ name the same version whatever their names or object identity.
 The template's annotation `veoveo.ai/release-note` is the version's release note,
 written by whoever publishes the template; its first line is the version's summary.
 OpenShell keeps a template's annotations through creation. What a version brings over
-another lists that note and, with or without one, the mechanical differences: a changed
-image, and each network rule's endpoints (`host:port` and any path) added or removed.
+the one the Computer runs is what differs between them: its note, when that differs
+from the note of the version the Computer runs or that one's is unknown, and, with or
+without a note, the mechanical differences: a changed image, and each network rule's
+endpoints (`host:port` and any path) added or removed. A version that changes only
+through the policy or the Hub's Computer settings keeps the template's note, which is
+then not new and is not listed again.
 The JSON status carries those differences as they are; the start and status pages say
 them for people: "The Computer's software was updated" for a new image, and where the
 Computer can now, or can no longer, connect, without image references or rule names.
