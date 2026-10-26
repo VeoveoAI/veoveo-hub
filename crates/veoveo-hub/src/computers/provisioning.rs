@@ -685,9 +685,9 @@ impl Provisioner {
         }
     }
     /// Give the gateway the Computer's own Lore client, with its new secret, as the
-    /// refresh of the Lore provider, and refresh the token now: the Hub issues it for
-    /// the owner and every repository the owner is assigned. The sandbox then has Lore
-    /// access from a client the Hub accepts.
+    /// refresh of the Lore provider, and refresh the token now: the Hub issues the owner's
+    /// login token, or a repository's token for a scope that names it. The sandbox then has
+    /// Lore access from a client the Hub accepts.
     async fn lore_refresh(&self, name: &str, handoff: Uuid, client: &CustodyClient) -> Result<()> {
         let key = &self.config.lore_provider.credential_key;
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;

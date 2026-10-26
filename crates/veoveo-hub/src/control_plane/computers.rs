@@ -47,9 +47,9 @@ pub struct Computers {
     pub collect_after_seconds: Option<NonZeroU64>,
     pub hub_provider: ComputerRefreshProvider,
     pub model_provider: ComputerStaticProvider,
-    /// The owner's Lore access. The gateway refreshes it with the Computer's own Hub
-    /// client, whose tokens act as the owner for every repository the owner is
-    /// assigned; the sandbox's Lore command line reads the credential's placeholder.
+    /// The owner's Lore access. The gateway refreshes it with the Computer's own Lore
+    /// client, whose tokens are the owner's login token or the token of the one repository
+    /// a scope names; the sandbox's Lore command line reads the credential's placeholder.
     pub lore_provider: ComputerRefreshProvider,
 }
 
