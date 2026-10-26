@@ -1,6 +1,6 @@
 //! A person's Lore token, as the Hub issues it when it acts in Lore for them: the token
 //! the deployment's public client would obtain for the person through the Hub's
-//! exchange, admitted against their current assignments on every issue.
+//! exchange, admitted against their current grant on every issue.
 use anyhow::{Context, Result};
 use veoveo_hub::{
     HubCatalog,

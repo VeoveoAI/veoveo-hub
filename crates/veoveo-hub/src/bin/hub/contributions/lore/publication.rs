@@ -135,7 +135,7 @@ impl<'a> Publisher<'a> {
 mod tests {
     use super::*;
     use crate::contributions::lore::{
-        DeploymentId, NativeAction, Owned, RepositoryId, tests::plane,
+        DeploymentId, NativeAction, Owned, RepositoryId, Subject, tests::plane,
     };
     use std::time::Duration;
     use veoveo_hub::{HubCatalogHandle, store::HubStore};
@@ -255,7 +255,7 @@ mod tests {
                     .assignments
                     .iter()
                     .any(|a| a.repository == repository
-                        && a.principal == alice
+                        && a.subject == Subject::Principal(alice.clone())
                         && a.actions.contains(&NativeAction::Owner)),
                 "this process adopted its revision"
             );

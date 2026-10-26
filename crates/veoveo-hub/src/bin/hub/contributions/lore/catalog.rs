@@ -1,8 +1,8 @@
 //! Lore's repository listing. Lore's `auth_service` catalog asks
 //! `UrcAuthApi.LookupUserPermissions` with the caller's token whenever something lists,
-//! and the Hub answers that one method as gRPC on its own listener: the person's
-//! assignments on the token's deployment in the active control plane. Lore still
-//! authorizes every request from the token alone, so nothing else reaches the Hub.
+//! and the Hub answers that one method as gRPC on its own listener: the person's grants
+//! on the token's deployment in the active control plane, own and through groups. Lore
+//! still authorizes every request from the token alone, so nothing else reaches the Hub.
 use std::{future::Future, pin::Pin};
 
 use axum::{
@@ -146,8 +146,9 @@ async fn verify<'a>(
 }
 
 /// One page of `principal`'s entries on `deployment` in `tenant`, as Lore asks for them:
-/// one per assignment, in resource-ID order, whose resource ID begins with the filter
-/// and `-` (every entry for an empty filter), after the page token's resource ID.
+/// one per repository they hold a grant on, with their actions on it, in resource-ID
+/// order, whose resource ID begins with the filter and `-` (every entry for an empty
+/// filter), after the page token's resource ID.
 pub(super) fn listing(
     section: &Lore,
     deployment: &Deployment,
@@ -176,22 +177,18 @@ pub(super) fn listing(
     };
     let prefix = format!("{}-", request.resource_filter);
     let mut entries = section
-        .assignments
+        .repositories
         .iter()
-        .filter(|assignment| {
-            assignment.deployment == deployment.id
-                && &assignment.tenant == tenant
-                && &assignment.principal == principal
-        })
-        .map(|assignment| ResourcePermission {
-            resource_id: deployment
-                .resource_id_template
-                .render(&assignment.repository),
-            permission: assignment
-                .actions
-                .iter()
-                .map(|action| action.as_str().to_owned())
-                .collect(),
+        .filter(|repository| repository.deployment == deployment.id && &repository.tenant == tenant)
+        .filter_map(|repository| {
+            let actions = section.actions(&deployment.id, &repository.id, tenant, principal)?;
+            Some(ResourcePermission {
+                resource_id: deployment.resource_id_template.render(&repository.id),
+                permission: actions
+                    .iter()
+                    .map(|action| action.as_str().to_owned())
+                    .collect(),
+            })
         })
         .filter(|entry| {
             request.resource_filter.is_empty() || entry.resource_id.starts_with(&prefix)

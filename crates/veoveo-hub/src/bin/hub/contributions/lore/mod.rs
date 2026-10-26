@@ -33,6 +33,34 @@ pub struct RepositoryId(String);
 /// A native branch ID, in the canonical form of a repository ID.
 #[veoveo_types::id(text(RepositoryIds))]
 pub struct BranchId(String);
+/// A group's ID, random and in the canonical form of a repository ID. It stays inside
+/// the Hub: people name a group by its name.
+#[veoveo_types::id(text(RepositoryIds))]
+pub struct GroupId(String);
+/// A group's name, unique in its tenant: 1 to 64 of `a`–`z`, `0`–`9` and `-`,
+/// starting with a letter.
+#[veoveo_types::id(text(GroupNames))]
+pub struct GroupName(String);
+#[doc(hidden)]
+pub struct GroupNames;
+impl veoveo_types::IdProfile for GroupNames {
+    type Error = veoveo_types::IdentifierError;
+    const PROFILE: veoveo_types::IdProfileSpec<Self::Error> =
+        veoveo_types::IdProfileSpec::text(|value, _| {
+            let mut bytes = value.bytes();
+            if value.len() <= 64
+                && bytes.next().is_some_and(|b| b.is_ascii_lowercase())
+                && bytes.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+            {
+                Ok(())
+            } else {
+                Err(veoveo_types::IdentifierError::new(
+                    value,
+                    "a group name is 1 to 64 of a-z, 0-9 and -, starting with a letter",
+                ))
+            }
+        });
+}
 #[doc(hidden)]
 pub struct RepositoryIds;
 impl veoveo_types::IdProfile for RepositoryIds {
@@ -153,20 +181,109 @@ pub struct Repository {
     pub tenant: TenantId,
     pub title: String,
 }
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+/// A member's role in a group. Both roles hold the group's assignments; an owner also
+/// sets the group's memberships.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum GroupRole {
+    Member,
+    Owner,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Member {
+    pub principal: PrincipalId,
+    pub role: GroupRole,
+}
+/// People of one tenant whom assignments name together.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Group {
+    pub id: GroupId,
+    pub tenant: TenantId,
+    pub name: GroupName,
+    pub members: Vec<Member>,
+}
+impl Group {
+    pub(crate) fn role(&self, principal: &PrincipalId) -> Option<GroupRole> {
+        self.members
+            .iter()
+            .find(|member| &member.principal == principal)
+            .map(|member| member.role)
+    }
+}
+/// Whom an assignment grants: one person, or every member of one group of the
+/// repository's tenant.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Subject {
+    Principal(PrincipalId),
+    Group(GroupId),
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(try_from = "AssignmentDocument", into = "AssignmentDocument")]
 pub struct Assignment {
     pub deployment: DeploymentId,
     pub repository: RepositoryId,
     pub tenant: TenantId,
-    pub principal: PrincipalId,
+    pub subject: Subject,
     pub actions: BTreeSet<NativeAction>,
+}
+/// An assignment as the control plane writes it: its subject is exactly one of
+/// `principal` and `group`.
+#[derive(Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AssignmentDocument {
+    deployment: DeploymentId,
+    repository: RepositoryId,
+    tenant: TenantId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    principal: Option<PrincipalId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    group: Option<GroupId>,
+    actions: BTreeSet<NativeAction>,
+}
+impl TryFrom<AssignmentDocument> for Assignment {
+    type Error = &'static str;
+    fn try_from(document: AssignmentDocument) -> std::result::Result<Self, Self::Error> {
+        let subject = match (document.principal, document.group) {
+            (Some(principal), None) => Subject::Principal(principal),
+            (None, Some(group)) => Subject::Group(group),
+            _ => return Err("an assignment names exactly one of a principal and a group"),
+        };
+        Ok(Self {
+            deployment: document.deployment,
+            repository: document.repository,
+            tenant: document.tenant,
+            subject,
+            actions: document.actions,
+        })
+    }
+}
+impl From<Assignment> for AssignmentDocument {
+    fn from(assignment: Assignment) -> Self {
+        let (principal, group) = match assignment.subject {
+            Subject::Principal(principal) => (Some(principal), None),
+            Subject::Group(group) => (None, Some(group)),
+        };
+        Self {
+            deployment: assignment.deployment,
+            repository: assignment.repository,
+            tenant: assignment.tenant,
+            principal,
+            group,
+            actions: assignment.actions,
+        }
+    }
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Lore {
     pub deployments: Vec<Deployment>,
     pub repositories: Vec<Repository>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub groups: Vec<Group>,
     pub assignments: Vec<Assignment>,
 }
 impl CatalogSection for Lore {
@@ -212,11 +329,24 @@ impl CatalogSection for Lore {
                     .map_err(|_| ExtensionError::new("native repository encoding failed"))?,
             });
         }
+        for g in &self.groups {
+            objects.push(CatalogObjectDescriptor {
+                tenant: Some(g.tenant.clone()),
+                kind: ExtensionName::parse("lore.group")?,
+                id: g.id.to_string(),
+                value: serde_json::to_value(g)
+                    .map_err(|_| ExtensionError::new("native group encoding failed"))?,
+            });
+        }
         for a in &self.assignments {
+            let subject = match &a.subject {
+                Subject::Principal(principal) => format!("principal/{principal}"),
+                Subject::Group(group) => format!("group/{group}"),
+            };
             objects.push(CatalogObjectDescriptor {
                 tenant: Some(a.tenant.clone()),
                 kind: ExtensionName::parse("lore.assignment")?,
-                id: format!("{}/{}/{}", a.deployment, a.repository, a.principal),
+                id: format!("{}/{}/{subject}", a.deployment, a.repository),
                 value: serde_json::to_value(a)
                     .map_err(|_| ExtensionError::new("native assignment encoding failed"))?,
             });
@@ -261,12 +391,13 @@ impl Lore {
             .iter()
             .find(|r| &r.deployment == owned.deployment && &r.id == owned.repository)
         {
+            // The creator's own assignment, not one through a group.
             let owns = &existing.tenant == owned.tenant
                 && self.assignments.iter().any(|a| {
                     &a.deployment == owned.deployment
                         && &a.repository == owned.repository
                         && &a.tenant == owned.tenant
-                        && &a.principal == owned.principal
+                        && a.subject == Subject::Principal(owned.principal.clone())
                         && a.actions.contains(&NativeAction::Owner)
                 });
             return if owns {
@@ -285,33 +416,73 @@ impl Lore {
             deployment: owned.deployment.clone(),
             repository: owned.repository.clone(),
             tenant: owned.tenant.clone(),
-            principal: owned.principal.clone(),
+            subject: Subject::Principal(owned.principal.clone()),
             actions: BTreeSet::from([NativeAction::Owner]),
         });
         Ok(true)
     }
 
-    /// The principal's own assignments on `repository` in its tenant, one per native
-    /// deployment: every Lore grant the Hub issues or honors rests on one.
-    fn assignments<'a>(
+    /// The groups of `tenant` that `principal` belongs to, in either role.
+    pub(crate) fn memberships<'a>(
+        &'a self,
+        tenant: &'a TenantId,
+        principal: &'a PrincipalId,
+    ) -> impl Iterator<Item = &'a Group> {
+        self.groups
+            .iter()
+            .filter(move |g| &g.tenant == tenant && g.role(principal).is_some())
+    }
+
+    /// The assignments on `repository` in `tenant` that `principal` holds: their own and
+    /// those of every group of the tenant they belong to, on any deployment. Every Lore
+    /// grant the Hub issues or honors is one of these.
+    fn held<'a>(
         &'a self,
         repository: &'a RepositoryId,
         tenant: &'a TenantId,
         principal: &'a PrincipalId,
     ) -> impl Iterator<Item = &'a Assignment> {
+        let groups = self
+            .memberships(tenant, principal)
+            .map(|g| &g.id)
+            .collect::<BTreeSet<_>>();
         self.assignments.iter().filter(move |a| {
-            &a.repository == repository && &a.tenant == tenant && &a.principal == principal
+            &a.repository == repository
+                && &a.tenant == tenant
+                && match &a.subject {
+                    Subject::Principal(own) => own == principal,
+                    Subject::Group(group) => groups.contains(group),
+                }
         })
     }
 
-    /// Whether the principal holds a current grant on `repository`.
+    /// The person's native actions on the deployment's repository: the union of those of
+    /// every assignment they hold on it, or none when they hold none, which is no grant.
+    /// An assignment without actions is a grant with no named privilege.
+    pub(crate) fn actions(
+        &self,
+        deployment: &DeploymentId,
+        repository: &RepositoryId,
+        tenant: &TenantId,
+        principal: &PrincipalId,
+    ) -> Option<BTreeSet<NativeAction>> {
+        let mut held = self
+            .held(repository, tenant, principal)
+            .filter(|a| &a.deployment == deployment)
+            .peekable();
+        held.peek()?;
+        Some(held.flat_map(|a| a.actions.iter().copied()).collect())
+    }
+
+    /// Whether the principal holds a current grant on `repository`, own or through a
+    /// group, on any deployment.
     pub(crate) fn grants(
         &self,
         principal: &veoveo_hub_sdk::Principal,
         repository: &RepositoryId,
     ) -> bool {
         principal.tenant.as_ref().is_some_and(|tenant| {
-            self.assignments(repository, tenant, &principal.id)
+            self.held(repository, tenant, &principal.id)
                 .next()
                 .is_some()
         })
@@ -356,6 +527,24 @@ impl Lore {
                 "invalid native repository registration"
             );
         }
+        let mut groups = BTreeSet::new();
+        let mut names = BTreeSet::new();
+        for g in &self.groups {
+            ensure!(
+                facts.tenants.contains(&g.tenant),
+                "group of an unknown tenant"
+            );
+            ensure!(groups.insert(&g.id), "duplicate group ID");
+            ensure!(
+                names.insert((&g.tenant, &g.name)),
+                "duplicate group name in a tenant"
+            );
+            let mut members = BTreeSet::new();
+            ensure!(
+                g.members.iter().all(|m| members.insert(&m.principal)),
+                "duplicate group member"
+            );
+        }
         let mut assignments = BTreeSet::new();
         for a in &self.assignments {
             ensure!(
@@ -366,12 +555,16 @@ impl Lore {
                         && r.tenant == a.tenant),
                 "assignment references another repository or tenant"
             );
+            if let Subject::Group(id) = &a.subject {
+                ensure!(
+                    self.groups
+                        .iter()
+                        .any(|g| &g.id == id && g.tenant == a.tenant),
+                    "assignment names no group of the repository's tenant"
+                );
+            }
             ensure!(
-                assignments.insert((
-                    a.deployment.clone(),
-                    a.repository.clone(),
-                    a.principal.clone()
-                )),
+                assignments.insert((&a.deployment, &a.repository, &a.subject)),
                 "duplicate native assignment"
             );
         }
@@ -487,15 +680,14 @@ impl TokenProfile for Profile {
                             && &r.tenant == tenant),
                     "native repository is not registered for this tenant"
                 );
-                let assignment = section
-                    .assignments(&id, tenant, &context.principal().id)
-                    .find(|a| a.deployment == deployment.id)
+                let permission = section
+                    .actions(&deployment.id, &id, tenant, &context.principal().id)
                     .context("native repository assignment denied")?;
                 (
                     TokenPurpose::Resource,
                     vec![NativeGrant {
                         resource_id: deployment.resource_id_template.render(&id),
-                        permission: assignment.actions.clone(),
+                        permission,
                     }],
                 )
             }
@@ -505,15 +697,14 @@ impl TokenProfile for Profile {
                     .tenant
                     .as_ref()
                     .context("native principal has no tenant")?;
-                // Admission keeps every assignment on a repository registered for its
-                // deployment and tenant.
                 let assigned = section
-                    .assignments
+                    .repositories
                     .iter()
-                    .filter(|a| {
-                        a.deployment == deployment.id
-                            && &a.tenant == tenant
-                            && a.principal == context.principal().id
+                    .filter(|r| r.deployment == deployment.id && &r.tenant == tenant)
+                    .filter_map(|r| {
+                        section
+                            .actions(&deployment.id, &r.id, tenant, &context.principal().id)
+                            .map(|actions| (&r.id, actions))
                     })
                     .collect::<Vec<_>>();
                 // No scope: Lore reads none, and a scope per repository would repeat
@@ -523,9 +714,9 @@ impl TokenProfile for Profile {
                     TokenPurpose::Resource,
                     assigned
                         .into_iter()
-                        .map(|a| NativeGrant {
-                            resource_id: deployment.resource_id_template.render(&a.repository),
-                            permission: a.actions.clone(),
+                        .map(|(repository, permission)| NativeGrant {
+                            resource_id: deployment.resource_id_template.render(repository),
+                            permission,
                         })
                         .collect(),
                 )

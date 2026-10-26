@@ -963,17 +963,26 @@ against a deployed Lore.
 `tests/lore_catalog.rs` starts the binary with one Lore deployment whose resource IDs
 are `urc-{id}` and asks `UrcAuthApi.LookupUserPermissions` over cleartext HTTP/2 on the
 Hub's listener, as Lore's catalog asks it, with a repository token a configured
-`client_secret_post` client obtained for one of its three synthetic assignments. It
-checks that the answer names all three in resource-ID order with their actions and not
-another person's, that Lore's walk of pages of two and of one returns the same entries,
-that another resource type names none and a context filter is refused, that no token,
-a malformed one, one signed by another key, one for another audience, an expired one and
-the Hub's MCP token are refused as `UNAUTHENTICATED`, that `CheckUserPermission` is
-unimplemented, and that a published removal of an assignment leaves it out of the next
-answer to the same token. Unit tests in `src/bin/hub/contributions/lore/tests.rs` check
-the listing's caller, tenant and deployment bounds, filters, pages and refusals, and that
-only an exchange for one repository issues a repository scope. No Lore server is
-involved.
+`client_secret_post` client obtained for one of its three synthetic assignments; a group
+the client's principal belongs to is assigned a fourth repository and another action on
+the first. It checks that the answer names all four in resource-ID order, once each with
+the union of its actions, and not another person's, that Lore's walk of pages of two and
+of one returns the same entries, that another resource type names none and a context
+filter is refused, that no token, a malformed one, one signed by another key, one for
+another audience, an expired one and the Hub's MCP token are refused as
+`UNAUTHENTICATED`, that `CheckUserPermission` is unimplemented, and that a published
+removal of an assignment, and then of the membership, leaves what they granted out of the
+next answer to the same token. Unit tests in
+`src/bin/hub/contributions/lore/tests.rs` check the grant rule: a person's own
+assignment, one through a group in either role, the union of both on one repository,
+nothing for the same principal in another tenant, and nothing through a membership the
+next revision removed, read alike by the exchange, the listing and the status routes'
+check. They check that admission refuses an assignment naming both subjects or neither,
+an unknown group or one of another tenant, a repeated subject on a repository, a repeated
+group ID, a name repeated in a tenant, an invalid name, a repeated member and an unknown
+role, and that today's documents read and write as before. They also check the listing's
+caller, tenant and deployment bounds, filters, pages and refusals, and that only an
+exchange for one repository issues a repository scope. No Lore server is involved.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed
@@ -1390,7 +1399,8 @@ an older consumer explicitly decoding this enum may reject the new method.
 The executable binds one typed contribution and its claim codecs at composition.
 Its admitted section contains deployment endpoint/audience, native recipient,
 finite login scopes, repository scope and resource-ID templates, token lifetime,
-repository registrations and exact tenant/principal/native-action assignments.
+repository registrations, groups, and exact assignments of native actions to a
+principal or a group of the repository's tenant.
 None of these records is compiled into OAuth routing or captured by the adapter.
 The common signer fixes identity, issuer, audience, client, family, timestamps and
 signed purpose; owners cannot override those claims. Encoding/signing unavailability
@@ -1460,7 +1470,11 @@ of the repository's tenant. A person's actions on a repository are the union of 
 assignment's and those of every group of the tenant they belong to; holding any of those
 assignments is holding a grant on the repository. Every reader of grants uses that one
 rule: repository tokens, for a Computer, an exchange or a factory instance's pusher, the
-listing, and the watch, status and selection routes.
+listing, and the watch and status routes; the selection route reads no grant. Groups are
+catalog objects of kind `lore.group`. An assignment keeps its `principal` member and adds
+`group`, and admission refuses one that names both or neither, one whose group is not of
+the repository's tenant, a second assignment of one subject on a repository, a repeated
+group ID, a name repeated in a tenant and a repeated member.
 
 People are named by email. At every sign-in the Hub records the person in `hub.person`:
 tenant, principal, display name and email, which is the identity provider's `email`

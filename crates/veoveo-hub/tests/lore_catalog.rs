@@ -1,7 +1,8 @@
 //! Lore's repository listing against the hosted process: `UrcAuthApi.LookupUserPermissions`
 //! as gRPC over cleartext HTTP/2 on the Hub's own listener, asked the way Lore's
 //! `auth_service` catalog asks it. The caller is a configured factory client's service
-//! principal holding synthetic assignments; no Lore server is involved.
+//! principal holding synthetic assignments, its own and through a group; no Lore server is
+//! involved.
 #[path = "support/database.rs"]
 mod database;
 #[path = "support/hub.rs"]
@@ -28,10 +29,13 @@ const SECRET: &str = "synthetic-native-factory-secret";
 const FIRST: &str = "0123456789abcdef0123456789abcdef";
 const SECOND: &str = "1123456789abcdef0123456789abcdef";
 const THIRD: &str = "2123456789abcdef0123456789abcdef";
+const GROUPED: &str = "3123456789abcdef0123456789abcdef";
 const OTHERS: &str = "f123456789abcdef0123456789abcdef";
+const GROUP: &str = "9123456789abcdef0123456789abcdef";
 
 /// One Lore deployment whose resource IDs are Lore's own `urc-{id}`, the factory client's
-/// principal assigned three repositories and another person a fourth.
+/// principal assigned three repositories and another person a fourth, and a group the
+/// principal belongs to assigned a fifth and, with another action, the first.
 fn configure(config: &mut Value) {
     let issuer = config["authorizationServers"][0]["issuer"]
         .as_str()
@@ -40,14 +44,18 @@ fn configure(config: &mut Value) {
     let factory = format!("{issuer}#native-factory");
     let repository = |id: &str| json!({"deployment":"source","id":id,"tenant":"local","title":id});
     let assignment = |id: &str, principal: &str, actions: Value| json!({"deployment":"source","repository":id,"tenant":"local","principal":principal,"actions":actions});
+    let grouped = |id: &str, actions: Value| json!({"deployment":"source","repository":id,"tenant":"local","group":GROUP,"actions":actions});
     config["lore"] = json!({
     "deployments":[{"id":"source","resourceName":"native-source","audience":RESOURCE,"endpoint":"grpcs://10.0.0.8:41337","authorizationServer":"local","policyVersion":"local","loginScopes":["native:login","offline_access"],"scopeTemplate":"source-{id}","resourceIdTemplate":"urc-{id}","tokenLifetimeSeconds":120}],
-    "repositories":[repository(FIRST), repository(SECOND), repository(THIRD), repository(OTHERS)],
+    "repositories":[repository(FIRST), repository(SECOND), repository(THIRD), repository(GROUPED), repository(OTHERS)],
+    "groups":[{"id":GROUP,"tenant":"local","name":"builders","members":[{"principal":&factory,"role":"member"},{"principal":"native-user","role":"owner"}]}],
     "assignments":[
         assignment(THIRD, &factory, json!(["owner"])),
         assignment(FIRST, &factory, json!([])),
         assignment(SECOND, &factory, json!(["admin"])),
         assignment(OTHERS, "native-user", json!(["owner"])),
+        grouped(FIRST, json!(["owner"])),
+        grouped(GROUPED, json!(["migrate"])),
     ]});
     config["identityProviders"][0]["authorizationEndpoint"] =
         json!("https://identity.example/authorize");
@@ -181,12 +189,14 @@ async fn qualify() {
     let bearer = format!("Bearer {token}");
     let mut client = UrcAuthApiClient::connect(hub.base.clone()).await.unwrap();
 
-    // The person's assignments in resource-ID order, not only the one repository the
-    // token holds, and not another person's.
+    // The person's grants in resource-ID order, own and through the group, one entry per
+    // repository with the union of its actions, not only the one repository the token
+    // holds, and not another person's.
     let all = vec![
-        entry(FIRST, &[]),
+        entry(FIRST, &["owner"]),
         entry(SECOND, &["admin"]),
         entry(THIRD, &["owner"]),
+        entry(GROUPED, &["migrate"]),
     ];
     let page = lookup(&mut client, Some(&bearer), lore_request("urc", None, None))
         .await
@@ -194,7 +204,7 @@ async fn qualify() {
     assert_eq!(page.resource_permission, all);
     assert_eq!(page.next_page_token, None);
     assert_eq!(walk(&mut client, &bearer, Some(2)).await, (all.clone(), 2));
-    assert_eq!(walk(&mut client, &bearer, Some(1)).await, (all.clone(), 3));
+    assert_eq!(walk(&mut client, &bearer, Some(1)).await, (all.clone(), 4));
     let other_type = lookup(
         &mut client,
         Some(&bearer),
@@ -284,6 +294,23 @@ async fn qualify() {
         .as_array_mut()
         .unwrap()
         .retain(|assignment| assignment["repository"] != SECOND);
+    hub.publish_control_plane(&plane).await;
+    let page = lookup(&mut client, Some(&bearer), lore_request("urc", None, None))
+        .await
+        .unwrap();
+    assert_eq!(
+        page.resource_permission,
+        vec![
+            entry(FIRST, &["owner"]),
+            entry(THIRD, &["owner"]),
+            entry(GROUPED, &["migrate"])
+        ]
+    );
+    // A membership removed takes the group's repositories and actions with it.
+    plane["lore"]["groups"][0]["members"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|member| member["principal"] == "native-user");
     hub.publish_control_plane(&plane).await;
     let page = lookup(&mut client, Some(&bearer), lore_request("urc", None, None))
         .await

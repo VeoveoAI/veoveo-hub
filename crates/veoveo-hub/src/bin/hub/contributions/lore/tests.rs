@@ -311,10 +311,11 @@ fn only_an_exchange_for_one_repository_names_it_as_a_scope() {
 
 const THIRD: &str = "22222222222222222222222222222222";
 const FOURTH: &str = "33333333333333333333333333333333";
+const FIFTH: &str = "55555555555555555555555555555555";
 
 /// A section whose deployment `source` renders `partition-{id}` and in which alice of
 /// tenant-a holds three repositories; bob, alice in another tenant and alice on another
-/// deployment hold others.
+/// deployment hold others, and nobody holds the last.
 fn listed() -> Lore {
     let mut section = plane().extensions.remove("lore").unwrap();
     let mut other = section["deployments"][0].clone();
@@ -334,9 +335,24 @@ fn listed() -> Lore {
         ("source", FIRST, "tenant-a", "native-alice", &[]),
         ("source", SECOND, "tenant-a", "native-alice", owner),
         ("source", FOURTH, "tenant-a", "native-bob", owner),
-        ("source", FOURTH, "tenant-b", "native-alice", owner),
+        ("source", FIFTH, "tenant-b", "native-alice", owner),
         ("other", FOURTH, "tenant-a", "native-alice", owner),
     ];
+    let registered: [(&str, &str, &str); 7] = [
+        ("source", FIRST, "tenant-a"),
+        ("source", SECOND, "tenant-a"),
+        ("source", THIRD, "tenant-a"),
+        ("source", FOURTH, "tenant-a"),
+        ("source", FIFTH, "tenant-b"),
+        ("other", FOURTH, "tenant-a"),
+        ("other", FIFTH, "tenant-a"),
+    ];
+    section["repositories"] = registered
+        .iter()
+        .map(|(deployment, id, tenant)| {
+            serde_json::json!({"deployment":deployment,"id":id,"tenant":tenant,"title":id})
+        })
+        .collect();
     section["assignments"] = assignments
         .iter()
         .map(|(deployment, repository, tenant, principal, actions)| {
@@ -360,7 +376,7 @@ fn lookup(
 }
 
 #[test]
-fn a_listing_names_the_callers_own_assignments_on_the_deployment_in_pages() {
+fn a_listing_names_each_repository_the_caller_holds_on_the_deployment_in_pages() {
     let section = listed();
     let source = &section.deployments[0];
     let tenant = TenantId::parse("tenant-a").unwrap();
@@ -447,7 +463,7 @@ fn a_listing_names_the_callers_own_assignments_on_the_deployment_in_pages() {
         )
         .unwrap()
         .resource_permission,
-        vec![entry(FOURTH, &["owner"])]
+        vec![entry(FIFTH, &["owner"])]
     );
     let carol = PrincipalId::parse("native-carol").unwrap();
     let none = super::catalog::listing(&section, source, &tenant, &carol, &lookup("", None, None))
@@ -491,4 +507,241 @@ fn a_listed_action_is_named_as_the_token_names_it() {
             serde_json::json!(action)
         );
     }
+}
+
+const GROUP: &str = "44444444444444444444444444444444";
+
+/// [`plane`] with the group `bioma` of tenant-a, whose owner is bob and whose member is
+/// alice, assigned `owner` on FIRST, where alice's own assignment names no action, and
+/// `admin` on SECOND, which alice holds only through it.
+fn grouped() -> HubControlPlane {
+    let mut plane = plane();
+    let lore = plane.extensions.get_mut("lore").unwrap();
+    lore["groups"] = serde_json::json!([{
+        "id": GROUP, "tenant": "tenant-a", "name": "bioma",
+        "members": [
+            {"principal": "native-bob", "role": "owner"},
+            {"principal": "native-alice", "role": "member"}
+        ]
+    }]);
+    lore["assignments"].as_array_mut().unwrap().extend([
+        serde_json::json!({"deployment":"source","repository":FIRST,"tenant":"tenant-a","group":GROUP,"actions":["owner"]}),
+        serde_json::json!({"deployment":"source","repository":SECOND,"tenant":"tenant-a","group":GROUP,"actions":["admin"]}),
+    ]);
+    plane
+}
+
+fn actions(
+    section: &Lore,
+    principal: &str,
+    tenant: &str,
+    repository: &str,
+) -> Option<Vec<NativeAction>> {
+    section
+        .actions(
+            &DeploymentId::parse("source").unwrap(),
+            &RepositoryId::parse(repository).unwrap(),
+            &TenantId::parse(tenant).unwrap(),
+            &PrincipalId::parse(principal).unwrap(),
+        )
+        .map(|actions| actions.into_iter().collect())
+}
+
+#[test]
+fn a_persons_actions_unite_their_own_assignment_and_their_groups() {
+    let current = catalog(grouped());
+    let section = Lore::of(&current).unwrap();
+    use NativeAction::{Admin, Owner};
+    // Their own assignment and their group's on one repository: the union.
+    assert_eq!(
+        actions(&section, "native-alice", "tenant-a", FIRST),
+        Some(vec![Owner])
+    );
+    // Only through the group, whatever their role in it.
+    assert_eq!(
+        actions(&section, "native-alice", "tenant-a", SECOND),
+        Some(vec![Admin])
+    );
+    assert_eq!(
+        actions(&section, "native-bob", "tenant-a", SECOND),
+        Some(vec![Admin])
+    );
+    // Nobody else, and not the same principal in another tenant.
+    assert_eq!(actions(&section, "native-carol", "tenant-a", FIRST), None);
+    assert_eq!(actions(&section, "native-alice", "tenant-b", FIRST), None);
+
+    // Every reader uses the rule: the exchange, the listing and the status routes' check.
+    let alice = principal();
+    let exchange = |current: &HubCatalog, id: &str| {
+        authorize(
+            current,
+            &alice,
+            Request::Exchange {
+                resource: None,
+                scope: Some(format!("repo/{id}/access")),
+            },
+        )
+    };
+    assert_eq!(
+        exchange(&current, SECOND).unwrap()["resources"],
+        serde_json::json!([{"resource_id":format!("partition-{SECOND}"),"permission":["admin"]}])
+    );
+    assert_eq!(
+        exchange(&current, FIRST).unwrap()["resources"],
+        serde_json::json!([{"resource_id":format!("partition-{FIRST}"),"permission":["owner"]}])
+    );
+    let listed = super::catalog::listing(
+        &section,
+        &section.deployments[0],
+        alice.tenant.as_ref().unwrap(),
+        &alice.id,
+        &lookup("", None, None),
+    )
+    .unwrap();
+    assert_eq!(
+        listed.resource_permission,
+        [(FIRST, "owner"), (SECOND, "admin")]
+            .map(|(id, action)| lore_proto::auth::ResourcePermission {
+                resource_id: format!("partition-{id}"),
+                permission: vec![action.to_owned()],
+            })
+            .to_vec(),
+        "one entry per repository, with the union of its actions"
+    );
+    let second = RepositoryId::parse(SECOND).unwrap();
+    assert!(section.grants(&alice, &second));
+    let mut elsewhere = alice.clone();
+    elsewhere.tenant = Some(TenantId::parse("tenant-b").unwrap());
+    assert!(!section.grants(&elsewhere, &second));
+
+    // A removed membership takes the group's assignments with it at the next revision.
+    let mut removed = grouped();
+    removed.extensions.get_mut("lore").unwrap()["groups"][0]["members"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|member| member["principal"] != "native-alice");
+    let current = catalog(removed);
+    let section = Lore::of(&current).unwrap();
+    assert_eq!(
+        actions(&section, "native-alice", "tenant-a", FIRST),
+        Some(vec![])
+    );
+    assert_eq!(actions(&section, "native-alice", "tenant-a", SECOND), None);
+    assert!(exchange(&current, SECOND).is_err());
+    assert!(!section.grants(&alice, &second));
+    assert_eq!(
+        actions(&section, "native-bob", "tenant-a", SECOND),
+        Some(vec![Admin])
+    );
+}
+
+/// Whether the configuration's admission accepts `plane`.
+fn admits(plane: HubControlPlane) -> bool {
+    HubCatalog::from_control_plane(
+        plane,
+        HubCatalogAdmission::unbound()
+            .bind(super::super::bindings().unwrap().catalog.clone())
+            .unwrap(),
+    )
+    .is_ok()
+}
+
+#[test]
+fn groups_and_the_subjects_of_assignments_are_admitted_only_when_coherent() {
+    assert!(admits(grouped()));
+    let changed = |change: &dyn Fn(&mut serde_json::Value)| {
+        let mut plane = grouped();
+        change(plane.extensions.get_mut("lore").unwrap());
+        plane
+    };
+    let group_assignment = |lore: &mut serde_json::Value| -> serde_json::Value {
+        lore["assignments"].as_array().unwrap()[1].clone()
+    };
+    let refused: [(&str, &dyn Fn(&mut serde_json::Value)); 9] = [
+        ("both subjects", &|lore| {
+            lore["assignments"][1]["principal"] = serde_json::json!("native-carol");
+        }),
+        ("no subject", &|lore| {
+            lore["assignments"][0]
+                .as_object_mut()
+                .unwrap()
+                .remove("principal");
+        }),
+        ("an unknown group", &|lore| {
+            lore["assignments"][1]["group"] = serde_json::json!(THIRD);
+        }),
+        ("the same group twice on a repository", &|lore| {
+            let again = group_assignment(lore);
+            lore["assignments"].as_array_mut().unwrap().push(again);
+        }),
+        ("a duplicate group ID", &|lore| {
+            let mut again = lore["groups"][0].clone();
+            again["name"] = serde_json::json!("other");
+            lore["groups"].as_array_mut().unwrap().push(again);
+        }),
+        ("a duplicate name in a tenant", &|lore| {
+            let mut again = lore["groups"][0].clone();
+            again["id"] = serde_json::json!(THIRD);
+            lore["groups"].as_array_mut().unwrap().push(again);
+        }),
+        ("a duplicate member", &|lore| {
+            let again = lore["groups"][0]["members"][0].clone();
+            lore["groups"][0]["members"]
+                .as_array_mut()
+                .unwrap()
+                .push(again);
+        }),
+        ("a group of an unknown tenant", &|lore| {
+            lore["groups"][0]["tenant"] = serde_json::json!("tenant-c");
+        }),
+        ("an unknown role", &|lore| {
+            lore["groups"][0]["members"][0]["role"] = serde_json::json!("admin");
+        }),
+    ];
+    for (case, change) in refused {
+        assert!(!admits(changed(change)), "{case}");
+    }
+    for name in [
+        "",
+        "Bioma",
+        "1bioma",
+        "-bioma",
+        "bio_ma",
+        "bio ma",
+        &"a".repeat(65),
+    ] {
+        assert!(GroupName::parse(name).is_err(), "{name:?}");
+        assert!(!admits(changed(
+            &|lore| lore["groups"][0]["name"] = serde_json::json!(name)
+        )));
+    }
+    for name in ["a", "bioma-2", &format!("b{}", "0".repeat(63))] {
+        assert!(GroupName::parse(name).is_ok(), "{name:?}");
+    }
+
+    // A group of another tenant is no subject for this tenant's repositories, and the
+    // same name may name a group in each tenant.
+    let mut tenants = grouped();
+    tenants
+        .tenants
+        .push(serde_json::from_value(serde_json::json!({"id": "tenant-b"})).unwrap());
+    let lore = tenants.extensions.get_mut("lore").unwrap();
+    let mut other = lore["groups"][0].clone();
+    other["id"] = serde_json::json!(THIRD);
+    other["tenant"] = serde_json::json!("tenant-b");
+    lore["groups"].as_array_mut().unwrap().push(other);
+    assert!(admits(tenants.clone()), "one name in each of two tenants");
+    tenants.extensions.get_mut("lore").unwrap()["assignments"][1]["group"] =
+        serde_json::json!(THIRD);
+    assert!(!admits(tenants), "a group of another tenant");
+
+    // Today's documents read as before, and a person's assignment is written as before.
+    let today = plane().extensions.remove("lore").unwrap();
+    let written =
+        serde_json::to_value(serde_json::from_value::<Lore>(today.clone()).unwrap()).unwrap();
+    assert_eq!(
+        written["assignments"], today["assignments"],
+        "no group subject appears"
+    );
+    assert!(written.get("groups").is_none(), "no groups member appears");
 }
