@@ -396,7 +396,7 @@ The instance's client is no installed OAuth client. At `/oauth/token` a
 pusher for the instance's repository, issued by the one Lore deployment that registers
 that repository ID: the token the deployment's one public token-exchange client would
 obtain for that person, which the Lore contribution's profile admits against the
-person's current assignment on every issue. The client requests no scope or resource
+person's current [grant](#groups-and-sharing) on every issue. The client requests no scope or resource
 and holds no assignment of its own; a pusher without the grant is refused with
 `invalid_grant`. Before every sandbox creation and restart the Hub rotates the
 credential, so the sandbox starts as the latest pusher.
@@ -442,10 +442,10 @@ warning naming the count and the cap; with `caps.enforce` the Hub refuses it as
 `failed{stage: capacity}` instead.
 
 `GET /factory/{profile}/instance?repository=…&branch=…&wait=…`, in the Lore
-contribution, answers an instance's status to a caller with a current Lore assignment
-on the repository in its tenant, the same assignment Lore tokens are issued from,
+contribution, answers an instance's status to a caller with a current Lore grant on the repository
+in its tenant, own or through a group, the same grant Lore tokens are issued from,
 whether it calls itself or through a server that calls the Hub for it; the profile only
-authenticates. Without the assignment it answers 403, without an instance 404. With
+authenticates. Without the grant it answers 403, without an instance 404. With
 `wait`, at most 60 seconds, it answers as soon as the applied revision serves, the
 Hub's last step failed or the sandbox's program exited since its start, which OpenShell
 reports as an error or a restart. Its answer also carries `watch`, the repository's
@@ -455,7 +455,7 @@ causes. The route exists when the installation configures a factory.
 
 The Lore contribution turns pushes into instances (`src/bin/hub/contributions/lore/factory`).
 `PUT /factory/{profile}/watch?repository=<id>` subscribes to the repository's Lore
-notifications as the caller, answers 403 when Lore or the caller's assignment refuses
+notifications as the caller, answers 403 when Lore or the caller's grant refuses
 them and 204 otherwise, and records the caller as the repository's watcher in
 `hub.lore_watch`; a later watch replaces the watcher and its follower, which stops
 between pushes. One follower per watched repository subscribes as its watcher, and
@@ -765,6 +765,8 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 | `PUT`/`DELETE /selection/{profile}/{server}` | The caller's branch for a server, or back to the base branch; 204 |
 | `PUT /factory/{profile}/watch?repository=<id>` | The Hub watches a Lore repository as the caller; 204, or 403 without the caller's grant |
 | `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
+| `GET`/`PUT /lore/{profile}/repositories/{id}/access` | Who may reach a repository; an owner shares it with a person or a group ([groups and sharing](#groups-and-sharing)) |
+| `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members` | The caller's groups; creating one; an owner sets a membership |
 | `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person is assigned, for Lore's repository listing |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
@@ -1281,24 +1283,19 @@ gateway's `oauth2_client_credentials` refresh and rotates it; every sandbox atta
 it with the other providers and names the owner's principal in the clone's
 `LORE_IDENTITY`. At `/oauth/token` a `client_credentials` request whose client ID is
 a Computer's native name and whose `client_secret` matches the stored digest receives
-the owner's Lore token for the installation's one Lore deployment, with one native
-resource entry for every repository the owner is assigned there and none without an
-assignment: the entries the deployment's public client would obtain one repository at
-a time. The token carries no `scope`. The client requests no scope or resource. A native name is never UUID-shaped,
-so a Computer's client and an instance's are never taken for each other.
+a Lore token of the Computer's owner for the installation's one Lore deployment. With a
+`scope` that names one repository by the deployment's scope template, it is the token of
+that repository, which the deployment's public client would obtain by exchange, admitted
+against the owner's [assignments](#groups-and-sharing) on every issue. Without a
+`scope`, it names the owner and carries no repository, for Lore's listing and the
+requests that name no repository. The client requests no resource. OpenShell asks for
+the repository each Lore request names, under the Computer's provider profile, so no
+token grows with the number of repositories and the Computer never holds one. A native
+name is never UUID-shaped, so a Computer's client and an instance's are never taken for
+each other.
 
-When a revision adds, removes or changes a principal's Lore assignments, Hub at once
-asks the gateway to rotate the `computer-lore` credential of the ready Computer that
-principal owns, on the gateway it was provisioned on; the gateway mints a token with
-the current assignments behind the sandbox's unchanged placeholder. Whichever process
-first sees the revision active claims its activation on `hub.control_active`: the
-publisher of an administrative or contribution publication, a Hub starting on a
-revision imported while none ran, or a replica adopting it. A claim spans every
-revision activated since the last one, so the renewal runs once per installation.
-It runs in the background and is best effort: a Computer that cannot renew is
-logged, and the publication stands. A stopped Computer renews too, since the gateway
-keeps refreshing its provider; one whose handoff is pending rotates in that handoff. With several replicas, a gateway refresh answered by a
-replica that has not adopted the revision yet carries the earlier assignments.
+An assignment or group change needs no renewal: every repository token lives the
+deployment's token lifetime, so a change reaches each Computer within it.
 A replacement and browser entry also wait for a successful native ForwardTcp target
 connection under the existing 120-second startup bound. The gateway must return
 ForwardTcp success after the native relay claim, not before target connection.
@@ -1418,18 +1415,16 @@ service-account/administrator repository permission. Existing private-key client
 and registered-server delegation keep their original proof contracts.
 
 Every Lore token names its person by Hub principal ID in its `identity` claim, so the
-pusher a Lore branch event names is a Hub principal. Its `resources` hold one entry per
-repository the person is assigned, with that assignment's native actions as
-`permission`, and `root_domains` names the private Lore recipient's host. An
-assignment without actions still allows Lore's ordinary unprotected operations, writes
-included; no read-only role is inferred from it. Only an explicit assignment grants a
-repository. Creating a repository through the Hub makes its creator the owner; no
-other grant is automatic, and no administrator role or Work Context membership grants
-repositories. Removing an assignment stops further issuance, while tokens already issued keep
-their rights until they expire under the deployment's token lifetime. A token's `scope`
-names a repository only when an exchange asked for that one repository, by the
-deployment's scope template; the token of every assigned repository, a Computer's, carries
-no `scope`, since Lore reads none and each name would repeat a resource entry.
+pusher a Lore branch event names is a Hub principal. A repository token's `resources`
+hold one entry, for the repository its `scope` names, with the person's native actions
+on it as `permission`; a login token holds none. `root_domains` names the private Lore
+recipient's host. An assignment without actions still allows Lore's ordinary
+unprotected operations, writes included; no read-only role is inferred from it. Only an
+explicit assignment, to the person or to a group they belong to, grants a repository.
+Creating a repository through the Hub makes its creator the owner; no other grant is
+automatic, and no administrator role or Work Context membership grants repositories.
+Removing an assignment or a membership stops further issuance, while tokens already
+issued keep their rights until they expire under the deployment's token lifetime.
 
 Whoever creates a repository owns it, in one step. `POST /lore/{profile}/repositories`
 with `{"name"}` and an optional `"id"` takes any authenticated caller with a tenant,
@@ -1440,16 +1435,56 @@ client, so Lore records them as creator. It then publishes one revision that
 registers the repository, titled by its name, and assigns the caller `owner`. The
 Hub prepares no personal repository of its own. The publication takes the process's
 publication lock and is built again on a revision conflict. The route answers 201
-with `{id, name, remote}`, where `remote` is `<deployment endpoint>/<id>`, once this
-process has renewed the Lore access of the caller's Computers. Lore answers a repeat
+with `{id, name, remote}`, where `remote` is `<deployment endpoint>/<id>`, once the
+revision is active in this process, so the caller's next repository token holds it. Lore
+answers a repeat
 creation of the same ID and name with the existing record, so a call with the `id`
 of a repository Lore records the caller as creating registers it, such as after a
 failed publication; that failure answers 503 with the repository's `id`. Another
 creator answers 409 `repository-claimed`, a registered repository without the
 caller's owner assignment answers 409 `repository-registered`, since a creator never
 restores an assignment an administrator removed, and a registered repository the
-caller owns answers 200 unchanged. Sharing and deletion are separate, and Lore lists
-repositories through the Hub as [below](#repository-listing).
+caller owns answers 200 unchanged. Owners share it as [below](#groups-and-sharing),
+deletion is separate, and Lore lists repositories through the Hub as
+[below](#repository-listing).
+
+#### Groups and sharing
+
+The Lore section holds groups beside repositories and assignments. A group has a random
+32-hex `id`, a `tenant`, a `name` unique in its tenant (1 to 64 of `a`–`z`, `0`–`9` and
+`-`, starting with a letter) and `members`, each a principal of the tenant with the role
+`member` or `owner`. An assignment names exactly one subject: a `principal`, or a `group`
+of the repository's tenant. A person's actions on a repository are the union of their own
+assignment's and those of every group of the tenant they belong to; holding any of those
+assignments is holding a grant on the repository. Every reader of grants uses that one
+rule: repository tokens, for a Computer, an exchange or a factory instance's pusher, the
+listing, and the watch, status and selection routes.
+
+People are named by email. At every sign-in the Hub records the person in `hub.person`:
+tenant, principal, display name and email, which is the identity provider's `email`
+claim, or its `preferred_username` when that is an address, in lowercase. An email
+belongs to one person of a tenant; a sign-in with another person's email takes it over.
+A person who has never signed in cannot be named.
+
+Each change below takes any authenticated caller with a tenant and publishes one revision
+under the process's publication lock, built again on a revision conflict, like a creation.
+It answers once the revision is active in this process. Refusals are RFC 9457 problems.
+
+| Route | Who | Behavior |
+|---|---|---|
+| `GET /lore/{profile}/repositories/{id}/access` | a holder of a grant on it | `{repository, access}`: each assignment's subject, `{person: {email, name}}` or `{group: {name}}`, and its level |
+| `PUT /lore/{profile}/repositories/{id}/access` | an owner of it | `{person: <email>}` or `{group: <name>}`, and `access`: `member`, `owner` or `none`. Sets that subject's assignment, or removes it, and answers the list |
+| `POST /lore/{profile}/groups` | anyone | `{name}`: creates the group with the caller as its owner; 201 with `{id, name}` |
+| `GET /lore/{profile}/groups` | anyone | The caller's groups, each with its members |
+| `PUT /lore/{profile}/groups/{name}/members` | an owner of the group | `{person: <email>, role: member, owner or none}`: sets or removes that membership, and answers the group |
+
+A level is `member`, an assignment without actions, or `owner`, the `owner` action; an
+assignment an administrator published with other actions is listed with them and
+replaced by the level an owner sets. A change that would leave the caller without
+`owner` on the repository or the group is refused with 409, so neither is ever left
+without an owner. An unknown repository or group answers 404, an unknown email 404
+naming that the person has not signed in, and a taken group name 409. Groups and
+memberships are listed by email and name; IDs stay internal.
 
 The native HTTP fixture approves a synthetic identity through trusted fixture
 state, checks actual hosted HTTP/JWT/persistence/live-publication behavior, and
@@ -1464,12 +1499,12 @@ own listener, at `/epic_urc.UrcAuthApi/LookupUserPermissions`; the installation 
 Lore there. The token must be a Lore token this Hub issued: `at+jwt`, signed by a Lore
 deployment's authorization server, for that deployment's audience and unexpired, as a
 login or a repository token. A missing token, one the Hub did not issue and one for
-another audience answer `UNAUTHENTICATED`. The answer is the token's person's
-assignments on that deployment in the person's tenant in the active control plane, not
-the token's `resources`, so a listing follows an assignment change before any token is
-renewed: one `ResourcePermission` per assignment, its `resource_id` rendered by the
-deployment's resource-ID template (`urc-{id}` in the installation, the form Lore's
-catalog parses) and its `permission` the assignment's native actions.
+another audience answer `UNAUTHENTICATED`. The answer is the token's person's grants on
+that deployment in the person's tenant in the active control plane, own and through
+groups, not the token's `resources`, so a listing follows a change at once: one
+`ResourcePermission` per repository, its `resource_id` rendered by the deployment's
+resource-ID template (`urc-{id}` in the installation, the form Lore's catalog parses) and
+its `permission` the person's native actions on it.
 
 Lore sends `resource_filter = "urc"`, no `context_filter` and no `page_size`, and
 follows `next_page_token` until it is absent. The Hub answers the entries whose
