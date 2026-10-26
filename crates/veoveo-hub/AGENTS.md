@@ -32,7 +32,10 @@ repository's [AGENTS.md](../../AGENTS.md).
   the executable composition boundary: `src/bin/hub/contributions/lore` and its
   native integration fixtures may name Lore's existing protocol. The generic
   library, OAuth handlers, policy evaluator and ordinary fixtures remain independent
-  of native server names. Do not add another process or an authorization service.
+  of native server names. The Hub issues Lore's tokens and answers Lore's repository
+  listing (`UrcAuthApi.LookupUserPermissions`) from its assignments; Lore authorizes
+  every request from its token alone, and the Hub is no authorizer for Lore. Do not
+  add another process, or Lore's other auth service methods.
 
 - That approved executable contribution may own a typed persistence table and its
   declaration in the crate's required shared `migrations/` directory. Its native
