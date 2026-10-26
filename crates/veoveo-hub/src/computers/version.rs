@@ -47,8 +47,8 @@ pub struct VersionInfo {
     pub summary: Option<String>,
 }
 
-/// What a version brings over another: its release note, and the mechanical
-/// differences whether or not it has one.
+/// What a version brings over the one the Computer runs: its release note when that
+/// differs from the other's, and the mechanical differences whether or not it has one.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WhatsNew {
@@ -148,8 +148,14 @@ impl ComputerProvisionSpec {
     }
 }
 
-/// What `to` brings over `from`.
+/// What `to` brings over `from`, the version the Computer runs. `to`'s note is listed
+/// unless `from` has the same one, as a version changed only through the policy or the
+/// Hub's Computer settings does; it is listed when `from` has none or its template
+/// cannot be read.
 pub fn whats_new(from: &ComputerProvisionSpec, to: &ComputerProvisionSpec) -> Result<WhatsNew> {
+    let note = to
+        .release_note()
+        .filter(|note| from.release_note().as_ref() != Some(note));
     let image = match (from.image(), to.image()) {
         (Some(from), Some(to)) if from != to => Some(ImageChange { from, to }),
         _ => None,
@@ -157,7 +163,7 @@ pub fn whats_new(from: &ComputerProvisionSpec, to: &ComputerProvisionSpec) -> Re
     let before = endpoints(&from.policy()?);
     let after = endpoints(&to.policy()?);
     Ok(WhatsNew {
-        note: to.release_note(),
+        note,
         image,
         network_rules_added: rules(after.difference(&before)),
         network_rules_removed: rules(before.difference(&after)),

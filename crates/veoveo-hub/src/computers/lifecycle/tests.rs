@@ -5,9 +5,10 @@
 //! current version and records that version with an update notice told once; a failed
 //! restart records its cause and keeps the recorded version, which the previous version
 //! starts again; a missing template leaves Computers unavailable while a running one is
-//! served. Every credential and image is synthetic; no Kubernetes or Computer image is
-//! involved.
-use std::time::Duration;
+//! served; a version changed through the settings alone keeps the recorded version's
+//! note, which neither the status nor the update notice tells again. Every credential
+//! and image is synthetic; no Kubernetes or Computer image is involved.
+use std::{sync::Arc, time::Duration};
 
 use openshell_sdk::raw::proto::ProviderCredentialRefreshStrategy as Strategy;
 use veoveo_types::Sha256Digest;
@@ -15,7 +16,7 @@ use veoveo_types::Sha256Digest;
 use super::{Begun, Entry, Target};
 use crate::{
     computers::{
-        ComputerRuntime,
+        ComputerRuntime, WhatsNew,
         test_fixture::{
             catalog, fake::Call, gateway, hub, installation, installation_template, ready_computer,
             runtime,
@@ -283,4 +284,74 @@ async fn a_restart_refused_while_the_previous_computer_stops_says_so_and_a_retry
     })
     .await
     .expect("the refused-restart test exceeded its bound");
+}
+
+#[tokio::test]
+async fn an_update_through_the_settings_alone_does_not_tell_the_note_again() {
+    const NOTE: &str = "Faster builds\nThe image adds a compiler.";
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let (fake, provisioner) = gateway(Strategy::Oauth2ClientCredentials).await;
+        let db = crate::test_store::TestDb::new().await;
+        let hub = hub(&db);
+        let catalog = catalog();
+        let computer = ready_computer(
+            &hub,
+            &catalog,
+            &provisioner,
+            &Sha256Digest::from_bytes([9; 32]),
+        )
+        .await;
+        let mut runtime = runtime(hub, catalog, installation(&provisioner));
+
+        // The Computer records a version whose template carries the note.
+        fake.remove_template("installation", "computer");
+        fake.set_template(
+            "installation",
+            installation_template("registry.internal/computer@sha256:1", Some(NOTE)),
+        );
+        runtime.enter(&computer).await.unwrap();
+        let computer = settled(&runtime, &computer).await;
+        let status = runtime.status(&computer, true).await.unwrap();
+        let noted = status.version.version;
+        assert_eq!(
+            status.updated.unwrap().whats_new.note.as_deref(),
+            Some(NOTE),
+            "a note the recorded version lacked is new"
+        );
+
+        // The Hub's Computer settings change and the template stays: the current
+        // version keeps the note, which is not new.
+        let mut settings = (*provisioner.config).clone();
+        settings.command = vec!["/usr/local/bin/opencode".into(), "web".into()];
+        let mut changed = installation(&provisioner);
+        changed.config = Arc::new(settings);
+        runtime.installation = changed;
+        let status = runtime.status(&computer, true).await.unwrap();
+        let current = status.current.clone().unwrap();
+        assert!(status.update_available);
+        assert_ne!(current.version, noted);
+        assert_eq!(status.whats_new, Some(WhatsNew::default()));
+        assert_eq!(
+            serde_json::to_value(&status).unwrap()["whatsNew"],
+            serde_json::json!({})
+        );
+
+        // The update to it records that version and tells no note.
+        runtime
+            .begin(&computer, Target::Current, false)
+            .await
+            .unwrap();
+        let computer = settled(&runtime, &computer).await;
+        assert_eq!(computer.provisioning.version().unwrap(), current.version);
+        let updated = runtime
+            .status(&computer, true)
+            .await
+            .unwrap()
+            .updated
+            .unwrap();
+        assert_eq!((updated.from, updated.to), (noted, current.version));
+        assert_eq!(updated.whats_new, WhatsNew::default());
+    })
+    .await
+    .expect("the unchanged-note test exceeded its bound");
 }

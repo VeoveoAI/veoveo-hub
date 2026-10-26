@@ -1,7 +1,7 @@
 //! Versions of synthetic specs: the same inputs name the same version whatever their
 //! order, object identity or names, a change of anything a sandbox gets names another,
-//! and what's new lists the release note, the image and the network endpoints gained or
-//! lost. No gateway is involved.
+//! and what's new lists the release note when it differs, the image and the network
+//! endpoints gained or lost. No gateway is involved.
 use std::collections::HashMap;
 
 use openshell_sdk::raw::proto as p;
@@ -231,4 +231,38 @@ fn whats_new_lists_the_note_the_image_and_the_endpoints() {
         "model"
     );
     assert_eq!(whats_new(&older, &older).unwrap(), WhatsNew::default());
+}
+
+#[test]
+fn a_note_is_listed_only_when_it_differs_from_the_running_versions() {
+    let noted = |policy_yaml: &str, note: &str| {
+        spec(
+            policy_yaml,
+            &template("registry/computer@sha256:1", &[], &[(RELEASE_NOTE, note)]),
+        )
+    };
+    let running = noted(HUB_ONLY, "Faster builds");
+
+    // Only the policy changes: the template's note is not new, its endpoints are.
+    let policy = noted(HUB_AND_MODEL, "Faster builds");
+    assert_ne!(policy.version().unwrap(), running.version().unwrap());
+    let changes = whats_new(&running, &policy).unwrap();
+    assert_eq!(changes.note, None, "an unchanged note is not new");
+    assert_eq!(changes.network_rules_added.len(), 2);
+    assert_eq!(changes.network_rules_removed.len(), 1);
+
+    // Only the Hub's Computer settings change: nothing a person is told differs.
+    let mut settings = running.clone();
+    settings.config.command = vec!["/usr/local/bin/other".into()];
+    assert_ne!(settings.version().unwrap(), running.version().unwrap());
+    assert_eq!(whats_new(&running, &settings).unwrap(), WhatsNew::default());
+
+    // Another note is new.
+    assert_eq!(
+        whats_new(&running, &noted(HUB_AND_MODEL, "Smaller image"))
+            .unwrap()
+            .note
+            .as_deref(),
+        Some("Smaller image")
+    );
 }
