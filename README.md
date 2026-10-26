@@ -138,7 +138,8 @@ and `scope=mcp`. `acceptance-member` receives every permission without a risk, a
 `acceptance-admin` every permission in that test configuration. External-issuer
 application tokens require the configured issuer/audience/claims and matching Hub
 catalog authority; the Hub does not mint tokens for an external authorization
-server. Lore credentials come directly from the installation IdP, never the Hub.
+server. Lore tokens are the Hub's own, issued from the repository assignments of its control
+plane, one repository per token ([design](crates/veoveo-hub/DESIGN.md#groups-and-sharing)).
 
 
 ## License
