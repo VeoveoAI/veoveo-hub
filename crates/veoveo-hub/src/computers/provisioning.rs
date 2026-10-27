@@ -467,10 +467,11 @@ impl Provisioner {
     }
     /// Runs only while the caller owns the durable handoff row lock. A bounded
     /// cold-path transaction serializes custody, not an exactly-once claim across
-    /// crashes between provider consumption and native durable publication. Custody
-    /// only: the owner's workspace, its providers and their refresh, rotated now. A
-    /// running sandbox keeps running and receives the rotated credentials behind its
-    /// placeholders; entry creates a missing one.
+    /// crashes between provider consumption and native durable publication. The
+    /// owner's workspace, its providers and their refresh, rotated now. Each refresh
+    /// configuration begins a new authorization epoch, whose placeholders a running
+    /// sandbox's processes never received, so a sandbox that exists is replaced, keeping
+    /// its home; entry creates a missing one.
     pub async fn handoff(
         &self,
         _catalog: &HubCatalog,
@@ -578,6 +579,11 @@ impl Provisioner {
         .await?;
         self.lore_refresh(&name, handoff, &grant.lore).await?;
         drop(grant);
+        if self.sandbox(&name).await?.is_some() {
+            self.replace(computer, handoff)
+                .await
+                .context("restarting the Computer onto its new credentials")?;
+        }
         Ok(())
     }
     /// Delete the Computer's sandbox, keeping its workspace volume, which the next

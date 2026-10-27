@@ -1316,18 +1316,26 @@ ordinary PKCE authorization against this Hub's existing OAuth endpoints. A bound
 single-use database state binds the verifier to a separate initiating-browser
 cookie. The callback exchanges the native code, verifies the actual signed access
 JWT with the shared verifier, resolves current native subject authority, and binds
-the browser only to its actual refresh-family ID and exact tenant/principal owner.
+the browser only to a refresh-family ID of the exact tenant/principal owner.
 No expired or fabricated JWT establishes a browser session. Cookies contain random
 selectors; only their hashes are stored. Grant material is never stored in Hub
 Computer rows, cookies or UI bundles.
+
+A sign-in to a ready Computer whose family is still admitted hands nothing off: under
+the row lock custody uses, the browser joins that family, and the sign-in's own grant
+is dropped unused. Another browser, another device or a lost cookie therefore never
+touches a running Computer. Custody is handed off only to a Computer without an
+admitted family: at its first sign-in, and after its family was revoked or expired.
 
 A precommitted pending handoff invalidates old browser admission before native
 mutation. An owned worker locks that exact handoff, ensures a distinct owner
 workspace, creates workspace-local providers and replaces their Hub refresh material.
 ConfigureProviderRefresh **and** RotateProviderCredential must succeed before ready
-publication. Custody creates, stops or starts no sandbox: a running sandbox keeps
-running and receives the rotated credentials behind its placeholders, and entry creates
-a missing one with the owner's template clone and nonsecret external base path. The existing managed runtime access
+publication. Each ConfigureProviderRefresh begins a new authorization epoch, and
+OpenShell then no longer resolves the placeholders that the sandbox's running processes
+were given, so custody replaces a sandbox that exists, keeping its home, before the
+browser enters. Entry creates a missing one with the owner's template clone and
+nonsecret external base path. The existing managed runtime access
 value is never replaced with UpdateProvider; no operator credential export occurs.
 The model seed resolves through the existing trusted Env ProviderApiKey locator.
 Native global profiles and exact refresh recipient are checked before custody.

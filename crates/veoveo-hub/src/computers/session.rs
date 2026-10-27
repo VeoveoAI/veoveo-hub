@@ -71,6 +71,35 @@ impl HubState {
         .context("Computer admission read deadline")?
     }
 
+    /// The browser session of a sign-in that joins the family the Computer already
+    /// holds, while that family is still admitted. None when the Computer has no
+    /// admitted family or its custody is changing: the sign-in hands its own off.
+    pub(super) async fn join_computer_session(
+        &self,
+        catalog: &HubCatalog,
+        config: &Computers,
+        computer: &Computer,
+        digest: &Sha256Digest,
+    ) -> Result<Option<BrowserSession>> {
+        let Some(family) = computer.family.as_ref() else {
+            return Ok(None);
+        };
+        let Some(family) = self.hub_store().refresh_family(family).await? else {
+            return Ok(None);
+        };
+        let Some(session) = self
+            .admit_computer_family(catalog, config, computer.clone(), family)
+            .await?
+        else {
+            return Ok(None);
+        };
+        Ok(self
+            .hub_store()
+            .join_computer_session(computer, session.family(), digest)
+            .await?
+            .then_some(session))
+    }
+
     pub(super) async fn admit_computer_family(
         &self,
         catalog: &HubCatalog,
@@ -152,6 +181,50 @@ mod tests {
     use std::collections::BTreeSet;
     use veoveo_hub_sdk::{TokenIssuer, TokenSubject};
     use veoveo_types::{PrincipalId, TenantId};
+
+    /// A second browser's sign-in joins the family the ready Computer holds: both
+    /// browsers are admitted and OpenShell receives nothing. A Computer whose custody is
+    /// changing, read before or after the handoff began, has no family to join.
+    #[tokio::test]
+    async fn a_sign_in_joins_the_family_a_ready_computer_holds() {
+        use super::super::test_fixture as fixture;
+        tokio::time::timeout(Duration::from_secs(90), async {
+            let db = crate::test_store::TestDb::new().await;
+            let hub = fixture::hub(&db);
+            let catalog = fixture::catalog();
+            let (fake, provisioner) = fixture::gateway(
+                openshell_sdk::raw::proto::ProviderCredentialRefreshStrategy::Oauth2ClientCredentials,
+            )
+            .await;
+            let config = provisioner.config.as_ref();
+            let first = Sha256Digest::from_bytes([1; 32]);
+            let computer = fixture::ready_computer(&hub, &catalog, &provisioner, &first).await;
+            fake.take_calls();
+
+            let second = Sha256Digest::from_bytes([2; 32]);
+            let joined = hub
+                .join_computer_session(&catalog, config, &computer, &second)
+                .await
+                .unwrap()
+                .expect("a ready Computer's admitted family is joined");
+            assert_eq!(Some(joined.family()), computer.family.as_ref());
+            for cookie in [&first, &second] {
+                assert!(hub.computer_browser_session(&catalog, config, cookie, None).await.unwrap().is_some());
+            }
+            assert!(fake.take_calls().is_empty(), "joining hands nothing to OpenShell");
+
+            let store = hub.hub_store();
+            store.begin_computer_handoff(&computer, &Sha256Digest::from_bytes([3; 32])).await.unwrap();
+            let pending = store.computer(&computer.tenant, &computer.principal, &computer.id).await.unwrap().unwrap();
+            let third = Sha256Digest::from_bytes([4; 32]);
+            for stale in [&computer, &pending] {
+                assert!(hub.join_computer_session(&catalog, config, stale, &third).await.unwrap().is_none());
+            }
+            assert!(hub.computer_browser_session(&catalog, config, &third, None).await.unwrap().is_none());
+        })
+        .await
+        .expect("join fixture deadline");
+    }
 
     /// Exercise the real family/store path: stale authorization restarts login,
     /// while loss of the database remains an operational refusal, not a login.

@@ -445,6 +445,15 @@ async fn finish(
         .context("Computer grant authority denied")?;
     let cookie = opaque()?;
     let cookie_digest = digest(&cookie);
+    // A Computer that holds an admitted family keeps it, and its running sandbox keeps
+    // its credentials: this browser joins that family and the sign-in's grant is unused.
+    if let Some(joined) = runtime
+        .hub
+        .join_computer_session(&catalog, &runtime.config, &computer, &cookie_digest)
+        .await?
+    {
+        return entered(&cookie, &joined);
+    }
     // Each handoff gives the Computer's own Lore client a new secret.
     let lore = CustodyClient::new(computer.native_name())?;
     let handoff = runtime
@@ -515,13 +524,18 @@ async fn finish(
         .context("Computer custody deadline")?
     });
     worker.await.context("Computer custody worker failed")??;
-    // Entry creates the sandbox, on the start page, when it is missing.
+    entered(&cookie, &session)
+}
+
+/// The browser's way into its Computer with the session `cookie` selects. Entry creates
+/// the sandbox, on the start page, when it is missing.
+fn entered(cookie: &str, session: &super::BrowserSession) -> Result<Response> {
     let mut response = redirect(super::pages::ENTRY)?;
     response.headers_mut().append(
         header::SET_COOKIE,
         set_cookie(
             SESSION_COOKIE,
-            &cookie,
+            cookie,
             (session.expires_at() - Utc::now()).num_seconds().max(0),
         )?,
     );

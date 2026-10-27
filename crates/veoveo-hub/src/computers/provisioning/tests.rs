@@ -1,11 +1,11 @@
 //! A Computer's custody handoff and sandbox replacement against the fake OpenShell
 //! gateway (`tests/factory/gateway.rs`). The handoff creates the owner's providers, hands
 //! the user's refresh grant and the Computer's own Lore client to the gateway and rotates
-//! both credentials; it creates or stops no sandbox. A replacement clones the version's
+//! both credentials; it creates no sandbox. A replacement clones the version's
 //! template with the owner as `LORE_IDENTITY` and the version as `COMPUTER_VERSION`,
 //! deletes an existing sandbox keeping its workspace and creates the sandbox, with the
-//! Lore provider attached. A later handoff keeps the Lore provider and replaces only its
-//! client's secret. The fake reports synthetic
+//! Lore provider attached. A later handoff keeps the Lore provider, replaces only its
+//! client's secret and replaces the running sandbox. The fake reports synthetic
 //! rotation expiries, makes sandboxes ready at once and accepts forwarding without
 //! relaying bytes; no OpenShell, Lore, Hub token endpoint or model is involved, and every
 //! credential is a synthetic string.
@@ -155,8 +155,10 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
             "a sandbox created without the Lore provider differs from the installation"
         );
 
-        // The next login keeps the provider, and its placeholder, and replaces only the
-        // client's secret; the running sandbox keeps running.
+        // The next handoff keeps the providers and replaces only the client's secret. Its
+        // refresh configuration begins a new authorization epoch, whose placeholders the
+        // running sandbox's processes never received, so it replaces that sandbox,
+        // keeping the home, with request IDs of the handoff.
         let (computer, grant) = next_login(&computer);
         let second = grant.lore.digest();
         assert_ne!(second, first);
@@ -170,6 +172,10 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
             Call::RotateProviderCredential(_),
             Call::ConfigureProviderRefresh(refresh),
             Call::RotateProviderCredential(rotation),
+            Call::DeleteSandbox(delete),
+            Call::DeleteSandboxTemplate(_),
+            Call::CreateSandboxTemplate(_),
+            Call::CreateSandbox(create),
         ] = calls.as_slice()
         else {
             panic!("the next handoff sent {calls:#?}");
@@ -180,6 +186,12 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
             fake.refresh_material(&name, LORE_PROVIDER, LORE_KEY)
                 .unwrap()["client_id"],
             name
+        );
+        assert!(delete.keep_workspace, "the restart keeps the home");
+        let handoff = computer.handoff.unwrap();
+        assert_eq!(
+            create.request_id,
+            uuid::Uuid::new_v5(&handoff, b"create").to_string()
         );
         assert!(fake.sandbox(&name, &name).is_some());
 

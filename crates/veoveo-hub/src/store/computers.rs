@@ -481,6 +481,45 @@ impl HubStore {
             transaction,
         }))
     }
+    /// Bind a browser cookie to the family the Computer holds, under the row lock custody
+    /// uses: only while the Computer is ready, no handoff has begun and `family` is still
+    /// its family. Returns whether the cookie was bound.
+    pub async fn join_computer_session(
+        &self,
+        owner: &Computer,
+        family: &HubRefreshFamilyId,
+        digest: &Sha256Digest,
+    ) -> Result<bool, HubStoreError> {
+        let mut transaction = self.pool().begin().await?;
+        let Some(row) = sqlx::query_file_as!(
+            ComputerRow,
+            "src/store/computers/lock.sql",
+            owner.id.as_uuid(),
+            owner.tenant.as_str(),
+            owner.principal.as_str()
+        )
+        .fetch_optional(&mut *transaction)
+        .await?
+        else {
+            return Ok(false);
+        };
+        let computer: Computer = row.try_into()?;
+        if !computer.ready || computer.handoff.is_some() || computer.family.as_ref() != Some(family)
+        {
+            return Ok(false);
+        }
+        sqlx::query_file!(
+            "src/store/computers/session_insert.sql",
+            digest.as_str(),
+            computer.id.as_uuid(),
+            family.as_uuid(),
+            Utc::now()
+        )
+        .execute(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
+        Ok(true)
+    }
     /// Resolve the cookie's native family before selecting its tenant/principal's
     /// Computer. Current client, membership, expiry and readiness admission still
     /// belongs to BrowserSession construction.
