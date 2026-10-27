@@ -268,6 +268,23 @@ impl RegistrationStore {
 
     /// Record that the server of `deployment`, when it is an instance's, registered or
     /// resumed its registration just now.
+    /// Whether a registered instance of another repository than `deployment`'s instance
+    /// serves `server`.
+    pub async fn served_elsewhere(
+        &self,
+        server: &ServerSlug,
+        deployment: DeploymentId,
+    ) -> Result<bool> {
+        sqlx::query_file_scalar!(
+            "src/registration/store/served_elsewhere.sql",
+            server.as_str(),
+            deployment.as_uuid()
+        )
+        .fetch_one(self.store.pool())
+        .await
+        .context("failed to read which repositories serve the slug")
+    }
+
     pub async fn served(&self, deployment: DeploymentId) -> Result<()> {
         sqlx::query_file!("src/registration/store/served.sql", deployment.as_uuid())
             .execute(self.store.pool())

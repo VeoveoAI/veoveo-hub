@@ -233,7 +233,10 @@ while the instance exists, until `registration::reissue_token` replaces it. Its 
 deployment, otherwise `invalid_client_metadata`; the software statement is verified
 against the key the metadata presents. It claims no namespace, pins no key, does not
 expire and is not used up, so several instances of one slug register at once under
-their own keys. Every registration with the token replaces the instance's previous
+their own keys. They are the branches of one repository: a slug names one server's
+schema, permissions and tools, so an instance whose slug a registered instance of
+another repository serves is refused with `invalid_client_metadata`, saying so, and
+the server that already serves it keeps serving. Every registration with the token replaces the instance's previous
 one in one transaction: it writes the deployment's slug, metadata and storage
 binding, removes the deployment's registrations and drops their logins, then calls
 `kernel.ensure_server`, creates the new login and inserts its row.
@@ -888,7 +891,8 @@ signing key and that every forwarded token carries the signing key's `kid`.
 `tests/instance_registration.rs` starts the binary the same way and registers the
 Observatory fixture's declaration as instances with tokens from `create_instance`.
 It checks that two instances of one slug register under different keys as distinct
-deployments that both route, that registering an instance again with a new key,
+deployments that both route, that another repository's instance of that slug is
+refused while they keep routing, that registering an instance again with a new key,
 version, endpoint and declaration keeps its deployment, removes its previous
 registration and drops that login, that an instance token whose metadata names
 another deployment is refused, that any other token is checked as the registration

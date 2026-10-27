@@ -302,6 +302,20 @@ impl RegistrationService {
                         ),
                     ));
                 }
+                if self
+                    .inner
+                    .store
+                    .served_elsewhere(&slug, *deployment)
+                    .await?
+                {
+                    return Err(RegistrationError::rejected(
+                        RegistrationErrorCode::InvalidClientMetadata,
+                        format!(
+                            "the slug {slug} is served by another repository's server; give \
+                             this repository's server a slug of its own"
+                        ),
+                    ));
+                }
                 None
             }
         };

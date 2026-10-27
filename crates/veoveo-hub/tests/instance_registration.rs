@@ -86,6 +86,45 @@ async fn instances_of_one_slug_register_side_by_side_under_different_keys() {
             ]),
             "the Hub routes both instances of the slug"
         );
+
+        // A slug names one repository's server: another repository's instance of it is
+        // refused, and the instances that serve it keep serving.
+        let other = create_instance(
+            &fixture.db.a,
+            "fedcba9876543210fedcba9876543210",
+            &fixture.installation(),
+            &branch("a"),
+        )
+        .await
+        .unwrap();
+        match fixture
+            .instance(&other, other.deployment, Revision::First)
+            .register()
+            .await
+        {
+            Err(ClientError::Rejected {
+                status: reqwest::StatusCode::BAD_REQUEST,
+                error: Some(error),
+            }) => {
+                assert_eq!(error.error, RegistrationErrorCode::InvalidClientMetadata);
+                assert!(
+                    error
+                        .error_description
+                        .as_deref()
+                        .is_some_and(|text| text.contains("another repository")),
+                    "{error:?}"
+                );
+            }
+            other => panic!("expected another repository's instance to be refused, got {other:?}"),
+        }
+        assert_eq!(
+            fixture.routed().await,
+            BTreeSet::from([
+                ("observatory".to_owned(), a.deployment),
+                ("observatory".to_owned(), b.deployment),
+            ]),
+            "the refusal leaves the slug's instances routed"
+        );
     })
     .await
     .expect("the test exceeded its bound");
