@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Whether a registration serves the slug from an instance of another repository than the\n-- one whose instance has the deployment.\nSELECT EXISTS (\n    SELECT FROM hub.registration\n    JOIN hub.instance AS other ON other.deployment = registration.deployment\n    JOIN hub.instance AS own ON own.deployment = $2\n    WHERE registration.server = $1 AND other.repository <> own.repository\n) AS \"elsewhere!\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "elsewhere!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "866d5aecdc1c9ad0661d2dd90ef5c4d7675e6e426ec5e0cad8dd2c7ffc991147"
+}
