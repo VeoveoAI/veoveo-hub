@@ -2,8 +2,9 @@
 //! a repository whose creator is the bearer token's `identity`, answers an existing
 //! repository of the same ID and name with its record, and refuses an ID with another
 //! name or a name of another ID, as Lore's v1 `RepositoryCreate` does. It records each
-//! creation's token claims. Every other method is unimplemented. The repositories and
-//! tokens are synthetic.
+//! creation's token claims and, once told of a Hub, tells its `RebacApi` of each new
+//! repository with the caller's token before storing it, refusing what the Hub refuses.
+//! Every other method is unimplemented. The repositories and tokens are synthetic.
 use std::{
     collections::BTreeMap,
     sync::{Arc, Mutex},
@@ -20,6 +21,7 @@ use lore_proto::lore::{
         repository_service_server::{RepositoryService, RepositoryServiceServer},
     },
 };
+use lore_proto::{RebacApiClient, rebac::CreateResourceRequest};
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::{Request, Response, Status};
 
@@ -27,6 +29,7 @@ use tonic::{Request, Response, Status};
 pub struct FakeLore {
     repositories: Arc<Mutex<BTreeMap<String, Repository>>>,
     tokens: Arc<Mutex<Vec<serde_json::Value>>>,
+    resources: Arc<Mutex<Option<String>>>,
 }
 
 impl FakeLore {
@@ -66,6 +69,12 @@ impl FakeLore {
             url::Url::parse(&format!("grpcs://{address}")).unwrap(),
             authority_certificate.pem(),
         )
+    }
+
+    /// Tell `hub`'s `RebacApi` of each repository before creating it, with the caller's
+    /// token, as Lore does whose `auth_service` catalog lists from that Hub.
+    pub fn tell(&self, hub: &str) {
+        *self.resources.lock().unwrap() = Some(hub.to_owned());
     }
 
     /// A repository Lore holds already, created by `creator`.
@@ -127,20 +136,38 @@ impl RepositoryService for FakeLore {
             .ok_or_else(|| Status::unauthenticated("the token names no identity"))?
             .to_owned();
         self.tokens.lock().unwrap().push(claims);
+        let authorization = request.metadata().get("authorization").cloned();
         let request = request.into_inner();
         let id = hex::encode(&request.id);
-        let mut repositories = self.repositories.lock().unwrap();
-        if let Some(existing) = repositories.get(&id) {
-            return if existing.name == request.name {
-                Ok(Response::new(RepositoryCreateResponse {
-                    repository: Some(existing.clone()),
-                }))
-            } else {
-                Err(Status::already_exists("the ID has another name"))
-            };
+        {
+            let repositories = self.repositories.lock().unwrap();
+            if let Some(existing) = repositories.get(&id) {
+                return if existing.name == request.name {
+                    Ok(Response::new(RepositoryCreateResponse {
+                        repository: Some(existing.clone()),
+                    }))
+                } else {
+                    Err(Status::already_exists("the ID has another name"))
+                };
+            }
+            if repositories.values().any(|r| r.name == request.name) {
+                return Err(Status::already_exists("the name belongs to another ID"));
+            }
         }
-        if repositories.values().any(|r| r.name == request.name) {
-            return Err(Status::already_exists("the name belongs to another ID"));
+        let hub = self.resources.lock().unwrap().clone();
+        if let Some(hub) = hub {
+            let mut told = tonic::Request::new(CreateResourceRequest {
+                resource_id: format!("urc-{id}"),
+                resource_name: request.name.clone(),
+            });
+            if let Some(authorization) = authorization {
+                told.metadata_mut().insert("authorization", authorization);
+            }
+            RebacApiClient::connect(hub)
+                .await
+                .map_err(|error| Status::unavailable(error.to_string()))?
+                .create_resource(told)
+                .await?;
         }
         let repository = Repository {
             id: request.id,
@@ -154,7 +181,10 @@ impl RepositoryService for FakeLore {
                 .unwrap_or(identity),
             ..Default::default()
         };
-        repositories.insert(id, repository.clone());
+        self.repositories
+            .lock()
+            .unwrap()
+            .insert(id, repository.clone());
         Ok(Response::new(RepositoryCreateResponse {
             repository: Some(repository),
         }))

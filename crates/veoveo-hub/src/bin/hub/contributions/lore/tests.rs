@@ -1095,3 +1095,49 @@ fn a_group_is_created_by_its_owner_whose_owners_set_its_memberships() {
         .insert("lore".into(), serde_json::to_value(&section).unwrap());
     assert!(admits(plane));
 }
+
+#[test]
+fn an_owner_deletes_a_repository_with_every_assignment_on_it() {
+    use super::sharing::Refusal;
+    let [tenant, elsewhere] = ["tenant-a", "tenant-b"].map(|t| TenantId::parse(t).unwrap());
+    let [alice, carol] =
+        ["native-alice", "native-carol"].map(|principal| PrincipalId::parse(principal).unwrap());
+    let source = DeploymentId::parse("source").unwrap();
+    let [first, second, unregistered] =
+        [FIRST, SECOND, THIRD].map(|id| RepositoryId::parse(id).unwrap());
+    let mut section = shared();
+    let before = section.clone();
+
+    // Carol holds nothing on FIRST, alice holds `admin` but not `owner` on SECOND, and
+    // alice of another tenant is not the alice who owns FIRST.
+    for (repository, caller) in [
+        (&first, caller(&tenant, &carol)),
+        (&second, caller(&tenant, &alice)),
+        (&first, caller(&elsewhere, &alice)),
+    ] {
+        assert_eq!(
+            section.delete_repository(&source, repository, caller),
+            Err(Refusal::NotRepositoryOwner)
+        );
+    }
+    assert_eq!(section.assignments, before.assignments);
+
+    // A repository the section does not register leaves nothing to remove.
+    assert_eq!(
+        section.delete_repository(&source, &unregistered, caller(&tenant, &alice)),
+        Ok(false)
+    );
+
+    // Alice owns FIRST through bioma: it goes, with her own assignment and the group's.
+    assert_eq!(
+        section.delete_repository(&source, &first, caller(&tenant, &alice)),
+        Ok(true)
+    );
+    assert!(section.repositories.iter().all(|r| r.id != first));
+    assert!(section.assignments.iter().all(|a| a.repository != first));
+    assert_eq!(
+        section.assignments.len(),
+        before.assignments.len() - 2,
+        "SECOND keeps its assignment"
+    );
+}

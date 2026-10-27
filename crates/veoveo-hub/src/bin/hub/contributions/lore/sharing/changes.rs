@@ -201,6 +201,32 @@ impl Lore {
         Ok(true)
     }
 
+    /// Remove the deployment's repository and every assignment on it, as `caller`, an
+    /// owner of it, when Lore deletes it. A repository the section does not register
+    /// leaves nothing to remove. Answers whether the section changed.
+    pub(crate) fn delete_repository(
+        &mut self,
+        deployment: &DeploymentId,
+        repository: &RepositoryId,
+        caller: Caller<'_>,
+    ) -> Result<bool, Refusal> {
+        let Some(registered) = self
+            .repositories
+            .iter()
+            .find(|r| &r.deployment == deployment && &r.id == repository)
+        else {
+            return Ok(false);
+        };
+        if &registered.tenant != caller.tenant || !self.owns(deployment, repository, caller) {
+            return Err(Refusal::NotRepositoryOwner);
+        }
+        self.repositories
+            .retain(|r| !(&r.deployment == deployment && &r.id == repository));
+        self.assignments
+            .retain(|a| !(&a.deployment == deployment && &a.repository == repository));
+        Ok(true)
+    }
+
     /// Create the tenant's group `name`, of `id`, with the caller as its one member, its
     /// owner.
     pub(crate) fn create_group(

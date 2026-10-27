@@ -1,6 +1,7 @@
-//! Lore's repository listing against the hosted process: `UrcAuthApi.LookupUserPermissions`
-//! as gRPC over cleartext HTTP/2 on the Hub's own listener, asked the way Lore's
-//! `auth_service` catalog asks it. The caller is a configured factory client's service
+//! Lore's repository listing, creation and deletion against the hosted process:
+//! `UrcAuthApi.LookupUserPermissions` and `RebacApi` as gRPC over cleartext HTTP/2 on the
+//! Hub's own listener, asked the way Lore's `auth_service` catalog and repository service
+//! ask them. The caller is a configured factory client's service
 //! principal holding synthetic assignments, its own and through a group; no Lore server is
 //! involved.
 #[path = "support/database.rs"]
@@ -19,6 +20,10 @@ use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use lore_proto::auth::{
     CheckUserPermissionRequest, LookupUserPermissionsRequest, LookupUserPermissionsResponse,
     ResourcePermission, urc_auth_api_client::UrcAuthApiClient,
+};
+use lore_proto::{
+    RebacApiClient,
+    rebac::{CreateResourceRequest, DeleteResourceRequest},
 };
 use serde_json::{Value, json};
 use tonic::{Code, Status, transport::Channel};
@@ -168,24 +173,7 @@ async fn qualify() {
     )
     .await;
     let http = reqwest::Client::new();
-    let form = url::form_urlencoded::Serializer::new(String::new())
-        .extend_pairs([
-            ("grant_type", "client_credentials"),
-            ("client_id", "native-factory"),
-            ("client_secret", SECRET),
-            ("scope", &format!("source-{FIRST}")),
-        ])
-        .finish();
-    let response = http
-        .post(format!("{}/oauth/token", hub.base))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(form)
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(response.status(), reqwest::StatusCode::OK);
-    let issued: Value = response.json().await.unwrap();
-    let token = issued["access_token"].as_str().unwrap().to_owned();
+    let token = factory_token(&hub, &http).await;
     let bearer = format!("Bearer {token}");
     let mut client = UrcAuthApiClient::connect(hub.base.clone()).await.unwrap();
 
@@ -319,4 +307,163 @@ async fn qualify() {
         page.resource_permission,
         vec![entry(FIRST, &[]), entry(THIRD, &["owner"])]
     );
+}
+
+/// A Lore token of the factory client's service principal, for FIRST.
+async fn factory_token(hub: &fixture::Hub, http: &reqwest::Client) -> String {
+    let form = url::form_urlencoded::Serializer::new(String::new())
+        .extend_pairs([
+            ("grant_type", "client_credentials"),
+            ("client_id", "native-factory"),
+            ("client_secret", SECRET),
+            ("scope", &format!("source-{FIRST}")),
+        ])
+        .finish();
+    let response = http
+        .post(format!("{}/oauth/token", hub.base))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .body(form)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let issued: Value = response.json().await.unwrap();
+    issued["access_token"].as_str().unwrap().to_owned()
+}
+
+fn authorized<T>(message: T, authorization: Option<&str>) -> tonic::Request<T> {
+    let mut request = tonic::Request::new(message);
+    if let Some(authorization) = authorization {
+        request
+            .metadata_mut()
+            .insert("authorization", authorization.parse().unwrap());
+    }
+    request
+}
+
+#[tokio::test]
+async fn lore_tells_the_hub_of_the_repositories_it_creates_and_deletes() {
+    tokio::time::timeout(Duration::from_secs(120), resources())
+        .await
+        .expect("the creation qualification exceeded two minutes");
+}
+
+/// `RebacApi` as Lore's repository creation and deletion call it: the caller's token and
+/// the repository's resource ID, before Lore stores or removes it.
+async fn resources() {
+    const CREATED: &str = "4123456789abcdef0123456789abcdef";
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    let directory = tempfile::tempdir().unwrap();
+    let db = database::TestDb::new().await;
+    let hub = fixture::Hub::start_with(
+        directory.path(),
+        &db,
+        Duration::from_secs(60),
+        &[("VEOVEO_NATIVE_FIXTURE_SECRET", SECRET.to_owned())],
+        configure,
+    )
+    .await;
+    let http = reqwest::Client::new();
+    let bearer = format!("Bearer {}", factory_token(&hub, &http).await);
+    let mut rebac = RebacApiClient::connect(hub.base.clone()).await.unwrap();
+    let mut catalog = UrcAuthApiClient::connect(hub.base.clone()).await.unwrap();
+    let create = |id: &str| CreateResourceRequest {
+        resource_id: format!("urc-{id}"),
+        resource_name: "made-with-lore".to_owned(),
+    };
+    let delete = |id: &str| DeleteResourceRequest {
+        resource_id: format!("urc-{id}"),
+    };
+    let listed = async |catalog: &mut UrcAuthApiClient<Channel>| {
+        lookup(catalog, Some(&bearer), lore_request("urc", None, None))
+            .await
+            .unwrap()
+            .resource_permission
+    };
+
+    // A creation registers the repository, titled by its name, with its creator as owner;
+    // the listing names it at once, and telling the Hub again changes nothing.
+    for _ in 0..2 {
+        rebac
+            .create_resource(authorized(create(CREATED), Some(&bearer)))
+            .await
+            .unwrap();
+    }
+    assert!(
+        listed(&mut catalog)
+            .await
+            .contains(&entry(CREATED, &["owner"]))
+    );
+    let plane = hub.control_plane().await;
+    let registered = plane["lore"]["repositories"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["id"] == CREATED)
+        .collect::<Vec<_>>();
+    assert_eq!(registered.len(), 1);
+    assert_eq!(registered[0]["title"], "made-with-lore");
+
+    // Another person's repository is not the caller's to create, and only a Lore token
+    // this Hub issued, naming a repository of the deployment, is answered.
+    for (case, request, authorization, code) in [
+        (
+            "another's",
+            create(OTHERS),
+            Some(bearer.as_str()),
+            Code::PermissionDenied,
+        ),
+        ("no token", create(CREATED), None, Code::Unauthenticated),
+        (
+            "not a repository",
+            CreateResourceRequest {
+                resource_id: format!("repo-{CREATED}"),
+                resource_name: "made-with-lore".to_owned(),
+            },
+            Some(bearer.as_str()),
+            Code::InvalidArgument,
+        ),
+    ] {
+        let refused = rebac
+            .create_resource(authorized(request, authorization))
+            .await
+            .unwrap_err();
+        assert_eq!(refused.code(), code, "{case}: {refused:?}");
+    }
+
+    // Only an owner deletes: not another person's repository, nor one the caller holds
+    // `admin` on.
+    for id in [OTHERS, SECOND] {
+        let refused = rebac
+            .delete_resource(authorized(delete(id), Some(&bearer)))
+            .await
+            .unwrap_err();
+        assert_eq!(refused.code(), Code::PermissionDenied, "{id}: {refused:?}");
+    }
+
+    // The owner's deletion removes the repository and every assignment on it; one the Hub
+    // does not register leaves nothing to remove.
+    for id in [CREATED, CREATED] {
+        rebac
+            .delete_resource(authorized(delete(id), Some(&bearer)))
+            .await
+            .unwrap();
+    }
+    assert!(
+        listed(&mut catalog)
+            .await
+            .iter()
+            .all(|entry| entry.resource_id != format!("urc-{CREATED}"))
+    );
+    let plane = hub.control_plane().await;
+    for section in ["repositories", "assignments"] {
+        assert!(
+            plane["lore"][section]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|r| r["id"] != CREATED && r["repository"] != CREATED),
+            "{section}"
+        );
+    }
 }

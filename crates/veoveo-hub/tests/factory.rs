@@ -2129,6 +2129,9 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
             },
         )
         .await;
+        // Lore tells the Hub of each repository it creates, as Lore whose catalog lists
+        // from the Hub does.
+        lore.tell(&hub.base);
         let issuer = hub.control_plane().await["authorizationServers"][0]["issuer"]
             .as_str()
             .unwrap()
@@ -2138,9 +2141,9 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         let computer = computer(&store, &member, "member-secret").await;
         let http = reqwest::Client::new();
 
-        // A person creates a repository: Lore records them as its creator, and the Hub
-        // answers once the revision is active, so the repository's next token their
-        // Computer's client obtains holds it as theirs.
+        // A person creates a repository: Lore records them as its creator and tells the Hub,
+        // which registers it as theirs, and the Hub answers once the revision is active, so
+        // the repository's next token their Computer's client obtains holds it as theirs.
         let (status, created) =
             create_repository(&http, &hub, "member", json!({"name": "alpha"})).await;
         assert_eq!(status, reqwest::StatusCode::CREATED, "{created}");

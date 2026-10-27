@@ -22,6 +22,7 @@ Neither its code nor its configuration names a server.
 | Protected resource metadata, RFC 9728 | `/.well-known/oauth-protected-resource/mcp/{profile}` |
 | Problem details, RFC 9457 | HTTP API errors outside OAuth endpoints, typed `https://veoveo.ai/problems/<code>` |
 | gRPC over HTTP/2, Lore's `epic_urc.UrcAuthApi` | `LookupUserPermissions` only, on the Hub's own listener, for Lore's repository listing; see [repository listing](#repository-listing) |
+| gRPC over HTTP/2, Lore's `ucs.auth.RebacApi` | `CreateResource` and `DeleteResource`, on the Hub's own listener, for the repositories Lore creates and deletes; see [repositories Lore creates and deletes](#repositories-lore-creates-and-deletes) |
 | PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, then the Hub's own `hub` schema, applied at startup; `LISTEN` on the `hub` channel for registration changes; one login role per registration. A database per data environment in the same instance, with core's kernel schemas |
 | OpenTelemetry | `service.name` is `veoveo-hub` |
 | Veoveo installation configuration | `HubControlPlane` in `src/control_plane.rs`, read as JSON |
@@ -768,6 +769,8 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 | `GET`/`PUT /lore/{profile}/repositories/{id}/access` | Who may reach a repository; an owner shares it with a person or a group ([groups and sharing](#groups-and-sharing)) |
 | `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members` | The caller's groups; creating one; an owner sets a membership |
 | `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person holds a grant on, own or through a group, for Lore's repository listing |
+| `POST /ucs.auth.RebacApi/CreateResource` | gRPC: registers the repository Lore is about to create, its creator its owner |
+| `POST /ucs.auth.RebacApi/DeleteResource` | gRPC: removes the repository Lore is about to delete, when an owner deletes it |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
@@ -947,7 +950,8 @@ token, with no repository, without a scope, and with a repository's scope that
 repository's token alone, with the owner's actions on it; a repository the owner holds no
 grant on, another scope, a resource, a wrong or replaced secret and an instance's secret
 are refused. A person who creates a repository through an in-process fake of Lore's
-repository service owns it at once: the answer comes once the revision is active, and the
+repository service, which tells the Hub's `RebacApi` of each creation as Lore does, owns it
+at once: the answer comes once the revision is active, and the
 repository's next token for their Computer holds it with `owner`; another creator, an
 unregistered creation of theirs and a taken name answer as the creation route says.
 Images and revisions are synthetic values; no OpenShell, Lore server, BuildKit or image
@@ -980,7 +984,14 @@ filter is refused, that no token, a malformed one, one signed by another key, on
 another audience, an expired one and the Hub's MCP token are refused as
 `UNAUTHENTICATED`, that `CheckUserPermission` is unimplemented, and that a published
 removal of an assignment, and then of the membership, leaves what they granted out of the
-next answer to the same token. Unit tests in
+next answer to the same token. A second test calls `RebacApi` the way Lore's repository
+service calls it, with the same token: a creation registers the repository, titled by its
+name, with the caller as its owner, which the next listing names, and changes nothing
+again; creating another person's repository, a call without a token and a resource ID of
+another form are refused as `PERMISSION_DENIED`, `UNAUTHENTICATED` and
+`INVALID_ARGUMENT`; deleting another person's repository or one the caller holds `admin`
+on is refused as `PERMISSION_DENIED`; and the owner's deletion removes the repository
+and every assignment on it, and changes nothing again. Unit tests in
 `src/bin/hub/contributions/lore/tests.rs` check the grant rule: a person's own
 assignment, one through a group in either role, the union of both on one repository,
 nothing for the same principal in another tenant, and nothing through a membership the
@@ -997,7 +1008,9 @@ level that replaces an administrator's actions and removes it, and is refused, w
 nothing changed, a change that would leave them without `owner`; someone without
 `owner`, an unknown repository or group and another tenant's repository are refused; a
 group's creator is its one member and owner, a name is taken once in a tenant, only an
-owner sets memberships and no owner lowers or removes themselves; and what the changes
+owner sets memberships and no owner lowers or removes themselves; only an owner, own or
+through a group and of the repository's tenant, deletes a repository, which takes every
+assignment on it, and an unregistered one leaves nothing to remove; and what the changes
 leave is admitted. They also check the listing's caller, tenant and deployment bounds,
 filters, pages and refusals, and that only an exchange for one repository issues a
 repository scope. No Lore server is involved.
@@ -1469,8 +1482,8 @@ on it as `permission`; a login token holds none. `root_domains` names the privat
 recipient's host. An assignment without actions still allows Lore's ordinary
 unprotected operations, writes included; no read-only role is inferred from it. Only an
 explicit assignment, to the person or to a group they belong to, grants a repository.
-Creating a repository through the Hub makes its creator the owner; no other grant is
-automatic, and no administrator role or Work Context membership grants repositories.
+Creating a repository, through the Hub or with Lore, makes its creator the owner; no
+other grant is automatic, and no administrator role or Work Context membership grants repositories.
 Removing an assignment or a membership stops further issuance, while tokens already
 issued keep their rights until they expire under the deployment's token lifetime.
 
@@ -1492,9 +1505,12 @@ failed publication; that failure answers 503 with the repository's `id`. Another
 creator answers 409 `repository-claimed`, a registered repository without the
 caller's owner assignment answers 409 `repository-registered`, since a creator never
 restores an assignment an administrator removed, and a registered repository the
-caller owns answers 200 unchanged. Owners share it as [below](#groups-and-sharing),
-deletion is separate, and Lore lists repositories through the Hub as
-[below](#repository-listing).
+caller owns answers 200 unchanged. Lore tells the Hub of the creation as it makes it, as
+it tells the Hub of every repository it creates ([below](#repositories-lore-creates-and-deletes)),
+so that revision is published before the route's own, which then changes nothing; the
+route answers 201 for a repository it found unregistered. Owners share it as
+[below](#groups-and-sharing), an owner deletes it with Lore, and Lore lists repositories
+through the Hub as [below](#repository-listing).
 
 #### Groups and sharing
 
@@ -1595,4 +1611,25 @@ pages lands in its place and nothing repeats. A `context_filter`, a negative
 `page_size` and a `page_token` that is no resource ID of the deployment answer
 `INVALID_ARGUMENT`. Authorization does not change: Lore authorizes every request from
 the token's `resources` and its `auth_url` stays unset, so the Hub is asked only when
-something lists, and the Hub answers none of `UrcAuthApi`'s other methods.
+something lists, creates or deletes, and the Hub answers none of `UrcAuthApi`'s other
+methods.
+
+#### Repositories Lore creates and deletes
+
+Lore tells the endpoint its catalog lists from of each repository it creates and deletes,
+with the caller's token: `RebacApi.CreateResource` with the repository's resource ID and
+name before it stores a repository, and `DeleteResource` with its resource ID before it
+removes one. So `lore repository create` makes the record the creation route makes. The
+Hub answers both as gRPC on its own listener, at `/ucs.auth.RebacApi/CreateResource` and
+`/ucs.auth.RebacApi/DeleteResource`, and admits the same tokens as the listing.
+
+A creation publishes the revision the creation route publishes: the repository,
+registered in the token's person's tenant and titled by its name, and their `owner`
+assignment. A repository registered as theirs already changes nothing; one registered
+without their own owner assignment answers `PERMISSION_DENIED`, so Lore stores nothing.
+A deletion by a person whose actions on the repository, own or through a group, hold
+`owner` removes its registration and every assignment on it; anyone else's answers
+`PERMISSION_DENIED`, which Lore takes as the refusal of the deletion, and a repository the
+Hub does not register leaves nothing to remove. A resource ID that names no repository of
+the deployment answers `INVALID_ARGUMENT`, and a publication that fails `UNAVAILABLE`,
+so Lore stores or removes nothing then.

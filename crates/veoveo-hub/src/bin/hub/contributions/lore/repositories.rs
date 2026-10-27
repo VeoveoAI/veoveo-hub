@@ -3,12 +3,14 @@
 //! authenticated caller with a tenant, directly or through a server that calls the Hub
 //! for them. The Hub creates the repository in the installation's one Lore deployment
 //! as the caller, with a Lore login token it issues for them, so Lore records them as its
-//! creator. It then publishes one control-plane revision that registers the repository
-//! and assigns the caller its owner, and answers once that revision is active in this
-//! process, so the caller's next repository token holds it. Calling again with the `id`
-//! of a repository Lore records the caller as creating registers it, such as one whose
-//! publication failed; nobody else can claim it, and an owner assignment an
-//! administrator removed stays removed. Owners share it (`sharing.rs`); deletion is separate.
+//! creator; Lore tells the Hub of the creation (`resources.rs`), which registers the
+//! repository and assigns the caller its owner in one control-plane revision. The route
+//! then publishes the same registration, which a repository Lore created before telling
+//! the Hub still needs, and answers once it is active in this process, so the caller's
+//! next repository token holds it. Calling again with the `id` of a repository Lore
+//! records the caller as creating registers it; nobody else can claim it, and an owner
+//! assignment an administrator removed stays removed. Owners share it (`sharing.rs`), and
+//! an owner deletes it with Lore (`resources.rs`).
 use anyhow::Result;
 use axum::{
     Extension, Json, Router,
@@ -111,6 +113,14 @@ async fn create(
             return Problem::internal().into_response();
         }
     };
+    // Whether the caller creates it now: Lore's own creation registers it before this
+    // route publishes, so the publication alone does not tell.
+    let registered_before = Lore::of(&catalog).is_ok_and(|section| {
+        section
+            .repositories
+            .iter()
+            .any(|r| r.deployment == deployment.id && r.id == id)
+    });
 
     // Lore creates it as the caller, or answers the existing repository of that ID and
     // name with its record, whose creator then decides.
@@ -201,7 +211,7 @@ async fn create(
     };
     let mut remote = deployment.endpoint.clone();
     remote.set_path(&format!("/{id}"));
-    let status = if published.is_some() {
+    let status = if published.is_some() || !registered_before {
         StatusCode::CREATED
     } else {
         StatusCode::OK
@@ -239,6 +249,12 @@ fn refused_by_lore(error: &anyhow::Error) -> Response {
             StatusCode::BAD_REQUEST,
             "invalid-repository",
             "Lore refused the repository's name",
+        )
+        .into_response(),
+        Some(tonic::Code::PermissionDenied) => Problem::new(
+            StatusCode::CONFLICT,
+            "repository-registered",
+            "The repository is registered without the caller as its owner",
         )
         .into_response(),
         Some(tonic::Code::AlreadyExists) => Problem::new(

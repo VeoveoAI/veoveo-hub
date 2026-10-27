@@ -220,7 +220,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         .route("/oauth/jwks.json", get(authorization_server_jwks))
         .with_state(state.clone())
         .merge(registration::router(registrations.clone()))
-        .merge(crate::contributions::lore::catalog::router(state));
+        .merge(crate::contributions::lore::catalog::router(state.clone()));
 
     let auth_state = ProfileAuthState {
         catalog: catalog.clone(),
@@ -292,6 +292,10 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         .merge(crate::contributions::lore::sharing::router(
             admin_state.clone(),
             auth_state.clone(),
+        ))
+        .merge(crate::contributions::lore::resources::router(
+            state,
+            admin_state.clone(),
         ))
         .merge(veoveo_hub::selection::router(
             hub_state.clone(),

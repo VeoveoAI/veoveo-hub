@@ -74,29 +74,54 @@ async fn answer(
     state: &AppState,
     request: tonic::Request<LookupUserPermissionsRequest>,
 ) -> Result<LookupUserPermissionsResponse, Status> {
-    let catalog = state.catalog.current();
-    let section = Lore::of(&catalog).map_err(|error| {
-        tracing::error!("the Lore section cannot answer a repository listing: {error:#}");
-        Status::unavailable("the Lore deployments are unavailable")
-    })?;
-    let bearer = request
-        .metadata()
-        .get("authorization")
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| BearerToken::from_authorization_header(value).ok())
-        .ok_or_else(|| Status::unauthenticated("a Lore bearer token is required"))?;
-    let (deployment, principal) = verify(state, &catalog, &section, &bearer).await?;
-    let tenant = principal
-        .tenant
-        .as_ref()
-        .ok_or_else(|| Status::unauthenticated("the Lore token names no tenant"))?;
+    let caller = TokenCaller::of(state, request.metadata()).await?;
     listing(
-        &section,
-        deployment,
-        tenant,
-        &principal.id,
+        &caller.section,
+        &caller.deployment,
+        &caller.tenant,
+        &caller.principal,
         request.get_ref(),
     )
+}
+
+/// Who calls with a Lore token this Hub issued, a login or a repository token, and the
+/// Lore section the answer reads.
+pub(super) struct TokenCaller {
+    pub section: Lore,
+    pub deployment: Deployment,
+    pub principal: PrincipalId,
+    pub tenant: TenantId,
+}
+
+impl TokenCaller {
+    /// The caller of a request whose `authorization` carries a Lore token this Hub
+    /// issued, for a person with a tenant.
+    pub(super) async fn of(
+        state: &AppState,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<Self, Status> {
+        let catalog = state.catalog.current();
+        let section = Lore::of(&catalog).map_err(|error| {
+            tracing::error!("the Lore section cannot answer Lore: {error:#}");
+            Status::unavailable("the Lore deployments are unavailable")
+        })?;
+        let bearer = metadata
+            .get("authorization")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| BearerToken::from_authorization_header(value).ok())
+            .ok_or_else(|| Status::unauthenticated("a Lore bearer token is required"))?;
+        let (deployment, principal) = verify(state, &catalog, &section, &bearer).await?;
+        let deployment = deployment.clone();
+        let tenant = principal
+            .tenant
+            .ok_or_else(|| Status::unauthenticated("the Lore token names no tenant"))?;
+        Ok(Self {
+            section,
+            deployment,
+            principal: principal.id,
+            tenant,
+        })
+    }
 }
 
 /// The deployment whose authorization server signed `bearer` for its audience, and the
