@@ -208,13 +208,24 @@ fn status_body(status: &ComputerStatus) -> String {
             ended(&escaped(blocked))
         );
     }
+    // The recorded version is the one to go back to, unless it is the version that
+    // failed, as on a Computer's first start.
+    let previous = status
+        .failure
+        .as_ref()
+        .filter(|failure| failure.version != status.version.version);
     if let Some(failure) = &status.failure {
         let _ = write!(
             body,
-            "<p><strong>Your Computer could not start version <code>{}</code></strong> at {}: {} Restart tries again; Start the previous version starts the version you had.</p>",
+            "<p><strong>Your Computer could not start version <code>{}</code></strong> at {}: {} Restart tries again{}</p>",
             escaped(failure.version.as_str()),
             escaped(&failure.at.to_rfc3339()),
-            ended(&escaped(&failure.cause))
+            ended(&escaped(&failure.cause)),
+            if previous.is_some() {
+                "; Start the previous version starts the version you had."
+            } else {
+                "."
+            }
         );
     }
     body.push_str(&state(status));
@@ -262,7 +273,7 @@ fn status_body(status: &ComputerStatus) -> String {
             body,
             "<form method=post action=\"/computer/restart\"><button>{label}</button></form>"
         );
-        if status.failure.is_some() {
+        if previous.is_some() {
             let _ = write!(
                 body,
                 "<form method=post action=\"/computer/previous\"><button>Start the previous version, <code>{}</code></button></form>",
@@ -375,6 +386,14 @@ mod tests {
             !body.contains("Open your Computer"),
             "a failure is restarted: {body}"
         );
+
+        // A first start that failed has no previous version to start.
+        let mut first = failed.clone();
+        first.failure.as_mut().unwrap().version = first.version.version.clone();
+        let body = status_body(&first);
+        assert!(body.contains("Restart tries again.</p>"), "{body}");
+        assert!(!body.contains("Start the previous version"), "{body}");
+        assert!(!body.contains("/computer/previous"), "{body}");
 
         let mut restarting = computer("ready");
         restarting.restart = Some(RestartStatus {

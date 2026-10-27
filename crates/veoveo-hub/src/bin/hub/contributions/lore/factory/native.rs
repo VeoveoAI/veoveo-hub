@@ -34,6 +34,11 @@ use crate::contributions::lore::{
 };
 
 const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+/// How often an idle connection to Lore is pinged, well within the connection tracking
+/// on the way (Cilium forgets an idle connection after 2 h 13 min), and how long a ping
+/// may go unanswered before the connection, and a subscription on it, ends.
+const KEEPALIVE: std::time::Duration = std::time::Duration::from_secs(30);
+const KEEPALIVE_ANSWER: std::time::Duration = std::time::Duration::from_secs(20);
 
 /// Lore as the installation's catalog registers it.
 #[derive(Clone)]
@@ -84,6 +89,9 @@ async fn connect(deployment: &Deployment) -> Result<Channel> {
     deployment
         .tls_endpoint()?
         .connect_timeout(TIMEOUT)
+        .http2_keep_alive_interval(KEEPALIVE)
+        .keep_alive_timeout(KEEPALIVE_ANSWER)
+        .keep_alive_while_idle(true)
         .tls_config(ClientTlsConfig::new().with_native_roots())?
         .connect()
         .await

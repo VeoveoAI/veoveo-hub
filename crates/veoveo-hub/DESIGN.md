@@ -433,7 +433,10 @@ failure; a failed step records `failed{stage, message}` with stage `database`,
 BuildKit's output or OpenShell's refusal, as its message. Status combines these with
 OpenShell's phase, the main program's last exit code, the restart count and the
 conditions, which include a scheduler's reason such as `Insufficient cpu`, and names
-the sandbox and its workspace, which its output in the log store carries. The applied
+the sandbox and its workspace, which its output in the log store carries. OpenShell
+removes a sandbox that never becomes ready, so an instance whose sandbox OpenShell no
+longer has, while no push or removal is being applied to it, reports
+`failed{stage: create}` saying so; the branch's next push creates it again. The applied
 revision serves while the sandbox is ready and its server registered or resumed since
 the push. An instance is healthy while its sandbox is ready and its last step
 succeeded, degraded while the sandbox is on its way to ready or still serves after a
@@ -462,6 +465,12 @@ them and 204 otherwise, and records the caller as the repository's watcher in
 between pushes. One follower per watched repository subscribes as its watcher, and
 again five seconds after any subscription ends, including Lore ending a lagging
 subscriber's stream with `ABORTED`; at startup the Hub resumes every recorded watch.
+A subscription is idle between pushes, and connection tracking on the way to Lore
+forgets an idle connection (Cilium's after 2 h 13 min), after which Lore's events are
+dropped without either end noticing. So every connection to Lore sends HTTP/2
+keepalive pings every 30 seconds and ends when one goes unanswered for 20 seconds:
+the pings keep the connection known, and a dead one ends its subscription, which the
+follower then subscribes again.
 Every subscription starts with a re-check of every branch: each live branch whose
 latest revision its instance has not applied is prepared as that revision's committer,
 and the instance of a deleted branch whose name no live branch took is removed.
@@ -1219,8 +1228,10 @@ one older than eleven minutes belongs to a worker that ended without recording i
 entry may claim another. A restart answers at once and deletes the sandbox only after
 three seconds, so a caller inside the Computer, such as an agent restarting its own,
 receives the answer first. A failure records its cause, time and target version on the
-Computer, which keeps its recorded version; Restart tries again, and Start the previous
-version creates the recorded one. A completed update from one version to another
+Computer, which keeps its recorded version; a sandbox not ready within 120 seconds is
+named with its unmet conditions, such as the scheduler's `Insufficient cpu`. Restart
+tries again, and Start the previous version creates the recorded one when it differs
+from the version that failed. A completed update from one version to another
 records an update notice, from the version the owner was last told of, which a status
 read returns once; when the start page of that replacement showed its changes, none is
 recorded. Each replacement logs its duration.
@@ -1403,7 +1414,8 @@ it brings over the recorded one, and reloads itself every two seconds until the
 Computer is ready. The status page names the version the Computer runs and the
 sandbox's phase, an update and what it brings, a running restart, the last failure and
 its cause, a blocking sandbox, and an update not yet told; it offers Restart and,
-after a failure, Start the previous version. Both are plain HTML, with no script or
+after a failure, Start the previous version when the recorded version is not the one
+that failed. Both are plain HTML, with no script or
 style and a CSP of `default-src 'none'; form-action 'self'`.
 
 Each action path takes either caller. A request with an `Authorization` header is a

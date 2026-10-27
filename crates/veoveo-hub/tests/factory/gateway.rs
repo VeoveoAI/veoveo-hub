@@ -183,6 +183,15 @@ impl Gateway {
             .cloned()
     }
 
+    /// Remove a sandbox as OpenShell does one that never became ready.
+    pub fn remove_sandbox(&self, workspace: &str, name: &str) {
+        self.state
+            .lock()
+            .unwrap()
+            .sandboxes
+            .remove(&(workspace.into(), name.into()));
+    }
+
     pub fn providers(&self, workspace: &str) -> Vec<String> {
         self.state
             .lock()

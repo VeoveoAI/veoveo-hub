@@ -1206,6 +1206,10 @@ async fn status_reports_the_sandbox_as_openshell_does() {
                 message: unschedulable.into(),
             }]
         );
+        assert_eq!(
+            sandbox.unmet().as_deref(),
+            Some("PodScheduled: Unschedulable: 0/1 nodes are available: 1 Insufficient cpu.")
+        );
         assert_eq!(status.health().state, HubServerHealthState::Degraded);
         let json = serde_json::to_value(&status).unwrap();
         assert_eq!(json["deployment"], deployment.to_string());
@@ -1226,6 +1230,31 @@ async fn status_reports_the_sandbox_as_openshell_does() {
             let status = fixture.status(BASE).await.unwrap();
             assert_eq!(status.health().state, health);
         }
+
+        // OpenShell removes a sandbox that never becomes ready: the instance's status
+        // says so, and the next push creates the sandbox again.
+        fixture.gateway.remove_sandbox(WORKSPACE, &name);
+        let status = fixture.status(BASE).await.unwrap();
+        assert!(status.sandbox.is_none());
+        let failed = status
+            .failed
+            .clone()
+            .expect("a removed sandbox is a failure");
+        assert_eq!(failed.stage, Stage::Create);
+        assert!(
+            failed.message.contains("next push creates it again"),
+            "{}",
+            failed.message
+        );
+        assert!(status.settled());
+        assert_eq!(status.health().state, HubServerHealthState::Offline);
+        fixture
+            .apply(BASE, push('2', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let status = fixture.status(BASE).await.unwrap();
+        assert!(status.sandbox.is_some());
+        assert_eq!(status.failed, None);
     })
     .await;
 }

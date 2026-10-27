@@ -147,7 +147,7 @@ impl Phase {
 }
 
 impl SandboxStatus {
-    pub(super) fn of(sandbox: &p::Sandbox) -> Self {
+    pub(crate) fn of(sandbox: &p::Sandbox) -> Self {
         let status = sandbox.status.as_ref();
         Self {
             phase: Phase::of(sandbox),
@@ -168,6 +168,26 @@ impl SandboxStatus {
                 })
                 .unwrap_or_default(),
         }
+    }
+
+    /// Why the sandbox is not ready, as its unmet conditions say, such as
+    /// `PodScheduled: Unschedulable: 0/1 nodes are available: 1 Insufficient cpu.`, or
+    /// none when no condition is unmet. A sandbox that is not suspended is as it should be.
+    pub fn unmet(&self) -> Option<String> {
+        let unmet = self
+            .conditions
+            .iter()
+            .filter(|condition| condition.status != "True" && condition.kind != "Suspended")
+            .map(|condition| {
+                [&condition.kind, &condition.reason, &condition.message]
+                    .into_iter()
+                    .filter(|part| !part.is_empty())
+                    .map(String::as_str)
+                    .collect::<Vec<_>>()
+                    .join(": ")
+            })
+            .collect::<Vec<_>>();
+        (!unmet.is_empty()).then(|| unmet.join("; "))
     }
 }
 

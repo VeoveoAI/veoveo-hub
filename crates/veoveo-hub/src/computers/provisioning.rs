@@ -869,7 +869,7 @@ impl Provisioner {
         }
     }
     pub(super) async fn wait_phase(&self, name: &str, expected: p::SandboxPhase) -> Result<()> {
-        tokio::time::timeout(READY_TIMEOUT, async {
+        let waited = tokio::time::timeout(READY_TIMEOUT, async {
             loop {
                 let sandbox = self
                     .sandbox(name)
@@ -887,14 +887,25 @@ impl Provisioner {
                 tokio::time::sleep(Duration::from_millis(250)).await;
             }
         })
-        .await
-        .with_context(|| {
-            format!(
-                "the sandbox was not {} after {} s",
-                phase_name(expected),
-                READY_TIMEOUT.as_secs()
-            )
-        })?
+        .await;
+        if let Ok(result) = waited {
+            return result;
+        }
+        // Past the deadline, the sandbox's own conditions say why, such as a scheduler
+        // that found no room.
+        let unmet = self
+            .sandbox(name)
+            .await
+            .ok()
+            .flatten()
+            .and_then(|sandbox| crate::factory::SandboxStatus::of(&sandbox).unmet())
+            .map(|unmet| format!(": {unmet}"))
+            .unwrap_or_default();
+        anyhow::bail!(
+            "the sandbox was not {} after {} s{unmet}",
+            phase_name(expected),
+            READY_TIMEOUT.as_secs()
+        )
     }
 }
 /// How Computers' availability changed between two reads of the template.

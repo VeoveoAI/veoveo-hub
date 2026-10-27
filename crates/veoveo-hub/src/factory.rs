@@ -17,11 +17,11 @@ mod sandbox;
 mod status;
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt,
     future::Future,
     path::PathBuf,
-    sync::Arc,
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 
@@ -171,6 +171,24 @@ pub struct Factory {
     /// The installation's current configuration, which names the base branch.
     catalog: HubCatalogHandle,
     store: PlatformStore,
+    /// The instances a push or a removal is being applied to, which may be without a
+    /// sandbox meanwhile. One Hub serves the factory, so its memory is the whole record.
+    busy: Arc<Mutex<HashSet<DeploymentId>>>,
+}
+
+/// An instance marked busy until this is dropped.
+struct Busy {
+    busy: Arc<Mutex<HashSet<DeploymentId>>>,
+    deployment: DeploymentId,
+}
+
+impl Drop for Busy {
+    fn drop(&mut self) {
+        self.busy
+            .lock()
+            .expect("the busy instances lock")
+            .remove(&self.deployment);
+    }
 }
 
 impl Factory {
@@ -207,7 +225,20 @@ impl Factory {
             policy: Arc::new(policy),
             catalog,
             store,
+            busy: Arc::default(),
         })
+    }
+
+    /// Mark the instance busy while a push or a removal is applied to it.
+    fn busy(&self, deployment: DeploymentId) -> Busy {
+        self.busy
+            .lock()
+            .expect("the busy instances lock")
+            .insert(deployment);
+        Busy {
+            busy: self.busy.clone(),
+            deployment,
+        }
     }
 
     /// The same factory building images with `builder`.
@@ -252,6 +283,7 @@ impl Factory {
             )
             .await?;
         }
+        let _busy = self.busy(deployment);
         let name = sandbox_name(deployment);
         let image = self
             .recorded(deployment, Stage::Build, async {
@@ -362,6 +394,23 @@ impl Factory {
         let ready = sandbox
             .as_ref()
             .is_some_and(|sandbox| sandbox.phase == Phase::Ready);
+        // An applied instance has a sandbox unless a push or removal is replacing it, or
+        // OpenShell removed it, as it does one that never becomes ready.
+        let gone = found.is_none()
+            && record.revision.is_some()
+            && !self
+                .busy
+                .lock()
+                .expect("the busy instances lock")
+                .contains(&deployment);
+        let failed = record.failed.or_else(|| {
+            gone.then(|| Failure {
+                stage: Stage::Create,
+                message: "OpenShell no longer has the instance's sandbox: it removes one that \
+                          never becomes ready. The branch's next push creates it again."
+                    .into(),
+            })
+        });
         Ok(Some(InstanceStatus {
             deployment,
             workspace: self.config.workspace.clone(),
@@ -370,7 +419,7 @@ impl Factory {
             sandbox,
             serving_revision: record.revision.clone().filter(|_| ready && record.served),
             applied_revision: record.revision,
-            failed: record.failed,
+            failed,
             warning: record.warning,
         }))
     }
@@ -608,6 +657,7 @@ impl Factory {
     /// registrations, then its data environment's database when no other instance
     /// names it.
     async fn delete(&self, deployment: DeploymentId) -> Result<()> {
+        let _busy = self.busy(deployment);
         let name = sandbox_name(deployment);
         self.recorded(deployment, Stage::Delete, async {
             self.delete_sandbox(&name).await?;
