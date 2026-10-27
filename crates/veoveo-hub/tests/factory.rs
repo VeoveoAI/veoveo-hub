@@ -2126,6 +2126,9 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
             |config| {
                 native_section(config);
                 config["lore"]["deployments"][0]["endpoint"] = json!(endpoint_text);
+                // Lore names a repository to its auth service as `urc-<id>`, the installation's
+                // resource-ID template.
+                config["lore"]["deployments"][0]["resourceIdTemplate"] = json!("urc-{id}");
             },
         )
         .await;
@@ -2172,7 +2175,7 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
         assert_eq!(
             claims(issued["access_token"].as_str().unwrap())["resources"],
-            json!([{"resource_id": id, "permission": ["owner"]}])
+            json!([{"resource_id": format!("urc-{id}"), "permission": ["owner"]}])
         );
         let owners = |plane: &serde_json::Value, id: &str| {
             plane["lore"]["assignments"]
