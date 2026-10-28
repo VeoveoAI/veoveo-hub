@@ -1,15 +1,15 @@
 //! Fixed native control-plane connection. No browser input selects a destination.
-use std::{num::NonZeroUsize, sync::Arc, time::Duration};
+use std::{num::NonZeroUsize, time::Duration};
 
 use anyhow::{Context, Result, ensure};
 use openshell_sdk::{AuthConfig, ClientConfig, OpenShellClient, SdkError, raw::proto as p};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, DuplexStream},
-    sync::{Semaphore, mpsc},
+    sync::mpsc,
 };
 use tokio_stream::wrappers::ReceiverStream;
 
-use crate::control_plane::ComputerGateway;
+use crate::{control_plane::ComputerGateway, forward_connections::ForwardConnections};
 
 pub(super) const RPC_TIMEOUT: Duration = Duration::from_secs(30);
 const CHUNK: usize = 64 * 1024;
@@ -54,15 +54,20 @@ impl ForwardError {
     }
 }
 
+/// The native RPC client and, apart from it, the connections forwards ride.
 #[derive(Clone)]
 pub(super) struct Gateway {
     pub client: OpenShellClient,
-    permits: Arc<Semaphore>,
+    forwards: ForwardConnections,
     limit: NonZeroUsize,
 }
 /// A client of the configured gateway, authenticated with the bearer reference its
 /// environment variable holds.
 pub(crate) async fn connect(config: &ComputerGateway) -> Result<OpenShellClient> {
+    open(client_config(config).await?).await
+}
+
+async fn client_config(config: &ComputerGateway) -> Result<ClientConfig> {
     let bearer = std::env::var(&config.bearer_environment)
         .ok()
         .filter(|value| !value.trim().is_empty())
@@ -70,6 +75,10 @@ pub(crate) async fn connect(config: &ComputerGateway) -> Result<OpenShellClient>
     let mut connection = ClientConfig::new(config.endpoint.to_string());
     connection.ca_cert = Some(tokio::fs::read(&config.certificate_authority).await?);
     connection.auth = Some(AuthConfig::oidc(bearer));
+    Ok(connection)
+}
+
+async fn open(connection: ClientConfig) -> Result<OpenShellClient> {
     tokio::time::timeout(RPC_TIMEOUT, OpenShellClient::connect(connection))
         .await?
         .context("connect OpenShell gateway")
@@ -77,10 +86,10 @@ pub(crate) async fn connect(config: &ComputerGateway) -> Result<OpenShellClient>
 
 impl Gateway {
     pub async fn connect(config: &ComputerGateway, limit: NonZeroUsize) -> Result<Self> {
-        let client = connect(config).await?;
+        let connection = client_config(config).await?;
         Ok(Self {
-            client,
-            permits: Arc::new(Semaphore::new(limit.get())),
+            client: open(connection.clone()).await?,
+            forwards: ForwardConnections::new(connection, limit),
             limit,
         })
     }
@@ -89,8 +98,8 @@ impl Gateway {
     #[cfg(test)]
     pub(super) fn of(client: OpenShellClient, limit: NonZeroUsize) -> Self {
         Self {
+            forwards: ForwardConnections::of(client.clone(), limit),
             client,
-            permits: Arc::new(Semaphore::new(limit.get())),
             limit,
         }
     }
@@ -101,7 +110,7 @@ impl Gateway {
         }
         Self {
             client: self.client.clone(),
-            permits: Arc::new(Semaphore::new(limit.get())),
+            forwards: self.forwards.with_limit(limit),
             limit,
         }
     }
@@ -139,13 +148,8 @@ impl Gateway {
         workspace: String,
         port: u16,
     ) -> std::result::Result<(DuplexStream, tokio::task::JoinHandle<()>), ForwardError> {
-        let permit = self
-            .permits
-            .clone()
-            .try_acquire_owned()
-            .map_err(|_| ForwardError::Capacity)?;
+        let forward = self.forwards.reserve().ok_or(ForwardError::Capacity)?;
         let (caller, socket) = tokio::io::duplex(CHUNK);
-        let client = self.client.clone();
         let (tx, rx) = mpsc::channel(4);
         tx.send(p::TcpForwardFrame {
             payload: Some(p::tcp_forward_frame::Payload::Init(p::TcpForwardInit {
@@ -160,6 +164,10 @@ impl Gateway {
         })
         .await
         .map_err(|_| ForwardError::Transport)?;
+        let client = forward
+            .client()
+            .await
+            .map_err(|error| ForwardError::from_sdk(&error))?;
         let mut grpc = client
             .raw_grpc_fresh()
             .await
@@ -171,7 +179,7 @@ impl Gateway {
                 .map_err(|status| ForwardError::Refused(status.code()))?
                 .into_inner();
         let task = tokio::spawn(async move {
-            let _permit = permit;
+            let _forward = forward;
             let (mut read, mut write) = tokio::io::split(socket);
             let upload = async {
                 let mut buffer = vec![0; CHUNK];

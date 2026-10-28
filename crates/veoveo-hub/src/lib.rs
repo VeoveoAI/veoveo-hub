@@ -17,6 +17,7 @@ pub use catalog_registry::{
 };
 mod control_store;
 mod custody_client;
+mod forward_connections;
 mod hosting;
 pub mod local;
 pub mod mcp;

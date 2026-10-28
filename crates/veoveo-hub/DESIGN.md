@@ -1408,6 +1408,14 @@ family/client/profile/membership checks every five seconds, with a five-second D
 read bound. Errors fail closed; revocation observation is at most ten seconds under
 normally scheduled checks. Dropping a response or upgrade cancels its native stream
 and releases a bounded connection permit. Proxy responses are private/no-store.
+
+A ForwardTcp, a Computer's or a server's, holds one HTTP/2 stream to the gateway for
+the whole life of the connection it carries, and the Hub sandbox's supervisor admits at
+most 32 concurrent streams on one connection to the gateway: a stream beyond them waits,
+unannounced, until another ends. Forwards therefore ride gateway connections of their
+own, apart from the native RPCs, at most 32 forwards on each, each opened at its first
+forward and kept. Computers have `computers.forwardingConnectionLimit` forwards and
+servers 64, so that limit, never a connection's streams, is what refuses a forward.
 The online-only native app must be used; mounted UI caches are convenience, not a
 same-origin browser security boundary or a guarantee about previously loaded data.
 

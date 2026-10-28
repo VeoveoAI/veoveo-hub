@@ -5,32 +5,35 @@
 
 use std::{
     collections::BTreeMap,
+    num::NonZeroUsize,
     path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
 };
 
 use anyhow::{Context, Result, ensure};
-use openshell_sdk::{AuthConfig, ClientConfig, OpenShellClient, raw::proto as p};
+use openshell_sdk::{AuthConfig, ClientConfig, raw::proto as p};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{UnixListener, UnixStream},
-    sync::{Semaphore, mpsc},
+    sync::mpsc,
     task::{JoinHandle, JoinSet},
 };
 use tokio_stream::wrappers::ReceiverStream;
 use veoveo_hub_sdk::registration::ServerEndpoint;
 use veoveo_types::DeploymentId;
 
-use crate::control_plane::{NativeUpstreamBinding, NativeUpstreams};
+use crate::{
+    control_plane::{NativeUpstreamBinding, NativeUpstreams},
+    forward_connections::{Forward, ForwardConnections},
+};
 
 const CHUNK: usize = 64 * 1024;
-const CONNECTIONS: usize = 64;
+const CONNECTIONS: NonZeroUsize = NonZeroUsize::new(64).unwrap();
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub(super) struct NativeTransport {
-    client: OpenShellClient,
-    permits: Arc<Semaphore>,
+    forwards: ForwardConnections,
     endpoints: BTreeMap<String, Arc<NativeEndpoint>>,
     instances: Option<Arc<Instances>>,
 }
@@ -81,24 +84,41 @@ impl NativeTransport {
         let mut connection = ClientConfig::new(config.gateway.to_string());
         connection.ca_cert = Some(tokio::fs::read(&config.certificate_authority).await?);
         connection.auth = Some(AuthConfig::oidc(bearer));
-        let client = OpenShellClient::connect(connection)
+        let forwards = ForwardConnections::new(connection, CONNECTIONS);
+        // The first connection opens now: a gateway the Hub cannot reach stops startup.
+        forwards
+            .reserve()
+            .context("native upstream forwards")?
+            .client()
             .await
             .context("connect native upstream gateway")?;
-        Self::with_client(config, instances, client)
+        Self::with_forwards(config, instances, forwards)
     }
 
-    fn with_client(
+    fn with_forwards(
         config: &NativeUpstreams,
         instances: Option<&str>,
-        client: OpenShellClient,
+        forwards: ForwardConnections,
     ) -> Result<Self> {
         Self {
-            client,
-            permits: Arc::new(Semaphore::new(CONNECTIONS)),
+            forwards,
             endpoints: BTreeMap::new(),
             instances: None,
         }
         .reconfigured(config, instances)
+    }
+
+    #[cfg(test)]
+    fn with_client(
+        config: &NativeUpstreams,
+        instances: Option<&str>,
+        client: openshell_sdk::OpenShellClient,
+    ) -> Result<Self> {
+        Self::with_forwards(
+            config,
+            instances,
+            ForwardConnections::of(client, CONNECTIONS),
+        )
     }
 
     /// The next routing generation. Instance bindings carry over while the factory
@@ -133,8 +153,7 @@ impl NativeTransport {
             }),
         });
         Ok(Self {
-            client: self.client.clone(),
-            permits: self.permits.clone(),
+            forwards: self.forwards.clone(),
             endpoints,
             instances,
         })
@@ -146,8 +165,7 @@ impl NativeTransport {
             .tempdir_in("/tmp")?;
         let path = directory.path().join("socket");
         let listener = UnixListener::bind(&path)?;
-        let client = self.client.clone();
-        let permits = self.permits.clone();
+        let forwards = self.forwards.clone();
         let target = binding.clone();
         let task = tokio::spawn(async move {
             let mut connections = JoinSet::new();
@@ -158,12 +176,10 @@ impl NativeTransport {
                     }
                     accepted = listener.accept() => {
                         let Ok((socket, _)) = accepted else { break };
-                        let Ok(permit) = permits.clone().try_acquire_owned() else { drop(socket); continue };
-                        let client = client.clone();
+                        let Some(stream) = forwards.reserve() else { drop(socket); continue };
                         let binding = target.clone();
                         connections.spawn(async move {
-                            let _permit = permit;
-                            if let Err(error) = forward(socket, client, binding).await {
+                            if let Err(error) = forward(socket, stream, binding).await {
                                 tracing::debug!(%error, "native upstream connection ended");
                             }
                         });
@@ -247,7 +263,7 @@ impl NativeTransport {
 
 async fn forward(
     socket: UnixStream,
-    client: OpenShellClient,
+    stream: Forward,
     binding: NativeUpstreamBinding,
 ) -> Result<()> {
     let (tx, rx) = mpsc::channel(4);
@@ -282,7 +298,7 @@ async fn forward(
     // Upload remains polled while opening/waiting for the response. A client that
     // disconnects cancels the RPC even after its HTTP request body has been sent.
     let download = async move {
-        let mut grpc = client.raw_grpc_fresh().await?;
+        let mut grpc = stream.client().await?.raw_grpc_fresh().await?;
         let mut upstream =
             tokio::time::timeout(CONNECT_TIMEOUT, grpc.forward_tcp(ReceiverStream::new(rx)))
                 .await??
@@ -303,6 +319,7 @@ mod tests {
     use super::*;
     use crate::mcp::HubUpstreamHttpClientPool;
     use futures::StreamExt;
+    use openshell_sdk::OpenShellClient;
     use veoveo_hub_sdk::DeploymentId;
 
     #[tokio::test]
