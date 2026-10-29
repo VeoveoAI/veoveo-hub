@@ -4,6 +4,8 @@
 //! [calls between servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/f369804dd2bda5c69103f480169769c80fac2859/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers).
 use std::{collections::BTreeSet, sync::Arc};
 
+pub(crate) mod authority;
+
 use anyhow::Context;
 use chrono::{DateTime, TimeDelta, Utc};
 use serde::Deserialize;
@@ -56,9 +58,62 @@ pub struct SubjectDelegation {
 impl SubjectDelegation {
     /// `granted` narrowed to what this delegation carries.
     pub fn narrow(&self, granted: BTreeSet<PermissionName>) -> BTreeSet<PermissionName> {
-        granted
-            .into_iter()
-            .filter(|permission| self.permissions.contains(permission))
+        authority::Permissions::narrow(granted, &self.permissions)
+    }
+}
+
+// Keep the native ordered-set operations at the extraction boundary; no list
+// projection or replacement membership algorithm is needed by production.
+impl authority::Permissions<PermissionName> for BTreeSet<PermissionName> {
+    fn contains(&self, permission: &PermissionName) -> bool {
+        self.contains(permission)
+    }
+
+    fn is_empty(&self) -> bool {
+        self.is_empty()
+    }
+
+    fn narrow(self, carried: &Self) -> Self {
+        self.into_iter()
+            .filter(|permission| carried.contains(permission))
+            .collect()
+    }
+}
+
+impl authority::Uses<BTreeSet<PermissionName>, PermissionName> for BTreeSet<&PermissionName> {
+    fn first_undeclared(&self, requested: &BTreeSet<PermissionName>) -> Option<PermissionName> {
+        requested
+            .iter()
+            .find(|permission| !self.contains(permission))
+            .cloned()
+    }
+}
+
+impl authority::ResourceKey<String> for ResourceIndicator {
+    fn matches(&self, requested: &String) -> bool {
+        requested == self.as_str()
+    }
+}
+
+struct CurrentPermissions<'a> {
+    catalog: &'a HubCatalog,
+    caller: &'a DelegatedCaller,
+}
+
+impl authority::Held<BTreeSet<PermissionName>> for CurrentPermissions<'_> {
+    fn held(&self, requested: &BTreeSet<PermissionName>) -> BTreeSet<PermissionName> {
+        let installation = &self.catalog.control_plane().authorization;
+        self.catalog
+            .registrations()
+            .iter()
+            .flat_map(|server| {
+                crate::policy::granted_permissions(
+                    installation,
+                    &server.authorization,
+                    &self.caller.request_context.principal,
+                )
+            })
+            .filter(|permission| requested.contains(permission))
             .collect()
     }
 }
@@ -379,51 +434,75 @@ impl DelegationService {
         let count = u32::try_from(requested.len()).unwrap_or(u32::MAX);
         let refuse =
             |error, description: String| (TokenExchangeRefusal::new(error, description), count);
-        if let Some(undeclared) = requested
-            .iter()
-            .find(|permission| !uses.contains(permission))
-        {
-            return Err(refuse(
+        let declared = authority::declare(requested, &uses).map_err(|undeclared| {
+            refuse(
                 InvalidAuthorizationDetails,
                 format!("{slug} declares no use of {undeclared}"),
-            ));
-        }
-        let Some(profile) = catalog.profile(&subject.profile) else {
-            return Err(refuse(
-                InvalidTarget,
-                "the subject's profile is gone".into(),
-            ));
+            )
+        })?;
+        let destination = match catalog.profile(&subject.profile) {
+            None => authority::Destination::MissingProfile,
+            Some(profile) => match ResourceIndicator::parse(profile.protected_resource.as_str()) {
+                Ok(resource) => authority::Destination::Resource(resource),
+                Err(_) => authority::Destination::InvalidResource,
+            },
         };
-        let resource = ResourceIndicator::parse(profile.protected_resource.as_str())
-            .map_err(|_| refuse(InvalidTarget, "the profile's resource is no URL".into()))?;
-        if request.resource.as_deref() != Some(resource.as_str()) {
-            return Err(refuse(
-                InvalidTarget,
-                format!("resource must be {resource}, the profile the subject came through"),
-            ));
-        }
-        let missing = missing_providers(catalog, &requested);
-        if !missing.is_empty() {
-            return Err(refuse(
+        let addressed = authority::address(declared, destination, request.resource.as_ref())
+            .map_err(|reason| {
+                refuse(
+                    InvalidTarget,
+                    match reason {
+                        authority::TargetRefusal::MissingProfile => {
+                            "the subject's profile is gone".into()
+                        }
+                        authority::TargetRefusal::InvalidResource => {
+                            "the profile's resource is no URL".into()
+                        }
+                        authority::TargetRefusal::OtherResource(resource) => format!(
+                            "resource must be {resource}, the profile the subject came through"
+                        ),
+                        authority::TargetRefusal::MissingProviders => {
+                            unreachable!("address does not discover providers")
+                        }
+                    },
+                )
+            })?;
+        let missing = missing_providers(catalog, &addressed.requested);
+        let provided = authority::provide(addressed, &missing).map_err(|_| {
+            refuse(
                 InvalidTarget,
                 format!("no registered server provides {}", missing.join(", ")),
-            ));
-        }
-        let issued = self
-            .inner
-            .issuer
-            .issue_exchanged(ExchangeGrant {
+            )
+        })?;
+        let grant = authority::grant(
+            provided,
+            &CurrentPermissions {
+                catalog,
+                caller: &subject.caller,
+            },
+            authority::Context {
                 profile: subject.profile.clone(),
-                resource,
                 caller: subject.caller.clone(),
-                acting_server: ActingServer {
+                actor: ActingServer {
                     deployment: metadata.registration.deployment,
                     server: slug.clone(),
                     client: client.clone(),
                 },
-                permissions: self.held(catalog, &requested, &subject.caller),
                 task: subject.task.clone(),
-                expires_at: subject.expires_at,
+                deadline: subject.expires_at,
+            },
+        );
+        let issued = self
+            .inner
+            .issuer
+            .issue_exchanged(ExchangeGrant {
+                profile: grant.context.profile,
+                resource: grant.resource,
+                caller: grant.context.caller,
+                acting_server: grant.context.actor,
+                permissions: grant.permissions,
+                task: grant.context.task,
+                expires_at: grant.context.deadline,
             })
             .map_err(|error| {
                 refuse(
@@ -447,29 +526,6 @@ impl DelegationService {
             },
             count,
         ))
-    }
-
-    /// The requested permissions the caller holds now, under the installation's roles
-    /// and each provider's current declaration.
-    fn held(
-        &self,
-        catalog: &HubCatalog,
-        requested: &BTreeSet<PermissionName>,
-        caller: &DelegatedCaller,
-    ) -> BTreeSet<PermissionName> {
-        let installation = &catalog.control_plane().authorization;
-        catalog
-            .registrations()
-            .iter()
-            .flat_map(|server| {
-                crate::policy::granted_permissions(
-                    installation,
-                    &server.authorization,
-                    &caller.request_context.principal,
-                )
-            })
-            .filter(|permission| requested.contains(permission))
-            .collect()
     }
 
     /// The caller the subject acts for, and until when.
@@ -772,5 +828,43 @@ fn subject_of(
         principal_display_name: None,
         authority: caller.authority.clone(),
         delegation,
+    }
+}
+
+#[cfg(test)]
+mod authority_adapter_tests {
+    use super::*;
+    use authority::{Permissions, ResourceKey, Uses};
+
+    #[test]
+    fn native_sets_select_first_undeclared_and_filter_without_changing_ordered_membership() {
+        let permission = |name| PermissionName::parse(name).unwrap();
+        let requested = BTreeSet::from([
+            permission("upstream-a.records.read"),
+            permission("upstream-b.records.read"),
+            permission("upstream-c.records.read"),
+        ]);
+        let declared = BTreeSet::from([requested.first().unwrap()]);
+        assert_eq!(
+            declared.first_undeclared(&requested),
+            Some(permission("upstream-b.records.read"))
+        );
+        let held = BTreeSet::from([
+            permission("upstream-b.records.read"),
+            permission("unrequested.records.read"),
+        ]);
+        assert_eq!(
+            Permissions::narrow(requested, &held),
+            BTreeSet::from([permission("upstream-b.records.read")])
+        );
+    }
+
+    #[test]
+    fn profile_resource_comparison_is_exact_and_does_not_parse_the_request() {
+        let resource = ResourceIndicator::parse("https://hub.example/mcp/local").unwrap();
+        assert!(resource.matches(&"https://hub.example/mcp/local".to_owned()));
+        assert!(!resource.matches(&"https://hub.example/mcp/local/".to_owned()));
+        assert!(!resource.matches(&" https://hub.example/mcp/local".to_owned()));
+        assert!(!resource.matches(&"not a URL".to_owned()));
     }
 }

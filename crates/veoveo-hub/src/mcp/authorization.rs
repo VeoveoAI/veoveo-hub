@@ -392,27 +392,26 @@ impl HubMcp {
             target,
             trace_id: &trace_id,
         });
-        if !managed_admitted {
-            decision.effect = PolicyEffect::Deny;
-            decision.reason = PolicyReasonCode::PolicyDeny;
-        }
-        // A call another server made carries at most the permissions its exchanged
-        // token holds.
-        if let Some(delegation) = &subject.delegation
+        let route = if managed_admitted
             && decision.effect == PolicyEffect::Allow
+            && subject.delegation.is_some()
         {
-            decision.granted = delegation.narrow(std::mem::take(&mut decision.granted));
-            let carried = delegation_carries(
+            delegated_route(
                 crate::policy::declared_route_access(catalog.as_ref(), target),
                 target,
-                &delegation.permissions,
-                &decision.granted,
-            );
-            if !carried {
-                decision.effect = PolicyEffect::Deny;
-                decision.reason = PolicyReasonCode::MissingPermission;
-            }
-        }
+            )
+        } else {
+            crate::delegation::authority::Route::Undeclared
+        };
+        decision = narrow_policy_decision(
+            decision,
+            managed_admitted,
+            subject
+                .delegation
+                .as_ref()
+                .map(|delegation| &delegation.permissions),
+            route,
+        );
         Ok(decision)
     }
 
@@ -704,16 +703,15 @@ fn policy_denial_message(decision: &PolicyDecision) -> String {
     format!("You don't have permission to {action}.{detail}")
 }
 
-fn delegation_carries(
-    access: Option<&veoveo_hub_sdk::registration::RouteAccess>,
+fn delegated_route<'a>(
+    access: Option<&'a veoveo_hub_sdk::registration::RouteAccess>,
     target: &PolicyTarget,
-    carried: &std::collections::BTreeSet<veoveo_types::PermissionName>,
-    narrowed: &std::collections::BTreeSet<veoveo_types::PermissionName>,
-) -> bool {
+) -> crate::delegation::authority::Route<'a, veoveo_types::PermissionName> {
+    use crate::delegation::authority::Route;
     use veoveo_hub_sdk::registration::RouteAccess;
     match access {
-        Some(RouteAccess::Authenticated) => true,
-        Some(RouteAccess::Permission(permission)) => carried.contains(permission),
+        Some(RouteAccess::Authenticated) => Route::Authenticated,
+        Some(RouteAccess::Permission(permission)) => Route::Permission(permission),
         None if matches!(
             target,
             PolicyTarget::Server { .. }
@@ -721,10 +719,42 @@ fn delegation_carries(
                 | PolicyTarget::PlatformTask { .. }
         ) =>
         {
-            !narrowed.is_empty()
+            Route::Server
         }
-        None => false,
+        None => Route::Undeclared,
     }
+}
+
+fn narrow_policy_decision(
+    mut decision: PolicyDecision,
+    managed: bool,
+    carried: Option<&std::collections::BTreeSet<veoveo_types::PermissionName>>,
+    route: crate::delegation::authority::Route<'_, veoveo_types::PermissionName>,
+) -> PolicyDecision {
+    use crate::delegation::authority;
+    // Move the original decision through the shared assembly, retaining every
+    // correlation/target field without reconstructing them independently.
+    let narrowed = authority::narrow(
+        authority::Decision {
+            allowed: decision.effect == PolicyEffect::Allow,
+            reason: decision.reason,
+            granted: std::mem::take(&mut decision.granted),
+            metadata: decision,
+        },
+        managed,
+        carried.map(|permissions| (permissions, route)),
+        PolicyReasonCode::PolicyDeny,
+        PolicyReasonCode::MissingPermission,
+    );
+    let mut decision = narrowed.metadata;
+    decision.effect = if narrowed.allowed {
+        PolicyEffect::Allow
+    } else {
+        PolicyEffect::Deny
+    };
+    decision.reason = narrowed.reason;
+    decision.granted = narrowed.granted;
+    decision
 }
 
 #[cfg(test)]
@@ -790,29 +820,114 @@ mod tests {
         let permission = PermissionName::parse("upstream-a.records.read").unwrap();
         let empty = BTreeSet::new();
         let held = BTreeSet::from([permission.clone()]);
-        assert!(super::delegation_carries(
-            Some(&RouteAccess::Authenticated),
+        let admit = |access: Option<RouteAccess>,
+                     target: &PolicyTarget,
+                     carried: &BTreeSet<PermissionName>,
+                     granted: &BTreeSet<PermissionName>,
+                     allowed: bool| {
+            let mut decision = PolicyDecision::deny(
+                HubProfileId::parse("operator").unwrap(),
+                HubAction::ToolsCall,
+                target.clone(),
+                PolicyReasonCode::PolicyAllow,
+                TraceId::parse("delegated-policy").unwrap(),
+            );
+            decision.effect = crate::control_plane::PolicyEffect::Allow;
+            decision.granted = granted.clone();
+            let mut expected = decision.clone();
+            expected.granted = granted.intersection(carried).cloned().collect();
+            expected.effect = if allowed {
+                crate::control_plane::PolicyEffect::Allow
+            } else {
+                crate::control_plane::PolicyEffect::Deny
+            };
+            expected.reason = if allowed {
+                PolicyReasonCode::PolicyAllow
+            } else {
+                PolicyReasonCode::MissingPermission
+            };
+            let output = super::narrow_policy_decision(
+                decision,
+                true,
+                Some(carried),
+                super::delegated_route(access.as_ref(), target),
+            );
+            assert_eq!(output, expected);
+        };
+        admit(
+            Some(RouteAccess::Authenticated),
             &target,
             &empty,
-            &empty
-        ));
-        assert!(!super::delegation_carries(
-            Some(&RouteAccess::Permission(permission.clone())),
+            &empty,
+            true,
+        );
+        admit(
+            Some(RouteAccess::Permission(permission.clone())),
             &target,
             &empty,
-            &empty
-        ));
-        assert!(super::delegation_carries(
-            Some(&RouteAccess::Permission(permission)),
+            &empty,
+            false,
+        );
+        admit(
+            Some(RouteAccess::Permission(permission.clone())),
             &target,
             &held,
-            &held
-        ));
-        assert!(!super::delegation_carries(None, &target, &held, &held));
+            &held,
+            true,
+        );
+        // The current-policy consistency premise matters: this assembly does not
+        // invent a new rejection for arbitrary inconsistent Allowed input.
+        admit(
+            Some(RouteAccess::Permission(permission)),
+            &target,
+            &held,
+            &empty,
+            true,
+        );
+        admit(None, &target, &held, &held, false);
         let server = PolicyTarget::Server {
             server: ServerSlug::parse("upstream-a").unwrap(),
         };
-        assert!(!super::delegation_carries(None, &server, &empty, &empty));
-        assert!(super::delegation_carries(None, &server, &held, &held));
+        admit(None, &server, &empty, &empty, false);
+        admit(None, &server, &held, &held, true);
+    }
+
+    #[test]
+    fn delegated_policy_assembly_preserves_prior_denial_and_non_delegated_decisions() {
+        use crate::control_plane::PolicyEffect;
+        use crate::delegation::authority::Route;
+        use std::collections::BTreeSet;
+        use veoveo_types::PermissionName;
+        let mut denied = PolicyDecision::deny(
+            HubProfileId::parse("operator").unwrap(),
+            HubAction::ToolsCall,
+            PolicyTarget::Hub,
+            PolicyReasonCode::MissingScope,
+            TraceId::parse("delegated-policy-denied").unwrap(),
+        );
+        // Even an unusual populated denied decision must not be normalized away.
+        denied.granted =
+            BTreeSet::from([PermissionName::parse("upstream-a.records.read").unwrap()]);
+        let empty = BTreeSet::new();
+        assert_eq!(
+            super::narrow_policy_decision(denied.clone(), true, Some(&empty), Route::Undeclared),
+            denied
+        );
+        let mut allowed = denied.clone();
+        allowed.effect = PolicyEffect::Allow;
+        allowed.reason = PolicyReasonCode::PolicyAllow;
+        assert_eq!(
+            super::narrow_policy_decision(allowed.clone(), true, None, Route::Undeclared),
+            allowed
+        );
+        for original in [allowed, denied] {
+            let mut expected = original.clone();
+            expected.effect = PolicyEffect::Deny;
+            expected.reason = PolicyReasonCode::PolicyDeny;
+            assert_eq!(
+                super::narrow_policy_decision(original, false, Some(&empty), Route::Authenticated),
+                expected
+            );
+        }
     }
 }

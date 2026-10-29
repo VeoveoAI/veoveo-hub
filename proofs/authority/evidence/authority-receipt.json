@@ -1,0 +1,618 @@
+{
+  "commands": {
+    "baseline_or_restored": [
+      "RUSTUP_TOOLCHAIN=nightly-2026-09-17 cargo test --locked --lib",
+      "RUSTUP_TOOLCHAIN=nightly-2026-09-17 charon cargo --preset=aeneas",
+      "aeneas -backend lean -dest . rust/hub_authority_proof.llbc",
+      "lake build",
+      "lake env lean AuthorityProof.lean",
+      "lake env lean AuthorityComposition.lean",
+      "lake env lean AuthorityInterpretation.lean"
+    ],
+    "each_mutant": [
+      "RUSTUP_TOOLCHAIN=nightly-2026-09-17 cargo check --locked --lib",
+      "RUSTUP_TOOLCHAIN=nightly-2026-09-17 charon cargo --preset=aeneas",
+      "aeneas -backend lean -dest . rust/hub_authority_proof.llbc",
+      "lake build HubAuthorityProof",
+      "lake env lean AuthorityProof.lean (expected semantic failure)",
+      "RUSTUP_TOOLCHAIN=nightly-2026-09-17 cargo test --locked --lib tests::<named witness> -- --exact (expected assertion failure)"
+    ],
+    "production2": [
+      "cargo fmt --all --check",
+      "cargo test --locked -p veoveo-hub --lib authority_adapter_tests",
+      "cargo test --locked -p veoveo-hub --lib mcp::authorization::tests",
+      "cargo test --locked -p veoveo-hub --lib policy::grants::tests",
+      "cargo test --locked -p veoveo-hub --test calls",
+      "cargo clippy --locked -p veoveo-hub --lib -- -D warnings"
+    ],
+    "production3": [
+      "cargo fmt --all --check",
+      "cargo test --locked -p veoveo-hub --lib authority_adapter_tests",
+      "cargo test --locked -p veoveo-hub --lib mcp::authorization::tests",
+      "cargo clippy --locked -p veoveo-hub --lib -- -D warnings"
+    ]
+  },
+  "created_utc": "2026-10-29T21:58:40.508979+00:00",
+  "execution_notes": [
+    "All formal snapshots are independent scratch extractions from the exact base archive plus the proof overlay; each mutant/restoration has separate source, Cargo target and .lake/build. Shared Lake package cache is immutable.",
+    "Production2 and Production3 were Docker linux/amd64 runs with source mounted read-only and evidence directory writable. Production3 follows the Clippy-only nested-if correction in authority.rs; Production2 grant-policy and calls tests passed before that correction, while Production3 reran fmt, authority adapter, authorization tests and strict Clippy.",
+    "The first unfiltered-grant runner invocation used an incorrect relative path for the kernel-hash sidecar. The run still applied the frozen patch and all expected check/extraction/proof/witness stages completed; the kernel hash was independently recomputed from the actual source path and is recorded. Remaining mutant runs used corrected runner path.",
+    "Superseded Lean drafts and the production1 E0716 fixture-lifetime failure remain in the evidence cache and are explicitly not accepted results."
+  ],
+  "formal_baseline_and_restored": {
+    "baseline": {
+      "axiom_closure": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "base_commit": "ee0bdf3b4f800ee31ed0e3017407a646244fd023",
+      "expected_generated_model_sha256": "78ad4482f468d4a6c668ef5e957c597a272e6f4e53a9eda814c7e7868589cf19",
+      "generated_model_sha256": "78ad4482f468d4a6c668ef5e957c597a272e6f4e53a9eda814c7e7868589cf19",
+      "handwritten_proof_sha256": {
+        "AuthorityComposition": "cb42bf31ab0dd4308ca78f43916f20004f01d0f7195e1892c0a3834d65a45a70",
+        "AuthorityInterpretation": "270933d81865624d4982bf89d2e0991a3048f332e55bd92967c9d78d7b1227e8",
+        "AuthorityProof": "ddab3000a0ed5ab652011dc77d3c92c979c3ea7bbd8479d59d0f829b1829d041"
+      },
+      "log_sha256": {
+        "aeneas.log": "4635e5a0351a69260729645d07f6df92d02dbccac9e3198610b0e76624193826",
+        "charon.log": "1f42ed819786f561fbc56633955b061e7ae87ab995a66a9087ff4eb35d63aa05",
+        "lake-build.log": "912c98b2bc1a9f67e3090cbc08e042902434668f583308c119e045d340e16f29",
+        "lean-AuthorityComposition.log": "8d7ad15ecd136e76cd8076dfd189d74f16f3799748a5d5912ad91395b38ab465",
+        "lean-AuthorityInterpretation.log": "9e915f2d6d7c982a8e9f27b108501ef4986c384dece0050890065de932cd43f3",
+        "lean-AuthorityProof.log": "53853031a5eaea95467bd20d41a50a761e800e84068e24857eeba507ad76d129",
+        "source-test.log": "8ea2512962d845a9a62be8ea2582f7ebddb644064f9ac69d7a8b50e4a259d36a"
+      },
+      "rust_harness_sha256": "dc1685dd68a3d54eb80da986b218e8c123fc4a244b78226a54bf0d76a412d5f3",
+      "sorryAx_absent": true,
+      "source_archive_sha256": "bd86ed9ce1cbf40ffcb7711805108a4e47433290fe138be54a5b25c71b1d347a",
+      "source_kernel_sha256": "c0c502a95d8ca195f72979eaace8f640590d1da1a88348a2906b4b4bf8903b52",
+      "source_manifest_sha256": "e594d7eefae95d0e5f2e0b6d43c77ac46f5a1dba9852eeafa0949db890b8fb22",
+      "source_manifest_verified_paths": 20,
+      "stages": {
+        "aeneas": {
+          "elapsed_ms": 798,
+          "exit": 0,
+          "log": "final-validation/variants/baseline/logs/aeneas.log",
+          "log_sha256": "4635e5a0351a69260729645d07f6df92d02dbccac9e3198610b0e76624193826"
+        },
+        "charon": {
+          "elapsed_ms": 190,
+          "exit": 0,
+          "log": "final-validation/variants/baseline/logs/charon.log",
+          "log_sha256": "1f42ed819786f561fbc56633955b061e7ae87ab995a66a9087ff4eb35d63aa05"
+        },
+        "lake-build": {
+          "elapsed_ms": 10522,
+          "exit": 0,
+          "log": "final-validation/variants/baseline/logs/lake-build.log",
+          "log_sha256": "912c98b2bc1a9f67e3090cbc08e042902434668f583308c119e045d340e16f29"
+        },
+        "lean-AuthorityComposition": {
+          "elapsed_ms": 2977,
+          "exit": 0,
+          "log": "final-validation/variants/baseline/logs/lean-AuthorityComposition.log",
+          "log_sha256": "8d7ad15ecd136e76cd8076dfd189d74f16f3799748a5d5912ad91395b38ab465"
+        },
+        "lean-AuthorityInterpretation": {
+          "elapsed_ms": 2973,
+          "exit": 0,
+          "log": "final-validation/variants/baseline/logs/lean-AuthorityInterpretation.log",
+          "log_sha256": "9e915f2d6d7c982a8e9f27b108501ef4986c384dece0050890065de932cd43f3"
+        },
+        "lean-AuthorityProof": {
+          "elapsed_ms": 3459,
+          "exit": 0,
+          "log": "final-validation/variants/baseline/logs/lean-AuthorityProof.log",
+          "log_sha256": "53853031a5eaea95467bd20d41a50a761e800e84068e24857eeba507ad76d129"
+        },
+        "source-test": {
+          "elapsed_ms": 180,
+          "exit": 0,
+          "log": "final-validation/variants/baseline/logs/source-test.log",
+          "log_sha256": "8ea2512962d845a9a62be8ea2582f7ebddb644064f9ac69d7a8b50e4a259d36a",
+          "tests": 6
+        }
+      }
+    },
+    "restored": {
+      "axiom_closure": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "base_commit": "ee0bdf3b4f800ee31ed0e3017407a646244fd023",
+      "expected_generated_model_sha256": "78ad4482f468d4a6c668ef5e957c597a272e6f4e53a9eda814c7e7868589cf19",
+      "generated_model_sha256": "78ad4482f468d4a6c668ef5e957c597a272e6f4e53a9eda814c7e7868589cf19",
+      "handwritten_proof_sha256": {
+        "AuthorityComposition": "cb42bf31ab0dd4308ca78f43916f20004f01d0f7195e1892c0a3834d65a45a70",
+        "AuthorityInterpretation": "270933d81865624d4982bf89d2e0991a3048f332e55bd92967c9d78d7b1227e8",
+        "AuthorityProof": "ddab3000a0ed5ab652011dc77d3c92c979c3ea7bbd8479d59d0f829b1829d041"
+      },
+      "log_sha256": {
+        "aeneas.log": "6d2fe5053cab3438bb867a41c9a383a98e65688e69e428d8e82ab4743a691c54",
+        "charon.log": "c84e4fd2025371dc55f5196bea072e969b902aff97540c7ec1749b4a39a53ee5",
+        "lake-build.log": "f0c51c0a9d8e495183618c1bf83a28368785ca47072e1f9adf785a78461147cf",
+        "lean-AuthorityComposition.log": "8d7ad15ecd136e76cd8076dfd189d74f16f3799748a5d5912ad91395b38ab465",
+        "lean-AuthorityInterpretation.log": "9e915f2d6d7c982a8e9f27b108501ef4986c384dece0050890065de932cd43f3",
+        "lean-AuthorityProof.log": "53853031a5eaea95467bd20d41a50a761e800e84068e24857eeba507ad76d129",
+        "source-test.log": "27f99183597316070bbd21bf1b308cfd9b8b14337a2bea51e7a35a026ec79dc6"
+      },
+      "rust_harness_sha256": "dc1685dd68a3d54eb80da986b218e8c123fc4a244b78226a54bf0d76a412d5f3",
+      "sorryAx_absent": true,
+      "source_archive_sha256": "bd86ed9ce1cbf40ffcb7711805108a4e47433290fe138be54a5b25c71b1d347a",
+      "source_kernel_sha256": "c0c502a95d8ca195f72979eaace8f640590d1da1a88348a2906b4b4bf8903b52",
+      "source_manifest_sha256": "e594d7eefae95d0e5f2e0b6d43c77ac46f5a1dba9852eeafa0949db890b8fb22",
+      "source_manifest_verified_paths": 20,
+      "stages": {
+        "aeneas": {
+          "elapsed_ms": 704,
+          "exit": 0,
+          "log": "final-validation/variants/restored/logs/aeneas.log",
+          "log_sha256": "6d2fe5053cab3438bb867a41c9a383a98e65688e69e428d8e82ab4743a691c54"
+        },
+        "charon": {
+          "elapsed_ms": 179,
+          "exit": 0,
+          "log": "final-validation/variants/restored/logs/charon.log",
+          "log_sha256": "c84e4fd2025371dc55f5196bea072e969b902aff97540c7ec1749b4a39a53ee5"
+        },
+        "lake-build": {
+          "elapsed_ms": 10490,
+          "exit": 0,
+          "log": "final-validation/variants/restored/logs/lake-build.log",
+          "log_sha256": "f0c51c0a9d8e495183618c1bf83a28368785ca47072e1f9adf785a78461147cf"
+        },
+        "lean-AuthorityComposition": {
+          "elapsed_ms": 2807,
+          "exit": 0,
+          "log": "final-validation/variants/restored/logs/lean-AuthorityComposition.log",
+          "log_sha256": "8d7ad15ecd136e76cd8076dfd189d74f16f3799748a5d5912ad91395b38ab465"
+        },
+        "lean-AuthorityInterpretation": {
+          "elapsed_ms": 2778,
+          "exit": 0,
+          "log": "final-validation/variants/restored/logs/lean-AuthorityInterpretation.log",
+          "log_sha256": "9e915f2d6d7c982a8e9f27b108501ef4986c384dece0050890065de932cd43f3"
+        },
+        "lean-AuthorityProof": {
+          "elapsed_ms": 3543,
+          "exit": 0,
+          "log": "final-validation/variants/restored/logs/lean-AuthorityProof.log",
+          "log_sha256": "53853031a5eaea95467bd20d41a50a761e800e84068e24857eeba507ad76d129"
+        },
+        "source-test": {
+          "elapsed_ms": 169,
+          "exit": 0,
+          "log": "final-validation/variants/restored/logs/source-test.log",
+          "log_sha256": "27f99183597316070bbd21bf1b308cfd9b8b14337a2bea51e7a35a026ec79dc6",
+          "tests": 6
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Finite set model proves adapter law premises only; it does not prove BTreeSet internals, async endpoint, SQL/session reads, token signing/transport, SDK serialization, identity or replay behavior.",
+    "Focused Rust checks are component evidence, not deployment evidence. No deployment was performed.",
+    "Production2 tests passed except its strict Clippy lint; production3 corrected only the nested-if shape in authority.rs and reran fmt, adapter/auth filters and Clippy. Production2 grant/calls tests passed before this behavior-preserving correction."
+  ],
+  "production_focused_checks": {
+    "production2": {
+      "base_commit": "ee0bdf3b4f800ee31ed0e3017407a646244fd023",
+      "build_image": "veoveo-hub-check:e0-v5",
+      "build_image_id": "sha256:e23a1c31e4743f627725e1d0964e17b1be578b843d8e99bec4dbbe8589250db7",
+      "command": "docker run --rm; mounted frozen source read-only, evidence writable; cargo fmt/tests/clippy in check image",
+      "elapsed_ms": 152190,
+      "exit": 1,
+      "finished_utc": "2026-10-29T21:47:27Z",
+      "host": "Linux x86_64 / Docker linux/amd64",
+      "log_sha256": {
+        "authority-adapter.log": "00d556303c894e0b0e8f31e7629de28512726c16d40489c28b2961e9ba793767",
+        "authorization-unit.log": "8faea12a2e7b663e5ff869daf28415cc78820b91a3e20d42b730e348ebaab298",
+        "calls-integration.log": "6391bce30abc6aded75085a1a186111c2bf33f6f3d7d9911e97a02ae72522ba3",
+        "clippy.log": "8b90fc14f6fa77b044c98767c23167807823f7b4de30f45ebf04f80d9a0fc96b",
+        "docker-run.log": "b54f814f52c8f21d2d21b8cb77a6bef204e6036c1ac2c8e8fb3bcfc310401ddc",
+        "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "grant-policy-unit.log": "8fef950cd8d3f84fe1f7305a3c3cac7971cfd8e5f1b413045bfbbd94fef0f6a0",
+        "source-identity.log": "ad85852e0d88e4b2f2298577e0ecf81cc205261eafdbd13c5b01cde7e9a33f65"
+      },
+      "overlay_manifest_sha256": "d43ad07ca7acdda0daef418b8543d416132ceee32c31eb892604fde11dbd5855",
+      "overlay_sha256": "e2b9fd146b394403df3bae38907ec4e0de2ae9669d37d5d58181000d0d1946d5",
+      "stages": {
+        "authority-adapter": {
+          "elapsed_ms": 66140,
+          "exit": 0,
+          "log": "production-2-check/logs/authority-adapter.log",
+          "log_sha256": "00d556303c894e0b0e8f31e7629de28512726c16d40489c28b2961e9ba793767",
+          "tests_passed": 2
+        },
+        "authorization-unit": {
+          "elapsed_ms": 1223,
+          "exit": 0,
+          "log": "production-2-check/logs/authorization-unit.log",
+          "log_sha256": "8faea12a2e7b663e5ff869daf28415cc78820b91a3e20d42b730e348ebaab298",
+          "tests_passed": 5
+        },
+        "calls-integration": {
+          "elapsed_ms": 55302,
+          "exit": 0,
+          "log": "production-2-check/logs/calls-integration.log",
+          "log_sha256": "6391bce30abc6aded75085a1a186111c2bf33f6f3d7d9911e97a02ae72522ba3",
+          "tests_passed": 1
+        },
+        "clippy": {
+          "elapsed_ms": 26074,
+          "exit": 101,
+          "log": "production-2-check/logs/clippy.log",
+          "log_sha256": "8b90fc14f6fa77b044c98767c23167807823f7b4de30f45ebf04f80d9a0fc96b"
+        },
+        "fmt": {
+          "elapsed_ms": 710,
+          "exit": 0,
+          "log": "production-2-check/logs/fmt.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "grant-policy-unit": {
+          "elapsed_ms": 324,
+          "exit": 0,
+          "log": "production-2-check/logs/grant-policy-unit.log",
+          "log_sha256": "8fef950cd8d3f84fe1f7305a3c3cac7971cfd8e5f1b413045bfbbd94fef0f6a0",
+          "tests_passed": 5
+        }
+      },
+      "started_utc": "2026-10-29T21:44:55Z",
+      "verified_overlay_path_count": 4
+    },
+    "production3": {
+      "base_commit": "ee0bdf3b4f800ee31ed0e3017407a646244fd023",
+      "build_image": "veoveo-hub-check:e0-v5",
+      "build_image_id": "sha256:e23a1c31e4743f627725e1d0964e17b1be578b843d8e99bec4dbbe8589250db7",
+      "command": "docker run --rm; mounted frozen source read-only, evidence writable; cargo fmt/tests/clippy in check image",
+      "elapsed_ms": 92652,
+      "exit": 0,
+      "finished_utc": "2026-10-29T21:53:13Z",
+      "host": "Linux x86_64 / Docker linux/amd64",
+      "log_sha256": {
+        "authority-adapter.log": "46233ef74b43471e45d364562ddf9093ad12edb2c57bc27f4cfba02b1e044c66",
+        "authorization-unit.log": "892a873a72877f1b9766dc6ed94f55e2e91e5433b5886cb6463a1250d59b92d0",
+        "clippy.log": "6011a98dc8ab346082314e8a15a77a505b270e7bdcd83a529c9bec7282134c66",
+        "docker-run.log": "ac9b97a3dccb324089f029a9ea96932e05b00ddaeaec4dd2b5df66f91b9ad111",
+        "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source-identity.log": "ad85852e0d88e4b2f2298577e0ecf81cc205261eafdbd13c5b01cde7e9a33f65",
+        "source-verify.log": "0ce7b205e3b1eabe102449664df56eeaba67c333e9091c80abaa88a222a87ec1"
+      },
+      "overlay_manifest_sha256": "6e1dd4a729f59c47907e2ab618ed6fed96d3f6f876da7f9d38cd2e674a4eccc1",
+      "overlay_sha256": "6e01730e08a6efbd429d9e02dedd372525907a2116c0fb45c246dadfeda56db2",
+      "stages": {
+        "authority-adapter": {
+          "elapsed_ms": 64769,
+          "exit": 0,
+          "log": "production-3-check/logs/authority-adapter.log",
+          "log_sha256": "46233ef74b43471e45d364562ddf9093ad12edb2c57bc27f4cfba02b1e044c66",
+          "tests_passed": 2
+        },
+        "authorization-unit": {
+          "elapsed_ms": 315,
+          "exit": 0,
+          "log": "production-3-check/logs/authorization-unit.log",
+          "log_sha256": "892a873a72877f1b9766dc6ed94f55e2e91e5433b5886cb6463a1250d59b92d0",
+          "tests_passed": 5
+        },
+        "clippy": {
+          "elapsed_ms": 24167,
+          "exit": 0,
+          "log": "production-3-check/logs/clippy.log",
+          "log_sha256": "6011a98dc8ab346082314e8a15a77a505b270e7bdcd83a529c9bec7282134c66"
+        },
+        "fmt": {
+          "elapsed_ms": 703,
+          "exit": 0,
+          "log": "production-3-check/logs/fmt.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "started_utc": "2026-10-29T21:51:40Z",
+      "verified_overlay_path_count": 4
+    }
+  },
+  "schema": "veoveo-hub-authority-qualification-receipt-v1",
+  "scope": "HUB-AUTH-01 authority exchange and downstream narrowing finite proof package; focused native production tests only; no deployment/push/model calls",
+  "semantic_mutants": {
+    "reject-authenticated-empty": {
+      "generated_model_sha256": "3cb2af353a3403df1db971e3b3dbad4615cf9a7c9ee92c7008e38d3e59cace45",
+      "handwritten_proof_sha256": "ddab3000a0ed5ab652011dc77d3c92c979c3ea7bbd8479d59d0f829b1829d041",
+      "kernel_sha256": "710d0b7ba8c090418b8bf5415d53fd1e12472c245b529db44901f323b24070d3",
+      "log_sha256": {
+        "aeneas.log": "4599276b67466bc4ecca330ea99d106c16238967e1920834ac0c31e690318bb7",
+        "cargo-check.log": "930ebf0bb97bcd70424aab4642b9489ab2a2ef544e55f4a8d44744fb7ef098d6",
+        "charon.log": "2a8a96d96ba2c0399b973aeff4a52838c1f9e9aaa68dab84ab1cff96a8b55c55",
+        "lake-model.log": "aea27217623543dde2922a17cd6bcb8810285a33395b1d0c67be0743ab447941",
+        "patch.log": "29b19df546098bab17503062e7e77b1772a7fdb88c26d4492fcff3eb37e1941d",
+        "semantic-proof.log": "e83aad17c69ba6b74b21542b637dbdb93509a06eb972027c5071212e8dd1ae04",
+        "semantic-witness.log": "1a809b6e845449f80ce47bb4b78df2edbd9a69151fdfbcdfeaf7ebec2fad7a08"
+      },
+      "mutation_patch": "proofs/authority/mutations/reject-authenticated-empty.patch",
+      "patch_sha256": "ed8908cc3fcf6d6b654af6636c68163eecb285a4d987acb683065acd097d5708",
+      "semantic_goal_failure": "narrow_exact fails for Route.Authenticated: expected allowed=true, got False",
+      "stages": {
+        "aeneas": {
+          "elapsed_ms": 761,
+          "exit": 0,
+          "log": "final-validation/variants/reject-authenticated-empty/logs/aeneas.log",
+          "log_sha256": "4599276b67466bc4ecca330ea99d106c16238967e1920834ac0c31e690318bb7"
+        },
+        "cargo-check": {
+          "elapsed_ms": 89,
+          "exit": 0,
+          "log": "final-validation/variants/reject-authenticated-empty/logs/cargo-check.log",
+          "log_sha256": "930ebf0bb97bcd70424aab4642b9489ab2a2ef544e55f4a8d44744fb7ef098d6"
+        },
+        "charon": {
+          "elapsed_ms": 221,
+          "exit": 0,
+          "log": "final-validation/variants/reject-authenticated-empty/logs/charon.log",
+          "log_sha256": "2a8a96d96ba2c0399b973aeff4a52838c1f9e9aaa68dab84ab1cff96a8b55c55"
+        },
+        "lake-model": {
+          "elapsed_ms": 4221,
+          "exit": 0,
+          "log": "final-validation/variants/reject-authenticated-empty/logs/lake-model.log",
+          "log_sha256": "aea27217623543dde2922a17cd6bcb8810285a33395b1d0c67be0743ab447941"
+        },
+        "semantic-proof": {
+          "actual_exit": 1,
+          "elapsed_ms": 3429,
+          "exit": 1,
+          "expected_exit": 1,
+          "log": "final-validation/variants/reject-authenticated-empty/logs/semantic-proof.log",
+          "log_sha256": "e83aad17c69ba6b74b21542b637dbdb93509a06eb972027c5071212e8dd1ae04"
+        },
+        "semantic-witness": {
+          "actual_exit": 101,
+          "elapsed_ms": 142,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "final-validation/variants/reject-authenticated-empty/logs/semantic-witness.log",
+          "log_sha256": "1a809b6e845449f80ce47bb4b78df2edbd9a69151fdfbcdfeaf7ebec2fad7a08"
+        }
+      },
+      "witness": "authenticated_empty_is_valid_but_undeclared_and_empty_server_are_refused"
+    },
+    "skip-downstream-filter": {
+      "generated_model_sha256": "b46c801e008b53d30a15929b0501a58f9a6941e408d7aa3187ca306660061586",
+      "handwritten_proof_sha256": "ddab3000a0ed5ab652011dc77d3c92c979c3ea7bbd8479d59d0f829b1829d041",
+      "kernel_sha256": "69823eb36ca185ea292a5b4af32054c239537ebd24bcf823d599256e84674dbe",
+      "log_sha256": {
+        "aeneas.log": "d9a25dbed90022b746e6499a75fc7adafde6a8787170039eba30af40f3b6cb17",
+        "cargo-check.log": "6126cf129783bee972890b3b1fe69d8b79e42a7900c970c5d0f1e617ae2c135c",
+        "charon.log": "e4e68bf43ce43f4e5c25f84eb204dd34e037315cfd1a523e5a375e4091ed9c48",
+        "lake-model.log": "aea27217623543dde2922a17cd6bcb8810285a33395b1d0c67be0743ab447941",
+        "patch.log": "29b19df546098bab17503062e7e77b1772a7fdb88c26d4492fcff3eb37e1941d",
+        "semantic-proof.log": "f740a92f8d1115c85eae994960214d016e232a5174a9bb0c455e8ccd3c9f940c",
+        "semantic-witness.log": "e7a58dfd6d5529da0a485cf71b363e3f51e568e190f5483cf169f6f3e3667999"
+      },
+      "mutation_patch": "proofs/authority/mutations/skip-downstream-filter.patch",
+      "patch_sha256": "2e343624b69efe53ac1b9e1630b0f3e0555b6ce2225d07d019275d134fdf2c63",
+      "semantic_goal_failure": "narrow_exact/narrow_success_iff fail because output grant is not filtered",
+      "stages": {
+        "aeneas": {
+          "elapsed_ms": 748,
+          "exit": 0,
+          "log": "final-validation/variants/skip-downstream-filter/logs/aeneas.log",
+          "log_sha256": "d9a25dbed90022b746e6499a75fc7adafde6a8787170039eba30af40f3b6cb17"
+        },
+        "cargo-check": {
+          "elapsed_ms": 79,
+          "exit": 0,
+          "log": "final-validation/variants/skip-downstream-filter/logs/cargo-check.log",
+          "log_sha256": "6126cf129783bee972890b3b1fe69d8b79e42a7900c970c5d0f1e617ae2c135c"
+        },
+        "charon": {
+          "elapsed_ms": 173,
+          "exit": 0,
+          "log": "final-validation/variants/skip-downstream-filter/logs/charon.log",
+          "log_sha256": "e4e68bf43ce43f4e5c25f84eb204dd34e037315cfd1a523e5a375e4091ed9c48"
+        },
+        "lake-model": {
+          "elapsed_ms": 4200,
+          "exit": 0,
+          "log": "final-validation/variants/skip-downstream-filter/logs/lake-model.log",
+          "log_sha256": "aea27217623543dde2922a17cd6bcb8810285a33395b1d0c67be0743ab447941"
+        },
+        "semantic-proof": {
+          "actual_exit": 1,
+          "elapsed_ms": 3367,
+          "exit": 1,
+          "expected_exit": 1,
+          "log": "final-validation/variants/skip-downstream-filter/logs/semantic-proof.log",
+          "log_sha256": "f740a92f8d1115c85eae994960214d016e232a5174a9bb0c455e8ccd3c9f940c"
+        },
+        "semantic-witness": {
+          "actual_exit": 101,
+          "elapsed_ms": 139,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "final-validation/variants/skip-downstream-filter/logs/semantic-witness.log",
+          "log_sha256": "e7a58dfd6d5529da0a485cf71b363e3f51e568e190f5483cf169f6f3e3667999"
+        }
+      },
+      "witness": "carried_authority_narrows_permissions_without_replacing_decision_metadata"
+    },
+    "unfiltered-grant": {
+      "generated_model_sha256": "d697bc675d636ad8acdd6db8d67f18c2dd99e6efddd6c275db917fb40757248e",
+      "handwritten_proof_sha256": "ddab3000a0ed5ab652011dc77d3c92c979c3ea7bbd8479d59d0f829b1829d041",
+      "kernel_sha256": "d194c858175955eacb82808f7dc6a97e118f2de826a9f9986ea110308df8a7a7",
+      "log_sha256": {
+        "aeneas.log": "8aec3b2314bb4b1366fcc103bf4cbcead972249986837e2f6797ced42e5b093a",
+        "cargo-check.log": "de77666c6f17eb89ef26047d3b738ecf4d302b0f29a158459083eda0520226c0",
+        "charon.log": "63fc6b06c82a949c22e2fd8c3c449155384c18768690ff61e1fa481e6aa12d91",
+        "lake-model.log": "aea27217623543dde2922a17cd6bcb8810285a33395b1d0c67be0743ab447941",
+        "patch.log": "29b19df546098bab17503062e7e77b1772a7fdb88c26d4492fcff3eb37e1941d",
+        "semantic-proof.log": "49a75ea52a2890e31c6fdad8db6e528f94f22e5085500e395eee15d70b9a51a3",
+        "semantic-witness.log": "cab86b1622cec727cbbf6d67ef10e463f898ea6b037a4c5e98cc8a15bd97ee93"
+      },
+      "mutation_patch": "proofs/authority/mutations/unfiltered-grant.patch",
+      "patch_sha256": "0f7d061352384769ea2cc96cc925709f3f8825b3d94549969dfb25300bc27311",
+      "semantic_goal_failure": "grant_exact fails: provided.requested differs from heldModel.result held provided.requested",
+      "stages": {
+        "aeneas": {
+          "elapsed_ms": 743,
+          "exit": 0,
+          "log": "final-validation/variants/unfiltered-grant/logs/aeneas.log",
+          "log_sha256": "8aec3b2314bb4b1366fcc103bf4cbcead972249986837e2f6797ced42e5b093a"
+        },
+        "cargo-check": {
+          "elapsed_ms": 84,
+          "exit": 0,
+          "log": "final-validation/variants/unfiltered-grant/logs/cargo-check.log",
+          "log_sha256": "de77666c6f17eb89ef26047d3b738ecf4d302b0f29a158459083eda0520226c0"
+        },
+        "charon": {
+          "elapsed_ms": 186,
+          "exit": 0,
+          "log": "final-validation/variants/unfiltered-grant/logs/charon.log",
+          "log_sha256": "63fc6b06c82a949c22e2fd8c3c449155384c18768690ff61e1fa481e6aa12d91"
+        },
+        "lake-model": {
+          "elapsed_ms": 4171,
+          "exit": 0,
+          "log": "final-validation/variants/unfiltered-grant/logs/lake-model.log",
+          "log_sha256": "aea27217623543dde2922a17cd6bcb8810285a33395b1d0c67be0743ab447941"
+        },
+        "semantic-proof": {
+          "actual_exit": 1,
+          "elapsed_ms": 3559,
+          "exit": 1,
+          "expected_exit": 1,
+          "log": "final-validation/variants/unfiltered-grant/logs/semantic-proof.log",
+          "log_sha256": "49a75ea52a2890e31c6fdad8db6e528f94f22e5085500e395eee15d70b9a51a3"
+        },
+        "semantic-witness": {
+          "actual_exit": 101,
+          "elapsed_ms": 166,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "final-validation/variants/unfiltered-grant/logs/semantic-witness.log",
+          "log_sha256": "cab86b1622cec727cbbf6d67ef10e463f898ea6b037a4c5e98cc8a15bd97ee93"
+        }
+      },
+      "witness": "exchange_keeps_current_authority_and_every_original_context_field"
+    },
+    "wrong-resource": {
+      "generated_model_sha256": "3307332630a9561d29e7f785491245e88850be93f00eaeec494e7f83e1d2c63b",
+      "handwritten_proof_sha256": "ddab3000a0ed5ab652011dc77d3c92c979c3ea7bbd8479d59d0f829b1829d041",
+      "kernel_sha256": "5b9e6f88d229c13360d75b33657f581d68b112b32c810ec05dfbdccdde8aa02c",
+      "log_sha256": {
+        "aeneas.log": "87f8b9f016bee9f0e967240217ffd5e8d7434335ae58dbc4dc713308ec82c58b",
+        "cargo-check.log": "8ee0cb4e0176a2520b131c2cbe234055bcd42920f0ec7cc43cee78c6443f7203",
+        "charon.log": "b9e7c8e63687f2e02eda66f830ef91e99caf7f09c07e00c5b660e4aade9e8602",
+        "lake-model.log": "aea27217623543dde2922a17cd6bcb8810285a33395b1d0c67be0743ab447941",
+        "patch.log": "29b19df546098bab17503062e7e77b1772a7fdb88c26d4492fcff3eb37e1941d",
+        "semantic-proof.log": "2733f2cd704f04f140c5cb90a126c0df27d3bfd425798663a7b4756b53b97e1b",
+        "semantic-witness.log": "6a2e2522db3afa02044a2ae8c9cf2933defdb495a17ca92b257576de98e98e5b"
+      },
+      "mutation_patch": "proofs/authority/mutations/wrong-resource.patch",
+      "patch_sha256": "694369e87e1cde8f67d81d77febef7c0fb1d28c374ad43e3f4fefe2b440504d7",
+      "semantic_goal_failure": "address_exact fails for unequal resource keys",
+      "stages": {
+        "aeneas": {
+          "elapsed_ms": 722,
+          "exit": 0,
+          "log": "final-validation/variants/wrong-resource/logs/aeneas.log",
+          "log_sha256": "87f8b9f016bee9f0e967240217ffd5e8d7434335ae58dbc4dc713308ec82c58b"
+        },
+        "cargo-check": {
+          "elapsed_ms": 80,
+          "exit": 0,
+          "log": "final-validation/variants/wrong-resource/logs/cargo-check.log",
+          "log_sha256": "8ee0cb4e0176a2520b131c2cbe234055bcd42920f0ec7cc43cee78c6443f7203"
+        },
+        "charon": {
+          "elapsed_ms": 182,
+          "exit": 0,
+          "log": "final-validation/variants/wrong-resource/logs/charon.log",
+          "log_sha256": "b9e7c8e63687f2e02eda66f830ef91e99caf7f09c07e00c5b660e4aade9e8602"
+        },
+        "lake-model": {
+          "elapsed_ms": 4244,
+          "exit": 0,
+          "log": "final-validation/variants/wrong-resource/logs/lake-model.log",
+          "log_sha256": "aea27217623543dde2922a17cd6bcb8810285a33395b1d0c67be0743ab447941"
+        },
+        "semantic-proof": {
+          "actual_exit": 1,
+          "elapsed_ms": 3560,
+          "exit": 1,
+          "expected_exit": 1,
+          "log": "final-validation/variants/wrong-resource/logs/semantic-proof.log",
+          "log_sha256": "2733f2cd704f04f140c5cb90a126c0df27d3bfd425798663a7b4756b53b97e1b"
+        },
+        "semantic-witness": {
+          "actual_exit": 101,
+          "elapsed_ms": 158,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "final-validation/variants/wrong-resource/logs/semantic-witness.log",
+          "log_sha256": "6a2e2522db3afa02044a2ae8c9cf2933defdb495a17ca92b257576de98e98e5b"
+        }
+      },
+      "witness": "wrong_resource_and_missing_provider_do_not_issue_a_grant"
+    }
+  },
+  "source": {
+    "changed_path_count": 20,
+    "excluded_concurrent_paths": [
+      "crates/veoveo-hub/DESIGN.md",
+      "proofs/README.md"
+    ],
+    "hub_base_archive_sha256": "573262a344ed33f931953c08552e03bcce514f3b6b9bac07d7cdf0cad36f04c0",
+    "hub_base_commit": "ee0bdf3b4f800ee31ed0e3017407a646244fd023",
+    "production2_archive_sha256": "e2b9fd146b394403df3bae38907ec4e0de2ae9669d37d5d58181000d0d1946d5",
+    "production3_archive_sha256": "6e01730e08a6efbd429d9e02dedd372525907a2116c0fb45c246dadfeda56db2",
+    "proof_overlay_archive_sha256": "bd86ed9ce1cbf40ffcb7711805108a4e47433290fe138be54a5b25c71b1d347a",
+    "proof_overlay_manifest_sha256": "e594d7eefae95d0e5f2e0b6d43c77ac46f5a1dba9852eeafa0949db890b8fb22"
+  },
+  "superseded_failures": {
+    "draft_proof_diagnostics": {
+      "interpretation_drafts": {
+        "iteration1_sha256": "d093f08d2fd61ad82a931456cfcaf3e36f9320a38741e7909bd6a9f114d155af",
+        "iteration2_sha256": "6c2590c7867f6d83d3c08ab8d386bd9c06531ea211598c3327c07be4a3dfc7a6"
+      },
+      "iteration3": {
+        "elapsed_ms": 4444,
+        "exit": 1,
+        "log": "extraction-2/logs/authority-proof-iteration3.log",
+        "log_sha256": "6231bf3ad1fc9dc5e0d8144fa03113e915ad819ae18d39f59211e16ead7500d5"
+      },
+      "iteration4": {
+        "elapsed_ms": 7318,
+        "exit": 1,
+        "log": "extraction-2/logs/authority-proof-iteration4.log",
+        "log_sha256": "c0b86c4b038ebb4145ae11182a5580bd2bcefbf4ceffea70b612b2c09e1136ef"
+      }
+    },
+    "production1_fixture_compile": {
+      "logs": {
+        "authority-adapter.log": "1a557855586f0b69cdc4a213fd41b23d70a0a5824837d96187af8e9a8fcb49e9",
+        "authorization-unit.log": "45aa929b69157ca3ae545def836c94ed9625a56ccfef4d594d89b2258cf5d3b5",
+        "calls-integration.log": "7bcd6d533c123cf87cbcbff5d8b18239eea632167ea2624a49a53fe84697e7bc",
+        "docker-run.log": "6d2dbb133c1d51cd6ae318aafe0a8ceb889206f384ded5c889788bff3e3ddc29",
+        "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "grant-policy-unit.log": "45aa929b69157ca3ae545def836c94ed9625a56ccfef4d594d89b2258cf5d3b5",
+        "source-identity.log": "ad85852e0d88e4b2f2298577e0ecf81cc205261eafdbd13c5b01cde7e9a33f65"
+      },
+      "manifest_sha256": "30c2a5057a88cc39588c63f12ed0a099d3f2556fcd7e00d8b770b13ee663af48",
+      "overlay_sha256": "7c5b4c70cd7d8a5f72b54615cacf995e169a286887afa7a9b0d65eea942f0a8e",
+      "reason": "E0716: borrowed temporary RouteAccess values escaped inferred test closure lifetime; no tests in failing target passed."
+    }
+  },
+  "toolchain": {
+    "aeneas": "nightly-2026.10.23-fdebf20",
+    "charon": "0.1.293 de8736f7c995ac54dc490345cef9ea5143c06c62",
+    "host": "Linux x86_64 rozgo-sim-pc",
+    "lake_packages": "shared immutable cache /home/rozgo/.cache/lean-pilot/baseline/proofs/selection/.lake/packages",
+    "lean": "4.35.0 commit eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+    "rust": "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+    "rust_check_image": "veoveo-hub-check:e0-v5 / sha256:e23a1c31e4743f627725e1d0964e17b1be578b843d8e99bec4dbbe8589250db7"
+  }
+}

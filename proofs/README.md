@@ -4,9 +4,9 @@ Track important system properties, their implementation boundaries and the evide
 for them. The unit of coverage is an invariant, not a theorem count. A small helper
 proof does not establish the whole request, transaction or runtime lifecycle.
 
-Verification remains manual and on demand. This map adds no CI job, hook, watcher,
-proof requirement or runtime check. It is not authorization to implement every
-candidate below, nor a proposal for additional security rules.
+Verification remains manual and on demand. The comprehensive coverage roadmap below
+is approved for implementation. This map adds no CI job, hook, watcher, proof
+requirement or runtime check, and proposes no additional security rules.
 
 ## Source basis and status
 
@@ -46,17 +46,163 @@ No percentage or blanket “Hub verified” claim follows from this map.
 
 | ID | System property | Formal status | Next useful work |
 | --- | --- | --- | --- |
+| HUB-CONTRACT-01 | Shared MCP extension contracts preserve meaning from declaration to enforcement | unproved | Trace SDK authorization declaration, representations and target resolution into Hub and SDK dispatch |
 | HUB-TASK-01 | Captured Task routing and retry integrity | partial | SQL and asynchronous adapter refinement remain |
-| HUB-AUTH-01 | Current policy and delegated authority do not amplify access | unproved | Isolate an existing permission/rule decision |
+| HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Prove extension interpretation/current roles and session/issuer continuity beyond the qualified assembly |
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | unproved | Specify the pure current-family decision first |
 | HUB-CONFIG-01 | Coherent live configuration publication | unproved | Model transaction/CAS semantics |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Trace broader routing beyond the linked kernel |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | unproved | Trace both registration transaction paths and their callers |
+| HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
+| HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
-These priorities reflect impact and a viable proof boundary, not a commitment to
-prove all eight or a judgment that the existing implementation is defective.
+The invariant IDs remain stable. Routing and Tasks form one connected workstream;
+the shared extension-contract foundation connects the ten approved coverage areas.
+An unproved entry is not evidence that its implementation is defective.
+
+## Approved implementation roadmap
+
+The goal is assurance over complete operations: caller authority, destination,
+committed state and recovery under concurrent changes, retries and failures. For
+each operation, establish legitimate success and output preservation as well as
+required refusals. In particular, retain declared `Authenticated` routes, native
+Lore permissions, the existing Task/logout semantics and asynchronous propagation.
+
+Implement in this dependency order, finishing a qualified slice before the next:
+
+0. **Shared extension contracts:** after the in-flight delegated-assembly slice,
+   prioritize the SDK-to-Hub contract foundation below. Prove the semantics that
+   producers and consumers share before accumulating more isolated internal
+   predicates. The interface is part of the existing architecture, not a new API.
+1. **Authority and session continuity:** production-linked delegation decisions and
+   output/deadline assembly, then exact refresh-family admission. Current policy
+   evaluation and its principal projection must have explicit boundaries; a set
+   intersection lemma does not establish the whole exchange.
+2. **Transactions:** configuration publication first, then refresh concurrency and
+   registration/replacement. Connect the actual Rust transaction scope, SQL,
+   constraints and locks to the state transitions. Include audit where it commits
+   in the same transaction. Evaluate contributed token/registry publication against
+   these established boundaries.
+3. **Request composition:** connect registration identity, fresh routing, retained
+   Task routing, current authority and SDK recipient validation; cover discovery,
+   cursor and listener invalidation under concurrent publication. Include local
+   catalog adoption and reconciliation after replica reconnect.
+4. **Recovery:** factory and Computer transitions, interrupted operations and
+   cleanup. Prove progress only under stated scheduling, retry and dependency-recovery
+   assumptions; native and browser observations remain separate evidence.
+5. **Connected guarantees:** compose the established contracts for an admitted call,
+   a retained Task across configuration changes, concurrent refresh/registration and
+   interrupted lifecycle operations. Reduce assumptions about our own code by using
+   earlier results rather than silently broadening their scope.
+
+Three evidence classes remain distinct:
+
+- **Extracted production decisions:** actual shared Rust, generated Aeneas model and
+  Lean proofs of successful/refused outcomes and returned values. Review concrete
+  adapters and test the production caller path. Avoid changing efficient data
+  structures or semantics just to make extraction easier.
+- **State/concurrency models:** Lean specifications of operations and interleavings.
+  They are design-model proofs until model-to-Rust/SQL correspondence is justified.
+  Reviewed mappings and concurrent database tests support implementation confidence,
+  but do not themselves constitute formal SQL refinement.
+- **Integration and recovery evidence:** focused component, database, native-runtime
+  and browser probes. None substitutes for another class or proves the external
+  service itself.
+
+For PostgreSQL, assume only the atomicity, isolation level, locking and constraint
+semantics actually used by the queries. Do not silently assume serializability,
+cross-database/RPC atomicity or exactly-once external effects. Cryptography, the
+Rust/extraction/Lean toolchain, clocks and external services are explicit trust
+boundaries. Liveness additionally names fairness and recovery assumptions. No
+assumption may merely restate the property claimed as proved.
+
+Each completed slice records source/model identity, specifications, assumptions,
+axiom audit, useful semantic mutants, restored baseline and relevant caller tests.
+The existing packages and receipts are enough; no proof service, CI gate, new
+runner or separate bookkeeping format is introduced. Source changes make prior
+applicability historical until rechecked. Count covered contracts and remaining
+obligations, not theorems or a blanket percentage of Hub verified.
+
+## HUB-CONTRACT-01 — Shared extension contracts
+
+**Invariant/failure prevented.** A typed server contract has the same meaning when
+it becomes a route table, a registration document, an MCP advertisement, a Hub
+authorization decision and a server dispatch requirement. No representation or
+consumer silently changes the permission, route, service identity or declared use.
+Legitimate routes remain usable, including explicit `Authenticated` routes with
+no permission requirement. This is a cross-repository foundation, not a new check
+in front of an already admitted request.
+
+The SDK owns these protocols and their types. Start with `ai.veoveo/authorization`
+and `ai.veoveo/registration` in MCP `capabilities.extensions`, linked to the
+registration document's `veoveo_authorization` and identity fields. The same typed
+authorization declaration carries permissions, resource types, access kinds, risks,
+route requirements, downstream `uses` and `callsHub`. Preserve the distinction
+between MCP camelCase and OAuth snake_case without duplicating their semantics.
+
+- **Source owners:** [registration design](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/src/registration/DESIGN.md),
+  [authorization types/check/access](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/src/registration/authorization.rs),
+  [resource-template matching](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/src/registration/authorization_template.rs),
+  [MCP advertisement/readback](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/src/registration/mcp.rs),
+  [OAuth representation](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/src/registration/oauth.rs),
+  [typed server setup](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/src/server_contract.rs)
+  and [route construction/dispatch](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/src/hosting/routes.rs).
+  Hub's [registration service](../crates/veoveo-hub/src/registration/service.rs),
+  [policy evaluation](../crates/veoveo-hub/src/policy/evaluation.rs) and delegated
+  assembly consume the admitted contract.
+- **Properties:** declaration generation matches typed route policy; registration
+  and MCP representations preserve all semantic fields; existing declaration
+  validation has exact success/refusal conditions; target lookup preserves exact
+  resource precedence and refuses ambiguous template access while accepting
+  unambiguous routes; current policy/risk evaluation, discovery and SDK dispatch
+  agree about what a declared route requires. Trace the actual registered-versus-
+  advertised relationship before claiming runtime equality checking.
+- **Evidence locations:** SDK `tests/registration_wire.rs`, `tests/server_contract.rs`,
+  native route/template tests and Hub policy/registration/calls tests. Wire round trips
+  and generated-schema checks are test evidence unless their serialization mapping
+  is itself proved. Rust traits establish structure, not behavioral equivalence.
+- **Boundary:** standard MCP transport, Serde/Schemars, cryptography and domain handler
+  correctness remain separate. Prove our semantic transformations and decisions;
+  do not claim every conforming server's application behavior is verified. Pure SDK
+  contracts are proved at their owner; Hub composes those results. Protected hosting
+  and durable-Task modules keep their existing ownership and admission rules.
+- **Next:** inventory the existing extension surfaces and their producer/consumer
+  links; implement the authorization/registration semantic boundary first. Then map
+  Tasks, usage metadata, discovery degradation and App dependency metadata to their
+  owning contracts and relevant guarantees. They are not all interchangeable
+  `capabilities.extensions` declarations: some use `_meta` or native MCP extensions.
+
+The qualified [authority package](authority/README.md) consumes decoded
+authorization semantics and proves only its stated internal sub-boundary. It does
+not discharge this contract chain or prove serialization. This shared contract
+foundation is the next slice before more independent internal-policy work.
+
+The existing MCP additions define the following coverage obligations; their presence
+in the SDK is not evidence that they have been proved:
+
+- `ai.veoveo/registration` and `ai.veoveo/authorization` are advertised in
+  `capabilities.extensions`. Cover identity/declaration preservation, route
+  interpretation and its use by authorization as described above.
+- `ai.veoveo/usage` is Task-result and `tasks/get` metadata. Connect its projection
+  to the owning usage ledger's amount, currency and estimate/actual semantics;
+  recording and deduplication require their own transactional boundary.
+- `ai.veoveo/task-retention-pin` is request metadata for internal Task evidence
+  retention. Distinguish evidence retention from protocol TTL, authority and Task
+  liveness, and connect it to the cleanup/reference obligations.
+- `ai.veoveo/hub-discovery-degradation` is list-result metadata. Cover exact
+  attribution of isolated discovery failures alongside the catalog/cursor proof;
+  a partial result must not silently claim completeness.
+- `ai.veoveo/app-resource-dependencies` and `ai.veoveo/app-tool-dependencies` are
+  App dependency metadata. Connect declaration filtering and projected names to
+  the same current authorization used for the eventual resource or tool call;
+  listing a dependency is not an independent authority grant.
+
+The last five use `_meta`, not capability declarations. Upstream MCP Tasks and MCP
+Apps remain upstream contracts. Prove Veoveo's adapters and semantic projections
+without treating the upstream protocol or every handler as verified.
 
 ## HUB-TASK-01 — Captured Task routing and retry integrity
 
@@ -109,7 +255,8 @@ actual actor. Current required scopes and declared uses still apply. Hub-owned r
 evaluation gives matching deny rules precedence and otherwise denies without an
 allow. Delegated callers do not acquire administrative access from an admin principal.
 
-- **Source:** [narrow/issue/held/subject_of](../crates/veoveo-hub/src/delegation.rs),
+- **Source:** [native adapters/issue/subject_of](../crates/veoveo-hub/src/delegation.rs),
+  [shared authority decisions](../crates/veoveo-hub/src/delegation/authority.rs),
   [policy decide and assemble_rule_outcome](../crates/veoveo-hub/src/policy/evaluation.rs#L38),
   [MCP delegation narrowing](../crates/veoveo-hub/src/mcp/authorization.rs#L404),
   and [existing delegated-admin refusal](../crates/veoveo-hub/src/http/action_audit.rs#L45).
@@ -117,12 +264,32 @@ allow. Delegated callers do not acquire administrative access from an admin prin
   downstream permissions, actors, Task-derived calls, expiry and delegated-admin
   refusal; [shared_policy](../crates/veoveo-hub/tests/shared_policy.rs#L13) compares
   Hub/background policy behavior on fixtures.
-- **Boundary/effort:** small–moderate for generic set/rule decisions; larger across
-  issuer/SDK actor-chain composition. Assume verified signed input and lawful set/ID
-  operations. A set-intersection lemma alone does not prove every HTTP route uses it.
-- **Residual/next:** choose one real decision and its caller path, not a new rule.
-  Token verification, current grants, replay checks, route wiring and expiry clocks
-  remain external obligations; cryptography/SDK correctness is not promised here.
+- **Formal status:** partial. The [authority package](authority/README.md) proves
+  exact ordered exchange-stage outcomes and successful grant/context assembly,
+  downstream acceptance/refusal and output, and their composed permission bound.
+  Valid `Authenticated` routes accept an empty grant; previous denial and opaque
+  policy metadata retain their existing meaning. The generated functions and their
+  composition are proved within the stated boundary, not the complete endpoint.
+- **Applicability/evidence:** Hub `ee0bdf3` plus the exact frozen source overlay in
+  the [receipt](authority/evidence/authority-receipt.json). Fresh baseline and
+  restoration passed six Rust witnesses, extraction and all three Lean files;
+  four legal semantic mutants compiled/extracted, then failed their intended
+  theorem and witness. Native production2 passed 12 focused unit tests and the
+  calls integration; production3 reran seven affected unit tests and passed strict
+  Clippy after the equivalent conditional simplification. The receipt distinguishes
+  the snapshots. No full-platform gate or deployment is claimed for this slice.
+- **Boundary:** native collection operations have explicit finite-set laws.
+  Current-role filtering has a coarse requested/intersection premise; the finite
+  interpretation demonstrates satisfiable premises, not correctness of role
+  policy or BTreeSet. Deadline preservation is equality of an opaque input value,
+  not proof of SDK clamping/signing. Production sequencing/adapters were reviewed
+  and tested; Lean composition is not extraction of the asynchronous caller.
+- **Residual/next:** shared MCP extension interpretation first, then current
+  role/risk evaluation, principal projection and session/issuer continuity.
+  Catalog/provider discovery, replay, Task reads, route wiring, concrete token
+  serialization and clocks remain separate obligations. A new downstream namespace
+  is constrained by current caller grants and declared uses; it need not be a
+  subset of the earlier namespace's permission names. No new policy is introduced.
 
 ## HUB-OAUTH-01 — Session binding and refresh lifecycle
 
@@ -164,6 +331,24 @@ concurrent publication does not partly apply.
 - **Residual/next:** justify model-to-SQL correspondence before claiming coverage.
   Process failure, replica notification and OpenShell effects are separate; preserve
   database tests rather than treating a Boolean revision comparison as their proof.
+
+The first transaction slice follows `publish_control_revision`: acquire the
+`control_active` row lock, compare its revision, create the revision and objects,
+replace Work Context identity rows, move the pointer, append audit, then commit.
+The schema's singleton constraint/trigger and immutable-revision constraints are
+part of the correspondence, not optional modeling conveniences. The competing
+publisher must observe the committed predecessor after obtaining the lock (or abort
+under stronger isolation); a stale pre-lock read cannot authorize its commit.
+Failure at any write or audit append must leave committed state unchanged. A lost
+commit acknowledgement is a separate ambiguous outcome, not evidence of rollback.
+
+Local adoption is a second obligation: the publication mutex also covers the
+[native reload path](../crates/veoveo-hub/src/bin/hub/control_reload.rs), which reads
+the authoritative pointer after taking the guard. Trace actual catalog/HTTP-handle
+replacement and notification/reconnect behavior before claiming coherent adoption
+or convergence. The active revision may advance elsewhere while one replica prepares
+its snapshot; temporary lag remains allowed by the architecture. No new synchronous
+global barrier is proposed.
 
 ## HUB-ROUTE-01 — Fresh routing and captured routing
 
@@ -255,6 +440,74 @@ sandbox; it must not claim the new version succeeded.
   the lifecycle. Actual browser recovery, OpenShell termination/readiness, credential
   custody and persistent home survival need native/deployed evidence, not only fixtures.
 
+## HUB-REGISTER-01 — Registration and deployment identity
+
+**Invariant/failure prevented.** A registration is bound to its admitted namespace or
+instance and deployment. Replacement changes endpoint, metadata, storage binding and
+registration logins coherently; replica addition follows its distinct existing path.
+Concurrent operations cannot reassign unrelated work or leave a partly replaced
+registration. These are target properties to establish, not new admission rules.
+
+- **Source:** [registration service](../crates/veoveo-hub/src/registration/service.rs),
+  [registration store](../crates/veoveo-hub/src/registration/store.rs), its adjacent
+  SQL, [snapshot](../crates/veoveo-hub/src/registration/snapshot.rs), and
+  [data environment binding](../crates/veoveo-hub/src/data_environment.rs).
+- **Tests/evidence locations:** [registration](../crates/veoveo-hub/tests/registration.rs)
+  and [data environments](../crates/veoveo-hub/tests/data_environments.rs).
+- **Boundary:** token/signature verification and kernel login/schema operations have
+  separate owners. Ordinary namespace-pinned registration and instance-token
+  registration deliberately differ; the specification must retain both. Preparation
+  in a different database is not atomic with the installation registration transaction.
+- **Next:** trace statement order, uniqueness, lock coverage, successful responses and
+  failure/rollback paths before choosing the transaction model. Compose the resulting
+  deployment/endpoint association with routing and SDK recipient binding.
+
+## HUB-LORE-01 — Native grants and contributed token issuance
+
+**Invariant/failure prevented.** Hub calculates the intended repository grant from
+the caller's tenant, assignments and groups, and emits that grant with the intended
+native token context. Common issuer, resource, client, identity and purpose cannot be
+replaced by owner claims. Ownership/sharing operations preserve the declared native
+semantics, including legitimate access; there is no second Lore authorization layer.
+
+- **Source:** [Lore contribution](../crates/veoveo-hub/src/bin/hub/contributions/lore/mod.rs),
+  [sharing changes](../crates/veoveo-hub/src/bin/hub/contributions/lore/sharing/changes.rs),
+  [native catalog](../crates/veoveo-hub/src/bin/hub/contributions/lore/catalog.rs),
+  [repository operations](../crates/veoveo-hub/src/bin/hub/contributions/lore/repositories.rs),
+  and [common issuance](../crates/veoveo-hub/src/issuance.rs).
+- **Tests/evidence locations:** [native issuer](../crates/veoveo-hub/tests/native_issuer.rs),
+  [Lore catalog](../crates/veoveo-hub/tests/lore_catalog.rs) and
+  [sharing](../crates/veoveo-hub/tests/lore_sharing.rs).
+- **Boundary:** Lore's verification/enforcement, OpenShell custody and signed-token
+  lifetime remain native responsibilities. Revocation must respect actual token
+  expiry/reuse semantics, not promise instantaneous global removal. Shared group
+  projection and common issuance are dependencies to trace, not assumed correct by
+  describing the resulting grant as authorized.
+- **Next:** establish production-linked assignment/group and token-assembly decisions,
+  then connect sharing publication to HUB-CONFIG-01 and native protocol tests.
+
+## HUB-CLEANUP-01 — Cleanup, references and transactional audit
+
+**Invariant/failure prevented.** Retention and deletion affect only their intended
+records and preserve references required by live work. The installation database is
+never a cleanup target. Where a mutation promises transactional audit, either both
+commit or neither does. Interrupted external cleanup has an explicit residual state
+and retry behavior rather than an unsupported atomicity claim.
+
+- **Source:** [environment cleanup](../crates/veoveo-hub/src/data_environment.rs),
+  [registration removal/collection](../crates/veoveo-hub/src/registration/store.rs),
+  [Hub store](../crates/veoveo-hub/src/store), adjacent prune/refresh/control SQL, and
+  the factory/Computer lifecycle paths referenced above.
+- **Tests/evidence locations:** registration/data-environment/control-store tests and
+  targeted concurrent cleanup/refresh/lifecycle probes added with each slice.
+- **Boundary:** database drops and native sandbox deletion are external steps, not one
+  transaction. A successful reference query alone does not prove a later destructive
+  action safe against concurrent creation. Inspect actual exclusion/serialization;
+  do not assume it. Core's maintenance/audit implementation is a separate dependency.
+- **Next:** inventory each destructive operation's protected references and commit
+  boundary, then prove the necessary local decision/transaction and check interruption
+  and concurrent creation against the actual implementation.
+
 ## Existing formal evidence and its limits
 
 The local [original report](selection/RESULTS.md) and
@@ -296,5 +549,5 @@ Next smallest useful investigation; owner if assigned:
 ```
 
 Keep IDs stable when the implementation moves. Update the boundary rather than
-quietly broadening an old proof claim. This map is neither a new bookkeeping schema
-nor an execution plan to implement every candidate.
+quietly broadening an old proof claim. The roadmap orders the approved work; these
+entries record evidence and gaps without introducing a new bookkeeping schema.

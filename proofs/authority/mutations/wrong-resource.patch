@@ -1,0 +1,11 @@
+--- a/veoveo-hub/crates/veoveo-hub/src/delegation/authority.rs
++++ b/veoveo-hub/crates/veoveo-hub/src/delegation/authority.rs
+@@ -61,7 +61,7 @@
+     };
+     match requested_resource {
+         Some(requested) => {
+-            if !resource.matches(requested) {
++            if !resource.matches(requested) && false {
+                 return Err(TargetRefusal::OtherResource(resource));
+             }
+         }

@@ -1,0 +1,13 @@
+--- a/veoveo-hub/crates/veoveo-hub/src/delegation/authority.rs
++++ b/veoveo-hub/crates/veoveo-hub/src/delegation/authority.rs
+@@ -110,8 +110,9 @@
+     held: &H,
+     context: Context<F, C, A, T, D>,
+ ) -> Grant<S, R, F, C, A, T, D> {
++    let _ = held.held(&provided.requested);
+     Grant {
+-        permissions: held.held(&provided.requested),
++        permissions: provided.requested,
+         resource: provided.resource,
+         context,
+     }

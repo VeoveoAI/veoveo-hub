@@ -1,0 +1,11 @@
+--- a/veoveo-hub/crates/veoveo-hub/src/delegation/authority.rs
++++ b/veoveo-hub/crates/veoveo-hub/src/delegation/authority.rs
+@@ -148,7 +148,7 @@
+     if let Some((carried, route)) = delegation {
+         decision.granted = decision.granted.narrow(carried);
+         let allowed = match route {
+-            Route::Authenticated => true,
++            Route::Authenticated => false,
+             Route::Permission(permission) => carried.contains(permission),
+             Route::Server => !decision.granted.is_empty(),
+             Route::Undeclared => false,
