@@ -820,3 +820,261 @@ async fn hosted_publication_requires_prepared_state_and_keeps_inflight_catalog_s
         &old_runtime
     ));
 }
+
+/// A section holding groups as the Lore section does: `(tenant, principal, group, role)`.
+#[derive(Clone, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+struct GroupsFixture {
+    memberships: Vec<(String, String, String, veoveo_hub_sdk::GroupRole)>,
+}
+impl crate::contract::CatalogSection for GroupsFixture {
+    fn validate(
+        &self,
+        _: &crate::contract::CatalogFacts,
+    ) -> std::result::Result<(), veoveo_types::ExtensionError> {
+        Ok(())
+    }
+    fn protected_resources(&self) -> Vec<crate::contract::ProtectedResourceDescriptor> {
+        Vec::new()
+    }
+    fn group_memberships(
+        &self,
+    ) -> std::result::Result<
+        Vec<crate::contract::GroupMembershipDescriptor>,
+        veoveo_types::ExtensionError,
+    > {
+        Ok(self
+            .memberships
+            .iter()
+            .map(
+                |(tenant, principal, group, role)| crate::contract::GroupMembershipDescriptor {
+                    tenant: TenantId::parse(tenant.as_str()).unwrap(),
+                    principal: PrincipalId::parse(principal.as_str()).unwrap(),
+                    membership: veoveo_hub_sdk::GroupMembership {
+                        group: GroupId::parse(group.as_str()).unwrap(),
+                        role: *role,
+                    },
+                },
+            )
+            .collect())
+    }
+}
+
+const FIXTURE_GROUP_WRITE: &str = "5f0c1d2e3a4b5c6d7e8f90a1b2c3d4e5";
+const FIXTURE_GROUP_ADMIN: &str = "6a1b2c3d4e5f60718293a4b5c6d7e8f9";
+
+/// The test catalog with a delegated client, a Work Context membership granted to the
+/// write group, and the section's memberships.
+fn catalog_with_groups(
+    memberships: Vec<(&str, &str, &str, veoveo_hub_sdk::GroupRole)>,
+) -> HubCatalog {
+    let mut builder = crate::kernel_catalog_registry_builder().unwrap();
+    builder
+        .register_section::<GroupsFixture>(veoveo_types::ExtensionName::parse("groups").unwrap())
+        .unwrap();
+    let mut contexts = work_contexts();
+    contexts[0].memberships.push(WorkContextMembershipRule {
+        level: WorkContextMembershipLevel::Contributor,
+        principals: BTreeSet::new(),
+        groups: BTreeSet::from([GroupId::parse(FIXTURE_GROUP_WRITE).unwrap()]),
+        roles: BTreeSet::new(),
+        oauth_clients: BTreeSet::new(),
+    });
+    let mut clients = oauth_clients();
+    let mut delegated = clients[0].clone();
+    delegated.id = OAuthClientId::parse("operator-delegated").unwrap();
+    delegated.invocation_mode = InvocationMode::Delegated;
+    clients.push(delegated);
+    let section = GroupsFixture {
+        memberships: memberships
+            .into_iter()
+            .map(|(tenant, principal, group, role)| {
+                (tenant.into(), principal.into(), group.into(), role)
+            })
+            .collect(),
+    };
+    HubCatalog::from_control_plane(
+        HubControlPlane {
+            execution: None,
+            branding: None,
+            native_upstreams: None,
+            computers: None,
+            factory: None,
+            identity_providers: vec![identity_provider()],
+            authorization_servers: vec![authorization_server()],
+            profiles: vec![profile()],
+            authorization: Default::default(),
+            registration: None,
+            extensions: std::collections::BTreeMap::from([(
+                "groups".to_owned(),
+                serde_json::to_value(section).unwrap(),
+            )]),
+            tenants: tenants(),
+            work_contexts: contexts,
+            policies: vec![policy()],
+            data_labels: data_labels(),
+            oauth_clients: clients,
+            oidc_clients: oidc_clients(),
+            secrets: vec![signing_secret(), oidc_client_secret()],
+            metadata: Value::Null,
+        },
+        HubCatalogAdmission::unbound()
+            .bind(builder.build().unwrap())
+            .unwrap(),
+    )
+    .unwrap()
+}
+
+fn verified_for(client: &str, mode: InvocationMode, principal: Principal) -> VerifiedAccessToken {
+    let now = Utc::now();
+    VerifiedAccessToken {
+        purpose: None,
+        extensions: Default::default(),
+        access_token: veoveo_hub_sdk::AccessTokenSubject {
+            issuer: principal.issuer.clone(),
+            subject: principal.subject.clone(),
+            oauth_client_id: OAuthClientId::parse(client).unwrap(),
+            session_family: None,
+            audience: ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap(),
+            work_context: WorkContextId::parse("mission").unwrap(),
+            invocation_mode: mode,
+            initiator: Some(principal.id.clone()),
+            delegation_id: (mode == InvocationMode::Delegated)
+                .then(|| veoveo_types::DelegationId::parse("delegation-1").unwrap()),
+            scopes: principal.scopes.clone(),
+            jwt_id: None,
+            issued_at: now,
+            not_before: None,
+            expires_at: now + chrono::Duration::minutes(5),
+        },
+        principal,
+        principal_display_name: None,
+    }
+}
+
+#[test]
+fn a_subject_holds_its_groups_with_their_roles_beside_its_identity_providers() {
+    use veoveo_hub_sdk::{GroupMembership, GroupRole};
+    let person = principal(&["operator:use"]);
+    let mut from_provider = person.clone();
+    from_provider
+        .groups
+        .insert(GroupId::parse("engineering").unwrap());
+    let catalog = catalog_with_groups(vec![
+        (
+            "tenant-a",
+            "user@example.com",
+            FIXTURE_GROUP_WRITE,
+            GroupRole::Write,
+        ),
+        (
+            "tenant-a",
+            "user@example.com",
+            FIXTURE_GROUP_ADMIN,
+            GroupRole::Admin,
+        ),
+        (
+            "tenant-b",
+            "user@example.com",
+            "7b2c3d4e5f60718293a4b5c6d7e8f9a0",
+            GroupRole::Admin,
+        ),
+        (
+            "tenant-a",
+            "other@example.com",
+            "8c3d4e5f60718293a4b5c6d7e8f9a0b1",
+            GroupRole::Admin,
+        ),
+    ]);
+    let subject = catalog
+        .resolve_authenticated_subject(verified_for(
+            "operator-local-public",
+            InvocationMode::Direct,
+            from_provider,
+        ))
+        .unwrap();
+    // The caller's own call: its actor is the principal, which holds the groups of its
+    // tenant and none of another tenant's or another person's.
+    assert_eq!(subject.actor, subject.principal);
+    assert_eq!(
+        subject.actor.groups,
+        BTreeSet::from([
+            GroupId::parse("engineering").unwrap(),
+            GroupId::parse(FIXTURE_GROUP_WRITE).unwrap(),
+            GroupId::parse(FIXTURE_GROUP_ADMIN).unwrap(),
+        ])
+    );
+    assert_eq!(
+        subject.actor.group_memberships(),
+        BTreeSet::from([
+            GroupMembership {
+                group: GroupId::parse("engineering").unwrap(),
+                role: GroupRole::Read,
+            },
+            GroupMembership {
+                group: GroupId::parse(FIXTURE_GROUP_WRITE).unwrap(),
+                role: GroupRole::Write,
+            },
+            GroupMembership {
+                group: GroupId::parse(FIXTURE_GROUP_ADMIN).unwrap(),
+                role: GroupRole::Admin,
+            },
+        ])
+    );
+    // The Work Context membership granted to the write group is held through it.
+    assert_eq!(
+        subject.authority.membership,
+        WorkContextMembershipLevel::Contributor
+    );
+
+    // The revision that removed the memberships leaves none, and no membership.
+    let removed = catalog_with_groups(Vec::new());
+    assert_eq!(
+        removed.with_group_memberships(person.clone()),
+        person.clone()
+    );
+    assert!(matches!(
+        removed.resolve_authenticated_subject(verified_for(
+            "operator-local-public",
+            InvocationMode::Direct,
+            person.clone(),
+        )),
+        Err(HubAuthorityError::MembershipDenied { .. })
+    ));
+
+    // A server's call for the caller: its actor is the server and holds no groups.
+    let delegated = catalog
+        .resolve_authenticated_subject(verified_for(
+            "operator-delegated",
+            InvocationMode::Delegated,
+            person,
+        ))
+        .unwrap();
+    assert!(delegated.actor.groups.is_empty());
+    assert!(delegated.actor.group_roles.is_empty());
+}
+
+#[test]
+fn a_role_granted_to_a_groups_id_is_held_through_it() {
+    use crate::control_plane::{GrantSubject, InstallationAuthorization, RoleGrant};
+    let catalog = catalog_with_groups(vec![(
+        "tenant-a",
+        "user@example.com",
+        FIXTURE_GROUP_WRITE,
+        veoveo_hub_sdk::GroupRole::Write,
+    )]);
+    let installation = InstallationAuthorization {
+        roles: Vec::new(),
+        grants: vec![RoleGrant {
+            role: RoleId::parse("billed").unwrap(),
+            subject: GrantSubject::Group(GroupId::parse(FIXTURE_GROUP_WRITE).unwrap()),
+            tenant: Some(TenantId::parse("tenant-a").unwrap()),
+        }],
+        overrides: Vec::new(),
+    };
+    let person = principal(&["operator:use"]);
+    assert!(crate::policy::held_roles(&installation, &person).is_empty());
+    assert_eq!(
+        crate::policy::held_roles(&installation, &catalog.with_group_memberships(person)),
+        BTreeSet::from([RoleId::parse("billed").unwrap()])
+    );
+}

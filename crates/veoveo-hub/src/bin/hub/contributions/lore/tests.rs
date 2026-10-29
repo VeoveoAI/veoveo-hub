@@ -586,6 +586,39 @@ fn a_persons_actions_unite_their_own_assignment_and_their_groups() {
     );
 }
 
+#[test]
+fn a_groups_members_hold_it_by_its_id_writing_and_its_owners_administering() {
+    use veoveo_hub_sdk::{GroupMembership, GroupRole};
+    let current = catalog(grouped());
+    let memberships = |principal: &str, tenant: &str| {
+        current
+            .sections()
+            .group_memberships(
+                &TenantId::parse(tenant).unwrap(),
+                &PrincipalId::parse(principal).unwrap(),
+            )
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    let group = veoveo_types::GroupId::parse(GROUP).unwrap();
+    assert_eq!(
+        memberships("native-alice", "tenant-a"),
+        vec![GroupMembership {
+            group: group.clone(),
+            role: GroupRole::Write,
+        }]
+    );
+    assert_eq!(
+        memberships("native-bob", "tenant-a"),
+        vec![GroupMembership {
+            group,
+            role: GroupRole::Admin,
+        }]
+    );
+    assert!(memberships("native-carol", "tenant-a").is_empty());
+    assert!(memberships("native-alice", "tenant-b").is_empty());
+}
+
 /// Whether the configuration's admission accepts `plane`.
 fn admits(plane: HubControlPlane) -> bool {
     HubCatalog::from_control_plane(

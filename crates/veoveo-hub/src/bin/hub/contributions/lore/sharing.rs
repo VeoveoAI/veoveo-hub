@@ -129,6 +129,8 @@ struct MemberView {
 
 #[derive(Serialize)]
 struct GroupView {
+    /// The ID grants outside Lore name the group by.
+    id: GroupId,
     name: GroupName,
     members: Vec<MemberView>,
 }
@@ -466,6 +468,7 @@ fn group_view(group: &Group, people: &[Person]) -> GroupView {
             .then(a.cmp(b))
     });
     GroupView {
+        id: group.id.clone(),
         name: group.name.clone(),
         members: members.into_iter().map(|(_, member)| member).collect(),
     }
