@@ -9,7 +9,7 @@ use rmcp::{
     service::{RequestContext, RoleServer},
 };
 use veoveo_hub_sdk::HubDiscoveryMetadata;
-use veoveo_hub_sdk::hub::HubDiscoveryDegradation;
+use veoveo_hub_sdk::hub::HubDiscovery;
 use veoveo_hub_sdk::hub::{HubDiscoveryFailure, HubDiscoverySurface};
 use veoveo_hub_sdk::{HUB_TASK_RESOURCE_TEMPLATE, HubTaskStatus, HubTaskStatusDocument};
 
@@ -66,7 +66,7 @@ impl HubMcp {
         &self,
         context: RequestContext<RoleServer>,
         subject: crate::AuthenticatedSubject,
-    ) -> Result<(Vec<rmcp::model::Resource>, HubDiscoveryDegradation, u32), McpError> {
+    ) -> Result<(Vec<rmcp::model::Resource>, HubDiscovery, u32), McpError> {
         let profile_server_list = self.profile_servers();
         let snapshot = self.catalog.snapshot();
         let catalog = snapshot.catalog().clone();
@@ -158,7 +158,7 @@ impl HubMcp {
                 });
             }
         }
-        Ok((resources, HubDiscoveryDegradation::new(failures), denied))
+        Ok((resources, HubDiscovery::new(failures), denied))
     }
 
     pub(super) async fn discover_resources_for_server(
@@ -272,7 +272,7 @@ impl HubMcp {
         &self,
         context: RequestContext<RoleServer>,
         subject: crate::AuthenticatedSubject,
-    ) -> Result<(Vec<ResourceTemplate>, HubDiscoveryDegradation, u32), McpError> {
+    ) -> Result<(Vec<ResourceTemplate>, HubDiscovery, u32), McpError> {
         let snapshot = self.catalog.snapshot();
         let catalog = snapshot.catalog().clone();
         let catalog_generation = snapshot.generation();
@@ -368,7 +368,7 @@ impl HubMcp {
                 });
             }
         }
-        Ok((templates, HubDiscoveryDegradation::new(failures), denied))
+        Ok((templates, HubDiscovery::new(failures), denied))
     }
 
     async fn discover_resource_templates_for_server(

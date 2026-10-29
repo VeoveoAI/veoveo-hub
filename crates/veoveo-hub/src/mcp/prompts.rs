@@ -28,7 +28,7 @@ use super::{
 
 impl HubMcp {
     /// Lists prompts from every profile server that exposes them. A server that
-    /// fails discovery is left out and named in degradation metadata, unless the
+    /// fails discovery is left out and named in the `ai.veoveo/hub` metadata, unless the
     /// profile requires complete discovery.
     pub(super) async fn handle_list_prompts(
         &self,
