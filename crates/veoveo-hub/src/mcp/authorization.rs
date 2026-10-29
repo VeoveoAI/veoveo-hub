@@ -22,6 +22,7 @@ use crate::{
 };
 
 use super::HubMcp;
+use crate::state::task_decision;
 
 pub(super) struct CanonicalTaskRoute {
     pub(super) hub: HubMcp,
@@ -88,7 +89,6 @@ impl HubMcp {
         trace_id: Option<TraceId>,
     ) -> Result<CanonicalTaskRoute, McpError> {
         let task_id = route.id.as_str().to_owned();
-        let canonical_task_id = route.id.clone();
         let tenant_key = subject.authority.tenant.as_str();
         let expected_tenant = deterministic_tenant_id(tenant_key)
             .map_err(|error| mcp_internal(format!("invalid task tenant: {error}")))?;
@@ -97,64 +97,90 @@ impl HubMcp {
         let expected_work_context =
             deterministic_work_context_id(tenant_key, subject.authority.work_context.as_str())
                 .map_err(|error| mcp_internal(format!("invalid task Work Context: {error}")))?;
-        if route.tenant != expected_tenant
-            || route.owner != expected_owner
-            || route.work_context != expected_work_context
-            || route.profile != self.profile_id
-        {
-            tracing::warn!(
-                %task_id,
-                caller_actor = %subject.actor.id,
-                caller_initiator = %subject.principal.id,
-                caller_profile = %self.profile_id,
-                caller_tenant = ?subject.actor.tenant,
-                "canonical task ownership did not match the authenticated subject"
-            );
-            return Err(mcp_invalid_params("unknown task id"));
-        }
-        if !route.ownership.allows(&subject.actor, &subject.authority) {
-            return Err(mcp_invalid_params("unknown task id"));
-        }
+        let request = task_decision::admit_owner(
+            task_decision::Binding {
+                tenant: route.tenant,
+                owner: route.owner,
+                work_context: route.work_context,
+                profile: route.profile,
+            },
+            task_decision::Ownership {
+                identity: route.ownership.identity(),
+                labels: &route.ownership.labels(),
+            },
+            task_decision::Task {
+                server: route.server,
+                deployment: route.deployment,
+                canonical: route.id,
+                source: route.source_task_id,
+                capture: route.execution,
+            },
+            task_decision::Caller {
+                binding: task_decision::Binding {
+                    tenant: expected_tenant,
+                    owner: expected_owner,
+                    work_context: expected_work_context,
+                    profile: self.profile_id.clone(),
+                },
+                ownership: task_decision::Ownership {
+                    identity: crate::state::HubTaskOwnership::current_identity(
+                        &subject.actor,
+                        &subject.authority,
+                    ),
+                    labels: &subject.actor.data_labels.iter().collect::<Vec<_>>(),
+                },
+                delegated: subject.delegation.is_some(),
+                capture: subject.execution.clone(),
+                payload: subject.clone(),
+            },
+        )
+        .map_err(|refusal| {
+            if refusal == task_decision::Refusal::Binding {
+                tracing::warn!(
+                    %task_id,
+                    caller_actor = %subject.actor.id,
+                    caller_initiator = %subject.principal.id,
+                    caller_profile = %self.profile_id,
+                    caller_tenant = ?subject.actor.tenant,
+                    "canonical task ownership did not match the authenticated subject"
+                );
+            }
+            mcp_invalid_params("unknown task id")
+        })?;
         // Task ownership is checked before using its retained routing capture.
         // Current routing may differ; current domain policy still applies.
-        if subject.delegation.is_some() && subject.execution.as_ref() != Some(&route.execution) {
-            return Err(mcp_invalid_params("unknown task id"));
-        }
         let snapshot = self.live_catalog.snapshot();
         let composition = self
             .state
             .hub_store()
-            .composition(&route.execution.composition)
+            .composition(&request.task.capture.composition)
             .await
             .map_err(|_| mcp_internal("Task composition storage is unavailable"))?
-            .filter(|capture| {
-                capture.context() == route.execution
-                    && capture.components().get(&route.server)
-                        == Some(&veoveo_hub_sdk::ResolvedComponent::Deployment {
-                            deployment: route.deployment,
-                        })
-            })
             .ok_or_else(|| mcp_invalid_params("unknown task id"))?;
+        let deployment = match composition.components().get(&request.task.server) {
+            Some(veoveo_hub_sdk::ResolvedComponent::Deployment { deployment }) => Some(*deployment),
+            _ => None,
+        };
+        let request = task_decision::capture(request, composition.context(), deployment)
+            .map_err(|_| mcp_invalid_params("unknown task id"))?;
         let hub = self.for_execution(&snapshot, &composition);
-        let server = route.server;
         let exposed = hub
             .catalog
             .current()
             .profile_servers(&self.profile_id)
             .into_iter()
             .any(|manifest| {
-                manifest.slug == server
-                    && manifest.deployment == route.deployment
+                manifest.slug == request.task.server
+                    && manifest.deployment == request.task.deployment
                     && manifest.capabilities.tasks
             });
         if !exposed {
             return Err(mcp_invalid_params("Task deployment is unavailable"));
         }
-        let mut subject = subject.clone();
-        subject.execution = Some(route.execution);
+        let subject = with_task_execution(request.caller, request.task.capture);
         let target = PolicyTarget::Task {
-            server: server.clone(),
-            task_id: canonical_task_id,
+            server: request.task.server.clone(),
+            task_id: request.task.canonical,
         };
         let subject = match trace_id {
             Some(trace_id) => {
@@ -165,8 +191,8 @@ impl HubMcp {
         };
         Ok(CanonicalTaskRoute {
             hub,
-            task_id: route.source_task_id,
-            server,
+            task_id: request.task.source,
+            server: request.task.server,
             subject,
         })
     }
@@ -587,6 +613,15 @@ impl HubMcp {
             ))),
         }
     }
+}
+
+/// The pure request keeps current authority opaque; this adapter changes only execution.
+pub(super) fn with_task_execution(
+    mut subject: AuthenticatedSubject,
+    capture: veoveo_hub_sdk::ExecutionContext,
+) -> AuthenticatedSubject {
+    subject.execution = Some(capture);
+    subject
 }
 
 fn trace_id_for_context(context: &RequestContext<RoleServer>) -> Result<TraceId, McpError> {

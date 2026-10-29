@@ -85,3 +85,36 @@ subscription authority. The administrative Task cancel finds the caller's route 
 identifier the server issued, in the caller's tenant and profile, and then follows the
 same path: ownership, capture, current access and a forwarded `tasks/cancel` to the
 route's deployment.
+
+## Decision And Dispatch Boundary
+
+Task continuity has two distinct decisions. Projection checks that the proposed
+composition selects the Task's deployment; a retry then either refuses the existing
+route or returns that route unchanged, including its original capture and expiry.
+It does not replace that capture with the proposed one when both select the same
+deployment. Reading, updating, cancelling and listening instead admit the current
+caller against the retained route, restore its capture and apply current exposure
+and policy before dispatch.
+
+The dependency-light decision module beside this design is shared by production
+and the manual proof package. Its inputs retain the binding fields, ownership and
+provenance, labels, captured execution and deployment rather than an already-made
+authorization decision. Its successful results carry the retained route or the
+captured Task request and current caller. Forwarding consumes those results; a
+successful decision cannot silently choose the current ordinary deployment or
+restore the authority recorded at creation.
+
+The admission phases preserve the existing order: owner and delegated-capture
+checks precede the retained-composition read, capture/deployment agreement precedes
+exposure, and current policy precedes successful dispatch assembly. Store failures
+remain failures, and existing refusal responses retain their meaning. The pure
+boundary neither repeats nor replaces a database constraint, atomic insert,
+expiration query or policy decision.
+
+Manual proofs concern those production-called decisions and their output fields,
+under explicit lawful equality and label-set assumptions. Storage supplies the
+requested retained composition and current registration snapshot; policy supplies
+its actual current admission, not a grant copied from Task creation. SQL uniqueness,
+concurrent projection and pruning, token verification and signing, and transport
+delivery remain separate obligations. Core owns Task state transitions, cancellation
+and recovery; proving a Hub dispatch decision does not prove that SQL lifecycle.

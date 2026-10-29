@@ -88,3 +88,26 @@ fn delegated_ownership_requires_the_same_initiator_and_grant() {
         assert!(!owner.allows(&caller.actor, &caller.authority));
     }
 }
+
+#[test]
+fn captured_task_adapter_preserves_the_entire_current_subject_except_execution() {
+    let current = subject();
+    let captured = veoveo_hub_sdk::ResolvedComposition::new(
+        [(
+            veoveo_hub_sdk::ServerSlug::parse("upstream-a").unwrap(),
+            veoveo_hub_sdk::ResolvedComponent::Unavailable {},
+        )]
+        .into_iter()
+        .collect(),
+    )
+    .context();
+    assert_ne!(current.execution.as_ref(), Some(&captured));
+    let mut expected = current.clone();
+    expected.execution = Some(captured.clone());
+    let actual = super::authorization::with_task_execution(current, captured);
+    assert_eq!(actual, expected);
+    let context = actual.request_context().unwrap();
+    assert_eq!(context.execution, actual.execution.unwrap());
+    assert_eq!(context.access_token, expected.access_token);
+    assert_eq!(context.principal, expected.principal);
+}

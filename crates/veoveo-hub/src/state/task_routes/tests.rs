@@ -266,10 +266,16 @@ async fn same_deployment_retry_preserves_first_execution_capture() {
     let state = HubState::new(db.a.clone());
     let input = draft();
     let (canonical, first) = state.create_task_route(input.clone()).await.unwrap();
-    let second = veoveo_hub_sdk::ResolvedComposition::new(capture().components().clone());
+    let mut components = capture().components().clone();
+    components.insert(
+        ServerSlug::parse("another-server").unwrap(),
+        veoveo_hub_sdk::ResolvedComponent::Unavailable {},
+    );
+    let second = veoveo_hub_sdk::ResolvedComposition::new(components);
     state.hub_store().retain_composition(&second).await.unwrap();
     let mut retry = input;
     retry.execution = second.context();
+    assert_ne!(retry.execution, first.execution);
     let (same, retained) = state.create_task_route(retry).await.unwrap();
     assert_eq!(same, canonical);
     assert_eq!(retained.execution, first.execution);

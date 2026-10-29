@@ -1,0 +1,11 @@
+--- a/veoveo-hub/crates/veoveo-hub/src/state/task_routes/decision.rs
++++ b/veoveo-hub/crates/veoveo-hub/src/state/task_routes/decision.rs
+@@ -151,7 +151,7 @@
+     proposed_key: K,
+     now: E,
+ ) -> Result<Retained<K, C, E, R>, Refusal> {
+-    if retained.key == proposed_key && retained.expires > now {
++    if retained.key == proposed_key && retained.expires >= now {
+         Ok(retained)
+     } else {
+         Err(Refusal::Retry)

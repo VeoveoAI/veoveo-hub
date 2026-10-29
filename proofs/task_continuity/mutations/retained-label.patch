@@ -1,0 +1,11 @@
+--- a/veoveo-hub/crates/veoveo-hub/src/state/task_routes/decision.rs
++++ b/veoveo-hub/crates/veoveo-hub/src/state/task_routes/decision.rs
+@@ -54,7 +54,7 @@
+     retained: Ownership<I, &[L]>,
+     current: Ownership<I, &[L]>,
+ ) -> bool {
+-    retained.identity == current.identity && contains_all(retained.labels, current.labels)
++    retained.identity == current.identity
+ }
+ 
+ /// Entry multiplicity and label order do not change containment.

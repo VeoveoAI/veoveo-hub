@@ -1,0 +1,11 @@
+--- a/veoveo-hub-sdk/crates/veoveo-hub-sdk/src/internal_auth/recipient.rs
++++ b/veoveo-hub-sdk/crates/veoveo-hub-sdk/src/internal_auth/recipient.rs
+@@ -20,8 +20,5 @@
+     if expected.server != presented.server || expected.resource != presented.resource {
+         return Err(Mismatch::Audience);
+     }
+-    if expected.deployment != presented.deployment {
+-        return Err(Mismatch::Deployment);
+-    }
+     Ok(presented)
+ }

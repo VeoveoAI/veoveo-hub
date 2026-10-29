@@ -23,6 +23,12 @@ unproved. Relative links navigate the current tree; function names and the origi
 review revisions identify the source context.
 Historical named-environment checks are not forward-looking requirements here.
 
+The Task-continuity qualification is a separate source boundary: changed Hub files
+based on `651390dbbb8b4e65b5b8bcd3f8714a981fac2371` and the exact sibling SDK files
+based on `7e2489dccbee6d00b377b174f68f9d5de692a68b`. Its shared-source package records
+both snapshots. Hub's SDK pin remains `a41c9cc6c81f6c0305dd41165defb142740ed6b1`;
+the private SDK refactor is not claimed to be present in that dependency or deployed.
+
 Keep two independent fields for each result:
 
 - **Formal status:** `unproved`, `partial`, or `proved-within-stated-boundary`.
@@ -40,7 +46,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 
 | ID | System property | Formal status | Next useful work |
 | --- | --- | --- | --- |
-| HUB-TASK-01 | Captured Task routing and retry integrity | unproved | **Next investigation:** trace creation through dispatch |
+| HUB-TASK-01 | Captured Task routing and retry integrity | partial | SQL and asynchronous adapter refinement remain |
 | HUB-AUTH-01 | Current policy and delegated authority do not amplify access | unproved | Isolate an existing permission/rule decision |
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | unproved | Specify the pure current-family decision first |
 | HUB-CONFIG-01 | Coherent live configuration publication | unproved | Model transaction/CAS semantics |
@@ -60,22 +66,40 @@ another deployment or mismatched owner/profile/WorkContext/authority cannot rebi
 that route. A changed proposed composition is not itself a reason to replace the
 stored capture. Prevents Task misrouting, ownership confusion and retention extension.
 
-- **Source:** [creation/capture check and reusable](../crates/veoveo-hub/src/state/task_routes.rs#L219),
+- **Source:** [shared decisions](../crates/veoveo-hub/src/state/task_routes/decision.rs),
+  [creation/capture check and reusable](../crates/veoveo-hub/src/state/task_routes.rs#L267),
   [conflict-preserving insert](../crates/veoveo-hub/src/state/task_routes/create.sql),
-  [authorize_task_route](../crates/veoveo-hub/src/mcp/authorization.rs#L83),
+  [authorize_task_route](../crates/veoveo-hub/src/mcp/authorization.rs#L84),
   [Task forwarding](../crates/veoveo-hub/src/mcp/tasks.rs#L31), and
   [ownership comparison](../crates/veoveo-hub/src/state/task_routes.rs#L83).
-- **Tests:** [task route tests](../crates/veoveo-hub/src/state/task_routes/tests.rs):
+- **Formal boundary:** [manual Task package](task_continuity/README.md) proves total
+  label containment and exact owner/capture/retry/recipient outcomes, including
+  success iff the conditions hold and preservation of the original canonical/source
+  IDs, server, deployment, capture, expiry and opaque current caller payload. The
+  composed extracted-function trace uses the actual private SDK recipient decision
+  with an arbitrary expected recipient; it is not a proof of asynchronous Hub dispatch.
+  These decisions are **proved-within-stated-boundary**; the system property stays partial.
+- **Tests/adapters:** [task route tests](../crates/veoveo-hub/src/state/task_routes/tests.rs):
   `same_deployment_retry_preserves_first_execution_capture`,
   `identical_source_tasks_from_two_deployments_never_share_a_route`, and concurrent
-  projection/changed-authority/expiry cases. [Calls](../crates/veoveo-hub/tests/calls.rs)
-  covers retained delegation; origin's composition-only context retains this intent.
-- **Boundary/effort:** moderate for an extracted comparison kernel; substantial for
-  end-to-end creation/read/authorization/dispatch correspondence. Assume correct ID
-  comparisons, time and authoritative composition lookup; do not silently assume SQL.
-- **Residual/next:** trace all four stages first, then choose a useful shared boundary.
-  A predicate-only proof is partial. Uniqueness, atomic competing inserts, pruning,
-  current policy and actual upstream routing still need database/integration evidence.
+  projection/changed-authority/expiry cases. The retry test now explicitly uses a
+  different proposed composition selecting the same Task deployment.
+  [Whole-subject adapter regression](../crates/veoveo-hub/src/mcp/task_ownership_tests.rs#L93)
+  checks that only execution is replaced. [Routing](../crates/veoveo-hub/tests/routing.rs)
+  and [calls](../crates/veoveo-hub/tests/calls.rs) exercise retained routing/delegation.
+- **Assumptions/applicability:** exact source/model snapshots; total, correct `eq`
+  and `ne`; faithful typed identity/label projections; exact strict time ordering.
+  The [receipt](task_continuity/evidence/task-continuity-receipt.json) records fresh
+  baseline, four legal semantic mutants and restored passes, plus the exact focused
+  Rust targets. Mutants compile/extract but fail unchanged semantic proofs and concrete
+  witnesses. No deployed or model-driven run is claimed by this slice.
+- **Residual/next:** authoritative SQL lookup/expiry selection, uniqueness/concurrent
+  insertion, pruning, current policy, Task/session liveness, selected-registration
+  endpoint association, the concrete subject/token adapters, cryptography and transport
+  remain outside the formal boundary; review and focused tests cover only the cases
+  in the receipt.
+  Core's Task claim/revision/cancellation/recovery SQL is not proved. A serious next
+  lifecycle proof needs implementation-linked SQL refinement, not a Rust shadow reducer.
 
 ## HUB-AUTH-01 — Current policy and delegated authority
 
@@ -87,7 +111,7 @@ allow. Delegated callers do not acquire administrative access from an admin prin
 
 - **Source:** [narrow/issue/held/subject_of](../crates/veoveo-hub/src/delegation.rs),
   [policy decide and assemble_rule_outcome](../crates/veoveo-hub/src/policy/evaluation.rs#L38),
-  [MCP delegation narrowing](../crates/veoveo-hub/src/mcp/authorization.rs#L392),
+  [MCP delegation narrowing](../crates/veoveo-hub/src/mcp/authorization.rs#L404),
   and [existing delegated-admin refusal](../crates/veoveo-hub/src/http/action_audit.rs#L45).
 - **Tests:** [calls scenario](../crates/veoveo-hub/tests/calls.rs#L66) checks narrowed
   downstream permissions, actors, Task-derived calls, expiry and delegated-admin

@@ -14,6 +14,7 @@ pub use refresh_tokens::{
     HubRefreshRotationRequest, IssuedHubRefreshToken, REFRESH_TOKEN_TTL_SECONDS,
     RefreshTokenDeliveryCipher,
 };
+pub(crate) use task_routes::decision as task_decision;
 pub(crate) use task_routes::{HubTaskOwnership, HubTaskRoute, HubTaskRouteDraft};
 
 /// Selection changes a replica holds for listens that have not read them yet.

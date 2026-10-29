@@ -1,0 +1,8 @@
+[package]
+name = "hub-task-proof"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Charon's compiler is independent of the complete Hub dependency graph.
+[workspace]

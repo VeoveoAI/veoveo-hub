@@ -1,0 +1,11 @@
+--- a/veoveo-hub/crates/veoveo-hub/src/state/task_routes/decision.rs
++++ b/veoveo-hub/crates/veoveo-hub/src/state/task_routes/decision.rs
+@@ -111,7 +111,7 @@
+ ) -> bool {
+     if retained == actual {
+         match selected {
+-            Some(selected) => &selected == deployment,
++            Some(_selected) => true,
+             None => false,
+         }
+     } else {

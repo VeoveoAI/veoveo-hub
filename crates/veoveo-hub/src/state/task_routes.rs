@@ -19,6 +19,8 @@ use veoveo_types::{
 
 use super::HubState;
 
+pub(crate) mod decision;
+
 const DEFAULT_TASK_ROUTE_TTL_MS: u64 = 7 * 24 * 60 * 60 * 1_000;
 const MAX_SOURCE_TASK_ID_BYTES: usize = 512;
 
@@ -79,13 +81,62 @@ impl HubTaskOwnership {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn allows(&self, actor: &Principal, authority: &InvocationAuthority) -> bool {
-        let mut current = Self::from_invocation(actor, authority);
-        if !self.data_labels.is_subset(&current.data_labels) {
-            return false;
-        }
-        current.data_labels = self.data_labels.clone();
-        self == &current
+        decision::owns(
+            decision::Ownership {
+                identity: self.identity(),
+                labels: &self.labels(),
+            },
+            decision::Ownership {
+                identity: Self::current_identity(actor, authority),
+                labels: &actor.data_labels.iter().collect::<Vec<_>>(),
+            },
+        )
+    }
+
+    pub(crate) fn current_identity<'a>(
+        actor: &'a Principal,
+        authority: &'a InvocationAuthority,
+    ) -> (
+        &'a veoveo_types::PrincipalId,
+        PrincipalKind,
+        &'a TokenIssuer,
+        &'a TokenSubject,
+        &'a InvocationProvenance,
+    ) {
+        (
+            &actor.id,
+            match actor.kind {
+                veoveo_hub_sdk::PrincipalKind::User => PrincipalKind::User,
+                veoveo_hub_sdk::PrincipalKind::Service => PrincipalKind::Service,
+            },
+            &actor.issuer,
+            &actor.subject,
+            &authority.provenance,
+        )
+    }
+
+    pub(crate) fn identity(
+        &self,
+    ) -> (
+        &veoveo_types::PrincipalId,
+        PrincipalKind,
+        &TokenIssuer,
+        &TokenSubject,
+        &InvocationProvenance,
+    ) {
+        (
+            &self.principal,
+            self.kind,
+            &self.issuer,
+            &self.subject,
+            &self.provenance,
+        )
+    }
+
+    pub(crate) fn labels(&self) -> Vec<&DataLabelId> {
+        self.data_labels.iter().collect()
     }
 }
 
@@ -227,12 +278,17 @@ impl HubState {
             .composition(&draft.execution.composition)
             .await?
             .context("Task execution composition is not retained")?;
+        let selected = match capture.components().get(&draft.server) {
+            Some(veoveo_hub_sdk::ResolvedComponent::Deployment { deployment }) => Some(*deployment),
+            _ => None,
+        };
         ensure!(
-            capture.context() == draft.execution
-                && capture.components().get(&draft.server)
-                    == Some(&veoveo_hub_sdk::ResolvedComponent::Deployment {
-                        deployment: draft.deployment
-                    }),
+            decision::capture_matches(
+                &draft.execution,
+                &capture.context(),
+                &draft.deployment,
+                selected,
+            ),
             "Task deployment is not selected by its captured composition"
         );
         let now = Utc::now();
@@ -470,20 +526,41 @@ fn reusable(
     identity: &RouteIdentity,
     now: DateTime<Utc>,
 ) -> Result<(CanonicalTaskId, HubTaskRoute)> {
-    ensure!(
-        route.tenant == identity.tenant
-            && route.owner == identity.owner
-            && route.work_context == identity.work_context
-            && route.profile == draft.profile
-            && route.server == draft.server
-            && route.deployment == draft.deployment
-            && route.source_task_id == draft.source_task_id
-            && route.authority_digest == draft.authority_digest
-            && route.ownership == draft.ownership
-            && route.expires_at > now,
-        "the existing task route does not admit this retry"
+    let retained_key = (
+        route.tenant,
+        route.owner,
+        route.work_context,
+        &route.profile,
+        &route.server,
+        route.deployment,
+        &route.source_task_id,
+        &route.authority_digest,
+        &route.ownership,
     );
-    Ok((route.id.clone(), route))
+    let proposed_key = (
+        identity.tenant,
+        identity.owner,
+        identity.work_context,
+        &draft.profile,
+        &draft.server,
+        draft.deployment,
+        &draft.source_task_id,
+        &draft.authority_digest,
+        &draft.ownership,
+    );
+    let retained = decision::reuse(
+        decision::Retained {
+            key: retained_key,
+            capture: &route.execution,
+            expires: route.expires_at,
+            record: &route,
+        },
+        proposed_key,
+        now,
+    )
+    .map_err(|_| anyhow!("the existing task route does not admit this retry"))?;
+    let id = retained.record.id.clone();
+    Ok((id, route))
 }
 
 fn new_task_route_id() -> Result<CanonicalTaskId> {

@@ -1,0 +1,678 @@
+{
+  "date": "2026-10-29",
+  "status": "passed within the stated extracted-function boundary; system Task property partial",
+  "agents": {
+    "coordinator": "GPT-6 Astra",
+    "coder": "GPT-6.1 Sol",
+    "builder": "GPT-6 Luna"
+  },
+  "source_bases": {
+    "veoveo-hub": "651390dbbb8b4e65b5b8bcd3f8714a981fac2371",
+    "veoveo-hub-sdk": "7e2489dccbee6d00b377b174f68f9d5de692a68b"
+  },
+  "hub_sdk_pin_unchanged": "a41c9cc6c81f6c0305dd41165defb142740ed6b1",
+  "source_and_proof_sha256": {
+    "veoveo-hub-sdk/crates/veoveo-hub-sdk/src/internal_auth/recipient.rs": "038868d521a67a8780e458fe404688a960da05c3837aece655372d266d6830f4",
+    "veoveo-hub/crates/veoveo-hub/src/state/task_routes/decision.rs": "42001518ef51d33535d79fb5dbe57a911fda35c762235fd09f97864a98222344",
+    "veoveo-hub/proofs/task_continuity/HubTaskProof.lean": "6fdf0a9e22e1a953d65d9de23b0a67f94b7f0958ed7b772175267c7332c23c7c",
+    "veoveo-hub/proofs/task_continuity/TaskContinuityProof.lean": "929caaf4f9b2a6a025d06a56ca4f872d6aa02b213f34967d714e96310a724885",
+    "veoveo-hub/proofs/task_continuity/TaskDispatchProof.lean": "9faa5a6a6bf7ba4f1b79caca32ddb98adf4a88ca4fa27e2821df3cff8acbd194",
+    "veoveo-hub/proofs/task_continuity/lake-manifest.json": "ee42312055b9b9ded22140ebd23bc0b289df94f8b21708fc4f814e1a9190c873",
+    "veoveo-hub/proofs/task_continuity/rust/src/lib.rs": "b2c3aebe37264c18fcd6459d929dfbe832b7e0112031126fd68bd7880ca44727"
+  },
+  "frozen_input": {
+    "archive": {
+      "path": "/tmp/hub-task-proof-20261029/proof-source-1.tar",
+      "sha256": "92458eb28623e7c8e468476cb16c08a7a8ea1d61e83ad3af1370eee229413301"
+    },
+    "manifest": {
+      "path": "/tmp/hub-task-proof-20261029/proof-source-1-manifest.json",
+      "sha256": "7d5065f1083c4aad048b15a860079a2d6273c5d909f6ec7acddc0a64539a25bb"
+    },
+    "verified_files": 25,
+    "note": "Later README/coverage prose and this derived receipt were not in that historical freeze; runtime/generated/handwritten proof bytes are unchanged."
+  },
+  "tools": {
+    "aeneas_commit": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "charon_commit": "de8736f7c995ac54dc490345cef9ea5143c06c62",
+    "rust_toolchain": "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+    "lean": "4.35.0",
+    "binaries": {
+      "aeneas": {
+        "path": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+        "sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c"
+      },
+      "charon": {
+        "path": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+        "sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74"
+      },
+      "charon-driver": {
+        "path": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon-driver",
+        "sha256": "0bbfebd1e1cc5715e9b3b85cea8a321c13fb07d218847b692243c9cad054a96d"
+      },
+      "lean": {
+        "path": "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lean",
+        "sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38"
+      },
+      "lake": {
+        "path": "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1"
+      },
+      "rustc": {
+        "path": "/home/rozgo/.cache/lean-pilot/rustup/toolchains/nightly-2026-09-17-x86_64-unknown-linux-gnu/bin/rustc",
+        "sha256": "f6636ed825b134896bdbff0b433a0d064df766971b8b6610db5e18165d166aee"
+      }
+    }
+  },
+  "environment": {
+    "RUSTUP_HOME": "/home/rozgo/.cache/lean-pilot/rustup",
+    "CARGO_HOME": "/home/rozgo/.cache/lean-pilot/cargo",
+    "RUSTUP_TOOLCHAIN": "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+    "LD_LIBRARY_PATH_prepend": "/home/rozgo/.cache/lean-pilot/rustup/toolchains/nightly-2026-09-17-x86_64-unknown-linux-gnu/lib",
+    "PATH_prepend": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release",
+      "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin",
+      "/home/rozgo/.cache/lean-pilot/rustup/toolchains/nightly-2026-09-17-x86_64-unknown-linux-gnu/bin",
+      "/home/rozgo/.cache/lean-pilot/cargo/bin"
+    ]
+  },
+  "commands": {
+    "cargo-check": "cargo check --locked --lib",
+    "rust-tests": "cargo test --locked --lib",
+    "charon": "charon cargo --preset=aeneas",
+    "aeneas": "aeneas -backend lean -dest . rust/hub_task_proof.llbc",
+    "lake-model-and-label": "lake build HubTaskProof TaskContinuityProof",
+    "lake-default": "lake build",
+    "label-proof": "lake env lean TaskContinuityProof.lean",
+    "dispatch-proof": "lake env lean TaskDispatchProof.lean",
+    "witness": "cargo test --locked --lib FILTER",
+    "cwd": "Cargo/Charon in proofs/task_continuity/rust; Aeneas/Lake/Lean in proofs/task_continuity; both source repositories are siblings."
+  },
+  "baseline": {
+    "extraction": {
+      "summary": {
+        "sha256": "ec6a423c6a30c62364911a32ec2ec85bcb6435e776661f66f47bdb2d3dae77c0",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/summary.log"
+      },
+      "stages": {
+        "rust-test": {
+          "actual_exit": 0,
+          "elapsed_ms": 153,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/logs/rust-test.log",
+            "sha256": "e5ccf652cc1eb6af890321a00947256f929dd313bc175c2477a1939d951418c2"
+          }
+        },
+        "charon": {
+          "actual_exit": 0,
+          "elapsed_ms": 215,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/logs/charon.log",
+            "sha256": "93ab2c0199de00e8688931fadc5c1d54fc53ec8b64725119c2991897c3779af0"
+          }
+        },
+        "aeneas": {
+          "actual_exit": 0,
+          "elapsed_ms": 1150,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/logs/aeneas.log",
+            "sha256": "61b44dcfe63868efb7c18ce72747409ce32554aef91f19817f4c470be0b29dc3"
+          }
+        }
+      }
+    },
+    "label": {
+      "summary": {
+        "sha256": "fd9fd15d8400518a6541b2161d5705ff0ae7f7044a70b4d8456c9465d1b0a968",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/proof-logs/iteration7-summary.txt"
+      },
+      "actual_exit": 0,
+      "elapsed_ms": 3001,
+      "log": {
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/proof-logs/lean-proof-iteration7.log",
+        "sha256": "2a6fe9482ae7f024fff8ccf056d4f19ddb31a39821c7d431c674a94707beb7e1"
+      }
+    },
+    "dispatch": {
+      "summary": {
+        "sha256": "8f5243420e3e54c4f1eddd87680dd6325c405d269e6740bb4da095c2d54c4ac6",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/proof-logs/dispatch-iteration3-summary.txt"
+      },
+      "actual_exit": 0,
+      "elapsed_ms": 4507,
+      "log": {
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/proof-logs/dispatch-proof-iteration3.log",
+        "sha256": "8823e39503174950b6cc1c8329dc4ba688a61a88ebee215511727dbcb67095e4"
+      }
+    },
+    "lake": {
+      "summary": {
+        "sha256": "32ebd66dbd2ea369cefd2f01ac76f9f2365a59d514b290cfb617bd7e3986076a",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/proof-logs/lake-build-final-summary.txt"
+      },
+      "stages": {
+        "lake_build_TaskDispatchProof": {
+          "actual_exit": 0,
+          "elapsed_ms": 4911,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/proof-logs/lake-build-dispatch.log",
+            "sha256": "7b9df0f5d47ab6c6ffc6029f97a0028ab32bcf49ce30a6629f14bad0e51d9026"
+          }
+        },
+        "lake_build_default": {
+          "actual_exit": 0,
+          "elapsed_ms": 1233,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/extraction-5/proof-logs/lake-build-default.log",
+            "sha256": "da7f614c0a107ec9dfe5a1c4df26ec461a232c1076dfa22cf7c47a78565babfd"
+          }
+        }
+      }
+    }
+  },
+  "mutants": {
+    "capture-deployment": {
+      "summary": {
+        "sha256": "ca8caaa2b3b434eb82d06cfa6d8ce04edc85a9985e00bea918029d04496255bd",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/capture-deployment/summary.txt"
+      },
+      "witness_filter": "wrong_selected_capture_deployment_is_refused",
+      "stages": {
+        "cargo-check": {
+          "actual_exit": 0,
+          "elapsed_ms": 81,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/capture-deployment/logs/cargo-check.log",
+            "sha256": "c1351af01f6ca10d6da35f328d8e14cbac701d7a66310be858d285a74542a05b"
+          }
+        },
+        "charon": {
+          "actual_exit": 0,
+          "elapsed_ms": 227,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/capture-deployment/logs/charon.log",
+            "sha256": "745d3242c7db34636292205b16fe256adc94b17020a60d1a64b083515fdd1456"
+          }
+        },
+        "aeneas": {
+          "actual_exit": 0,
+          "elapsed_ms": 1095,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/capture-deployment/logs/aeneas.log",
+            "sha256": "052cf885f2b72eb78634d99e14b55f00ee91a77d925330ce124109de4f73a8e6"
+          }
+        },
+        "lake-model-and-label": {
+          "actual_exit": 0,
+          "elapsed_ms": 6380,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/capture-deployment/logs/lake-model-and-label.log",
+            "sha256": "6e009a51ac05466ef222197c0ea5e7c2c3786e09ae2fbb3eb583a4ba5635c8eb"
+          }
+        },
+        "dispatch-proof-expected-failure": {
+          "actual_exit": 1,
+          "elapsed_ms": 4539,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/capture-deployment/logs/dispatch-proof-expected-failure.log",
+            "sha256": "073428643314e74200daef3add0844687c1ad357c2bda193d94d5705627c2516"
+          }
+        },
+        "witness-expected-failure": {
+          "actual_exit": 101,
+          "elapsed_ms": 133,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/capture-deployment/logs/witness-expected-failure.log",
+            "sha256": "e314b057f0fd5ccaa5f6b3d99bd361329fe899b9b58c07ddcc17ca3050f8bc22"
+          }
+        }
+      },
+      "artifacts_sha256": {
+        "/crates/veoveo-hub/src/state/task_routes/decision.rs": "f79893b7234260245baeae35d2b51d6329431413a96a53e0832ce6cbf3beb528",
+        "/proofs/task_continuity/HubTaskProof.lean": "0aa53ac7c10e9cb0099b605e3bc5ad579e2bdce9e637081181c2addb000ee50f",
+        "/proofs/task_continuity/rust/hub_task_proof.llbc": "3ef4e012aff385adb99ffbf9fd27d0a56791c7a31b5f8d7ba689a2d86c0b3632",
+        "/proofs/task_continuity/TaskContinuityProof.lean": "929caaf4f9b2a6a025d06a56ca4f872d6aa02b213f34967d714e96310a724885",
+        "/proofs/task_continuity/TaskDispatchProof.lean": "9faa5a6a6bf7ba4f1b79caca32ddb98adf4a88ca4fa27e2821df3cff8acbd194"
+      }
+    },
+    "retained-label": {
+      "summary": {
+        "sha256": "b29396d7b2ced6065f1efc824077187f90599d80712976c601509d0eea45021a",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/retained-label/summary.txt"
+      },
+      "witness_filter": "missing_retained_label_is_refused_for_an_otherwise_matching_owner",
+      "stages": {
+        "cargo-check": {
+          "actual_exit": 0,
+          "elapsed_ms": 85,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/retained-label/logs/cargo-check.log",
+            "sha256": "14f6f3a51cb76d3dd79a7a8e5161fc2998dbc2cbb2b97efefc184c85349d77ff"
+          }
+        },
+        "charon": {
+          "actual_exit": 0,
+          "elapsed_ms": 201,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/retained-label/logs/charon.log",
+            "sha256": "36bbdb9fe775903cbd50dabd30b4dc03d9c91fce0a4996ed33cce5e51472a27d"
+          }
+        },
+        "aeneas": {
+          "actual_exit": 0,
+          "elapsed_ms": 1100,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/retained-label/logs/aeneas.log",
+            "sha256": "0e8b3ded2d47bf0ee1bea183175b024dfa318e982c302f63bcedc981446835cd"
+          }
+        },
+        "lake-model-and-label": {
+          "actual_exit": 0,
+          "elapsed_ms": 6419,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/retained-label/logs/lake-model-and-label.log",
+            "sha256": "6e009a51ac05466ef222197c0ea5e7c2c3786e09ae2fbb3eb583a4ba5635c8eb"
+          }
+        },
+        "dispatch-proof-expected-failure": {
+          "actual_exit": 1,
+          "elapsed_ms": 4590,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/retained-label/logs/dispatch-proof-expected-failure.log",
+            "sha256": "4fb8c85e825ab3b5cef7b00f300d2d25cc59fdaa275c76228b0adf3b43ec0342"
+          }
+        },
+        "witness-expected-failure": {
+          "actual_exit": 101,
+          "elapsed_ms": 134,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/retained-label/logs/witness-expected-failure.log",
+            "sha256": "47fddbce36fc3d555dcd36c09071914133b241f5b0c4a4563165446af3c0dc7f"
+          }
+        }
+      },
+      "artifacts_sha256": {
+        "/crates/veoveo-hub/src/state/task_routes/decision.rs": "b1662d1139365612b4b3fc2bd2fa8085189c778f944b8226d13b7bd48d0c0bcb",
+        "/proofs/task_continuity/HubTaskProof.lean": "9231e138f4a0d9c04743c33c697a4b3a6f9a32cb5c7428c2a91d6933fe61ab3d",
+        "/proofs/task_continuity/rust/hub_task_proof.llbc": "5118a956b074eab43b5dd6fa0f0fc4dba5f71d449d801bc00177b2e4700034da",
+        "/proofs/task_continuity/TaskContinuityProof.lean": "929caaf4f9b2a6a025d06a56ca4f872d6aa02b213f34967d714e96310a724885",
+        "/proofs/task_continuity/TaskDispatchProof.lean": "9faa5a6a6bf7ba4f1b79caca32ddb98adf4a88ca4fa27e2821df3cff8acbd194"
+      }
+    },
+    "expiry-boundary": {
+      "summary": {
+        "sha256": "d8c9a643414e6e47eafca3c785407c519187b5aec2a68acb97d8a1848a1a5365",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/expiry-boundary/summary.txt"
+      },
+      "witness_filter": "retry_preserves_original_record_and_refuses_expiry_boundary",
+      "stages": {
+        "cargo-check": {
+          "actual_exit": 0,
+          "elapsed_ms": 85,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/expiry-boundary/logs/cargo-check.log",
+            "sha256": "196451e9e112847dd7bc4bc6c0ca6da54bdf6e7634920b6edddbf5e981eedf94"
+          }
+        },
+        "charon": {
+          "actual_exit": 0,
+          "elapsed_ms": 200,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/expiry-boundary/logs/charon.log",
+            "sha256": "0ee3305157c74b5c738bf39e967ceaf487ff04eaf0b2194075ea30b1bd2ca07f"
+          }
+        },
+        "aeneas": {
+          "actual_exit": 0,
+          "elapsed_ms": 1130,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/expiry-boundary/logs/aeneas.log",
+            "sha256": "71149c5a6cd22780cbee389a2b59f2dfe60b338e47cebf34c57d8afa18ddaf26"
+          }
+        },
+        "lake-model-and-label": {
+          "actual_exit": 0,
+          "elapsed_ms": 6222,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/expiry-boundary/logs/lake-model-and-label.log",
+            "sha256": "6e009a51ac05466ef222197c0ea5e7c2c3786e09ae2fbb3eb583a4ba5635c8eb"
+          }
+        },
+        "dispatch-proof-expected-failure": {
+          "actual_exit": 1,
+          "elapsed_ms": 4425,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/expiry-boundary/logs/dispatch-proof-expected-failure.log",
+            "sha256": "eadd79aa920c99d176f062b00550922f492c37bf95fc4fa22026508722856ed1"
+          }
+        },
+        "witness-expected-failure": {
+          "actual_exit": 101,
+          "elapsed_ms": 132,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/expiry-boundary/logs/witness-expected-failure.log",
+            "sha256": "7672163b8230c18395e065dd5e201e302aa35cbc02eac00d68062a9091095fdc"
+          }
+        }
+      },
+      "artifacts_sha256": {
+        "/crates/veoveo-hub/src/state/task_routes/decision.rs": "111cff219965ea32d476fa8b9591f30f8376b89bbc1af03f1529f91917e79384",
+        "/proofs/task_continuity/HubTaskProof.lean": "e89a0ed4c268314f296ba9d9ada1d8b3f4034034b9fdd4d31dd9f2abdec70580",
+        "/proofs/task_continuity/rust/hub_task_proof.llbc": "a2da268172bc0f61cfe5a500e701af53233f53dff25785f615c84ee6c2d77f35",
+        "/proofs/task_continuity/TaskContinuityProof.lean": "929caaf4f9b2a6a025d06a56ca4f872d6aa02b213f34967d714e96310a724885",
+        "/proofs/task_continuity/TaskDispatchProof.lean": "9faa5a6a6bf7ba4f1b79caca32ddb98adf4a88ca4fa27e2821df3cff8acbd194"
+      }
+    },
+    "recipient-deployment": {
+      "summary": {
+        "sha256": "eeef0953ccfea8924113305bd6ae57956ee41eeb96ac8540864ffe7aad68e5ab",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/recipient-deployment/summary.txt"
+      },
+      "witness_filter": "recipient_refuses_other_deployment_in_the_same_namespace_and_resource",
+      "stages": {
+        "cargo-check": {
+          "actual_exit": 0,
+          "elapsed_ms": 80,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/recipient-deployment/logs/cargo-check.log",
+            "sha256": "f9c06acae5e7538dd0bcd2704cc8e6537aaf6617b1234fe466f6ec219e09769c"
+          }
+        },
+        "charon": {
+          "actual_exit": 0,
+          "elapsed_ms": 213,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/recipient-deployment/logs/charon.log",
+            "sha256": "0488405078e9f9dd989dcd918a32a0d12760027df3e287ebc93d682716948845"
+          }
+        },
+        "aeneas": {
+          "actual_exit": 0,
+          "elapsed_ms": 1155,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/recipient-deployment/logs/aeneas.log",
+            "sha256": "a32ef161beafba89e2229e4a21bab88fae7af3bc1dd47959b4a759324b7f1be2"
+          }
+        },
+        "lake-model-and-label": {
+          "actual_exit": 0,
+          "elapsed_ms": 6398,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/recipient-deployment/logs/lake-model-and-label.log",
+            "sha256": "6e009a51ac05466ef222197c0ea5e7c2c3786e09ae2fbb3eb583a4ba5635c8eb"
+          }
+        },
+        "dispatch-proof-expected-failure": {
+          "actual_exit": 1,
+          "elapsed_ms": 4498,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/recipient-deployment/logs/dispatch-proof-expected-failure.log",
+            "sha256": "b15a282f9693a521b6cbb6e919cd1b895a39d1c461e1786a40d041b5c6082a85"
+          }
+        },
+        "witness-expected-failure": {
+          "actual_exit": 101,
+          "elapsed_ms": 133,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/recipient-deployment/logs/witness-expected-failure.log",
+            "sha256": "64155e50a23f278ef6da3980554fb9b3893fde7d81e8bca29af42625e9dbdebe"
+          }
+        }
+      },
+      "artifacts_sha256": {
+        "-sdk/crates/veoveo-hub-sdk/src/internal_auth/recipient.rs": "15ba2a2862dcc5022aed3a1330afe9cc66122bd5b6ddba8fd52cf1ae6bf2f0e4",
+        "/proofs/task_continuity/HubTaskProof.lean": "50640f008f2ec57add0798da62720f93d4d54a6ea29f884a0c738fcd54abee71",
+        "/proofs/task_continuity/rust/hub_task_proof.llbc": "e6f165ec0da2076529491811957013cea764219fb8ac03cef997d0a52787d44f",
+        "/proofs/task_continuity/TaskContinuityProof.lean": "929caaf4f9b2a6a025d06a56ca4f872d6aa02b213f34967d714e96310a724885",
+        "/proofs/task_continuity/TaskDispatchProof.lean": "9faa5a6a6bf7ba4f1b79caca32ddb98adf4a88ca4fa27e2821df3cff8acbd194"
+      }
+    }
+  },
+  "restored": {
+    "summary": {
+      "sha256": "bd05e2467670dba5d16e5d0f24a69be6b2ba253cf88ee7b6bd3606d0bc0607b3",
+      "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/restored/summary.txt"
+    },
+    "stages": {
+      "rust-test": {
+        "actual_exit": 0,
+        "elapsed_ms": 156,
+        "log": {
+          "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/restored/logs/rust-test.log",
+          "sha256": "8f9caf281e6975a1274fdda4f06d4d96d17836e26acac6c699abea552629c25e"
+        }
+      },
+      "charon": {
+        "actual_exit": 0,
+        "elapsed_ms": 198,
+        "log": {
+          "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/restored/logs/charon.log",
+          "sha256": "b2f0154825c75d0b714a7ab01a3d00075ec19582256f1f81235e00a575e58f60"
+        }
+      },
+      "aeneas": {
+        "actual_exit": 0,
+        "elapsed_ms": 1092,
+        "log": {
+          "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/restored/logs/aeneas.log",
+          "sha256": "f85aba2277c8a5a49440e1791f3e35ca739dd00f3ce54beb6e899f6d3fd676f0"
+        }
+      },
+      "lake-default": {
+        "actual_exit": 0,
+        "elapsed_ms": 10111,
+        "log": {
+          "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/restored/logs/lake-default.log",
+          "sha256": "9da027a56b5410b28ed6530a1e015dbe26f2011c2e016142dd6cfab51a579201"
+        }
+      },
+      "label-proof": {
+        "actual_exit": 0,
+        "elapsed_ms": 2938,
+        "log": {
+          "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/restored/logs/label-proof.log",
+          "sha256": "2a6fe9482ae7f024fff8ccf056d4f19ddb31a39821c7d431c674a94707beb7e1"
+        }
+      },
+      "dispatch-proof": {
+        "actual_exit": 0,
+        "elapsed_ms": 4477,
+        "log": {
+          "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/restored/logs/dispatch-proof.log",
+          "sha256": "8823e39503174950b6cc1c8329dc4ba688a61a88ebee215511727dbcb67095e4"
+        }
+      }
+    },
+    "artifacts_sha256": {
+      "/proofs/task_continuity/rust/hub_task_proof.llbc": "1ea587eb60200b41ba7ead4b78d66abc86357a85f012442bbf3699f981949756",
+      "/proofs/task_continuity/HubTaskProof.lean": "6fdf0a9e22e1a953d65d9de23b0a67f94b7f0958ed7b772175267c7332c23c7c",
+      "/proofs/task_continuity/TaskContinuityProof.lean": "929caaf4f9b2a6a025d06a56ca4f872d6aa02b213f34967d714e96310a724885",
+      "/proofs/task_continuity/TaskDispatchProof.lean": "9faa5a6a6bf7ba4f1b79caca32ddb98adf4a88ca4fa27e2821df3cff8acbd194"
+    },
+    "rust_tests_passed": 5,
+    "model_equals_baseline": true,
+    "proofs_equal_baseline": true
+  },
+  "accepted_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "no_sorry_or_custom_axiom_dependencies": true,
+  "unused_generated_stubs": "Formatting/derive stubs exist in generated model but are absent from the target theorem axiom closure. Failed mutant elaborations are diagnostic and not accepted proofs.",
+  "production": {
+    "production3": {
+      "summary": {
+        "sha256": "fbde032b818eba3c2f920a9e76926b9d5b6441ae2dba710af518195d410fd71c",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/final-test-summary.txt"
+      },
+      "archive_sha256": "d4a5490084088c403b285d8ff5fc6fec6ecff6218233efde6a904c04278d118f",
+      "stages": {
+        "hub_task_routes": {
+          "actual_exit": 0,
+          "elapsed_ms": 114542,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/final-logs/hub_task_routes.log",
+            "sha256": "4b460f74e08ebb441cf03063ab0e25e1de76b8abe8b3233e2e06e9f3f768403d"
+          }
+        },
+        "hub_task_ownership_tests": {
+          "actual_exit": 0,
+          "elapsed_ms": 317,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/final-logs/hub_task_ownership_tests.log",
+            "sha256": "84feaf0e67c86fcb4f1f3bfb0c7a4e0dcea6f768c735e0f1e1c775e7dd9768db"
+          }
+        },
+        "hub_routing": {
+          "actual_exit": 0,
+          "elapsed_ms": 59969,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/final-logs/hub_routing.log",
+            "sha256": "6158431ede1445a0c15ed67eb017cf87157a25ff73ecb6abf5d81d37de190d48"
+          }
+        },
+        "hub_calls": {
+          "actual_exit": 0,
+          "elapsed_ms": 19372,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/final-logs/hub_calls.log",
+            "sha256": "1849acc0b3549fe997de5ef4c2a7f76357fece4e5234e14c7acfcc7f5824dd30"
+          }
+        },
+        "sdk_internal_auth_requests": {
+          "actual_exit": 0,
+          "elapsed_ms": 122989,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/final-logs/sdk_internal_auth_requests.log",
+            "sha256": "8c45bf06037727fa44bbc7a02be1415aa61adfcd059ba30e6d614bc64cf853d0"
+          }
+        }
+      }
+    },
+    "production3_lints": {
+      "summary": {
+        "sha256": "4b013576147b252e0e1c9be5d156f3a5c9aa5df206e43957e9f80b4d5f65ef4c",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/lint-summary.txt"
+      },
+      "stages": {
+        "hub_fmt": {
+          "actual_exit": 0,
+          "elapsed_ms": 669,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/lint-logs/hub_fmt.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "sdk_fmt": {
+          "actual_exit": 0,
+          "elapsed_ms": 287,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/lint-logs/sdk_fmt.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "hub_clippy": {
+          "actual_exit": 101,
+          "elapsed_ms": 31552,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/lint-logs/hub_clippy.log",
+            "sha256": "1ba8669adbf7fa77db99d72c13c4d28de4a4be69ba95ca7829af1aed92cc8135"
+          }
+        },
+        "sdk_clippy": {
+          "actual_exit": 0,
+          "elapsed_ms": 22175,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-3/lint-logs/sdk_clippy.log",
+            "sha256": "599009c56e9941dd3910b9c145ded6755875088814dbc2c41ea82cee89506295"
+          }
+        }
+      }
+    },
+    "production4": {
+      "summary": {
+        "sha256": "e756020c27413d3d72e6e65a2eb32cedaacfc380b73801d2c8596daea9194e3d",
+        "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-4/final-validation-summary.txt"
+      },
+      "archive_sha256": "65f4b75026a151fad2b6fb53cdb5c0fddc9a04dd196cb0b596e268bee0838f4d",
+      "stages": {
+        "hub_fmt": {
+          "actual_exit": 0,
+          "elapsed_ms": 657,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-4/final-logs/hub_fmt.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "hub_task_routes": {
+          "actual_exit": 0,
+          "elapsed_ms": 113791,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-4/final-logs/hub_task_routes.log",
+            "sha256": "21ad948a4644e5df71f4a5020b14cf229ff4801496e5a760e501e883b2dcf364"
+          }
+        },
+        "hub_task_ownership_tests": {
+          "actual_exit": 0,
+          "elapsed_ms": 321,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-4/final-logs/hub_task_ownership_tests.log",
+            "sha256": "84feaf0e67c86fcb4f1f3bfb0c7a4e0dcea6f768c735e0f1e1c775e7dd9768db"
+          }
+        },
+        "hub_clippy": {
+          "actual_exit": 0,
+          "elapsed_ms": 37790,
+          "log": {
+            "path": "/home/rozgo/.cache/lean-pilot/task-continuity/production-4/final-logs/hub_clippy.log",
+            "sha256": "0587eb53a6bb357c4808017452c22f6e5f53567631c3d7253773d1795bdb33ad"
+          }
+        }
+      }
+    },
+    "note": "Production3: Hub route6, ownership2, routing1, calls1, SDK verifier8 tests pass. Production4 changes only the return-type Admission alias; route6/ownership2, Hub fmt/strict lib Clippy pass. SDK source unchanged; its fmt/strict lib Clippy pass at production3. These are focused cases, not full component or deployed qualification."
+  },
+  "raw_receipt": {
+    "sha256": "ab52330276486a5d0f5928c2edbe1dae9b90e7288b10c4cb971f4d858e8128d8",
+    "path": "/home/rozgo/.cache/lean-pilot/task-continuity/final-negative-rerun/receipt.txt"
+  },
+  "raw_runner": {
+    "sha256": "4b0014a9f7bd895560b5d5cd1e6a364ab1008dea13a398c85bfa540e92b51e97",
+    "path": "/home/rozgo/.cache/lean-pilot/task-continuity/run-task-negative-controls-rerun.sh"
+  },
+  "metadata_cache": "/Users/rozgo/VeoveoAI/.cache/lean-pilot/task-continuity/accepted-metadata",
+  "raw_metadata_references_verified": 76,
+  "excluded_history": [
+    "Opaque generic Option library calls in extraction2 were not bridged by axioms; explicit matches then owned Option resolved translation support.",
+    "Extraction3 borrow-context failure was excluded; extraction4/5 succeeded.",
+    "Earlier Lean drafts failed elaboration and are not proofs.",
+    "Initial production overlay was nested at wrong repository root; those base-source passes were excluded and corrected source hashes verified.",
+    "Production3 Hub Clippy type-complexity failure was fixed by a type alias, not lint suppression.",
+    "First negative runner bookkeeping attempt is excluded and retained separately."
+  ],
+  "formal_properties": [
+    "Total label containment with bounds/termination and duplicate/order-insensitive set semantics.",
+    "Exact owner/capture/refusal outcomes and success iff; original Task fields and opaque current caller payload preserved.",
+    "Exact retry key/strict expiry admission; original record, capture and expiry retained.",
+    "Exact SDK server/resource/deployment recipient binding and output.",
+    "Complete composed extracted-function trace with arbitrary expected recipient; asynchronous Hub adapters remain outside the proof."
+  ],
+  "assumptions_and_residuals": [
+    "Total lawful eq AND ne; exact strict expiry ordering.",
+    "Faithful concrete identity/label projections and current-subject execution-only adapter.",
+    "Authoritative SQL lookup/expiry/uniqueness/concurrency/pruning, current policy and Task/session liveness are not proved.",
+    "Selected registration endpoint/resource association, token assembly, cryptography and network transport are not proved.",
+    "Core Task lifecycle SQL/triggers, cancellation/recovery and external exactly-once effects are not proved.",
+    "The private SDK refactor is source-qualified in its exact snapshot, not present in the unchanged Hub SDK pin or deployed by this work."
+  ],
+  "runtime_cost": "Two temporary Vecs of borrowed label references replace cloning current ownership; containment is O(required labels \u00d7 held labels), not the prior native BTreeSet subset complexity. No benchmark or zero-overhead claim.",
+  "not_performed": [
+    "Core changes or tests",
+    "Dependency repin",
+    "Full Mac/Linux canonical Docker gates for this slice",
+    "Deployment",
+    "Model calls",
+    "CI/hooks/watchers/new committed runner"
+  ]
+}
