@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-30",
+  "status": "Semantic model control caught; original model/proof restored and passing",
+  "lean": "4.35.0",
+  "patch": {
+    "path": "proofs/refresh_transactions/mutations/premature-ready-before-audit.patch",
+    "sha256": "cba1ff96203af10ec82490997ad2cf0bd0d6dd6fbc3b534b49c847a34a261c6d"
+  },
+  "original_model_sha256": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+  "mutant_model_sha256": "d3a9adbb45ab3f759149c27223a5ee902067ba47a3d341f724c4ab42ecdbdd18",
+  "unchanged_proof_sha256": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038",
+  "mutant_summary": {
+    "path": "/tmp/hub-refresh-concurrency-20261030/evidence-premature-ready-control/run2/summary.json",
+    "sha256": "c75253929e18913e6a3991bcc3b39f3f9d640b48f61ddeda9fb08294350e091f"
+  },
+  "mutant_stages": [
+    {
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build",
+        "RefreshTransactionModel"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/premature-ready-control-run2/source/proofs/refresh_transactions",
+      "elapsed_ms": 4571,
+      "exit": 0,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/premature-ready-control-run2/logs/mutant-model-build.log",
+      "log_sha256": "d241d11da7a2ba4cdcebe8fe367d196d2e701bb086afe9195726265f4b8e0681",
+      "stage": "mutant-model-build",
+      "timed_out": false,
+      "timeout_seconds": 1800
+    },
+    {
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "RefreshTransactionProof.lean"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/premature-ready-control-run2/source/proofs/refresh_transactions",
+      "elapsed_ms": 5123,
+      "exit": 1,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/premature-ready-control-run2/logs/unchanged-transaction-proof.log",
+      "log_sha256": "8ce04fe8e8c00febaeb9d2535326383414b4a720194adf4682d60a8caeb97c35",
+      "stage": "unchanged-transaction-proof",
+      "timed_out": false,
+      "timeout_seconds": 900
+    }
+  ],
+  "restoration_summary": {
+    "path": "/tmp/hub-refresh-concurrency-20261030/evidence-premature-ready-control/run2/restoration-summary.json",
+    "sha256": "3738220371b851c2ebb0d9441fb92171a82b6437480a1248c3d4d3d270f4f2bb"
+  },
+  "restoration_stages": [
+    {
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build",
+        "RefreshTransactionModel"
+      ],
+      "elapsed_ms": 4557,
+      "exit": 0,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/premature-ready-control-run2/restoration-logs/restored-model-build.log",
+      "log_sha256": "e774c12f2d3eb52976b562c7998a6173305a458415192429d90c28761d3b5cbb",
+      "stage": "restored-model-build"
+    },
+    {
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "RefreshTransactionProof.lean"
+      ],
+      "elapsed_ms": 5256,
+      "exit": 0,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/premature-ready-control-run2/restoration-logs/restored-proof-direct.log",
+      "log_sha256": "c84ca393d1af08d6bf8e1e20022972352c943af290911477f5fc3ca1c8e079ab",
+      "stage": "restored-proof-direct"
+    }
+  ],
+  "semantic_review": "Mutant Model compiles. alignment_step cannot derive remaining=[] from staged++remaining=program after the ready premise becomes True; the dependent completeness theorem rejects recovery sorryAx. This is a symbolic semantic failure, not a normalized False proof or concrete Lean counterexample.",
+  "native_counterpart": "../current_roles/evidence/refresh-controls-receipt.json: refresh-split-rotation-before-audit",
+  "setup_boundary": "First private package layout failed before compilation; corrected sibling dependencies, no semantic credit. Shared original package and production sources unchanged.",
+  "qualification_boundary": "Handwritten transaction design model; no formal refinement of SQL, async Rust, native locks or physical durability."
+}

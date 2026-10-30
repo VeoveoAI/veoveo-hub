@@ -74,3 +74,14 @@ remain outside the formal claim. No new primitive or runtime guard is introduced
 The [history checkpoint](evidence/history-checkpoint.json) identifies the checked
 source and successful target/direct checks. The theorem closure audits admit
 only standard Lean axioms; the larger refresh lifecycle remains unfinished.
+
+## Completeness fault control
+
+The [premature-ready control](evidence/completeness-control.json) changes only the
+model's ready-step premise from an empty remaining program to `True`. The mutant
+model compiles, but the unchanged alignment proof cannot establish that every
+write was staged; the dependent completeness theorem rejects the failed proof.
+Restoring the original model makes both checks pass again. This is a symbolic
+model control, paired with the separate native split-commit fault recorded in the
+[refresh controls receipt](../current_roles/evidence/refresh-controls-receipt.json).
+Neither result establishes formal SQL refinement, and no production code changes.

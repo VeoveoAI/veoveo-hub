@@ -1,0 +1,11 @@
+--- a/proofs/refresh_transactions/RefreshTransactionModel.lean
++++ b/proofs/refresh_transactions/RefreshTransactionModel.lean
+@@ -344,7 +344,7 @@
+         tokenLocks := acquire s.tokenLocks id (TokenFootprint (applyWrites s.db (s.transactions id).staged) head)
+         auditLocks := acquire s.auditLocks id (AuditFootprint head) }
+   | ready (s : State) (id : Id) (phase : (s.transactions id).phase = .writing)
+-      (done : (s.transactions id).remaining = []) :
++      (done : True) :
+       Step s (update s id { s.transactions id with phase := .ready })
+   | requestCommit (s : State) (id : Id) (phase : (s.transactions id).phase = .ready) :
+       Step s (update s id { s.transactions id with phase := .committing })
