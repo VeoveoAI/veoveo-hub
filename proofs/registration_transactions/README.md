@@ -161,7 +161,14 @@ attempts contribute no commit event, including a no-op that later acknowledges
 success. This concerns each attempt's own contribution; it does not erase another
 writer's effects or assert that a successful registration remains present forever.
 
-Valid complete update/no-op executions and the old-update counterexample remain
-next. Neither these models nor the earlier native tests are formal Rust/SQL
+The [normal-update witness](evidence/update-valid-success.json) supplies a
+well-formed two-replica model state and a complete seven-step changed-metadata
+update through successful acknowledgement. It proves the exact resulting database,
+free lock and sole update event, preserving the other replica, all roles, binding
+and immutable row fields. Complete metadata/payload/role types remain opaque;
+native metadata and crypto validity remain admitted-input boundaries.
+
+The replacement-overlap/no-op execution and the paired old-update counterexample
+remain next. Neither these models nor the earlier native tests are formal Rust/SQL
 refinement. Removal, housekeeping and broader authority/lifecycle composition
 remain outside this checkpoint.

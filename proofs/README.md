@@ -57,7 +57,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace qualified; mixed update serial histories and abort exclusion checked; valid update/control witnesses, removal and broader composition remain |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace qualified; mixed update histories and valid normal update checked; replacement/no-op/control witnesses, removal and broader composition remain |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
@@ -758,9 +758,13 @@ committing update to its independent current-row operation and a pending no-op t
 an absent row. The [mixed-history proof](registration_transactions/evidence/update-serial-history.json)
 now establishes independent register/replace/update effects in actual tagged commit
 order for arbitrary finite modeled interleavings, excluding aborted contributions
-even when a no-op later acknowledges success. Valid complete update executions and
-the old-update counterexample remain next. This extends the source-mapped model
-explicitly; it is not formal Rust/SQL refinement.
+even when a no-op later acknowledges success. The
+[normal-update witness](registration_transactions/evidence/update-valid-success.json)
+constructs a well-formed two-replica seed and seven actual steps through successful
+acknowledgement, with exact complete output and other-replica/role/binding
+preservation. The replacement/no-op execution and paired old-update counterexample
+remain next. This extends the source-mapped model explicitly; it is not formal
+Rust/SQL refinement.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

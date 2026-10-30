@@ -1,0 +1,130 @@
+{
+  "date": "2026-10-30",
+  "status": "Constructive normal update success checked; replacement/no-op and old-update control remain next",
+  "base_commit": "e93260b",
+  "evidence_class": "Handwritten Lean execution witness; not native execution, physical SQL or crypto validation",
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "lean_version": "4.35.0",
+  "platform": "Linux x86_64",
+  "proof_toolkit_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94",
+    "RegistrationUpdateEffects.lean": "500fc10b193595c6795690005ef663f8e91a3378e4d23dd17e49392e221bfeb1",
+    "RegistrationUpdateHistory.lean": "75e5dfad45f4d4549465f0ac61b44da9d42edbb3a48aa18c3d91cc84abb603ac",
+    "RegistrationUpdateLocks.lean": "140c786959c1395ad979f3c8b7ae7137d5546d0c0a9c8d68b8a901614e59c2d3",
+    "RegistrationUpdateModel.lean": "a453d6d58a17e8d08d6a31c31b2227785dac66edda8048c14d5217da1ffefcf9",
+    "RegistrationUpdateObservations.lean": "b3c62a290c6d037829be1cb13158ae1d5cdcf71897faeff855df595ba49c9c7c",
+    "RegistrationUpdateProof.lean": "8ed07e65b88297bd14c7edbc3978b04afb1ed77f0a72ab25de1021559fd6f26e",
+    "RegistrationUpdateSpecification.lean": "c92157d4f92472ff09d00ecd5f0ba178f3408cbc5438378d249bab66a3580e67",
+    "RegistrationUpdateWitnesses.lean": "f6cb20aef2698313e79c992d66714006f066596664d2611f1cfbcecdf39968b6",
+    "RegistrationWitnesses.lean": "0c62ccf4ef064f5592fcd781e485f21ac7f107572aa208d0e7d2130c7c44726e",
+    "lakefile.lean": "f1d27539b3fe79d43e43024c3c451f29fbfd0b651ae6897130af1e539f432b9e",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "source_manifest": {
+    "path": "/tmp/hub-registration-concurrency-20261030/update-positive-final-evidence/source-derived.json",
+    "sha256": "d6b130ef05153a18fd3512170b4dd22ddf1a36c3bf959966ec46e039106702c2"
+  },
+  "prior_fifteen_modules_and_dependency_pins_unchanged": true,
+  "qualified_native_source_unchanged": true,
+  "inputs": {
+    "domain": "One retained deployment, two initial replica rows, abstract full metadata/payload/role/binding/frame types.",
+    "keys": "Mathematical client representatives0/1 with login representatives10/11; unrelated login99.",
+    "request": "Update client0 from old to next full metadata with old!=next; use its stored token digest, supplied statement and update timestamp.",
+    "premises": "Selected native metadata constraint relation accepts next metadata and binding. Full native CHECK/serialization/crypto/admission validity is a boundary, not proved by modeled WellFormed."
+  },
+  "claims": {
+    "seed_wellFormed": "Derive row-key correspondence, existence of each referenced login and unique registration login keys from the concrete seed; no freshness or map-key oracle.",
+    "normal_update_succeeds": "Construct seven actual fixed steps through commit and acknowledgement. The complete result is expectedMatched of the seed/request/current row, lock is free, transaction phase committed and response success, with the exact sole tagged update event and its two writes. All other-replica/role/binding/immutable-field preservation follows from this whole-database equality."
+  },
+  "steps": [
+    "preflight read/digest comparison",
+    "begin update",
+    "lock and stage deployment metadata",
+    "match current client row and stage its patch",
+    "request commit",
+    "actual server commit",
+    "successful acknowledgement"
+  ],
+  "axiom_closures": {
+    "seed_wellFormed": [
+      "propext",
+      "Quot.sound"
+    ],
+    "normal_update_succeeds": [
+      "propext",
+      "Quot.sound"
+    ]
+  },
+  "validation": {
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "direct": {
+      "argv": [
+        "lake",
+        "env",
+        "lean",
+        "RegistrationUpdateWitnesses.lean"
+      ],
+      "exit": 0,
+      "elapsed_s": 2.95,
+      "bound_seconds": 300,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-witnesses2-evidence/direct.log",
+        "sha256": "703e44bb3566d00e5e98af50b49562dc6772696833124f24a2ad17a6a1585f00"
+      },
+      "time": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-witnesses2-evidence/direct.time",
+        "sha256": "1103b29da67e3d214e871616c2dfb553232aa11377199e602e2e415d1771efe6"
+      }
+    },
+    "composed_package": {
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+      "exit": 0,
+      "elapsed_s": 4.371,
+      "bound_seconds": 900,
+      "default_modules": 16,
+      "lake_jobs_including_dependencies": 3168,
+      "source_unchanged": true,
+      "summary": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-positive-final-evidence/summary.json",
+        "sha256": "d40827f7737572d2d7a024c21efbe5b7b35dd04dac025f1a4ebfbaa26fe0c850"
+      },
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-positive-final-evidence/build.log",
+        "sha256": "267187c68639ca97170d6f190d4f8b534a126c84dc3d3999e635a6d226e8b898"
+      }
+    },
+    "warnings": "Unused section-variable warning remains; no unreviewed axioms in successful checks.",
+    "development_feedback": "Initial seed proof required explicit stored-row substitution to reduce concrete login/map equalities. Model, inputs and final theorem were not weakened. A final-build launcher redirection failed before process start because its log directory did not yet exist; one corrected runner performed the successful build. Neither failure is a semantic negative control.",
+    "not_run": [
+      "native tests",
+      "full Docker gates",
+      "deployment",
+      "Aeneas extraction",
+      "paid model calls"
+    ]
+  },
+  "boundaries": [
+    "This supplies a positive nonvacuity witness for the modeled update protocol, in addition to earlier generic finite-history guarantees.",
+    "It does not yet construct replacement-overlap/no-op or old-update failure; those require subsequent witnesses.",
+    "All earlier one-deployment/admission/PostgreSQL/source-mapping boundaries remain. No new runtime rules, primitive guards or native source edits.",
+    "Removal/housekeeping, authority/identity composition, physical refinement, postcommit behavior and deployed recovery remain outside."
+  ]
+}
