@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n    SELECT 1 FROM pg_stat_activity AS waiter\n    WHERE waiter.datname = current_database()\n      AND waiter.wait_event_type = 'Lock'\n      AND $1::integer = ANY (pg_blocking_pids(waiter.pid))\n      AND waiter.query LIKE '%FROM%hub.refresh_family%FOR%UPDATE%'\n) AS \"blocked!\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "blocked!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "63c5efe7205e42b8e5ccd9588d4fa8aa9a1a4f4b3d59f600b0a36328c1b3ddea"
+}

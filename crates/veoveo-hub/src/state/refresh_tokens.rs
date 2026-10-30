@@ -477,6 +477,9 @@ fn refresh_token_digest(token: &OAuthRefreshToken) -> Sha256Digest {
 }
 
 #[cfg(test)]
+mod transaction_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

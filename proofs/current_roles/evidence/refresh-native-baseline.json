@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "scope": "refresh-native-baseline",
+  "status": "component tests passed; semantic controls and formal transaction qualification pending",
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "validation": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "platform": "macOS ARM64, Rust 1.99.0, private PostgreSQL 18.6",
+  "source_base": "bb2e97f5c984a53eaa218109e4c01a70e952e365",
+  "sdk_pin": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+  "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+  "qualified_overlay_sha256": "38559e276d3aefdf4aaf3708054ab89f1876979ba6b4ee7880832d485fc42268",
+  "summary": {
+    "path": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/summary.json",
+    "sha256": "488c4f146304ef189676875506e3a7ae91cbeb42b195a603e28c3731edca63c7"
+  },
+  "files": {
+    "crates/veoveo-hub/src/state/refresh_tokens.rs": "c591d350dbba5627729c4f7a08ac91d379d933763c9f1eed0ac1cdf554899cf7",
+    "crates/veoveo-hub/src/state/refresh_tokens/tests/blocked.sql": "63c5efe7205e42b8e5ccd9588d4fa8aa9a1a4f4b3d59f600b0a36328c1b3ddea",
+    "crates/veoveo-hub/src/state/refresh_tokens/tests/connection.sql": "242ea5edf43bd8a475554130521fe01e25108d597d1fa3923762b7c128e7ef06",
+    "crates/veoveo-hub/src/state/refresh_tokens/tests/lock.sql": "cc8b5246f3f9dc9ffc480b7064102744c3bb4e7a5d4006b377c9fbc57d01fd5a",
+    "crates/veoveo-hub/src/state/refresh_tokens/tests/snapshot.sql": "2f6b3f6d8e409095a163c08a526a1d000cbed57e19a3c0a8c3f8f4da6d688294",
+    "crates/veoveo-hub/src/state/refresh_tokens/transaction_tests.rs": "3a4b585f2b55a1d1191f603b5bd0732aa90ba1e5b4f87ba96c68b10548de6588",
+    ".sqlx/query-242ea5edf43bd8a475554130521fe01e25108d597d1fa3923762b7c128e7ef06.json": "81f02b51836a10215cfde071452180511d65ea75a3a758bfab09c9e5cc1b7940",
+    ".sqlx/query-2f6b3f6d8e409095a163c08a526a1d000cbed57e19a3c0a8c3f8f4da6d688294.json": "faffed6e99fbd345111613de2078b84905a5fb36b9fd932005bb05a3535525ce",
+    ".sqlx/query-63c5efe7205e42b8e5ccd9588d4fa8aa9a1a4f4b3d59f600b0a36328c1b3ddea.json": "89a7ea6d077964519da45ba8016452d981c5a53348220aa7ff5d1066ac7771e2",
+    ".sqlx/query-cc8b5246f3f9dc9ffc480b7064102744c3bb4e7a5d4006b377c9fbc57d01fd5a.json": "7681a8ba673f810c363ea6d0db86424645a9bb291b60eb52981ea82f708dc884"
+  },
+  "stages": [
+    {
+      "stage": "postgres18-version",
+      "command": [
+        "/opt/homebrew/opt/postgresql@18/bin/postgres",
+        "--version"
+      ],
+      "cwd": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/source/veoveo-hub",
+      "exit": 0,
+      "elapsed_ms": 23,
+      "timed_out": false,
+      "timeout_seconds": 30,
+      "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/logs/postgres18-version.log",
+      "log_sha256": "1f6bff71efc118ffd7738eff34169ffdc19f0c8153a101eecd9517f40ffcf89c"
+    },
+    {
+      "stage": "fmt-check",
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "cwd": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/source/veoveo-hub",
+      "exit": 0,
+      "elapsed_ms": 577,
+      "timed_out": false,
+      "timeout_seconds": 600,
+      "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/logs/fmt-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "clean-hub",
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "clean",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/source/veoveo-hub/Cargo.toml"
+      ],
+      "cwd": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/source/veoveo-hub",
+      "exit": 0,
+      "elapsed_ms": 529,
+      "timed_out": false,
+      "timeout_seconds": 600,
+      "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/logs/clean-hub.log",
+      "log_sha256": "0902597512f480bca2c6d162eedc32735efa7560e161b7425df5f19de1f284dd"
+    },
+    {
+      "stage": "refresh-transaction-unit-tests",
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--lib",
+        "state::refresh_tokens::transaction_tests::",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/source/veoveo-hub",
+      "exit": 0,
+      "elapsed_ms": 37443,
+      "timed_out": false,
+      "timeout_seconds": 1800,
+      "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/logs/refresh-transaction-unit-tests.log",
+      "log_sha256": "979a61909f924fff9c43c090d677450dc525a1e445f34ba426f5c537327995ff",
+      "test_result": {
+        "passed": 4,
+        "failed": 0
+      },
+      "expected_passed": 4,
+      "test_count_matches": true,
+      "test_binaries": [
+        {
+          "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-5c5dba289373806c",
+          "exists": true,
+          "sha256": "439a917fbd21e82607c6dcdf8b78a7c63fd29f8b322aead7cb0c58590c712f54"
+        }
+      ],
+      "test_binaries_valid": true,
+      "fresh_hub_compile_observed": true
+    },
+    {
+      "stage": "hub-state-postgres-integration",
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--test",
+        "hub_state",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/source/veoveo-hub",
+      "exit": 0,
+      "elapsed_ms": 35213,
+      "timed_out": false,
+      "timeout_seconds": 1800,
+      "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/logs/hub-state-postgres-integration.log",
+      "log_sha256": "41c571681259e844e568dfbbcd1c39dea9f46791ed14f37571616031fd0e779b",
+      "test_result": {
+        "passed": 5,
+        "failed": 0
+      },
+      "expected_passed": 5,
+      "test_count_matches": true,
+      "test_binaries": [
+        {
+          "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/hub_state-a8988d7f651c3b5d",
+          "exists": true,
+          "sha256": "b7a6b14110e23cdfec7c41e616a2b6227aff7167ca5a328334739cdb60426c84"
+        }
+      ],
+      "test_binaries_valid": true
+    },
+    {
+      "stage": "strict-lib-clippy",
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/source/veoveo-hub",
+      "exit": 0,
+      "elapsed_ms": 12705,
+      "timed_out": false,
+      "timeout_seconds": 1800,
+      "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-baseline1-run1/logs/strict-lib-clippy.log",
+      "log_sha256": "0b98ad98f0ec13d6036a2823ad33cbfdb07bf9fa124158b02184a7e0adeee2fd"
+    }
+  ],
+  "boundaries": [
+    "Actual native Rust/store, cipher and audit append with private PostgreSQL; controlled interleavings, not arbitrary-schedule coverage.",
+    "No deployment, HTTP/IdP, model call, formal SQL refinement or cryptographic proof.",
+    "Original production behavior unchanged; tests use existing private child-module access, no production test hook."
+  ],
+  "setup_notes": [
+    "The first runner invocation targeted Linux with Mac paths and stopped before baseline stages; the successful run is local Mac.",
+    "SQLx prepared on pinned Core/Hub schema: four new records; 255 pre-existing records unchanged."
+  ]
+}
