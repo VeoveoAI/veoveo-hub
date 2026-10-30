@@ -513,8 +513,11 @@ proof for one retained family incarnation. The
 [replay checkpoint](refresh_transactions/evidence/replay-checkpoint.json) now
 ties committed-state replay to actual model-step contributions and excludes
 aborted attempts from every such trace, while retaining other commits and
-maintenance. Initial creation, native SQL/lock correspondence and constructive
-concurrent/uncertain executions remain separate obligations.
+maintenance. A [constructive concurrent witness](refresh_transactions/evidence/concurrent-success-checkpoint.json)
+now derives a successful rotation and waiting duplicate delivery from valid initial
+data, with the same original successor and exact family/token/audit maps. Initial
+creation, native SQL/lock correspondence and uncertain commit responses remain
+separate obligations.
 
 ## HUB-CONFIG-01 — Coherent atomic live publication
 

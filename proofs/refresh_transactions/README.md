@@ -16,7 +16,8 @@ That first checkpoint did not establish reachable outcome/history composition,
 no-fork, aborted-attempt exclusion or positive concurrent executions. The
 history increment below adds the first two; the given-list field lemmas alone
 do not establish them. The replay increment adds traced committed-state replay
-and aborted-attempt exclusion. Constructive concurrent witnesses remain pending.
+and aborted-attempt exclusion. The concrete witness below establishes concurrent
+rotation and duplicate-delivery success; uncertain responses remain pending.
 
 Primitive commit applies whatever deltas were staged, preserving unrelated rows.
 It has no correct-rotation, comparison, audit-completeness or success guard. The
@@ -100,9 +101,29 @@ unchanged whole database or a stronger claim about native PostgreSQL.
 `RefreshTransactionExecution.lean` constructively stages and finishes a supplied
 program when its statement constraints and compatible row-lock assumptions hold.
 It releases the held locks and preserves other attempts. This support theorem
-still has explicit `ValidWrites` premises; concrete valid initial data, a blocked
-rotation followed by delivery of the same successor, full output maps and
-reachable uncertain-response witnesses remain pending.
+still has explicit `ValidWrites` premises. The concrete witness below supplies
+them from initial rows and proves a blocked rotation followed by delivery of the
+same successor, with full output maps. Uncertain responses remain pending.
 The [replay checkpoint](evidence/replay-checkpoint.json) records the final source
 identities and successful direct/target checks, including the strengthened trace
 statement accepted after review.
+
+## Concrete concurrent success
+
+`RefreshTransactionWitnesses.lean` constructs valid initial rows and proves their
+individual statement constraints, rather than assuming `ValidWrites`. In the
+reachable schedule the retry's family-lock query has started while the first
+attempt owns that lock. The first attempt rotates, then the waiting retry commits
+its duplicate audit and returns the same complete original successor, despite
+having proposed a distinct candidate. Both modeled store responses succeed.
+
+Exact family/token/audit maps retain all family metadata with generation one,
+consume and link the predecessor, keep the original successor/envelope, exclude
+the second candidate row, and contain only the first success and second duplicate
+batch identities. A closed typed fixture instantiates the execution. This is a
+compatible no-cleanup schedule with live records and an unexpired sampled window,
+not unconditional success under arbitrary maintenance, aliasing UUIDs, failures
+or lock delays. Native crypto/SQL/caller correspondence remains separate; model
+commit uncertainty witnesses are the remaining proof increment.
+The [concurrent-success checkpoint](evidence/concurrent-success-checkpoint.json)
+records the checked source and direct/target validation.

@@ -22,3 +22,6 @@ lean_lib RefreshTransactionExecution
 
 @[default_target]
 lean_lib RefreshTransactionReplay
+
+@[default_target]
+lean_lib RefreshTransactionWitnesses

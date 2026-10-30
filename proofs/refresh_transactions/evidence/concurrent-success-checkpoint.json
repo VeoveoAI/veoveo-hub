@@ -1,0 +1,93 @@
+{
+  "date": "2026-10-30",
+  "status": "Checked constructive concurrent rotation and same-successor duplicate delivery; uncertainty pending",
+  "lean": "4.35.0",
+  "source_sha256": {
+    "proofs/refresh_transactions/RefreshTransactionModel.lean": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+    "proofs/refresh_transactions/RefreshTransactionProof.lean": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038",
+    "proofs/refresh_transactions/RefreshTransactionExecution.lean": "91b5e4bcffb4fabba26046b8efa6e8a1200b872ec87d7c7d4741bb1efe4a57f4",
+    "proofs/refresh_transactions/RefreshTransactionWitnesses.lean": "5afdc9584920fa5b8597c35c67bb343cecaa4e142dc4ee362664e87f5cfb591c",
+    "proofs/refresh_transactions/lakefile.lean": "764fdbac5176f3ef34c2a3116471d93592cf3e0d0da28ee84609c67f4a022f95"
+  },
+  "validation": {
+    "direct": {
+      "summary": {
+        "path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-witnesses7-run1/summary.json",
+        "sha256": "cf7d0bff18bb7aa6ad7bcf7c2029fe0b58372aaee983cff56cd681b64630de3f"
+      },
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/RefreshTransactionWitnesses-packet7.lean"
+      ],
+      "elapsed_ms": 3519,
+      "exit": 0,
+      "leaf_sha256": "5afdc9584920fa5b8597c35c67bb343cecaa4e142dc4ee362664e87f5cfb591c",
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/evidence-transaction-witnesses7-run1/logs/witnesses7.log",
+      "log_sha256": "a7728477525f0f3fb703f231c1bfb7d6dd80587a24a751b9425bff4dbbb50b99",
+      "model_sha256": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+      "package": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/refresh_transactions",
+      "proof_sha256": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038",
+      "local_log": {
+        "path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-witnesses7-run1/witnesses7.log",
+        "sha256": "a7728477525f0f3fb703f231c1bfb7d6dd80587a24a751b9425bff4dbbb50b99"
+      }
+    },
+    "target": {
+      "summary": {
+        "path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-witnesses-target-run1/summary.json",
+        "sha256": "4fbf3a2f6aa42f95bb6daa9ecbc2378de9e9ee2e20251355e7d00524c406a734"
+      },
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build",
+        "RefreshTransactionWitnesses"
+      ],
+      "elapsed_ms": 4938,
+      "exit": 0,
+      "inputs_after": {
+        "RefreshTransactionExecution.lean": "91b5e4bcffb4fabba26046b8efa6e8a1200b872ec87d7c7d4741bb1efe4a57f4",
+        "RefreshTransactionModel.lean": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+        "RefreshTransactionProof.lean": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038",
+        "RefreshTransactionReplay.lean": "2d337d5477cad974b279c14bbb3d8a16a92400ad01a85bd0a62f72f296485fc7",
+        "RefreshTransactionWitnesses.lean": "5afdc9584920fa5b8597c35c67bb343cecaa4e142dc4ee362664e87f5cfb591c",
+        "lakefile.lean": "764fdbac5176f3ef34c2a3116471d93592cf3e0d0da28ee84609c67f4a022f95"
+      },
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/evidence-transaction-witnesses-target-run1/logs/build-witnesses.log",
+      "log_sha256": "43244991ab027fd7afcd16aec970362ae58900ec626d2496426128e1f35757a1",
+      "package": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/refresh_transactions",
+      "local_log": {
+        "path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-witnesses-target-run1/build-witnesses.log",
+        "sha256": "43244991ab027fd7afcd16aec970362ae58900ec626d2496426128e1f35757a1"
+      }
+    }
+  },
+  "principal_theorems": [
+    "initial_constraints_satisfiable",
+    "rotation_constraints_satisfiable",
+    "rotation_full_rows",
+    "retry_same_successor_choice",
+    "concurrent_rotation_and_same_successor",
+    "delivered_full_rows",
+    "concrete_concurrent_success"
+  ],
+  "claims": [
+    "Actual initial data satisfy modeled row-domain and each write constraint, without an assumed successful result or ValidWrites oracle.",
+    "Reachable overlap has the first attempt owning the family lock while the second has requested it; both later acknowledge success.",
+    "The retry returns the complete first committed successor, not its own fresh candidate.",
+    "Exact final family/token/audit maps preserve metadata, advance to generation one, consume/link the predecessor and append only first-success/second-duplicate records."
+  ],
+  "theorem_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "boundaries": [
+    "Existential compatible schedule with retained records and live sampled delivery window; not unconditional liveness or success under arbitrary cleanup.",
+    "One retained family incarnation; initial-family creation is separate.",
+    "Nominal token/digest/envelope values do not prove native crypto, parsing, SQL refinement, physical durability or HTTP behavior."
+  ],
+  "native_counterpart": "https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-refresh-native-baseline.md",
+  "runtime_changed": false
+}
