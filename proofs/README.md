@@ -504,6 +504,15 @@ audit-rollback assertion. Fresh extraction, the full proof package, five audits
 and all nine native tests pass on the restored original source. The controls do
 not prove SQL refinement or complete the refresh lifecycle.
 
+The separate [transaction history checkpoint](refresh_transactions/evidence/history-checkpoint.json)
+now derives complete reachable rotation programs, stable family-lock snapshots,
+and strictly increasing committed generations from arbitrary finite modeled
+executions. The retained generation is its initial value plus committed rotation
+count; no initially duplicate-free history is assumed. This is a design-model
+proof for one retained family incarnation. Initial creation, native SQL/lock
+correspondence, committed-state replay and constructive concurrent witnesses
+remain separate obligations.
+
 ## HUB-CONFIG-01 — Coherent atomic live publication
 
 **Invariant/failure prevented.** Publication compares the expected active revision and

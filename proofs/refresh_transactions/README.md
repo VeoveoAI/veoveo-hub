@@ -12,9 +12,10 @@ It also proves the exact generation-only family effect of the rotation statement
 list, its mathematical session-admission connection, duplicate family/token
 preservation, UPDATE-if-absent noncreation, and preservation of an existing first
 revocation time/reason. See the [compact checkpoint](evidence/prefix-checkpoint.json).
-Reachable outcome-to-program/history composition, no-fork, aborted-attempt
-exclusion, positive rotation/duplicate executions and semantic controls remain
-pending. The given-list field lemmas alone do not establish those properties.
+That first checkpoint did not establish reachable outcome/history composition,
+no-fork, aborted-attempt exclusion or positive concurrent executions. The
+history increment below adds the first two; the given-list field lemmas alone
+do not establish them. Replay and constructive concurrent witnesses remain pending.
 
 Primitive commit applies whatever deltas were staged, preserving unrelated rows.
 It has no correct-rotation, comparison, audit-completeness or success guard. The
@@ -53,3 +54,23 @@ PostgreSQL durability settings do not establish physical durability.
 Run `lake build` or `lake env lean RefreshTransactionProof.lean` manually with the
 pinned Lean toolchain. Native scripts/checks are operator-invoked; no CI, runtime
 framework or production failpoints are installed.
+
+## Reachable programs and generation history
+
+`RefreshTransactionHistory.lean` derives the recorded program and raw checked
+rotation conditions from the actual modeled source branch, then preserves that
+connection across arbitrary finite executions. `RefreshTransactionLocks.lean`
+proves that active attempts own the family lock and retain its current family
+snapshot through commit, while independent token maintenance remains possible.
+
+`RefreshTransactionNoFork.lean` composes those invariants with complete staging.
+The retained family's generation equals its initial generation plus committed
+rotation count, and committed rotations have strictly increasing generations.
+Thus a predecessor generation cannot fork into two committed rotations in this
+tracked family incarnation. This does not assume an initially duplicate-free
+commit history or eternal UUID nonreuse. Family deletion ends the incarnation;
+initial family creation, native SQL/lock correspondence, and physical durability
+remain outside the formal claim. No new primitive or runtime guard is introduced.
+The [history checkpoint](evidence/history-checkpoint.json) identifies the checked
+source and successful target/direct checks. The theorem closure audits admit
+only standard Lean axioms; the larger refresh lifecycle remains unfinished.

@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "status": "Checked design-model milestone: reachable rotation programs, family lock snapshots and strictly increasing committed generations",
+  "source_sha256": {
+    "proofs/refresh_transactions/RefreshTransactionHistory.lean": "0d2c5914e8010c6af49d8ad448db39ffe9fe3da995a1bfae003b85cb470ae61f",
+    "proofs/refresh_transactions/RefreshTransactionLocks.lean": "7ed27646b10ba7f52a5fd52c550695eeae8c41f9d4e84ed7f09858e3e4c2aeec",
+    "proofs/refresh_transactions/RefreshTransactionNoFork.lean": "47d94e69043a9e511b19eec5010497af212a109879cd96e1be0d35bcbd9663d6",
+    "proofs/refresh_transactions/lakefile.lean": "3222e2f29424929c161141edd8d8572cccd579641f7371f88a4254d4f1f2d755"
+  },
+  "unchanged_model_sha256": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+  "unchanged_prefix_proof_sha256": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038",
+  "dependency": "../current_roles, pinned by its committed extraction/predicate receipts",
+  "lean": "4.35.0",
+  "validation": [
+    {
+      "command": [
+        "lake",
+        "build",
+        "RefreshTransactionHistory",
+        "RefreshTransactionLocks"
+      ],
+      "exit": 0,
+      "elapsed_ms": null,
+      "log_path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-history-locks/History-Locks-target-build.log",
+      "log_sha256": "283f06ca53976a033cc1a63c84bd47c7632583defc12a8248479038868ff5d0c"
+    },
+    {
+      "command": [
+        "lake",
+        "env",
+        "lean",
+        "RefreshTransactionNoFork.lean"
+      ],
+      "exit": 0,
+      "elapsed_ms": 3502,
+      "log_path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-history-locks/NoFork-packet3-direct.log",
+      "log_sha256": "07ff99608e2297c251f7dab9fcbef6e030ef1f77daf58b91f5ce121b2b36bf5c"
+    },
+    {
+      "command": [
+        "lake",
+        "build",
+        "RefreshTransactionNoFork"
+      ],
+      "exit": 0,
+      "elapsed_ms": 4564,
+      "log_path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-history-locks/NoFork-target-build.log",
+      "log_sha256": "9ffebf2701b02dbea3359a44fa31aff8fb074ac523f956ad28b239bff92213da"
+    }
+  ],
+  "allowed_theorem_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "claims": [
+    "Every reachable committing rotation stages the exact insert/consume/advance/audit program selected by checked raw generation conditions.",
+    "Active attempts own the family lock and keep the current family snapshot until their server decision, despite independent token maintenance.",
+    "The retained family generation equals its initial generation plus committed rotation count; committed generations are strictly increasing."
+  ],
+  "limits": [
+    "Handwritten design model, not extraction or SQL/async Rust refinement.",
+    "One retained family incarnation; deletion ends it. Initial family creation and eternal UUID nonreuse are not proved.",
+    "PostgreSQL constraint, lock and atomic commit primitives and native representation correspondence remain explicit assumptions.",
+    "Aborted-attempt exclusion, constructive concurrent executions and uncertain-result witnesses are separate milestones."
+  ],
+  "execution_note": "Reused existing compiled package. A redundant fresh dependency build was identified and stopped in its own process group; cache/setup failures are not proof failures. History/Locks target duration is not recorded in this compact evidence; no elapsed value inferred."
+}
