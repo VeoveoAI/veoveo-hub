@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-30",
+  "status": "Constructed ordinary/instance replacement and staged-write abort checked; original-protocol counterexample remains pending",
+  "parent_proof_commit": "bec2309",
+  "runtime_mapping_commit": "05737d6",
+  "evidence_class": "Constructive executions of the handwritten transaction model, not native SQL execution or formal Rust/SQL refinement",
+  "toolchain": "leanprover/lean4:v4.35.0",
+  "aeneas_framework_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "abd478779b97b5a0487c1f6743cde427e9961906d687d3e9f05a18155a88b575",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "4b2206d7808c0f17403b338c29c835e7c6222d2b37656d6007ccc04d3fa36707",
+    "RegistrationWitnesses.lean": "e812ff0bb33e2d40e50b7eb0075476c984cb63b26435df7f75a1c28be020fcae",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "4f9661de5c968ef5083243221005fbf04ae7932306c2d40e44a9e0bf08b65ecf",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "inputs": "Reuse the valid-replicas fixture: arbitrary full metadata, row/role payloads and frame; seed client0/login10, first replica client1/login11, replacement client2/login12, unrelated login99.",
+  "claims": {
+    "ordinary_replacement_succeeds": "For old metadata unequal to new metadata, construct a full two-attempt execution from a proved well-formed seed. After the first replica succeeds, replacement captures both rows, drops both logins and completes with exact independent expectedReplacement output, both success responses, free lock and actual commit IDs [0,1].",
+    "instance_replacement_succeeds": "Construct the same exact replacement output with unconditional instance semantics, including equal old/new metadata and no inequality premise.",
+    "staged_abort_is_reachable": "Construct failure then server abort after a nonempty private create-login stage; committed DB remains exactly the seed, response is error, phase aborted, lock free and commit list empty."
+  },
+  "axioms": {
+    "ordinary_replacement_succeeds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "instance_replacement_succeeds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "staged_abort_is_reachable": [
+      "propext"
+    ],
+    "seeded_replica_admitted": [
+      "propext",
+      "Quot.sound"
+    ],
+    "same_metadata_overlap_succeeds": [
+      "propext",
+      "Quot.sound"
+    ]
+  },
+  "check": {
+    "command": "lake env lean /tmp/RegistrationWitnesses-packet10.lean",
+    "exit_code": 0,
+    "elapsed_seconds": 35.41,
+    "log": {
+      "path": "/tmp/hub-registration-concurrency-20261030/witnesses10-evidence/direct.log",
+      "sha256": "ec59187ac0d1c92df1814a112aa11f6afc6c74524b12de1d1cd3c97cfeadfed2"
+    },
+    "timing": {
+      "path": "/tmp/hub-registration-concurrency-20261030/witnesses10-evidence/direct.time",
+      "sha256": "87b394ea86257438636bd9965e228ac3029e821fcfe7523a1a1d3ce5730e8e18"
+    }
+  },
+  "validation_scope": "Complete updated Witnesses module checked directly against existing compiled package. Imports, eight-target layout and all ten other frozen files match the prior composed-package receipt. No repeated package/native/extraction/deployment/OpenCode acceptance check for this leaf-only change.",
+  "prior_composed_package": {
+    "receipt": "proofs/registration_transactions/evidence/valid-replicas.json",
+    "sha256": "6f3146cca06e585ec5e53ac4b17833e2f798159666d56b185dcdc1ae51847604",
+    "commit": "bec2309"
+  },
+  "development_repairs": [
+    "One redundant rfl after a rewriting tactic had already solved the insertion constraint was removed; it changed no theorem or modeled behavior. Intermediate elaboration recovery is not semantic fault evidence."
+  ],
+  "source_mapping_note": "Full captured rows are proof-level statement-snapshot witnesses. Native DELETE RETURNING yields client_id, server and login; only key/login projections drive writes. No extra native snapshot is implied.",
+  "limits": [
+    "Original unlocked-read counterexample and final composed qualification remain pending.",
+    "Constructed schedules establish reachability, not unconditional liveness. Earlier successful registration may be removed by later successful replacement.",
+    "Abort is a modeled server decision and does not imply client transport failure means rollback.",
+    "PostgreSQL atomicity/locking/constraints, native payload projection, Core internals and asynchronous Rust/SQL correspondence remain boundaries.",
+    "Per-client update/removal, housekeeping, authority changes, external-database preparation and postcommit audit/adoption remain outside this register/replace model."
+  ]
+}

@@ -4,8 +4,8 @@ This slice connects registration transaction reasoning to the actual store and
 PostgreSQL behavior. Native regression evidence, complete staged programs, lock
 ownership, stable observations, exact write effects, serial-history composition
 and abort-event exclusion are checked. Constructed valid replica admission and
-completed same-metadata overlap are checked too; replacement/abort witnesses and
-the original-protocol counterexample remain pending.
+completed same-metadata overlap, ordinary/instance replacement and partial-write
+abort are checked too. The original-protocol counterexample remains pending.
 Execution remains manual: run `lake build` in this directory with the pinned
 Lean toolchain.
 
@@ -71,9 +71,22 @@ Metadata, row payloads, role payloads and frame stay parametric; only mathematic
 client/login representatives are fixed. See the
 [valid-replica receipt](evidence/valid-replicas.json).
 
-Next: construct replacement/abort executions and establish the original
-unlocked-read failure. The earlier native test remains separate from these
-design-model statements. Neither the history theorem nor a successful
+The same module now proves `ordinary_replacement_succeeds` for changed metadata
+and `instance_replacement_succeeds` without an inequality premise, including equal
+metadata. Both continue after the first replica succeeds, capture the seed and
+replica, perform both login drops and finish with the exact independent replacement
+map. The earlier success acknowledgement remains valid even though its row is now
+replaced. `staged_abort_is_reachable` starts after a private login creation is
+staged and proves an actual fail/abort path with unchanged committed state, no
+commit event and a released lock. See the
+[replacement/abort receipt](evidence/replacement-abort.json).
+
+The captured full rows are proof-level witnesses of the statement snapshot. Native
+DELETE returns client, server and login fields; only those key/login projections
+drive removal. The model implies no additional runtime snapshot or query.
+
+Next: establish the original unlocked-read failure. The earlier native test
+remains separate from these design-model statements. Neither the history theorem nor a successful
 acknowledgement implies that a registration survives a later replacement; the
 constructed successful schedule is not an unconditional liveness proof.
 

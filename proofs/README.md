@@ -57,7 +57,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Serial histories, abort exclusion and valid replica overlap checked; replacement/fault witnesses and broader composition remain |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Serial histories and valid replica/replacement/abort executions checked; original-fault witness and broader composition remain |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
@@ -703,8 +703,8 @@ registration. These are target properties to establish, not new admission rules.
   separate owners. Ordinary namespace-pinned registration and instance-token
   registration deliberately differ; the specification must retain both. Preparation
   in a different database is not atomic with the installation registration transaction.
-- **Next:** qualify replacement/abort witnesses and the original unlocked-read
-  failure against the checked serial register/replace history. Extend to per-client
+- **Next:** qualify the original unlocked-read failure against the checked serial
+  register/replace history and valid replica/replacement/abort executions. Extend to per-client
   update/removal and connect
   deployment/endpoint association with routing and SDK recipient binding.
 
@@ -728,9 +728,13 @@ server-commit order for every finite modeled execution. Aborted attempts never
 appear in that history. The [constructed replica executions](registration_transactions/evidence/valid-replicas.json)
 now establish valid initial constraints, successful admission and completed
 same-metadata overlap with exact independent output maps and both acknowledgements.
-Registration coverage remains partial: replacement/abort witnesses and the original
-unlocked-read counterexample are next, followed by update, removal and authority
-composition. No SQL refinement follows from these model results.
+The [replacement and abort witnesses](registration_transactions/evidence/replacement-abort.json)
+also establish changed-metadata ordinary replacement, unconditional instance
+replacement and abort after staged private writes, with exact effects and responses.
+Registration coverage remains partial: the original unlocked-read counterexample
+is next, followed by update, removal and authority composition. Captured full rows
+are proof-level snapshot witnesses; native DELETE returns key/server/login fields.
+No SQL refinement follows from these model results.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
