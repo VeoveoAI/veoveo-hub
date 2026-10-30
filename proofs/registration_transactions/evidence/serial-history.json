@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-30",
+  "status": "Finite actual-commit serial history and aborted-event exclusion checked; constructive successful executions and original-protocol counterexample remain pending",
+  "parent_proof_commit": "2231825",
+  "runtime_mapping_commit": "05737d6",
+  "evidence_class": "Handwritten transaction-model proof, with reviewed Rust/SQL mapping and separate native regression; not asynchronous Rust/SQL extraction or formal refinement",
+  "toolchain": "leanprover/lean4:v4.35.0",
+  "aeneas_framework_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "abd478779b97b5a0487c1f6743cde427e9961906d687d3e9f05a18155a88b575",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "4b2206d7808c0f17403b338c29c835e7c6222d2b37656d6007ccc04d3fa36707",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "f544d0c1679b8831bd08ec27df8a0a7e6c634ad3a4983c428a33cf007465ef05",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "claims": {
+    "committing_effect": "Every reached commit request has the independent sequential replica or replacement effect. Original request, program choice, staging completeness and current observations are derived from the execution.",
+    "execution_serial": "Every finite fixed-protocol execution produces the independent sequential operations in its actual server-commit event order, normalizing only disjoint frame changes.",
+    "aborted_event_excluded": "No actual commit event has an aborted attempt identity; this does not exclude equal pre-existing rows or another attempt producing equal values.",
+    "serial_history_and_abort": "The same reached state satisfies both serial-history equivalence and exclusion of the given aborted attempt."
+  },
+  "axioms": {
+    "committing_effect": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "execution_serial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "aborted_event_excluded": [
+      "propext"
+    ],
+    "serial_history_and_abort": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "checks": [
+    {
+      "command": "lake env lean /tmp/RegistrationHistory-packet8.lean",
+      "exit_code": 0,
+      "elapsed_seconds": 7.17,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/history8-evidence/direct.log",
+        "sha256": "b580fe5e34cf24641281bdd437b183d4be06e5cd6e0717082940127756fccca6"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/history8-evidence/direct.time",
+        "sha256": "41e981f992bf578b54f2e217aaa554282b606c69acbfd402648931125baff0ff"
+      }
+    },
+    {
+      "command": "lake build",
+      "targets": [
+        "RegistrationModel",
+        "RegistrationSpecification",
+        "RegistrationProof",
+        "RegistrationLocks",
+        "RegistrationEffects",
+        "RegistrationObservations",
+        "RegistrationHistory"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 8.45,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/history8-package-evidence/logs/build.log",
+        "sha256": "7eb4221f48748016eb37501379407d8c661abc899d4b633aff64db00fd02e737"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/history8-package-evidence/build.time",
+        "sha256": "35aca9712bf893eaa7549b7b8add33ad5b0234d3c32c644c445950c2657f4ee2"
+      },
+      "measured_source_hashes": {
+        "path": "/tmp/hub-registration-concurrency-20261030/history8-package-evidence/source-hashes.txt",
+        "sha256": "a3202d01cd8cf2b696c760549f66ec329279359b55337295d4f179b3a940920f"
+      }
+    }
+  ],
+  "execution_directory": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+  "development_repairs": [
+    "Request preservation needed explicit normalization of equal transaction indices.",
+    "Disjoint-frame commutation needed metadata equality after record projections were exposed. Broad unfolding introduced an unnecessary classical-decider equality; the final proof retained the already passing negative branch.",
+    "These were proof-algebra failures, not runtime changes, model faults or semantic negative controls."
+  ],
+  "validation_scope": "One final direct leaf check and one composed package check recorded here; prior successful prerequisites reused. Runtime, six prior Lean modules and native regression unchanged. No native checks, Rust extraction, deployment or OpenCode/provider acceptance calls repeated.",
+  "warnings": "Unused section-variable and existing tactic-name warnings remain. Final audited declarations contain no sorryAx or unreviewed axioms.",
+  "limits": [
+    "One retained deployment and an admitted fixed namespace/key; ordinary registration and unconditional instance replacement only.",
+    "The serial theorem covers arbitrary finite modeled interleavings and is stronger than the stated initial-WellFormed premise; reachable valid-output examples and the original-protocol counterexample still must be qualified.",
+    "Only disjoint frame changes are normalized; no ghost invented contribution trace or correctness guard is added to primitive commit.",
+    "A committed registration may be replaced before its success acknowledgement. Server abort is not inferred from client transport failure.",
+    "PostgreSQL isolation/locking/constraints, Core schema/login behavior, native payload projection and asynchronous-store correspondence remain external boundaries.",
+    "RFC7592 per-client updates, removal/housekeeping, namespace/key changes, cross-database preparation and postcommit service audit/catalog adoption remain separate obligations.",
+    "No unconditional progress, HTTP liveness, physical durability, deployed qualification or whole-Hub verification claim."
+  ]
+}

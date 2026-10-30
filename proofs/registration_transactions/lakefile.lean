@@ -24,3 +24,6 @@ lean_lib RegistrationEffects
 
 @[default_target]
 lean_lib RegistrationObservations
+
+@[default_target]
+lean_lib RegistrationHistory

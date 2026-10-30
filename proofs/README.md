@@ -57,7 +57,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Complete programs, stable locked observations and exact effects checked; serial histories, reachable valid outputs and broader composition remain |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace serial histories and abort exclusion checked; reachable valid/fault executions and broader operation composition remain |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
@@ -703,9 +703,9 @@ registration. These are target properties to establish, not new admission rules.
   separate owners. Ordinary namespace-pinned registration and instance-token
   registration deliberately differ; the specification must retain both. Preparation
   in a different database is not atomic with the installation registration transaction.
-- **Next:** compose the checked program, lock/observation and effect invariants into
-  serial register/replace histories, then qualify reachable valid outputs and the
-  original unlocked-read failure. Extend to per-client update/removal and connect
+- **Next:** qualify reachable valid outputs and the original unlocked-read failure
+  against the checked serial register/replace history. Extend to per-client
+  update/removal and connect
   deployment/endpoint association with routing and SDK recipient binding.
 
 The [source review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-registration-transaction-source-review.md)
@@ -722,10 +722,13 @@ committing attempt in the source-mapped transaction model. The subsequent
 [lock/observation and effect proofs](registration_transactions/evidence/locked-observations-effects.json)
 derive exclusive active ownership, current metadata/DELETE snapshot stability and
 exact complete-program effects against the independent sequential specification.
-Registration coverage remains partial: serial register/replace histories,
-abort-event exclusion, reachable valid-output executions and the original
-unlocked-read counterexample remain before later update, removal and authority
-composition obligations. No SQL refinement follows from these model results.
+The [serial-history proof](registration_transactions/evidence/serial-history.json)
+now composes those invariants into independent sequential effects in actual
+server-commit order for every finite modeled execution. Aborted attempts never
+appear in that history. Registration coverage remains partial: reachable valid
+executions and the original unlocked-read counterexample are next, followed by
+update, removal and authority composition. No SQL refinement follows from these
+model results.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

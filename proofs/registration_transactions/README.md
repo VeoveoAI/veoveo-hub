@@ -2,8 +2,9 @@
 
 This slice connects registration transaction reasoning to the actual store and
 PostgreSQL behavior. Native regression evidence, complete staged programs, lock
-ownership, stable observations and exact write effects are checked. Serial-history
-composition and reachable valid-output executions remain pending.
+ownership, stable observations, exact write effects, serial-history composition
+and abort-event exclusion are checked. Reachable valid-output executions and the
+original-protocol counterexample remain pending.
 Execution remains manual: run `lake build` in this directory with the pinned
 Lean toolchain.
 
@@ -49,12 +50,20 @@ algebraic theorem takes a current exact row listing as a premise; the observatio
 theorem establishes that premise for reachable active replacement attempts.
 See the [lock, observation and effect receipt](evidence/locked-observations-effects.json).
 
-These results are ingredients of serialization, not yet a proof of the complete
-history. `RegistrationSpecification.lean` still has unproved serial-history and
-abort obligations indexed by actual commit events. Next: compose those histories,
-construct exact valid same-metadata and replacement executions, and establish the
-original unlocked-read failure. The earlier native test remains separate from
-these design-model statements.
+`RegistrationHistory.lean` composes these results. It derives the selected program
+branch from the ordinary full-metadata comparison or unconditional instance
+replacement, and preserves each attempt's original request. `committing_effect`
+therefore proves that every reached commit applies the independent sequential
+operation. `execution_serial` lifts this to every finite fixed-protocol execution,
+in the order of actual server-commit events, while erasing only disjoint frame
+changes. `aborted_event_excluded` excludes an aborted attempt's identity from
+those events; `serial_history_and_abort` establishes both facts for the same
+reached state. See the [serial-history receipt](evidence/serial-history.json).
+
+Next: construct exact valid same-metadata and replacement executions and establish
+the original unlocked-read failure. The earlier native test remains separate from
+these design-model statements. Neither this history theorem nor a successful
+acknowledgement implies that a registration survives a later replacement.
 
 This first theorem excludes RFC 7592 per-client updates, concurrent removal and
 housekeeping, namespace-key changes, external-environment preparation and
