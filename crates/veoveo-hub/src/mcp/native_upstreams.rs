@@ -176,9 +176,12 @@ impl NativeTransport {
                     }
                     accepted = listener.accept() => {
                         let Ok((socket, _)) = accepted else { break };
-                        let Some(stream) = forwards.reserve() else { drop(socket); continue };
-                        let binding = target.clone();
+                        let (forwards, binding) = (forwards.clone(), target.clone());
                         connections.spawn(async move {
+                            let Some(stream) = forwards.reserve_within(CONNECT_TIMEOUT).await else {
+                                tracing::warn!(sandbox = %binding.sandbox, "every native upstream forward stayed in use for ten seconds, so a connection was refused");
+                                return;
+                            };
                             if let Err(error) = forward(socket, stream, binding).await {
                                 tracing::debug!(%error, "native upstream connection ended");
                             }
@@ -266,6 +269,7 @@ async fn forward(
     stream: Forward,
     binding: NativeUpstreamBinding,
 ) -> Result<()> {
+    let sandbox = binding.sandbox.clone();
     let (tx, rx) = mpsc::channel(4);
     tx.send(p::TcpForwardFrame {
         payload: Some(p::tcp_forward_frame::Payload::Init(p::TcpForwardInit {
@@ -299,10 +303,19 @@ async fn forward(
     // disconnects cancels the RPC even after its HTTP request body has been sent.
     let download = async move {
         let mut grpc = stream.client().await?.raw_grpc_fresh().await?;
-        let mut upstream =
-            tokio::time::timeout(CONNECT_TIMEOUT, grpc.forward_tcp(ReceiverStream::new(rx)))
-                .await??
-                .into_inner();
+        let opened =
+            tokio::time::timeout(CONNECT_TIMEOUT, grpc.forward_tcp(ReceiverStream::new(rx))).await;
+        let mut upstream = match opened {
+            Ok(Ok(response)) => response.into_inner(),
+            Ok(Err(status)) => {
+                tracing::warn!(%sandbox, code = ?status.code(), message = status.message(), "the gateway refused a native upstream forward");
+                return Err(status.into());
+            }
+            Err(elapsed) => {
+                tracing::warn!(%sandbox, "the gateway opened no native upstream forward within ten seconds");
+                return Err(elapsed.into());
+            }
+        };
         while let Some(frame) = upstream.message().await? {
             match frame.payload {
                 Some(p::tcp_forward_frame::Payload::Data(bytes)) => write.write_all(&bytes).await?,

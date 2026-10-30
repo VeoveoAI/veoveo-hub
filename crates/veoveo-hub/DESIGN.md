@@ -1430,7 +1430,12 @@ most 32 concurrent streams on one connection to the gateway: a stream beyond the
 unannounced, until another ends. Forwards therefore ride gateway connections of their
 own, apart from the native RPCs, at most 32 forwards on each, each opened at its first
 forward and kept. Computers have `computers.forwardingConnectionLimit` forwards and
-servers 64, so that limit, never a connection's streams, is what refuses a forward.
+servers 64, so that limit, never a connection's streams, is what refuses a forward. A
+Computer request beyond its limit is refused at once. A connection to a server holds its
+forward only while it carries a request or a stream, because the Hub keeps no idle
+connection to a server; one beyond the 64 waits up to ten seconds for another to end,
+then is refused with a WARN. A forward the gateway refuses logs WARN with the gateway's
+status.
 The online-only native app must be used; mounted UI caches are convenience, not a
 same-origin browser security boundary or a guarantee about previously loaded data.
 
