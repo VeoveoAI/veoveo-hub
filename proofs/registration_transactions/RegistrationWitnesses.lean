@@ -178,8 +178,8 @@ private theorem replicaFromWaiting_execution (state : State Nat Nat M R P F) (id
   exact Execution.tail (Execution.tail (Execution.tail (Execution.tail
     (Execution.refl state) lockStep) readStep) replicaStep) createStep
 
-private theorem execution_trans {first middle last : State Nat Nat M R P F}
-    (left : Execution true first middle) (right : Execution true middle last) : Execution true first last := by
+private theorem execution_trans {locking : Bool} {first middle last : State Nat Nat M R P F}
+    (left : Execution locking first middle) (right : Execution locking middle last) : Execution locking first last := by
   induction right with
   | refl => exact left
   | tail _ step ih => exact Execution.tail ih step
@@ -511,13 +511,211 @@ theorem instance_replacement_succeeds (old next : M) (seedPayload firstPayload s
   replacement_overlap_succeeds old next seedPayload firstPayload secondPayload
     seedRole firstRole secondRole unrelatedRole frame .instanceReplacement (by simp)
 
+/- The original path below takes NO ordinary read lock. Replacement still
+acquires its real upsert lock. A pauses before INSERT with a private login write;
+B captures/deletes seed and drops its login before A commits. The remaining B
+CREATE/INSERT steps are scheduled later, matching the native catalog wait. -/
+private def originalAReady (db : Database Nat Nat M R P F) (rs : Nat → Request Nat Nat M R P) :=
+  let start := initial db rs
+  let begun := update start 0 { start.transactions 0 with phase := .waiting }
+  let read := update begun 0 { begun.transactions 0 with phase := .read, observed := some begun.db.metadata }
+  let creating := update read 0 { read.transactions 0 with phase := .creating }
+  update creating 0 { creating.transactions 0 with
+    phase := .inserting
+    staged := (creating.transactions 0).staged ++
+      [.createLogin (creating.transactions 0).request.candidate.login (creating.transactions 0).request.role] }
+
+private theorem originalAReady_fields (db : Database Nat Nat M R P F) (rs : Nat → Request Nat Nat M R P) :
+    (originalAReady db rs).db = db ∧ (originalAReady db rs).lock = none ∧
+    (originalAReady db rs).transactions 1 = { request := rs 1 } ∧
+    (originalAReady db rs).transactions 0 = {
+      request := rs 0
+      phase := .inserting
+      observed := some db.metadata
+      staged := [.createLogin (rs 0).candidate.login (rs 0).role] } ∧
+    (originalAReady db rs).commits = [] := by
+  simp [originalAReady, initial, update, put]
+
+private theorem originalAReady_execution (db : Database Nat Nat M R P F)
+    (rs : Nat → Request Nat Nat M R P)
+    (ordinary : (rs 0).kind = .ordinary) (same : db.metadata = (rs 0).candidate.metadata)
+    (valid : ValidWrite db (.createLogin (rs 0).candidate.login (rs 0).role)) :
+    Execution false (initial db rs) (originalAReady db rs) := by
+  let start := initial db rs
+  let begun := update start 0 { start.transactions 0 with phase := .waiting }
+  let read := update begun 0 { begun.transactions 0 with phase := .read, observed := some begun.db.metadata }
+  let creating := update read 0 { read.transactions 0 with phase := .creating }
+  have beginStep : Step false start begun := Step.begin start 0 rfl
+  have readStep : Step false begun read := Step.unlockedRead begun 0 rfl
+    (by simp [begun, update, put]) (by simpa [begun, start, initial, update, put] using ordinary)
+  have chooseStep : Step false read creating := Step.replica read 0
+    (by simp [read, update, put]) (by simp [read, begun, start, initial, update, put, same])
+  have createStep : Step false creating (originalAReady db rs) := Step.create creating 0
+    (by simp [creating, update, put])
+    (by simpa [creating, read, begun, start, initial, update, put, applyWrites] using valid)
+  exact Execution.tail (Execution.tail (Execution.tail (Execution.tail
+    (Execution.refl start) beginStep) readStep) chooseStep) createStep
+
+private def originalBReady (state : State Nat Nat M R P F) :=
+  let begun := update state 1 { state.transactions 1 with phase := .waiting }
+  let read := update begun 1 { begun.transactions 1 with phase := .read, observed := some begun.db.metadata }
+  update read 1 { read.transactions 1 with phase := .upserting, replacing := true }
+
+private theorem originalBReady_fields (state : State Nat Nat M R P F) :
+    (originalBReady state).db = state.db ∧ (originalBReady state).lock = state.lock ∧
+    (originalBReady state).transactions 1 = { state.transactions 1 with
+      phase := .upserting, observed := some state.db.metadata, replacing := true } ∧
+    (originalBReady state).transactions 0 = state.transactions 0 ∧
+    (originalBReady state).commits = state.commits := by
+  simp [originalBReady, update, put]
+
+private theorem originalBReady_execution (state : State Nat Nat M R P F)
+    (phase : (state.transactions 1).phase = .idle)
+    (ordinary : (state.transactions 1).request.kind = .ordinary)
+    (different : state.db.metadata ≠ (state.transactions 1).request.candidate.metadata) :
+    Execution false state (originalBReady state) := by
+  let begun := update state 1 { state.transactions 1 with phase := .waiting }
+  let read := update begun 1 { begun.transactions 1 with phase := .read, observed := some begun.db.metadata }
+  have beginStep : Step false state begun := Step.begin state 1 phase
+  have readStep : Step false begun read := Step.unlockedRead begun 1 rfl
+    (by simp [begun, update, put]) (by simpa [begun, update, put] using ordinary)
+  have replaceStep : Step false read (originalBReady state) := Step.replace read 1
+    (by simp [read, update, put]) (by simpa [read, begun, update, put] using different)
+  exact Execution.tail (Execution.tail (Execution.tail (Execution.refl state) beginStep) readStep) replaceStep
+
+private def originalPrefix (db : Database Nat Nat M R P F) (rs : Nat → Request Nat Nat M R P)
+    (seedRow : Registration Nat Nat M R) :=
+  let base := originalBReady (originalAReady db rs)
+  let captured := deleted (upserted base 1) 1 [seedRow]
+  let removed := dropped captured 1 seedRow.login []
+  update removed 1 { removed.transactions 1 with phase := .creating }
+
+private theorem originalPrefix_execution (db : Database Nat Nat M R P F)
+    (rs : Nat → Request Nat Nat M R P) (seedRow : Registration Nat Nat M R)
+    (firstKind : (rs 0).kind = .ordinary) (firstSame : db.metadata = (rs 0).candidate.metadata)
+    (secondKind : (rs 1).kind = .ordinary) (secondDifferent : db.metadata ≠ (rs 1).candidate.metadata)
+    (listing : Listing db [seedRow])
+    (valid : ValidWrite db (.createLogin (rs 0).candidate.login (rs 0).role)) :
+    Execution false (initial db rs) (originalPrefix db rs seedRow) := by
+  let a := originalAReady db rs
+  let base := originalBReady a
+  let written := upserted base 1
+  let captured := deleted written 1 [seedRow]
+  let removed := dropped captured 1 seedRow.login []
+  have aFields := originalAReady_fields db rs
+  have bFields := originalBReady_fields a
+  have aExecution := originalAReady_execution db rs firstKind firstSame valid
+  have bExecution := originalBReady_execution a
+    (by rw [aFields.2.2.1])
+    (by simpa only [a, aFields.2.2.1] using secondKind)
+    (by simpa only [a, aFields.1, aFields.2.2.1] using secondDifferent)
+  have baseDB : base.db = db := bFields.1.trans aFields.1
+  have baseLock : base.lock = none := bFields.2.1.trans aFields.2.1
+  have basePhase : (base.transactions 1).phase = .upserting := by rw [bFields.2.2.1]
+  have baseEmpty : (base.transactions 1).staged = [] := by rw [bFields.2.2.1, aFields.2.2.1]
+  have upsertStep : Step false base written := Step.upsert base 1 basePhase (Or.inl baseLock)
+  have baseListing : Listing base.db [seedRow] := by rw [baseDB]; exact listing
+  have deleteStep : Step false written captured := Step.delete written 1 [seedRow]
+    (by simp [written, upserted, update, put])
+    (by simpa only [Listing, written, upserted, update, put, baseEmpty, applyWrites, applyWrite,
+      List.nil_append, List.foldl_cons, List.foldl_nil, ite_true] using baseListing)
+  have dropStep : Step false captured removed := Step.drop captured 1 seedRow.login []
+    (by simp [captured, deleted, update, put]) (by simp [captured, deleted, update, put])
+  have doneStep : Step false removed (originalPrefix db rs seedRow) := Step.dropped removed 1
+    (by simp [removed, dropped, captured, deleted, update, put]) (by simp [removed, dropped, update, put])
+  exact execution_trans (execution_trans aExecution bExecution)
+    (Execution.tail (Execution.tail (Execution.tail (Execution.tail
+      (Execution.refl base) upsertStep) deleteStep) dropStep) doneStep)
+
+private theorem originalPrefix_fields (db : Database Nat Nat M R P F)
+    (rs : Nat → Request Nat Nat M R P) (seedRow : Registration Nat Nat M R) :
+    (originalPrefix db rs seedRow).db = db ∧
+    (originalPrefix db rs seedRow).lock = some 1 ∧
+    (originalPrefix db rs seedRow).transactions 0 = {
+      request := rs 0
+      phase := .inserting
+      observed := some db.metadata
+      staged := [.createLogin (rs 0).candidate.login (rs 0).role] } ∧
+    (originalPrefix db rs seedRow).transactions 1 = {
+      request := rs 1
+      phase := .creating
+      observed := some db.metadata
+      replacing := true
+      captured := [seedRow]
+      staged := [.deployment (rs 1).candidate.metadata, .deleteRows [seedRow.client], .dropLogin seedRow.login] } ∧
+    (originalPrefix db rs seedRow).commits = [] := by
+  have aFields := originalAReady_fields db rs
+  have bFields := originalBReady_fields (originalAReady db rs)
+  simp [originalPrefix, upserted, deleted, dropped, update, put,
+    bFields.1, bFields.2.2.1, bFields.2.2.2.1, bFields.2.2.2.2,
+    aFields.1, aFields.2.2.1, aFields.2.2.2.1, aFields.2.2.2.2]
+
+private theorem originalAfterA_fields (db : Database Nat Nat M R P F)
+    (rs : Nat → Request Nat Nat M R P) (seedRow : Registration Nat Nat M R) :
+    let afterA := finishInsert (originalPrefix db rs seedRow) 0
+    afterA.db = expectedReplica db (rs 0) ∧ afterA.lock = some 1 ∧
+    (afterA.transactions 0).response = .success ∧
+    afterA.transactions 1 = {
+      request := rs 1
+      phase := .creating
+      observed := some db.metadata
+      replacing := true
+      captured := [seedRow]
+      staged := [.deployment (rs 1).candidate.metadata, .deleteRows [seedRow.client], .dropLogin seedRow.login] } ∧
+    afterA.commits.map Prod.fst = [0] := by
+  dsimp only
+  let paused := originalPrefix db rs seedRow
+  have fields := originalPrefix_fields db rs seedRow
+  constructor
+  · rw [(finishInsert_fields paused 0).1, fields.1, fields.2.2.1]
+    exact admit_exact db (rs 0)
+  · simp [finishInsert, inserted, commitRequested, committedState, update, put, release,
+      fields.2.1, fields.2.2.1, fields.2.2.2.1, fields.2.2.2.2]
+
+private theorem original_midpoint_reachable (old next : M) (seedPayload firstPayload secondPayload : R)
+    (seedRole firstRole secondRole unrelatedRole : P) (frame : F) (different : old ≠ next) :
+    let db := seed old seedPayload seedRole unrelatedRole frame
+    let rs := requests old next firstPayload secondPayload firstRole secondRole .ordinary
+    let seedRow : Registration Nat Nat M R := ⟨0, 10, old, seedPayload⟩
+    let afterA := finishInsert (originalPrefix db rs seedRow) 0
+    WellFormed db ∧ Execution false (initial db rs) afterA ∧
+      afterA.db = expectedReplica db (rs 0) ∧ afterA.lock = some 1 ∧
+      (afterA.transactions 0).response = .success ∧
+      (afterA.transactions 1).phase = .creating ∧
+      ((afterA.transactions 1).captured.map (·.client)) = [0] := by
+  dsimp only
+  let db := seed old seedPayload seedRole unrelatedRole frame
+  let rs := requests old next firstPayload secondPayload firstRole secondRole .ordinary
+  let seedRow : Registration Nat Nat M R := ⟨0, 10, old, seedPayload⟩
+  let paused := originalPrefix db rs seedRow
+  have listing : Listing db [seedRow] := by
+    constructor
+    · simp [seedRow]
+    · rfl
+  have execution := originalPrefix_execution db rs seedRow
+    (by simp [rs, requests]) (by simp [db, seed, rs, requests])
+    (by simp [rs, requests]) (by simpa [db, seed, rs, requests] using different)
+    listing (by simp [ValidWrite, db, seed, rs, requests, put])
+  have fields := originalPrefix_fields db rs seedRow
+  have finish := finishInsert_execution false paused 0
+    (by rw [fields.2.2.1]) (by rw [fields.2.2.1])
+    (by rw [fields.1, fields.2.2.1]
+        simp [ValidWrite, applyWrites, applyWrite, db, seed, rs, requests, put])
+  have result := originalAfterA_fields db rs seedRow
+  refine ⟨seed_wellFormed _ _ _ _ _, execution_trans execution finish, result.1,
+    result.2.1, result.2.2.1, ?_, ?_⟩
+  · rw [result.2.2.2.1]
+  · rw [result.2.2.2.1]
+    simp [seedRow]
+
+#print axioms original_midpoint_reachable
 #print axioms seeded_replica_admitted
 #print axioms same_metadata_overlap_succeeds
 #print axioms staged_abort_is_reachable
 #print axioms ordinary_replacement_succeeds
 #print axioms instance_replacement_succeeds
 run_cmd do
-  for declaration in [``seeded_replica_admitted, ``same_metadata_overlap_succeeds, ``staged_abort_is_reachable,
+  for declaration in [``original_midpoint_reachable, ``seeded_replica_admitted, ``same_metadata_overlap_succeeds, ``staged_abort_is_reachable,
       ``ordinary_replacement_succeeds, ``instance_replacement_succeeds] do
     let axioms ← Lean.collectAxioms declaration
     for name in axioms do

@@ -731,8 +731,11 @@ same-metadata overlap with exact independent output maps and both acknowledgemen
 The [replacement and abort witnesses](registration_transactions/evidence/replacement-abort.json)
 also establish changed-metadata ordinary replacement, unconditional instance
 replacement and abort after staged private writes, with exact effects and responses.
-Registration coverage remains partial: the original unlocked-read counterexample
-is next, followed by update, removal and authority composition. Captured full rows
+The [original-protocol midpoint](registration_transactions/evidence/original-midpoint.json)
+constructs the old replica's successful commit while replacement still holds its
+real lock and has captured only the seed. Registration coverage remains partial:
+the completed counterexample and serial-contract refutation are next, followed by
+update, removal and authority composition. Captured full rows
 are proof-level snapshot witnesses; native DELETE returns key/server/login fields.
 No SQL refinement follows from these model results.
 

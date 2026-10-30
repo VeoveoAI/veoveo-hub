@@ -5,7 +5,8 @@ PostgreSQL behavior. Native regression evidence, complete staged programs, lock
 ownership, stable observations, exact write effects, serial-history composition
 and abort-event exclusion are checked. Constructed valid replica admission and
 completed same-metadata overlap, ordinary/instance replacement and partial-write
-abort are checked too. The original-protocol counterexample remains pending.
+abort are checked too. The original protocol's stale-capture midpoint is reachable;
+its completed counterexample remains pending.
 Execution remains manual: run `lake build` in this directory with the pinned
 Lean toolchain.
 
@@ -85,7 +86,15 @@ The captured full rows are proof-level witnesses of the statement snapshot. Nati
 DELETE returns client, server and login fields; only those key/login projections
 drive removal. The model implies no additional runtime snapshot or query.
 
-Next: establish the original unlocked-read failure. The earlier native test
+The checked `original_midpoint_reachable` helper constructs the original
+unlocked-read schedule from a well-formed seed. The first replica commits and
+acknowledges success while replacement still owns the deployment lock, has
+captured only the seed row and is ready to create its login. The database equals
+the independent first-replica result. Replacement's real upsert lock is retained;
+the witness does not bypass it. See the [midpoint receipt](evidence/original-midpoint.json).
+Finishing replacement and refuting the independent serial contract remain next.
+
+The earlier native test
 remains separate from these design-model statements. Neither the history theorem nor a successful
 acknowledgement implies that a registration survives a later replacement; the
 constructed successful schedule is not an unconditional liveness proof.

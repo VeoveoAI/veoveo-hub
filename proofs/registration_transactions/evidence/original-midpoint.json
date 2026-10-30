@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-30",
+  "status": "Original unlocked-read stale-capture midpoint checked; completed counterexample and independent serial-contract refutation remain pending",
+  "parent_proof_commit": "8174914",
+  "runtime_mapping_commit": "05737d6",
+  "evidence_class": "Constructed execution of the handwritten transaction model; not native SQL execution or formal Rust/SQL refinement",
+  "toolchain": "leanprover/lean4:v4.35.0",
+  "aeneas_framework_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "abd478779b97b5a0487c1f6743cde427e9961906d687d3e9f05a18155a88b575",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "4b2206d7808c0f17403b338c29c835e7c6222d2b37656d6007ccc04d3fa36707",
+    "RegistrationWitnesses.lean": "b36088c7b58a6bc45df8fc046dffcae214419f5031cdd3ad6ed681af68085c93",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "4f9661de5c968ef5083243221005fbf04ae7932306c2d40e44a9e0bf08b65ecf",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "inputs": "Arbitrary complete metadata, row/role payloads and disjoint frame; distinct old/new metadata; seed client0/login10, A client1/login11, B client2/login12, unrelated login99.",
+  "claim": {
+    "original_midpoint_reachable": "Construct a well-formed seed and actual original-protocol execution. A reads old metadata without a lock and stages its login. B reads old metadata, takes the real replacement upsert lock, captures only seed and stages its deletion/login drop. A then inserts, commits and acknowledges success. The committed database equals expectedReplica(seed,A), B still owns lock1, B is creating, and B captured only client0."
+  },
+  "axioms": {
+    "original_midpoint_reachable": [
+      "propext",
+      "Quot.sound"
+    ]
+  },
+  "check": {
+    "command": "lake env lean /tmp/RegistrationWitnesses-packet14.lean",
+    "elapsed_seconds": 34.28,
+    "exit_code": 0,
+    "log": {
+      "path": "/tmp/hub-registration-concurrency-20261030/witnesses14-evidence/direct.log",
+      "sha256": "81a5ea7745e52a73d5671ea5bac51c799f20a86658cb932addc22aee9b52bf8b"
+    },
+    "timing": {
+      "path": "/tmp/hub-registration-concurrency-20261030/witnesses14-evidence/direct.time",
+      "sha256": "4e7b1afbf99fa161eb818600fc07689036897898313810f9abc9da9c284eb5cb"
+    }
+  },
+  "validation_scope": "Complete updated Witnesses module checked directly against unchanged compiled prerequisites. Prior public theorem closures remain unchanged. No package, native, extraction, deployment or OpenCode acceptance rerun for this leaf-only milestone.",
+  "development_observation": {
+    "resource_limited_attempt": {
+      "elapsed_seconds": 307.69,
+      "exit_code": 143,
+      "result": "Deliberately terminated at the five-minute resource cap; no theorem verdict. Not a semantic fault-control result.",
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/witnesses11-cap-evidence/direct.partial.log",
+        "sha256": "a08c6a6cec31f61da615d265d5b0a3c21277ba000e12fb011891136da1438f07"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/witnesses11-cap-evidence/direct.time",
+        "sha256": "8000461071c7d29af484c553ede1b42905c522d83fd734704b307c43bad99e57"
+      }
+    },
+    "repair": "Split nested proof-state normalization into smaller constructor-shaped lemmas; fix record layout and explicit conditional simplification. The same transition schedule, lock and guards are retained; no model or proof-budget change."
+  },
+  "limits": [
+    "This is a reached midpoint, not yet a completed bad outcome or refutation of SerialHistory.",
+    "Constructed scheduling is reachability, not unconditional liveness.",
+    "PostgreSQL isolation, atomicity, constraints and locking, native payload projection, Core internals and Rust/SQL correspondence remain boundaries.",
+    "Per-client update/removal, housekeeping, authority changes, external-database preparation and postcommit audit/adoption remain outside this model."
+  ]
+}
