@@ -1,0 +1,13 @@
+--- a/crates/veoveo-hub/src/store/refresh.rs
++++ b/crates/veoveo-hub/src/store/refresh.rs
+@@ -551,9 +551,9 @@
+         && successor.replay_detected_at.is_none()
+         && successor
+             .delivery
+             .as_ref()
+-            .is_some_and(|delivery| delivery.expires_at > now)
++            .is_some_and(|delivery| delivery.expires_at >= now)
+ }
+ 
+ async fn lock_family(
+     connection: &mut PgConnection,

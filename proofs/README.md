@@ -51,7 +51,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CONTRACT-01 | Shared MCP extension contracts preserve meaning from declaration to enforcement | partial | Extend the qualified SDK-to-policy connection to declaration generation/validation and dispatch |
 | HUB-TASK-01 | Captured Task routing and retry integrity | partial | SQL and asynchronous adapter refinement remain |
 | HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Session/issuer continuity after the qualified SDK-to-policy connection |
-| HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Session admission qualified; refresh transaction/predicate work in progress |
+| HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Session and refresh predicates qualified; transaction composition in progress |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Trace broader routing beyond the linked kernel |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
@@ -497,8 +497,12 @@ package and eight theorem axiom checks pass; see the
 Separately, four new PostgreSQL transaction tests and five existing `hub_state`
 tests, formatting and strict library Clippy pass; see the
 [native baseline](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-refresh-native-baseline.md).
-Semantic fault controls and transaction-model correctness remain pending. Neither
-checkpoint proves SQL refinement or the full refresh lifecycle.
+The [controls receipt](current_roles/evidence/refresh-controls-receipt.json)
+qualifies these pure predicates with paired extracted/native faults for deadline
+equality and client binding. A separate premature-commit fault breaks the native
+audit-rollback assertion. Fresh extraction, the full proof package, five audits
+and all nine native tests pass on the restored original source. The controls do
+not prove SQL refinement or complete the refresh lifecycle.
 
 ## HUB-CONFIG-01 — Coherent atomic live publication
 

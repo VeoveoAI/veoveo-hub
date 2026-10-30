@@ -748,8 +748,17 @@ inputs, commands, timings and logs. The [extraction record](https://github.com/V
 retains the source/body inventory and runner correction. Existing generated
 definitions are unchanged after the recorded Source-comment comparison.
 
+The subsequent [qualification receipt](evidence/refresh-controls-receipt.json)
+records two paired controls: accepting equality at the delivery deadline and
+bypassing the client binding both break the unchanged extracted proof and their
+corresponding native PostgreSQL assertions. A third, native-only control commits
+rotation before its audit; the rollback assertion detects generation 1 instead
+of 0. These patches were applied only to isolated validation sources. Fresh
+original extraction, the full proof package and five audits pass again; all nine
+native tests, formatting and strict library Clippy also pass after restoration.
+
 Run `lake build RefreshPredicateProof` and `lake env lean RefreshModelAudit.lean`
-manually. This checkpoint proves the two pure predicates and mathematical
-session projection within the stated models; semantic fault controls remain pending. Refresh transaction ordering, SQL/lock semantics, maintenance
-interleavings, ciphertext recovery and HTTP response behavior require their
-separate model/native evidence; this is not refresh transaction qualification.
+manually. The pure predicates are proved and qualified within the stated models.
+Refresh transaction ordering, SQL/lock semantics, maintenance interleavings,
+ciphertext recovery and HTTP response behavior require separate model/native
+evidence; this is not qualification of the full refresh transaction lifecycle.

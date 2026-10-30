@@ -1,0 +1,838 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "status": "Pure binding/delivery predicates proved and qualified within stated models; native fault evidence complete; full refresh transaction lifecycle unfinished",
+  "agents": {
+    "coordination": "GPT-6 Astra",
+    "implementation": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna"
+  },
+  "pins": {
+    "hub_extraction_base": "bb2e97f5c984a53eaa218109e4c01a70e952e365",
+    "sdk": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "core": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "aeneas": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "lean": "4.35.0",
+    "extraction_rust": "nightly-2026-09-17-x86_64-unknown-linux-gnu"
+  },
+  "baseline_source_sha256": {
+    "crates/veoveo-hub/src/store/refresh.rs": "36cb277d3b0dc6cef9cfa7bab7bc95af7bb279a584bf4c3228d157c9ebb07f24",
+    "proofs/current_roles/HubCurrentRoles/Types.lean": "a72a8c072fd1cb422c4f2d839701cddc230d7726b85f647e5f6669f2b487a3bb",
+    "proofs/current_roles/HubCurrentRoles/Funs.lean": "c710121441703ae79a32c5ed79462d4b45ab429d781891a9ca1c562b3c090bbc",
+    "proofs/current_roles/HubCurrentRoles/TypesExternal.lean": "6df818e75c75be437d185ac0e786d69e648e6d24fb01c50fa450dc9fce9e6269",
+    "proofs/current_roles/HubCurrentRoles/FunsExternal.lean": "0964a04f5b5a4268a374764782b8d50e67ab47723f89bc707f540b6c3ae5e411",
+    "proofs/current_roles/RefreshModelAudit.lean": "91d25a6a09243433afb88325dcbb58e0649e9aa3dd4e574c12cecba9285c2257",
+    "proofs/current_roles/RefreshPredicateProof.lean": "07a0b7ff84c110b459ba2d7556b08c3891104837a6fa1605a71d6ddd25f8eded",
+    "proofs/current_roles/lakefile.lean": "1713dd4f4ece0441b5b6befd390b1b599b7de6a544bbf5011396b1ce0d4a0e9b",
+    "proofs/current_roles/lake-manifest.json": "f674793aa9e71b9cf475966c5789a0de6d1c9fc1824ddc5b311d7318e370aeb3",
+    "proofs/current_roles/lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "controls_plan": {
+    "path": "/tmp/hub-refresh-concurrency-20261030/refresh-controls-plan1.json",
+    "sha256": "fcddbd4a932a787c6c75942f44544e33984b596e5c54eeea06c22511e3c4ba9c"
+  },
+  "controls": [
+    {
+      "name": "refresh-delivery-deadline-inclusive",
+      "patch": {
+        "path": "proofs/current_roles/mutations/refresh-delivery-deadline-inclusive.patch",
+        "sha256": "0ac3c28317f5a58cd187cad43686cedd111deb03f5c85b0ba14385cf11a9723c"
+      },
+      "native": {
+        "summary": {
+          "path": "/tmp/hub-refresh-concurrency-20261030/native-control-refresh-delivery-deadline-inclusive-run1/witness-continuation/summary.json",
+          "sha256": "31d9a3b881c0736c60668488bb92489e48ecdf4b425f747db368b301adc361f4"
+        },
+        "compilation_summary": {
+          "path": "/tmp/hub-refresh-concurrency-20261030/native-control-refresh-delivery-deadline-inclusive-run1/summary.json",
+          "sha256": "7ec2aabdd07ee60eb78a7fd59bc5dadff31923dfd4bf72f8a6d5d36cf970470a"
+        },
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "state::refresh_tokens::transaction_tests::refresh_delivery_deadline_is_strict_and_replay_is_atomic",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "exit": 101,
+        "elapsed_ms": 3369,
+        "expected_assertion_marker": "equal delivery deadline must detect replay",
+        "assertion_marker_observed": true,
+        "failed_test_counts": {
+          "failed": 1,
+          "passed": 0
+        },
+        "same_binary": true,
+        "binary_sha256_before": "5b0e831c5cb1ff6d7481e7f48ca14fdf40757861536299f81f776fc84ce27c16",
+        "binary_sha256_after": "5b0e831c5cb1ff6d7481e7f48ca14fdf40757861536299f81f776fc84ce27c16",
+        "mutated_runtime_sha256": "ea76d1bb3e8e29ed1224cf25f9084e79a365071a67d515a72c93333bca3e617e",
+        "log_path": "/tmp/hub-refresh-concurrency-20261030/native-control-refresh-delivery-deadline-inclusive-run1/witness-continuation/logs/native-witness.log",
+        "log_sha256": "085b09e4995cf2bea80a285707439d5a140df03f0243c539a71f0c06af57ff2d",
+        "timed_out": false
+      },
+      "semantic_review": "accepted; intended assertion, not setup or timeout failure",
+      "formal": {
+        "proof_summary": {
+          "path": "/tmp/hub-refresh-concurrency-20261030/evidence-controls/refresh-delivery-deadline-inclusive/summaries/proof-summary.json",
+          "sha256": "a55bd892b87dbf519cab018bfcc3f833f1556dfc10ce66922d1210b940086533"
+        },
+        "extraction_summary": {
+          "path": "/tmp/hub-refresh-concurrency-20261030/evidence-controls/refresh-delivery-deadline-inclusive/summaries/extraction-summary.json",
+          "sha256": "50ea57232c2cb90c88a11d80fc581ea2288cc58297fb3fb25cde1079ac45be97"
+        },
+        "extraction_stages": [
+          {
+            "command": [
+              "/home/rozgo/.cargo/bin/rustup",
+              "run",
+              "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+              "cargo",
+              "clean",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/extract-proof-refresh-delivery-deadline-inclusive-run1/source/veoveo-hub/Cargo.toml"
+            ],
+            "elapsed_ms": 565,
+            "exit": 0,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/extract-proof-refresh-delivery-deadline-inclusive-run1/logs/clean-hub-charon-target.log",
+            "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+            "stage": "clean-hub-charon-target",
+            "timed_out": false
+          },
+          {
+            "command": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+              "cargo",
+              "--sysroot",
+              "default",
+              "--preset=aeneas",
+              "--start-from",
+              "{impl veoveo_hub::delegation::authority::Held for veoveo_hub::delegation::CurrentPermissions}::held",
+              "--start-from",
+              "veoveo_hub::policy::evaluation::decide_server",
+              "--start-from",
+              "veoveo_hub::policy::evaluation::declared_route_access",
+              "--start-from",
+              "veoveo_hub::policy::evaluation::registered_target",
+              "--start-from",
+              "veoveo_hub::policy::session::_::allows",
+              "--start-from",
+              "veoveo_hub::store::refresh::_::bound_to",
+              "--start-from",
+              "veoveo_hub::store::refresh::deliverable",
+              "--include",
+              "{impl veoveo_hub::delegation::authority::Held<_> for veoveo_hub::delegation::CurrentPermissions}::held",
+              "--include",
+              "veoveo_hub::policy::evaluation::decide_server",
+              "--include",
+              "veoveo_hub::policy::evaluation::declared_route_access",
+              "--include",
+              "veoveo_hub::policy::evaluation::registered_target",
+              "--include",
+              "veoveo_hub::policy::evaluation::decision",
+              "--include",
+              "veoveo_hub::policy::evaluation::deny",
+              "--include",
+              "veoveo_hub::policy::grants::held_roles",
+              "--include",
+              "veoveo_hub::policy::grants::effective_risks",
+              "--include",
+              "veoveo_hub::policy::grants::granted_permissions",
+              "--include",
+              "veoveo_hub::control_plane::authorization_config::_::allows",
+              "--include",
+              "veoveo_hub::contract::actions::_::targets_registered_server",
+              "--include",
+              "veoveo_hub::contract::actions::_::mcp_method",
+              "--include",
+              "veoveo_hub::contract::actions::_::name",
+              "--include",
+              "veoveo_hub_sdk::registration::authorization::_::access",
+              "--include",
+              "veoveo_hub_sdk::registration::authorization_decision::same_root",
+              "--include",
+              "veoveo_hub_sdk::registration::authorization_decision::path_matches",
+              "--include",
+              "veoveo_hub_sdk::registration::authorization_decision::matches_view",
+              "--include",
+              "{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<_> for veoveo_hub_sdk::registration::authorization::NativeMatcher}::matches",
+              "--include",
+              "veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<_> for veoveo_hub_sdk::registration::authorization::NativeMatcher}::matches::_::call_once",
+              "--include",
+              "veoveo_hub_sdk::registration::authorization::NativeMatcher",
+              "--include",
+              "veoveo_hub::policy::session::_::allows",
+              "--include",
+              "veoveo_hub::store::refresh::_::bound_to",
+              "--include",
+              "veoveo_hub::store::refresh::deliverable",
+              "--opaque",
+              "veoveo_hub::mcp::upstream_http::HubUpstreamHttpClientPool",
+              "--opaque",
+              "veoveo_hub::contract::catalog::SectionDeclaration",
+              "--opaque",
+              "veoveo_hub::contract::catalog::TargetDeclaration",
+              "--opaque",
+              "openshell_sdk::config::AuthConfig",
+              "--opaque",
+              "veoveo_hub::registration::snapshot::_::iter::_::call_mut",
+              "--opaque",
+              "prost_types::protobuf::value::Kind",
+              "--opaque",
+              "serde_json::value::Value",
+              "--opaque",
+              "veoveo_hub_sdk::registration::authorization_template::_::parse",
+              "--opaque",
+              "veoveo_types::resource::_::components",
+              "--opaque",
+              "veoveo_hub_sdk::registration::authorization_template::_::matches",
+              "--opaque",
+              "veoveo_hub_sdk::registration::authorization_decision::resolve",
+              "--dest-file",
+              "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/extract-proof-refresh-delivery-deadline-inclusive-run1/outputs/hub_current_roles.llbc",
+              "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+              "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+              "--",
+              "--manifest-path",
+              "crates/veoveo-hub/Cargo.toml",
+              "--lib",
+              "--locked"
+            ],
+            "elapsed_ms": 26261,
+            "exit": 0,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/extract-proof-refresh-delivery-deadline-inclusive-run1/logs/charon-mutant.log",
+            "log_sha256": "b5801bdac496e74a5ebb0032dd325e55a5914f8daa963e5cd124cb3981a4fcc8",
+            "stage": "charon-mutant",
+            "timed_out": false
+          },
+          {
+            "command": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+              "-backend",
+              "lean",
+              "-filter-trait-methods",
+              "-split-files",
+              "-dest",
+              "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/extract-proof-refresh-delivery-deadline-inclusive-run1/outputs",
+              "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/extract-proof-refresh-delivery-deadline-inclusive-run1/outputs/hub_current_roles.llbc"
+            ],
+            "elapsed_ms": 2021,
+            "exit": 0,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/extract-proof-refresh-delivery-deadline-inclusive-run1/logs/aeneas-mutant.log",
+            "log_sha256": "f6bd5296dd06cbd0b285cde19ef0412df78ca8109ac3ec5ae67727a1267da99f",
+            "stage": "aeneas-mutant",
+            "timed_out": false
+          }
+        ],
+        "proof_stages": [
+          {
+            "command": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "build",
+              "HubCurrentRoles",
+              "SessionFamilyProof",
+              "RefreshModelAudit"
+            ],
+            "elapsed_ms": 16491,
+            "exit": 0,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/extract-proof-refresh-delivery-deadline-inclusive-run1/proof-continuation6/logs/mutant-helper-model-build.log",
+            "log_sha256": "3cde53f01bec388f34583d318a42e01f9b2599ef38078343bbd43b6ee8049f65",
+            "stage": "mutant-helper-model-build"
+          },
+          {
+            "command": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "RefreshPredicateProof.lean"
+            ],
+            "elapsed_ms": 2768,
+            "exit": 1,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/extract-proof-refresh-delivery-deadline-inclusive-run1/proof-continuation6/logs/unchanged-refresh-predicate-proof.log",
+            "log_sha256": "c3a1d599dccfffe7de1b0a0221c2dcdce35020481a56f9a884a737bfeb88305c",
+            "stage": "unchanged-refresh-predicate-proof"
+          }
+        ],
+        "residual": "Inclusive ge versus strictBefore in envelope_window_exact and deliverable_exact; symbolic mismatch paired with native boundary example."
+      }
+    },
+    {
+      "name": "refresh-client-binding-bypass",
+      "patch": {
+        "path": "proofs/current_roles/mutations/refresh-client-binding-bypass.patch",
+        "sha256": "f23be4bb23c76eed1247aae77207e9a8616f4b514f89ed43e369ae26725f2505"
+      },
+      "native": {
+        "summary": {
+          "path": "/tmp/hub-refresh-concurrency-20261030/native-control-refresh-client-binding-bypass-run1/witness-continuation/summary.json",
+          "sha256": "ae5d62297256633f6797c70e3f96d1b614ad108da7832d318dfd85da8ee41457"
+        },
+        "compilation_summary": {
+          "path": "/tmp/hub-refresh-concurrency-20261030/native-control-refresh-client-binding-bypass-run1/summary.json",
+          "sha256": "b1e45d1690d788052551ea15abf8b9a6bec163d2d82600018ab9c3026851ecd5"
+        },
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--test",
+          "hub_state",
+          "public_client_revocation_is_bound_idempotent_and_family_wide",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "exit": 101,
+        "elapsed_ms": 2232,
+        "expected_assertion_marker": "a different public client must not revoke the family",
+        "assertion_marker_observed": true,
+        "failed_test_counts": {
+          "failed": 1,
+          "passed": 0
+        },
+        "same_binary": true,
+        "binary_sha256_before": "7d2270515bab5d5e35816c71065ead482a1c5808d10e2a3acbc32b32be10d16f",
+        "binary_sha256_after": "7d2270515bab5d5e35816c71065ead482a1c5808d10e2a3acbc32b32be10d16f",
+        "mutated_runtime_sha256": "2c53505d4cb8670cc4da79c98071a78c9c42d6c9699eac7658b157585aebecad",
+        "log_path": "/tmp/hub-refresh-concurrency-20261030/native-control-refresh-client-binding-bypass-run1/witness-continuation/logs/native-witness.log",
+        "log_sha256": "f24b44b7f9e83f3711c1c3864936b075eb8f90f1542664bf2d2e34c4f8717c20",
+        "timed_out": false
+      },
+      "semantic_review": "accepted; intended assertion, not setup or timeout failure",
+      "formal": {
+        "continuation_summary": {
+          "path": "/tmp/hub-refresh-concurrency-20261030/evidence-client-binding-control-1/combined-summary.json",
+          "sha256": "16b3cb3c643a3ba0748e919401dc0d4dbf7dc7a772b336cfc3070f854d76c498"
+        },
+        "initial_extraction_summary": {
+          "path": "/tmp/hub-refresh-concurrency-20261030/evidence-client-binding-control-1/summary.json",
+          "sha256": "a89638c9ab627903731ac7cd011d848a2edbd073d6f6537c34bbf66f993925fd"
+        },
+        "extraction": {
+          "Funs_sha256": "f9dac7e2ec3318f57ec0ab94ad9effbf0280154e1f259a81bdcf5fe5bde6faee",
+          "LLBC_sha256": "b6abd96a78c8e3cfe26981217c4bb56527f87bc0c8a59987cfc474ae2559da4b",
+          "Types_equal_baseline_after_Source_root_normalization": true,
+          "Types_sha256": "a72a8c072fd1cb422c4f2d839701cddc230d7726b85f647e5f6669f2b487a3bb",
+          "aeneas_log_sha256": "1e3696e6221cd2b1b54b32ae9a0fb181ad569869ab6c917985db54b1d1559536",
+          "charon_log_sha256": "b8e654561cdaea5394ec999896cae589ac1e40008368d1f5f3d57f11cc147af7",
+          "source_paths_verified": 877
+        },
+        "helper_build": {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles",
+            "SessionFamilyProof",
+            "RefreshModelAudit"
+          ],
+          "exit": 0,
+          "log_path": "/tmp/hub-refresh-concurrency-20261030/evidence-client-binding-control-1/logs/helpers.log",
+          "log_sha256": "530b7256d2329064e065fb1192b351c2a4641cd7a2e2bd03c008c2341382ec14",
+          "source_map_before_primary": true
+        },
+        "primary_proof": {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RefreshPredicateProof.lean"
+          ],
+          "exit": 1,
+          "log_path": "/tmp/hub-refresh-concurrency-20261030/evidence-client-binding-control-1/logs/primary.log",
+          "log_sha256": "c19cd219e8b7176f4362e7e7f53253b2141bf52f4f6ba1b87995c3bb1e378e49",
+          "measured_elapsed_ms": null,
+          "residual": "Actual bound_to checks server/resource, then returns ok true in both client-equality branches; model Bound still requires client identity. sorryAx appears only after failed proof recovery and is rejected by audit.",
+          "timed_out": false
+        },
+        "proof": {
+          "external_models_unchanged": true,
+          "helper_targets": [
+            "HubCurrentRoles",
+            "SessionFamilyProof",
+            "RefreshModelAudit"
+          ],
+          "source_sha256": "07a0b7ff84c110b459ba2d7556b08c3891104837a6fa1605a71d6ddd25f8eded",
+          "target": "RefreshPredicateProof.bound_to_exact"
+        },
+        "timing_boundary": "Final binding helper/proof elapsed times were not instrumented; not inferred from initial failed setup."
+      }
+    },
+    {
+      "name": "refresh-split-rotation-before-audit",
+      "patch": {
+        "path": "proofs/refresh_transactions/mutations/refresh-split-rotation-before-audit.patch",
+        "sha256": "787a59e53b7970f58e341027fc651dba2f24ff34718aea47d3c5094194786429"
+      },
+      "native": {
+        "summary": {
+          "path": "/tmp/hub-refresh-concurrency-20261030/native-control-refresh-split-rotation-before-audit-run1/witness-continuation/summary.json",
+          "sha256": "3e2bc7a9bece308e1e1b692f19405df7e7fd4895b7eea24a2e29357b190d3685"
+        },
+        "compilation_summary": {
+          "path": "/tmp/hub-refresh-concurrency-20261030/native-control-refresh-split-rotation-before-audit-run1/summary.json",
+          "sha256": "348a571a5307fe304a65bf0619c112ba1889d83c2b9ad531855af04b550d75fc"
+        },
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--test",
+          "hub_state",
+          "refresh_rotation_rolls_back_when_success_audit_cannot_commit",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "exit": 101,
+        "elapsed_ms": 2020,
+        "expected_assertion_marker": "assertion `left == right` failed",
+        "assertion_marker_observed": true,
+        "failed_test_counts": {
+          "failed": 1,
+          "passed": 0
+        },
+        "same_binary": true,
+        "binary_sha256_before": "d59d7eeaf99d9c8ddfdc76832f566eb5d24b3c58392b6026c4904b9355051f2d",
+        "binary_sha256_after": "d59d7eeaf99d9c8ddfdc76832f566eb5d24b3c58392b6026c4904b9355051f2d",
+        "mutated_runtime_sha256": "3998cd8d6d42d2b60619bb47f95650b141477dd1a0b8ffed622726ce13c1e997",
+        "log_path": "/tmp/hub-refresh-concurrency-20261030/native-control-refresh-split-rotation-before-audit-run1/witness-continuation/logs/native-witness.log",
+        "log_sha256": "f44ee35310d7d551e24eb461074ac99679b3c1b382b88a056d1c677c2e9ca138",
+        "timed_out": false
+      },
+      "semantic_review": "accepted; intended assertion, not setup or timeout failure",
+      "formal": null,
+      "boundary": "Native transaction fault only; audit failure leaves committed generation 1 instead of 0. No async Rust/SQL extraction or refinement claimed."
+    }
+  ],
+  "restoration": {
+    "native": {
+      "summary": {
+        "path": "/tmp/hub-refresh-concurrency-20261030/native-refresh-restoration-run1/summary.json",
+        "sha256": "1b4d6a24488ffc05664052850c0638fd209102a77e2c196573941a4e3d64c63c"
+      },
+      "stages": [
+        {
+          "stage": "postgres18-version",
+          "command": [
+            "/opt/homebrew/opt/postgresql@18/bin/postgres",
+            "--version"
+          ],
+          "exit": 0,
+          "elapsed_ms": 18,
+          "timed_out": false,
+          "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-restoration-run1/logs/postgres18-version.log",
+          "log_sha256": "1f6bff71efc118ffd7738eff34169ffdc19f0c8153a101eecd9517f40ffcf89c"
+        },
+        {
+          "stage": "fmt-check",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "exit": 0,
+          "elapsed_ms": 604,
+          "timed_out": false,
+          "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-restoration-run1/logs/fmt-check.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "stage": "clean-hub",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "clean",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/tmp/hub-refresh-concurrency-20261030/native-refresh-restoration-run1/source/veoveo-hub/Cargo.toml"
+          ],
+          "exit": 0,
+          "elapsed_ms": 289,
+          "timed_out": false,
+          "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-restoration-run1/logs/clean-hub.log",
+          "log_sha256": "7770f4a50723bef29810813e57b1ec5b1184750bf31f483ef941fd865abe2951"
+        },
+        {
+          "stage": "refresh-transaction-unit-tests",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "state::refresh_tokens::transaction_tests::",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 0,
+          "elapsed_ms": 26373,
+          "timed_out": false,
+          "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-restoration-run1/logs/refresh-transaction-unit-tests.log",
+          "log_sha256": "ab052c4ded91279ec226acb47f5b8d002a6d163a4ecca078f9aeeca434ff99e7"
+        },
+        {
+          "stage": "hub-state-postgres-integration",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--test",
+            "hub_state",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 0,
+          "elapsed_ms": 37057,
+          "timed_out": false,
+          "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-restoration-run1/logs/hub-state-postgres-integration.log",
+          "log_sha256": "8c14241e8b0123573c7243965db85966aa530b74ae00bb43a5c3d77315b2a3f0"
+        },
+        {
+          "stage": "strict-lib-clippy",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "clippy",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit": 0,
+          "elapsed_ms": 8820,
+          "timed_out": false,
+          "log": "/tmp/hub-refresh-concurrency-20261030/native-refresh-restoration-run1/logs/strict-lib-clippy.log",
+          "log_sha256": "01b9ddf337b6f2c3e2b20c267f5ff6798336a9216816ae0f6002aaebe01240ab"
+        }
+      ],
+      "passed_tests": 9,
+      "source_unchanged": true
+    },
+    "extraction": {
+      "verification": {
+        "path": "/tmp/hub-refresh-concurrency-20261030/evidence-restoration-extraction/final-verification.json",
+        "sha256": "4accb841490290a8d22ac1f70d23fc568558d424306388625079bf3fe44557bc"
+      },
+      "runner_summary": {
+        "path": "/tmp/hub-refresh-concurrency-20261030/evidence-restoration-extraction/runner-summary.json",
+        "sha256": "430ad26993b7edd553fcd045a21eb2887816da3e100c6dfd4f3042909c9f31b8"
+      },
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+            "cargo",
+            "clean",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-extraction-run1/source/crates/veoveo-hub/Cargo.toml"
+          ],
+          "elapsed_ms": 414,
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-extraction-run1/logs/clean-hub-charon-target.log",
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+          "stage": "clean-hub-charon-target",
+          "timed_out": false
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "{impl veoveo_hub::delegation::authority::Held for veoveo_hub::delegation::CurrentPermissions}::held",
+            "--start-from",
+            "veoveo_hub::policy::evaluation::decide_server",
+            "--start-from",
+            "veoveo_hub::policy::evaluation::declared_route_access",
+            "--start-from",
+            "veoveo_hub::policy::evaluation::registered_target",
+            "--start-from",
+            "veoveo_hub::policy::session::_::allows",
+            "--start-from",
+            "veoveo_hub::store::refresh::_::bound_to",
+            "--start-from",
+            "veoveo_hub::store::refresh::deliverable",
+            "--include",
+            "{impl veoveo_hub::delegation::authority::Held<_> for veoveo_hub::delegation::CurrentPermissions}::held",
+            "--include",
+            "veoveo_hub::policy::evaluation::decide_server",
+            "--include",
+            "veoveo_hub::policy::evaluation::declared_route_access",
+            "--include",
+            "veoveo_hub::policy::evaluation::registered_target",
+            "--include",
+            "veoveo_hub::policy::evaluation::decision",
+            "--include",
+            "veoveo_hub::policy::evaluation::deny",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::contract::actions::_::targets_registered_server",
+            "--include",
+            "veoveo_hub::contract::actions::_::mcp_method",
+            "--include",
+            "veoveo_hub::contract::actions::_::name",
+            "--include",
+            "veoveo_hub_sdk::registration::authorization::_::access",
+            "--include",
+            "veoveo_hub_sdk::registration::authorization_decision::same_root",
+            "--include",
+            "veoveo_hub_sdk::registration::authorization_decision::path_matches",
+            "--include",
+            "veoveo_hub_sdk::registration::authorization_decision::matches_view",
+            "--include",
+            "{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<_> for veoveo_hub_sdk::registration::authorization::NativeMatcher}::matches",
+            "--include",
+            "veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<_> for veoveo_hub_sdk::registration::authorization::NativeMatcher}::matches::_::call_once",
+            "--include",
+            "veoveo_hub_sdk::registration::authorization::NativeMatcher",
+            "--include",
+            "veoveo_hub::policy::session::_::allows",
+            "--include",
+            "veoveo_hub::store::refresh::_::bound_to",
+            "--include",
+            "veoveo_hub::store::refresh::deliverable",
+            "--opaque",
+            "veoveo_hub::mcp::upstream_http::HubUpstreamHttpClientPool",
+            "--opaque",
+            "veoveo_hub::contract::catalog::SectionDeclaration",
+            "--opaque",
+            "veoveo_hub::contract::catalog::TargetDeclaration",
+            "--opaque",
+            "openshell_sdk::config::AuthConfig",
+            "--opaque",
+            "veoveo_hub::registration::snapshot::_::iter::_::call_mut",
+            "--opaque",
+            "prost_types::protobuf::value::Kind",
+            "--opaque",
+            "serde_json::value::Value",
+            "--opaque",
+            "veoveo_hub_sdk::registration::authorization_template::_::parse",
+            "--opaque",
+            "veoveo_types::resource::_::components",
+            "--opaque",
+            "veoveo_hub_sdk::registration::authorization_template::_::matches",
+            "--opaque",
+            "veoveo_hub_sdk::registration::authorization_decision::resolve",
+            "--dest-file",
+            "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-extraction-run1/outputs/hub_current_roles.llbc",
+            "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+            "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 24660,
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-extraction-run1/logs/charon-refresh-probe1.log",
+          "log_sha256": "1a70c47b6b85081671e1d0dd675f322db67edc0834574db88067d903d576e73c",
+          "stage": "charon-refresh-probe1",
+          "timed_out": false
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-extraction-run1/outputs",
+            "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-extraction-run1/outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1973,
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-extraction-run1/logs/aeneas-refresh-probe1.log",
+          "log_sha256": "cc356f900ce6d71f75a4328d2c96c4ba1a4e14e0a17c6317c29433641bcb4fea",
+          "stage": "aeneas-refresh-probe1",
+          "timed_out": false
+        }
+      ],
+      "verified_merged_source_paths": 868,
+      "raw_types": {
+        "bytes": 98596,
+        "matches_original_after_source_root_only_normalization": true,
+        "sha256": "a72a8c072fd1cb422c4f2d839701cddc230d7726b85f647e5f6669f2b487a3bb"
+      },
+      "raw_functions": {
+        "bytes": 164277,
+        "matches_original_after_source_root_only_normalization": true,
+        "sha256": "c710121441703ae79a32c5ed79462d4b45ab429d781891a9ca1c562b3c090bbc"
+      },
+      "source_comment_normalization": "only generated Source doc-comment root; body/type spans preserved"
+    },
+    "formal": {
+      "summary": {
+        "path": "/tmp/hub-refresh-concurrency-20261030/evidence-restoration-formal/summary.json",
+        "sha256": "9503d593bd4e5400353d521aa2538fd326d7a54e745fb3b962c0984c78f71c2f"
+      },
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build"
+          ],
+          "elapsed_ms": 37929,
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-formal-run1/logs/full-current-roles-build.log",
+          "log_sha256": "880ec26137f2709bf3cfd94dd6d47fd47214c01ab57457ff4a83cd514dc7f532",
+          "stage": "full-current-roles-build",
+          "timed_out": false
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "RefreshPredicateProof.lean"
+          ],
+          "elapsed_ms": 2819,
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-formal-run1/logs/refresh-predicate-proof.log",
+          "log_sha256": "51cc2cb23157ade906260c96638b996a000bb34b99eb071f74615c94930022e6",
+          "stage": "refresh-predicate-proof",
+          "timed_out": false
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "ModelAudit.lean"
+          ],
+          "elapsed_ms": 2518,
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-formal-run1/logs/model-audit.log",
+          "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312",
+          "stage": "model-audit",
+          "timed_out": false
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "CurrentPermissionsModelAudit.lean"
+          ],
+          "elapsed_ms": 2568,
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-formal-run1/logs/current-permissions-model-audit.log",
+          "log_sha256": "3ac752ca291548d17ff3818c00563d631f6d2e6d408ad4070c97c49277c9ca7f",
+          "stage": "current-permissions-model-audit",
+          "timed_out": false
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "NativePolicyModelAudit.lean"
+          ],
+          "elapsed_ms": 2618,
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-formal-run1/logs/native-policy-model-audit.log",
+          "log_sha256": "7bb1fc2d46ecd7a3061ae14708cc0f93b12434b41d6cb7cadf97f1b27d69a415",
+          "stage": "native-policy-model-audit",
+          "timed_out": false
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "SessionModelAudit.lean"
+          ],
+          "elapsed_ms": 2568,
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-formal-run1/logs/session-model-audit.log",
+          "log_sha256": "73f7e7c26051ad9fa1005ac9e46883fffbf17846d45b01318018b3733c6eb651",
+          "stage": "session-model-audit",
+          "timed_out": false
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "RefreshModelAudit.lean"
+          ],
+          "elapsed_ms": 2568,
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-restoration-formal-run1/logs/refresh-model-audit.log",
+          "log_sha256": "d7e7060c3e42788fb269b620bb1f9628bd52cd24b909f538025351aa856172fb",
+          "stage": "refresh-model-audit",
+          "timed_out": false
+        }
+      ],
+      "new_predicate_theorem_axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "new_predicate_theorem_count": 8,
+      "audit_count": 5
+    }
+  },
+  "limits": [
+    "No formal refinement of native SQL, asynchronous caller, decoder, crypto or HTTP.",
+    "Formal mutant failures are symbolic residuals, paired with concrete native assertions; no generated Lean counterexample claimed.",
+    "Historical warm-target mutant binaries were subsequently overwritten; hashes identify observed binaries, not permanent retained files.",
+    "Setup failures are retained in raw summaries but excluded from semantic credit.",
+    "Original runtime behavior unchanged; mutations apply only to isolated copies; proof invocation remains manual."
+  ]
+}

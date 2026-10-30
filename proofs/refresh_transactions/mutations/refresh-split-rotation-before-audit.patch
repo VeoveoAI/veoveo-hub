@@ -1,0 +1,13 @@
+--- a/crates/veoveo-hub/src/store/refresh.rs
++++ b/crates/veoveo-hub/src/store/refresh.rs
+@@ -459,8 +459,10 @@
+             generation(replacement.generation)?,
+         )
+         .execute(&mut *transaction)
+         .await?;
++        transaction.commit().await?;
++        let mut transaction = self.pool().begin().await?;
+         rotated.append(&mut transaction).await?;
+         transaction.commit().await?;
+         family.current_generation = replacement.generation;
+         Ok(RefreshRotation::Rotated {

@@ -1,0 +1,13 @@
+--- a/crates/veoveo-hub/src/store/refresh.rs
++++ b/crates/veoveo-hub/src/store/refresh.rs
+@@ -59,9 +59,9 @@
+     /// Whether a token of this family presented by `binding` belongs to it.
+     pub fn bound_to(&self, binding: RefreshBinding<'_>) -> bool {
+         &self.authorization_server == binding.authorization_server
+             && &self.protected_resource == binding.protected_resource
+-            && &self.oauth_client_id == binding.oauth_client_id
++            && (&self.oauth_client_id == binding.oauth_client_id || true)
+     }
+ }
+ 
+ /// The principal a family's access tokens name, with its display name.
