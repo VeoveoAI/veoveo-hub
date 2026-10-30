@@ -17,7 +17,8 @@ no-fork, aborted-attempt exclusion or positive concurrent executions. The
 history increment below adds the first two; the given-list field lemmas alone
 do not establish them. The replay increment adds traced committed-state replay
 and aborted-attempt exclusion. The concrete witness below establishes concurrent
-rotation and duplicate-delivery success; uncertain responses remain pending.
+rotation and duplicate-delivery success; the uncertainty increment below supplies
+its reached commit/error cases.
 
 Primitive commit applies whatever deltas were staged, preserving unrelated rows.
 It has no correct-rotation, comparison, audit-completeness or success guard. The
@@ -103,7 +104,8 @@ program when its statement constraints and compatible row-lock assumptions hold.
 It releases the held locks and preserves other attempts. This support theorem
 still has explicit `ValidWrites` premises. The concrete witness below supplies
 them from initial rows and proves a blocked rotation followed by delivery of the
-same successor, with full output maps. Uncertain responses remain pending.
+same successor, with full output maps. The uncertainty increment supplies
+separate reached commit/error outcomes.
 The [replay checkpoint](evidence/replay-checkpoint.json) records the final source
 identities and successful direct/target checks, including the strengthened trace
 statement accepted after review.
@@ -123,7 +125,30 @@ the second candidate row, and contain only the first success and second duplicat
 batch identities. A closed typed fixture instantiates the execution. This is a
 compatible no-cleanup schedule with live records and an unexpired sampled window,
 not unconditional success under arbitrary maintenance, aliasing UUIDs, failures
-or lock delays. Native crypto/SQL/caller correspondence remains separate; model
-commit uncertainty witnesses are the remaining proof increment.
+or lock delays. Native crypto/SQL/caller correspondence remains separate.
 The [concurrent-success checkpoint](evidence/concurrent-success-checkpoint.json)
 records the checked source and direct/target validation.
+
+
+## Reached commit uncertainty
+
+`RefreshTransactionUncertainty.lean` reaches a committing prefix from the same
+valid initial rows and actual protocol steps, with the complete rotation/audit
+program staged. After an observed error, one permitted continuation commits the
+full expected rotation and is explicitly in phase `committed`; another aborts,
+is explicitly in phase `aborted`, and retains the original rows. Both retain the
+error response. A separate execution commits first and then loses its
+acknowledgement, again retaining the complete committed rows and committed phase.
+
+These are constructive design-model executions, not a timeout-injection test or
+a native network/SQL refinement. They establish neither guaranteed progress nor
+physical durability. Native binding/catalog/JWT preflight, timestamp projection,
+SQL constraint/lock semantics, audit-appender wiring, cipher recovery and HTTP
+response behavior retain their stated boundaries. Pure extraction, model proofs,
+real PostgreSQL tests and fault controls remain separate evidence classes.
+
+The [final receipt](evidence/refresh-transactions-receipt.json) records the frozen
+nine-module package build, the direct uncertainty check, and prior milestone and
+native/control receipts. The [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-refresh-concurrency-qualification.md)
+closes this refresh concurrency slice within these boundaries; it does not mark
+the whole OAuth lifecycle or Hub verified. Proof execution remains manual.

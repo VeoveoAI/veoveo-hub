@@ -25,3 +25,6 @@ lean_lib RefreshTransactionReplay
 
 @[default_target]
 lean_lib RefreshTransactionWitnesses
+
+@[default_target]
+lean_lib RefreshTransactionUncertainty

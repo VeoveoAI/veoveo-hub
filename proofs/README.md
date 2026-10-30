@@ -51,7 +51,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CONTRACT-01 | Shared MCP extension contracts preserve meaning from declaration to enforcement | partial | Extend the qualified SDK-to-policy connection to declaration generation/validation and dispatch |
 | HUB-TASK-01 | Captured Task routing and retry integrity | partial | SQL and asynchronous adapter refinement remain |
 | HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Session/issuer continuity after the qualified SDK-to-policy connection |
-| HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Session and refresh predicates qualified; transaction composition in progress |
+| HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Trace broader routing beyond the linked kernel |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
@@ -515,9 +515,15 @@ ties committed-state replay to actual model-step contributions and excludes
 aborted attempts from every such trace, while retaining other commits and
 maintenance. A [constructive concurrent witness](refresh_transactions/evidence/concurrent-success-checkpoint.json)
 now derives a successful rotation and waiting duplicate delivery from valid initial
-data, with the same original successor and exact family/token/audit maps. Initial
-creation, native SQL/lock correspondence and uncertain commit responses remain
-separate obligations.
+data, with the same original successor and exact family/token/audit maps. Reached
+commit-request witnesses now show both complete commit and abort after an observed
+error, plus commit followed by a lost acknowledgement. The
+[final refresh receipt](refresh_transactions/evidence/refresh-transactions-receipt.json)
+closes this concurrency slice with the full nine-module build, native tests and
+semantic controls kept as distinct evidence. Initial creation, native caller and
+SQL/lock correspondence, and cleanup composition remain separate obligations;
+the whole OAuth area is still partial. Registration/replacement concurrency is
+the next transaction slice.
 
 ## HUB-CONFIG-01 — Coherent atomic live publication
 

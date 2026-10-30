@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-30",
+  "status": "Refresh concurrency slice qualified within the recorded model and native-test boundaries; whole OAuth and Hub coverage remain partial",
+  "lean": "4.35.0",
+  "runtime_source_baseline": "bb2e97f5c984a53eaa218109e4c01a70e952e365",
+  "source_sha256": {
+    "proofs/refresh_transactions/RefreshTransactionExecution.lean": "91b5e4bcffb4fabba26046b8efa6e8a1200b872ec87d7c7d4741bb1efe4a57f4",
+    "proofs/refresh_transactions/RefreshTransactionHistory.lean": "0d2c5914e8010c6af49d8ad448db39ffe9fe3da995a1bfae003b85cb470ae61f",
+    "proofs/refresh_transactions/RefreshTransactionLocks.lean": "7ed27646b10ba7f52a5fd52c550695eeae8c41f9d4e84ed7f09858e3e4c2aeec",
+    "proofs/refresh_transactions/RefreshTransactionModel.lean": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+    "proofs/refresh_transactions/RefreshTransactionNoFork.lean": "47d94e69043a9e511b19eec5010497af212a109879cd96e1be0d35bcbd9663d6",
+    "proofs/refresh_transactions/RefreshTransactionProof.lean": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038",
+    "proofs/refresh_transactions/RefreshTransactionReplay.lean": "2d337d5477cad974b279c14bbb3d8a16a92400ad01a85bd0a62f72f296485fc7",
+    "proofs/refresh_transactions/RefreshTransactionUncertainty.lean": "d6230f8b75b1abb6934c4c8d9ebc6551d3af91f537db967db35003c9d012ca84",
+    "proofs/refresh_transactions/RefreshTransactionWitnesses.lean": "5afdc9584920fa5b8597c35c67bb343cecaa4e142dc4ee362664e87f5cfb591c",
+    "proofs/refresh_transactions/lake-manifest.json": "48bba0ac9bec4e0ffaf264f1096fa79d23f45b692752465dbaadad00e5958df2",
+    "proofs/refresh_transactions/lakefile.lean": "d244f3030fbdb3cb34c234a00b53d93449f812de4eccbb20e82b4b381d910be3"
+  },
+  "checked_readme_sha256": "6453ded33a70a7144fc701ff740f770bbb2e717b85d214afe5cb86eb7e5ffc08",
+  "documentation_note": "README subsequently gained links to this receipt and its qualification record; checked Lean sources and package configuration are unchanged.",
+  "validation": {
+    "uncertainty_direct": {
+      "summary_path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-uncertainty3-run1/summary.json",
+      "summary_sha256": "e6b0893ff8f0a1b22aec8604a35f974f9b1bbb54b99946871f0b3fc4c9fb8173",
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/RefreshTransactionUncertainty-packet3.lean"
+      ],
+      "elapsed_ms": 3507,
+      "exit": 0,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/evidence-transaction-uncertainty3-run1/logs/uncertainty3.log",
+      "log_sha256": "ee18b25f7d1988a9d702987d3941da58dbc29ef94da58eec3b6e188fcdc9adfc",
+      "package": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/refresh_transactions"
+    },
+    "full_package": {
+      "summary_path": "/tmp/hub-refresh-concurrency-20261030/evidence-final-transaction-build-run1/summary.json",
+      "summary_sha256": "634de1be802a21cfb775efbf5cc718aeccfb5e9589244405cec7b8d7172529e2",
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build"
+      ],
+      "elapsed_ms": 4731,
+      "exit": 0,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/evidence-final-transaction-build-run1/logs/full-build.log",
+      "log_sha256": "ef92f0a029ce9f4f90cbe011ddbcfe0dc04954969958f88eab0982c7c3853ccd",
+      "package": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/refresh_transactions",
+      "sdk_revision": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+      "source_hashes_verified_before_and_after": true
+    }
+  },
+  "prior_receipts": [
+    {
+      "path": "proofs/refresh_transactions/evidence/prefix-checkpoint.json",
+      "sha256": "8a8a3cb554ab936729524b22f31e1ba62ba0a28a6ca23294feb9dc6988374c1c"
+    },
+    {
+      "path": "proofs/refresh_transactions/evidence/history-checkpoint.json",
+      "sha256": "ee1297eb1f0496682b4dbf154d61c6a717ab2aa6e4907b2fcc6c6f8e9529d8e2"
+    },
+    {
+      "path": "proofs/refresh_transactions/evidence/completeness-control.json",
+      "sha256": "d6300e1030cd3f3986097a66dd28930048bb0f69b965a3a957fe5d3d24706f9d"
+    },
+    {
+      "path": "proofs/refresh_transactions/evidence/replay-checkpoint.json",
+      "sha256": "c84aedbf717454c1ef43150b420629a4875fa2da051138fa908c85f1a191d07b"
+    },
+    {
+      "path": "proofs/refresh_transactions/evidence/concurrent-success-checkpoint.json",
+      "sha256": "94cbbd5ea0576ca41ec14d9048d83f144688a28593a6855163d35ca11ea7c6b7"
+    },
+    {
+      "path": "proofs/current_roles/evidence/refresh-native-baseline.json",
+      "sha256": "6fa043483fbc686aa5c0d07e62c2b200f381cc614d1fd25eb6956b5337368e0f"
+    },
+    {
+      "path": "proofs/current_roles/evidence/refresh-controls-receipt.json",
+      "sha256": "f78be91121329f9f897f7f6f24c1e2eb1d6efc76394812366b28b47b094ed070"
+    }
+  ],
+  "claims": [
+    "Exact extracted production binding and successor-delivery predicates, including valid acceptance and strict deadline refusal.",
+    "Reachable committing attempts stage the complete chosen program, including its transactional audit.",
+    "Committed rotations strictly increase generations during one retained family incarnation.",
+    "Actual-step contribution traces replay committed state and exclude aborted attempts while framing other commits and maintenance.",
+    "A valid concrete concurrent rotation/retry execution returns the original successor and exact complete family/token/audit maps.",
+    "A genuinely reached commit request can report an error before either a complete commit or complete abort; committed and aborted terminal phases are explicit.",
+    "A complete commit followed by loss of its acknowledgement preserves committed rows and phase despite an error response."
+  ],
+  "axiom_boundary": {
+    "allowed_for_new_transaction_theorems": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "sorryAx_seen_in_final_build": false,
+    "enforcement": "Lean modules audit theorem closures; final package build succeeds."
+  },
+  "evidence_classes": {
+    "implementation_linked": "Pinned Charon/Aeneas extraction of pure Rust predicates; source/translation and representation boundaries in the prior control receipt.",
+    "design_model": "Operational transaction model with constructive executions and arbitrary finite-history proofs; no formal Rust/SQL refinement.",
+    "native_component": "Four new PostgreSQL tests plus five existing hub_state tests, formatting and strict library Clippy passed on restored source, as recorded separately.",
+    "semantic_controls": "Paired extracted/native deadline and binding faults; native commit-before-audit fault; model premature-ready fault; originals restored and checked.",
+    "deployed": "No deployment qualification performed in this slice.",
+    "model_driven_acceptance": "No OpenCode/provider model call performed."
+  },
+  "limits": [
+    "One retained family incarnation and single-shot attempt identities; initial family creation is outside this model.",
+    "PostgreSQL isolation, atomicity, statement constraints and locks are explicit assumptions, supported by native tests rather than a proof of PostgreSQL.",
+    "Native row decoding, caller/preflight wiring, asynchronous Rust and SQL refinement remain open.",
+    "Crypto, entropy, timestamp representation, physical durability and HTTP delivery are not proved.",
+    "Positive executions use compatible records and live sampled delivery windows; no unconditional progress or deployment recovery claim.",
+    "Family-pruning and retained-Task compromise composition remains an open cleanup obligation."
+  ]
+}
