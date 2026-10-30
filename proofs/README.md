@@ -57,7 +57,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace qualified; mixed update histories and valid normal/no-op executions checked; old-update control, removal and broader composition remain |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency qualified within model/native boundaries; connect routing identity next, with removal and broader lifecycle coverage still open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
@@ -703,10 +703,9 @@ registration. These are target properties to establish, not new admission rules.
   separate owners. Ordinary namespace-pinned registration and instance-token
   registration deliberately differ; the specification must retain both. Preparation
   in a different database is not atomic with the installation registration transaction.
-- **Next:** complete the paired old-update counterexample against the checked
-  mixed histories and successful no-op execution. Removal remains outside
-  this transaction slice; deployment/endpoint association with routing and SDK
-  recipient binding needs subsequent composition.
+- **Next:** connect deployment/endpoint association with fresh and retained
+  routing and SDK recipient binding. Removal and housekeeping remain outside
+  the qualified concurrency slice and belong to later lifecycle composition.
 
 The [source review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-registration-transaction-source-review.md)
 separates namespace replica admission, replacement, per-client update and instance
@@ -767,8 +766,15 @@ now constructs the old client's preflight, a complete ordinary replacement and t
 stale update's rollback and successful return. The entire replacement database,
 winner response and sole registration commit event are preserved. A shared reached
 replacement state is constructed through real registration steps under both update
-source orders; the paired old-update counterexample remains next. This extends the
-source-mapped model explicitly; it is not formal Rust/SQL refinement.
+source orders. The [paired counterexample and qualification](registration_transactions/evidence/update-transactions-receipt.json)
+fork that exact reached state: fixed code rolls back without effects, while the
+former update order commits only stale deployment metadata after finding no client
+row. Both calls report success. The complete old output preserves the winner row
+and roles but disagrees with the same independent serial contract in actual tagged
+commit order. Together with generic histories, normal/no-op executions and separate
+native regressions, this qualifies register/replace/update concurrency within the
+stated boundaries. It is not formal Rust/SQL refinement or complete registration
+lifecycle coverage.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

@@ -184,8 +184,23 @@ local 800,000-heartbeat checking budget. This changes no runtime behavior or glo
 checking limit. The measured, bounded check and normalization diagnostics are in
 the receipt.
 
-The paired old-update counterexample remains next. This witness's unchanged-state
-claim covers its chosen isolated suffix; it does not freeze later writers. Neither
-these models nor the earlier native tests are formal Rust/SQL refinement. Removal,
-housekeeping, service HTTP/audit/reload behavior and broader authority/lifecycle
-composition remain outside this checkpoint.
+The [paired counterexample and qualification](evidence/update-transactions-receipt.json)
+now use that same reached replacement state for both update-source orders.
+`old_update_order_is_not_serial` constructs the fixed rollback/success and the old
+missing-row update followed by a metadata-only commit/success. The old output equals
+the complete replacement database with only deployment metadata overwritten; the
+winner row, roles, binding and unrelated state remain intact. Actual tagged commit
+order is registration 1 then update 0. An independent fold of the original requests
+ignores the event's staged writes and shows that the current-row update must be an
+identity operation, contradicting the changed metadata. This refutes the same
+`SerialHistory` contract used by the generic fixed-protocol theorem. Registration's
+real fixed lock/read/compare sequence is retained in both branches.
+
+This closes the register/replace/update concurrency slice with generic finite
+histories, exact effects, legitimate normal/no-op executions and two original-code
+counterexamples, linked to separately measured native regressions. The no-op
+witness's unchanged-state claim covers its chosen isolated suffix; it does not
+freeze later writers. Neither these models nor the earlier native tests are formal
+Rust/SQL refinement. Removal, housekeeping, service HTTP/audit/reload behavior and
+broader authority/lifecycle composition remain outside. The next approved slice
+connects registration identity to fresh/retained routing and SDK recipient checks.

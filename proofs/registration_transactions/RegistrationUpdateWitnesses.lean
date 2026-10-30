@@ -694,6 +694,132 @@ run_cmd do
       throwError "unreviewed stale update no-op witness axiom: {name}"
 
 
+private noncomputable def sequentialEvent
+    (registrations : Nat → RegistrationTransaction.Request Nat Nat (M × B) (Payload S D T R) P)
+    (updates : Nat → RegistrationUpdate.Request Nat M S D T)
+    (db : DB Nat Nat M B S D T R P F) : Event Nat Nat M B S D T R P → DB Nat Nat M B S D T R P F
+  | .register id _ => RegistrationTransaction.sequential db (registrations id)
+  | .update id _ => sequentialUpdate db (updates id)
+
+private theorem serial_event_fold
+    (registrations : Nat → RegistrationTransaction.Request Nat Nat (M × B) (Payload S D T R) P)
+    (updates : Nat → RegistrationUpdate.Request Nat M S D T)
+    {first last : DB Nat Nat M B S D T R P F} {events : List (Event Nat Nat M B S D T R P)}
+    (history : RegistrationUpdate.SerialHistory registrations updates first events last) :
+    events.foldl (sequentialEvent registrations updates) first = last := by
+  induction history with
+  | nil => rfl
+  | register previous id writes ih =>
+    simp only [List.foldl_append, List.foldl_cons, List.foldl_nil, sequentialEvent, ih]
+  | update previous id writes ih =>
+    simp only [List.foldl_append, List.foldl_cons, List.foldl_nil, sequentialEvent, ih]
+
+/-- Paired source control: ONE reached ordinary-replacement endpoint is used by
+both update orders. Fixed source rolls back; former update-only order commits
+stale deployment metadata after affecting zero client rows. Registration itself
+uses the FIXED lock/read/compare protocol throughout, never the older unlocked
+register fault. Full DB maps remain explicit, and actual event order fails the
+same independent mixed serial contract. This is a design-model counterexample,
+linked separately to the measured native one-seed regression. -/
+theorem old_update_order_is_not_serial
+    (old replacement stale : M) (binding : B)
+    (replacementDifferent : old ≠ replacement) (updateDifferent : old ≠ stale)
+    (wrongMetadata : replacement ≠ stale)
+    (firstPayload secondPayload winnerPayload : Payload S D T R) (statement : S) (now : T)
+    (firstRole secondRole winnerRole unrelated : P) (frame : F)
+    (accepted : MetadataAccepted M B) (valid : accepted stale binding) :
+    let db := seed old binding firstPayload secondPayload firstRole secondRole unrelated frame
+    let reg := replacementRequest replacement binding winnerPayload winnerRole
+    let req := request stale statement firstPayload.tokenDigest now
+    let victims := [first old binding firstPayload, second old binding secondPayload]
+    let registrations := fun _ : Nat => reg
+    let updates := fun _ : Nat => req
+    let initial := RegistrationUpdate.initial db registrations updates
+    let captured := capturedSeed old replacement stale binding firstPayload secondPayload winnerPayload
+      statement now firstRole secondRole winnerRole unrelated frame
+    WellFormed db ∧
+      (∀ fixed : Bool, RegistrationUpdate.Execution fixed methods accepted initial captured) ∧
+      ∃ replaced, (∀ fixed : Bool, RegistrationUpdate.Execution fixed methods accepted captured replaced) ∧
+        replaced.core.db = expectedReplacement db reg ∧
+        (replaced.core.transactions 1).response = .success ∧
+        ∃ fixedResult oldResult,
+          RegistrationUpdate.Execution true methods accepted replaced fixedResult ∧
+          RegistrationUpdate.Execution false methods accepted replaced oldResult ∧
+          fixedResult.core.db = expectedReplacement db reg ∧
+          (fixedResult.updates 0).phase = .aborted ∧ (fixedResult.updates 0).response = .success ∧
+          oldResult.core.db = { expectedReplacement db reg with metadata := (stale, binding) } ∧
+          (oldResult.core.transactions 1).response = .success ∧ oldResult.core.lock = none ∧
+          (oldResult.updates 0).phase = .committed ∧ (oldResult.updates 0).response = .success ∧
+          oldResult.events = [.register 1 (replaceWrites reg victims), .update 0 [.deploymentMetadata stale]] ∧
+          ¬RegistrationUpdate.SerialHistory registrations updates db oldResult.events (owned oldResult.core.db db.frame) := by
+  dsimp only
+  let db := seed old binding firstPayload secondPayload firstRole secondRole unrelated frame
+  let reg := replacementRequest replacement binding winnerPayload winnerRole
+  let req := request stale statement firstPayload.tokenDigest now
+  let victims := [first old binding firstPayload, second old binding secondPayload]
+  let registrations := fun _ : Nat => reg
+  let updates := fun _ : Nat => req
+  let initial := RegistrationUpdate.initial db registrations updates
+  let captured := capturedSeed old replacement stale binding firstPayload secondPayload winnerPayload
+    statement now firstRole secondRole winnerRole unrelated frame
+  have preflight (fixed : Bool) : RegistrationUpdate.Execution fixed methods accepted initial captured :=
+    .tail (.refl initial) (RegistrationUpdate.Step.preflight initial 0 (first old binding firstPayload)
+      (by simp [methods]) rfl rfl rfl updateDifferent)
+  obtain ⟨replaced, registrationRun, fields⟩ := replacement_seed_steps accepted old replacement binding replacementDifferent
+    firstPayload secondPayload winnerPayload firstRole secondRole winnerRole unrelated frame captured rfl rfl rfl
+  change replaced.core.db = expectedReplacement db reg ∧ replaced.updates = captured.updates ∧
+    (replaced.core.transactions 1).response = .success ∧ replaced.core.lock = none ∧
+    replaced.events = captured.events ++ [.register 1 (replaceWrites reg victims)] at fields
+  have client : (replaced.updates 0).request.client = 0 := by rw [fields.2.1]; rfl
+  have metadata : (replaced.updates 0).request.metadata = stale := by rw [fields.2.1]; rfl
+  have pending : (replaced.updates 0).response = .pending := by rw [fields.2.1]; rfl
+  have empty : (replaced.updates 0).staged = [] := by rw [fields.2.1]; rfl
+  have phase : (replaced.updates 0).phase = .preflight := by rw [fields.2.1]; rfl
+  have absent : replaced.core.db.registrations (replaced.updates 0).request.client = none := by
+    rw [client, fields.1]
+    simp [expectedReplacement, reg, replacementRequest, winner, put]
+  have acceptedMetadata : accepted (replaced.updates 0).request.metadata replaced.core.db.metadata.2 := by
+    rw [metadata, fields.1]
+    exact valid
+  obtain ⟨fixedResult, fixedRun, fixedDB, fixedEvents, fixedTx, fixedFree, fixedAborted, fixedSuccess⟩ :=
+    finishNoop accepted replaced phase pending fields.2.2.2.1 absent acceptedMetadata
+  obtain ⟨oldResult, oldRun, oldDB, oldEvents, oldTx, oldFree, oldCommitted, oldOutcome, oldSuccess⟩ :=
+    finishOldMissing accepted replaced phase pending empty fields.2.2.2.1 absent acceptedMetadata
+  have wrongDB : oldResult.core.db = { expectedReplacement db reg with metadata := (stale, binding) } := by
+    rw [oldDB, fields.1, metadata]
+    rfl
+  have actualEvents : oldResult.events =
+      [.register 1 (replaceWrites reg victims), .update 0 [.deploymentMetadata stale]] := by
+    rw [oldEvents, fields.2.2.2.2, metadata]
+    rfl
+  have notSerial : ¬RegistrationUpdate.SerialHistory registrations updates db oldResult.events
+      (owned oldResult.core.db db.frame) := by
+    intro history
+    have folded := serial_event_fold registrations updates history
+    rw [actualEvents] at folded
+    have compared := congrArg (fun value : DB Nat Nat M B S D T R P F => value.metadata.1) folded
+    have serialMetadata :
+        (([Event.register 1 (replaceWrites reg victims), Event.update 0 [.deploymentMetadata stale]]).foldl
+          (sequentialEvent registrations updates) db).metadata.1 = replacement := by
+      simp [sequentialEvent, registrations, updates, RegistrationTransaction.sequential,
+        sequentialUpdate, expectedReplacement, expectedReplica, db, seed, reg,
+        replacementRequest, winner, req, request, put, replacementDifferent]
+    rw [serialMetadata, wrongDB] at compared
+    exact wrongMetadata compared
+  refine ⟨seed_wellFormed old binding firstPayload secondPayload firstRole secondRole unrelated frame,
+    preflight, replaced, registrationRun, fields.1, fields.2.2.1,
+    fixedResult, oldResult, fixedRun, oldRun, fixedDB.trans fields.1,
+    fixedAborted, fixedSuccess, wrongDB, ?_, oldFree, oldCommitted, oldSuccess, actualEvents, notSerial⟩
+  rw [oldTx]
+  exact fields.2.2.1
+
+#print axioms old_update_order_is_not_serial
+run_cmd do
+  let axioms ← Lean.collectAxioms ``old_update_order_is_not_serial
+  for name in axioms do
+    unless name == ``propext || name == ``Classical.choice || name == ``Quot.sound do
+      throwError "unreviewed old update-order counterexample axiom: {name}"
+
 #print axioms finishNoop
 #print axioms finishOldMissing
 

@@ -1,0 +1,193 @@
+{
+  "date": "2026-10-30",
+  "status": "Register/replace/update concurrency qualified within the stated handwritten-model and separate native-evidence boundaries",
+  "parent_proof_commit": "c214d49",
+  "native_fix_commits": [
+    "05737d6",
+    "22cdabb"
+  ],
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "lean_version": "4.35.0",
+  "platform": "Linux x86_64",
+  "proof_toolkit_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "evidence_class": "Generic finite-execution Lean invariants plus constructive positive/negative model executions; source-reviewed correspondence and actual-store PostgreSQL regressions are separate evidence, not formal Rust/SQL refinement.",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94",
+    "RegistrationUpdateEffects.lean": "500fc10b193595c6795690005ef663f8e91a3378e4d23dd17e49392e221bfeb1",
+    "RegistrationUpdateHistory.lean": "75e5dfad45f4d4549465f0ac61b44da9d42edbb3a48aa18c3d91cc84abb603ac",
+    "RegistrationUpdateLocks.lean": "140c786959c1395ad979f3c8b7ae7137d5546d0c0a9c8d68b8a901614e59c2d3",
+    "RegistrationUpdateModel.lean": "a453d6d58a17e8d08d6a31c31b2227785dac66edda8048c14d5217da1ffefcf9",
+    "RegistrationUpdateObservations.lean": "b3c62a290c6d037829be1cb13158ae1d5cdcf71897faeff855df595ba49c9c7c",
+    "RegistrationUpdateProof.lean": "8ed07e65b88297bd14c7edbc3978b04afb1ed77f0a72ab25de1021559fd6f26e",
+    "RegistrationUpdateSpecification.lean": "c92157d4f92472ff09d00ecd5f0ba178f3408cbc5438378d249bab66a3580e67",
+    "RegistrationUpdateWitnesses.lean": "b6c02c74bad205bd5f288af622558ae1a9e546afafd752e8ceff7523a1c0f36f",
+    "RegistrationWitnesses.lean": "0c62ccf4ef064f5592fcd781e485f21ac7f107572aa208d0e7d2130c7c44726e",
+    "lakefile.lean": "f1d27539b3fe79d43e43024c3c451f29fbfd0b651ae6897130af1e539f432b9e",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "source_manifest": {
+    "path": "/tmp/hub-registration-concurrency-20261030/update-control-final-evidence/source-derived.json",
+    "sha256": "41c00e398c9f93a4e8908b8bd34a5c75ce7fe6d021e7bda761de3c61d4c5c414"
+  },
+  "unchanged": {
+    "prior_fifteen_modules_and_config_pins": true,
+    "native_source_and_queries": true,
+    "native_source_sha256": {
+      "crates/veoveo-hub/src/registration/store.rs": "e6e7b01208da6d5a4a431617e02e3e6f36544d3d5fb55812bea1e6afa36e43a3",
+      "crates/veoveo-hub/src/registration/store/concurrency_tests.rs": "56cb9b5d4832aafd8e30958b7f54b17fee5705987aeeaf650100c9fe67421483",
+      "crates/veoveo-hub/src/registration/store/tests/blocked.sql": "540cf7b8e57528f98cd6d1ce6123e865fe2e0f4710ff67df0a98783c3311b566",
+      "crates/veoveo-hub/src/registration/store/tests/connection.sql": "242ea5edf43bd8a475554130521fe01e25108d597d1fa3923762b7c128e7ef06",
+      "crates/veoveo-hub/src/registration/store/tests/gate.sql": "6711f6d5547bd8cdb911a36fdc326825232c459c1252a6a44d0e0fe798137670",
+      "crates/veoveo-hub/src/registration/store/tests/hold_gate.sql": "4ddbc6dd50f064e45bf1a24a8c4462a0a9a2445d4abbb3623e0efcc2406fc714",
+      "crates/veoveo-hub/src/registration/store/tests/snapshot.sql": "0e53eb8579a8ba9b3b415a4703aa3c51bd33ff3eec684bbdffd416987eda917b",
+      "crates/veoveo-hub/DESIGN.md": "74093672d29619557d4818f07ef9f6ad78d250e6252ea1f959647fc491114169",
+      "crates/veoveo-hub/src/registration/store/deployment.sql": "e5244619feed6adeca21e06f3bb31130e028228c48cfd6d7815d91679c34b8b8",
+      "crates/veoveo-hub/src/registration/store/update_deployment.sql": "75cde302d6efb54ae93419d1f5e9d296f686390b0c828470a3cbcfc8731a3e91",
+      "crates/veoveo-hub/src/registration/store/update_registration.sql": "9fcdbe13bebb786285b9e61095340c72d3bf2a10cbfcb122709e06762872df74"
+    }
+  },
+  "paired_counterexample": {
+    "theorem": "RegistrationUpdate.Witnesses.old_update_order_is_not_serial",
+    "inputs": "Same opaque full payload two-replica seed as the no-op witness: clients0/1, logins10/11, winner2/login12, unrelated login99. Original, replacement and stale-update metadata are pairwise distinct; admitted metadata constraints remain explicit.",
+    "shared_prefix": "Actual old-row/digest preflight and one complete ordinary replacement endpoint constructed under both update-source orders. Registration always retains its fixed real lock/read/compare/upsert/DELETE/create/insert/commit sequence.",
+    "fixed_branch": "Five actual update steps yield rollback and successful acknowledgement, with complete replacement database preserved.",
+    "original_branch": "Six actual update steps begin, miss the old client, stage deployment metadata, request commit, commit and acknowledge. Full final database equals expectedReplacement with only deployment metadata changed to stale; winner row/roles/binding/frame stay identical. Replacement and old update both acknowledge success, update phase is committed, lock is free.",
+    "events": "Actual tags [register1, update0]; the update event contains only deploymentMetadata stale.",
+    "refutation": "Derive a fold from the SAME independent SerialHistory using original request maps, ignoring staged event writes. The serialized current-row update has no client row and must leave replacement metadata unchanged, contradicting the old execution. The counterexample is in actual commit order; no theorem about every alternative serialization order is claimed.",
+    "modeled_total_steps": {
+      "fixed": 20,
+      "old": 21
+    }
+  },
+  "qualified_guarantees": [
+    "Complete staged register/replace/update programs derived over arbitrary finite mixed executions.",
+    "Shared deployment-lock ownership and stability of current metadata/DELETE/matched-row observations.",
+    "Exact independent replica/replacement/per-client update effects, preserving complete opaque fields outside each operation.",
+    "Independent request-defined effects in actual tagged commit order; confirmed aborted attempts contribute no commit.",
+    "Constructed valid normal update, ordinary/instance replacement, replica overlap, partial-write abort and stale-update no-op success.",
+    "Two source-mapped original-protocol counterexamples: unlocked replica admission versus replacement, and old missing-row update order."
+  ],
+  "axiom_closures": {
+    "stale_update_after_replacement_is_noop": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "old_update_order_is_not_serial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "checks": {
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "direct": {
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "RegistrationUpdateWitnesses.lean"
+      ],
+      "exit": 0,
+      "elapsed_s": 19.542,
+      "wall_bound_seconds": 300,
+      "summary": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-witnesses16-control-evidence/summary.json",
+        "sha256": "a7ca79f19463d865ee2ac2f67d7487812fb2113d6013128292f417ccd3dab1ca"
+      },
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-witnesses16-control-evidence/direct.log",
+        "sha256": "9c50066002accd442a48a5ab3a4c3614d918effa1c6bf3d1db091a40d2696c0b"
+      }
+    },
+    "composed_package": {
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+      "exit": 0,
+      "elapsed_s": 20.945,
+      "wall_bound_seconds": 900,
+      "modules": 16,
+      "lake_jobs_including_dependencies": 3168,
+      "source_unchanged": true,
+      "summary": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-control-final-evidence/summary.json",
+        "sha256": "43d4fec43f47df67db4b1a89141559758375303aad620e26bec05d4b59a9b414"
+      },
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-control-final-evidence/build.log",
+        "sha256": "49cd990bb44fe3fd4f6afec1a0ea571b8c5fa8c8ccc7c0a8167f005fdb8803a6"
+      }
+    },
+    "finite_helper_budget": "The existing replacement_seed_steps helper retains its scoped800000-heartbeat allowance; no further limit, premise or source-model change was needed for the paired control.",
+    "development_result": "The paired control passed its first direct check and final composed build. Earlier no-op proof-normalization feedback is recorded separately in update-replacement-noop.json.",
+    "not_run": [
+      "new native tests",
+      "full Docker gates",
+      "deployment",
+      "paid model calls",
+      "Aeneas extraction"
+    ]
+  },
+  "native_evidence": {
+    "original_replica_defect": {
+      "path": "proofs/registration_transactions/evidence/native-replica-replacement.json",
+      "sha256": "48bbfd9536cc6f32b5cd8f1f5185819575dd45892fbe6ee67c8ca80d2faafca3"
+    },
+    "current_store_and_both_regressions": {
+      "path": "proofs/registration_transactions/evidence/native-stale-update.json",
+      "sha256": "96ccea60fed96b7ad5a573914658b54d21e75e4bfd9129064652c9fe07ba02c6"
+    },
+    "scope": "The later native module run passes both actual-store regressions against current22cdabb source, with six instance-registration tests, formatting and strict library Clippy. Old replica baseline source is historical, not claimed identical to the later whole store file. Union of retained original helper/query hashes and newer store/test/design hashes matches current files; both update SQL queries also match22cdabb.",
+    "fixture_difference": "Native stale-update regression uses one old registration; the Lean witness uses two. Neither substitutes for the other."
+  },
+  "earlier_proof_evidence": {
+    "registration-transactions-receipt.json": {
+      "path": "proofs/registration_transactions/evidence/registration-transactions-receipt.json",
+      "sha256": "e0bbbefa7793f4cefb2420b1dfd3cc868b83f5f2ebd6b20c31e51268c88d6b78"
+    },
+    "update-program-effects.json": {
+      "path": "proofs/registration_transactions/evidence/update-program-effects.json",
+      "sha256": "73fa3f66034079a89b3a9bcb62dcd3431f373307028441bfd99c3c8939ab7682"
+    },
+    "update-stability.json": {
+      "path": "proofs/registration_transactions/evidence/update-stability.json",
+      "sha256": "2c9ba8f796fa3286904399a680fde346aa3b7c22603c8a401d34b9136c2011c2"
+    },
+    "update-serial-history.json": {
+      "path": "proofs/registration_transactions/evidence/update-serial-history.json",
+      "sha256": "1ff0f56b19592eb02f3f702a04e3618f89920cd8309e2d00a69acbcc420e9e4f"
+    },
+    "update-valid-success.json": {
+      "path": "proofs/registration_transactions/evidence/update-valid-success.json",
+      "sha256": "d025bea11fbb96ec59b2d058a65cd53cadb6f9893a06f2b2790fdacf6527d1e2"
+    },
+    "update-replacement-noop.json": {
+      "path": "proofs/registration_transactions/evidence/update-replacement-noop.json",
+      "sha256": "23b4d0bfd2f967e4d6598aae1a4e9db32a21afb5d7899098c7535dd80d100136"
+    }
+  },
+  "limits": [
+    "One retained deployment and externally admitted namespace/request context. Complete metadata and payloads are parametric; native constraint/crypto validity is not proved by the abstract seed.",
+    "PostgreSQL READ COMMITTED atomicity/locking/constraints and typed-store/Core correspondence remain explicit assumptions. No physical SQL or asynchronous Rust extraction is claimed.",
+    "An acknowledgement does not preserve a registration against later replacement; exact no-op preservation is for the chosen isolated suffix. Constructed success is not unconditional liveness.",
+    "Old update control covers the missing-row order only, not all original successful-row/deadlock behaviors.",
+    "Removal/housekeeping, admission/identity reuse, broader authority, service HTTP/audit/reload, callback ingress and deployed recovery are outside this slice.",
+    "HUB-REGISTER-01 and the comprehensive Hub goal remain partial/active. Next work connects registration identity to routing, retained Tasks, current authority and SDK recipient checks."
+  ]
+}
