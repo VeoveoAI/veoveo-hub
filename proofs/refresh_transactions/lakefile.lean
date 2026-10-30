@@ -16,3 +16,9 @@ lean_lib RefreshTransactionLocks
 
 @[default_target]
 lean_lib RefreshTransactionNoFork
+
+@[default_target]
+lean_lib RefreshTransactionExecution
+
+@[default_target]
+lean_lib RefreshTransactionReplay

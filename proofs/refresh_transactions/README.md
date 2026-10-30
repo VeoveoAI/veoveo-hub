@@ -15,7 +15,8 @@ revocation time/reason. See the [compact checkpoint](evidence/prefix-checkpoint.
 That first checkpoint did not establish reachable outcome/history composition,
 no-fork, aborted-attempt exclusion or positive concurrent executions. The
 history increment below adds the first two; the given-list field lemmas alone
-do not establish them. Replay and constructive concurrent witnesses remain pending.
+do not establish them. The replay increment adds traced committed-state replay
+and aborted-attempt exclusion. Constructive concurrent witnesses remain pending.
 
 Primitive commit applies whatever deltas were staged, preserving unrelated rows.
 It has no correct-rotation, comparison, audit-completeness or success guard. The
@@ -85,3 +86,23 @@ Restoring the original model makes both checks pass again. This is a symbolic
 model control, paired with the separate native split-commit fault recorded in the
 [refresh controls receipt](../current_roles/evidence/refresh-controls-receipt.json).
 Neither result establishes formal SQL refinement, and no production code changes.
+
+## Exact-trace replay and execution support
+
+`RefreshTransactionReplay.lean` ties every contribution to an actual model
+server-commit or maintenance constructor. Silent control/framed steps cannot
+hide an idempotent commit. Every execution has such a trace; replay equality and
+aborted-attempt exclusion hold for the trace, with other commits, cleanup,
+pre-existing identical audit rows and separate endpoint rejection audit retained.
+This establishes no committed contribution from an aborted attempt, not an
+unchanged whole database or a stronger claim about native PostgreSQL.
+
+`RefreshTransactionExecution.lean` constructively stages and finishes a supplied
+program when its statement constraints and compatible row-lock assumptions hold.
+It releases the held locks and preserves other attempts. This support theorem
+still has explicit `ValidWrites` premises; concrete valid initial data, a blocked
+rotation followed by delivery of the same successor, full output maps and
+reachable uncertain-response witnesses remain pending.
+The [replay checkpoint](evidence/replay-checkpoint.json) records the final source
+identities and successful direct/target checks, including the strengthened trace
+statement accepted after review.

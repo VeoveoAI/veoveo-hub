@@ -509,9 +509,12 @@ now derives complete reachable rotation programs, stable family-lock snapshots,
 and strictly increasing committed generations from arbitrary finite modeled
 executions. The retained generation is its initial value plus committed rotation
 count; no initially duplicate-free history is assumed. This is a design-model
-proof for one retained family incarnation. Initial creation, native SQL/lock
-correspondence, committed-state replay and constructive concurrent witnesses
-remain separate obligations.
+proof for one retained family incarnation. The
+[replay checkpoint](refresh_transactions/evidence/replay-checkpoint.json) now
+ties committed-state replay to actual model-step contributions and excludes
+aborted attempts from every such trace, while retaining other commits and
+maintenance. Initial creation, native SQL/lock correspondence and constructive
+concurrent/uncertain executions remain separate obligations.
 
 ## HUB-CONFIG-01 — Coherent atomic live publication
 

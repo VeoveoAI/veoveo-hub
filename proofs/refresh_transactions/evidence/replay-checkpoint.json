@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-30",
+  "status": "Checked design-model replay and aborted-attempt exclusion; concrete concurrent and uncertain executions pending",
+  "lean": "4.35.0",
+  "source_sha256": {
+    "proofs/refresh_transactions/RefreshTransactionExecution.lean": "91b5e4bcffb4fabba26046b8efa6e8a1200b872ec87d7c7d4741bb1efe4a57f4",
+    "proofs/refresh_transactions/RefreshTransactionReplay.lean": "2d337d5477cad974b279c14bbb3d8a16a92400ad01a85bd0a62f72f296485fc7",
+    "proofs/refresh_transactions/lakefile.lean": "a526f150e246288c1d767d6564ddeca42fe8204b5378ca3fc442e0b6a28926db"
+  },
+  "model_sha256": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+  "prefix_proof_sha256": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038",
+  "replay_direct": {
+    "summary": {
+      "path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-replay4-run1/summary.json",
+      "sha256": "ae99472dc33c0589570bb5bf6fdec3fd87760709142e7a2265426568ebe57ebe"
+    },
+    "command": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+      "env",
+      "lean",
+      "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/RefreshTransactionReplay-packet4.lean"
+    ],
+    "elapsed_ms": 4110,
+    "exit": 0,
+    "leaf_sha256": "2d337d5477cad974b279c14bbb3d8a16a92400ad01a85bd0a62f72f296485fc7",
+    "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/evidence-transaction-replay4-run1/logs/replay4.log",
+    "log_sha256": "52fbe3dd10e578ef03c2349bae3706c71791851a778104791c982261cc26a27b",
+    "model_sha256": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+    "package": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/refresh_transactions",
+    "proof_sha256": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038"
+  },
+  "replay_target": {
+    "summary": {
+      "path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-replay4-target-run1/summary.json",
+      "sha256": "c275100972f4732b99101a5713d0b7502d32256da651e854ffcb7f9c846280e0"
+    },
+    "command": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+      "build",
+      "RefreshTransactionReplay"
+    ],
+    "compiled_execution_present_before": true,
+    "elapsed_ms": 5179,
+    "exit": 0,
+    "inputs_after": {
+      "RefreshTransactionExecution.lean": "91b5e4bcffb4fabba26046b8efa6e8a1200b872ec87d7c7d4741bb1efe4a57f4",
+      "RefreshTransactionModel.lean": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+      "RefreshTransactionProof.lean": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038",
+      "RefreshTransactionReplay.lean": "2d337d5477cad974b279c14bbb3d8a16a92400ad01a85bd0a62f72f296485fc7",
+      "lakefile.lean": "a526f150e246288c1d767d6564ddeca42fe8204b5378ca3fc442e0b6a28926db"
+    },
+    "inputs_before": {
+      "RefreshTransactionExecution.lean": "91b5e4bcffb4fabba26046b8efa6e8a1200b872ec87d7c7d4741bb1efe4a57f4",
+      "RefreshTransactionModel.lean": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+      "RefreshTransactionProof.lean": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038",
+      "RefreshTransactionReplay.lean": "2d337d5477cad974b279c14bbb3d8a16a92400ad01a85bd0a62f72f296485fc7",
+      "lakefile.lean": "a526f150e246288c1d767d6564ddeca42fe8204b5378ca3fc442e0b6a28926db"
+    },
+    "inputs_unchanged": true,
+    "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/evidence-transaction-replay4-target-run1/logs/build-replay4.log",
+    "log_sha256": "ba6a15ed7258e8bf4cda9bfc1314e85dd8b4243302c10a4ee5912b734ba0c515",
+    "package": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/refresh_transactions"
+  },
+  "execution_support_direct": {
+    "command": [
+      "lake",
+      "env",
+      "lean",
+      "RefreshTransactionExecution.lean"
+    ],
+    "exit": 0,
+    "elapsed_ms": 3794,
+    "log": {
+      "path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-history-locks/Execution-packet2-direct.log",
+      "sha256": "5fcad23790d72191d65b1a6b8742fcd4f129d4a9346dfb6b5316db55e645b3b2"
+    },
+    "statement": "A supplied valid program with compatible locks has a constructive success execution; this helper alone does not prove concrete initial validity or concurrent retry success."
+  },
+  "claims": [
+    "Every modeled execution admits a contribution trace tied to actual server commits and maintenance steps.",
+    "Replaying every such trace gives the same owned family/token/audit state.",
+    "Every such trace excludes commit contributions of an attempt ending aborted, while allowing other commits, cleanup and framed endpoint audits."
+  ],
+  "review": "Strengthened the draft existential replay-list statement with TracedExecution and universal traced_exclusion before committing; invented deltas cannot satisfy the final contribution constructors.",
+  "theorem_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "boundaries": [
+    "One retained family incarnation, single-shot attempt identities; no runtime trace or journal.",
+    "Handwritten model, not formal SQL/async Rust refinement.",
+    "PostgreSQL primitives, decoder/native identity/time correspondence, crypto, physical durability and HTTP delivery retain explicit assumptions.",
+    "Positive full concurrent executions and commit/response uncertainty remain pending."
+  ]
+}
