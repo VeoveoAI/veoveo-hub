@@ -126,3 +126,12 @@ SQL do not constitute a formal extraction of the asynchronous transaction code.
 The [source review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-registration-transaction-source-review.md)
 records the operation boundaries and why global equality of all replica metadata
 would contradict the existing per-client update semantics.
+
+The next [native update probe](evidence/native-stale-update.json) reproduced a
+stale request overwriting replacement deployment metadata after its own registration
+had disappeared. The store now takes the deployment lock first and rolls back both
+pending writes when the registration update affects no row, completing as a no-op
+without a new refusal. The identical regression passes, as do both concurrency
+tests together and six existing instance-registration tests. This is native evidence
+only: extending the formal model to update writers remains next, followed by
+removal and broader lifecycle composition.

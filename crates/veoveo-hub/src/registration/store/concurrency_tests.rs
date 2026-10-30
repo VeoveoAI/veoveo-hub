@@ -295,3 +295,124 @@ async fn ordinary_replica_and_replacement_have_a_serial_registration_outcome() {
     .await
     .expect("bounded ordinary registration overlap");
 }
+
+/// A deterministic store-level schedule corresponding to service.authenticate's
+/// read/digest preflight preceding its later store.update call. This does not run
+/// the HTTP endpoint, bearer parser, service audit or postcommit reload.
+#[tokio::test]
+async fn stale_update_cannot_overwrite_a_replaced_registration_deployment() {
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let db = crate::test_store::TestDb::new().await;
+        let store = RegistrationStore::new(db.a.clone());
+        let replacer = RegistrationStore::new(db.b.clone());
+        let key = ServerKeyPair::generate().unwrap();
+        let deployment = DeploymentId::new();
+        let now = Utc::now().trunc_subsecs(6);
+        let base = Candidate::new(&key, deployment, "00000000000011", 1, now);
+        let replacement = Candidate::new(
+            &key,
+            deployment,
+            "00000000000013",
+            2,
+            now + TimeDelta::seconds(1),
+        );
+        let stale = Candidate::new(
+            &key,
+            deployment,
+            "00000000000011",
+            3,
+            now + TimeDelta::seconds(2),
+        );
+        let (pin, ended) = base.register(&store).await.unwrap();
+        assert_eq!(pin, Pin::Claimed);
+        assert!(ended.is_empty());
+
+        // Capture the actual row while it still exists. The digest comparison
+        // maps exactly to authenticate's store read and token-digest condition;
+        // it is not a claim that the service authentication function ran.
+        let captured = store.registration(&base.client).await.unwrap().unwrap();
+        assert_eq!(captured.client_id, base.client);
+        assert_eq!(captured.token_digest, base.digest);
+        assert_eq!(captured.metadata, base.metadata);
+        assert_eq!(captured.issued_at, base.now);
+        assert_ne!(stale.metadata, captured.metadata);
+        assert_eq!(stale.client, captured.client_id);
+        assert_eq!(
+            stale.metadata.registration.deployment,
+            captured.metadata.registration.deployment
+        );
+        assert_eq!(stale.metadata.slug(), captured.metadata.slug());
+        assert_eq!(stale.metadata.key(), captured.metadata.key());
+        stale.metadata.check().unwrap();
+        let mut audience: url::Url = "https://registration-probe.example/oauth/register"
+            .parse()
+            .unwrap();
+        audience
+            .path_segments_mut()
+            .unwrap()
+            .push(captured.client_id.as_str());
+        let statement = key
+            .sign_statement(&stale.metadata, &audience, stale.now)
+            .unwrap();
+        veoveo_hub_sdk::registration::statement::verify_statement(
+            &statement,
+            &stale.metadata,
+            Some(captured.metadata.key()),
+            &audience,
+            stale.now,
+        )
+        .unwrap();
+        eprintln!(
+            "phase=preflight-captured client={} version=0.1.0",
+            captured.client_id
+        );
+
+        let (pin, ended) = replacement.register(&replacer).await.unwrap();
+        assert_eq!(pin, Pin::Held);
+        assert_eq!(ended.len(), 1);
+        assert_eq!(ended[0].client_id, base.client);
+        assert_eq!(ended[0].server.as_str(), "registration-probe");
+        assert_eq!(ended[0].login, base.login);
+        assert!(
+            store
+                .registration(&captured.client_id)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        let logins = [&base, &replacement].map(|candidate| candidate.login.as_str().to_owned());
+        let before = snapshot(&db.a, deployment, &logins).await;
+        assert_eq!(before["registrations"].as_array().unwrap().len(), 1);
+        assert_candidate(&before["registrations"][0], &replacement, deployment);
+        assert_eq!(
+            before["deployment"]["metadata"],
+            json!(replacement.metadata)
+        );
+        assert_eq!(
+            before["logins"],
+            json!([{
+                "name": replacement.login.as_str(), "login": true, "superuser": false,
+                "create_db": false, "create_role": false, "replication": false,
+                "bypass_rls": false, "connection_limit": -1, "valid_until": null,
+                "memberships": ["server_registration_probe"]
+            }])
+        );
+        eprintln!("phase=replacement-committed snapshot={before}");
+
+        let update = store
+            .update(&captured.client_id, &stale.metadata, &statement, stale.now)
+            .await;
+        // The invariant is independent of success/error policy: record the
+        // result without requiring a new rejection contract for an in-flight
+        // operation that authenticated before replacement.
+        let outcome = if update.is_ok() { "ok" } else { "error" };
+        let after = snapshot(&db.a, deployment, &logins).await;
+        eprintln!("phase=stale-update result={outcome} snapshot={after}");
+        assert_eq!(
+            after, before,
+            "a stale update must not overwrite the replacement's committed state"
+        );
+    })
+    .await
+    .expect("bounded stale registration update schedule");
+}

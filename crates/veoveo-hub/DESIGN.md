@@ -50,6 +50,13 @@ serializing their effects per deployment, including a same-metadata replica's
 admission. This registration ordering does not impose global metadata equality on
 RFC 7592 per-client updates or specify concurrent removal behavior.
 
+An RFC 7592 metadata update takes the deployment lock before updating its client
+registration, matching registration replacement's lock order. If the registration
+write finds no row because the previously read registration was superseded, the
+transaction rolls back its pending deployment change and completes as a no-op.
+Ordinary SQL constraints and failures still propagate. Updating an existing client
+continues to change only that registration and its deployment, not every replica.
+
 Registering is serving: no enrollment step publishes a deployment. A slug with no
 instances routes to its deployment that has registrations. When several deployments
 of one slug have them, the newest registration whose process lives wins: the others

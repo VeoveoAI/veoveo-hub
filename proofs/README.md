@@ -743,6 +743,15 @@ authority composition are next. Captured full rows
 are proof-level snapshot witnesses; native DELETE returns key/server/login fields.
 No SQL refinement follows from these model results.
 
+The subsequent [native stale-update qualification](registration_transactions/evidence/native-stale-update.json)
+reproduces an update with a row captured before replacement that later overwrites
+the replacement's deployment metadata after its original row is gone. The minimal
+fix uses deployment-first locking and rollback on a missing registration, retaining
+no-op success and existing per-client semantics. Both native concurrency tests and
+six instance-registration tests pass. The update-operation formal model and its
+mixed-operation guarantees remain pending; the prior serial theorem explicitly
+excludes these writers.
+
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
 **Invariant/failure prevented.** Hub calculates the intended repository grant from

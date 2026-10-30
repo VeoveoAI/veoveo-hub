@@ -1,0 +1,197 @@
+{
+  "date": "2026-10-30",
+  "status": "Native stale-update defect reproduced and minimally fixed; update concurrency formal verification remains pending",
+  "base_commit": "a81726a",
+  "evidence_class": "Actual RegistrationStore calls and PostgreSQL state, not execution of the HTTP service or a Lean proof",
+  "platform": "macOS aarch64",
+  "toolchain": "1.99.0-aarch64-apple-darwin",
+  "postgres": "18.6",
+  "core_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+  "sdk_revision": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+  "fixed_source_sha256": {
+    "crates/veoveo-hub/DESIGN.md": "74093672d29619557d4818f07ef9f6ad78d250e6252ea1f959647fc491114169",
+    "crates/veoveo-hub/src/registration/store.rs": "e6e7b01208da6d5a4a431617e02e3e6f36544d3d5fb55812bea1e6afa36e43a3",
+    "crates/veoveo-hub/src/registration/store/concurrency_tests.rs": "56cb9b5d4832aafd8e30958b7f54b17fee5705987aeeaf650100c9fe67421483"
+  },
+  "regression_unchanged_between_paired_runs": true,
+  "prior_regression_helpers_and_test_unchanged": true,
+  "inputs": {
+    "slug": "registration-probe",
+    "seed_client_suffix": "00000000000011",
+    "replacement_client_suffix": "00000000000013",
+    "seed_version": "0.1.0",
+    "replacement_version": "0.2.0",
+    "stale_update_version": "0.3.0",
+    "keys": "One newly generated SDK Ed25519 key; same valid key, slug and deployment through update and replacement",
+    "update_statement": "Signed for captured client configuration URI and checked with SDK verifier; signed statement bytes are not logged"
+  },
+  "sequence": [
+    "Create seed through actual ordinary registration",
+    "Read actual StoredRegistration while present, compare its token digest, validate changed metadata and signed update statement",
+    "Commit actual replacement on second owner pool; assert old row absent and complete replacement state",
+    "Call actual store.update for the captured old client; record success/error independently",
+    "Compare complete deployment, claim, registration and selected role/membership snapshots before and after update"
+  ],
+  "source_boundary": "Maps the service authentication read/digest preflight and subsequent store call, but does not execute bearer parsing, service authentication, HTTP routing, service audit or postcommit reload.",
+  "baseline": {
+    "summary": {
+      "path": "/tmp/hub-registration-concurrency-20261030/stale-update-run2/summary.json",
+      "sha256": "276aa7d311d912b26e7423672b1b81dc6ea74ee4b7853f69463a4ef78a4d77cd"
+    },
+    "binary_and_outcome": {
+      "path": "/tmp/hub-registration-concurrency-20261030/stale-update-run2/binary-and-outcome.json",
+      "sha256": "296880a0186305fb0cb0ba3bc2b8da2a29dd329457af1c3c2eece3789edabcb5"
+    },
+    "command": [
+      "/Users/rozgo/.cargo/bin/rustup",
+      "run",
+      "1.99.0-aarch64-apple-darwin",
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "veoveo-hub",
+      "--lib",
+      "registration::store::concurrency_tests::stale_update_cannot_overwrite_a_replaced_registration_deployment",
+      "--",
+      "--exact",
+      "--nocapture"
+    ],
+    "exit_code": 101,
+    "command_elapsed_seconds": 8.821,
+    "harness_elapsed_seconds": 0.79,
+    "binary_sha256": "935ce4209578c82e3def2ea8aa1ea087b18eed1c755b5b8d7074edb336bface1",
+    "update_result": "ok",
+    "changed_fields": [
+      "deployment.metadata.software_version: 0.2.0 -> 0.3.0",
+      "deployment.metadata.veoveo_mcp_endpoint: fixture port11 -> port12"
+    ],
+    "otherwise_unchanged": "Claim, complete replacement registration (including statement/token digests and timestamps), selected login privileges and memberships."
+  },
+  "fix": "Reuse existing SQL queries: update/lock deployment before registration. If the registration update affects zero rows, explicitly roll back the transaction and return Ok(()). This prevents publishing the pending deployment write, aligns deployment-to-registration lock order with replacement, and preserves per-client semantics without a new refusal or API.",
+  "fixed_validation": {
+    "summary": {
+      "path": "/tmp/hub-registration-concurrency-20261030/stale-update-fix1-run1/summary.json",
+      "sha256": "80cc080dad6640d6d578a43412d36b8c6e40c5aee73e6a3362c0945cfc8dc961"
+    },
+    "stages": [
+      {
+        "stage": "fmt",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "cwd": "/Users/rozgo/VeoveoAI/veoveo-hub",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_s": 0.646,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "test_result_line": null,
+        "compile_hub": false
+      },
+      {
+        "stage": "module-tests",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/Users/rozgo/VeoveoAI/veoveo-hub/Cargo.toml",
+          "--lib",
+          "registration::store::concurrency_tests",
+          "--",
+          "--nocapture"
+        ],
+        "cwd": "/Users/rozgo/VeoveoAI/veoveo-hub",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_s": 17.653,
+        "log_sha256": "ac384a3f85b8e9f4e3204be8b80c1d2a9c5f040d8e7a2779ff1a60d6144da164",
+        "test_binary": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-5c5dba289373806c",
+        "test_binary_sha256": "038988c808b3dba1b451914c10fdbc0dc4205e1108b47f0ec618ed13641e16a7",
+        "test_result_line": "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 280 filtered out; finished in 1.13s",
+        "compile_hub": true
+      },
+      {
+        "stage": "instance-registration",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/Users/rozgo/VeoveoAI/veoveo-hub/Cargo.toml",
+          "--test",
+          "instance_registration"
+        ],
+        "cwd": "/Users/rozgo/VeoveoAI/veoveo-hub",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_s": 59.309,
+        "log_sha256": "9f0616f81f51a4e742d29092870b6da71baefffa4a8a22d84b26d66eb3a42aae",
+        "test_result_line": "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.00s",
+        "compile_hub": true
+      },
+      {
+        "stage": "strict-clippy",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/Users/rozgo/VeoveoAI/veoveo-hub/Cargo.toml",
+          "--lib",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "cwd": "/Users/rozgo/VeoveoAI/veoveo-hub",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_s": 9.114,
+        "log_sha256": "6cdb6723d7a977933d6a6e014de0046014f365c58971e0919d17ce8c843f4ff9",
+        "test_result_line": null,
+        "compile_hub": false
+      }
+    ],
+    "update_result": "ok",
+    "complete_replacement_snapshot_unchanged": true,
+    "module_results": "2 passed; harness1.13s, command17.653s",
+    "integration_results": "6 passed; harness25.00s, command59.309s"
+  },
+  "earlier_probe": {
+    "summary": {
+      "path": "/tmp/hub-registration-concurrency-20261030/stale-update-run1/summary.json",
+      "sha256": "f42d9e834e8ed3bfabd82b73c81289d6812c3ab2921a9f999402b1953e78c363"
+    },
+    "reason_for_new_fixture": "The first successful reproduction reused login names of the other unit test. Pinned Core TestDb shares a cluster per test process; roles are cluster-wide. Only the new test identifiers changed to11/13 before the paired baseline/fix checks. The pre-existing test stayed unchanged."
+  },
+  "validation_scope": "No SQL text, schema, SQLx metadata, runtime API or authorization change. Focused native module and existing integration tests plus formatting/strict library Clippy; no repeated Lean/extraction, full Docker gates, deployment or paid model calls.",
+  "limits": [
+    "This proves the deterministic store-level stale-preflight schedule and existing tested registration paths, not every concurrent update/removal interleaving.",
+    "The model qualified in registration-transactions-receipt.json explicitly excludes update writers; this native fix does not extend that theorem automatically.",
+    "Normal SQL/constraint/transport errors still propagate; no blanket no-op success guarantee for namespace changes or earlier failing statements.",
+    "No global equality among replica metadata is imposed; existing per-client update semantics are retained.",
+    "PostgreSQL isolation/atomicity/locking/constraints and Core internals remain boundaries; postcommit audit/catalog adoption and deployed behavior are not qualified here."
+  ]
+}

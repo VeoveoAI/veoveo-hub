@@ -410,7 +410,17 @@ impl RegistrationStore {
         now: DateTime<Utc>,
     ) -> Result<()> {
         let mut transaction = self.store.pool().begin().await?;
+        // Match replacement's deployment -> registration lock order. A service
+        // preflight can have read a registration that replacement has since removed.
         sqlx::query_file!(
+            "src/registration/store/update_deployment.sql",
+            metadata.registration.deployment.as_uuid(),
+            Json(metadata) as _,
+        )
+        .execute(&mut *transaction)
+        .await
+        .context("failed to update the registration's deployment")?;
+        let updated = sqlx::query_file!(
             "src/registration/store/update_registration.sql",
             client_id.as_str(),
             Json(metadata) as _,
@@ -420,14 +430,15 @@ impl RegistrationStore {
         .execute(&mut *transaction)
         .await
         .context("failed to update the registration")?;
-        sqlx::query_file!(
-            "src/registration/store/update_deployment.sql",
-            metadata.registration.deployment.as_uuid(),
-            Json(metadata) as _,
-        )
-        .execute(&mut *transaction)
-        .await
-        .context("failed to update the registration's deployment")?;
+        if updated.rows_affected() == 0 {
+            // Keep the replacement's metadata intact without adding a new
+            // rejection contract for a request admitted before supersession.
+            transaction
+                .rollback()
+                .await
+                .context("failed to discard the superseded registration update")?;
+            return Ok(());
+        }
         transaction.commit().await?;
         Ok(())
     }
