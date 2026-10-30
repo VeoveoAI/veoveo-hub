@@ -57,7 +57,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace qualified; update program/field effects checked; mixed histories, removal and broader composition remain |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace qualified; update staging, shared locks and current-state effects checked; mixed histories, removal and broader composition remain |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
@@ -752,7 +752,10 @@ six instance-registration tests pass. The subsequent
 [update program/effects checkpoint](registration_transactions/evidence/update-program-effects.json)
 derives complete update staging in arbitrary finite mixed executions and exact
 captured-row field effects, plus the no-op's staged program and rollback effect.
-Current-row stability through commit, mixed serial histories, valid update
+The [shared-lock/current-state checkpoint](registration_transactions/evidence/update-stability.json)
+now derives both methods' lock ownership and stable observations, connecting a
+committing update to its independent current-row operation and a pending no-op to
+an absent row. Mixed serial histories, general abort-event exclusion, valid update
 executions and the old-update counterexample remain next. The prior serial theorem
 does not automatically extend to these writers; this remains a handwritten
 source-mapped model, not formal Rust/SQL refinement.

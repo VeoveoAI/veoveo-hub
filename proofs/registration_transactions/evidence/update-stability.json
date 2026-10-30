@@ -1,0 +1,130 @@
+{
+  "date": "2026-10-30",
+  "status": "Checked shared lock ownership and current-state operation effects; mixed serial histories remain next",
+  "base_commit": "cddf599",
+  "evidence_class": "Handwritten source-mapped state model, not formal Rust/SQL refinement",
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "lean_version": "4.35.0",
+  "platform": "Linux x86_64",
+  "proof_toolkit_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94",
+    "RegistrationUpdateEffects.lean": "500fc10b193595c6795690005ef663f8e91a3378e4d23dd17e49392e221bfeb1",
+    "RegistrationUpdateLocks.lean": "140c786959c1395ad979f3c8b7ae7137d5546d0c0a9c8d68b8a901614e59c2d3",
+    "RegistrationUpdateModel.lean": "a453d6d58a17e8d08d6a31c31b2227785dac66edda8048c14d5217da1ffefcf9",
+    "RegistrationUpdateObservations.lean": "b3c62a290c6d037829be1cb13158ae1d5cdcf71897faeff855df595ba49c9c7c",
+    "RegistrationUpdateProof.lean": "8ed07e65b88297bd14c7edbc3978b04afb1ed77f0a72ab25de1021559fd6f26e",
+    "RegistrationUpdateSpecification.lean": "c92157d4f92472ff09d00ecd5f0ba178f3408cbc5438378d249bab66a3580e67",
+    "RegistrationWitnesses.lean": "0c62ccf4ef064f5592fcd781e485f21ac7f107572aa208d0e7d2130c7c44726e",
+    "lakefile.lean": "2d17bbb088a57e6ef433db55e495037e68ab3532897b4430d097a2eca24125a5",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "source_manifest_sha256": "1d406d24aa7f37e7ff21b8930a47aa0e8715325b096d2fdb609baf20eaba3595",
+  "prior_twelve_modules_and_dependency_pins_unchanged": true,
+  "native_source_unchanged": true,
+  "claims": {
+    "reached_invariant": "For every finite fixed mixed execution, maintain both ordered programs, original registration branch choice, physical method classification and both methods sharing the one deployment lock. Failed updates with partial writes retain ownership until actual abort.",
+    "active_methods_exclude_each_other": "Registration and update cannot simultaneously occupy their holding phases on the same modeled deployment. Waiting, completed and aborted attempts are not excluded.",
+    "reached_stable": "Existing full metadata and captured DELETE observations stay current. An update in ready/committing or pending-noop rollback has current keyed row equal to its matched row/absence.",
+    "committing_sequential_update": "Actual staged update commit equals the independent sequentialUpdate operation on the CURRENT database, using derived shared lock observations and complete staging.",
+    "pending_noop_absence": "At rollbackPending/noop, the current request row is absent and sequentialUpdate is the identity. Immediate rollback preserves that state by the prior rollback theorem; arbitrary later aborted or acknowledged states need not retain absence."
+  },
+  "axiom_closures": {
+    "reached_invariant": [
+      "propext",
+      "Quot.sound"
+    ],
+    "active_methods_exclude_each_other": [
+      "propext",
+      "Quot.sound"
+    ],
+    "reached_stable": [
+      "propext",
+      "Quot.sound"
+    ],
+    "committing_sequential_update": [
+      "propext",
+      "Quot.sound"
+    ],
+    "pending_noop_absence": [
+      "propext",
+      "Quot.sound"
+    ]
+  },
+  "validation": {
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "locks_direct": {
+      "exit": 0,
+      "elapsed_s": 3.99,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-locks3-evidence/direct.log",
+        "sha256": "334d50174c4b8d8fca18fe48d4eefc39efe7b42097df2da489edfee3181c48fd"
+      },
+      "time": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-locks3-evidence/direct.time",
+        "sha256": "194801713ce0b034ea9167124709f86e6b38ad5096fe4bb63d28fa421f131144"
+      }
+    },
+    "observations_direct_before_comment_clarification": {
+      "exit": 0,
+      "elapsed_s": 4.07,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-observations1-evidence/direct.log",
+        "sha256": "78fcef014daa130f3b134428545ede644402a3f56ea8987b9049f1ffef6b1bf8"
+      },
+      "time": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-observations1-evidence/direct.time",
+        "sha256": "d19d3adc99d4f97941fc8bc190ed08c0e95b31b273e47e8483b9e4f8def963a4"
+      }
+    },
+    "final_composed_package": {
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+      "exit": 0,
+      "elapsed_s": 8.478,
+      "bound_seconds": 900,
+      "default_modules": 14,
+      "lake_jobs_including_dependencies": 3164,
+      "source_unchanged": true,
+      "summary": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-stability-evidence/summary.json",
+        "sha256": "0c4109481f3d22cdf2231731b79707ee08b78f17cc3e83d584e587219f8968c5"
+      },
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-stability-evidence/build.log",
+        "sha256": "d830d981d2ebc853652203a2f0ab93327cba15e3aada5a06a13c7bc8f05cac50"
+      }
+    },
+    "warnings": "Unused section-variable warnings remain; successful checks contain no proof errors or unreviewed axioms.",
+    "development_feedback": "Two earlier Locks drafts had local phase/nonidle proof obligations; final declarations/model assumptions were not weakened. These are not semantic negative controls.",
+    "not_run": [
+      "native tests",
+      "full Docker gates",
+      "deployment",
+      "Aeneas extraction",
+      "paid model calls"
+    ]
+  },
+  "boundaries": [
+    "Assumptions/source mapping from update-program-effects.json remain: one retained deployment, admitted changed-metadata store calls, external namespace admission and native metadata constraints.",
+    "Real old registration steps and the current update model are unchanged. Locks/method maps/captured rows/event traces remain ghost proof data with no runtime machinery or authorization change.",
+    "Mixed serial histories, general event exclusion, constructive complete update/no-op executions and paired old-update counterexample remain next.",
+    "Removal/housekeeping, broad authority/identity composition, physical SQL/Core/serialization refinement, postcommit HTTP/audit behavior, cross-database preparation and liveness/deployed recovery remain outside this checkpoint."
+  ]
+}

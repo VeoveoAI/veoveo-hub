@@ -144,10 +144,16 @@ and the deployment's storage binding. A no-op retains only the private metadata
 write; the explicit rollback transition preserves the database and event lists.
 These results introduce no runtime check or rejection.
 
-The matched row is captured at the UPDATE statement, rather than copied from
-preflight. Proving that it remains current until commit requires the next shared-lock
-and observation invariants. This checkpoint does not yet establish mixed serial
-histories, general abort-event exclusion, valid complete update executions or the
-old-update counterexample. Neither the new model nor the earlier native tests are
-formal Rust/SQL refinement. Removal, housekeeping and broader authority/lifecycle
-composition remain outside this checkpoint.
+The [shared-lock and current-state checkpoint](evidence/update-stability.json)
+derives both methods' ownership of the same deployment lock over arbitrary finite
+mixed executions. Holding registration and update phases cannot overlap. The old
+register metadata/DELETE observations remain valid, and a matched update row stays
+current until commit. This connects the complete staged update to the independent
+`sequentialUpdate` operation on the current database. A pending no-op likewise
+corresponds to an absent current row and the identity operation. No current-row
+claim extends to arbitrary completed/aborted states or later acknowledgements.
+
+Mixed serial histories, general abort-event exclusion, valid complete update
+executions and the old-update counterexample remain next. Neither these models nor
+the earlier native tests are formal Rust/SQL refinement. Removal, housekeeping and
+broader authority/lifecycle composition remain outside this checkpoint.

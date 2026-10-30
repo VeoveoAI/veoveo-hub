@@ -42,3 +42,9 @@ lean_lib RegistrationUpdateEffects
 
 @[default_target]
 lean_lib RegistrationUpdateProof
+
+@[default_target]
+lean_lib RegistrationUpdateLocks
+
+@[default_target]
+lean_lib RegistrationUpdateObservations
