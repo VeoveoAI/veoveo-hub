@@ -48,11 +48,11 @@ No percentage or blanket “Hub verified” claim follows from this map.
 
 | ID | System property | Formal status | Next useful work |
 | --- | --- | --- | --- |
-| HUB-CONTRACT-01 | Shared MCP extension contracts preserve meaning from declaration to enforcement | partial | Connect declaration generation/validation and current policy to the proved SDK resource requirement |
+| HUB-CONTRACT-01 | Shared MCP extension contracts preserve meaning from declaration to enforcement | partial | Extend the qualified SDK-to-policy connection to declaration generation/validation and dispatch |
 | HUB-TASK-01 | Captured Task routing and retry integrity | partial | SQL and asynchronous adapter refinement remain |
-| HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Connect decide_server to qualified CurrentPermissions/current-role results, then session/issuer continuity |
-| HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | unproved | Specify the pure current-family decision first |
-| HUB-CONFIG-01 | Coherent live configuration publication | unproved | Model transaction/CAS semantics |
+| HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Session/issuer continuity after the qualified SDK-to-policy connection |
+| HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Session admission qualified; refresh transaction/predicate work in progress |
+| HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Trace broader routing beyond the linked kernel |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
@@ -188,9 +188,8 @@ between MCP camelCase and OAuth snake_case without duplicating their semantics.
 - **Residual/next:** native exact lookup/iteration, template grammar, Core decoding,
   primitive text/set semantics and parent call/borrow wiring remain explicit adapter
   obligations. Borrow identity has source review and native pointer-identity tests,
-  not a Lean alias proof. Connect the established route requirement to current
-  role/risk evaluation and policy output, then identity, declaration generation/
-  validation and typed-route dispatch. Map
+  not a Lean alias proof. Extend the qualified route/current-policy result below to
+  identity, declaration generation/validation and typed-route dispatch. Map
   Tasks, usage metadata, discovery degradation and App dependency metadata to their
   owning contracts and relevant guarantees. They are not all interchangeable
   `capabilities.extensions` declarations: some use `_meta` or native MCP extensions.
@@ -198,9 +197,58 @@ between MCP camelCase and OAuth snake_case without duplicating their semantics.
 The qualified [authority package](authority/README.md) consumes decoded
 authorization semantics and proves only its stated internal sub-boundary. It does
 not discharge this contract chain or prove serialization. The SDK matcher result
-now supplies an established sub-boundary; its composition with actual Hub policy
-and the asynchronous caller still needs proof. The sibling SDK work is not claimed
-to be present in Hub's pinned dependency or deployed.
+supplies the sub-boundary used in the Hub policy composition checkpoint below;
+the asynchronous caller remains separate. SDK `239622d` is published after
+exact-source Mac/Linux component checks; see the
+[publication record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-authorization-publication.md).
+Hub now pins SDK `239622d`; its access-wrapper extraction and the composed
+qualification below have passed.
+The qualified Hub server-evaluator receipt below still identifies SDK `05273d1`;
+neither publishing nor updating a pin alone establishes the new proof connection
+or deployed applicability.
+The adoption investigation also found different compilation contexts: the SDK's
+standalone Rust proof crate originally used edition 2021, while the production
+crate uses edition 2024, and pinned Charon reads promoted MIR for the local proof function
+but optimized MIR for that function as a foreign dependency. Source-byte identity
+alone does not discharge this correspondence. An isolated edition-2024 extraction
+now produces a byte-identical qualified SDK model, and the SDK proof crate has
+been aligned to edition 2024. The foreign optimized cleanup
+still fails Aeneas translation. The approved connection reuses the SDK-owned
+generated resolver through typed adapters, preserving explicit compilation/linkage
+and native-template trace boundaries. See the
+[extraction checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-extraction-boundaries.md).
+The combined wrapper extraction now succeeds with that explicit resolver interface;
+see
+the [wrapper extraction record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-wrapper-extraction.md).
+The ordinary resolver model, field-exact adapters and actual NativeMatcher
+parse/Option/closure trace now pass the full package build and explicit audits;
+see the [adapter model checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-adapter-models.md).
+The generated access wrapper now has a total result theorem for all four target
+kinds. Raw declaration membership and unanimous complete template requirements
+derive its result; the actual server-policy and downstream-delegation proofs use
+that result instead of a whole-access hypothesis. Exact resource precedence,
+matching conflicts, current grants, full output and zero-grant Authenticated
+acceptance are covered within the explicit models. The combined package and three
+audits pass; see the
+[policy composition checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-policy-composition.md).
+The newer SDK adoption also passes six focused native tests, including 23 whole
+policy-output scenarios and eight direct SDK observations, plus formatting and
+strict library Clippy; see the
+[native baseline](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-native-baseline.md).
+The connection is now **proved-within-stated-boundary and qualified**: three SDK
+wrapper mutations compiled/extracted/built and failed the intended unchanged proof
+plus native assertion; fresh restoration passes all six native tests, formatting,
+strict library Clippy, extraction, full Lean build, four direct proofs and three
+audits. The failures are symbolic semantic residuals with concrete Rust
+counterexamples, not normalized Lean `False`. Restored generated files preserve
+every definition/type; raw hashes differ only in SDK source-root comments, with
+that exact normalization and raw outputs recorded. See the
+[qualification](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-authorization-qualification.md)
+and [receipt](current_roles/evidence/sdk-access-composition-receipt.json).
+Native parsing/matching and collection adapter laws, compiler/module linkage and
+asynchronous caller correspondence remain explicit obligations. No deployment or
+declaration-generation/serialization proof follows from this qualification.
+The previously qualified model remains identified by its original receipt.
 
 The following inventory records the inspected SDK `8489a58` snapshot. Separate
 extension naming/removal work is outside this qualification; current SDK definitions
@@ -336,9 +384,38 @@ allow. Delegated callers do not acquire administrative access from an admin prin
   unchanged proof and native assertions, and fresh restored success with exact
   generated model hashes. The one production edit is an equivalent snapshot
   iterator closure spelling; no authorization rule changes.
-- **Residual/next:** connect `decide_server` admission/output to the established
-  evaluator. Principal projection, shared MCP extension correspondence
-  and session/issuer continuity remain.
+- **Qualified server evaluator and downstream connection:** at unchanged Hub `bb2e97f5` and SDK
+  `05273d1`, [RegisteredServerDecisionProof](current_roles/RegisteredServerDecisionProof.lean)
+  derives the current grant set from the qualified evaluator and proves the actual
+  `decide_server` function's exact ordered admission/output table. Target projection,
+  native route-call arguments and full decision metadata have separate proofs.
+  The theorem keeps supplied server/requirement and request target independent;
+  total successful catalog/native-access interpretations and the observed clock
+  are explicit premises. SDK access and the clock are the two allowed native
+  symbols, not verified external implementations. The
+  [checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-registered-server-policy-decision.md)
+  records passing frozen proof builds and dependency audits. The
+  [admission corollaries](current_roles/RegisteredServerAdmissionProof.lean) also
+  derive exact role/risk-based admission, coherent route arguments and the actual
+  allowed decision's required-permission membership; see their
+  [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-registered-server-policy-admission.md).
+  [Downstream composition](current_roles/RegisteredServerDownstreamProof.lean) now
+  derives exact permission-route acceptance and complete grant intersection from
+  the actual evaluator, discharges the prior policy-consistency premise and
+  preserves the wrapper's metadata projection. Authenticated and server/Task
+  positive cases retain their existing semantics; see the
+  [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-registered-server-policy-downstream.md).
+  The [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-registered-server-policy-qualification.md)
+  and [receipt](current_roles/evidence/registered-server-policy-receipt.json) now
+  record six passing native tests, including twelve actual evaluator/narrowing
+  scenarios, five legal semantic faults caught by unchanged proofs and native
+  assertions, and a fresh restored extraction with exact generated-model hashes.
+  Full package, direct proofs, all three model audits, formatting and strict library
+  Clippy pass. Native wrapper correspondence has focused test evidence; the async
+  endpoint remains unproved. No runtime policy or dependency change was needed.
+- **Residual/next:** connect the qualified session-family predicate and SDK-to-policy
+  composition through their actual callers. Principal projection, the remaining shared
+  MCP extension correspondence and wider session/issuer continuity remain.
   Catalog/provider discovery, replay, Task reads, route wiring, concrete token
   serialization and clocks remain separate obligations. A new downstream namespace
   is constrained by current caller grants and declared uses; it need not be a
@@ -363,9 +440,56 @@ the family; bounded duplicate delivery and replay handling retain their distinct
 - **Boundary/effort:** moderate for pure family admission; substantial for a refresh
   transaction model/refinement. Assume the store returns the exact requested family,
   trusted decoded fields, verified token claims and supplied current time.
-- **Residual/next:** specify the pure admission predicate before the asynchronous
-  protocol. Atomic consumption, concurrent retries, delivery encryption and real IdP
+- **Extracted boundary:** the actual `SessionFamilyAuthority::allows` checks
+  family presence, revocation, strict family expiry, owner/tenant, authorization
+  server/resource, OAuth client, WorkContext, retained identity and scope containment.
+  It deliberately ignores the current refresh generation. The retained principal's
+  upstream IdP issuer may differ from the Hub-issued token/principal issuer; the
+  latter pair must agree. Prove these legitimate success cases alongside mismatches.
+  The pure function checks only that a token family ID is present: selection of
+  that exact record belongs to `access_token_session_valid` and its store lookup.
+  JWT signature, audience and token-expiry verification are outside this function;
+  neither their correctness nor the lookup binding follows from its Boolean result.
+- **Extraction/model checkpoint:** unchanged `allows` now extracts transparently
+  with the preceding policy package retained. The extended package and four audits
+  pass; the session method's dependency closure has only standard Lean axioms.
+  Equality, scope ordering and full timestamp comparison have ordinary models with
+  native correspondence still explicit. That checkpoint precedes the exact
+  admission proof and native baseline below. See the
+  [checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-session-family-extraction-model.md).
+- **Admission baseline:** the exact independent predicate has checked acceptance/refusal and
+  observed-field invariance proofs, including generation, retained issuer and
+  subsecond expiry. The full package/audits, four native method tests and the
+  existing PostgreSQL session test pass; see the
+  [admission baseline](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-session-family-admission.md).
+- **Qualified admission boundary:** four private predicate faults compile/extract
+  and build their helper models, then fail the unchanged exact-result proof and
+  their intended native assertion. Fresh unchanged-source extraction, the complete
+  Lean package/direct session proof/four audits, all four native tests, formatting
+  and strict library Clippy pass. The separate PostgreSQL baseline also passed.
+  Source-comment path normalization alone reconciles regenerated definitions/types.
+  See the [receipt](current_roles/evidence/session-family-receipt.json) and
+  [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-session-family-qualification.md).
+  The exact predicate is **proved-within-stated-boundary and qualified**; the whole
+  OAuth/session/refresh lifecycle remains partial. No production session rule changed.
+- **Residual/next:** exact lookup/decoded-input and asynchronous caller correspondence,
+  atomic consumption, concurrent retries, delivery encryption and real IdP
   behavior require their own evidence; an abstract transition proof is design-level.
+
+The next active slice follows the actual refresh store and state caller. Extract
+`RefreshFamily::bound_to` and `deliverable`, then connect their exact decisions to
+a separate transaction model with rotation, same-successor duplicate delivery,
+replay/client revocation, maintenance and commit uncertainty. Success audit and
+duplicate audit commit with their respective store operations; replay's HTTP denial
+audit is later, and duplicate decryption occurs after the store commit. Preserve
+first-revocation reason/time and the request's pre-lock time sample. Source review
+and implementation scope are recorded in the
+[refresh transaction review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-refresh-transaction-source-review.md).
+The two actual predicates and the delivery closure now translate transparently
+through Charon/Aeneas with the previous extraction roots preserved; see the
+[extraction checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-refresh-predicate-extraction.md).
+Ordinary model additions, exact-result proofs and native fixtures are in progress.
+No refresh transaction proof or new native result is claimed at this checkpoint.
 
 ## HUB-CONFIG-01 — Coherent atomic live publication
 
@@ -381,7 +505,7 @@ concurrent publication does not partly apply.
 - **Boundary/effort:** substantial: SQL transaction/lock semantics are central, not
   incidental I/O around a pure helper. A first abstract CAS model can clarify
   intent, assuming PostgreSQL atomicity/isolation and correct transaction scope.
-- **Residual/next:** justify model-to-SQL correspondence before claiming coverage.
+- **Residual/next:** justify model-to-SQL correspondence before claiming implementation-linked coverage.
   Process failure, replica notification and OpenShell effects are separate; preserve
   database tests rather than treating a Boolean revision comparison as their proof.
 
@@ -392,8 +516,42 @@ The schema's singleton constraint/trigger and immutable-revision constraints are
 part of the correspondence, not optional modeling conveniences. The competing
 publisher must observe the committed predecessor after obtaining the lock (or abort
 under stronger isolation); a stale pre-lock read cannot authorize its commit.
-Failure at any write or audit append must leave committed state unchanged. A lost
-commit acknowledgement is a separate ambiguous outcome, not evidence of rollback.
+Failure at any write or audit append must contribute none of that transaction's
+revision/object/context changes or successful audit batch; another publisher may
+still commit. Separate rejection/failure audit records remain allowed. A lost commit
+acknowledgement is an ambiguous outcome, not evidence of rollback. The model must
+separate PostgreSQL's ability to commit staged writes from Hub's obligation to stage
+the complete publication before committing; an incomplete commit must remain a
+representable fault. Revision-ID non-reuse follows from insertion constraints while
+history is retained, rather than an unchecked fresh-ID assumption.
+
+The [manual transaction package](control_publication/README.md) is now qualified
+within its **design-model boundary**. For arbitrary finite interleavings, reachable
+commits stage the complete planned publication, preserve the locked predecessor,
+and produce the specified row effects. Retained revision history and actual modeled
+insertion constraints imply one committed successor per predecessor. Committed
+state equals replay of committed plans; aborted attempts contribute no publication
+writes or successful batch. Constructive initial/replacement executions establish
+valid success, and reachable uncertain-outcome/lost-acknowledgement executions show
+why a client error cannot imply rollback. The replay is proof-only state.
+
+The full Lean package and executable standard-axiom audits pass. Four PostgreSQL
+tests exercise late append failure, actual lock overlap, exact winning rows/audit
+and the existing publication scenarios. Both private Rust faults fail their
+intended native assertions; fresh original-source tests, formatting and strict
+library Clippy pass again. Final formal source differs from accepted native inputs
+only in proof files. The actual production publication method is unchanged.
+See the [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-control-publication-qualification.md)
+and [receipt](control_publication/evidence/control-publication-receipt.json).
+
+Source correspondence distinguishes mutable Work Context payloads from preserved
+key/creation fields, supplied audit content from its generation, and rollback
+requests from completed server aborts. PostgreSQL primitives, SQLx behavior and the
+concrete audit implementation remain explicit assumptions. Model proofs plus
+source review and database tests do not establish formal SQL refinement. Physical
+crash durability, history deletion, other writers sharing tracked keys, replica
+adoption and liveness remain outside this result; HUB-CONFIG-01 stays partial.
+No runtime journal, new publication rule or proof gate was introduced.
 
 Local adoption is a second obligation: the publication mutex also covers the
 [native reload path](../crates/veoveo-hub/src/bin/hub/control_reload.rs), which reads
@@ -560,6 +718,17 @@ and retry behavior rather than an unsupported atomicity claim.
 - **Next:** inventory each destructive operation's protected references and commit
   boundary, then prove the necessary local decision/transaction and check interruption
   and concurrent creation against the actual implementation.
+
+Refresh review identified a specific composition obligation:
+[`session_compromised`](../crates/veoveo-hub/src/state/session.rs) observes replay
+revocation only while the family row exists, and
+[`prune_families.sql`](../crates/veoveo-hub/src/store/refresh/prune_families.sql)
+removes expired families. Task route expiry is independently derived from its TTL,
+and the delegated caller is stored as JSON rather than a family foreign key.
+Do not infer permanent Task-compromise history from the retained-family predicate.
+Check the actual live-Task/expired-family cleanup case before deciding whether
+the intended lifecycle contract needs a fix; no tombstone or new denial rule is
+introduced by this source observation.
 
 ## Existing formal evidence and its limits
 
