@@ -198,10 +198,12 @@ run_cmd do
     unless (found.filter (fun axiomName => !standard.contains axiomName)).isEmpty do
       throwError "unexpected pure proof axiom in {declaration}: {found}"
   let native := #[``chrono.offset.utc.Utc.now,
-    ``veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access]
+    ``veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.parse,
+    ``veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.matches]
   let routeAxioms ← Lean.collectAxioms ``declared_route_observed
   unless (routeAxioms.filter (fun axiomName =>
-      !(standard ++ #[``veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access]).contains axiomName)).isEmpty do
+      !(standard ++ #[``veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.parse,
+    ``veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.matches]).contains axiomName)).isEmpty do
     throwError "unexpected route observation axiom: {routeAxioms}"
   let found ← Lean.collectAxioms ``decide_server_exact
   unless (found.filter (fun axiomName => !(standard ++ native).contains axiomName)).isEmpty do

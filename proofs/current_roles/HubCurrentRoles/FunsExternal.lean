@@ -3,6 +3,7 @@
 module
 public import Aeneas
 public import HubCurrentRoles.Types
+public import SdkAuthorizationProof
 @[expose] public section
 open Aeneas Aeneas.Std Result ControlFlow Error
 set_option linter.dupNamespace false
@@ -960,19 +961,6 @@ def veoveo_hub_sdk.identity.CanonicalTaskId.Insts.CoreCloneClone.clone
     veoveo_hub_sdk.identity.CanonicalTaskId
   := fun value => .ok value
 
--- EXPLICIT NATIVE OPERATION SYMBOL: conditional observation, not an implementation.
-/-- [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration}::access]:
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 254:4-254:79
-    Name pattern: [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration}::access]
-    Visibility: public -/
-@[rust_fun
-  "veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration}::access"]
-axiom veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access
-  :
-  veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration →
-    veoveo_hub_sdk.registration.authorization.RequirementTarget → Result
-    (Option veoveo_hub_sdk.registration.authorization.RouteAccess)
-
 /-- [veoveo_types::actions::{impl core::clone::Clone for veoveo_types::actions::ActionName}::clone]:
     Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/actions.rs', lines 6:0-6:38
     Name pattern: [veoveo_types::actions::{core::clone::Clone<veoveo_types::actions::ActionName>}::clone]
@@ -1120,3 +1108,301 @@ def
 def veoveo_types.task.TaskId.Insts.CoreCloneClone.clone
   : veoveo_types.task.TaskId → Result veoveo_types.task.TaskId
   := fun value => .ok value
+
+/- These adapters preserve the actual supplied operations, including failure,
+divergence and updated cursor state. The resolver model delegates to the pinned,
+SDK-owned generated algorithm. Source-compilation/linkage to the foreign optimized
+MIR remains explicit; definitional equality below does not prove that boundary. -/
+namespace CurrentRolesSDK
+universe u₁ u₂ u₃ u₄
+
+def cursorToSDK {C : Type u₁} {I : Type u₂}
+    (ops : veoveo_hub_sdk.registration.authorization_decision.Cursor C I) :
+    sdk_authorization_proof.decision.Cursor C I := { next := ops.next }
+
+def matcherToSDK {M : Type u₁} {T : Type u₂}
+    (ops : veoveo_hub_sdk.registration.authorization_decision.Matcher M T) :
+    sdk_authorization_proof.decision.Matcher M T := { «matches» := ops.«matches» }
+
+/- Finite membership model; native sorted traversal/comparison traces are not
+claimed. Native correspondence requires unique keys, lawful total ordering and
+Borrow coherence. Supplied Borrow/compare failure is propagated. -/
+def mapGetBy {K : Type u₁} {V : Type u₂} {Q : Type u₃}
+    (borrow : K → Result Q) (compare : Q → Q → Result Ordering)
+    (entries : List (K × V)) (query : Q) : Result (Option V) := do
+  match entries with
+  | [] => .ok none
+  | (key, value) :: rest =>
+    let borrowed ← borrow key
+    let order ← compare borrowed query
+    if order == .eq then .ok (some value) else mapGetBy borrow compare rest query
+end CurrentRolesSDK
+
+deriving instance DecidableEq for veoveo_hub_sdk.registration.authorization.RouteAccess
+/-- [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<K, V, A>}::get]:
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 719:4-722:15
+    Name pattern: [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::get]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::get"]
+def alloc.collections.btree.map.BTreeMap.get
+  {K : Type _} {V : Type _} {A : Type _} {Q : Type _}
+  (coreallocAllocatorCloneInst : core.alloc.AllocatorClone A)
+  (coreborrowBorrowInst : core.borrow.Borrow K Q) (corecmpOrdInst :
+  core.cmp.Ord K) (corecmpOrdInst1 : core.cmp.Ord Q) :
+  alloc.collections.btree.map.BTreeMap K V A → Q → Result (Option V)
+  := fun entries query => CurrentRolesSDK.mapGetBy coreborrowBorrowInst.borrow
+    corecmpOrdInst1.cmp entries query
+
+
+/-- [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<K, V, A>}::iter]:
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 2711:4-2711:40
+    Name pattern: [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::iter]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::iter"]
+def alloc.collections.btree.map.BTreeMap.iter
+  {K : Type _} {V : Type _} {A : Type _} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) :
+  alloc.collections.btree.map.BTreeMap K V A → Result
+    (alloc.collections.btree.map.Iter K V)
+  := fun entries => .ok entries
+
+
+/-- [veoveo_hub_sdk::identity::{impl core::cmp::Ord for veoveo_hub_sdk::identity::LocalToolName}::cmp]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
+    Name pattern: [veoveo_hub_sdk::identity::{core::cmp::Ord<veoveo_hub_sdk::identity::LocalToolName>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::cmp::Ord<veoveo_hub_sdk::identity::LocalToolName>}::cmp"]
+def veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpOrd.cmp
+  :
+  veoveo_hub_sdk.identity.LocalToolName →
+    veoveo_hub_sdk.identity.LocalToolName → Result Ordering
+  := fun left right => .ok (compare left.value right.value)
+
+
+/-- [veoveo_hub_sdk::identity::{impl core::cmp::PartialOrd<veoveo_hub_sdk::identity::LocalToolName> for veoveo_hub_sdk::identity::LocalToolName}::partial_cmp]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
+    Name pattern: [veoveo_hub_sdk::identity::{core::cmp::PartialOrd<veoveo_hub_sdk::identity::LocalToolName, veoveo_hub_sdk::identity::LocalToolName>}::partial_cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::cmp::PartialOrd<veoveo_hub_sdk::identity::LocalToolName, veoveo_hub_sdk::identity::LocalToolName>}::partial_cmp"]
+def
+  veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpPartialOrdLocalToolName.partial_cmp
+  :
+  veoveo_hub_sdk.identity.LocalToolName →
+    veoveo_hub_sdk.identity.LocalToolName → Result (Option Ordering)
+  := fun left right => .ok (some (compare left.value right.value))
+
+
+/-- [veoveo_hub_sdk::identity::{impl core::cmp::PartialEq<veoveo_hub_sdk::identity::LocalToolName> for veoveo_hub_sdk::identity::LocalToolName}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
+    Name pattern: [veoveo_hub_sdk::identity::{core::cmp::PartialEq<veoveo_hub_sdk::identity::LocalToolName, veoveo_hub_sdk::identity::LocalToolName>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::cmp::PartialEq<veoveo_hub_sdk::identity::LocalToolName, veoveo_hub_sdk::identity::LocalToolName>}::eq"]
+def
+  veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpPartialEqLocalToolName.eq
+  :
+  veoveo_hub_sdk.identity.LocalToolName →
+    veoveo_hub_sdk.identity.LocalToolName → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [veoveo_hub_sdk::identity::{impl core::cmp::Ord for veoveo_hub_sdk::identity::PromptName}::cmp]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
+    Name pattern: [veoveo_hub_sdk::identity::{core::cmp::Ord<veoveo_hub_sdk::identity::PromptName>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::cmp::Ord<veoveo_hub_sdk::identity::PromptName>}::cmp"]
+def veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpOrd.cmp
+  :
+  veoveo_hub_sdk.identity.PromptName → veoveo_hub_sdk.identity.PromptName →
+    Result Ordering
+  := fun left right => .ok (compare left.value right.value)
+
+
+/-- [veoveo_hub_sdk::identity::{impl core::cmp::PartialOrd<veoveo_hub_sdk::identity::PromptName> for veoveo_hub_sdk::identity::PromptName}::partial_cmp]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
+    Name pattern: [veoveo_hub_sdk::identity::{core::cmp::PartialOrd<veoveo_hub_sdk::identity::PromptName, veoveo_hub_sdk::identity::PromptName>}::partial_cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::cmp::PartialOrd<veoveo_hub_sdk::identity::PromptName, veoveo_hub_sdk::identity::PromptName>}::partial_cmp"]
+def
+  veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpPartialOrdPromptName.partial_cmp
+  :
+  veoveo_hub_sdk.identity.PromptName → veoveo_hub_sdk.identity.PromptName →
+    Result (Option Ordering)
+  := fun left right => .ok (some (compare left.value right.value))
+
+
+/-- [veoveo_hub_sdk::identity::{impl core::cmp::PartialEq<veoveo_hub_sdk::identity::PromptName> for veoveo_hub_sdk::identity::PromptName}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
+    Name pattern: [veoveo_hub_sdk::identity::{core::cmp::PartialEq<veoveo_hub_sdk::identity::PromptName, veoveo_hub_sdk::identity::PromptName>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::cmp::PartialEq<veoveo_hub_sdk::identity::PromptName, veoveo_hub_sdk::identity::PromptName>}::eq"]
+def veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpPartialEqPromptName.eq
+  :
+  veoveo_hub_sdk.identity.PromptName → veoveo_hub_sdk.identity.PromptName →
+    Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [veoveo_hub_sdk::registration::authorization::{impl core::cmp::PartialEq<veoveo_hub_sdk::registration::authorization::RouteAccess> for veoveo_hub_sdk::registration::authorization::RouteAccess}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 30:23-30:32
+    Name pattern: [veoveo_hub_sdk::registration::authorization::{core::cmp::PartialEq<veoveo_hub_sdk::registration::authorization::RouteAccess, veoveo_hub_sdk::registration::authorization::RouteAccess>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::registration::authorization::{core::cmp::PartialEq<veoveo_hub_sdk::registration::authorization::RouteAccess, veoveo_hub_sdk::registration::authorization::RouteAccess>}::eq"]
+def
+  veoveo_hub_sdk.registration.authorization.RouteAccess.Insts.CoreCmpPartialEqRouteAccess.eq
+  :
+  veoveo_hub_sdk.registration.authorization.RouteAccess →
+    veoveo_hub_sdk.registration.authorization.RouteAccess → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [veoveo_types::resource_template::{impl core::cmp::Ord for veoveo_types::resource_template::ResourceTemplateUri}::cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/resource_template.rs', lines 21:50-21:53
+    Name pattern: [veoveo_types::resource_template::{core::cmp::Ord<veoveo_types::resource_template::ResourceTemplateUri>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::resource_template::{core::cmp::Ord<veoveo_types::resource_template::ResourceTemplateUri>}::cmp"]
+def veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCmpOrd.cmp
+  :
+  veoveo_types.resource_template.ResourceTemplateUri →
+    veoveo_types.resource_template.ResourceTemplateUri → Result Ordering
+  := fun left right => .ok (compare left.value right.value)
+
+
+/-- [veoveo_types::resource_template::{impl core::cmp::PartialOrd<veoveo_types::resource_template::ResourceTemplateUri> for veoveo_types::resource_template::ResourceTemplateUri}::partial_cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/resource_template.rs', lines 21:38-21:48
+    Name pattern: [veoveo_types::resource_template::{core::cmp::PartialOrd<veoveo_types::resource_template::ResourceTemplateUri, veoveo_types::resource_template::ResourceTemplateUri>}::partial_cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::resource_template::{core::cmp::PartialOrd<veoveo_types::resource_template::ResourceTemplateUri, veoveo_types::resource_template::ResourceTemplateUri>}::partial_cmp"]
+def
+  veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCmpPartialOrdResourceTemplateUri.partial_cmp
+  :
+  veoveo_types.resource_template.ResourceTemplateUri →
+    veoveo_types.resource_template.ResourceTemplateUri → Result (Option
+    Ordering)
+  := fun left right => .ok (some (compare left.value right.value))
+
+
+/-- [veoveo_types::resource_template::{impl core::cmp::PartialEq<veoveo_types::resource_template::ResourceTemplateUri> for veoveo_types::resource_template::ResourceTemplateUri}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/resource_template.rs', lines 21:23-21:32
+    Name pattern: [veoveo_types::resource_template::{core::cmp::PartialEq<veoveo_types::resource_template::ResourceTemplateUri, veoveo_types::resource_template::ResourceTemplateUri>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::resource_template::{core::cmp::PartialEq<veoveo_types::resource_template::ResourceTemplateUri, veoveo_types::resource_template::ResourceTemplateUri>}::eq"]
+def
+  veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCmpPartialEqResourceTemplateUri.eq
+  :
+  veoveo_types.resource_template.ResourceTemplateUri →
+    veoveo_types.resource_template.ResourceTemplateUri → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [veoveo_types::resource::{impl core::cmp::Ord for veoveo_types::resource::ResourceUri}::cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/resource.rs', lines 8:50-8:53
+    Name pattern: [veoveo_types::resource::{core::cmp::Ord<veoveo_types::resource::ResourceUri>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::resource::{core::cmp::Ord<veoveo_types::resource::ResourceUri>}::cmp"]
+def veoveo_types.resource.ResourceUri.Insts.CoreCmpOrd.cmp
+  :
+  veoveo_types.resource.ResourceUri → veoveo_types.resource.ResourceUri →
+    Result Ordering
+  := fun left right => .ok (compare left.value right.value)
+
+
+/-- [veoveo_types::resource::{impl core::cmp::PartialOrd<veoveo_types::resource::ResourceUri> for veoveo_types::resource::ResourceUri}::partial_cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/resource.rs', lines 8:38-8:48
+    Name pattern: [veoveo_types::resource::{core::cmp::PartialOrd<veoveo_types::resource::ResourceUri, veoveo_types::resource::ResourceUri>}::partial_cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::resource::{core::cmp::PartialOrd<veoveo_types::resource::ResourceUri, veoveo_types::resource::ResourceUri>}::partial_cmp"]
+def
+  veoveo_types.resource.ResourceUri.Insts.CoreCmpPartialOrdResourceUri.partial_cmp
+  :
+  veoveo_types.resource.ResourceUri → veoveo_types.resource.ResourceUri →
+    Result (Option Ordering)
+  := fun left right => .ok (some (compare left.value right.value))
+
+
+/-- [veoveo_types::resource::{impl core::cmp::PartialEq<veoveo_types::resource::ResourceUri> for veoveo_types::resource::ResourceUri}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/resource.rs', lines 8:23-8:32
+    Name pattern: [veoveo_types::resource::{core::cmp::PartialEq<veoveo_types::resource::ResourceUri, veoveo_types::resource::ResourceUri>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::resource::{core::cmp::PartialEq<veoveo_types::resource::ResourceUri, veoveo_types::resource::ResourceUri>}::eq"]
+def veoveo_types.resource.ResourceUri.Insts.CoreCmpPartialEqResourceUri.eq
+  :
+  veoveo_types.resource.ResourceUri → veoveo_types.resource.ResourceUri →
+    Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [veoveo_hub_sdk::registration::authorization_decision::resolve]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 14:0-18:14
+    Name pattern: [veoveo_hub_sdk::registration::authorization_decision::resolve] -/
+@[rust_fun "veoveo_hub_sdk::registration::authorization_decision::resolve"]
+def veoveo_hub_sdk.registration.authorization_decision.resolve
+  {T : Type _} {A : Type _} {C : Type _} {M : Type _} (corecmpPartialEqInst :
+  core.cmp.PartialEq A A) (coremarkerCopyInst : core.marker.Copy A)
+  (CursorCPairInst : veoveo_hub_sdk.registration.authorization_decision.Cursor
+  C (T × A)) (MatcherInst :
+  veoveo_hub_sdk.registration.authorization_decision.Matcher M T) :
+  Option A → C → M → Result ((Option A) × C)
+  := fun exact candidates matcher =>
+    sdk_authorization_proof.decision.resolve corecmpPartialEqInst coremarkerCopyInst
+      (CurrentRolesSDK.cursorToSDK CursorCPairInst) (CurrentRolesSDK.matcherToSDK MatcherInst)
+      exact candidates matcher
+
+
+-- EXPLICIT NATIVE OPERATION SYMBOL: parser/decomposition trace boundary.
+/-- [veoveo_hub_sdk::registration::authorization_template::{veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'a>}::parse]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization_template.rs', lines 19:4-19:74
+    Name pattern: [veoveo_hub_sdk::registration::authorization_template::{veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'a>}::parse] -/
+@[rust_fun
+  "veoveo_hub_sdk::registration::authorization_template::{veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'a>}::parse"]
+axiom
+  veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.parse
+  :
+  veoveo_types.resource_template.ResourceTemplateUri → Result (Option
+    veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate)
+
+-- EXPLICIT NATIVE OPERATION SYMBOL: parser/decomposition trace boundary.
+/-- [veoveo_hub_sdk::registration::authorization_template::{veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'a>}::matches]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization_template.rs', lines 107:4-107:59
+    Name pattern: [veoveo_hub_sdk::registration::authorization_template::{veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'a>}::matches] -/
+@[rust_fun
+  "veoveo_hub_sdk::registration::authorization_template::{veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'a>}::matches"]
+axiom
+  veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.matches
+  :
+  veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate →
+    veoveo_types.resource.ResourceUri → Result Bool
+
+/-- [veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Cursor<(&'a veoveo_types::resource_template::ResourceTemplateUri, &'a veoveo_hub_sdk::registration::authorization::RouteAccess)> for alloc::collections::btree::map::Iter<'a, veoveo_types::resource_template::ResourceTemplateUri, veoveo_hub_sdk::registration::authorization::RouteAccess>}::next]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 297:4-297:76
+    Name pattern: [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Cursor<alloc::collections::btree::map::Iter<'a, veoveo_types::resource_template::ResourceTemplateUri, veoveo_hub_sdk::registration::authorization::RouteAccess>, (&'a veoveo_types::resource_template::ResourceTemplateUri, &'a veoveo_hub_sdk::registration::authorization::RouteAccess)>}::next] -/
+@[rust_fun
+  "veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Cursor<alloc::collections::btree::map::Iter<'a, veoveo_types::resource_template::ResourceTemplateUri, veoveo_hub_sdk::registration::authorization::RouteAccess>, (&'a veoveo_types::resource_template::ResourceTemplateUri, &'a veoveo_hub_sdk::registration::authorization::RouteAccess)>}::next"]
+def
+  alloc.collections.btree.map.IterAResourceTemplateUriRouteAccess.Insts.Veoveo_hub_sdkRegistrationAuthorization_decisionCursorPairSharedAResourceTemplateUriSharedARouteAccess.next
+  :
+  alloc.collections.btree.map.Iter
+    veoveo_types.resource_template.ResourceTemplateUri
+    veoveo_hub_sdk.registration.authorization.RouteAccess → Result ((Option
+    (veoveo_types.resource_template.ResourceTemplateUri ×
+    veoveo_hub_sdk.registration.authorization.RouteAccess)) ×
+    (alloc.collections.btree.map.Iter
+    veoveo_types.resource_template.ResourceTemplateUri
+    veoveo_hub_sdk.registration.authorization.RouteAccess))
+  := fun entries => match entries with
+    | [] => .ok (none, [])
+    | entry :: rest => .ok (some entry, rest)

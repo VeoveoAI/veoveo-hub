@@ -1,0 +1,16 @@
+--- a/crates/veoveo-hub-sdk/src/registration/authorization.rs
++++ b/crates/veoveo-hub-sdk/src/registration/authorization.rs
+@@ -254,9 +254,12 @@
+     pub fn access(&self, target: RequirementTarget<'_>) -> Option<&RouteAccess> {
+         let requirements = &self.requirements;
+         let name = match target {
+             RequirementTarget::Tool(tool) => requirements.tools.get(tool),
+-            RequirementTarget::Prompt(prompt) => requirements.prompts.get(prompt),
++            RequirementTarget::Prompt(prompt) => {
++                let _observed = requirements.prompts.get(prompt);
++                None
++            }
+             RequirementTarget::ResourceTemplate(template) => {
+                 requirements.resource_templates.get(template)
+             }
+             RequirementTarget::Resource(uri) => super::authorization_decision::resolve(

@@ -1,0 +1,1616 @@
+{
+  "schema_version": 1,
+  "scope_id": "HUB-AUTH-01",
+  "date": "2026-10-30",
+  "status": "qualified_partial",
+  "scope": "Actual SDK239 public access/NativeMatcher wiring through registered-server policy and authority narrowing; all four requirement targets and full RouteAccess values.",
+  "agents": {
+    "coordinator": "GPT-6 Astra",
+    "implementation": "GPT-6.1 Sol",
+    "builder": "GPT-6 Luna",
+    "paid_model_qualification": false
+  },
+  "source": {
+    "hub_base": "bb2e97f5c984a53eaa218109e4c01a70e952e365",
+    "sdk_runtime_revision": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "hub_freeze_manifest": {
+      "path": "/tmp/hub-sdk-adoption-20261030/sdk-native-baseline-1-manifest.json",
+      "sha256": "8db1a32ba63ecae55a7da5053361070c8c0c999ba559ad39a9b3e5424119b49f"
+    },
+    "hub_freeze_archive": {
+      "path": "/tmp/hub-sdk-adoption-20261030/sdk-native-baseline-1.tar",
+      "sha256": "fc5b3b794e5af1fade30c40c46f84a852c62e6337bb7b8282e65f8a8c8de41a8"
+    },
+    "hub_frozen_files": [
+      {
+        "path": "Cargo.lock",
+        "bytes": 139759,
+        "sha256": "a00f4580fabb83e5bfb9a4ec9e66eb3a1880ad8620326da620c95e3cf3663d09"
+      },
+      {
+        "path": "Cargo.toml",
+        "bytes": 4441,
+        "sha256": "f94fd734e9e99f53fc40d3c4838e4305e493ebc6e0f37113d311ad7770942db6"
+      },
+      {
+        "path": "crates/veoveo-hub/src/catalog/tests.rs",
+        "bytes": 48881,
+        "sha256": "262f0a88f2ae21aa1e7b73a5b36732177599e9b02e41754529997267eee4a11a"
+      },
+      {
+        "path": "crates/veoveo-hub/src/mcp/authorization.rs",
+        "bytes": 56587,
+        "sha256": "9c417b771fe4e232e652ad9bfda666370ceff66ed704975bf1dd8846f734fa00"
+      },
+      {
+        "path": "proofs/current_roles/.gitignore",
+        "bytes": 40,
+        "sha256": "473013ab0b90da268a10d4e04a6ecf8e1594539d95ff646dde921e63de58caa2"
+      },
+      {
+        "path": "proofs/current_roles/CollectionProof.lean",
+        "bytes": 9549,
+        "sha256": "972247bcd30bb02e858ef36039132a95aa2d13911beea1c1ba10ae3ae2292397"
+      },
+      {
+        "path": "proofs/current_roles/CurrentPermissionsModelAudit.lean",
+        "bytes": 815,
+        "sha256": "b2333f525dc818a041675f6c60e21fc190d5e025c859dcf4fed84253b7d18275"
+      },
+      {
+        "path": "proofs/current_roles/CurrentPermissionsProof.lean",
+        "bytes": 12449,
+        "sha256": "733eb2bf0d152ec5f369d6e1cd26afd3535ef71ac254eee5238654510f475302"
+      },
+      {
+        "path": "proofs/current_roles/EffectiveRiskProof.lean",
+        "bytes": 11143,
+        "sha256": "50dca8815fe45015e22029df33d670218efb7c29974dd7b5f1a1aa4e16d964f2"
+      },
+      {
+        "path": "proofs/current_roles/FlatMapIteratorProof.lean",
+        "bytes": 8908,
+        "sha256": "58a7202a883772ccf2270aafccf30bf09f02ac9804209bb2d4b9eb90bbaa1fa2"
+      },
+      {
+        "path": "proofs/current_roles/GrantedPermissionsProof.lean",
+        "bytes": 16519,
+        "sha256": "b5df13643b0ed92b212c5e3e38d5710ac8b880d7f31f80ec996c0994cdeb0e22"
+      },
+      {
+        "path": "proofs/current_roles/HeldRoleProof.lean",
+        "bytes": 8977,
+        "sha256": "95ce7d4519b73da67de893d933acc54f9b5c0305409dc00563a3d8177672524c"
+      },
+      {
+        "path": "proofs/current_roles/HubCurrentRoles.lean",
+        "bytes": 28,
+        "sha256": "097d0eba1287bed6e96cb1328ecf48a6c2d2f1ded5ee207f4f31f166b3e3364d"
+      },
+      {
+        "path": "proofs/current_roles/HubCurrentRoles/Funs.lean",
+        "bytes": 141344,
+        "sha256": "11750d3835163a118675756af699b8f8687254d3132f82952c785ee39ecb4a73"
+      },
+      {
+        "path": "proofs/current_roles/HubCurrentRoles/FunsExternal.lean",
+        "bytes": 82990,
+        "sha256": "099368317aff3fd48dec038c936bf2b9e7455b1dd91f10f4e864e0d114d9c0da"
+      },
+      {
+        "path": "proofs/current_roles/HubCurrentRoles/Types.lean",
+        "bytes": 91349,
+        "sha256": "f795b7c7186845c22a1f9f0318687974cc74043549fafa2bf82961995a8383a4"
+      },
+      {
+        "path": "proofs/current_roles/HubCurrentRoles/TypesExternal.lean",
+        "bytes": 27792,
+        "sha256": "7e56b679a14d401d9043507b8bddaf4c2fef4536d29c828f774fb674a5bac568"
+      },
+      {
+        "path": "proofs/current_roles/IteratorProof.lean",
+        "bytes": 10370,
+        "sha256": "29b28849fbfb8830425373b3d0706e8d79cc8ce95502ebf17234de700c80faa4"
+      },
+      {
+        "path": "proofs/current_roles/ModelAudit.lean",
+        "bytes": 462,
+        "sha256": "d2f524e13ab365b8fd4212187972d3e6834e07e476e08a59aef2b357a54de1f0"
+      },
+      {
+        "path": "proofs/current_roles/NativePolicyModelAudit.lean",
+        "bytes": 3059,
+        "sha256": "c136277bf10c2ec3b6c3d574e8d7758d30beb88cd91b1bd33006961e736e3813"
+      },
+      {
+        "path": "proofs/current_roles/NativeSetProof.lean",
+        "bytes": 13172,
+        "sha256": "2d0d116f7f32a5d0ed6192c3abcd2c0f50366d0015a725d19df7ced641855a5c"
+      },
+      {
+        "path": "proofs/current_roles/PolicyPrimitives.lean",
+        "bytes": 2627,
+        "sha256": "aafc4b8984c33817ba23034a49e637556e90c5bcb85beed3137386145a7a6b75"
+      },
+      {
+        "path": "proofs/current_roles/README.md",
+        "bytes": 38891,
+        "sha256": "73683c4572fd1e2d0e4da666470007fe2961c477632d3d67929c43a43d837113"
+      },
+      {
+        "path": "proofs/current_roles/RegisteredServerAdmissionProof.lean",
+        "bytes": 12181,
+        "sha256": "c1327d8060e800380440df72cf5f33228d84c6ce010fe5bbe20219ced72d0512"
+      },
+      {
+        "path": "proofs/current_roles/RegisteredServerDecisionProof.lean",
+        "bytes": 12112,
+        "sha256": "e856a9824deada8acd1036c3636cb6d4c109d12ee05377d63e62acba08177991"
+      },
+      {
+        "path": "proofs/current_roles/RegisteredServerDownstreamProof.lean",
+        "bytes": 22422,
+        "sha256": "3c6d2346957480b927c0940cae008cdfc55693a9bf1d47b102b0df83217df594"
+      },
+      {
+        "path": "proofs/current_roles/RegisteredServerPolicyProof.lean",
+        "bytes": 12840,
+        "sha256": "8af13cf6debf13d795aef04df30cc8443a08b4aa656484713a53ab8c486f4b1b"
+      },
+      {
+        "path": "proofs/current_roles/RegistrationIteratorProof.lean",
+        "bytes": 9398,
+        "sha256": "b649c3a4ed744b7b6a4d5cd3b9459be9a88c35818780cba76adc933e9b468893"
+      },
+      {
+        "path": "proofs/current_roles/SDKAccessCorollaries.lean",
+        "bytes": 10362,
+        "sha256": "9593285ad010056c3f1a925ff4c89d5a5a5170085bfe9feb7f88957dd05951c4"
+      },
+      {
+        "path": "proofs/current_roles/SDKAccessProof.lean",
+        "bytes": 19493,
+        "sha256": "5d708bf9fc29c15fd7147717cb0d63987d1ca9f8326c05824b68b0e204e299b6"
+      },
+      {
+        "path": "proofs/current_roles/SDKRegisteredPolicyProof.lean",
+        "bytes": 14827,
+        "sha256": "79217b603eb17caf25edd997dee5c11e47f6cd350d3e5d2d40f49c89cb1377f0"
+      },
+      {
+        "path": "proofs/current_roles/SDKResolverAdapterProof.lean",
+        "bytes": 4357,
+        "sha256": "5cd8bd354dd30cba888ffd503fc79776e90557e742f1ccbd816cdc60a925de56"
+      },
+      {
+        "path": "proofs/current_roles/evidence/current-permissions-receipt.json",
+        "bytes": 134037,
+        "sha256": "5a897d0b148e038ccd8c2c2c83151a97a6a4670532e49de6af946ed9b1082cb9"
+      },
+      {
+        "path": "proofs/current_roles/evidence/current-roles-receipt.json",
+        "bytes": 91434,
+        "sha256": "d6a5e1322c054d62f98b05d51e39bd2f86c137c6969a1844ba3f442e4cba1579"
+      },
+      {
+        "path": "proofs/current_roles/evidence/registered-server-policy-receipt.json",
+        "bytes": 114615,
+        "sha256": "ab2e68f7e9564fcf059d5e7b7c3728211e2ce792668acc58dabecaf2f3a0152a"
+      },
+      {
+        "path": "proofs/current_roles/extraction/catalog-field-name.patch",
+        "bytes": 379,
+        "sha256": "d419ecd3f16f120c367966c27c30bda0959b3cddd26fb0f106d15d0833ba3193"
+      },
+      {
+        "path": "proofs/current_roles/lake-manifest.json",
+        "bytes": 4074,
+        "sha256": "f674793aa9e71b9cf475966c5789a0de6d1c9fc1824ddc5b311d7318e370aeb3"
+      },
+      {
+        "path": "proofs/current_roles/lakefile.lean",
+        "bytes": 1446,
+        "sha256": "86eea26c9a5047723db263d086f28f59b4c36c8d45b1bb8841dbf851c6fd353c"
+      },
+      {
+        "path": "proofs/current_roles/lean-toolchain",
+        "bytes": 25,
+        "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+      },
+      {
+        "path": "proofs/current_roles/mutations/current-permissions-return-empty.patch",
+        "bytes": 721,
+        "sha256": "f50f7c1d960757c6d3234811661dec9a0827a013d6ad35819adb7e7284af19b1"
+      },
+      {
+        "path": "proofs/current_roles/mutations/current-permissions-return-requested.patch",
+        "bytes": 723,
+        "sha256": "f941a992efa4e3cf696cbe416cefd86f95676a6eadfaf757184885d310985354"
+      },
+      {
+        "path": "proofs/current_roles/mutations/deny-retains-risks.patch",
+        "bytes": 592,
+        "sha256": "87501596f9624f9596d43f3df9e88c257e27304e36e905d84e40682ac107ca63"
+      },
+      {
+        "path": "proofs/current_roles/mutations/held-role-inverted.patch",
+        "bytes": 342,
+        "sha256": "b8fe5e6a68480b6f12ad5644e1754151fb5aed328899de7073ceb1272e82f75c"
+      },
+      {
+        "path": "proofs/current_roles/mutations/invert-role-acceptance.patch",
+        "bytes": 397,
+        "sha256": "c600a20c218ee8f07f36e31b3ea32466fc5b16edf2b54a2d251dc29de6f22e99"
+      },
+      {
+        "path": "proofs/current_roles/mutations/omit-risk-additions.patch",
+        "bytes": 575,
+        "sha256": "a9c5bf0352bdf2e06e443e15842ed25a3c44d583cb870ba26354ef3622a67924"
+      },
+      {
+        "path": "proofs/current_roles/mutations/registered-authenticated-needs-grant.patch",
+        "bytes": 547,
+        "sha256": "23785213df854c3c53454297f259bd7980ef7ebc5351dbae583ddf07c9f1538e"
+      },
+      {
+        "path": "proofs/current_roles/mutations/registered-bypass-membership.patch",
+        "bytes": 560,
+        "sha256": "d5adbbbe6a2bf730068d78db2ae04190277c281a1bf83831cf29b62bb05be202"
+      },
+      {
+        "path": "proofs/current_roles/mutations/registered-drop-tool-requirement.patch",
+        "bytes": 581,
+        "sha256": "b99d9f34dffe8093bf989f6afa8263378881d0009d00ba16d826d483838a0bb7"
+      },
+      {
+        "path": "proofs/current_roles/mutations/registered-omit-denied-required.patch",
+        "bytes": 324,
+        "sha256": "97fa7ee97054f01cbcf337a8f049e090a7ed9de433905f5e23ee5fca3ed67baf"
+      },
+      {
+        "path": "proofs/current_roles/mutations/registered-wrong-resource-reason.patch",
+        "bytes": 598,
+        "sha256": "d808ddce847a2d999649385f2f92503f5b9f0ead4bedf1eeaea9dde53b811530"
+      },
+      {
+        "path": "proofs/current_roles/mutations/risk-or-access.patch",
+        "bytes": 407,
+        "sha256": "276a131e7b82ecb2204965d452307e2dd9ee33ccddf016ffc974d5cd3755a9b7"
+      },
+      {
+        "path": "proofs/current_roles/mutations/subject-inverted.patch",
+        "bytes": 523,
+        "sha256": "3ce0455d25b1b6a482b36b95ed7664a5e0b144633afc0e428111a1c374b13c82"
+      },
+      {
+        "path": "proofs/current_roles/mutations/tenant-different.patch",
+        "bytes": 481,
+        "sha256": "d358e5ea1a09bcc4f678aff8e84982ee6a4dbbefca98f7412f176c243dcf960f"
+      }
+    ],
+    "sdk_archive": {
+      "path": "/tmp/hub-sdk-adoption-20261030/sdk-239622d.tar",
+      "sha256": "d503de9b88b34172eee6e3299c53417f737abe68ebbf2e724d3c26dd1edd4f77"
+    },
+    "sdk_manifest": {
+      "path": "/tmp/hub-sdk-adoption-20261030/sdk-239622d-manifest.json",
+      "sha256": "ef3a968ff5f7dd775a407e2d118fd8eb1153e4560bcf8d5e41f8e9b6831f8fe4"
+    },
+    "sdk_proof_only_overlay": {
+      "path": "/tmp/hub-sdk-adoption-20261030/sdk-proof-edition-alignment-1.tar",
+      "sha256": "1cddb649101d44168cb3b71d675683f8fa8718cf307929930ffa57beae27ccf0"
+    },
+    "sdk_proof_only_manifest": {
+      "path": "/tmp/hub-sdk-adoption-20261030/sdk-proof-edition-alignment-1-manifest.json",
+      "sha256": "317d607727b0235e8874c9f265d32f47954e5e7105fa820e5e9a13c73681cda3"
+    },
+    "sdk_proof_only_change": "Extraction crate edition2024 and README; runtime source remains exact SDK239.",
+    "cargo_lock_input_sha256": "a00f4580fabb83e5bfb9a4ec9e66eb3a1880ad8620326da620c95e3cf3663d09",
+    "cargo_lock_input_provenance": "Frozen input already contained the expected three SDK revision string changes; originating writer/action not established. Scratch Cargo resolution verified the result.",
+    "lake_manifest_sha256": "f674793aa9e71b9cf475966c5789a0de6d1c9fc1824ddc5b311d7318e370aeb3",
+    "native_extraction_separation": "Native catalog unannotated. Only extraction copy receives supported Charon field-name metadata patch; register_tool arguments exactly once.",
+    "scratch_dependency_override": "Cargo-supported SDK, fixture and macros path overrides point to the same isolated SDK source per native/extraction case. Scratch lock differs only by these three Git source removals. Working pins and shared dependency sources are not mutated.",
+    "private_resolver_source_sha256": "8ed2b007bb457eed5057054367e2c9e6aac38664bc9e89cddc580d61de3e6bf8",
+    "imported_sdk_generated_model_sha256": "f7c597d997b34b800578f39168924a4666426bc6d5a5dfee23bc7313708e2e0f",
+    "reporting_delta": "Frozen53 inputs are historical measured bytes. The final slice README and this new receipt are reporting-only changes after restoration; all other52 frozen paths remain exact. Restored generated source comments differ as explicitly recorded, while committed generated files retain probe6 bytes.",
+    "final_readme_sha256": "d696c07ec95d979d222f74a33ae960b79ca4ae3e4b5c97b328579e5f31796c9f"
+  },
+  "command_provenance": "Exact argv, cwd and recorded environment are preserved in each hash-linked summary. The compact stage lists retain tool order, timing, outcome and log identities; proof/native witness commands are also retained under each control.",
+  "tools": {
+    "native_rust": "1.99.0-x86_64-unknown-linux-gnu",
+    "sqlx_offline": true,
+    "charon_rust": "nightly-2026-09-17",
+    "lean": "4.35.0",
+    "native_rustc_commit": "b940084d7eb6a299eb4bfeb8e34901bc051e7ac4",
+    "native_llvm": "23.1.1",
+    "extraction_plan": {
+      "path": "/tmp/hub-sdk-adoption-20261030/extraction-plan6.json",
+      "sha256": "bbdabe474b178a48bbf86e39182345c6e2303a0b9db8c36400d92f3ddb41f8cf"
+    },
+    "binary_hashes": {
+      "charon": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+      "aeneas": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+      "rustc": "f6636ed825b134896bdbff0b433a0d064df766971b8b6610db5e18165d166aee",
+      "lake": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1"
+    },
+    "host": {
+      "os": "Ubuntu 24.04.5 LTS",
+      "kernel": "6.8.0-147-generic",
+      "architecture": "x86_64",
+      "rustc": "1.99.0 (b940084d7 2026-09-28)",
+      "rustc_commit": "b940084d7eb6a299eb4bfeb8e34901bc051e7ac4",
+      "llvm": "23.1.1"
+    },
+    "source_pins": {
+      "hub": "bb2e97f5c984a53eaa218109e4c01a70e952e365",
+      "sdk": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+      "charon": "de8736f",
+      "aeneas": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf"
+    },
+    "read_only_provenance": {
+      "os_release_command": "cat /etc/os-release",
+      "kernel_command": "uname -r",
+      "rustc_command": "/home/rozgo/.cargo/bin/rustup run 1.99.0-x86_64-unknown-linux-gnu rustc -Vv",
+      "tool_hash_command": "sha256sum <pinned Charon, Aeneas, Lake binaries>",
+      "llbc_inspection": "Read-only JSON declaration inventory over restored hub_current_roles.llbc; no code mutation."
+    }
+  },
+  "proof_boundary": {
+    "actual_checked": "Field-exact dictionary adapters, actual parse/Option closure trace, exact public access .ok Option for all four targets, raw declarations/access Some/None equivalences and full-value conflicts, exact ordered server decision with derived current grants, coherent required-permission consistency, exact downstream intersection and Authenticated-empty acceptance.",
+    "resolver_model": "Ordinary external definition calls pinned SDK-owned generated decision.resolve; no copied resolver or result-specification axiom.",
+    "compiler_linkage": "Foreign optimized resolver MIR cannot be translated by pinned Aeneas. Local edition2024 extraction emits the exact pinned SDK model. Applying that ordinary imported model to the foreign call retains an explicit source/compilation/linking boundary; byte identity is evidence, not a formal compiler-refinement proof.",
+    "operational_hypotheses": "Parse/decode and native-template matching correspondence to SDK-generated same_root/matches_view remain explicit, as do successful sampled-clock and catalog/installation lookup laws. No whole nativeAccess result premise remains in the new connected policy theorems.",
+    "native_refinement": "Raw map model retains unique-key, ordering and supplied Borrow coherence; collections, comparisons, parsing, allocation, memory/alias and iterator projection refinement remain native/toolchain boundaries. No Rust cost/sorted-memory/post-None trace claim.",
+    "caller_boundary": "Raw evaluator inputs remain independent. Coherent-call results require registered_target alignment. Actual async Context/caller construction, native route classification and wrapper/call wiring are source/native evidence, not fully extracted endpoint guarantees.",
+    "clock_boundary": "Preserves whatever successful timestamp the sampled native operation returns; no fixed-zero, freshness or real-time accuracy claim.",
+    "standard_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "additional_native_symbols": [
+      "chrono.offset.utc.Utc.now",
+      "veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.parse",
+      "veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.matches"
+    ],
+    "audit": "Executable declaration-specific axiom allowlists reject any unreviewed symbol or sorryAx. Earlier role/Held claims retain standard-only closures; SDK access may add parse/matches; policy may add clock. Failed-mutant recovery sorryAx is never accepted proof evidence.",
+    "non_claims": [
+      "Native symbol implementation or constructive interpretation",
+      "Full native SDK parser/URI/borrow proof",
+      "Full async endpoint or deployed behavior",
+      "Full Hub Mac/Linux Docker gates",
+      "Paid model acceptance"
+    ]
+  },
+  "checkpoints": {
+    "local_edition2024": {
+      "summary": {
+        "path": "/tmp/hub-sdk-adoption-20261030/evidence-edition2024/summary.json",
+        "sha256": "89c280a039353755b9fa413a4bd991a33ae3122f0e76f127e009fd13f1df86f5"
+      },
+      "generated_model_sha256": "f7c597d997b34b800578f39168924a4666426bc6d5a5dfee23bc7313708e2e0f",
+      "observation": "Generated model byte-identical; four helper signatures/bodies equal after extraction metadata normalization. Does not discharge foreign compilation/linking boundary."
+    },
+    "model_adapter": {
+      "summary": {
+        "path": "/tmp/hub-sdk-adoption-20261030/evidence-models4/summary.json",
+        "sha256": "1b6f03a4634121cac9288010417193304f13bfd6d7b884e4d1977d37212296c5"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "lake-build",
+          "exit": 0,
+          "elapsed_ms": 34924,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-access-models-4-run1/logs/lake-build.log",
+          "log_sha256": "3c471896b178ecd73c410a987aca7642a1371edeb2b61b2aa449a3f8c334055b"
+        },
+        {
+          "stage": "sdk-resolver-adapter-proof",
+          "exit": 0,
+          "elapsed_ms": 2668,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-access-models-4-run1/logs/sdk-resolver-adapter-proof.log",
+          "log_sha256": "932dbf1d6be358614061e96c22fd641d37d0379f81362f5b6fd4375a146f3b6d"
+        },
+        {
+          "stage": "model-audit",
+          "exit": 0,
+          "elapsed_ms": 2618,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-access-models-4-run1/logs/model-audit.log",
+          "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312"
+        },
+        {
+          "stage": "current-permissions-model-audit",
+          "exit": 0,
+          "elapsed_ms": 2568,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-access-models-4-run1/logs/current-permissions-model-audit.log",
+          "log_sha256": "3ac752ca291548d17ff3818c00563d631f6d2e6d408ad4070c97c49277c9ca7f"
+        },
+        {
+          "stage": "native-policy-model-audit",
+          "exit": 0,
+          "elapsed_ms": 2618,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-access-models-4-run1/logs/native-policy-model-audit.log",
+          "log_sha256": "7bb1fc2d46ecd7a3061ae14708cc0f93b12434b41d6cb7cadf97f1b27d69a415"
+        }
+      ]
+    },
+    "combined_formal": {
+      "summary": {
+        "path": "/tmp/hub-sdk-adoption-20261030/evidence-sdk-policy-combined1/summary.json",
+        "sha256": "c23ad8c9b9a80b1c569e389a84fa44c7a828d002c6977e56fb303d1393408d31"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "bridge-prerequisites",
+          "exit": 0,
+          "elapsed_ms": 35172,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-policy-combined-1-run1/logs/bridge-prerequisites.log",
+          "log_sha256": "f63eb4edce93c4fc94dcbe1e17cb7616717f6756153815b877c80f40212b02c4"
+        },
+        {
+          "stage": "registered-policy-direct",
+          "exit": 0,
+          "elapsed_ms": 2769,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-policy-combined-1-run1/logs/registered-policy-direct.log",
+          "log_sha256": "2abf957224412146992d4b78220289b68e05985b4a2338078a452ba39717df48"
+        },
+        {
+          "stage": "full-default-build",
+          "exit": 0,
+          "elapsed_ms": 3370,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-policy-combined-1-run1/logs/full-default-build.log",
+          "log_sha256": "d635ec3297ea610f64da31185cd2fac2efc54f1468ea8ea38b672a7f2e74cca4"
+        },
+        {
+          "stage": "sdk-access-direct",
+          "exit": 0,
+          "elapsed_ms": 2819,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-policy-combined-1-run1/logs/sdk-access-direct.log",
+          "log_sha256": "6f1aa6a98ceefab128ee87dc0807268bc3ed00b293278dcc1f22bd7803133d27"
+        },
+        {
+          "stage": "sdk-access-corollaries-direct",
+          "exit": 0,
+          "elapsed_ms": 3120,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-policy-combined-1-run1/logs/sdk-access-corollaries-direct.log",
+          "log_sha256": "964a1be18c407a310aaa7b6989964750f5de7ce37c4de63a41596e8bfa5b711e"
+        },
+        {
+          "stage": "model-audit",
+          "exit": 0,
+          "elapsed_ms": 2568,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-policy-combined-1-run1/logs/model-audit.log",
+          "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312"
+        },
+        {
+          "stage": "current-permissions-model-audit",
+          "exit": 0,
+          "elapsed_ms": 2568,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-policy-combined-1-run1/logs/current-permissions-model-audit.log",
+          "log_sha256": "3ac752ca291548d17ff3818c00563d631f6d2e6d408ad4070c97c49277c9ca7f"
+        },
+        {
+          "stage": "native-policy-model-audit",
+          "exit": 0,
+          "elapsed_ms": 2618,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-policy-combined-1-run1/logs/native-policy-model-audit.log",
+          "log_sha256": "7bb1fc2d46ecd7a3061ae14708cc0f93b12434b41d6cb7cadf97f1b27d69a415"
+        }
+      ]
+    },
+    "native_baseline": {
+      "summary": {
+        "path": "/tmp/hub-sdk-adoption-20261030/evidence-sdk-native-baseline-1/summary.json",
+        "sha256": "d78428733caa1e43910e47a6090bf6d6d44c9e432530a168f00562414a7debfb"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "resolve-path-patched-metadata",
+          "exit": 0,
+          "elapsed_ms": 364,
+          "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-baseline-1-run1/cargo-metadata.json",
+          "stdout_sha256": "1171316fbb86c324ba2c83d9e1efe31413bce49571f709f88ffa0a91cb8c28dd",
+          "stderr_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-baseline-1-run1/logs/resolve-path-patched-metadata.stderr.log",
+          "stderr_sha256": "9e2654453068f22faaae20c1d6ceaec2c604fc4ecf123e6bc14d99c783d77385"
+        },
+        {
+          "stage": "clean-affected-packages",
+          "exit": 0,
+          "elapsed_ms": 364,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-baseline-1-run1/logs/clean-affected-packages.log",
+          "log_sha256": "6ebeb9b3e4c1a8e3503925024c194962b3f5759d5310f7ae4c9d2e4012ad60ad"
+        },
+        {
+          "stage": "rustc-version",
+          "exit": 0,
+          "elapsed_ms": 16,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-baseline-1-run1/logs/rustc-version.log",
+          "log_sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112"
+        },
+        {
+          "stage": "fmt-check",
+          "exit": 0,
+          "elapsed_ms": 665,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-baseline-1-run1/logs/fmt-check.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "stage": "catalog-registered-tests",
+          "exit": 0,
+          "elapsed_ms": 49647,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-baseline-1-run1/logs/catalog-registered-tests.log",
+          "log_sha256": "faf8da424378255523664585bb61751738fe67a2e83a8999a4a60733d69d1af4",
+          "test_count": 3,
+          "test_failures": 0,
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-a802ea4762ee506f",
+            "sha256": "8eba6af7dddd4175f9ad2281d52203c433ed60e5bd9ebb917f7ffe105c3e4197",
+            "bytes": 769175608
+          },
+          "compiled_packages": {
+            "veoveo-hub-sdk": true,
+            "veoveo-hub-sdk-fixture": true,
+            "veoveo-hub-sdk-macros": true,
+            "veoveo-hub": true
+          }
+        },
+        {
+          "stage": "registered-policy-narrowing-test",
+          "exit": 0,
+          "elapsed_ms": 264,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-baseline-1-run1/logs/registered-policy-narrowing-test.log",
+          "log_sha256": "5f2b35a4de9d9932f897a5a0eec1f4fb9e00306b0facf427d7265fd566b0838c",
+          "test_count": 1,
+          "test_failures": 0,
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-a802ea4762ee506f",
+            "sha256": "8eba6af7dddd4175f9ad2281d52203c433ed60e5bd9ebb917f7ffe105c3e4197",
+            "bytes": 769175608
+          },
+          "compiled_packages": {
+            "veoveo-hub-sdk": false,
+            "veoveo-hub-sdk-fixture": false,
+            "veoveo-hub-sdk-macros": false,
+            "veoveo-hub": false
+          }
+        },
+        {
+          "stage": "delegated-authorization-tests",
+          "exit": 0,
+          "elapsed_ms": 264,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-baseline-1-run1/logs/delegated-authorization-tests.log",
+          "log_sha256": "23121ff85d723f4f21285c371444181f0605061393c873628e4d5ad6a836c853",
+          "test_count": 2,
+          "test_failures": 0,
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-a802ea4762ee506f",
+            "sha256": "8eba6af7dddd4175f9ad2281d52203c433ed60e5bd9ebb917f7ffe105c3e4197",
+            "bytes": 769175608
+          },
+          "compiled_packages": {
+            "veoveo-hub-sdk": false,
+            "veoveo-hub-sdk-fixture": false,
+            "veoveo-hub-sdk-macros": false,
+            "veoveo-hub": false
+          }
+        },
+        {
+          "stage": "strict-lib-clippy",
+          "exit": 0,
+          "elapsed_ms": 13135,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-baseline-1-run1/logs/strict-lib-clippy.log",
+          "log_sha256": "2dbb6773c9329148af5208ef746d6049f4e6844d83e488769163ea5ac38ba1ff"
+        }
+      ]
+    },
+    "native_restoration": {
+      "summary": {
+        "path": "/tmp/hub-sdk-adoption-20261030/evidence-sdk-restoration-native-1/summary.json",
+        "sha256": "8d2ec97ced0111fa6fd3829a7e028b660e553205b7a58ece76fd2dc7faf82df0"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "resolve-path-patched-metadata",
+          "exit": 0,
+          "elapsed_ms": 264,
+          "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/cargo-metadata.json",
+          "stdout_sha256": "fd13ccb0b752dd7748e5ac8cf9d9584fc535159c1456a7f81b0cd827dd4bbb7c",
+          "stderr_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/logs/resolve-path-patched-metadata.stderr.log",
+          "stderr_sha256": "ca53e09a21c142a28d32d55bb4e08879fd967545dde18c2e1d3705af1c0eac5a"
+        },
+        {
+          "stage": "clean-affected-packages",
+          "exit": 0,
+          "elapsed_ms": 615,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/logs/clean-affected-packages.log",
+          "log_sha256": "375aeda178b1f52198379232069045da50ea4c6e3de15b4057710ec48b0036ef"
+        },
+        {
+          "stage": "rustc-version",
+          "exit": 0,
+          "elapsed_ms": 16,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/logs/rustc-version.log",
+          "log_sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112"
+        },
+        {
+          "stage": "fmt-check",
+          "exit": 0,
+          "elapsed_ms": 665,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/logs/fmt-check.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "stage": "catalog-registered-tests",
+          "exit": 0,
+          "elapsed_ms": 49447,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/logs/catalog-registered-tests.log",
+          "log_sha256": "28b8550114a66c1ae432e08b6ec31429bb047dbdb301ba896043b4e45c44d2b5",
+          "test_count": 3,
+          "test_failures": 0,
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-dbaa2a72ee4f9650",
+            "sha256": "d403f92acb397d4e785e73d4d50b5a6552460b02ce83a0a833da40ec1a4dc000",
+            "bytes": 769156008
+          },
+          "compiled_packages": {
+            "veoveo-hub-sdk": true,
+            "veoveo-hub-sdk-fixture": true,
+            "veoveo-hub-sdk-macros": true,
+            "veoveo-hub": true
+          }
+        },
+        {
+          "stage": "registered-policy-narrowing-test",
+          "exit": 0,
+          "elapsed_ms": 264,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/logs/registered-policy-narrowing-test.log",
+          "log_sha256": "4efc31afc17f2e725f53cedabdc1ba686c2fce1315a5f0cda86f5f416a61f858",
+          "test_count": 1,
+          "test_failures": 0,
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-dbaa2a72ee4f9650",
+            "sha256": "d403f92acb397d4e785e73d4d50b5a6552460b02ce83a0a833da40ec1a4dc000",
+            "bytes": 769156008
+          },
+          "compiled_packages": {
+            "veoveo-hub-sdk": false,
+            "veoveo-hub-sdk-fixture": false,
+            "veoveo-hub-sdk-macros": false,
+            "veoveo-hub": false
+          }
+        },
+        {
+          "stage": "delegated-authorization-tests",
+          "exit": 0,
+          "elapsed_ms": 264,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/logs/delegated-authorization-tests.log",
+          "log_sha256": "8cc0aa837fdd91e58a1dff1adcbb8a032def3dc6578408f37af2e52900d1e915",
+          "test_count": 2,
+          "test_failures": 0,
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-dbaa2a72ee4f9650",
+            "sha256": "d403f92acb397d4e785e73d4d50b5a6552460b02ce83a0a833da40ec1a4dc000",
+            "bytes": 769156008
+          },
+          "compiled_packages": {
+            "veoveo-hub-sdk": false,
+            "veoveo-hub-sdk-fixture": false,
+            "veoveo-hub-sdk-macros": false,
+            "veoveo-hub": false
+          }
+        },
+        {
+          "stage": "strict-lib-clippy",
+          "exit": 0,
+          "elapsed_ms": 13235,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/logs/strict-lib-clippy.log",
+          "log_sha256": "2b325c444f6c83954595365dacb37d6e5ce633090003d73dc4e08ba1d2ac2119"
+        }
+      ]
+    }
+  },
+  "native_fixture": {
+    "test": "mcp::authorization::tests::actual_registered_policy_narrows_current_grants",
+    "whole_output_cases": 23,
+    "direct_sdk_observations": 8,
+    "registered_catalog_tests": 3,
+    "delegated_tests": 2,
+    "synthetic_fixture_data": "Owned declarations and callers; real native SDK lookup/clock/policy/narrowing execution, no provider inference or deployment.",
+    "first_failure_rule": "Each mutant execution stops at its first assertion; later fixture cases in that mutant are not claimed executed."
+  },
+  "controls": [
+    {
+      "id": "sdk-drop-exact-resource",
+      "patch_path": "proofs/current_roles/mutations/sdk-drop-exact-resource.patch",
+      "patch_sha256": "0e64da49a0d3972d68f7d94f67f095152896d1a6abcf2894f9336570dcfc6977",
+      "sdk_authorization_mutated_sha256": "6eb940505140aa02f201d7dc793798f0d647f800bc57663545fb6428d89b1d50",
+      "primary_theorem": "SDKAccessProof.resource_exact_hit",
+      "reviewed_classification": "semantic residual paired with native counterexample",
+      "formal_observation": "Symbolic typed-program residual: resource_exact_hit invokes imported resolve_loop(...,none) despite hit=Some access; access_exact also fails at the altered resource result input. Not normalized False.",
+      "native_observation": "Exact resource read over conflicting templates: actual Deny/UndeclaredTarget, permission None, empty grants; expected Allow/PolicyAllow, Some(read), grants {inspect,read}.",
+      "summary": {
+        "path": "/tmp/hub-sdk-adoption-20261030/evidence-sdk-drop-exact-resource-control-1/summary.json",
+        "sha256": "0116ee43ba80fb884511d9fd4c5921a9e81b000fe0a8934e4df9e7fa487fe00d"
+      },
+      "stages": [
+        {
+          "stage": "native-sdk-mutation",
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/native-sdk-mutation.log",
+          "log_sha256": "59869302680963353c56c3c4935490a8d46a1ab515523c642323290a353b9ed3"
+        },
+        {
+          "stage": "extraction-sdk-mutation",
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/extraction-sdk-mutation.log",
+          "log_sha256": "59869302680963353c56c3c4935490a8d46a1ab515523c642323290a353b9ed3"
+        },
+        {
+          "stage": "apply-extraction-only-catalog-annotation",
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/catalog-metadata.patch.log",
+          "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9"
+        },
+        {
+          "stage": "native-metadata",
+          "exit": 0,
+          "elapsed_ms": 314,
+          "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/native-metadata.json",
+          "stdout_sha256": "3a7c322af6b104e943e890c7fd634badb973753f01e1ec8c4e7785775c610b96",
+          "stderr_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/native-metadata.stderr.log",
+          "stderr_sha256": "b0fe831bb203101b32e86815da8500d79eb19b7aacf338e5b9f3133b6e8a0ff9"
+        },
+        {
+          "stage": "extraction-metadata",
+          "exit": 0,
+          "elapsed_ms": 314,
+          "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/extraction-metadata.json",
+          "stdout_sha256": "b8c47135a8eecce08bb84bebd509c2fcfc82aeed058f33165f7e50864dd35efd",
+          "stderr_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/extraction-metadata.stderr.log",
+          "stderr_sha256": "3e4c8ec5e0a3dc2c03a248340e1f2b10c109264273bae594be4ee7b4c413446d"
+        },
+        {
+          "stage": "clean-native-affected-packages",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 615,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/clean-native-affected-packages.log",
+          "log_sha256": "50df0b6958748776f1d82d9e9e627bb3af2b5579eedbabec999949ced8df3f23"
+        },
+        {
+          "stage": "native-mutant-test-no-run",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 48944,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/native-mutant-test-no-run.log",
+          "log_sha256": "2a7f7f96c1ac4b3f4a6fbbe327aeb80b7f05460220c23c927876682f5099d021",
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-35c3530de16f8410",
+            "sha256": "80c4e4c7cbd7d39d0f6bf93778d729cc5ed16f0895b1a1335ad942f2a82bffa4",
+            "bytes": 769208136
+          },
+          "compiled_packages": {
+            "veoveo-hub-sdk": true,
+            "veoveo-hub-sdk-fixture": true,
+            "veoveo-hub-sdk-macros": true,
+            "veoveo-hub": true
+          }
+        },
+        {
+          "stage": "clean-extraction-affected-packages",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 164,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/clean-extraction-affected-packages.log",
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+        },
+        {
+          "stage": "charon-probe6-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 33570,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/charon-probe6-mutant.log",
+          "log_sha256": "b7032ceef68ad5f7a8545be29f69b9e783d63c94994c9265b4819955692e215b"
+        },
+        {
+          "stage": "aeneas-split-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 1869,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/aeneas-split-mutant.log",
+          "log_sha256": "f1c941e2345b088f3a368da5a896f816316cf9c8c8478ed75b595e1f42585300"
+        },
+        {
+          "stage": "generated-model-build",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 13636,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/generated-model-build.log",
+          "log_sha256": "f6b6042b7f6b6bc1f6365c30e5b91ae3e01ae204fb53c3d6e8f7df394ba8c2e3"
+        },
+        {
+          "stage": "sdk-access-helper-prerequisites",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 7977,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/sdk-access-helper-prerequisites.log",
+          "log_sha256": "68951b67f069f720f94ba1524687104f72ce9516516061965948c6d2b1e0356a"
+        },
+        {
+          "stage": "primary-SDKAccessProof-direct",
+          "exit": 1,
+          "timed_out": false,
+          "elapsed_ms": 2919,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/primary-SDKAccessProof-direct.log",
+          "log_sha256": "dcfebd0cb79dac749a00e66607c236bf0fc2063154e416d3284181bdf81fd44b"
+        },
+        {
+          "stage": "native-exact-policy-witness",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 264,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/native-exact-policy-witness.log",
+          "log_sha256": "903a12efd5bff10d20be35decf3fbe22fb098fadc4e2fdc650825ddedb622729"
+        }
+      ],
+      "llbc": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/outputs/hub_current_roles.llbc",
+        "bytes": 3955033,
+        "sha256": "50713da5db1f2c42990556f5ed8178a52f987063c6d30e924ebdc3c582e2808f",
+        "has_errors": false,
+        "charon_exit": 0
+      },
+      "generated": {
+        "Types.lean": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/outputs/Types.lean",
+          "sha256": "a777e307cad4ce35291426fe0338f2efa2ba78c05cad9502c5096e8952776e0e",
+          "bytes": 92545,
+          "package_copy_sha256": "a777e307cad4ce35291426fe0338f2efa2ba78c05cad9502c5096e8952776e0e"
+        },
+        "Funs.lean": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/outputs/Funs.lean",
+          "sha256": "ba5d7e708407280622dee5954d858a3c8a9f16d56f9586b472e6a678e12f541a",
+          "bytes": 142645,
+          "package_copy_sha256": "ba5d7e708407280622dee5954d858a3c8a9f16d56f9586b472e6a678e12f541a"
+        }
+      },
+      "proof": {
+        "module": "SDKAccessProof.lean",
+        "primary_theorem": "SDKAccessProof.resource_exact_hit",
+        "direct": {
+          "stage": "primary-SDKAccessProof-direct",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "SDKAccessProof.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/extraction/hub-root/proofs/current_roles",
+          "exit": 1,
+          "timed_out": false,
+          "timeout_seconds": 900,
+          "elapsed_ms": 2919,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/primary-SDKAccessProof-direct.log",
+          "log_sha256": "dcfebd0cb79dac749a00e66607c236bf0fc2063154e416d3284181bdf81fd44b"
+        }
+      },
+      "binary_compile": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-35c3530de16f8410",
+        "sha256": "80c4e4c7cbd7d39d0f6bf93778d729cc5ed16f0895b1a1335ad942f2a82bffa4",
+        "bytes": 769208136
+      },
+      "witness": {
+        "stage": {
+          "stage": "native-exact-policy-witness",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "--manifest-path",
+            "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/native/hub-root/Cargo.toml",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "mcp::authorization::tests::actual_registered_policy_narrows_current_grants",
+            "--",
+            "--exact"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/native/hub-root",
+          "exit": 101,
+          "timed_out": false,
+          "timeout_seconds": 900,
+          "elapsed_ms": 264,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-drop-exact-resource-control-run1/logs/native-exact-policy-witness.log",
+          "log_sha256": "903a12efd5bff10d20be35decf3fbe22fb098fadc4e2fdc650825ddedb622729"
+        },
+        "binary_path_in_log": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-35c3530de16f8410",
+        "binary_sha256_before": "80c4e4c7cbd7d39d0f6bf93778d729cc5ed16f0895b1a1335ad942f2a82bffa4",
+        "binary_sha256_after": "80c4e4c7cbd7d39d0f6bf93778d729cc5ed16f0895b1a1335ad942f2a82bffa4",
+        "same_binary": true,
+        "test_result": [
+          0,
+          1
+        ],
+        "assertion_failure_text": true
+      }
+    },
+    {
+      "id": "sdk-matcher-false",
+      "patch_path": "proofs/current_roles/mutations/sdk-matcher-false.patch",
+      "patch_sha256": "464d06c3dafd00a7c5bb6db7461b89bb3f79bb23308a1d28d01cbcd84861c54a",
+      "sdk_authorization_mutated_sha256": "b65c910e0c1c9140144cc53153313128da7e2b1a5e909fd846450e147c391763",
+      "primary_theorem": "SDKResolverAdapterProof.native_matcher_trace",
+      "reviewed_classification": "semantic residual paired with native counterexample",
+      "formal_observation": "Symbolic Result/Bool continuation mismatch: parsed Some branch invokes native matches then returns false for either Boolean instead of returning that operation. Not normalized False.",
+      "native_observation": "Two matching templates agreeing on Read: actual Deny/UndeclaredTarget, permission None, empty grants; expected Allow/PolicyAllow, Some(read), grants {inspect,read}.",
+      "summary": {
+        "path": "/tmp/hub-sdk-adoption-20261030/evidence-sdk-matcher-false-control-1/summary.json",
+        "sha256": "631f6b8e046b5c0bb5efe3d792f1844f5d224cf56dddaa1c3722311186f93b1d"
+      },
+      "stages": [
+        {
+          "stage": "native-sdk-mutation",
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/native-sdk-mutation.log",
+          "log_sha256": "59869302680963353c56c3c4935490a8d46a1ab515523c642323290a353b9ed3"
+        },
+        {
+          "stage": "extraction-sdk-mutation",
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/extraction-sdk-mutation.log",
+          "log_sha256": "59869302680963353c56c3c4935490a8d46a1ab515523c642323290a353b9ed3"
+        },
+        {
+          "stage": "apply-extraction-only-catalog-annotation",
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/catalog-metadata.patch.log",
+          "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9"
+        },
+        {
+          "stage": "native-metadata",
+          "exit": 0,
+          "elapsed_ms": 264,
+          "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/native-metadata.json",
+          "stdout_sha256": "777ccf89aaa7bbfc15b6d6dcab2d0a3487f4d54fbcf90914c0628a6409dc1ef5",
+          "stderr_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/native-metadata.stderr.log",
+          "stderr_sha256": "0e941a1b2c443a728039ab1f11d81cee44b50fee6c40b1f0889d4a38cd854d35"
+        },
+        {
+          "stage": "extraction-metadata",
+          "exit": 0,
+          "elapsed_ms": 264,
+          "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/extraction-metadata.json",
+          "stdout_sha256": "d8cbae3cbbb02ecf6c9cecda055c400fa4d192b769faaa2822268859f6fbc0ea",
+          "stderr_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/extraction-metadata.stderr.log",
+          "stderr_sha256": "798d465ca600d0ef6633cdab2597da9a7bbc79384859e779d6ba43815f5c258f"
+        },
+        {
+          "stage": "clean-native-affected-packages",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 615,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/clean-native-affected-packages.log",
+          "log_sha256": "375aeda178b1f52198379232069045da50ea4c6e3de15b4057710ec48b0036ef"
+        },
+        {
+          "stage": "native-mutant-test-no-run",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 49048,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/native-mutant-test-no-run.log",
+          "log_sha256": "b016635756f3138dd15b98bbcba15a5224b058f284690f1ebb3b7c4b5f25f04c",
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-da73ace735f50723",
+            "sha256": "dba2782ab4fcafe72408d1b919ba2172ca367c974a2c91703cb0c72c18ba140d",
+            "bytes": 768932664
+          },
+          "compiled_packages": {
+            "veoveo-hub-sdk": true,
+            "veoveo-hub-sdk-fixture": true,
+            "veoveo-hub-sdk-macros": true,
+            "veoveo-hub": true
+          }
+        },
+        {
+          "stage": "clean-extraction-affected-packages",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 164,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/clean-extraction-affected-packages.log",
+          "log_sha256": "b9814b14588deb82235732ae908a206b7b400dffa1878786cdb629ddd3edebbe"
+        },
+        {
+          "stage": "charon-probe6-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 33773,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/charon-probe6-mutant.log",
+          "log_sha256": "696c16d87c349b66023b991b34db8d15f9a7d16f029ceeb7ee7b162cc50a0872"
+        },
+        {
+          "stage": "aeneas-split-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 1872,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/aeneas-split-mutant.log",
+          "log_sha256": "7760603f4a1abb96847d3c3466bd104dd2ad15b12eb2604fc5a8bce486fea225"
+        },
+        {
+          "stage": "generated-model-build",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 14237,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/generated-model-build.log",
+          "log_sha256": "821e0c097baac71ab51361524603486a9c0eb2712af6e9da4f2e888005a4a859"
+        },
+        {
+          "stage": "primary-helper-prerequisites",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 7876,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/primary-helper-prerequisites.log",
+          "log_sha256": "a8638fa35bc142352d0b741f9afdd5192d167b1748bbc25de52ac4537bbeab40"
+        },
+        {
+          "stage": "primary-SDKResolverAdapterProof-direct",
+          "exit": 1,
+          "timed_out": false,
+          "elapsed_ms": 2668,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/primary-SDKResolverAdapterProof-direct.log",
+          "log_sha256": "851da7f4cb0ec731e2e9c921bda4f783827cfab36c362685ee668d964773caf2"
+        },
+        {
+          "stage": "native-exact-policy-witness",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 264,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/native-exact-policy-witness.log",
+          "log_sha256": "7616569ff24af9b9ef7c195f6bbdeafbb64400997c8983c0b7b9cf5b7e381fbf"
+        }
+      ],
+      "llbc": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/outputs/hub_current_roles.llbc",
+        "bytes": 3955601,
+        "sha256": "2cf1c5275dce87150ac11f2b416805dda624f57127a2e9acf947de0fd9050bdd",
+        "has_errors": false,
+        "charon_exit": 0
+      },
+      "generated": {
+        "Types.lean": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/outputs/Types.lean",
+          "sha256": "3dc57b635b5e6a5ac684c553cca5bcfd5ceadd0012ec6aa0768f14f2646c5007",
+          "bytes": 92223,
+          "package_copy_sha256": "3dc57b635b5e6a5ac684c553cca5bcfd5ceadd0012ec6aa0768f14f2646c5007"
+        },
+        "Funs.lean": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/outputs/Funs.lean",
+          "sha256": "570610de7e2ff7b7a472fa3a91e94d9551fc984bb8b2e006bfacdbe985572560",
+          "bytes": 142361,
+          "package_copy_sha256": "570610de7e2ff7b7a472fa3a91e94d9551fc984bb8b2e006bfacdbe985572560"
+        }
+      },
+      "proof": {
+        "module": "SDKResolverAdapterProof.lean",
+        "primary_theorem": "SDKResolverAdapterProof.native_matcher_trace",
+        "direct": {
+          "stage": "primary-SDKResolverAdapterProof-direct",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "SDKResolverAdapterProof.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/extraction/hub-root/proofs/current_roles",
+          "exit": 1,
+          "timed_out": false,
+          "timeout_seconds": 900,
+          "elapsed_ms": 2668,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/primary-SDKResolverAdapterProof-direct.log",
+          "log_sha256": "851da7f4cb0ec731e2e9c921bda4f783827cfab36c362685ee668d964773caf2"
+        }
+      },
+      "binary_compile": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-da73ace735f50723",
+        "sha256": "dba2782ab4fcafe72408d1b919ba2172ca367c974a2c91703cb0c72c18ba140d",
+        "bytes": 768932664
+      },
+      "witness": {
+        "stage": {
+          "stage": "native-exact-policy-witness",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "--manifest-path",
+            "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/native/hub-root/Cargo.toml",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "mcp::authorization::tests::actual_registered_policy_narrows_current_grants",
+            "--",
+            "--exact"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/native/hub-root",
+          "exit": 101,
+          "timed_out": false,
+          "timeout_seconds": 900,
+          "elapsed_ms": 264,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-matcher-false-run1/logs/native-exact-policy-witness.log",
+          "log_sha256": "7616569ff24af9b9ef7c195f6bbdeafbb64400997c8983c0b7b9cf5b7e381fbf"
+        },
+        "binary_path_in_log": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-da73ace735f50723",
+        "binary_sha256_before": "dba2782ab4fcafe72408d1b919ba2172ca367c974a2c91703cb0c72c18ba140d",
+        "binary_sha256_after": "dba2782ab4fcafe72408d1b919ba2172ca367c974a2c91703cb0c72c18ba140d",
+        "same_binary": true,
+        "test_result": [
+          0,
+          1
+        ],
+        "assertion_failure_text": true
+      }
+    },
+    {
+      "id": "sdk-prompt-none",
+      "patch_path": "proofs/current_roles/mutations/sdk-prompt-none.patch",
+      "patch_sha256": "dd5a1c336605414b3202d1cfb5653961f399fe9dab8db6db2edaa079b92b8055",
+      "sdk_authorization_mutated_sha256": "8e3da0dd82a4f29b66122fe9087a471302032e32c315d1311b894db6b6f86ea1",
+      "primary_theorem": "SDKAccessProof.access_exact",
+      "reviewed_classification": "semantic residual paired with native counterexample",
+      "formal_observation": "Typed change/return-shape mismatch in access_exact Prompt: actual runs the same getter then returns none; expected returns promptLookup. Not normalized False.",
+      "native_observation": "Authenticated prompt with caller current grants empty: actual Deny/UnknownPrompt; expected Allow/PolicyAllow. Both permission None and empty grants.",
+      "summary": {
+        "path": "/tmp/hub-sdk-adoption-20261030/evidence-sdk-prompt-none-control-1/summary.json",
+        "sha256": "68b05695ef654c325f98918a91ff31ab418b8dc9c93fe89b332bc12da37e990b"
+      },
+      "stages": [
+        {
+          "stage": "native-sdk-mutation",
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/native-sdk-mutation.log",
+          "log_sha256": "59869302680963353c56c3c4935490a8d46a1ab515523c642323290a353b9ed3"
+        },
+        {
+          "stage": "extraction-sdk-mutation",
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/extraction-sdk-mutation.log",
+          "log_sha256": "59869302680963353c56c3c4935490a8d46a1ab515523c642323290a353b9ed3"
+        },
+        {
+          "stage": "apply-extraction-only-catalog-annotation",
+          "exit": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/catalog-metadata.patch.log",
+          "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9"
+        },
+        {
+          "stage": "native-metadata",
+          "exit": 0,
+          "elapsed_ms": 264,
+          "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/native-metadata.json",
+          "stdout_sha256": "dad45bee2f2bcefa44a96f8daebe444e96d73ce8c3422dee3306ed9a4bc4d603",
+          "stderr_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/native-metadata.stderr.log",
+          "stderr_sha256": "b124e3d39806ac347f563b7e65699a7aba5e71b6bbf9f16b3826fcc4fac1e5c6"
+        },
+        {
+          "stage": "extraction-metadata",
+          "exit": 0,
+          "elapsed_ms": 264,
+          "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/extraction-metadata.json",
+          "stdout_sha256": "866960e6e9cfb364a7e80b9745dba47d900cd358ce10e736942b0850670d0289",
+          "stderr_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/extraction-metadata.stderr.log",
+          "stderr_sha256": "bd8a10b00daf80e8d62aed6d5c779673db71a395a0a75bb5a53bac733ed5cfb0"
+        },
+        {
+          "stage": "clean-native-affected-packages",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 615,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/clean-native-affected-packages.log",
+          "log_sha256": "375aeda178b1f52198379232069045da50ea4c6e3de15b4057710ec48b0036ef"
+        },
+        {
+          "stage": "native-mutant-test-no-run",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 49351,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/native-mutant-test-no-run.log",
+          "log_sha256": "80aba53d99df8740f615d972c3063a9d1a4968573e840b82d90b34e77c92e271",
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-758603be5750d5e4",
+            "sha256": "84aa9605832b18a1ac37c9a20a501e9636291de35746e2c70fa2a7bcd28131f6",
+            "bytes": 769152544
+          },
+          "compiled_packages": {
+            "veoveo-hub-sdk": true,
+            "veoveo-hub-sdk-fixture": true,
+            "veoveo-hub-sdk-macros": true,
+            "veoveo-hub": true
+          }
+        },
+        {
+          "stage": "clean-extraction-affected-packages",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 164,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/clean-extraction-affected-packages.log",
+          "log_sha256": "b9814b14588deb82235732ae908a206b7b400dffa1878786cdb629ddd3edebbe"
+        },
+        {
+          "stage": "charon-probe6-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 33375,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/charon-probe6-mutant.log",
+          "log_sha256": "940f454bba284fda0dd2ccc37d110e23b327eea0dfa18c4b7457cc81502ec380"
+        },
+        {
+          "stage": "aeneas-split-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 1871,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/aeneas-split-mutant.log",
+          "log_sha256": "ffa6f0bf6a4ac1318dd9526822a99a0563b7f89ec85d4b1a1ad4de80f8863522"
+        },
+        {
+          "stage": "generated-model-build",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 13888,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/generated-model-build.log",
+          "log_sha256": "04ea62ecfd631fdc0d3756c1ab37e36e4cffbd77f69722f1c9d2bdeac29b18d4"
+        },
+        {
+          "stage": "primary-helper-prerequisites",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 8178,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/primary-helper-prerequisites.log",
+          "log_sha256": "932c276b76d65775c455ff21d927c9c4e744152f22cc4bbd7dc3003b175072f7"
+        },
+        {
+          "stage": "primary-SDKAccessProof-direct",
+          "exit": 1,
+          "timed_out": false,
+          "elapsed_ms": 2969,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/primary-SDKAccessProof-direct.log",
+          "log_sha256": "61126f17468e65ce947c9e1205a9de62eacf4c7d0a99a708c7393ec9be2a408f"
+        },
+        {
+          "stage": "native-exact-policy-witness",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 264,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/native-exact-policy-witness.log",
+          "log_sha256": "3dbacaa092f7ce8e0e5a95493db48649574ad80315f4658c84bbf230d57373f9"
+        }
+      ],
+      "llbc": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/outputs/hub_current_roles.llbc",
+        "bytes": 3954773,
+        "sha256": "b43ebf3737ccb181d499c351df83f5255c415e9be1b3bfb7df567b497d14db0e",
+        "has_errors": false,
+        "charon_exit": 0
+      },
+      "generated": {
+        "Types.lean": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/outputs/Types.lean",
+          "sha256": "640dfd7996b9bbc551b2f185124c8e8c2d69ba932e724b14ba56b61f9c82013c",
+          "bytes": 92177,
+          "package_copy_sha256": "640dfd7996b9bbc551b2f185124c8e8c2d69ba932e724b14ba56b61f9c82013c"
+        },
+        "Funs.lean": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/outputs/Funs.lean",
+          "sha256": "7397a9b8634f3b56cce0a1942761de5e2f5170f669732f5e21fddef6e01f9a6a",
+          "bytes": 142295,
+          "package_copy_sha256": "7397a9b8634f3b56cce0a1942761de5e2f5170f669732f5e21fddef6e01f9a6a"
+        }
+      },
+      "proof": {
+        "module": "SDKAccessProof.lean",
+        "primary_theorem": "SDKAccessProof.access_exact",
+        "direct": {
+          "stage": "primary-SDKAccessProof-direct",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "SDKAccessProof.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/extraction/hub-root/proofs/current_roles",
+          "exit": 1,
+          "timed_out": false,
+          "timeout_seconds": 900,
+          "elapsed_ms": 2969,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/primary-SDKAccessProof-direct.log",
+          "log_sha256": "61126f17468e65ce947c9e1205a9de62eacf4c7d0a99a708c7393ec9be2a408f"
+        }
+      },
+      "binary_compile": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-758603be5750d5e4",
+        "sha256": "84aa9605832b18a1ac37c9a20a501e9636291de35746e2c70fa2a7bcd28131f6",
+        "bytes": 769152544
+      },
+      "witness": {
+        "stage": {
+          "stage": "native-exact-policy-witness",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "--manifest-path",
+            "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/native/hub-root/Cargo.toml",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "mcp::authorization::tests::actual_registered_policy_narrows_current_grants",
+            "--",
+            "--exact"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/native/hub-root",
+          "exit": 101,
+          "timed_out": false,
+          "timeout_seconds": 900,
+          "elapsed_ms": 264,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-prompt-none-run1/logs/native-exact-policy-witness.log",
+          "log_sha256": "3dbacaa092f7ce8e0e5a95493db48649574ad80315f4658c84bbf230d57373f9"
+        },
+        "binary_path_in_log": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-758603be5750d5e4",
+        "binary_sha256_before": "84aa9605832b18a1ac37c9a20a501e9636291de35746e2c70fa2a7bcd28131f6",
+        "binary_sha256_after": "84aa9605832b18a1ac37c9a20a501e9636291de35746e2c70fa2a7bcd28131f6",
+        "same_binary": true,
+        "test_result": [
+          0,
+          1
+        ],
+        "assertion_failure_text": true
+      }
+    }
+  ],
+  "retention": "Source freezes/logs are preserved. Native target/executable paths are reused: hashes are historical stage captures, not claims that all earlier binaries remain at those paths.",
+  "history": [
+    "https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-extraction-boundaries.md",
+    "https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-adapter-models.md",
+    "https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-policy-composition.md",
+    "https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-authorization-qualification.md"
+  ],
+  "prior_receipts": "Existing current-role, current-permissions and registered-server receipts remain historical and unchanged. Earlier extracted-selector/translator and proof-elaboration diagnostics are recorded in the linked checkpoints; they are not semantic controls.",
+  "restoration": {
+    "source_comment_comparison": "Normalize only exact old Git SDK239 root and restored isolated SDK root within Source doc-comment lines; preserve source spans/rest line and all other bytes. Original and emitted files remain untouched.",
+    "summary": {
+      "path": "/tmp/hub-sdk-adoption-20261030/evidence-sdk-restoration-formal-1/summary.json",
+      "sha256": "cde1df469c67977309e0be99505398a5522e7790f13673c84f7aa4f546b4a5ea"
+    },
+    "complete": true,
+    "stages": [
+      {
+        "stage": "extraction-sdk-metadata",
+        "exit": 0,
+        "elapsed_ms": 264,
+        "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/extraction-sdk-metadata.json",
+        "stdout_sha256": "0d088ed96f73a29051ea0375a7e06baeed4cb54edc28ea491db693484991a525",
+        "stderr_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/extraction-sdk-metadata.stderr.log",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "stage": "clean-extraction-affected-packages",
+        "exit": 0,
+        "elapsed_ms": 164,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/clean-extraction-affected-packages.log",
+        "log_sha256": "b9814b14588deb82235732ae908a206b7b400dffa1878786cdb629ddd3edebbe"
+      },
+      {
+        "stage": "charon-probe6-restored",
+        "exit": 0,
+        "elapsed_ms": 33119,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/charon-probe6-restored.log",
+        "log_sha256": "68723260af80f9be46b7ef766175f2028503ab713f6f8e0c09a6fceb3ef6982c"
+      },
+      {
+        "stage": "aeneas-split-restored",
+        "exit": 0,
+        "elapsed_ms": 1820,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/aeneas-split-restored.log",
+        "log_sha256": "27b267fb4669353af3558f4338e39668a2cdf4820852999457465d866af4a428"
+      },
+      {
+        "stage": "full-default-build",
+        "exit": 0,
+        "elapsed_ms": 39832,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/full-default-build.log",
+        "log_sha256": "4fc50e14d0b16e172dd84bb42557c480a4c89729ef70579584c15e4f6fecd976"
+      },
+      {
+        "stage": "sdk-resolver-direct",
+        "exit": 0,
+        "elapsed_ms": 2668,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/sdk-resolver-direct.log",
+        "log_sha256": "932dbf1d6be358614061e96c22fd641d37d0379f81362f5b6fd4375a146f3b6d"
+      },
+      {
+        "stage": "sdk-access-direct",
+        "exit": 0,
+        "elapsed_ms": 2919,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/sdk-access-direct.log",
+        "log_sha256": "6f1aa6a98ceefab128ee87dc0807268bc3ed00b293278dcc1f22bd7803133d27"
+      },
+      {
+        "stage": "sdk-access-corollaries-direct",
+        "exit": 0,
+        "elapsed_ms": 3169,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/sdk-access-corollaries-direct.log",
+        "log_sha256": "964a1be18c407a310aaa7b6989964750f5de7ce37c4de63a41596e8bfa5b711e"
+      },
+      {
+        "stage": "sdk-registered-policy-direct",
+        "exit": 0,
+        "elapsed_ms": 2769,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/sdk-registered-policy-direct.log",
+        "log_sha256": "2abf957224412146992d4b78220289b68e05985b4a2338078a452ba39717df48"
+      },
+      {
+        "stage": "model-audit",
+        "exit": 0,
+        "elapsed_ms": 2568,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/model-audit.log",
+        "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312"
+      },
+      {
+        "stage": "current-permissions-audit",
+        "exit": 0,
+        "elapsed_ms": 2568,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/current-permissions-audit.log",
+        "log_sha256": "3ac752ca291548d17ff3818c00563d631f6d2e6d408ad4070c97c49277c9ca7f"
+      },
+      {
+        "stage": "native-policy-audit",
+        "exit": 0,
+        "elapsed_ms": 2568,
+        "timed_out": false,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/logs/native-policy-audit.log",
+        "log_sha256": "7bb1fc2d46ecd7a3061ae14708cc0f93b12434b41d6cb7cadf97f1b27d69a415"
+      }
+    ],
+    "native_summary_sha256": "8d2ec97ced0111fa6fd3829a7e028b660e553205b7a58ece76fd2dc7faf82df0",
+    "source_roots": {
+      "native": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/hub-source",
+      "native_sdk": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-native-restoration-run1/sdk-source",
+      "extraction": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/extraction/hub-root",
+      "extraction_sdk": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/extraction/sdk-root"
+    },
+    "source_sha256": {
+      "sdk_authorization": "4581408a56cef847179428a73f947e2d947c1269273f9416c286df46be8ce50f",
+      "sdk_resolver": "8ed2b007bb457eed5057054367e2c9e6aac38664bc9e89cddc580d61de3e6bf8",
+      "native_catalog": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef",
+      "extraction_catalog": "5d7f03636a81b49549ca9645df7c55f44b2b685fc9964c33e382a5df7942bc57",
+      "cargo_lock": "8149697ef958952b43b6d47dd69aab09e2f3dd81213eaeb410c83b4ec995e66e"
+    },
+    "llbc": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/outputs/hub_current_roles.llbc",
+      "bytes": 3953618,
+      "sha256": "a4ea1678316ae36a491642ec5da5c4ba1d7f3da12eb6f28044da21f6f8435b3f",
+      "has_errors": false
+    },
+    "generated": {
+      "Types.lean": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/outputs/Types.lean",
+        "bytes": 92338,
+        "sha256": "38a733c35b6992512eeb99e4801193fa9ea5f38d93bd0f91456e8f5f9c7ed865",
+        "baseline_sha256": "f795b7c7186845c22a1f9f0318687974cc74043549fafa2bf82961995a8383a4",
+        "raw_diff_sha256": "9ca8660be9e3cb3ef8b15eaf1fcc2bbedd29af97a638f82456e0c993a94737c4",
+        "normalized_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "normalized_diff_empty": true,
+        "package_sha256": "38a733c35b6992512eeb99e4801193fa9ea5f38d93bd0f91456e8f5f9c7ed865"
+      },
+      "Funs.lean": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/sdk-formal-restoration-run2/outputs/Funs.lean",
+        "bytes": 142419,
+        "sha256": "42ba7f89acec9706b3a65f33f15e438dfe4bbcd8a9e8a3d2829df5363ce8db62",
+        "baseline_sha256": "11750d3835163a118675756af699b8f8687254d3132f82952c785ee39ecb4a73",
+        "raw_diff_sha256": "e129f27ae404bc4e960edb8014cae5420e2d225d3fb975b4acde57facc475439",
+        "normalized_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "normalized_diff_empty": true,
+        "package_sha256": "42ba7f89acec9706b3a65f33f15e438dfe4bbcd8a9e8a3d2829df5363ce8db62"
+      }
+    }
+  },
+  "provenance_supplement": {
+    "path": "/tmp/hub-sdk-adoption-20261030/sdk-policy-restoration-provenance.json",
+    "sha256": "bc47e79ed34849c4518ad9723108c6cd764971ca03f03cfe0d6cb5b20fc78af0"
+  },
+  "restored_llbc_scoped_inventory": {
+    "scope_limit": "These are inspected local algorithm/helper declarations, not every foreign/native/type declaration. Resolver is an ordinary imported generated-model delegation, not a result axiom.",
+    "declarations": {
+      "sdk_access57": "Transparent Structured",
+      "native_matcher_type159": "Transparent Struct",
+      "native_matcher_matches302": "Transparent Structured",
+      "native_matcher_matches_call_once348": "Transparent Structured",
+      "current_permissions_held27": "Transparent Structured",
+      "held_fnmut40_41": "Transparent Structured",
+      "held_fnonce61_63": "Transparent Structured",
+      "snapshot_iter44": "Transparent Structured",
+      "snapshot_iter_call_once59": "Transparent Structured",
+      "snapshot_projection_call_mut39": "Opaque",
+      "held_roles173": "Transparent Structured",
+      "held_roles_closures250_252_313_319": "Transparent Structured",
+      "decide_server28_declared_route29_registered_target30_decision54_deny49": "Transparent Structured",
+      "resolver192": "Opaque",
+      "template_parse349_matches375": "Opaque"
+    }
+  },
+  "excluded_setup_attempts": [
+    {
+      "attempt": "formal restoration run1",
+      "log_path": "evidence-sdk-restoration-formal-1/setup-attempt-1.log",
+      "log_sha256": "ae127a8889ad9cf8b1ea39832531e74fc5dab01eccaca655a62a9564a1d771a4",
+      "cause": "Scratch path rewriting replaced shorter SDK crate path inside the longer fixture path; guard stopped before Cargo metadata, Charon, Aeneas, or Lake. Run2 corrected by replacing longer package paths first."
+    }
+  ],
+  "verification": {
+    "accepted_printed_axiom_reports_in_fresh_formal_logs": 286,
+    "observed_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound",
+      "chrono.offset.utc.Utc.now",
+      "veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.parse",
+      "veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.matches"
+    ],
+    "unexpected_or_sorryAx": false,
+    "note": "Printed reports include repeats across build/direct/audit stages; count is not unique declarations.",
+    "mirrored_stage_log_stdout_stderr_references_verified": 92,
+    "source_comment_root_substitutions": {
+      "Types.lean": 23,
+      "Funs.lean": 25
+    },
+    "frozen_nonreporting_paths_currently_equal": 52
+  }
+}

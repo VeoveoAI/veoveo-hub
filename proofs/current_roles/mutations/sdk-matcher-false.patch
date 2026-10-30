@@ -1,0 +1,16 @@
+--- a/crates/veoveo-hub-sdk/src/registration/authorization.rs
++++ b/crates/veoveo-hub-sdk/src/registration/authorization.rs
+@@ -302,7 +302,10 @@
+ struct NativeMatcher<'a>(&'a ResourceUri);
+ 
+ impl super::authorization_decision::Matcher<&ResourceTemplateUri> for NativeMatcher<'_> {
+     fn matches(&self, template: &ResourceTemplateUri) -> bool {
+-        AuthorizationTemplate::parse(template).is_some_and(|template| template.matches(self.0))
+-    }
+-}
++        AuthorizationTemplate::parse(template).is_some_and(|template| {
++            let matched = template.matches(self.0);
++            matched && false
++        })
++    }
++}

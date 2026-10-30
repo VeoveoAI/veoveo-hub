@@ -1,0 +1,16 @@
+--- a/crates/veoveo-hub-sdk/src/registration/authorization.rs
++++ b/crates/veoveo-hub-sdk/src/registration/authorization.rs
+@@ -259,9 +259,12 @@
+             RequirementTarget::ResourceTemplate(template) => {
+                 requirements.resource_templates.get(template)
+             }
+             RequirementTarget::Resource(uri) => super::authorization_decision::resolve(
+-                requirements.resources.get(uri),
++                {
++                    let _observed = requirements.resources.get(uri);
++                    None
++                },
+                 &mut requirements.resource_templates.iter(),
+                 &NativeMatcher(uri),
+             ),
+         }?;

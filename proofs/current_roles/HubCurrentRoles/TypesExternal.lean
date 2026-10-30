@@ -540,3 +540,14 @@ abbrev veoveo_types.extensions.ExtensionError := CurrentRolesId 57
 structure veoveo_types.actions.ActionHandle where
   identity : CurrentRolesId 58
   actionName : veoveo_types.actions.ActionName
+
+/- SDK access extension: map enumeration retains every raw entry. The native
+parser's value is a distinct, unbounded nominal observation; token identity is
+not a claim about Rust borrows, allocation or parser grammar. -/
+@[rust_type "alloc::collections::btree::map::Iter"]
+abbrev alloc.collections.btree.map.Iter (K : Type _) (V : Type _) := List (K × V)
+
+@[rust_type
+  "veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate"]
+structure veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate where
+  token : Nat

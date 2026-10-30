@@ -8,19 +8,224 @@ evaluator from Hub `b9b6cec1b9c36a2e84afb980e208d2d116a84185`, with SDK pin
 permissions, native collections and dependency pins were unchanged. The connected extension below includes one equivalent iterator closure spelling.
 Verification remains manual; there is no CI hook, runner or new authorization gate.
 
-## Preliminary conditional server-decision extension (unqualified)
+## SDK access composition in progress
 
-The current worktree adds an untouched generated superset from Hub `bb2e97f`
-with the unchanged compiled SDK `05273d1`, retaining all qualified Held/grant bodies.
-Its first milestone is model/type compilation and rerunning existing proofs.
-`NativePolicyModelAudit` explicitly exposes TWO native operation symbols:
-`chrono::Utc::now` and SDK `AuthorizationDeclaration::access`. They are not filled
-with fixed timestamps or a deny-all route implementation. New branch/output
-proofs will be conditional on their observed successful results; this is NOT
-standard-three-only axiom qualification, a real-clock/SDK-route proof, or a proof
-of the asynchronous endpoint. SDK `239622d` adoption/correspondence remains open.
-All other additional metadata/clone/action primitives have ordinary value models.
-Historical receipts below remain unchanged and do not qualify this extension.
+The current working package adopts published SDK
+`239622d12c08b771cc5e813fe3e846385d8d04ad` and imports its pinned
+`sdkAuthorizationProof` Lake package. This increment is not yet qualified.
+The successful combined extraction retains actual SDK `access`, `NativeMatcher`
+and its parse/Option closure as transparent code. The foreign generic resolver
+uses an ordinary model delegating to the SDK-owned generated `decision.resolve`,
+with field-exact cursor and matcher adapters; no resolver algorithm or desired
+access result is copied into this package.
+
+The SDK's local edition-2024 extraction produces the exact previously qualified
+generated model. Charon can only retrieve optimized MIR for a dependency function;
+that lowering's partially moved loop cleanup fails the pinned Aeneas translator.
+Source-compilation/linkage to the imported local extraction therefore remains an
+explicit trust boundary, not a theorem established by source or model hashes.
+
+The new operational native symbols are template `parse`, template `matches`, and
+the existing sampled clock. Their traces retain failure/divergence. A nominal
+template token asserts no parser grammar or Rust borrow identity. Map models
+enumerate raw entries and propagate supplied Borrow/comparison operations; native
+membership correspondence still requires unique keys, lawful ordering and Borrow
+coherence. Native sorted traversal/comparison/allocation traces are outside the
+claim. The existing role/Held statements and all registered-server theorem
+statements are retained; their audit allowlists track the new primitive boundary.
+The five-stage model/adapter checkpoint passed; its
+[record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-adapter-models.md)
+separates checked model plumbing from native correspondence. Subsequent direct
+checks establish exact public access for all four target kinds, raw declaration
+intent and conflict/absence equivalences, and registered-policy composition that
+constructs the former whole-access premise. The combined package checkpoint and
+native qualification of this increment are still pending. See also the
+[extraction evidence](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-extraction-boundaries.md).
+
+## Conditional registered-server policy and downstream connection
+
+This earlier qualification used Hub `bb2e97f5c984a53eaa218109e4c01a70e952e365`, compiled SDK
+`05273d1f90b9a08e90e377187f4eddd084605fe5`, and the same pinned extraction/Lean
+tools. Runtime policy code and dependency pins are unchanged; only `cfg(test)`
+witnesses and proof artifacts were added. The [separate receipt](evidence/registered-server-policy-receipt.json)
+records the checked source/model identities, native baseline, five semantic
+controls and fresh restoration. Earlier receipts remain historical and unchanged.
+
+[RegisteredServerPolicyProof](RegisteredServerPolicyProof.lean) proves actual
+`registered_target`, the catalog/SDK call trace of `declared_route_access`, all
+14 closed kernel action-name spellings and full decision/denial metadata assembly.
+The route and clock traces preserve external failure/divergence rather than
+inventing fixed results. [RegisteredServerDecisionProof](RegisteredServerDecisionProof.lean)
+proves the actual `decide_server` returns exactly its ordered decision table, with
+G derived from the qualified role/risk evaluator. It covers both acceptance and
+refusal, not only a subset bound:
+
+- Ineligible actions and missing servers refuse before later route decisions.
+- Explicit missing Tool/Prompt/Resource/ResourceTemplate routes retain their distinct
+  reasons. Their required permission is None; every base denial has empty grants.
+- `Authenticated` accepts with empty G. Server/Task/PlatformTask fallback requires
+  nonempty G. Permission routes accept iff the required p is in G, and preserve
+  `Some(p)` even on `MissingPermission` denial. Success returns the entire G.
+- Every other output field preserves the sampled timestamp, request attribution,
+  action/target, supplied policy version and trace; the server paths have no rule ID.
+
+The raw theorem retains independent supplied server/requirement and request.target
+arguments. [RegisteredServerAdmissionProof](RegisteredServerAdmissionProof.lean)
+uses the actual `registered_target` equation for coherent-call corollaries and
+derives accepted required-permission membership from the actual evaluator.
+[RegisteredServerDownstreamProof](RegisteredServerDownstreamProof.lean) then calls
+the previously extracted authority `narrow` kernel with the established native
+collection laws. It discharges the former current-policy consistency premise:
+accepted permission routes retain p in G intersect carried, and every accepted
+delegated output has exactly that complete intersection. `Authenticated` permits
+an empty intersection; server/Task access requires a nonempty intersection.
+
+The wrapper projection faithfully represents `mem::take`: kernel metadata holds
+the base record with its grant field emptied, then reconstruction restores the
+kernel effect/reason/grants and preserves all other fields. Prior denied input is
+unchanged when managed=true. Managed=false takes precedence and can retain the
+incoming grant payload. Thus empty grants on every denial is a property of
+`decide_server`, not of all downstream denied records. Native route classification
+and this wrapper/caller correspondence are reviewed/tested adapters; the complete
+async caller was not extracted.
+
+### Explicit native boundaries
+
+That qualification's `NativePolicyModelAudit` allowed exactly TWO additional native operation symbols:
+`chrono.offset.utc.Utc.now` and
+`veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access`.
+Pure projections, action/clone models and all earlier role/Held claims retain
+standard-only axiom closures; declared-route facts may add only SDK access,
+metadata assembly only the clock, and actual full decisions/downstream traces
+only the applicable subset of these two. Executable per-declaration guards reject
+unexpected axioms and `sorryAx`.
+
+The exact total decision theorems assume a sampled clock `.ok τ`, installation
+lookup, and total successful catalog/SDK access interpretations for ALL arguments.
+These are explicit operational premises, not proofs of native totality or just
+one observed call. No fixed-zero clock or deny-all SDK implementation is supplied;
+no constructive implementation of the native axiom constants is claimed. The
+focused native fixtures exercise real SDK05273 lookups, clock sampling and both
+positive and negative policy outputs, without discharging those universal laws.
+SDK239622d's qualified matcher seam is still not adopted by this Cargo dependency.
+Its source correspondence/adoption remains separate work.
+
+Ordinary native value models retain the documented collection/equality/ordering,
+borrow/clone, iterator, parser/allocator, memory/alias and extraction-tool trust
+boundaries. The closed action-name spellings are kernel checked; the whole Core
+parser implementation was not extracted. Catalog freshness, full outer principal/
+profile/scope admission, async caller construction, signing and session binding
+remain outside these theorems. No deployed or model-driven acceptance run, whole-Hub
+Mac/Linux gate, benchmark or new runtime authorization rule is claimed.
+
+### Regenerate the current superset manually
+
+In an exact scratch source copy, apply the existing [naming metadata patch](extraction/catalog-field-name.patch)
+only to that extraction copy. The native source keeps its original catalog field.
+With PROOF_PACKAGE pointing to the maintained package and an empty absolute output
+directory, use the pinned tools listed below:
+
+```sh
+POLICY_PROOF_OUT="$(mktemp -d)"
+patch -p1 < "$PROOF_PACKAGE/extraction/catalog-field-name.patch"
+SQLX_OFFLINE=true RUSTUP_TOOLCHAIN=nightly-2026-09-17 charon cargo --sysroot default --preset=aeneas \
+  --start-from '{impl veoveo_hub::delegation::authority::Held for veoveo_hub::delegation::CurrentPermissions}::held' \
+  --start-from 'veoveo_hub::policy::evaluation::decide_server' \
+  --start-from 'veoveo_hub::policy::evaluation::declared_route_access' \
+  --start-from 'veoveo_hub::policy::evaluation::registered_target' \
+  --include '{impl veoveo_hub::delegation::authority::Held<_> for veoveo_hub::delegation::CurrentPermissions}::held' \
+  --include 'veoveo_hub::policy::evaluation::decide_server' \
+  --include 'veoveo_hub::policy::evaluation::declared_route_access' \
+  --include 'veoveo_hub::policy::evaluation::registered_target' \
+  --include 'veoveo_hub::policy::evaluation::decision' \
+  --include 'veoveo_hub::policy::evaluation::deny' \
+  --include 'veoveo_hub::policy::grants::held_roles' \
+  --include 'veoveo_hub::policy::grants::effective_risks' \
+  --include 'veoveo_hub::policy::grants::granted_permissions' \
+  --include 'veoveo_hub::control_plane::authorization_config::_::allows' \
+  --include 'veoveo_hub::contract::actions::_::targets_registered_server' \
+  --include 'veoveo_hub::contract::actions::_::mcp_method' \
+  --include 'veoveo_hub::contract::actions::_::name' \
+  --opaque 'veoveo_hub::mcp::upstream_http::HubUpstreamHttpClientPool' \
+  --opaque 'veoveo_hub::contract::catalog::SectionDeclaration' \
+  --opaque 'veoveo_hub::contract::catalog::TargetDeclaration' \
+  --opaque 'openshell_sdk::config::AuthConfig' \
+  --opaque 'veoveo_hub::registration::snapshot::_::iter::_::call_mut' \
+  --opaque 'prost_types::protobuf::value::Kind' \
+  --opaque 'serde_json::value::Value' \
+  --dest-file "$POLICY_PROOF_OUT/hub_current_roles.llbc" \
+  --rustc-arg='-Zcrate-attr=feature(register_tool)' \
+  --rustc-arg='-Zcrate-attr=register_tool(charon)' \
+  -- --manifest-path crates/veoveo-hub/Cargo.toml --lib --locked
+aeneas -backend lean -filter-trait-methods -split-files \
+  -dest "$POLICY_PROOF_OUT" "$POLICY_PROOF_OUT/hub_current_roles.llbc"
+```
+
+Review LLBC transparency and generated identities, then copy only untouched
+Types.lean and Funs.lean into HubCurrentRoles/. Preserve handwritten external
+models; never replace them with generated axiom templates. From this package:
+
+```sh
+lake build
+lake env lean RegisteredServerPolicyProof.lean
+lake env lean RegisteredServerDecisionProof.lean
+lake env lean RegisteredServerAdmissionProof.lean
+lake env lean RegisteredServerDownstreamProof.lean
+lake env lean ModelAudit.lean
+lake env lean CurrentPermissionsModelAudit.lean
+lake env lean NativePolicyModelAudit.lean
+```
+
+### Focused native witnesses and semantic controls
+
+Run against ORIGINAL unannotated native source, Rust1.99 and SQLX_OFFLINE=true.
+Use a fresh native target or explicitly clean/recompile the Hub package. The
+measured run retained dependencies, required actual Hub compilation from each
+source copy, and captured binary identities before/after each control witness.
+Reused target paths do not preserve every historical binary at that path.
+
+```sh
+SQLX_OFFLINE=true rustup run 1.99.0 cargo fmt --all --check
+SQLX_OFFLINE=true rustup run 1.99.0 cargo test --locked -p veoveo-hub --lib catalog::tests::registered_
+SQLX_OFFLINE=true rustup run 1.99.0 cargo test --locked -p veoveo-hub --lib mcp::authorization::tests::actual_registered_policy_narrows_current_grants -- --exact
+SQLX_OFFLINE=true rustup run 1.99.0 cargo test --locked -p veoveo-hub --lib mcp::authorization::tests::delegated_
+SQLX_OFFLINE=true rustup run 1.99.0 cargo clippy --locked -p veoveo-hub --lib -- -D warnings
+```
+
+The groups contain 3 catalog tests, 1 actual-base/narrow integration test and
+2 existing assembly tests. Fixtures include two current Read permissions and one
+ungranted Write, complete expected records, real Authenticated-empty acceptance,
+missing target kinds, Server/Task/PlatformTask and managed/prior-denial behavior.
+Expected metadata is independent of actual output except the observed timestamp,
+which is bracketed and then checked for exact preservation. These fixtures do not
+contact the synthetic identity-provider/JWKS URLs or call a model provider.
+
+| Isolated patch | Primary unchanged obligation | Observed native mismatch |
+|---|---|---|
+| [authenticated-needs-grant](mutations/registered-authenticated-needs-grant.patch) | decide_server_exact Authenticated branch | Deny instead of valid empty-G Allow |
+| [omit-denied-required](mutations/registered-omit-denied-required.patch) | decide_server_exact nonmember Permission branch | None instead of required Some(write) |
+| [bypass-membership](mutations/registered-bypass-membership.patch) | decide_server_exact nonmember Permission branch | Write route allowed with two Read grants |
+| [wrong-resource-reason](mutations/registered-wrong-resource-reason.patch) | decide_server_exact Resource/ResourceTemplate branches | Resource UnknownTool instead of UndeclaredTarget |
+| [drop-tool-requirement](mutations/registered-drop-tool-requirement.patch) | registered_target_exact Tool projection | Missing Tool allowed through server fallback |
+
+Each legal control compiled/extracted and built its model/helper prerequisites
+before the unchanged primary proof and exact native assertion failed. The first,
+third, fourth and fifth failures are symbolic program/record/projection mismatches;
+only the second normalized to False. These are not all Lean-generated concrete
+counterexamples. Error-recovery sorryAx in failed declarations is excluded. The
+resource mutant's native test stops at Resource; its ResourceTemplate mismatch is
+formal, not a separately executed negative native case.
+
+The first native draft used parse instead of the actual Core new URI constructors;
+that compile failure executed no tests and was corrected only in cfg(test).
+Control-launch missing-input setup attempts were excluded before mutation stages.
+No baseline proof/model was changed to accommodate a control. The native-only baseline2 reused the earlier checked formal inputs after an exact
+39-file correspondence review; it did not perform a new pre-control extraction.
+Fresh unmutated restoration regenerated the exact original Types/Funs and passed
+all focused native, complete package proof, four direct theorem and three audit
+gates. Native binary hashes are per-stage historical measurements at a reused
+target path, not separately retained binaries at that path.
+
 
 ## Connected CurrentPermissions boundary
 
@@ -74,9 +279,9 @@ stability is derived for the actual cursor to justify value correspondence. No g
 call-count or double-ended iterator trace is claimed. Other new
 catalog/context payloads are uninterpreted values; no networking, locking, JSON,
 registry, credential or timestamp behavior is claimed from them. No clock or SDK
-route-access operation is part of this Held-only closure. `decide_server` remains
-next in this slice; its outer admission/caller and native contract boundaries remain
-explicit. Verification remains manual, with no new runner or gate.
+route-access operation is part of this Held-only closure. The separate conditional
+server-decision extension above adds `decide_server`; its outer admission/caller and
+native contract boundaries remain explicit. Verification remains manual, with no new runner or gate.
 
 ### Held-only regeneration in a scratch source copy
 
@@ -257,9 +462,10 @@ Pins: Aeneas `fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf`, Charon
 `4.35.0`. [lake-manifest.json](lake-manifest.json) pins transitive source inputs.
 Use those executables/toolchain; no modifications to Aeneas/Core libraries.
 
-The following is the HISTORICAL four-function extraction recipe. For the connected
-package use the Held-only scratch recipe above, which transitively retains these
-actual bodies and its required metadata boundaries:
+The following is the HISTORICAL four-function extraction recipe. The historical
+connected Held receipt uses the Held-only scratch recipe above. The current
+conditional package uses the superset recipe at the top, retaining all earlier
+bodies and their documented native boundaries:
 
 ```sh
 ROLE_PROOF_OUT="$(mktemp -d)"

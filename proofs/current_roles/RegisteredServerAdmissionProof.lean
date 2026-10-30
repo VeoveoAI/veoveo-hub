@@ -194,7 +194,8 @@ run_cmd do
     unless (found.filter (fun axiomName => !standard.contains axiomName)).isEmpty do
       throwError "unexpected pure admission axiom in {declaration}: {found}"
   let allowed := standard ++ #[``chrono.offset.utc.Utc.now,
-    ``veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access]
+    ``veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.parse,
+    ``veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.matches]
   for declaration in #[``actual_admitted_iff, ``actual_denied_empty, ``actual_permission_consistency] do
     let found ← Lean.collectAxioms declaration
     unless (found.filter (fun axiomName => !allowed.contains axiomName)).isEmpty do

@@ -920,6 +920,21 @@ mod tests {
         let read = permission("read");
         let inspect = permission("inspect");
         let write = permission("write");
+        let resource_uri = |authority: &str| {
+            veoveo_types::ResourceUri::new(format!("{slug}://{authority}/record")).unwrap()
+        };
+        let template_uri = |authority: &str, pattern: &str| {
+            veoveo_types::ResourceTemplateUri::new(format!("{slug}://{authority}/{pattern}"))
+                .unwrap()
+        };
+        let exact_resource = resource_uri("exact");
+        let agreed_resource = resource_uri("agreed");
+        let mixed_resource = resource_uri("mixed");
+        let different_resource = resource_uri("different");
+        let authenticated_resource = resource_uri("authenticated");
+        let direct_template = template_uri("direct", "{name}");
+        let authenticated_prompt = veoveo_hub_sdk::PromptName::parse("authenticated").unwrap();
+        let read_prompt = veoveo_hub_sdk::PromptName::parse("read").unwrap();
         let declaration = AuthorizationDeclaration {
             permissions: [
                 (read.clone(), Access::Read),
@@ -953,7 +968,56 @@ mod tests {
                     ),
                 ]
                 .into(),
-                ..Requirements::default()
+                resources: [(
+                    exact_resource.clone(),
+                    RouteAccess::Permission(read.clone()),
+                )]
+                .into(),
+                resource_templates: [
+                    (
+                        template_uri("exact", "{name}"),
+                        RouteAccess::Permission(write.clone()),
+                    ),
+                    (
+                        template_uri("exact", "{+tail}"),
+                        RouteAccess::Permission(inspect.clone()),
+                    ),
+                    (
+                        template_uri("agreed", "{name}"),
+                        RouteAccess::Permission(read.clone()),
+                    ),
+                    (
+                        template_uri("agreed", "{+tail}"),
+                        RouteAccess::Permission(read.clone()),
+                    ),
+                    (template_uri("mixed", "{name}"), RouteAccess::Authenticated),
+                    (
+                        template_uri("mixed", "{+tail}"),
+                        RouteAccess::Permission(read.clone()),
+                    ),
+                    (
+                        template_uri("different", "{name}"),
+                        RouteAccess::Permission(read.clone()),
+                    ),
+                    (
+                        template_uri("different", "{+tail}"),
+                        RouteAccess::Permission(inspect.clone()),
+                    ),
+                    (
+                        template_uri("authenticated", "{name}"),
+                        RouteAccess::Authenticated,
+                    ),
+                    (
+                        direct_template.clone(),
+                        RouteAccess::Permission(inspect.clone()),
+                    ),
+                ]
+                .into(),
+                prompts: [
+                    (authenticated_prompt.clone(), RouteAccess::Authenticated),
+                    (read_prompt.clone(), RouteAccess::Permission(read.clone())),
+                ]
+                .into(),
             },
             uses: Vec::new(),
             calls_hub: false,
@@ -966,7 +1030,7 @@ mod tests {
             .unwrap();
         let catalog = crate::policy::PolicyCatalog::new(plane, crate::test_catalog::registry())
             .unwrap()
-            .with_server(slug.clone(), declaration);
+            .with_server(slug.clone(), declaration.clone());
         let caller = veoveo_hub_sdk::Principal {
             id: veoveo_types::PrincipalId::parse("registered-policy-caller").unwrap(),
             kind: veoveo_hub_sdk::PrincipalKind::User,
@@ -1139,6 +1203,160 @@ mod tests {
                 Some(read.clone()),
                 held.clone(),
             ),
+            (
+                PolicyTarget::Resource {
+                    server: slug.clone(),
+                    uri: exact_resource.clone(),
+                },
+                HubAction::ResourcesRead,
+                &caller,
+                true,
+                held.clone(),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                Some(read.clone()),
+                held.clone(),
+            ),
+            (
+                PolicyTarget::Resource {
+                    server: slug.clone(),
+                    uri: agreed_resource.clone(),
+                },
+                HubAction::ResourcesRead,
+                &caller,
+                true,
+                held.clone(),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                Some(read.clone()),
+                held.clone(),
+            ),
+            (
+                PolicyTarget::Resource {
+                    server: slug.clone(),
+                    uri: mixed_resource.clone(),
+                },
+                HubAction::ResourcesRead,
+                &caller,
+                true,
+                held.clone(),
+                PolicyEffect::Deny,
+                PolicyReasonCode::UndeclaredTarget,
+                None,
+                empty.clone(),
+            ),
+            (
+                PolicyTarget::Resource {
+                    server: slug.clone(),
+                    uri: different_resource.clone(),
+                },
+                HubAction::ResourcesRead,
+                &caller,
+                true,
+                held.clone(),
+                PolicyEffect::Deny,
+                PolicyReasonCode::UndeclaredTarget,
+                None,
+                empty.clone(),
+            ),
+            (
+                PolicyTarget::Resource {
+                    server: slug.clone(),
+                    uri: authenticated_resource.clone(),
+                },
+                HubAction::ResourcesRead,
+                &other,
+                true,
+                empty.clone(),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                None,
+                empty.clone(),
+            ),
+            (
+                PolicyTarget::ResourceTemplate {
+                    server: slug.clone(),
+                    uri: direct_template.clone(),
+                },
+                HubAction::ResourcesTemplatesList,
+                &caller,
+                true,
+                held.clone(),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                Some(inspect.clone()),
+                held.clone(),
+            ),
+            (
+                PolicyTarget::Prompt {
+                    server: slug.clone(),
+                    prompt: authenticated_prompt.clone(),
+                },
+                HubAction::PromptsGet,
+                &other,
+                true,
+                empty.clone(),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                None,
+                empty.clone(),
+            ),
+            (
+                PolicyTarget::Prompt {
+                    server: slug.clone(),
+                    prompt: read_prompt.clone(),
+                },
+                HubAction::PromptsGet,
+                &caller,
+                true,
+                held.clone(),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                Some(read.clone()),
+                held.clone(),
+            ),
+            (
+                PolicyTarget::Resource {
+                    server: slug.clone(),
+                    uri: resource_uri("missing"),
+                },
+                HubAction::ResourcesRead,
+                &caller,
+                true,
+                held.clone(),
+                PolicyEffect::Deny,
+                PolicyReasonCode::UndeclaredTarget,
+                None,
+                empty.clone(),
+            ),
+            (
+                PolicyTarget::ResourceTemplate {
+                    server: slug.clone(),
+                    uri: template_uri("missing", "{name}"),
+                },
+                HubAction::ResourcesTemplatesList,
+                &caller,
+                true,
+                held.clone(),
+                PolicyEffect::Deny,
+                PolicyReasonCode::UndeclaredTarget,
+                None,
+                empty.clone(),
+            ),
+            (
+                PolicyTarget::Prompt {
+                    server: slug.clone(),
+                    prompt: veoveo_hub_sdk::PromptName::parse("missing").unwrap(),
+                },
+                HubAction::PromptsGet,
+                &caller,
+                true,
+                held.clone(),
+                PolicyEffect::Deny,
+                PolicyReasonCode::UnknownPrompt,
+                None,
+                empty.clone(),
+            ),
         ] {
             let before = chrono::Utc::now();
             let base = crate::policy::decide(
@@ -1175,6 +1393,38 @@ mod tests {
                     trace_id: trace.clone(),
                 }
             );
+        }
+        // Direct SDK observations supplement the full actual-policy assertions above.
+        use veoveo_hub_sdk::registration::RequirementTarget;
+        for (target, expected) in [
+            (
+                RequirementTarget::Resource(&exact_resource),
+                Some(RouteAccess::Permission(read.clone())),
+            ),
+            (
+                RequirementTarget::Resource(&agreed_resource),
+                Some(RouteAccess::Permission(read.clone())),
+            ),
+            (RequirementTarget::Resource(&mixed_resource), None),
+            (RequirementTarget::Resource(&different_resource), None),
+            (
+                RequirementTarget::Resource(&authenticated_resource),
+                Some(RouteAccess::Authenticated),
+            ),
+            (
+                RequirementTarget::ResourceTemplate(&direct_template),
+                Some(RouteAccess::Permission(inspect.clone())),
+            ),
+            (
+                RequirementTarget::Prompt(&authenticated_prompt),
+                Some(RouteAccess::Authenticated),
+            ),
+            (
+                RequirementTarget::Prompt(&read_prompt),
+                Some(RouteAccess::Permission(read)),
+            ),
+        ] {
+            assert_eq!(declaration.access(target).cloned(), expected);
         }
     }
 

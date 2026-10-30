@@ -334,7 +334,7 @@ structure veoveo_audit_contract.model.AuditRequest where
   task : Option veoveo_types.task.TaskId
 
 /-- [veoveo_hub_sdk::execution::ExecutionContext]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/execution.rs', lines 33:0-33:27
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 33:0-33:27
     Name pattern: [veoveo_hub_sdk::execution::ExecutionContext]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::execution::ExecutionContext"]
@@ -342,7 +342,7 @@ structure veoveo_hub_sdk.execution.ExecutionContext where
   composition : veoveo_hub_sdk.execution.CompositionRevision
 
 /-- [veoveo_hub_sdk::identity::GroupRole]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 21:0-21:18
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 21:0-21:18
     Name pattern: [veoveo_hub_sdk::identity::GroupRole]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::identity::GroupRole"]
@@ -352,7 +352,7 @@ inductive veoveo_hub_sdk.identity.GroupRole where
 | Admin : veoveo_hub_sdk.identity.GroupRole
 
 /-- [veoveo_hub_sdk::identity::GroupMembership]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 45:0-45:26
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 45:0-45:26
     Name pattern: [veoveo_hub_sdk::identity::GroupMembership]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::identity::GroupMembership"]
@@ -361,7 +361,7 @@ structure veoveo_hub_sdk.identity.GroupMembership where
   role : veoveo_hub_sdk.identity.GroupRole
 
 /-- [veoveo_hub_sdk::identity::PrincipalAssurance]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 123:0-123:27
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 123:0-123:27
     Name pattern: [veoveo_hub_sdk::identity::PrincipalAssurance]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::identity::PrincipalAssurance"]
@@ -369,7 +369,7 @@ inductive veoveo_hub_sdk.identity.PrincipalAssurance where
 | UsPerson : veoveo_hub_sdk.identity.PrincipalAssurance
 
 /-- [veoveo_hub_sdk::identity::PrincipalKind]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 114:0-114:22
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 114:0-114:22
     Name pattern: [veoveo_hub_sdk::identity::PrincipalKind]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::identity::PrincipalKind"]
@@ -378,7 +378,7 @@ inductive veoveo_hub_sdk.identity.PrincipalKind where
 | Service : veoveo_hub_sdk.identity.PrincipalKind
 
 /-- [veoveo_hub_sdk::identity::Principal]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 63:0-63:20
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 63:0-63:20
     Name pattern: [veoveo_hub_sdk::identity::Principal]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::identity::Principal"]
@@ -414,7 +414,7 @@ inductive veoveo_types.provenance.InvocationMode where
 | Automated : veoveo_types.provenance.InvocationMode
 
 /-- [veoveo_hub_sdk::identity::AccessTokenSubject]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 129:0-129:29
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 129:0-129:29
     Name pattern: [veoveo_hub_sdk::identity::AccessTokenSubject]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::identity::AccessTokenSubject"]
@@ -439,7 +439,7 @@ structure veoveo_hub_sdk.identity.AccessTokenSubject where
     chrono.offset.utc.Utc
 
 /-- [veoveo_hub_sdk::internal_auth::exchange::DelegatingTask]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 19:0-19:25
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 19:0-19:25
     Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegatingTask]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegatingTask"]
@@ -449,7 +449,7 @@ structure veoveo_hub_sdk.internal_auth.exchange.DelegatingTask where
   task : veoveo_hub_sdk.identity.OpaqueTaskId
 
 /-- [veoveo_hub_sdk::internal_auth::ActingServer]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 292:0-292:23
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 292:0-292:23
     Name pattern: [veoveo_hub_sdk::internal_auth::ActingServer]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::ActingServer"]
@@ -459,7 +459,7 @@ structure veoveo_hub_sdk.internal_auth.ActingServer where
   client : veoveo_types.platform_names.OAuthClientId
 
 /-- [veoveo_hub_sdk::internal_auth::exchange::DelegationContext]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 29:0-29:28
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 29:0-29:28
     Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegationContext]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegationContext"]
@@ -553,7 +553,7 @@ structure veoveo_types.authority.InvocationAuthority where
   provenance : veoveo_types.provenance.InvocationProvenance
 
 /-- [veoveo_hub_sdk::internal_auth::request::HubRequestContext]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/internal_auth/request.rs', lines 8:0-8:28
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/request.rs', lines 8:0-8:28
     Name pattern: [veoveo_hub_sdk::internal_auth::request::HubRequestContext]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::request::HubRequestContext"]
@@ -564,7 +564,7 @@ structure veoveo_hub_sdk.internal_auth.request.HubRequestContext where
   principal : veoveo_hub_sdk.identity.Principal
 
 /-- [veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 100:0-100:26
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 100:0-100:26
     Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller"]
@@ -577,7 +577,7 @@ structure veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller where
     veoveo_hub_sdk.internal_auth.exchange.DelegationContext
 
 /-- [veoveo_hub_sdk::registration::access::Access]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/access.rs', lines 5:0-5:15
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 5:0-5:15
     Name pattern: [veoveo_hub_sdk::registration::access::Access]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::registration::access::Access"]
@@ -586,7 +586,7 @@ inductive veoveo_hub_sdk.registration.access.Access where
 | Write : veoveo_hub_sdk.registration.access.Access
 
 /-- [veoveo_hub_sdk::registration::access::Risk]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/access.rs', lines 13:0-13:13
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 13:0-13:13
     Name pattern: [veoveo_hub_sdk::registration::access::Risk]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::registration::access::Risk"]
@@ -598,7 +598,7 @@ inductive veoveo_hub_sdk.registration.access.Risk where
 | Administer : veoveo_hub_sdk.registration.access.Risk
 
 /-- [veoveo_hub_sdk::registration::authorization::PermissionDeclaration]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 20:0-20:32
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 20:0-20:32
     Name pattern: [veoveo_hub_sdk::registration::authorization::PermissionDeclaration]
     Visibility: public -/
 @[rust_type
@@ -611,7 +611,7 @@ structure veoveo_hub_sdk.registration.authorization.PermissionDeclaration where
     veoveo_hub_sdk.registration.access.Risk alloc.alloc.Global
 
 /-- [veoveo_hub_sdk::registration::authorization::RouteAccess]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 37:0-37:20
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 37:0-37:20
     Name pattern: [veoveo_hub_sdk::registration::authorization::RouteAccess]
     Visibility: public -/
 @[discriminant isize, rust_type
@@ -623,7 +623,7 @@ inductive veoveo_hub_sdk.registration.authorization.RouteAccess where
   veoveo_hub_sdk.registration.authorization.RouteAccess
 
 /-- [veoveo_hub_sdk::registration::authorization::Requirements]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 53:0-53:23
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 53:0-53:23
     Name pattern: [veoveo_hub_sdk::registration::authorization::Requirements]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::registration::authorization::Requirements"]
@@ -642,7 +642,7 @@ structure veoveo_hub_sdk.registration.authorization.Requirements where
     veoveo_hub_sdk.registration.authorization.RouteAccess alloc.alloc.Global
 
 /-- [veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 66:0-66:35
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 66:0-66:35
     Name pattern: [veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration]
     Visibility: public -/
 @[rust_type
@@ -656,7 +656,7 @@ structure veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration
   calls_hub : Bool
 
 /-- [veoveo_hub_sdk::registration::authorization::RequirementTarget]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 143:0-143:30
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 143:0-143:30
     Name pattern: [veoveo_hub_sdk::registration::authorization::RequirementTarget]
     Visibility: public -/
 @[discriminant isize, rust_type
@@ -674,6 +674,39 @@ inductive veoveo_hub_sdk.registration.authorization.RequirementTarget where
 | Prompt :
   veoveo_hub_sdk.identity.PromptName →
   veoveo_hub_sdk.registration.authorization.RequirementTarget
+
+/-- Trait declaration: [veoveo_hub_sdk::registration::authorization_decision::Matcher]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 8:0-8:27
+    Name pattern: [veoveo_hub_sdk::registration::authorization_decision::Matcher] -/
+@[rust_trait "veoveo_hub_sdk::registration::authorization_decision::Matcher"]
+structure veoveo_hub_sdk.registration.authorization_decision.Matcher (Self :
+  Type _) (T : Type _) where
+  «matches» : Self → T → Result Bool
+
+/-- Trait declaration: [veoveo_hub_sdk::registration::authorization_decision::Cursor]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 4:0-4:26
+    Name pattern: [veoveo_hub_sdk::registration::authorization_decision::Cursor] -/
+@[rust_trait "veoveo_hub_sdk::registration::authorization_decision::Cursor"]
+structure veoveo_hub_sdk.registration.authorization_decision.Cursor (Self :
+  Type _) (I : Type _) where
+  next : Self → Result ((Option I) × Self)
+
+/-- [veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}::matches::{closure}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 306:59-306:69
+    Name pattern: [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::closure] -/
+@[reducible, rust_type
+  "veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::closure"]
+def veoveo_hub_sdk.registration.authorization.MatcherNativeMatcherShared0ResourceTemplateUri.matches.closure
+  :=
+  veoveo_types.resource.ResourceUri
+
+/-- [veoveo_hub_sdk::registration::authorization::NativeMatcher]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 302:0-302:24
+    Name pattern: [veoveo_hub_sdk::registration::authorization::NativeMatcher] -/
+@[reducible, rust_type
+  "veoveo_hub_sdk::registration::authorization::NativeMatcher"]
+def veoveo_hub_sdk.registration.authorization.NativeMatcher :=
+  veoveo_types.resource.ResourceUri
 
 /-- [veoveo_hub::registration::snapshot::Namespace]
     Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 75:0-78:1

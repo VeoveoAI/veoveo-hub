@@ -233,7 +233,8 @@ run_cmd do
        ``kernel_spelling_bytes, ``kernel_spelling_chars, ``action_name_exact,
        ``target_clone_exact, ``tenant_clone_exact], standard),
     (#[``declared_route_trace], standard ++
-       #[``veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access]),
+       #[``veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.parse,
+    ``veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate.matches]),
     (#[``decision_trace, ``decision_exact, ``deny_exact], standard ++
        #[``chrono.offset.utc.Utc.now])]
   for (declarations, allowed) in groups do
