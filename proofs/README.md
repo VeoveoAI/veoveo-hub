@@ -707,6 +707,12 @@ registration. These are target properties to establish, not new admission rules.
   failure/rollback paths before choosing the transaction model. Compose the resulting
   deployment/endpoint association with routing and SDK recipient binding.
 
+The [source review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-registration-transaction-source-review.md)
+separates namespace replica admission, replacement, per-client update and instance
+preparation. The first native probe tests matching-metadata admission against a
+concurrent replacement before choosing lock invariants. This remains unproved;
+an unlocked read is a race hypothesis, not evidence of a reachable defect.
+
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
 **Invariant/failure prevented.** Hub calculates the intended repository grant from
