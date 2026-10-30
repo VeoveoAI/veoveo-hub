@@ -71,3 +71,9 @@ lean_lib SDKAccessCorollaries
 
 @[default_target]
 lean_lib SDKRegisteredPolicyProof
+
+@[default_target]
+lean_lib SessionModelAudit
+
+@[default_target]
+lean_lib SessionFamilyProof

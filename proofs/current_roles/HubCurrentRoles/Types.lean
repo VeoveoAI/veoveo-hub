@@ -47,6 +47,46 @@ inductive core.net.ip_addr.IpAddr where
 | V4 : core.net.ip_addr.Ipv4Addr → core.net.ip_addr.IpAddr
 | V6 : core.net.ip_addr.Ipv6Addr → core.net.ip_addr.IpAddr
 
+/-- Trait declaration: [chrono::offset::Offset]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/mod.rs', lines 291:0-291:44
+    Name pattern: [chrono::offset::Offset]
+    Visibility: public -/
+@[rust_trait "chrono::offset::Offset"
+  (parentClauses := ["corecloneCloneInst", "corefmtDebugInst"])]
+structure chrono.offset.Offset (Self : Type _) where
+  corecloneCloneInst : core.clone.Clone Self
+  corefmtDebugInst : core.fmt.Debug Self
+  fix : Self → Result chrono.offset.fixed.FixedOffset
+
+/-- [chrono::offset::LocalResult]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/mod.rs', lines 81:0-81:23
+    Name pattern: [chrono::offset::LocalResult]
+    Visibility: public -/
+@[discriminant isize, rust_type "chrono::offset::LocalResult"]
+inductive chrono.offset.LocalResult (T : Type _) where
+| Single : T → chrono.offset.LocalResult T
+| Ambiguous : T → T → chrono.offset.LocalResult T
+| None : chrono.offset.LocalResult T
+
+/-- Trait declaration: [chrono::offset::TimeZone]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/mod.rs', lines 299:0-299:33
+    Name pattern: [chrono::offset::TimeZone]
+    Visibility: public -/
+@[rust_trait "chrono::offset::TimeZone"
+  (parentClauses := ["corecloneCloneInst", "OffsetInst"])]
+structure chrono.offset.TimeZone (Self : Type _) (Self_Offset : Type _) where
+  corecloneCloneInst : core.clone.Clone Self
+  OffsetInst : chrono.offset.Offset Self_Offset
+  from_offset : Self_Offset → Result Self
+  offset_from_local_date : Self → chrono.naive.date.NaiveDate → Result
+    (chrono.offset.LocalResult Self_Offset)
+  offset_from_local_datetime : Self → chrono.naive.datetime.NaiveDateTime →
+    Result (chrono.offset.LocalResult Self_Offset)
+  offset_from_utc_date : Self → chrono.naive.date.NaiveDate → Result
+    Self_Offset
+  offset_from_utc_datetime : Self → chrono.naive.datetime.NaiveDateTime →
+    Result Self_Offset
+
 /-- [chrono::offset::utc::Utc]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 52:0-52:14
     Name pattern: [chrono::offset::utc::Utc]
@@ -334,7 +374,7 @@ structure veoveo_audit_contract.model.AuditRequest where
   task : Option veoveo_types.task.TaskId
 
 /-- [veoveo_hub_sdk::execution::ExecutionContext]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 33:0-33:27
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/execution.rs', lines 33:0-33:27
     Name pattern: [veoveo_hub_sdk::execution::ExecutionContext]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::execution::ExecutionContext"]
@@ -342,7 +382,7 @@ structure veoveo_hub_sdk.execution.ExecutionContext where
   composition : veoveo_hub_sdk.execution.CompositionRevision
 
 /-- [veoveo_hub_sdk::identity::GroupRole]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 21:0-21:18
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 21:0-21:18
     Name pattern: [veoveo_hub_sdk::identity::GroupRole]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::identity::GroupRole"]
@@ -352,7 +392,7 @@ inductive veoveo_hub_sdk.identity.GroupRole where
 | Admin : veoveo_hub_sdk.identity.GroupRole
 
 /-- [veoveo_hub_sdk::identity::GroupMembership]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 45:0-45:26
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 45:0-45:26
     Name pattern: [veoveo_hub_sdk::identity::GroupMembership]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::identity::GroupMembership"]
@@ -361,7 +401,7 @@ structure veoveo_hub_sdk.identity.GroupMembership where
   role : veoveo_hub_sdk.identity.GroupRole
 
 /-- [veoveo_hub_sdk::identity::PrincipalAssurance]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 123:0-123:27
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 123:0-123:27
     Name pattern: [veoveo_hub_sdk::identity::PrincipalAssurance]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::identity::PrincipalAssurance"]
@@ -369,7 +409,7 @@ inductive veoveo_hub_sdk.identity.PrincipalAssurance where
 | UsPerson : veoveo_hub_sdk.identity.PrincipalAssurance
 
 /-- [veoveo_hub_sdk::identity::PrincipalKind]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 114:0-114:22
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 114:0-114:22
     Name pattern: [veoveo_hub_sdk::identity::PrincipalKind]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::identity::PrincipalKind"]
@@ -378,7 +418,7 @@ inductive veoveo_hub_sdk.identity.PrincipalKind where
 | Service : veoveo_hub_sdk.identity.PrincipalKind
 
 /-- [veoveo_hub_sdk::identity::Principal]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 63:0-63:20
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 63:0-63:20
     Name pattern: [veoveo_hub_sdk::identity::Principal]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::identity::Principal"]
@@ -414,7 +454,7 @@ inductive veoveo_types.provenance.InvocationMode where
 | Automated : veoveo_types.provenance.InvocationMode
 
 /-- [veoveo_hub_sdk::identity::AccessTokenSubject]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 129:0-129:29
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 129:0-129:29
     Name pattern: [veoveo_hub_sdk::identity::AccessTokenSubject]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::identity::AccessTokenSubject"]
@@ -439,7 +479,7 @@ structure veoveo_hub_sdk.identity.AccessTokenSubject where
     chrono.offset.utc.Utc
 
 /-- [veoveo_hub_sdk::internal_auth::exchange::DelegatingTask]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 19:0-19:25
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 19:0-19:25
     Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegatingTask]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegatingTask"]
@@ -449,7 +489,7 @@ structure veoveo_hub_sdk.internal_auth.exchange.DelegatingTask where
   task : veoveo_hub_sdk.identity.OpaqueTaskId
 
 /-- [veoveo_hub_sdk::internal_auth::ActingServer]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 292:0-292:23
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 292:0-292:23
     Name pattern: [veoveo_hub_sdk::internal_auth::ActingServer]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::ActingServer"]
@@ -459,7 +499,7 @@ structure veoveo_hub_sdk.internal_auth.ActingServer where
   client : veoveo_types.platform_names.OAuthClientId
 
 /-- [veoveo_hub_sdk::internal_auth::exchange::DelegationContext]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 29:0-29:28
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 29:0-29:28
     Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegationContext]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegationContext"]
@@ -553,7 +593,7 @@ structure veoveo_types.authority.InvocationAuthority where
   provenance : veoveo_types.provenance.InvocationProvenance
 
 /-- [veoveo_hub_sdk::internal_auth::request::HubRequestContext]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/request.rs', lines 8:0-8:28
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/internal_auth/request.rs', lines 8:0-8:28
     Name pattern: [veoveo_hub_sdk::internal_auth::request::HubRequestContext]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::request::HubRequestContext"]
@@ -564,7 +604,7 @@ structure veoveo_hub_sdk.internal_auth.request.HubRequestContext where
   principal : veoveo_hub_sdk.identity.Principal
 
 /-- [veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 100:0-100:26
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 100:0-100:26
     Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller"]
@@ -577,7 +617,7 @@ structure veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller where
     veoveo_hub_sdk.internal_auth.exchange.DelegationContext
 
 /-- [veoveo_hub_sdk::registration::access::Access]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 5:0-5:15
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 5:0-5:15
     Name pattern: [veoveo_hub_sdk::registration::access::Access]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::registration::access::Access"]
@@ -586,7 +626,7 @@ inductive veoveo_hub_sdk.registration.access.Access where
 | Write : veoveo_hub_sdk.registration.access.Access
 
 /-- [veoveo_hub_sdk::registration::access::Risk]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 13:0-13:13
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 13:0-13:13
     Name pattern: [veoveo_hub_sdk::registration::access::Risk]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::registration::access::Risk"]
@@ -598,7 +638,7 @@ inductive veoveo_hub_sdk.registration.access.Risk where
 | Administer : veoveo_hub_sdk.registration.access.Risk
 
 /-- [veoveo_hub_sdk::registration::authorization::PermissionDeclaration]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 20:0-20:32
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 20:0-20:32
     Name pattern: [veoveo_hub_sdk::registration::authorization::PermissionDeclaration]
     Visibility: public -/
 @[rust_type
@@ -611,7 +651,7 @@ structure veoveo_hub_sdk.registration.authorization.PermissionDeclaration where
     veoveo_hub_sdk.registration.access.Risk alloc.alloc.Global
 
 /-- [veoveo_hub_sdk::registration::authorization::RouteAccess]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 37:0-37:20
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 37:0-37:20
     Name pattern: [veoveo_hub_sdk::registration::authorization::RouteAccess]
     Visibility: public -/
 @[discriminant isize, rust_type
@@ -623,7 +663,7 @@ inductive veoveo_hub_sdk.registration.authorization.RouteAccess where
   veoveo_hub_sdk.registration.authorization.RouteAccess
 
 /-- [veoveo_hub_sdk::registration::authorization::Requirements]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 53:0-53:23
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 53:0-53:23
     Name pattern: [veoveo_hub_sdk::registration::authorization::Requirements]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::registration::authorization::Requirements"]
@@ -642,7 +682,7 @@ structure veoveo_hub_sdk.registration.authorization.Requirements where
     veoveo_hub_sdk.registration.authorization.RouteAccess alloc.alloc.Global
 
 /-- [veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 66:0-66:35
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 66:0-66:35
     Name pattern: [veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration]
     Visibility: public -/
 @[rust_type
@@ -656,7 +696,7 @@ structure veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration
   calls_hub : Bool
 
 /-- [veoveo_hub_sdk::registration::authorization::RequirementTarget]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 143:0-143:30
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 143:0-143:30
     Name pattern: [veoveo_hub_sdk::registration::authorization::RequirementTarget]
     Visibility: public -/
 @[discriminant isize, rust_type
@@ -676,7 +716,7 @@ inductive veoveo_hub_sdk.registration.authorization.RequirementTarget where
   veoveo_hub_sdk.registration.authorization.RequirementTarget
 
 /-- Trait declaration: [veoveo_hub_sdk::registration::authorization_decision::Matcher]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 8:0-8:27
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 8:0-8:27
     Name pattern: [veoveo_hub_sdk::registration::authorization_decision::Matcher] -/
 @[rust_trait "veoveo_hub_sdk::registration::authorization_decision::Matcher"]
 structure veoveo_hub_sdk.registration.authorization_decision.Matcher (Self :
@@ -684,7 +724,7 @@ structure veoveo_hub_sdk.registration.authorization_decision.Matcher (Self :
   «matches» : Self → T → Result Bool
 
 /-- Trait declaration: [veoveo_hub_sdk::registration::authorization_decision::Cursor]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 4:0-4:26
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 4:0-4:26
     Name pattern: [veoveo_hub_sdk::registration::authorization_decision::Cursor] -/
 @[rust_trait "veoveo_hub_sdk::registration::authorization_decision::Cursor"]
 structure veoveo_hub_sdk.registration.authorization_decision.Cursor (Self :
@@ -692,7 +732,7 @@ structure veoveo_hub_sdk.registration.authorization_decision.Cursor (Self :
   next : Self → Result ((Option I) × Self)
 
 /-- [veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}::matches::{closure}]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 306:59-306:69
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 306:59-306:69
     Name pattern: [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::closure] -/
 @[reducible, rust_type
   "veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::closure"]
@@ -701,7 +741,7 @@ def veoveo_hub_sdk.registration.authorization.MatcherNativeMatcherShared0Resourc
   veoveo_types.resource.ResourceUri
 
 /-- [veoveo_hub_sdk::registration::authorization::NativeMatcher]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 302:0-302:24
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 302:0-302:24
     Name pattern: [veoveo_hub_sdk::registration::authorization::NativeMatcher] -/
 @[reducible, rust_type
   "veoveo_hub_sdk::registration::authorization::NativeMatcher"]
@@ -1848,5 +1888,39 @@ structure policy.evaluation.PolicyRequest where
   action : contract.actions.PolicyAction
   target : control_plane.policy.PolicyTarget
   trace_id : control_plane.ids.TraceId
+
+/-- [veoveo_hub::policy::session::StoredPrincipal]
+    Source: 'crates/veoveo-hub/src/policy/session.rs', lines 27:0-29:1 -/
+structure policy.session.StoredPrincipal where
+  principal : veoveo_hub_sdk.identity.Principal
+
+/-- [veoveo_hub::policy::session::SessionFamilyAuthority]
+    Source: 'crates/veoveo-hub/src/policy/session.rs', lines 13:0-25:1
+    Visibility: public -/
+structure policy.session.SessionFamilyAuthority where
+  authorization_server : contract.identity.AuthorizationServerId
+  protected_resource : veoveo_hub_sdk.identity.ProtectedResourceId
+  oauth_client_id : veoveo_types.platform_names.OAuthClientId
+  work_context : veoveo_types.identity.WorkContextId
+  principal_id : veoveo_types.identity.PrincipalId
+  tenant : Option veoveo_types.identity.TenantId
+  scopes : alloc.collections.btree.set.BTreeSet veoveo_types.names.ScopeName
+    alloc.alloc.Global
+  principal : policy.session.StoredPrincipal
+  current_generation : Std.U64
+  expires_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+  revoked_at : Option (chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc)
+
+/-- [veoveo_hub::policy::session::SessionRequest]
+    Source: 'crates/veoveo-hub/src/policy/session.rs', lines 31:0-37:1
+    Visibility: public -/
+structure policy.session.SessionRequest where
+  protected_resource : veoveo_hub_sdk.identity.ProtectedResourceId
+  authorization_server : contract.identity.AuthorizationServerId
+  token : veoveo_hub_sdk.identity.AccessTokenSubject
+  principal : veoveo_hub_sdk.identity.Principal
+  now : chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc
 
 end veoveo_hub

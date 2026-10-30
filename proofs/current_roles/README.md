@@ -8,46 +8,174 @@ evaluator from Hub `b9b6cec1b9c36a2e84afb980e208d2d116a84185`, with SDK pin
 permissions, native collections and dependency pins were unchanged. The connected extension below includes one equivalent iterator closure spelling.
 Verification remains manual; there is no CI hook, runner or new authorization gate.
 
-## SDK access composition in progress
+## Current session-family authority
 
-The current working package adopts published SDK
+This manual increment qualifies the pure `SessionFamilyAuthority::allows` sub-boundary
+of HUB-OAUTH-01, using the same typed identity/collection models as HUB-AUTH-01.
+Its [separate receipt](evidence/session-family-receipt.json) records the source,
+ordinary primitive models, exact proof, focused native checks, four isolated faults
+and fresh restoration. The [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-session-family-qualification.md) separates the measured guarantees and remaining boundaries. The production method is byte-identical to the Hub base;
+Rust additions are only `cfg(test)` witnesses. Earlier receipts remain historical.
+
+[SessionFamilyProof](SessionFamilyProof.lean) proves the actual extracted method
+returns exactly `.ok (decide Admitted)`, with both acceptance and refusal
+characterizations. The independent conjunction contains only existing conditions:
+family-ID presence, no revocation, strict family expiry, the supplied resource and
+authorization server, OAuth client and Work Context, flat and retained principal
+identity/tenant, retained kind/subject, token/current-principal issuer and subject,
+and token scopes contained in family scopes. Empty and proper scope subsets are
+valid. The expiry comparison retains seconds and nanoseconds: equal expiry refuses,
+and one nanosecond later in the same second can accept.
+
+Raw observed-field projections prove result equivalence when those fields stay
+fixed. Refresh generation and retained original IdP issuer are intentionally absent;
+valid rotation does not revoke access, and the retained IdP issuer may differ from
+the Hub issuer of the verified token/current principal. The token and current
+principal issuers must still agree. Coherent-family acceptance is proved for arbitrary
+retained issuer/generation under the raw binding and subset conditions, without an
+assumed session-result Boolean.
+
+The method checks only that the token has some family ID. Its family projection has
+no ID to compare. The state caller selects the authoritative record by the exact
+signed ID before calling `from_stored` and `allows`. Verified JWT/Principal
+projection, Serde decoding, negative/corrupt generation rejection, store identity,
+freshness, read deadline, clock sampling and async error/response behavior remain
+caller boundaries. Unbound service/exchange tokens use the outer caller's existing
+authority; this pure method itself refuses a missing family. Task-specific session
+compromise/continuity behavior is a separate path.
+
+Ordinary typed equality, full lexical timestamp comparison and existing finite-set
+subset laws supply the new primitive models; no native session-result or comparison
+axiom was added. Native Chrono timestamp projection/order preservation, typed-ID
+validation/equality, collection ordering/Borrow, compiler/extractor and memory/alias
+refinement remain explicit. UTC dictionary/calendar/formatter payloads are not read
+by admission; formatter delegation uses the pinned Aeneas approximation, not a
+native rendering proof. Executable audits for actual `allows` and the new theorems
+permit only `propext`, `Classical.choice` and `Quot.sound`. That standard-only axiom
+closure does not discharge native refinement assumptions.
+
+The Linux native baseline and restoration run four pure-method tests, formatting
+and strict library Clippy. They cover proper/equal/empty scopes, 13 independent
+binding/scope mismatches, missing/revoked families, strict expiry including one
+nanosecond, rotation, retained issuer and unread metadata. Separately, the existing
+Mac `session_family` integration test uses real private PostgreSQL 18.6 and two
+HubState/store clients, including rotation and shared-store revocation. This is
+component evidence, not a deployed replica or complete authentication endpoint.
+Fixtures are explicitly owned synthetic identities; the pure tests do not write
+family records or validate JWT signatures.
+
+The isolated faults admit at equal expiry, bypass resource equality, reverse scope
+containment and add a generation-zero restriction. Each compiles and translates,
+builds the generated model/helper prerequisites, then fails unchanged
+`allows_exact` and its exact native witness. The scope witness uses a strict token
+superset to show unauthorized acceptance; a separate positive-scope mutant run is
+not claimed. Symbolic typed-program/predicate residuals are distinguished from a
+normalized False goal; failed-declaration recovery axioms are never accepted proof.
+The first control's summary retains a false candidate flag because its detector
+missed Rust's custom assertion message. The preserved expected panic, test count,
+exit status and binary identity support the explicit manual acceptance; later
+controls use exact expected-message detection.
+
+Native Boolean values are inferred from the failed positive/negated assertions and
+verified source; the custom-message logs do not print a separate actual/expected
+Boolean pair. Each mutant test stops at its first assertion failure. Per-stage
+binary hashes are historical captures at a reused target path; they do not claim
+all older binaries remain there. Fresh unmutated restoration preserves raw generated
+outputs and reports exact source-comment normalization separately from body/type
+correspondence. No production rule, CI hook, runtime framework, deployment, full
+repository Docker gates or paid model qualification was added or performed.
+
+## SDK access and registered-policy composition
+
+This increment adopts published SDK
 `239622d12c08b771cc5e813fe3e846385d8d04ad` and imports its pinned
-`sdkAuthorizationProof` Lake package. This increment is not yet qualified.
-The successful combined extraction retains actual SDK `access`, `NativeMatcher`
-and its parse/Option closure as transparent code. The foreign generic resolver
-uses an ordinary model delegating to the SDK-owned generated `decision.resolve`,
-with field-exact cursor and matcher adapters; no resolver algorithm or desired
-access result is copied into this package.
+`sdkAuthorizationProof` Lake package. The [separate receipt](evidence/sdk-access-composition-receipt.json)
+records exact inputs, tool stages, native binaries, three wrapper controls and
+fresh restoration; the [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-authorization-qualification.md) summarizes the measured connection. Earlier qualifications and their receipts remain historical.
+The Hub's runtime policy algorithm is unchanged; the native fixture additions are
+`cfg(test)`. The SDK edition-2024 change applies only to its proof extraction crate.
 
-The SDK's local edition-2024 extraction produces the exact previously qualified
-generated model. Charon can only retrieve optimized MIR for a dependency function;
-that lowering's partially moved loop cleanup fails the pinned Aeneas translator.
-Source-compilation/linkage to the imported local extraction therefore remains an
-explicit trust boundary, not a theorem established by source or model hashes.
+The combined extraction retains actual SDK `access`, `NativeMatcher` and its
+parse/Option closure. The foreign generic resolver uses an ordinary model that
+calls the pinned SDK-owned generated `decision.resolve` through field-exact cursor
+and matcher adapters. No resolver algorithm or desired result is copied here.
+The local edition-2024 extraction emits exactly the SDK's previously qualified
+model. Charon retrieves optimized MIR for dependency functions; that lowering's
+partially moved loop cleanup fails the pinned Aeneas translator. Connecting the
+foreign call to the local generated model therefore retains an explicit
+source-compilation/linkage boundary; source/model hashes do not prove it.
 
-The new operational native symbols are template `parse`, template `matches`, and
-the existing sampled clock. Their traces retain failure/divergence. A nominal
-template token asserts no parser grammar or Rust borrow identity. Map models
-enumerate raw entries and propagate supplied Borrow/comparison operations; native
-membership correspondence still requires unique keys, lawful ordering and Borrow
-coherence. Native sorted traversal/comparison/allocation traces are outside the
-claim. The existing role/Held statements and all registered-server theorem
-statements are retained; their audit allowlists track the new primitive boundary.
-The five-stage model/adapter checkpoint passed; its
-[record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-adapter-models.md)
-separates checked model plumbing from native correspondence. Subsequent direct
-checks establish exact public access for all four target kinds, raw declaration
-intent and conflict/absence equivalences, and registered-policy composition that
-constructs the former whole-access premise. The combined package checkpoint and
-native qualification of this increment are still pending. See also the
-[extraction evidence](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-extraction-boundaries.md).
+[SDKAccessProof](SDKAccessProof.lean) proves the actual public wrapper returns
+exactly `.ok expectedAccess` for Tool, Prompt, ResourceTemplate and Resource,
+including absence. Exact resources override templates without parse/matcher-success
+hypotheses. Otherwise resource access requires at least one raw matching template
+and complete `RouteAccess` agreement among every raw match. `Authenticated` and
+`Permission(p)` are distinct values, as are different permission names.
+[SDKAccessCorollaries](SDKAccessCorollaries.lean) expresses raw declaration intent,
+exact absence, matching occurrence and conflict without assuming authorization.
+[SDKRegisteredPolicyProof](SDKRegisteredPolicyProof.lean) supplies the former
+whole-access premise from that actual wrapper theorem, derives the ordered
+registered-policy result and current grants, and composes with the extracted
+narrowing kernel. It includes legitimate `Authenticated` acceptance with no current
+grants. The independent server/requirement and request target are related only by
+the explicit coherent-call condition.
+
+Native symbols are exactly template `parse`, template `matches`, and the sampled
+clock. Parse/decode and native-template-to-generated-view trace laws remain
+explicit; no implementation or constructive interpretation of these symbols is
+claimed. A nominal template token asserts no parser grammar or Rust borrow
+identity. Raw map models propagate supplied Borrow/comparison operations; native
+membership refinement retains unique-key, ordering and Borrow coherence
+obligations. Collection, memory/alias, primitive parser, extraction-tool and
+compiler/linkage boundaries remain. Exact decision theorems retain successful
+operational lookup/clock premises, rather than proving native totality, clock
+accuracy or freshness. The complete async endpoint, native wrapper/caller wiring
+and deployment are outside this extraction.
+
+The combined formal checkpoint and fresh restored package pass executable axiom
+whitelists. Earlier role/Held proofs retain standard Lean axioms only; new access
+facts may use parse/matches, and policy composition may also use the clock. No
+accepted proof contains `sorryAx`. The
+[adapter checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-adapter-models.md)
+and [extraction diagnosis](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-sdk-hub-extraction-boundaries.md)
+record the measured translation boundary.
+
+Native Rust 1.99 checks exercise three registered catalog tests, one actual
+SDK-to-policy-to-narrowing test with 23 whole-record cases and eight direct SDK
+observations, and two existing delegated tests. Formatting and strict library
+Clippy also pass. Case-local Cargo path overrides resolve SDK, fixture and macros
+to isolated SDK239 sources; only those three Git source identities change in the
+scratch lock. Working dependency pins and shared dependency sources are untouched
+by controls. The fixture tests real native lookup/clock/policy code with synthetic
+owned declarations, not an async endpoint or deployed environment.
+
+Three legal SDK wrapper mutations are paired with unchanged proof and native
+assertion failures: discarding an exact-resource hit, discarding the parsed matcher
+result, and discarding a declared prompt lookup. Compile, extraction, generated
+model and helper builds must pass first. The exact-hit residual invokes the
+resolver loop with `none` despite an exact hit; the matcher residual discards the
+native Boolean; the prompt residual evaluates the declared lookup then returns `none` instead of its value. These
+are reviewed semantic program mismatches, not automatic Lean counterexamples.
+Failed-declaration recovery `sorryAx` is rejected and provides no accepted proof.
+The native test stops on its first mismatch; later cases in that mutant run are
+not claimed as executed.
+
+Fresh unmutated restoration recompiles SDK and Hub, repeats all six native tests,
+formatting and strict Clippy, re-extracts, builds the full proof package and checks
+new proof files and all three model audits. Generated output bytes are preserved.
+Raw hashes differ from the earlier Git-dependency extraction when generated
+`Source:` locations name the isolated SDK tree; comparison normalizes only the exact old/new SDK root prefix on `Source:` comment
+lines, preserving source spans, the rest of each line and every declaration/body.
+Binary hashes are historical per-stage captures at a reused target path, not
+claims that each old binary is still present. No deployment, full Hub Mac/Linux
+Docker gates or paid model qualification was performed for this increment.
 
 ## Conditional registered-server policy and downstream connection
 
 This earlier qualification used Hub `bb2e97f5c984a53eaa218109e4c01a70e952e365`, compiled SDK
 `05273d1f90b9a08e90e377187f4eddd084605fe5`, and the same pinned extraction/Lean
-tools. Runtime policy code and dependency pins are unchanged; only `cfg(test)`
-witnesses and proof artifacts were added. The [separate receipt](evidence/registered-server-policy-receipt.json)
+tools. That increment left runtime policy code and dependency pins unchanged; only
+`cfg(test)` witnesses and proof artifacts were added. The [separate receipt](evidence/registered-server-policy-receipt.json)
 records the checked source/model identities, native baseline, five semantic
 controls and fresh restoration. Earlier receipts remain historical and unchanged.
 
@@ -107,8 +235,8 @@ one observed call. No fixed-zero clock or deny-all SDK implementation is supplie
 no constructive implementation of the native axiom constants is claimed. The
 focused native fixtures exercise real SDK05273 lookups, clock sampling and both
 positive and negative policy outputs, without discharging those universal laws.
-SDK239622d's qualified matcher seam is still not adopted by this Cargo dependency.
-Its source correspondence/adoption remains separate work.
+That snapshot did not adopt SDK239622d's qualified matcher seam. The newer
+SDK adoption and connected qualification are recorded above.
 
 Ordinary native value models retain the documented collection/equality/ordering,
 borrow/clone, iterator, parser/allocator, memory/alias and extraction-tool trust
@@ -402,8 +530,9 @@ async caller/context construction and `decide_server` output assembly remain
 outside this formal boundary. The actual registration flat_map/request-filter/collect
 is now connected to the authority package; the endpoint, storage and native
 primitive refinements remain explicit obligations.
-The separate SDK route proof at `239622d` is not adopted by the compiled `05273d1`
-dependency. An Authenticated route can legitimately have an empty permission set;
+That qualification's compiled `05273d1` dependency did not adopt the separate SDK
+route proof; the newer `239622d` connection is recorded above. An Authenticated
+route can legitimately have an empty permission set;
 this evaluator proof introduces no contrary runtime condition.
 
 ## Historical current-role qualification

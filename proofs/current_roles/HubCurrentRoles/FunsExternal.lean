@@ -1406,3 +1406,279 @@ def
   := fun entries => match entries with
     | [] => .ok (none, [])
     | entry :: rest => .ok (some entry, rest)
+
+-- Session-family primitive models. DateTime already denotes an exact ordered
+-- (seconds, subsecond) pair. Connecting it to native Chrono's UTC datetime and
+-- preserving comparison (including leap-second validity) is a refinement boundary.
+namespace SessionNative
+
+def timestampCompare (left right : Int × Nat) : Ordering :=
+  match compare left.1 right.1 with
+  | .eq => compare left.2 right.2
+  | ordering => ordering
+
+end SessionNative
+
+/-- [alloc::string::{impl core::cmp::PartialEq<alloc::string::String> for alloc::string::String}::eq]:
+    Source: '/rustc/library/alloc/src/string.rs', lines 350:9-350:18
+    Name pattern: [alloc::string::{core::cmp::PartialEq<alloc::string::String, alloc::string::String>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "alloc::string::{core::cmp::PartialEq<alloc::string::String, alloc::string::String>}::eq"]
+def alloc.string.String.Insts.CoreCmpPartialEqString.eq
+  : String → String → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [chrono::datetime::{impl core::cmp::PartialEq<chrono::datetime::DateTime<Tz2, Clause1_Offset>> for chrono::datetime::DateTime<Tz, Clause0_Offset>}::eq]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/datetime/mod.rs', lines 1473:4-1473:47
+    Name pattern: [chrono::datetime::{core::cmp::PartialEq<chrono::datetime::DateTime<@Tz, @Clause0_Offset>, chrono::datetime::DateTime<@Tz2, @Clause1_Offset>>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "chrono::datetime::{core::cmp::PartialEq<chrono::datetime::DateTime<@Tz, @Clause0_Offset>, chrono::datetime::DateTime<@Tz2, @Clause1_Offset>>}::eq"]
+def chrono.datetime.DateTime.Insts.CoreCmpPartialEqDateTime.eq
+  {Tz : Type _} {Tz2 : Type _} {Clause0_Offset : Type _} {Clause1_Offset :
+  Type _} (offsetTimeZoneInst : chrono.offset.TimeZone Tz Clause0_Offset)
+  (offsetTimeZoneInst1 : chrono.offset.TimeZone Tz2 Clause1_Offset) :
+  chrono.datetime.DateTime Tz Clause0_Offset → chrono.datetime.DateTime Tz2
+    Clause1_Offset → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [chrono::datetime::{impl core::cmp::PartialOrd<chrono::datetime::DateTime<Tz2, Clause1_Offset>> for chrono::datetime::DateTime<Tz, Clause0_Offset>}::partial_cmp]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/datetime/mod.rs', lines 1502:4-1502:68
+    Name pattern: [chrono::datetime::{core::cmp::PartialOrd<chrono::datetime::DateTime<@Tz, @Clause0_Offset>, chrono::datetime::DateTime<@Tz2, @Clause1_Offset>>}::partial_cmp]
+    Visibility: public -/
+@[rust_fun
+  "chrono::datetime::{core::cmp::PartialOrd<chrono::datetime::DateTime<@Tz, @Clause0_Offset>, chrono::datetime::DateTime<@Tz2, @Clause1_Offset>>}::partial_cmp"]
+def chrono.datetime.DateTime.Insts.CoreCmpPartialOrdDateTime.partial_cmp
+  {Tz : Type _} {Tz2 : Type _} {Clause0_Offset : Type _} {Clause1_Offset :
+  Type _} (offsetTimeZoneInst : chrono.offset.TimeZone Tz Clause0_Offset)
+  (offsetTimeZoneInst1 : chrono.offset.TimeZone Tz2 Clause1_Offset) :
+  chrono.datetime.DateTime Tz Clause0_Offset → chrono.datetime.DateTime Tz2
+    Clause1_Offset → Result (Option Ordering)
+  := fun left right => .ok (some (SessionNative.timestampCompare left right))
+
+
+/-- [chrono::offset::utc::{impl core::clone::Clone for chrono::offset::utc::Utc}::clone]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 43:15-43:20
+    Name pattern: [chrono::offset::utc::{core::clone::Clone<chrono::offset::utc::Utc>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "chrono::offset::utc::{core::clone::Clone<chrono::offset::utc::Utc>}::clone"]
+def chrono.offset.utc.Utc.Insts.CoreCloneClone.clone
+  : chrono.offset.utc.Utc → Result chrono.offset.utc.Utc
+  := fun value => .ok value
+
+
+/-- [chrono::offset::utc::{impl core::fmt::Debug for chrono::offset::utc::Utc}::fmt]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 143:4-143:56
+    Name pattern: [chrono::offset::utc::{core::fmt::Debug<chrono::offset::utc::Utc>}::fmt]
+    Visibility: public -/
+@[rust_fun
+  "chrono::offset::utc::{core::fmt::Debug<chrono::offset::utc::Utc>}::fmt"]
+def chrono.offset.utc.Utc.Insts.CoreFmtDebug.fmt
+  :
+  chrono.offset.utc.Utc → core.fmt.Formatter → Result ((core.result.Result
+    Unit core.fmt.Error) × core.fmt.Formatter)
+  := fun _ formatter => core.fmt.Formatter.write_str formatter (toStr "Z")
+
+
+/-- [chrono::offset::utc::{impl chrono::offset::Offset for chrono::offset::utc::Utc}::fix]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 137:4-137:32
+    Name pattern: [chrono::offset::utc::{chrono::offset::Offset<chrono::offset::utc::Utc>}::fix]
+    Visibility: public -/
+@[rust_fun
+  "chrono::offset::utc::{chrono::offset::Offset<chrono::offset::utc::Utc>}::fix"]
+def chrono.offset.utc.Utc.Insts.ChronoOffsetOffset.fix
+  : chrono.offset.utc.Utc → Result chrono.offset.fixed.FixedOffset
+  := fun _ => .ok { seconds := 0 }
+
+
+/-- [chrono::offset::utc::{impl chrono::offset::TimeZone<chrono::offset::utc::Utc> for chrono::offset::utc::Utc}::offset_from_utc_datetime]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 131:4-131:67
+    Name pattern: [chrono::offset::utc::{chrono::offset::TimeZone<chrono::offset::utc::Utc, chrono::offset::utc::Utc>}::offset_from_utc_datetime]
+    Visibility: public -/
+@[rust_fun
+  "chrono::offset::utc::{chrono::offset::TimeZone<chrono::offset::utc::Utc, chrono::offset::utc::Utc>}::offset_from_utc_datetime"]
+def
+  chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc.offset_from_utc_datetime
+  :
+  chrono.offset.utc.Utc → chrono.naive.datetime.NaiveDateTime → Result
+    chrono.offset.utc.Utc
+  := fun _ _ => .ok ()
+
+
+/-- [chrono::offset::utc::{impl chrono::offset::TimeZone<chrono::offset::utc::Utc> for chrono::offset::utc::Utc}::offset_from_utc_date]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 128:4-128:59
+    Name pattern: [chrono::offset::utc::{chrono::offset::TimeZone<chrono::offset::utc::Utc, chrono::offset::utc::Utc>}::offset_from_utc_date]
+    Visibility: public -/
+@[rust_fun
+  "chrono::offset::utc::{chrono::offset::TimeZone<chrono::offset::utc::Utc, chrono::offset::utc::Utc>}::offset_from_utc_date"]
+def chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc.offset_from_utc_date
+  :
+  chrono.offset.utc.Utc → chrono.naive.date.NaiveDate → Result
+    chrono.offset.utc.Utc
+  := fun _ _ => .ok ()
+
+
+/-- [chrono::offset::utc::{impl chrono::offset::TimeZone<chrono::offset::utc::Utc> for chrono::offset::utc::Utc}::offset_from_local_datetime]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 124:4-124:88
+    Name pattern: [chrono::offset::utc::{chrono::offset::TimeZone<chrono::offset::utc::Utc, chrono::offset::utc::Utc>}::offset_from_local_datetime]
+    Visibility: public -/
+@[rust_fun
+  "chrono::offset::utc::{chrono::offset::TimeZone<chrono::offset::utc::Utc, chrono::offset::utc::Utc>}::offset_from_local_datetime"]
+def
+  chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc.offset_from_local_datetime
+  :
+  chrono.offset.utc.Utc → chrono.naive.datetime.NaiveDateTime → Result
+    (chrono.offset.LocalResult chrono.offset.utc.Utc)
+  := fun _ _ => .ok (.Single ())
+
+
+/-- [chrono::offset::utc::{impl chrono::offset::TimeZone<chrono::offset::utc::Utc> for chrono::offset::utc::Utc}::offset_from_local_date]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 121:4-121:80
+    Name pattern: [chrono::offset::utc::{chrono::offset::TimeZone<chrono::offset::utc::Utc, chrono::offset::utc::Utc>}::offset_from_local_date]
+    Visibility: public -/
+@[rust_fun
+  "chrono::offset::utc::{chrono::offset::TimeZone<chrono::offset::utc::Utc, chrono::offset::utc::Utc>}::offset_from_local_date"]
+def
+  chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc.offset_from_local_date
+  :
+  chrono.offset.utc.Utc → chrono.naive.date.NaiveDate → Result
+    (chrono.offset.LocalResult chrono.offset.utc.Utc)
+  := fun _ _ => .ok (.Single ())
+
+
+/-- [chrono::offset::utc::{impl chrono::offset::TimeZone<chrono::offset::utc::Utc> for chrono::offset::utc::Utc}::from_offset]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 117:4-117:39
+    Name pattern: [chrono::offset::utc::{chrono::offset::TimeZone<chrono::offset::utc::Utc, chrono::offset::utc::Utc>}::from_offset]
+    Visibility: public -/
+@[rust_fun
+  "chrono::offset::utc::{chrono::offset::TimeZone<chrono::offset::utc::Utc, chrono::offset::utc::Utc>}::from_offset"]
+def chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc.from_offset
+  : chrono.offset.utc.Utc → Result chrono.offset.utc.Utc
+  := fun _ => .ok ()
+
+
+/-- [veoveo_hub_sdk::identity::{impl core::cmp::PartialEq<veoveo_hub_sdk::identity::PrincipalKind> for veoveo_hub_sdk::identity::PrincipalKind}::eq]:
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 112:29-112:38
+    Name pattern: [veoveo_hub_sdk::identity::{core::cmp::PartialEq<veoveo_hub_sdk::identity::PrincipalKind, veoveo_hub_sdk::identity::PrincipalKind>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::cmp::PartialEq<veoveo_hub_sdk::identity::PrincipalKind, veoveo_hub_sdk::identity::PrincipalKind>}::eq"]
+def
+  veoveo_hub_sdk.identity.PrincipalKind.Insts.CoreCmpPartialEqPrincipalKind.eq
+  :
+  veoveo_hub_sdk.identity.PrincipalKind →
+    veoveo_hub_sdk.identity.PrincipalKind → Result Bool
+  := fun left right => .ok (match left, right with
+    | .User, .User => true
+    | .Service, .Service => true
+    | _, _ => false)
+
+
+/-- [veoveo_hub_sdk::identity::{impl core::cmp::PartialEq<veoveo_hub_sdk::identity::ProtectedResourceId> for veoveo_hub_sdk::identity::ProtectedResourceId}::eq]:
+    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 163:0-163:43
+    Name pattern: [veoveo_hub_sdk::identity::{core::cmp::PartialEq<veoveo_hub_sdk::identity::ProtectedResourceId, veoveo_hub_sdk::identity::ProtectedResourceId>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::cmp::PartialEq<veoveo_hub_sdk::identity::ProtectedResourceId, veoveo_hub_sdk::identity::ProtectedResourceId>}::eq"]
+def
+  veoveo_hub_sdk.identity.ProtectedResourceId.Insts.CoreCmpPartialEqProtectedResourceId.eq
+  :
+  veoveo_hub_sdk.identity.ProtectedResourceId →
+    veoveo_hub_sdk.identity.ProtectedResourceId → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [veoveo_types::identity::{impl core::cmp::PartialEq<veoveo_types::identity::WorkContextId> for veoveo_types::identity::WorkContextId}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 17:0-17:66
+    Name pattern: [veoveo_types::identity::{core::cmp::PartialEq<veoveo_types::identity::WorkContextId, veoveo_types::identity::WorkContextId>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::identity::{core::cmp::PartialEq<veoveo_types::identity::WorkContextId, veoveo_types::identity::WorkContextId>}::eq"]
+def
+  veoveo_types.identity.WorkContextId.Insts.CoreCmpPartialEqWorkContextId.eq
+  :
+  veoveo_types.identity.WorkContextId → veoveo_types.identity.WorkContextId
+    → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [veoveo_types::identity::{impl core::cmp::PartialEq<veoveo_types::identity::TokenIssuer> for veoveo_types::identity::TokenIssuer}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 114:0-114:69
+    Name pattern: [veoveo_types::identity::{core::cmp::PartialEq<veoveo_types::identity::TokenIssuer, veoveo_types::identity::TokenIssuer>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::identity::{core::cmp::PartialEq<veoveo_types::identity::TokenIssuer, veoveo_types::identity::TokenIssuer>}::eq"]
+def veoveo_types.identity.TokenIssuer.Insts.CoreCmpPartialEqTokenIssuer.eq
+  :
+  veoveo_types.identity.TokenIssuer → veoveo_types.identity.TokenIssuer →
+    Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [veoveo_types::identity::{impl core::cmp::PartialEq<veoveo_types::identity::TokenSubject> for veoveo_types::identity::TokenSubject}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 117:0-117:69
+    Name pattern: [veoveo_types::identity::{core::cmp::PartialEq<veoveo_types::identity::TokenSubject, veoveo_types::identity::TokenSubject>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::identity::{core::cmp::PartialEq<veoveo_types::identity::TokenSubject, veoveo_types::identity::TokenSubject>}::eq"]
+def veoveo_types.identity.TokenSubject.Insts.CoreCmpPartialEqTokenSubject.eq
+  :
+  veoveo_types.identity.TokenSubject → veoveo_types.identity.TokenSubject →
+    Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [veoveo_types::names::{impl core::cmp::Ord for veoveo_types::names::ScopeName}::cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/names.rs', lines 4:0-4:37
+    Name pattern: [veoveo_types::names::{core::cmp::Ord<veoveo_types::names::ScopeName>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::names::{core::cmp::Ord<veoveo_types::names::ScopeName>}::cmp"]
+def veoveo_types.names.ScopeName.Insts.CoreCmpOrd.cmp
+  :
+  veoveo_types.names.ScopeName → veoveo_types.names.ScopeName → Result
+    Ordering
+  := fun left right => .ok (compare left.value right.value)
+
+
+/-- [veoveo_types::names::{impl core::cmp::PartialOrd<veoveo_types::names::ScopeName> for veoveo_types::names::ScopeName}::partial_cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/names.rs', lines 4:0-4:37
+    Name pattern: [veoveo_types::names::{core::cmp::PartialOrd<veoveo_types::names::ScopeName, veoveo_types::names::ScopeName>}::partial_cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::names::{core::cmp::PartialOrd<veoveo_types::names::ScopeName, veoveo_types::names::ScopeName>}::partial_cmp"]
+def veoveo_types.names.ScopeName.Insts.CoreCmpPartialOrdScopeName.partial_cmp
+  :
+  veoveo_types.names.ScopeName → veoveo_types.names.ScopeName → Result
+    (Option Ordering)
+  := fun left right => .ok (some (compare left.value right.value))
+
+
+/-- [veoveo_types::names::{impl core::cmp::PartialEq<veoveo_types::names::ScopeName> for veoveo_types::names::ScopeName}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/names.rs', lines 4:0-4:37
+    Name pattern: [veoveo_types::names::{core::cmp::PartialEq<veoveo_types::names::ScopeName, veoveo_types::names::ScopeName>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::names::{core::cmp::PartialEq<veoveo_types::names::ScopeName, veoveo_types::names::ScopeName>}::eq"]
+def veoveo_types.names.ScopeName.Insts.CoreCmpPartialEqScopeName.eq
+  :
+  veoveo_types.names.ScopeName → veoveo_types.names.ScopeName → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+
+/-- [veoveo_types::platform_names::{impl core::cmp::PartialEq<veoveo_types::platform_names::OAuthClientId> for veoveo_types::platform_names::OAuthClientId}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 39:0-39:36
+    Name pattern: [veoveo_types::platform_names::{core::cmp::PartialEq<veoveo_types::platform_names::OAuthClientId, veoveo_types::platform_names::OAuthClientId>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::platform_names::{core::cmp::PartialEq<veoveo_types::platform_names::OAuthClientId, veoveo_types::platform_names::OAuthClientId>}::eq"]
+def
+  veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialEqOAuthClientId.eq
+  :
+  veoveo_types.platform_names.OAuthClientId →
+    veoveo_types.platform_names.OAuthClientId → Result Bool
+  := fun left right => .ok (decide (left = right))

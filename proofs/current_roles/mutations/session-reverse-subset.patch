@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/session.rs
++++ b/crates/veoveo-hub/src/policy/session.rs
+@@ -65,7 +65,7 @@
+             && token.issuer == principal.issuer && token.subject == principal.subject
+             && self.principal.principal.subject == principal.subject
+             && self.principal.principal.tenant == principal.tenant
+-            && token.scopes.is_subset(&self.scopes)
++            && self.scopes.is_subset(&token.scopes)
+     }
+ }
+ 

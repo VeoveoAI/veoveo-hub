@@ -1,0 +1,1809 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "scope_id": "HUB-OAUTH-01",
+  "related_scope": "HUB-AUTH-01",
+  "status": "qualified_partial",
+  "scope": "Actual unchanged SessionFamilyAuthority::allows, exact field admission/refusal and observation invariance; focused native component and real PostgreSQL evidence, four isolated semantic faults and fresh restored baseline.",
+  "agents": {
+    "coordinator_review": "GPT-6 Astra /root",
+    "implementation_review": "GPT-6.1 Sol /root/coder",
+    "execution": "GPT-6 Luna /root/builder",
+    "model_driven_acceptance": false
+  },
+  "source": {
+    "hub_base": "bb2e97f5c984a53eaa218109e4c01a70e952e365",
+    "sdk_pin": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "base_archive_sha256": "892b8ebc2c6e60c0f83b284789d1ca744d8c2c9c41814640c389abec365d9b04",
+    "base_manifest_sha256": "96703863c288f52f986a439824aab52992702f00c14e31f555597a448c4d36d2",
+    "qualified_overlay": {
+      "path": "/tmp/hub-session-family-20261030/session-combined-2.tar",
+      "sha256": "ecba935731f83877f348c323b3cbdc384d2f386129d628de8f724a9152c925b2"
+    },
+    "qualified_manifest": {
+      "path": "/tmp/hub-session-family-20261030/session-combined-2-manifest.json",
+      "sha256": "cacecb60b01850d6ba5a6fd08449dd78a71f23d083130a59785f73c72803c11b"
+    },
+    "frozen_files": [
+      {
+        "path": "Cargo.lock",
+        "bytes": 139759,
+        "sha256": "a00f4580fabb83e5bfb9a4ec9e66eb3a1880ad8620326da620c95e3cf3663d09"
+      },
+      {
+        "path": "Cargo.toml",
+        "bytes": 4441,
+        "sha256": "f94fd734e9e99f53fc40d3c4838e4305e493ebc6e0f37113d311ad7770942db6"
+      },
+      {
+        "path": "crates/veoveo-hub/src/catalog/tests.rs",
+        "bytes": 48881,
+        "sha256": "262f0a88f2ae21aa1e7b73a5b36732177599e9b02e41754529997267eee4a11a"
+      },
+      {
+        "path": "crates/veoveo-hub/src/mcp/authorization.rs",
+        "bytes": 56587,
+        "sha256": "9c417b771fe4e232e652ad9bfda666370ceff66ed704975bf1dd8846f734fa00"
+      },
+      {
+        "path": "crates/veoveo-hub/src/policy/session.rs",
+        "bytes": 12960,
+        "sha256": "2e1591c1630170180a974a2a4220b0be7c9cff754634e79148dc28083f5459b4"
+      },
+      {
+        "path": "proofs/current_roles/.gitignore",
+        "bytes": 40,
+        "sha256": "473013ab0b90da268a10d4e04a6ecf8e1594539d95ff646dde921e63de58caa2"
+      },
+      {
+        "path": "proofs/current_roles/CollectionProof.lean",
+        "bytes": 9549,
+        "sha256": "972247bcd30bb02e858ef36039132a95aa2d13911beea1c1ba10ae3ae2292397"
+      },
+      {
+        "path": "proofs/current_roles/CurrentPermissionsModelAudit.lean",
+        "bytes": 815,
+        "sha256": "b2333f525dc818a041675f6c60e21fc190d5e025c859dcf4fed84253b7d18275"
+      },
+      {
+        "path": "proofs/current_roles/CurrentPermissionsProof.lean",
+        "bytes": 12449,
+        "sha256": "733eb2bf0d152ec5f369d6e1cd26afd3535ef71ac254eee5238654510f475302"
+      },
+      {
+        "path": "proofs/current_roles/EffectiveRiskProof.lean",
+        "bytes": 11143,
+        "sha256": "50dca8815fe45015e22029df33d670218efb7c29974dd7b5f1a1aa4e16d964f2"
+      },
+      {
+        "path": "proofs/current_roles/FlatMapIteratorProof.lean",
+        "bytes": 8908,
+        "sha256": "58a7202a883772ccf2270aafccf30bf09f02ac9804209bb2d4b9eb90bbaa1fa2"
+      },
+      {
+        "path": "proofs/current_roles/GrantedPermissionsProof.lean",
+        "bytes": 16519,
+        "sha256": "b5df13643b0ed92b212c5e3e38d5710ac8b880d7f31f80ec996c0994cdeb0e22"
+      },
+      {
+        "path": "proofs/current_roles/HeldRoleProof.lean",
+        "bytes": 8977,
+        "sha256": "95ce7d4519b73da67de893d933acc54f9b5c0305409dc00563a3d8177672524c"
+      },
+      {
+        "path": "proofs/current_roles/HubCurrentRoles.lean",
+        "bytes": 28,
+        "sha256": "097d0eba1287bed6e96cb1328ecf48a6c2d2f1ded5ee207f4f31f166b3e3364d"
+      },
+      {
+        "path": "proofs/current_roles/HubCurrentRoles/Funs.lean",
+        "bytes": 157290,
+        "sha256": "445dee3644b5d80de20aab0b226e6d6c2d1b2d2fdc95da96e312f973bc239b76"
+      },
+      {
+        "path": "proofs/current_roles/HubCurrentRoles/FunsExternal.lean",
+        "bytes": 99345,
+        "sha256": "091e77ac473986eba833e96003fd09d1bb0b4228e97b30d5e7598104f2115873"
+      },
+      {
+        "path": "proofs/current_roles/HubCurrentRoles/Types.lean",
+        "bytes": 95761,
+        "sha256": "6f7534408dfeeeaea56afd035bede7dd14c777295066bf2a9f41b34f8cca93ba"
+      },
+      {
+        "path": "proofs/current_roles/HubCurrentRoles/TypesExternal.lean",
+        "bytes": 28307,
+        "sha256": "2c4c8ca2c5292ec38c6afe92ccbbc2cde02e01030ece2ac3f25034676d422482"
+      },
+      {
+        "path": "proofs/current_roles/IteratorProof.lean",
+        "bytes": 10370,
+        "sha256": "29b28849fbfb8830425373b3d0706e8d79cc8ce95502ebf17234de700c80faa4"
+      },
+      {
+        "path": "proofs/current_roles/ModelAudit.lean",
+        "bytes": 462,
+        "sha256": "d2f524e13ab365b8fd4212187972d3e6834e07e476e08a59aef2b357a54de1f0"
+      },
+      {
+        "path": "proofs/current_roles/NativePolicyModelAudit.lean",
+        "bytes": 3059,
+        "sha256": "c136277bf10c2ec3b6c3d574e8d7758d30beb88cd91b1bd33006961e736e3813"
+      },
+      {
+        "path": "proofs/current_roles/NativeSetProof.lean",
+        "bytes": 13172,
+        "sha256": "2d0d116f7f32a5d0ed6192c3abcd2c0f50366d0015a725d19df7ced641855a5c"
+      },
+      {
+        "path": "proofs/current_roles/PolicyPrimitives.lean",
+        "bytes": 2627,
+        "sha256": "aafc4b8984c33817ba23034a49e637556e90c5bcb85beed3137386145a7a6b75"
+      },
+      {
+        "path": "proofs/current_roles/README.md",
+        "bytes": 44452,
+        "sha256": "08891b39941076161458140d4ded1e9dca768cd1eadaf2e32e517380fe3b3525"
+      },
+      {
+        "path": "proofs/current_roles/RegisteredServerAdmissionProof.lean",
+        "bytes": 12181,
+        "sha256": "c1327d8060e800380440df72cf5f33228d84c6ce010fe5bbe20219ced72d0512"
+      },
+      {
+        "path": "proofs/current_roles/RegisteredServerDecisionProof.lean",
+        "bytes": 12112,
+        "sha256": "e856a9824deada8acd1036c3636cb6d4c109d12ee05377d63e62acba08177991"
+      },
+      {
+        "path": "proofs/current_roles/RegisteredServerDownstreamProof.lean",
+        "bytes": 22422,
+        "sha256": "3c6d2346957480b927c0940cae008cdfc55693a9bf1d47b102b0df83217df594"
+      },
+      {
+        "path": "proofs/current_roles/RegisteredServerPolicyProof.lean",
+        "bytes": 12840,
+        "sha256": "8af13cf6debf13d795aef04df30cc8443a08b4aa656484713a53ab8c486f4b1b"
+      },
+      {
+        "path": "proofs/current_roles/RegistrationIteratorProof.lean",
+        "bytes": 9398,
+        "sha256": "b649c3a4ed744b7b6a4d5cd3b9459be9a88c35818780cba76adc933e9b468893"
+      },
+      {
+        "path": "proofs/current_roles/SDKAccessCorollaries.lean",
+        "bytes": 10362,
+        "sha256": "9593285ad010056c3f1a925ff4c89d5a5a5170085bfe9feb7f88957dd05951c4"
+      },
+      {
+        "path": "proofs/current_roles/SDKAccessProof.lean",
+        "bytes": 19493,
+        "sha256": "5d708bf9fc29c15fd7147717cb0d63987d1ca9f8326c05824b68b0e204e299b6"
+      },
+      {
+        "path": "proofs/current_roles/SDKRegisteredPolicyProof.lean",
+        "bytes": 14827,
+        "sha256": "79217b603eb17caf25edd997dee5c11e47f6cd350d3e5d2d40f49c89cb1377f0"
+      },
+      {
+        "path": "proofs/current_roles/SDKResolverAdapterProof.lean",
+        "bytes": 4357,
+        "sha256": "5cd8bd354dd30cba888ffd503fc79776e90557e742f1ccbd816cdc60a925de56"
+      },
+      {
+        "path": "proofs/current_roles/SessionFamilyProof.lean",
+        "bytes": 12988,
+        "sha256": "ba721cd25a0be08297fcb8f81e93688c26f6c00ec4e1d8ac4370b2358571e71e"
+      },
+      {
+        "path": "proofs/current_roles/SessionModelAudit.lean",
+        "bytes": 3817,
+        "sha256": "112d76f569780d7d31df95d40a66843710672a9f3973ad3f25e5b45981e3c9ba"
+      },
+      {
+        "path": "proofs/current_roles/evidence/current-permissions-receipt.json",
+        "bytes": 134037,
+        "sha256": "5a897d0b148e038ccd8c2c2c83151a97a6a4670532e49de6af946ed9b1082cb9"
+      },
+      {
+        "path": "proofs/current_roles/evidence/current-roles-receipt.json",
+        "bytes": 91434,
+        "sha256": "d6a5e1322c054d62f98b05d51e39bd2f86c137c6969a1844ba3f442e4cba1579"
+      },
+      {
+        "path": "proofs/current_roles/evidence/registered-server-policy-receipt.json",
+        "bytes": 114615,
+        "sha256": "ab2e68f7e9564fcf059d5e7b7c3728211e2ce792668acc58dabecaf2f3a0152a"
+      },
+      {
+        "path": "proofs/current_roles/extraction/catalog-field-name.patch",
+        "bytes": 379,
+        "sha256": "d419ecd3f16f120c367966c27c30bda0959b3cddd26fb0f106d15d0833ba3193"
+      },
+      {
+        "path": "proofs/current_roles/lake-manifest.json",
+        "bytes": 4074,
+        "sha256": "f674793aa9e71b9cf475966c5789a0de6d1c9fc1824ddc5b311d7318e370aeb3"
+      },
+      {
+        "path": "proofs/current_roles/lakefile.lean",
+        "bytes": 1539,
+        "sha256": "e13b3ba325975943e7fd23aaa70e35eea5c2adf8aea8ff12313eeff0f32fb353"
+      },
+      {
+        "path": "proofs/current_roles/lean-toolchain",
+        "bytes": 25,
+        "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+      },
+      {
+        "path": "proofs/current_roles/mutations/current-permissions-return-empty.patch",
+        "bytes": 721,
+        "sha256": "f50f7c1d960757c6d3234811661dec9a0827a013d6ad35819adb7e7284af19b1"
+      },
+      {
+        "path": "proofs/current_roles/mutations/current-permissions-return-requested.patch",
+        "bytes": 723,
+        "sha256": "f941a992efa4e3cf696cbe416cefd86f95676a6eadfaf757184885d310985354"
+      },
+      {
+        "path": "proofs/current_roles/mutations/deny-retains-risks.patch",
+        "bytes": 592,
+        "sha256": "87501596f9624f9596d43f3df9e88c257e27304e36e905d84e40682ac107ca63"
+      },
+      {
+        "path": "proofs/current_roles/mutations/held-role-inverted.patch",
+        "bytes": 342,
+        "sha256": "b8fe5e6a68480b6f12ad5644e1754151fb5aed328899de7073ceb1272e82f75c"
+      },
+      {
+        "path": "proofs/current_roles/mutations/invert-role-acceptance.patch",
+        "bytes": 397,
+        "sha256": "c600a20c218ee8f07f36e31b3ea32466fc5b16edf2b54a2d251dc29de6f22e99"
+      },
+      {
+        "path": "proofs/current_roles/mutations/omit-risk-additions.patch",
+        "bytes": 575,
+        "sha256": "a9c5bf0352bdf2e06e443e15842ed25a3c44d583cb870ba26354ef3622a67924"
+      },
+      {
+        "path": "proofs/current_roles/mutations/registered-authenticated-needs-grant.patch",
+        "bytes": 547,
+        "sha256": "23785213df854c3c53454297f259bd7980ef7ebc5351dbae583ddf07c9f1538e"
+      },
+      {
+        "path": "proofs/current_roles/mutations/registered-bypass-membership.patch",
+        "bytes": 560,
+        "sha256": "d5adbbbe6a2bf730068d78db2ae04190277c281a1bf83831cf29b62bb05be202"
+      },
+      {
+        "path": "proofs/current_roles/mutations/registered-drop-tool-requirement.patch",
+        "bytes": 581,
+        "sha256": "b99d9f34dffe8093bf989f6afa8263378881d0009d00ba16d826d483838a0bb7"
+      },
+      {
+        "path": "proofs/current_roles/mutations/registered-omit-denied-required.patch",
+        "bytes": 324,
+        "sha256": "97fa7ee97054f01cbcf337a8f049e090a7ed9de433905f5e23ee5fca3ed67baf"
+      },
+      {
+        "path": "proofs/current_roles/mutations/registered-wrong-resource-reason.patch",
+        "bytes": 598,
+        "sha256": "d808ddce847a2d999649385f2f92503f5b9f0ead4bedf1eeaea9dde53b811530"
+      },
+      {
+        "path": "proofs/current_roles/mutations/risk-or-access.patch",
+        "bytes": 407,
+        "sha256": "276a131e7b82ecb2204965d452307e2dd9ee33ccddf016ffc974d5cd3755a9b7"
+      },
+      {
+        "path": "proofs/current_roles/mutations/subject-inverted.patch",
+        "bytes": 523,
+        "sha256": "3ce0455d25b1b6a482b36b95ed7664a5e0b144633afc0e428111a1c374b13c82"
+      },
+      {
+        "path": "proofs/current_roles/mutations/tenant-different.patch",
+        "bytes": 481,
+        "sha256": "d358e5ea1a09bcc4f678aff8e84982ee6a4dbbefca98f7412f176c243dcf960f"
+      }
+    ],
+    "kernel_path": "crates/veoveo-hub/src/policy/session.rs",
+    "production_prefix_sha256": "3aff520943d1458c6bb37ae9db5ee5ca1a5fc9eb06c41a1083e381ede696e46f",
+    "native_test_source_sha256": "2e1591c1630170180a974a2a4220b0be7c9cff754634e79148dc28083f5459b4",
+    "runtime_delta": "No production behavior change. New Rust code is cfg(test) only. Cargo/Lake pins and prior proof statements remain fixed.",
+    "generated": "Untouched session-probe-1 Types/Funs superset installed; three ordinary UTC dictionary payload types and twenty ordinary primitive functions append to the existing native models. Existing generated gt default retained. No new native operation/result axiom.",
+    "reporting_applicability": "The frozen56 map is measured input. After restoration only the slice README and new receipt are reporting edits; other55 frozen paths remain exact. Earlier receipts are historical and unchanged.",
+    "final_readme_sha256": "41ddeff425254892cb25a3b9341678f92041b96d853db65cba579e7aeb50f0ec"
+  },
+  "commands": {
+    "provenance": "Hash-linked summaries retain full exact argv/cwd/environment. Compact stage lists below preserve order, timing, outcomes and log identities without raw transcripts.",
+    "formal": [
+      [
+        "lake",
+        "build"
+      ],
+      [
+        "lake",
+        "env",
+        "lean",
+        "SessionFamilyProof.lean"
+      ],
+      [
+        "lake",
+        "env",
+        "lean",
+        "ModelAudit.lean"
+      ],
+      [
+        "lake",
+        "env",
+        "lean",
+        "CurrentPermissionsModelAudit.lean"
+      ],
+      [
+        "lake",
+        "env",
+        "lean",
+        "NativePolicyModelAudit.lean"
+      ],
+      [
+        "lake",
+        "env",
+        "lean",
+        "SessionModelAudit.lean"
+      ]
+    ],
+    "native_linux": [
+      [
+        "rustup",
+        "run",
+        "1.99.0-x86_64-unknown-linux-gnu",
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      [
+        "rustup",
+        "run",
+        "1.99.0-x86_64-unknown-linux-gnu",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--lib",
+        "policy::session::tests::"
+      ],
+      [
+        "rustup",
+        "run",
+        "1.99.0-x86_64-unknown-linux-gnu",
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    ],
+    "native_mac": [
+      "rustup",
+      "run",
+      "1.99.0-aarch64-apple-darwin",
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "veoveo-hub",
+      "--test",
+      "session_family",
+      "--",
+      "--nocapture"
+    ],
+    "extraction_argv": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+      "cargo",
+      "--sysroot",
+      "default",
+      "--preset=aeneas",
+      "--start-from",
+      "{impl veoveo_hub::delegation::authority::Held for veoveo_hub::delegation::CurrentPermissions}::held",
+      "--start-from",
+      "veoveo_hub::policy::evaluation::decide_server",
+      "--start-from",
+      "veoveo_hub::policy::evaluation::declared_route_access",
+      "--start-from",
+      "veoveo_hub::policy::evaluation::registered_target",
+      "--start-from",
+      "veoveo_hub::policy::session::_::allows",
+      "--include",
+      "{impl veoveo_hub::delegation::authority::Held<_> for veoveo_hub::delegation::CurrentPermissions}::held",
+      "--include",
+      "veoveo_hub::policy::evaluation::decide_server",
+      "--include",
+      "veoveo_hub::policy::evaluation::declared_route_access",
+      "--include",
+      "veoveo_hub::policy::evaluation::registered_target",
+      "--include",
+      "veoveo_hub::policy::evaluation::decision",
+      "--include",
+      "veoveo_hub::policy::evaluation::deny",
+      "--include",
+      "veoveo_hub::policy::grants::held_roles",
+      "--include",
+      "veoveo_hub::policy::grants::effective_risks",
+      "--include",
+      "veoveo_hub::policy::grants::granted_permissions",
+      "--include",
+      "veoveo_hub::control_plane::authorization_config::_::allows",
+      "--include",
+      "veoveo_hub::contract::actions::_::targets_registered_server",
+      "--include",
+      "veoveo_hub::contract::actions::_::mcp_method",
+      "--include",
+      "veoveo_hub::contract::actions::_::name",
+      "--include",
+      "veoveo_hub_sdk::registration::authorization::_::access",
+      "--include",
+      "veoveo_hub_sdk::registration::authorization_decision::same_root",
+      "--include",
+      "veoveo_hub_sdk::registration::authorization_decision::path_matches",
+      "--include",
+      "veoveo_hub_sdk::registration::authorization_decision::matches_view",
+      "--include",
+      "{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<_> for veoveo_hub_sdk::registration::authorization::NativeMatcher}::matches",
+      "--include",
+      "veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<_> for veoveo_hub_sdk::registration::authorization::NativeMatcher}::matches::_::call_once",
+      "--include",
+      "veoveo_hub_sdk::registration::authorization::NativeMatcher",
+      "--include",
+      "veoveo_hub::policy::session::_::allows",
+      "--opaque",
+      "veoveo_hub::mcp::upstream_http::HubUpstreamHttpClientPool",
+      "--opaque",
+      "veoveo_hub::contract::catalog::SectionDeclaration",
+      "--opaque",
+      "veoveo_hub::contract::catalog::TargetDeclaration",
+      "--opaque",
+      "openshell_sdk::config::AuthConfig",
+      "--opaque",
+      "veoveo_hub::registration::snapshot::_::iter::_::call_mut",
+      "--opaque",
+      "prost_types::protobuf::value::Kind",
+      "--opaque",
+      "serde_json::value::Value",
+      "--opaque",
+      "veoveo_hub_sdk::registration::authorization_template::_::parse",
+      "--opaque",
+      "veoveo_types::resource::_::components",
+      "--opaque",
+      "veoveo_hub_sdk::registration::authorization_template::_::matches",
+      "--opaque",
+      "veoveo_hub_sdk::registration::authorization_decision::resolve",
+      "--dest-file",
+      "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/probe-1/outputs/hub_current_roles.llbc",
+      "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+      "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+      "--",
+      "--manifest-path",
+      "crates/veoveo-hub/Cargo.toml",
+      "--lib",
+      "--locked"
+    ],
+    "aeneas_argv": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+      "-backend",
+      "lean",
+      "-filter-trait-methods",
+      "-split-files",
+      "-dest",
+      "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/probe-1/outputs",
+      "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/probe-1/outputs/hub_current_roles.llbc"
+    ],
+    "extraction_plan": {
+      "path": "/tmp/hub-session-family-20261030/session-extraction-plan1.json",
+      "sha256": "20989b3fc1c337109a47369e609ccd613c3c3a1490960af326f4df8d5adf163d"
+    },
+    "environments": "Native Linux Rust1.99 and SQLX_OFFLINE=true with inherited compiler wrappers/flags removed; Charon pinned nightly2026-09-17 PATH/LD separately. Mac Rust1.99, SQLX_OFFLINE=true and process-only PostgreSQL18.6 PATH. No shared SDK source mutation."
+  },
+  "tools": {
+    "lean_lake": "4.35.0",
+    "charon_rust": "nightly-2026-09-17",
+    "aeneas_source": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "native_linux_rust": "1.99.0-x86_64-unknown-linux-gnu",
+    "native_mac_rust": "1.99.0-aarch64-apple-darwin",
+    "postgres": "18.6 (Homebrew)",
+    "linux": "Ubuntu24.04.5 LTS / x86_64 / kernel6.8.0-147-generic",
+    "binary_hashes": {
+      "charon": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+      "aeneas": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+      "lake": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1"
+    }
+  },
+  "proof": {
+    "file": "proofs/current_roles/SessionFamilyProof.lean",
+    "source_sha256": "ba721cd25a0be08297fcb8f81e93688c26f6c00ec4e1d8ac4370b2358571e71e",
+    "actual_method": "veoveo_hub.policy.session.SessionFamilyAuthority.allows",
+    "restored_llbc_status": {
+      "def_id": 31,
+      "is_local": true,
+      "opacity": "Transparent",
+      "body": "Structured"
+    },
+    "guarantee": "Total exact .ok(decide Admitted) for the sixteen raw existing conditions; acceptance/refusal iff, raw observation equivalence, arbitrary generation and retained-issuer invariance, coherent acceptance and equal-expiry refusal, plus same-second one-nanosecond acceptance.",
+    "standard_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "additional_session_native_axioms": [],
+    "native_refinement": "Ordinary DateTime comparison models full Int\u00d7Nat lex order, retaining subsecond precision. Native Chrono UTC timestamp projection/order preservation (including valid representation), typed-ID validation/equality, set ordering/Borrow, native memory/alias and compiler/extractor correspondence remain explicit. Standard-only axiom closure is not a proof of these native implementations.",
+    "unused_dictionary_payloads": "UTC conversion/calendar/formatter fields enter generated dictionaries but are not used by session admission. Formatter delegates pinned Aeneas approximation; no native calendar/formatter proof is claimed.",
+    "caller_boundaries": "Exact signed family-ID store selection, verified JWT/Principal and audience projection, Serde from_stored/generation validity, read freshness/timeout, supplied now sampling and async errors/response are not extracted. Pure predicate observes ID presence only. Outer unbound service/exchange tokens use their separate authority. Task-specific compromise/continuity is separate.",
+    "declaration_correspondence": {
+      "prior_types_blocks": 165,
+      "unchanged_types_blocks_after_source_metadata": 165,
+      "prior_function_blocks": 131,
+      "unchanged_function_blocks_after_source_metadata": 122,
+      "remaining_9": "Existing PartialOrd dictionaries gain generated impl_def/gt default fields because gt is now reachable; prior partialEq/partial_cmp fields and all previous algorithms/closures remain unchanged. Full prior package rerun passes."
+    },
+    "imported_sdk_resolver_source_sha256": "8ed2b007bb457eed5057054367e2c9e6aac38664bc9e89cddc580d61de3e6bf8",
+    "imported_sdk_generated_model_sha256": "f7c597d997b34b800578f39168924a4666426bc6d5a5dfee23bc7313708e2e0f"
+  },
+  "checkpoints": {
+    "extraction": {
+      "summary": {
+        "path": "/tmp/hub-session-family-20261030/evidence-probe-1/summary.json",
+        "sha256": "3488493ff06298d72b2217f0a792fcd462706d64a0d20264aa2c839afbc1d8c3"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "extraction-sdk-metadata",
+          "exit": 0,
+          "elapsed_ms": 264,
+          "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/logs/extraction-sdk-metadata.json",
+          "stdout_sha256": "9b48fe86fe5c80f397120f3e83dbf90219abcf2e82a94f79e638a574716995d6",
+          "stderr_path": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/logs/extraction-sdk-metadata.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "stage": "clean-extraction-affected-packages",
+          "exit": 0,
+          "elapsed_ms": 164,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/logs/clean-extraction-affected-packages.log",
+          "log_sha256": "b9814b14588deb82235732ae908a206b7b400dffa1878786cdb629ddd3edebbe"
+        },
+        {
+          "stage": "charon-session-probe1",
+          "exit": 0,
+          "elapsed_ms": 33021,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/logs/charon-session-probe1.log",
+          "log_sha256": "d084fd8e6364902effc0880982d31b0d2d400209f854e916e4522e8d58f40ff3"
+        },
+        {
+          "stage": "aeneas-session-probe1",
+          "exit": 0,
+          "elapsed_ms": 1870,
+          "timed_out": false,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/logs/aeneas-session-probe1.log",
+          "log_sha256": "eef838d621d328c8d9d0a1086cf4bbcc7f60301ebdd1bad37c176e925d2b9abb"
+        }
+      ]
+    },
+    "models": {
+      "summary": {
+        "path": "/tmp/hub-session-family-20261030/evidence-models-run2/summary.json",
+        "sha256": "581e40bb94cdb8d6e0800bf8d47d5f28633c65b439c9de71172c61ad5564eec0"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "full-default-build",
+          "exit": 0,
+          "elapsed_ms": 37828,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-models-run2/logs/full-default-build.log",
+          "log_sha256": "71e25f09c3d7a769d93aaefddd2da90b0d4c970a2376d72207d56e79baab5425"
+        },
+        {
+          "stage": "model-audit",
+          "exit": 0,
+          "elapsed_ms": 2568,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-models-run2/logs/model-audit.log",
+          "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312"
+        },
+        {
+          "stage": "current-permissions-model-audit",
+          "exit": 0,
+          "elapsed_ms": 2568,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-models-run2/logs/current-permissions-model-audit.log",
+          "log_sha256": "3ac752ca291548d17ff3818c00563d631f6d2e6d408ad4070c97c49277c9ca7f"
+        },
+        {
+          "stage": "native-policy-model-audit",
+          "exit": 0,
+          "elapsed_ms": 2618,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-models-run2/logs/native-policy-model-audit.log",
+          "log_sha256": "7bb1fc2d46ecd7a3061ae14708cc0f93b12434b41d6cb7cadf97f1b27d69a415"
+        },
+        {
+          "stage": "session-model-audit",
+          "exit": 0,
+          "elapsed_ms": 2568,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-models-run2/logs/session-model-audit.log",
+          "log_sha256": "73f7e7c26051ad9fa1005ac9e46883fffbf17846d45b01318018b3733c6eb651"
+        }
+      ]
+    },
+    "combined": {
+      "summary": {
+        "path": "/tmp/hub-session-family-20261030/evidence-combined2/summary.json",
+        "sha256": "8e1b7de3ad375a0b46b3fcb2fd37ff21606fac4b0e6fd958ab36aa2a2ae4179d"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "full-default-build",
+          "exit": 0,
+          "elapsed_ms": 37578,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-combined-run2/logs/full-default-build.log",
+          "log_sha256": "da0085a7834b0530b3fe54fcdbbedb2d7323817192874881e7e63ff1e210cd0b"
+        },
+        {
+          "stage": "session-family-proof",
+          "exit": 0,
+          "elapsed_ms": 2770,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-combined-run2/logs/session-family-proof.log",
+          "log_sha256": "51f50672e8546f99c2258ef04e476f805edf326b86427708c22154ab05655928"
+        },
+        {
+          "stage": "model-audit",
+          "exit": 0,
+          "elapsed_ms": 2568,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-combined-run2/logs/model-audit.log",
+          "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312"
+        },
+        {
+          "stage": "current-permissions-model-audit",
+          "exit": 0,
+          "elapsed_ms": 2568,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-combined-run2/logs/current-permissions-model-audit.log",
+          "log_sha256": "3ac752ca291548d17ff3818c00563d631f6d2e6d408ad4070c97c49277c9ca7f"
+        },
+        {
+          "stage": "native-policy-model-audit",
+          "exit": 0,
+          "elapsed_ms": 2618,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-combined-run2/logs/native-policy-model-audit.log",
+          "log_sha256": "7bb1fc2d46ecd7a3061ae14708cc0f93b12434b41d6cb7cadf97f1b27d69a415"
+        },
+        {
+          "stage": "session-model-audit",
+          "exit": 0,
+          "elapsed_ms": 2618,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-combined-run2/logs/session-model-audit.log",
+          "log_sha256": "73f7e7c26051ad9fa1005ac9e46883fffbf17846d45b01318018b3733c6eb651"
+        }
+      ]
+    },
+    "linux_native": {
+      "summary": {
+        "path": "/tmp/hub-session-family-20261030/evidence-native-linux-run1/summary.json",
+        "sha256": "d792f2bdd434fbb0808a777f83a8ee7055c8854d1a9a6a5f218268c828669bac"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "clean-hub",
+          "exit": 0,
+          "elapsed_ms": 364,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-native-run1/logs/clean-hub.log",
+          "log_sha256": "42a90d025366c6ca816613c047d4141d42a92c9f1d591bbc72f61f43b69fecbf"
+        },
+        {
+          "stage": "fmt-check",
+          "exit": 0,
+          "elapsed_ms": 665,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-native-run1/logs/fmt-check.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "stage": "session-policy-tests",
+          "exit": 0,
+          "elapsed_ms": 45692,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-native-run1/logs/session-policy-tests.log",
+          "log_sha256": "d4b3b9994dbd658ee08ae4d89cf9157f4e73ed1c63a3cfa44fd2ceae691d1c6d",
+          "test_count": 4,
+          "test_failures": 0,
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+            "sha256": "135b9579cb15d45cd24d2643a7a84b656b638708b10b00e574b5d759d6e20d15",
+            "bytes": 748227576
+          },
+          "compiled_hub": true
+        },
+        {
+          "stage": "strict-lib-clippy",
+          "exit": 0,
+          "elapsed_ms": 12484,
+          "timed_out": false,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-native-run1/logs/strict-lib-clippy.log",
+          "log_sha256": "9a3bb05c14b9904476cc54da2c173b841dcfd8e40a615b0298f02d769ac2d3e9"
+        }
+      ]
+    },
+    "mac_postgres": {
+      "summary": {
+        "path": "/tmp/hub-session-family-20261030/mac-integration-run1/summary.json",
+        "sha256": "f287a767c50f42bd1dc3d8a2b31124f712af470020a870bfa509be2de690aa7e"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "postgres-version",
+          "exit": 0,
+          "elapsed_ms": 131,
+          "timed_out": false,
+          "log": "/tmp/hub-session-family-20261030/mac-integration-run1/logs/postgres-version.log",
+          "log_sha256": "1f6bff71efc118ffd7738eff34169ffdc19f0c8153a101eecd9517f40ffcf89c"
+        },
+        {
+          "stage": "initdb-version",
+          "exit": 0,
+          "elapsed_ms": 75,
+          "timed_out": false,
+          "log": "/tmp/hub-session-family-20261030/mac-integration-run1/logs/initdb-version.log",
+          "log_sha256": "14ee18735e00aabf2a7acd9c47a94ceb66a48c90ed31e16c7ddac2bfd2281678"
+        },
+        {
+          "stage": "pg_ctl-version",
+          "exit": 0,
+          "elapsed_ms": 36,
+          "timed_out": false,
+          "log": "/tmp/hub-session-family-20261030/mac-integration-run1/logs/pg_ctl-version.log",
+          "log_sha256": "8e5974d4426ecc630442dd8ba4102138b88f579a8ea623d680836b8cb7922107"
+        },
+        {
+          "stage": "createdb-version",
+          "exit": 0,
+          "elapsed_ms": 40,
+          "timed_out": false,
+          "log": "/tmp/hub-session-family-20261030/mac-integration-run1/logs/createdb-version.log",
+          "log_sha256": "ce60b4d7a811f02942b3488700abad8301524b3af6f2acbcc07558f3da7306ba"
+        },
+        {
+          "stage": "dropdb-version",
+          "exit": 0,
+          "elapsed_ms": 48,
+          "timed_out": false,
+          "log": "/tmp/hub-session-family-20261030/mac-integration-run1/logs/dropdb-version.log",
+          "log_sha256": "e4420814f59207aea36ae8fb6c7b1db8afd338a1a5b9416c6c700352727698a7"
+        },
+        {
+          "stage": "clean-hub",
+          "exit": 0,
+          "elapsed_ms": 563,
+          "timed_out": false,
+          "log": "/tmp/hub-session-family-20261030/mac-integration-run1/logs/clean-hub.log",
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+        },
+        {
+          "stage": "session-family-postgres-integration",
+          "exit": 0,
+          "elapsed_ms": 185309,
+          "timed_out": false,
+          "log": "/tmp/hub-session-family-20261030/mac-integration-run1/logs/session-family-postgres-integration.log",
+          "log_sha256": "136114412bfe19842f7b483d00baedb0eae804a53d1e849a65b51d11c92ee4b7",
+          "test_count": 1,
+          "test_failures": 0,
+          "binary": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/session_family-b17c34c3922b51b7",
+            "sha256": "0f1049d9d0ae36cceccfe9437d8504f81f1575c74091c7cfa2dc0941d8dd672b",
+            "bytes": 27587840
+          },
+          "compiled_hub": true
+        }
+      ]
+    }
+  },
+  "native_evidence": {
+    "linux_tests": 4,
+    "binding_scope_table_cases": 13,
+    "cases": "Proper/equal/empty scopes, strict token superset refusal, missing/revoked/past/equal/nanosecond expiry, every compared identity/resource/context/tenant/subject/kind/issuer binding, rotation and original IdP/unread metadata.",
+    "mac_test": "session_binding_survives_rotation_and_rejects_cross_replica_revocation",
+    "mac_tests": 1,
+    "mac_observation": "Real private PostgreSQL18.6 with two HubState/store clients; one existing component integration test, not deployed replicas or complete JWT authentication.",
+    "mac_test_wall_ms_including_cold_compilation": 185309,
+    "mac_harness_execution_seconds": 1.68,
+    "linux_native_tests_wall_ms_including_compilation": 45692,
+    "performance_boundary": "Tool-stage times include compilation/dependency reuse/fixture work; not request latency benchmarks.",
+    "boolean_instrumentation": "Control actual Boolean is inferred from the failed positive/negated assertion and verified source. Custom-message logs do not print a separate actual/expected Boolean pair. Each mutant test stops at its first failed assertion; later cases are not claimed executed.",
+    "synthetic_data": "Owned synthetic identities, UUIDs, scopes and supplied request times in pure tests; no provider inference or signed-JWT validation."
+  },
+  "controls": [
+    {
+      "id": "session-expiry-equality",
+      "patch_path": "proofs/current_roles/mutations/session-expiry-equality.patch",
+      "patch_sha256": "ce8b80c5e02de26cf817835ec3635fbf146904978a39c8ed815b4720e95980e2",
+      "base_source_sha256": "2e1591c1630170180a974a2a4220b0be7c9cff754634e79148dc28083f5459b4",
+      "mutated_source_sha256": "80885074eed44ed382ca4639b1b8a42b70b2c54c36d0433fa5d38db00dff70e8",
+      "primary_theorem": "SessionFamilyProof.allows_exact",
+      "native_test": "policy::session::tests::session_requires_present_unrevoked_and_strictly_live_family",
+      "native_args": [
+        "rustup",
+        "run",
+        "1.99.0-x86_64-unknown-linux-gnu",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--lib",
+        "policy::session::tests::session_requires_present_unrevoked_and_strictly_live_family",
+        "--",
+        "--exact"
+      ],
+      "summary": {
+        "path": "/tmp/hub-session-family-20261030/evidence-session-expiry-equality/summary.json",
+        "sha256": "f040b0a260aef7d2f39a3e287a48e6cafa6819207660a7efd3696de5e70d3d7f"
+      },
+      "runner_candidate_complete": false,
+      "reviewed_status": "accepted semantic control",
+      "formal_observation": "Symbolic typed program residual: strict-false branch now invokes DateTime.eq and may admit equality, whereas Admitted requires strict Before. No normalized False or synthesized Lean counterexample.",
+      "native_observation": "Expected false at expires_at==now; positive native result inferred from failed negated assertion.",
+      "reviewed_assertion_marker": "equal expiry refuses",
+      "stages": [
+        {
+          "stage": "native-mutant",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/native-mutant.log",
+          "log_sha256": "4554e82c8850de499be5a3d76ee1785f3974c8af60df9a9708963761efdebb0e"
+        },
+        {
+          "stage": "extract-mutant",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/extract-mutant.log",
+          "log_sha256": "4554e82c8850de499be5a3d76ee1785f3974c8af60df9a9708963761efdebb0e"
+        },
+        {
+          "stage": "extract-catalog-annotation",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/extract-catalog-annotation.log",
+          "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9"
+        },
+        {
+          "stage": "native-clean-hub",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 464,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/native-clean-hub.log",
+          "log_sha256": "42a90d025366c6ca816613c047d4141d42a92c9f1d591bbc72f61f43b69fecbf"
+        },
+        {
+          "stage": "native-no-run",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 34224,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/native-no-run.log",
+          "log_sha256": "fda3fa14da51fe8ae35afb9014a4f9d84ecafd2112dde99a1adbc3d76278e611",
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+            "sha256": "d3e0f52f62c4560483ec7bdcf18ec7d19025aa7b5545dad633128271b9dbcf00",
+            "bytes": 748093368
+          },
+          "compiled_hub": true
+        },
+        {
+          "stage": "extract-clean-hub",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 164,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/extract-clean-hub.log",
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+        },
+        {
+          "stage": "charon-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 24204,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/charon-mutant.log",
+          "log_sha256": "c1123c7bc7f48c7ef57c1905c11415be843a10bdefafa1b81f5d4183e45633cd"
+        },
+        {
+          "stage": "aeneas-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 2168,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/aeneas-mutant.log",
+          "log_sha256": "fdbe44bb9bd09734fc3a24eadfabdef00f3b4ae9eed6191358a99c1c2c09a5e7"
+        },
+        {
+          "stage": "helper-model-build",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 14888,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/helper-model-build.log",
+          "log_sha256": "597e3ee02cedd626bb32daa7c7b55e2f2999972f9b380341b793746d2224619b"
+        },
+        {
+          "stage": "primary-direct",
+          "exit": 1,
+          "timed_out": false,
+          "elapsed_ms": 2768,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/primary-direct.log",
+          "log_sha256": "30439b9e9a3f18ae92be1527b41fb22c8adbcebe43ff279b278e4f34b16f44b7"
+        },
+        {
+          "stage": "native-witness",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 264,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/native-witness.log",
+          "log_sha256": "d80c929d3e60362146adefc958a867aa1363d64dc98aba413fa92ec7fa94bd8b"
+        }
+      ],
+      "extraction": {
+        "llbc": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/outputs/hub_current_roles.llbc",
+          "sha256": "9bc11a50cf653349952ea759a105ee33e80aa4317846cebc99743e46f21b795e",
+          "has_errors": false
+        },
+        "generated": {
+          "Types.lean": {
+            "sha256": "314e30e3baf35d35c1a9bdf9db2ac6a5415e717aecbc98c89e33ae20cb8e7abb",
+            "bytes": 95002
+          },
+          "Funs.lean": {
+            "sha256": "54f1ddb99d4c0014d524721af62afe91c43bdc91107d2d021de2ebe49cd02c6d",
+            "bytes": 160840
+          }
+        }
+      },
+      "binary_no_run": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+        "sha256": "d3e0f52f62c4560483ec7bdcf18ec7d19025aa7b5545dad633128271b9dbcf00",
+        "bytes": 748093368
+      },
+      "witness": {
+        "stage": {
+          "stage": "native-witness",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::session::tests::session_requires_present_unrevoked_and_strictly_live_family",
+            "--",
+            "--exact"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/native/source/veoveo-hub",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 264,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-expiry-equality-run1/logs/native-witness.log",
+          "log_sha256": "d80c929d3e60362146adefc958a867aa1363d64dc98aba413fa92ec7fa94bd8b"
+        },
+        "binary_before": "d3e0f52f62c4560483ec7bdcf18ec7d19025aa7b5545dad633128271b9dbcf00",
+        "binary_after": "d3e0f52f62c4560483ec7bdcf18ec7d19025aa7b5545dad633128271b9dbcf00",
+        "same_binary": true,
+        "running_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+        "test_result": [
+          0,
+          1
+        ],
+        "assertion_failure": false
+      },
+      "instrumentation_note": "Historical candidate complete=false: detector looked for generic assertion text, while Rust printed expected custom assertion message. Manual source/log/count/exit/binary review accepts the control. Original summary retained; later runner detects exact known marker."
+    },
+    {
+      "id": "session-resource-bypass",
+      "patch_path": "proofs/current_roles/mutations/session-resource-bypass.patch",
+      "patch_sha256": "90e5ff25fd3a559097d4715a7a138c823310c3f2413bd59fb73de089291b4544",
+      "base_source_sha256": "2e1591c1630170180a974a2a4220b0be7c9cff754634e79148dc28083f5459b4",
+      "mutated_source_sha256": "d025df63fa5a2a86063c61546823293a3aa7e2e9b3107b6a6cd69aeec37c4726",
+      "primary_theorem": "SessionFamilyProof.allows_exact",
+      "native_test": "policy::session::tests::session_rejects_every_compared_identity_or_scope_binding",
+      "native_args": [
+        "rustup",
+        "run",
+        "1.99.0-x86_64-unknown-linux-gnu",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--lib",
+        "policy::session::tests::session_rejects_every_compared_identity_or_scope_binding",
+        "--",
+        "--exact"
+      ],
+      "summary": {
+        "path": "/tmp/hub-session-family-20261030/evidence-session-resource-bypass/summary.json",
+        "sha256": "9a78898289df37253dc023d27aa838e77078c004c79b79b4229780ff83141ad7"
+      },
+      "runner_candidate_complete": true,
+      "reviewed_status": "accepted semantic control",
+      "formal_observation": "Symbolic typed program residual: resource-equality false branch executes the same remaining conjunction as true branch instead of false.",
+      "native_observation": "Wrong supplied protected resource expected false; actual true inferred from failed negated assertion.",
+      "reviewed_assertion_marker": "must bind protected resource",
+      "stages": [
+        {
+          "stage": "native-mutant",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/native-mutant.log",
+          "log_sha256": "4554e82c8850de499be5a3d76ee1785f3974c8af60df9a9708963761efdebb0e"
+        },
+        {
+          "stage": "extract-mutant",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/extract-mutant.log",
+          "log_sha256": "4554e82c8850de499be5a3d76ee1785f3974c8af60df9a9708963761efdebb0e"
+        },
+        {
+          "stage": "extract-catalog-annotation",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/extract-catalog-annotation.log",
+          "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9"
+        },
+        {
+          "stage": "native-clean-hub",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 414,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/native-clean-hub.log",
+          "log_sha256": "53c768ba8b694ba973b548bdc64cbc4b697cf792c3547b8f9122868874778c5b"
+        },
+        {
+          "stage": "native-no-run",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 34127,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/native-no-run.log",
+          "log_sha256": "f750a5319f85d8b49f2476764812d63c54e64a84dee2eb9441a66b18de0ed969",
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+            "sha256": "a9d54a48c46d6aaf5408a6c54ec623374632a39f8179f1b057a28793f7140ff9",
+            "bytes": 748175304
+          },
+          "compiled_hub": true
+        },
+        {
+          "stage": "extract-clean-hub",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 164,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/extract-clean-hub.log",
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+        },
+        {
+          "stage": "charon-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 24255,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/charon-mutant.log",
+          "log_sha256": "c926b156f5c806d568afc9228e05884ca9543b7239e42a7d52c3edc56bee643a"
+        },
+        {
+          "stage": "aeneas-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 2020,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/aeneas-mutant.log",
+          "log_sha256": "df81eb71f16b4245a4b06ad03767ef198f4485f73fdccee98c8ceb690e2d1e9b"
+        },
+        {
+          "stage": "helper-model-build",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 14839,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/helper-model-build.log",
+          "log_sha256": "f9b87c6a647ff8def7ba426d4b76df1cd3b8d3616df16e8c8704cfce3a6222be"
+        },
+        {
+          "stage": "primary-direct",
+          "exit": 1,
+          "timed_out": false,
+          "elapsed_ms": 2768,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/primary-direct.log",
+          "log_sha256": "df056c08ddba1216ce1307d05092400cd2dc1d1909faa832c587b3ff9bfb0e69"
+        },
+        {
+          "stage": "native-witness",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 314,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/native-witness.log",
+          "log_sha256": "48a1b1edf54ff32309b2440bb5d508f73ebd0f7e21d36023aa4add4c9cfe97c2"
+        }
+      ],
+      "extraction": {
+        "llbc": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/outputs/hub_current_roles.llbc",
+          "sha256": "0921ea3e10fc440a787f2fe5ab85ef5e9c0ae489138d565186fcb3e5fde2fcaa",
+          "has_errors": false
+        },
+        "generated": {
+          "Types.lean": {
+            "sha256": "314e30e3baf35d35c1a9bdf9db2ac6a5415e717aecbc98c89e33ae20cb8e7abb",
+            "bytes": 95002
+          },
+          "Funs.lean": {
+            "sha256": "09c2d56393a1fced450af1a2ad445aaa025ce9a8f9fb61f31770ebbc8b456254",
+            "bytes": 159357
+          }
+        }
+      },
+      "binary_no_run": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+        "sha256": "a9d54a48c46d6aaf5408a6c54ec623374632a39f8179f1b057a28793f7140ff9",
+        "bytes": 748175304
+      },
+      "witness": {
+        "stage": {
+          "stage": "native-witness",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::session::tests::session_rejects_every_compared_identity_or_scope_binding",
+            "--",
+            "--exact"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/native/source/veoveo-hub",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 314,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-resource-bypass-run1/logs/native-witness.log",
+          "log_sha256": "48a1b1edf54ff32309b2440bb5d508f73ebd0f7e21d36023aa4add4c9cfe97c2"
+        },
+        "binary_before": "a9d54a48c46d6aaf5408a6c54ec623374632a39f8179f1b057a28793f7140ff9",
+        "binary_after": "a9d54a48c46d6aaf5408a6c54ec623374632a39f8179f1b057a28793f7140ff9",
+        "same_binary": true,
+        "running_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+        "test_result": [
+          0,
+          1
+        ],
+        "assertion_failure": true,
+        "assertion_marker": "must bind protected resource"
+      },
+      "instrumentation_note": "Exact custom marker recognized by corrected runner; expected exit/count/binary gates pass."
+    },
+    {
+      "id": "session-reverse-subset",
+      "patch_path": "proofs/current_roles/mutations/session-reverse-subset.patch",
+      "patch_sha256": "4daa1fa6c4bb1d7e994e3c2716678b646d234f080a5f87b3100f6900ad84e377",
+      "base_source_sha256": "2e1591c1630170180a974a2a4220b0be7c9cff754634e79148dc28083f5459b4",
+      "mutated_source_sha256": "6c44809876a954823ec43eec6791e53611a826072cff39ffef96b53067278190",
+      "primary_theorem": "SessionFamilyProof.allows_exact",
+      "native_test": "policy::session::tests::session_rejects_every_compared_identity_or_scope_binding",
+      "native_args": [
+        "rustup",
+        "run",
+        "1.99.0-x86_64-unknown-linux-gnu",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--lib",
+        "policy::session::tests::session_rejects_every_compared_identity_or_scope_binding",
+        "--",
+        "--exact"
+      ],
+      "summary": {
+        "path": "/tmp/hub-session-family-20261030/evidence-session-reverse-subset/summary.json",
+        "sha256": "9378ab90574eeff55f2b23237e5c733e722ed5567802d6b1dfb3ea54467bd82c"
+      },
+      "runner_candidate_complete": true,
+      "reviewed_status": "accepted semantic control",
+      "formal_observation": "Normalized raw predicate differs only in containment direction: family.scopes subset token.scopes instead of token.scopes subset family.scopes; semantic predicate mismatch, not normalized False.",
+      "native_observation": "Strict token scope superset containing an outside scope expected false; actual true inferred from failed negated assertion. No separate proper-subset mutant test executed.",
+      "reviewed_assertion_marker": "must bind token scope outside family",
+      "stages": [
+        {
+          "stage": "native-mutant",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/native-mutant.log",
+          "log_sha256": "4554e82c8850de499be5a3d76ee1785f3974c8af60df9a9708963761efdebb0e"
+        },
+        {
+          "stage": "extract-mutant",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/extract-mutant.log",
+          "log_sha256": "4554e82c8850de499be5a3d76ee1785f3974c8af60df9a9708963761efdebb0e"
+        },
+        {
+          "stage": "extract-catalog-annotation",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/extract-catalog-annotation.log",
+          "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9"
+        },
+        {
+          "stage": "native-clean-hub",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 414,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/native-clean-hub.log",
+          "log_sha256": "53c768ba8b694ba973b548bdc64cbc4b697cf792c3547b8f9122868874778c5b"
+        },
+        {
+          "stage": "native-no-run",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 34525,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/native-no-run.log",
+          "log_sha256": "7edafa21361de51de69835fc3f485a2996a91e90fcf7c5fb53bb672ca6808bb5",
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+            "sha256": "44421676d17efd8c82a479b48c50e53968f42fc03e08b93ee29370cb3a7f5887",
+            "bytes": 748227584
+          },
+          "compiled_hub": true
+        },
+        {
+          "stage": "extract-clean-hub",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 164,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/extract-clean-hub.log",
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+        },
+        {
+          "stage": "charon-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 23855,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/charon-mutant.log",
+          "log_sha256": "e749a40023771b3854b140d1c375f78e5cb64cbb8edb3d06f8d628af289575a6"
+        },
+        {
+          "stage": "aeneas-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 1921,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/aeneas-mutant.log",
+          "log_sha256": "91f658559a86c83d3b0f5f05f49d0ca4f124166a615c609c59738b0cba2807e1"
+        },
+        {
+          "stage": "helper-model-build",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 16090,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/helper-model-build.log",
+          "log_sha256": "6424d98e5fc277d192f2118c5c9b4d4e0231815af41a18aadcc9954152e343e7"
+        },
+        {
+          "stage": "primary-direct",
+          "exit": 1,
+          "timed_out": false,
+          "elapsed_ms": 2768,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/primary-direct.log",
+          "log_sha256": "5174741db0376c16b402fe01561a3ceeab8ccf7f11be4df4c98007612f27f97b"
+        },
+        {
+          "stage": "native-witness",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 264,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/native-witness.log",
+          "log_sha256": "e56320b7715645e068e2318b18f50f33d32f737d1221d72fa9f946f7da38e488"
+        }
+      ],
+      "extraction": {
+        "llbc": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/outputs/hub_current_roles.llbc",
+          "sha256": "9af70330e6d33b466a423969378f04b6b5be435b26d6054c35628fc77fc18fbf",
+          "has_errors": false
+        },
+        "generated": {
+          "Types.lean": {
+            "sha256": "314e30e3baf35d35c1a9bdf9db2ac6a5415e717aecbc98c89e33ae20cb8e7abb",
+            "bytes": 95002
+          },
+          "Funs.lean": {
+            "sha256": "648828da9090380988bf2f9ffa80c805f47f69b8d856dbfde622f572e6aae8dd",
+            "bytes": 156465
+          }
+        }
+      },
+      "binary_no_run": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+        "sha256": "44421676d17efd8c82a479b48c50e53968f42fc03e08b93ee29370cb3a7f5887",
+        "bytes": 748227584
+      },
+      "witness": {
+        "stage": {
+          "stage": "native-witness",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::session::tests::session_rejects_every_compared_identity_or_scope_binding",
+            "--",
+            "--exact"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/native/source/veoveo-hub",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 264,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-reverse-subset-run1/logs/native-witness.log",
+          "log_sha256": "e56320b7715645e068e2318b18f50f33d32f737d1221d72fa9f946f7da38e488"
+        },
+        "binary_before": "44421676d17efd8c82a479b48c50e53968f42fc03e08b93ee29370cb3a7f5887",
+        "binary_after": "44421676d17efd8c82a479b48c50e53968f42fc03e08b93ee29370cb3a7f5887",
+        "same_binary": true,
+        "running_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+        "test_result": [
+          0,
+          1
+        ],
+        "assertion_failure": true,
+        "assertion_marker": "must bind token scope outside family"
+      },
+      "instrumentation_note": "Exact custom marker recognized by corrected runner; expected exit/count/binary gates pass."
+    },
+    {
+      "id": "session-generation-zero",
+      "patch_path": "proofs/current_roles/mutations/session-generation-zero.patch",
+      "patch_sha256": "b8d70e2a1f1cccf322e29e7b316d26484f15d13086f2b6fb9e35c33c280f5be4",
+      "base_source_sha256": "2e1591c1630170180a974a2a4220b0be7c9cff754634e79148dc28083f5459b4",
+      "mutated_source_sha256": "860faaa906d535c734bcb2cf84c9dd880363e0ba21d2c82f5f1afc0c1b0fe963",
+      "primary_theorem": "SessionFamilyProof.allows_exact",
+      "native_test": "policy::session::tests::session_preserves_rotation_upstream_issuer_and_unread_metadata",
+      "native_args": [
+        "rustup",
+        "run",
+        "1.99.0-x86_64-unknown-linux-gnu",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--lib",
+        "policy::session::tests::session_preserves_rotation_upstream_issuer_and_unread_metadata",
+        "--",
+        "--exact"
+      ],
+      "summary": {
+        "path": "/tmp/hub-session-family-20261030/evidence-session-generation-zero/summary.json",
+        "sha256": "652885cc40dfc138513dc7f20ddb4ed1550e70738a7c216799978191aa174a90"
+      },
+      "runner_candidate_complete": true,
+      "reviewed_status": "accepted semantic control",
+      "formal_observation": "Symbolic typed program residual introduces generation=0#u64 guard absent from Admitted; nonzero branch returns false.",
+      "native_observation": "Generation0 succeeds, then valid generation1 expected true but actual false inferred from failed positive assertion. Later generation/metadata cases not claimed executed in this mutant.",
+      "reviewed_assertion_marker": "refresh generation 1 does not bind access",
+      "stages": [
+        {
+          "stage": "native-mutant",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/native-mutant.log",
+          "log_sha256": "4554e82c8850de499be5a3d76ee1785f3974c8af60df9a9708963761efdebb0e"
+        },
+        {
+          "stage": "extract-mutant",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/extract-mutant.log",
+          "log_sha256": "4554e82c8850de499be5a3d76ee1785f3974c8af60df9a9708963761efdebb0e"
+        },
+        {
+          "stage": "extract-catalog-annotation",
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/extract-catalog-annotation.log",
+          "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9"
+        },
+        {
+          "stage": "native-clean-hub",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 414,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/native-clean-hub.log",
+          "log_sha256": "53c768ba8b694ba973b548bdc64cbc4b697cf792c3547b8f9122868874778c5b"
+        },
+        {
+          "stage": "native-no-run",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 34826,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/native-no-run.log",
+          "log_sha256": "1c6fccfd93ed14b7ee30ace3bfdc00c44b09e0b638bfebebf21999737250cd19",
+          "binary": {
+            "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+            "sha256": "c73f3182094bcb6ac33df37af7d91babc41882e941db1c6278d02a3a401cc429",
+            "bytes": 748085568
+          },
+          "compiled_hub": true
+        },
+        {
+          "stage": "extract-clean-hub",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 164,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/extract-clean-hub.log",
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+        },
+        {
+          "stage": "charon-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 24407,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/charon-mutant.log",
+          "log_sha256": "272fc9d934a07e36340ff7c4f5f2f145edc1a058f558cc6a408e29cdccb96b47"
+        },
+        {
+          "stage": "aeneas-mutant",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 1869,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/aeneas-mutant.log",
+          "log_sha256": "13b7eb08239295081653d9ceae02a4eeeb40937eaabdf313563aa4fd3c2675f3"
+        },
+        {
+          "stage": "helper-model-build",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 16743,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/helper-model-build.log",
+          "log_sha256": "30dd05128d32f7e069efdaacd6db3db60c20ca7e625ebfe38e1f406b09855af9"
+        },
+        {
+          "stage": "primary-direct",
+          "exit": 1,
+          "timed_out": false,
+          "elapsed_ms": 2768,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/primary-direct.log",
+          "log_sha256": "c81c6627aa01911308d42964239197496bb42d80ecaa1eaa5b6585fde17d575e"
+        },
+        {
+          "stage": "native-witness",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 314,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/native-witness.log",
+          "log_sha256": "90fcbdb8d96b51aaafc186c2e94d5a1b0bba78329f4df33f3d3517f34228dfb9"
+        }
+      ],
+      "extraction": {
+        "llbc": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/outputs/hub_current_roles.llbc",
+          "sha256": "95e85c1ad593e264010ca0c70a76d45bf089b97b03588e12a57af1b81ffa88d9",
+          "has_errors": false
+        },
+        "generated": {
+          "Types.lean": {
+            "sha256": "314e30e3baf35d35c1a9bdf9db2ac6a5415e717aecbc98c89e33ae20cb8e7abb",
+            "bytes": 95002
+          },
+          "Funs.lean": {
+            "sha256": "f38555ba1c06af8b4c1246a3a359e6a8ed55b778276d67142dbe382b6243ad1d",
+            "bytes": 156745
+          }
+        }
+      },
+      "binary_no_run": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+        "sha256": "c73f3182094bcb6ac33df37af7d91babc41882e941db1c6278d02a3a401cc429",
+        "bytes": 748085568
+      },
+      "witness": {
+        "stage": {
+          "stage": "native-witness",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::session::tests::session_preserves_rotation_upstream_issuer_and_unread_metadata",
+            "--",
+            "--exact"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/native/source/veoveo-hub",
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 314,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-generation-zero-run1/logs/native-witness.log",
+          "log_sha256": "90fcbdb8d96b51aaafc186c2e94d5a1b0bba78329f4df33f3d3517f34228dfb9"
+        },
+        "binary_before": "c73f3182094bcb6ac33df37af7d91babc41882e941db1c6278d02a3a401cc429",
+        "binary_after": "c73f3182094bcb6ac33df37af7d91babc41882e941db1c6278d02a3a401cc429",
+        "same_binary": true,
+        "running_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+        "test_result": [
+          0,
+          1
+        ],
+        "assertion_failure": true,
+        "assertion_marker": "refresh generation 1 does not bind access"
+      },
+      "instrumentation_note": "Exact custom marker recognized by corrected runner; expected exit/count/binary gates pass."
+    }
+  ],
+  "restoration": {
+    "summary": {
+      "path": "/tmp/hub-session-family-20261030/evidence-final-restoration/summary.json",
+      "sha256": "23e7fe87ab72e10a7f44a4dfeabbcae97bebd82019b4e482cb89dcc549a78c08"
+    },
+    "complete": true,
+    "stages": [
+      {
+        "stage": "native-clean-hub",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 464,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/native-clean-hub.log",
+        "log_sha256": "53c768ba8b694ba973b548bdc64cbc4b697cf792c3547b8f9122868874778c5b"
+      },
+      {
+        "stage": "native-fmt-check",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 665,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/native-fmt-check.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "stage": "native-session-tests",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 34225,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/native-session-tests.log",
+        "log_sha256": "8f579003f286b4514b539a31c5027804a464d0d940ab353bb2e4842958cff979",
+        "tests": [
+          4,
+          0
+        ],
+        "binary": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-d3990710a3b653de",
+          "sha256": "712c04b35aa81b9263dcff277b1115aa3fc0cfc514b7762128e428afac092f02",
+          "bytes": 748227584
+        },
+        "compiled_hub": true
+      },
+      {
+        "stage": "native-strict-clippy",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 9130,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/native-strict-clippy.log",
+        "log_sha256": "2a9e40bff5b6c429312a095f09dec3fd034de060aeba5c22f72c90a8c097f462"
+      },
+      {
+        "stage": "extract-catalog-annotation",
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/extract-catalog-annotation.log",
+        "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9"
+      },
+      {
+        "stage": "extract-clean-hub",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 164,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/extract-clean-hub.log",
+        "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+      },
+      {
+        "stage": "charon",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 24907,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/charon.log",
+        "log_sha256": "766eba3dbdb5d2f1dc67aa02a1eb989c4bb842bf5ac4710f76ee8538dfb9c915"
+      },
+      {
+        "stage": "aeneas",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 1924,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/aeneas.log",
+        "log_sha256": "105603f01872a1ea73bfe8746f782136b8ff6f959cfa2d95e5388c67987c4782"
+      },
+      {
+        "stage": "full-default-build",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 39832,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/full-default-build.log",
+        "log_sha256": "491b39ac7da1f2871e5f83da548daf4b6f4fe6d67edc58c84ddc298f3e1f0575"
+      },
+      {
+        "stage": "session-family-proof",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 2718,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/session-family-proof.log",
+        "log_sha256": "51f50672e8546f99c2258ef04e476f805edf326b86427708c22154ab05655928"
+      },
+      {
+        "stage": "model-audit",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 2568,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/model-audit.log",
+        "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312"
+      },
+      {
+        "stage": "current-permissions-model-audit",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 2618,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/current-permissions-model-audit.log",
+        "log_sha256": "3ac752ca291548d17ff3818c00563d631f6d2e6d408ad4070c97c49277c9ca7f"
+      },
+      {
+        "stage": "native-policy-model-audit",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 2618,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/native-policy-model-audit.log",
+        "log_sha256": "7bb1fc2d46ecd7a3061ae14708cc0f93b12434b41d6cb7cadf97f1b27d69a415"
+      },
+      {
+        "stage": "session-model-audit",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 2568,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/logs/session-model-audit.log",
+        "log_sha256": "73f7e7c26051ad9fa1005ac9e46883fffbf17846d45b01318018b3733c6eb651"
+      }
+    ],
+    "extraction": {
+      "llbc_path": "/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-final-restore-run2/outputs/hub_current_roles.llbc",
+      "llbc_sha256": "5c04446aa8795c0ffd76be64ee68a7ec51f9e0bc89f98c24643c8d73a38d0b99",
+      "has_errors": false,
+      "generated": {
+        "Types.lean": {
+          "sha256": "314e30e3baf35d35c1a9bdf9db2ac6a5415e717aecbc98c89e33ae20cb8e7abb",
+          "bytes": 95002
+        },
+        "Funs.lean": {
+          "sha256": "75a5716a586290d2f2a8807391aa853d66c6adeaa6c3ea78785628f5284f5301",
+          "bytes": 156465
+        }
+      }
+    },
+    "generated_comparison": {
+      "Types.lean": {
+        "baseline_sha256": "6f7534408dfeeeaea56afd035bede7dd14c777295066bf2a9f41b34f8cca93ba",
+        "restored_raw_sha256": "314e30e3baf35d35c1a9bdf9db2ac6a5415e717aecbc98c89e33ae20cb8e7abb",
+        "baseline_source_comment_replacements": 23,
+        "restored_source_comment_replacements": 0,
+        "equal_after_exact_source_root_normalization": true,
+        "diff_path": null
+      },
+      "Funs.lean": {
+        "baseline_sha256": "445dee3644b5d80de20aab0b226e6d6c2d1b2d2fdc95da96e312f973bc239b76",
+        "restored_raw_sha256": "75a5716a586290d2f2a8807391aa853d66c6adeaa6c3ea78785628f5284f5301",
+        "baseline_source_comment_replacements": 25,
+        "restored_source_comment_replacements": 0,
+        "equal_after_exact_source_root_normalization": true,
+        "diff_path": null
+      }
+    },
+    "comparison_rule": "Raw output preserved. Normalize only the exact prior copied SDK root to pinned Git SDK239 root on Source doc-comment lines, preserving spans/rest line and every other byte. Types23/Funs25 substitutions; definition/type/body bytes equal afterward. Working generated source retains original probe bytes.",
+    "session_and_authored_inputs": "Fresh source base+combined2 verified; all authored models/new+prior proof files/pins unchanged; only approved catalog annotation in extraction copy. New fresh private .lake/build and forced native Hub recompile.",
+    "mac_repetition": "No second Mac DB run; accepted immutable combined2 Mac baseline is separate. Controls touched only private Linux copies and restoration matches those original source bytes."
+  },
+  "retention": "Native target/executable path reused. Each binary digest is a historical per-stage capture; earlier binary bytes are not promised still present at that path. Source freezes/logs/raw generated outputs are preserved.",
+  "history": [
+    "https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-session-family-qualification.md"
+  ],
+  "not_performed": [
+    "Production behavior changes",
+    "New CI/hooks/framework",
+    "Full repository Docker checks",
+    "Deployment",
+    "Paid model qualification",
+    "Proof of complete async/JWT/Serde/store/Task path"
+  ],
+  "control_inputs": {
+    "plan": {
+      "path": "/tmp/hub-session-family-20261030/session-controls-plan3.json",
+      "sha256": "c6e06e65fd54da4b97178807a05fbbb8588227548a5a4984d48d797de8cdaf9c"
+    },
+    "archive": {
+      "path": "/tmp/hub-session-family-20261030/session-controls-1.tar",
+      "sha256": "f146a26a1e37ebb31ac3177b4c551b4243cd4053bcd15065723ca366b41fb737"
+    },
+    "manifest": {
+      "path": "/tmp/hub-session-family-20261030/session-controls-3-manifest.json",
+      "sha256": "6263a8fdc7dfb6e7d9ebf9c64b619819ebfaea65818ee8e4e951dbbbc69d8f93"
+    }
+  },
+  "excluded_draft_diagnostics": {
+    "model1": {
+      "summary": {
+        "path": "/tmp/hub-session-family-20261030/evidence-models-run1/summary.json",
+        "sha256": "89d506b31ae37d87b1f82994a2565b130aa33400fa49388bd129707b556ef7da"
+      },
+      "cause": "Authored doc comment before #print parsed as requiring a declaration; changed only to ordinary block comment. No model/predicate change."
+    },
+    "proof_iterations": [
+      {
+        "log": {
+          "path": "/tmp/hub-session-family-20261030/evidence-proof1/session-proof1-direct.log",
+          "sha256": "f5a3ebfc64a1b6a48cf4696dc40df07537447cf54934b6f565322bc9f5f94023"
+        },
+        "kind": "Proof elaboration/normalization draft, not semantic control; rejected recovery axioms."
+      },
+      {
+        "log": {
+          "path": "/tmp/hub-session-family-20261030/evidence-proof1/session-proof2-direct.log",
+          "sha256": "f71d30654e71a54d30c1de3ed868b925a687ab70d65ea57592691935cd678f6a"
+        },
+        "kind": "Proof elaboration/normalization draft, not semantic control; rejected recovery axioms."
+      },
+      {
+        "log": {
+          "path": "/tmp/hub-session-family-20261030/evidence-proof1/session-proof3-direct.log",
+          "sha256": "ed9ad4e441d957af964038acd83008204c36d9474495edd68930a89cc1c99464"
+        },
+        "kind": "Proof elaboration/normalization draft, not semantic control; rejected recovery axioms."
+      },
+      {
+        "log": {
+          "path": "/tmp/hub-session-family-20261030/evidence-proof1/session-proof4-direct.log",
+          "sha256": "8788d0e282dd8e7f0e630e3f59878c311e039e2a00ceb5bddc4f95492e57ebe1"
+        },
+        "kind": "Proof elaboration/normalization draft, not semantic control; rejected recovery axioms."
+      }
+    ],
+    "restoration_run1": {
+      "log": {
+        "path": "/tmp/hub-session-family-20261030/session-final-restore-launch.log",
+        "sha256": "a784a7a7a597fc1ce82315365d3e36f290657093ba3a0003dbb2e713a05dbe08"
+      },
+      "observed": "input hash mismatch mp",
+      "cause": "The temporary runner looked for the approved catalog patch at an absent base-cache path. It stopped before ROOT/stages; corrected runner points to exact frozen patch d419ecd3... in combined snapshot. Only run2 qualifies."
+    }
+  },
+  "verification": {
+    "frozen_nonreporting_file_count": 55,
+    "source_mismatch_count": 0,
+    "restored_session_and_native_binaries": "Recorded in stage summaries; independently reviewed same no-run/pre/post identity for each control. Restored native binary 712c04b3... is a new stage capture.",
+    "source_comment_correspondence": "Independently verified exact SDK source prefix substitution only, 23 Types/25 Funs, no span/body/type changes.",
+    "accepted_proof_output": "No sorryAx/error/unreviewed-axiom diagnostics in restored accepted outputs; session theorem/model audits standard3 only, prior native-policy allowed boundary retained."
+  }
+}

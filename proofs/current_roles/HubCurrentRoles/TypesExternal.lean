@@ -551,3 +551,18 @@ abbrev alloc.collections.btree.map.Iter (K : Type _) (V : Type _) := List (K × 
   "veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate"]
 structure veoveo_hub_sdk.registration.authorization_template.AuthorizationTemplate where
   token : Nat
+
+-- Session-family UTC dictionary payloads. These values are not inspected by
+-- admission; native calendar/formatting/offset refinement is outside this slice.
+@[rust_type "chrono::offset::fixed::FixedOffset"]
+structure chrono.offset.fixed.FixedOffset where
+  seconds : Int
+
+@[rust_type "chrono::naive::date::NaiveDate"]
+structure chrono.naive.date.NaiveDate where
+  days : Int
+
+@[rust_type "chrono::naive::datetime::NaiveDateTime"]
+structure chrono.naive.datetime.NaiveDateTime where
+  seconds : Int
+  nanos : Nat

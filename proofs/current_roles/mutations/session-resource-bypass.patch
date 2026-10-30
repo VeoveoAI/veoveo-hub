@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/session.rs
++++ b/crates/veoveo-hub/src/policy/session.rs
+@@ -57,7 +57,7 @@
+         let _ = self.current_generation;
+         token.session_family.is_some() && self.revoked_at.is_none() && self.expires_at > now
+             && self.principal_id == principal.id && self.tenant == principal.tenant
+-            && self.authorization_server == *authorization_server && self.protected_resource == *protected_resource
++            && self.authorization_server == *authorization_server && (self.protected_resource == *protected_resource || true)
+             && self.oauth_client_id == token.oauth_client_id && self.work_context == token.work_context
+             && self.principal.principal.id == principal.id && self.principal.principal.kind == principal.kind
+             // The retained principal has its original IdP issuer; the verified

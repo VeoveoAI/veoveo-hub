@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/session.rs
++++ b/crates/veoveo-hub/src/policy/session.rs
+@@ -55,7 +55,7 @@
+         // Access is bound to the family, not a rotating refresh-token generation.
+         // The decoder still rejects negative/corrupt stored generations.
+         let _ = self.current_generation;
+-        token.session_family.is_some() && self.revoked_at.is_none() && self.expires_at > now
++        token.session_family.is_some() && self.current_generation == 0 && self.revoked_at.is_none() && self.expires_at > now
+             && self.principal_id == principal.id && self.tenant == principal.tenant
+             && self.authorization_server == *authorization_server && self.protected_resource == *protected_resource
+             && self.oauth_client_id == token.oauth_client_id && self.work_context == token.work_context
