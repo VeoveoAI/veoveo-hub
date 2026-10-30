@@ -1180,29 +1180,39 @@ router.
 #### Computer versions
 
 A Computer version is everything a new sandbox gets from the installation: the
-template, the policy and the Hub's Computer settings, which a typed provision snapshot
-holds (workload settings, native policy/template protobufs, selected persistence
-backend and model secret locator, never access/refresh tokens or actual model
-credentials). Its name is the first twelve hexadecimal digits of the SHA-256, under
-the domain `https://veoveo.ai/formats/computer-version` and a NUL byte, of a canonical
-document: the template's spec with its environment as a sorted map, OpenShell's
-canonical policy JSON, and the settings without the handbook, the forwarding capacity,
-the collection setting, the gateway connection and the template's and policy file's
-names. Protobuf maps encode
-in no fixed order, so neither protobuf enters the digest as stored. The same inputs
-name the same version whatever their names or object identity.
+template, the policy, the Hub's Computer settings, and the supervisor and sandbox
+runtime images the gateway's driver gives every sandbox, which a typed provision
+snapshot holds (workload settings, native policy/template protobufs, selected
+persistence backend, the driver's images, and model secret locator, never
+access/refresh tokens or actual model credentials). Only the gateway's configuration
+sets those images, and OpenShell refuses them in a template, so the Hub reads them from
+the driver's capabilities in `GetGatewayInfo`, where it reads the backend.
+
+Its name is the first twelve hexadecimal digits of the SHA-256, under the domain
+`https://veoveo.ai/formats/computer-version` and a NUL byte, of a canonical document:
+the template's spec with its environment as a sorted map, OpenShell's canonical policy
+JSON, the settings without the handbook, the forwarding capacity, the collection
+setting, the gateway connection and the template's and policy file's names, and the
+driver's images when it reports any. A supervisor or runtime change therefore names a
+new version, which every running Computer is offered; a driver that reports none
+leaves the version as it was. Protobuf maps encode in no fixed order, so neither
+protobuf enters the digest as stored. The same inputs name the same version whatever
+their names or object identity.
 
 The template's annotation `veoveo.ai/release-note` is the version's release note,
 written by whoever publishes the template; its first line is the version's summary.
 OpenShell keeps a template's annotations through creation. What a version brings over
 the one the Computer runs is what differs between them: its note, when that differs
 from the note of the version the Computer runs or that one's is unknown, and, with or
-without a note, the mechanical differences: a changed image, and each network rule's
-endpoints (`host:port` and any path) added or removed. A version that changes only
-through the policy or the Hub's Computer settings keeps the template's note, which is
-then not new and is not listed again.
+without a note, the mechanical differences: a changed image, a changed supervisor or
+sandbox runtime image (from none for a version recorded before the driver reported
+them), and each network rule's endpoints (`host:port` and any path) added or
+removed. A version that changes only through the policy, the Hub's Computer settings or
+the driver's images keeps the template's note, which is then not new and is not listed
+again.
 The JSON status carries those differences as they are; the start and status pages say
-them for people: "The Computer's software was updated" for a new image, and where the
+them for people: "The Computer's software was updated" for a new image, "The platform
+that runs your Computer was updated" for a new supervisor or runtime, and where the
 Computer can now, or can no longer, connect, without image references or rule names.
 The status page says what the Computer is doing in plain words (running, starting,
 stopping, asleep after collection, or failed with its cause) and what the person can
@@ -1273,7 +1283,7 @@ Without the setting nothing is collected. It is not part of the Computer version
 
 The proxy records, in memory, the time of each browser request it forwards to a
 Computer. OpenShell records the sandbox's traffic as `SandboxStatus.last_activity_time`
-(pin `c28524bdd`): the latest 10-second activity summary from the supervisor that held
+(pin `c80bda201`): the latest 10-second activity summary from the supervisor that held
 an allowed proxied connection or L7 request, written at most once a minute and kept
 across gateway restarts. A long-lived connection counts once, when it opens. A sandbox
 with no recorded traffic counts from its creation. Both times count from no earlier

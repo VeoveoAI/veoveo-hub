@@ -1,7 +1,8 @@
 //! Versions of synthetic specs: the same inputs name the same version whatever their
 //! order, object identity or names, a change of anything a sandbox gets names another,
-//! and what's new lists the release note when it differs, the image and the network
-//! endpoints gained or lost. No gateway is involved.
+//! and what's new lists the release note when it differs, the image, the gateway's
+//! supervisor and runtime images, and the network endpoints gained or lost. No gateway
+//! is involved.
 use std::collections::HashMap;
 
 use openshell_sdk::raw::proto as p;
@@ -9,7 +10,7 @@ use openshell_sdk::raw::proto as p;
 use super::{
     super::{
         ComputerProvisionSpec,
-        spec::PersistenceBackend,
+        spec::{ComputerRuntime, PersistenceBackend},
         test_fixture::{config, model_secret},
     },
     *,
@@ -265,4 +266,50 @@ fn a_note_is_listed_only_when_it_differs_from_the_running_versions() {
             .as_deref(),
         Some("Smaller image")
     );
+}
+
+#[test]
+fn the_gateways_supervisor_and_runtime_images_name_a_version() {
+    let base = spec(HUB_ONLY, &template("registry/computer@sha256:1", &[], &[]));
+    let runtime = |supervisor: &str, sandbox_runtime: &str| {
+        base.clone().with_runtime(ComputerRuntime {
+            supervisor_image: supervisor.into(),
+            sandbox_runtime_image: sandbox_runtime.into(),
+        })
+    };
+    let reported = runtime("registry/supervisor@sha256:a", "registry/sandbox@sha256:b");
+
+    // A gateway that reports no images leaves the version as it was.
+    assert_eq!(runtime("", "").version().unwrap(), base.version().unwrap());
+    for other in [
+        &base,
+        &runtime("registry/supervisor@sha256:c", "registry/sandbox@sha256:b"),
+        &runtime("registry/supervisor@sha256:a", "registry/sandbox@sha256:d"),
+    ] {
+        assert_ne!(other.version().unwrap(), reported.version().unwrap());
+    }
+
+    // What's new names each image that changed, from none for a version recorded
+    // before the gateway reported them.
+    let changes = whats_new(&base, &reported).unwrap();
+    assert_eq!(
+        changes.supervisor,
+        Some(ImageChange {
+            from: String::new(),
+            to: "registry/supervisor@sha256:a".into(),
+        })
+    );
+    let newer = runtime("registry/supervisor@sha256:c", "registry/sandbox@sha256:b");
+    let changes = whats_new(&reported, &newer).unwrap();
+    assert_eq!(
+        changes.supervisor,
+        Some(ImageChange {
+            from: "registry/supervisor@sha256:a".into(),
+            to: "registry/supervisor@sha256:c".into(),
+        })
+    );
+    assert_eq!(changes.sandbox_runtime, None);
+    assert_eq!(changes.image, None);
+    // A gateway that stops reporting them changes nothing a sandbox is told.
+    assert_eq!(whats_new(&reported, &base).unwrap().supervisor, None);
 }

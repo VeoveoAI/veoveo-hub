@@ -14,6 +14,30 @@ pub(crate) enum PersistenceBackend {
     Kubernetes,
 }
 
+/// The trusted images the gateway's driver gives every new sandbox, as it reports them.
+/// Only the gateway's configuration sets them; a template cannot.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct ComputerRuntime {
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub(crate) supervisor_image: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub(crate) sandbox_runtime_image: String,
+}
+impl ComputerRuntime {
+    /// The images `driver` reports.
+    pub(crate) fn of(driver: &p::ComputeDriverInfo) -> Self {
+        let capabilities = driver.capabilities.clone().unwrap_or_default();
+        Self {
+            supervisor_image: capabilities.supervisor_image,
+            sandbox_runtime_image: capabilities.sandbox_runtime_image,
+        }
+    }
+    pub(crate) fn is_empty(&self) -> bool {
+        self.supervisor_image.is_empty() && self.sandbox_runtime_image.is_empty()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ComputerProvisionSpec {
@@ -21,6 +45,8 @@ pub struct ComputerProvisionSpec {
     pub(crate) model_secret: SecretReference,
     pub(crate) hub_url: String,
     pub(crate) backend: PersistenceBackend,
+    #[serde(default, skip_serializing_if = "ComputerRuntime::is_empty")]
+    pub(crate) runtime: ComputerRuntime,
     policy: Vec<u8>,
     template: Vec<u8>,
 }
@@ -38,9 +64,15 @@ impl ComputerProvisionSpec {
             model_secret,
             hub_url,
             backend,
+            runtime: ComputerRuntime::default(),
             policy: policy.encode_to_vec(),
             template: template.encode_to_vec(),
         }
+    }
+    /// This spec with the images the gateway's driver gives every new sandbox.
+    pub(crate) fn with_runtime(mut self, runtime: ComputerRuntime) -> Self {
+        self.runtime = runtime;
+        self
     }
     pub(crate) fn policy(&self) -> Result<p::sandbox::v1::SandboxPolicy> {
         p::sandbox::v1::SandboxPolicy::decode(self.policy.as_slice())
