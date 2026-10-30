@@ -4,7 +4,7 @@ use std::{borrow::Cow, time::Instant};
 use veoveo_audit_contract::AuditOutcome;
 use veoveo_hub_sdk::HubDiscoveryMetadata;
 use veoveo_hub_sdk::audit::{ToolCompletion, ToolResultKind};
-use veoveo_hub_sdk::hub::HubDiscoveryDegradation;
+use veoveo_hub_sdk::hub::HubDiscovery;
 use veoveo_hub_sdk::hub::{HubDiscoveryFailure, HubDiscoverySurface};
 
 use crate::control_plane::DiscoveryFailureMode;
@@ -182,7 +182,7 @@ impl HubMcp {
         &self,
         context: RequestContext<RoleServer>,
         subject: crate::AuthenticatedSubject,
-    ) -> Result<(Vec<rmcp::model::Tool>, HubDiscoveryDegradation, u32), McpError> {
+    ) -> Result<(Vec<rmcp::model::Tool>, HubDiscovery, u32), McpError> {
         let snapshot = self.catalog.snapshot();
         let catalog = snapshot.catalog().clone();
         let catalog_generation = snapshot.generation();
@@ -268,7 +268,7 @@ impl HubMcp {
                 });
             }
         }
-        Ok((tools, HubDiscoveryDegradation::new(failures), denied))
+        Ok((tools, HubDiscovery::new(failures), denied))
     }
 
     async fn discover_tools_for_server(

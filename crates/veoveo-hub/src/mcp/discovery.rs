@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, time::Duration};
-use veoveo_hub_sdk::hub::HubDiscoveryDegradation;
+use veoveo_hub_sdk::hub::HubDiscovery;
 use veoveo_hub_sdk::hub::{HubDiscoveryFailure, HubDiscoveryFailureCode, HubDiscoverySurface};
 
 use crate::control_plane::DiscoveryFailureMode;
@@ -461,7 +461,7 @@ impl CatalogDiscoveryCache {
 pub(super) fn isolate_discovery_failures<T, E>(
     surface: HubDiscoverySurface,
     results: Vec<(ServerSlug, Result<Vec<T>, E>)>,
-) -> (Vec<T>, HubDiscoveryDegradation, Vec<(ServerSlug, E)>) {
+) -> (Vec<T>, HubDiscovery, Vec<(ServerSlug, E)>) {
     let mut values = Vec::new();
     let mut failures = Vec::new();
     let mut errors = Vec::new();
@@ -478,7 +478,7 @@ pub(super) fn isolate_discovery_failures<T, E>(
             }
         }
     }
-    (values, HubDiscoveryDegradation::new(failures), errors)
+    (values, HubDiscovery::new(failures), errors)
 }
 
 /// Fails a list whose profile requires complete discovery when any server failed.

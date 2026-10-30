@@ -531,7 +531,8 @@ route needs current principal/profile admission and no additional permission; a 
 the server did not declare is denied. Server-wide and Task targets retain their
 requirement for at least one granted permission in that server's namespace.
 The Hub's own administrative actions are decided by the configuration's policy
-rules.
+rules. A grant or rule that names a group matches the caller's groups: their identity
+provider's, and their Lore groups by ID ([groups and sharing](#groups-and-sharing)).
 
 ## Forwarded Identity
 
@@ -1026,13 +1027,21 @@ through a group and of the repository's tenant, deletes a repository, which take
 assignment on it, and an unregistered one leaves nothing to remove; and what the changes
 leave is admitted. They also check the listing's caller, tenant and deployment bounds,
 filters, pages and refusals, and that only an exchange for one repository issues a
-repository scope. No Lore server is involved.
+repository scope. No Lore server is involved. They check that a group's member holds it
+by its ID as `write` and its owner as `admin`, and nobody else or in another tenant.
+Unit tests in `src/catalog/tests.rs` check a subject's groups, with a section of their
+own: the caller's own call holds its tenant's groups with their roles beside the
+identity provider's, as principal and actor alike, and none of another tenant or
+another person; a Work Context membership granted to a group is held through it, and
+the revision that removed the membership leaves neither; a server's call for the caller
+holds none; and a role granted to a group's ID is held through it.
 
 `tests/lore_sharing.rs` starts the binary with the native HTTP fixture's configuration,
 records synthetic `hub.person` rows as a sign-in writes them, and calls the access and
 group routes as the acceptance callers. It checks the exact answers: the creator's owner
 entry, a share with a person named by an email in any case and the list that follows,
-by email, and a group created with its creator as owner, listed only to its members.
+by email, and a group created with its creator as owner and its `id`, listed only to its
+members.
 It checks the refusals by problem type: reading without a grant, sharing or changing a
 group without being its owner, an email no one signed in with, whose detail asks for a
 sign-in, the caller's own lowering or removal on a repository and in a group, bodies of
@@ -1560,6 +1569,39 @@ catalog objects of kind `lore.group`. An assignment keeps its `principal` member
 the repository's tenant, a second assignment of one subject on a repository, a repeated
 group ID, a name repeated in a tenant and a repeated member.
 
+These groups are a person's groups everywhere, not only in Lore. When the Hub
+authenticates a request (`resolve_authenticated_subject` in `src/catalog.rs`), it adds to
+the principal's `groups`, beside its identity provider's, the `id` of each group of the
+principal's tenant they belong to in that catalog revision, and to its `group_roles` their
+role in it: `member` as `write` and `owner` as `admin`, as a repository's member writes
+and its owner also shares and deletes. It adds them before it resolves the Work Context
+membership. From there the existing contracts carry them, and nothing else changes:
+
+| Contract | Carries | Decides |
+|---|---|---|
+| The installation's roles, grants and policy rules, in `policy::decide` | the subject's `groups` | a role granted to `{"group": "<id>"}` is held through the group, so the caller's `tools/list`, admission and forwarded permissions follow it |
+| Work Context memberships | the subject's `groups` | a membership naming the group |
+| The forwarded token, RFC 9068 | `groups`, which the SDK requires to equal the embedded actor's | each server's own decisions over groups |
+| The invocation claim `https://veoveo.ai/claims/invocation` | the actor's `group_roles` | the SDK's `Principal::group_memberships`, by which Artifact caps a group grant |
+| Token exchange, RFC 8693 | the caller as the forwarded token or the Task's route retains it, groups included | the roles evaluated again at each exchange |
+| A server's call for a caller | no groups: its actor is the server, and the SDK refuses a server actor with groups | nothing through groups, as before |
+
+What is granted to a group is therefore held by whomever its owners add. A group granted
+`write` on an artifact lets every member write, and one granted `admin` lets its owners
+administer and its members write; the Hub's decision over the tool's declared risks comes
+first. A membership change applies from the next request. A forwarded token keeps the
+groups of its request until it expires, at most 15 minutes for `subscriptions/listen`, and
+a Task keeps those of the call that created it, as it keeps that call's authority. Tokens
+the Hub issues to clients, and the sign-ins they are issued from, keep only the identity
+provider's groups. Outside Lore a group is named by its `id`, never its name: anyone may
+create a group, so a grant naming a name could be taken by whoever creates it first, and a
+name could equal an identity provider's group. The kernel reads memberships through its
+sections: `CatalogSection::group_memberships` lists a section's memberships, none unless
+it holds groups, and the catalog keeps them by tenant and principal beside its objects,
+once per revision; the Lore section lists its groups' members. Only the subject of a
+request (`HubCatalog::with_group_memberships`) and the match of a Work Context
+membership read them, so no token the Hub issues to a client carries them.
+
 People are named by email. At every sign-in the Hub records the person in `hub.person`:
 tenant, principal, display name and email, which is the identity provider's `email`
 claim, or its `preferred_username` when that is an address, in lowercase; without either
@@ -1589,7 +1631,7 @@ the section alone (`sharing/changes.rs`). Fields that need two words are camelCa
 The access list is `{"repository": "<id>", "access": [<entry>]}`, each entry an
 assignment on the repository: `{"person": {"email", "name"}, "access", "actions"}` or
 `{"group": {"name"}, "access", "actions"}`, people by email and then groups by name. A
-group is `{"name", "members": [{"email", "name", "role"}]}`, its members by email. A
+group is `{"id", "name", "members": [{"email", "name", "role"}]}`, its members by email. A
 person is named by the email and display name of their last sign-in; one with no
 `hub.person` row, such as a principal an administrator assigned, has both `null` and is
 listed after the people who signed in. `actions` is the assignment's native action set
@@ -1597,7 +1639,8 @@ as the section stores it, in its canonical order, and `access` its level: `owner
 the actions hold `owner`, otherwise `member`. An owner sets a level: `member`, an
 assignment without actions, or `owner`, the `owner` action, which replaces whatever
 actions an administrator published. Groups, assignments and memberships are listed by
-email and name; IDs stay internal.
+email and name. A group also shows its `id`, which grants outside Lore name it by; other
+IDs stay internal.
 
 Refusals are RFC 9457 problems whose title and detail say what to do. A caller without
 a tenant answers 403 `sharing-forbidden`. An unknown repository, one of another tenant

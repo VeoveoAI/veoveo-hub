@@ -344,9 +344,15 @@ async fn qualify() {
         )
         .await;
     assert_eq!(status, reqwest::StatusCode::CREATED, "{created}");
+    // Its ID, which grants outside Lore name it by, is random.
+    let id = created["id"].as_str().unwrap_or_default().to_owned();
+    assert!(
+        id.len() == 32 && id.bytes().all(|b| b.is_ascii_hexdigit()),
+        "{created}"
+    );
     assert_eq!(
         created,
-        json!({"name": "builders", "members": [
+        json!({"id": id, "name": "builders", "members": [
             {"email": MEMBER, "name": "Member", "role": "owner"}
         ]})
     );
@@ -416,7 +422,7 @@ async fn qualify() {
     assert_eq!(status, reqwest::StatusCode::OK, "{group}");
     assert_eq!(
         group,
-        json!({"name": "builders", "members": [
+        json!({"id": id, "name": "builders", "members": [
             {"email": BUILDER, "name": "Builder", "role": "member"},
             {"email": MEMBER, "name": "Member", "role": "owner"}
         ]})

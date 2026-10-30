@@ -19,11 +19,12 @@ use std::collections::BTreeSet;
 use veoveo_hub::{
     contract::{
         AuthorizationServerId, CatalogFacts, CatalogObjectDescriptor, CatalogSection,
-        OAuthGrantType, ProtectedResourceDescriptor, ProtectedResourceName, SectionKey,
+        GroupMembershipDescriptor, OAuthGrantType, ProtectedResourceDescriptor,
+        ProtectedResourceName, SectionKey,
     },
     token_profile::{ProfileRequest, TokenContext, TokenLifetime, TokenProfile, TokenPurpose},
 };
-use veoveo_hub_sdk::ProtectedResourceId;
+use veoveo_hub_sdk::{GroupMembership, ProtectedResourceId};
 use veoveo_types::{
     ExtensionError, ExtensionName, PolicyVersion, PrincipalId, ScopeName, TenantId,
 };
@@ -35,8 +36,8 @@ pub struct RepositoryId(String);
 /// A native branch ID, in the canonical form of a repository ID.
 #[veoveo_types::id(text(RepositoryIds))]
 pub struct BranchId(String);
-/// A group's ID, random and in the canonical form of a repository ID. It stays inside
-/// the Hub: people name a group by its name.
+/// A group's ID, random and in the canonical form of a repository ID. People name a
+/// group by its name in Lore, and by this ID in every grant outside Lore.
 #[veoveo_types::id(text(RepositoryIds))]
 pub struct GroupId(String);
 /// A group's name, unique in its tenant: 1 to 64 of `a`–`z`, `0`–`9` and `-`,
@@ -354,6 +355,30 @@ impl CatalogSection for Lore {
             });
         }
         Ok(objects)
+    }
+    /// A member writes and an owner administers, as on a repository.
+    fn group_memberships(
+        &self,
+    ) -> std::result::Result<Vec<GroupMembershipDescriptor>, ExtensionError> {
+        let mut memberships = Vec::new();
+        for g in &self.groups {
+            let group = veoveo_types::GroupId::parse(&g.id)
+                .map_err(|_| ExtensionError::new("native group ID is no group ID"))?;
+            for m in &g.members {
+                memberships.push(GroupMembershipDescriptor {
+                    tenant: g.tenant.clone(),
+                    principal: m.principal.clone(),
+                    membership: GroupMembership {
+                        group: group.clone(),
+                        role: match m.role {
+                            GroupRole::Member => veoveo_hub_sdk::GroupRole::Write,
+                            GroupRole::Owner => veoveo_hub_sdk::GroupRole::Admin,
+                        },
+                    },
+                });
+            }
+        }
+        Ok(memberships)
     }
 }
 impl Lore {

@@ -495,11 +495,24 @@ impl HubCatalog {
             });
         }
         context
-            .membership_for(principal, &client.id)
+            .membership_for(&self.with_group_memberships(principal.clone()), &client.id)
             .ok_or_else(|| HubAuthorityError::MembershipDenied {
                 context: context.id.clone(),
                 principal: principal.id.clone(),
             })
+    }
+
+    /// `principal` with the groups it belongs to in its tenant in this revision added
+    /// beside its identity provider's, each with its role in it. The subject of every
+    /// request carries them; a token issued to a client does not.
+    pub fn with_group_memberships(&self, mut principal: Principal) -> Principal {
+        if let Some(tenant) = &principal.tenant {
+            for membership in self.sections.group_memberships(tenant, &principal.id) {
+                principal.groups.insert(membership.group.clone());
+                principal.group_roles.insert(membership.clone());
+            }
+        }
+        principal
     }
 
     pub fn resolve_authenticated_subject(
@@ -535,6 +548,7 @@ impl HubCatalog {
             principal,
             principal_display_name,
         } = verified;
+        let principal = self.with_group_memberships(principal);
         let context = self
             .work_context(&access_token.work_context)
             .ok_or_else(|| {

@@ -7,11 +7,12 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     sync::Arc,
 };
-use veoveo_hub_sdk::ProtectedResourceId;
+use veoveo_hub_sdk::{GroupMembership, ProtectedResourceId};
 use veoveo_types::{
     ActionHandle, ActionKey, ActionName, ActionRegistry, ActionRegistryBuilder, AdmittedExtensions,
     DataLabelId, ExtensionError, ExtensionKey, ExtensionName, ExtensionRegistry,
-    ExtensionRegistryBuilder, OAuthClientId, PolicyVersion, ScopeName, TenantId, Vocabulary,
+    ExtensionRegistryBuilder, OAuthClientId, PolicyVersion, PrincipalId, ScopeName, TenantId,
+    Vocabulary,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -98,6 +99,13 @@ pub struct CatalogObjectDescriptor {
     pub id: String,
     pub value: Value,
 }
+/// One principal's membership in a group a section holds.
+#[derive(Debug, Clone)]
+pub struct GroupMembershipDescriptor {
+    pub tenant: TenantId,
+    pub principal: PrincipalId,
+    pub membership: GroupMembership,
+}
 impl std::fmt::Debug for CatalogObjectDescriptor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CatalogObjectDescriptor")
@@ -116,6 +124,11 @@ pub trait CatalogSection:
     fn objects(&self) -> Result<Vec<CatalogObjectDescriptor>, ExtensionError> {
         Ok(Vec::new())
     }
+    /// Every membership of the section's groups. They are their members' groups for
+    /// every decision the Hub makes and every server it forwards to.
+    fn group_memberships(&self) -> Result<Vec<GroupMembershipDescriptor>, ExtensionError> {
+        Ok(Vec::new())
+    }
 }
 pub type SectionKey<T> = ExtensionKey<T>;
 pub type TargetKey<T> = ExtensionKey<T>;
@@ -127,6 +140,7 @@ type SectionFacts = Arc<
             (
                 Vec<ProtectedResourceDescriptor>,
                 Vec<CatalogObjectDescriptor>,
+                Vec<GroupMembershipDescriptor>,
             ),
             ExtensionError,
         > + Send
@@ -216,10 +230,14 @@ impl CatalogRegistryBuilder {
             SectionDeclaration {
                 facts: Arc::new(move |sections, facts| {
                     let Some(section) = sections.get(&captured)? else {
-                        return Ok((Vec::new(), Vec::new()));
+                        return Ok((Vec::new(), Vec::new(), Vec::new()));
                     };
                     section.validate(facts)?;
-                    Ok((section.protected_resources(), section.objects()?))
+                    Ok((
+                        section.protected_resources(),
+                        section.objects()?,
+                        section.group_memberships()?,
+                    ))
                 }),
                 schema: T::json_schema,
             },
@@ -370,10 +388,20 @@ impl CatalogRegistry {
         let sections = self.sections.admit(values.clone())?;
         let mut resources = Vec::new();
         let mut objects = Vec::new();
+        let mut memberships = GroupMemberships::new();
         let mut identities = BTreeSet::new();
         for section in self.section_declarations.values() {
-            let (section_resources, section_objects) = (section.facts)(&sections, facts)?;
+            let (section_resources, section_objects, section_memberships) =
+                (section.facts)(&sections, facts)?;
             resources.extend(section_resources);
+            for descriptor in section_memberships {
+                memberships
+                    .entry(descriptor.tenant)
+                    .or_default()
+                    .entry(descriptor.principal)
+                    .or_default()
+                    .insert(descriptor.membership);
+            }
             for object in section_objects {
                 if CORE_CATALOG_OBJECT_KINDS.contains(&object.kind.as_str()) {
                     return Err(ExtensionError::new(
@@ -394,6 +422,7 @@ impl CatalogRegistry {
             sections,
             resources,
             objects,
+            memberships,
         })
     }
     pub fn contribute_target<T: Serialize + 'static>(
@@ -475,11 +504,13 @@ impl CatalogRegistry {
         }).collect()
     }
 }
+type GroupMemberships = BTreeMap<TenantId, BTreeMap<PrincipalId, BTreeSet<GroupMembership>>>;
 #[derive(Debug, Clone)]
 pub struct AdmittedCatalogSections {
     sections: AdmittedExtensions,
     resources: Vec<ProtectedResourceDescriptor>,
     objects: Vec<CatalogObjectDescriptor>,
+    memberships: GroupMemberships,
 }
 impl AdmittedCatalogSections {
     pub fn get<T: Send + Sync + 'static>(
@@ -493,6 +524,18 @@ impl AdmittedCatalogSections {
     }
     pub fn protected_resources(&self) -> &[ProtectedResourceDescriptor] {
         &self.resources
+    }
+    /// The groups `principal` belongs to in `tenant`, each with its role.
+    pub fn group_memberships(
+        &self,
+        tenant: &TenantId,
+        principal: &PrincipalId,
+    ) -> impl Iterator<Item = &GroupMembership> {
+        self.memberships
+            .get(tenant)
+            .and_then(|principals| principals.get(principal))
+            .into_iter()
+            .flatten()
     }
 }
 #[derive(Clone, PartialEq, Eq)]
