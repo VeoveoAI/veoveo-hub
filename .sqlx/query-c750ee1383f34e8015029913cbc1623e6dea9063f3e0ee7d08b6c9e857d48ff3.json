@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- An autocommit locker cannot complete before the dropped writer releases its row lock.\nSELECT revision FROM hub.control_active FOR UPDATE\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.control_active",
+            "name": "revision"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "c750ee1383f34e8015029913cbc1623e6dea9063f3e0ee7d08b6c9e857d48ff3"
+}

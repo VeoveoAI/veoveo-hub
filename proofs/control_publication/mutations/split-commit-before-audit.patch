@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/store/control.rs
++++ b/crates/veoveo-hub/src/store/control.rs
+@@ -130,6 +130,8 @@
+         )
+         .execute(&mut *transaction)
+         .await?;
++        transaction.commit().await?;
++        let mut transaction = self.pool().begin().await?;
+         records.append(&mut transaction).await?;
+         transaction.commit().await?;
+         Ok(())

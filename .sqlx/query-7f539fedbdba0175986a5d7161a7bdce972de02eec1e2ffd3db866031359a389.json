@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- One statement snapshot, not a claim that successive ordinary SELECTs agree.\n-- No sequence/identifier allocation state is projected here.\nSELECT jsonb_build_object(\n    'active', (SELECT revision FROM hub.control_active),\n    'revisions', COALESCE((SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM hub.control_revision r), '[]'::jsonb),\n    'objects', COALESCE((SELECT jsonb_agg(to_jsonb(o) ORDER BY o.revision, o.kind, o.object_id) FROM hub.control_object o), '[]'::jsonb),\n    'enterprises', COALESCE((SELECT jsonb_agg(to_jsonb(e) ORDER BY e.id) FROM identity.enterprise e), '[]'::jsonb),\n    'tenants', COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY t.id) FROM identity.tenant t), '[]'::jsonb),\n    'contexts', COALESCE((SELECT jsonb_agg(to_jsonb(c) ORDER BY c.context_key) FROM identity.work_context c), '[]'::jsonb),\n    'grants', COALESCE((SELECT jsonb_agg(to_jsonb(g) ORDER BY g.work_context, g.ordinal) FROM identity.work_context_grant g), '[]'::jsonb),\n    'memberships', COALESCE((SELECT jsonb_agg(to_jsonb(m) ORDER BY m.work_context, m.ordinal) FROM identity.work_context_membership m), '[]'::jsonb),\n    'audit', COALESCE((SELECT jsonb_agg(to_jsonb(a) ORDER BY a.sequence) FROM audit.record a), '[]'::jsonb)\n) AS \"snapshot!\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "snapshot!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "7f539fedbdba0175986a5d7161a7bdce972de02eec1e2ffd3db866031359a389"
+}

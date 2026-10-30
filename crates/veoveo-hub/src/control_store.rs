@@ -1,4 +1,6 @@
 mod audit;
+#[cfg(test)]
+mod publication_tests;
 use crate::HubCatalogAdmission;
 
 use crate::control_plane::{HubControlPlane, HubControlPlaneRevision, HubControlPlaneRevisionId};
