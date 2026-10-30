@@ -308,7 +308,7 @@ async fn forward(
         let mut upstream = match opened {
             Ok(Ok(response)) => response.into_inner(),
             Ok(Err(status)) => {
-                tracing::warn!(%sandbox, code = ?status.code(), message = status.message(), "the gateway refused a native upstream forward");
+                tracing::warn!(%sandbox, code = ?status.code(), detail = status.message(), "the gateway refused a native upstream forward");
                 return Err(status.into());
             }
             Err(elapsed) => {
