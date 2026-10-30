@@ -1,0 +1,21 @@
+--- a/crates/veoveo-hub/src/delegation.rs
++++ b/crates/veoveo-hub/src/delegation.rs
+@@ -103,7 +103,7 @@
+ impl authority::Held<BTreeSet<PermissionName>> for CurrentPermissions<'_> {
+     fn held(&self, requested: &BTreeSet<PermissionName>) -> BTreeSet<PermissionName> {
+         let installation = &self.catalog.control_plane().authorization;
+-        self.catalog
++        let _evaluated: BTreeSet<PermissionName> = self.catalog
+             .registrations()
+             .iter()
+             .flat_map(|server| {
+@@ -114,7 +114,8 @@
+                 )
+             })
+             .filter(|permission| requested.contains(permission))
+-            .collect()
++            .collect();
++        BTreeSet::new()
+     }
+ }
+ 

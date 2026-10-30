@@ -1,0 +1,10 @@
+--- a/crates/veoveo-hub/src/catalog.rs
++++ b/crates/veoveo-hub/src/catalog.rs
+@@ -229,6 +229,7 @@
+ #[derive(Debug, Clone)]
+ pub struct HubCatalog {
+     admission: HubCatalogAdmission,
++    #[charon::rename("control_plane_value")]
+     control_plane: Arc<HubControlPlane>,
+     configuration_sha256: [u8; 32],
+     pub(crate) runtime: Option<Arc<crate::hosting::HostedRuntime>>,

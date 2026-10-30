@@ -157,7 +157,7 @@ impl RegistrationSnapshot {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &RegisteredServer> {
-        self.servers.values().map(Arc::as_ref)
+        self.servers.values().map(|server| server.as_ref())
     }
 
     pub fn len(&self) -> usize {

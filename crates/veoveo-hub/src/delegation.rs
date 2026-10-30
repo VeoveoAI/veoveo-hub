@@ -834,7 +834,287 @@ fn subject_of(
 #[cfg(test)]
 mod authority_adapter_tests {
     use super::*;
-    use authority::{Permissions, ResourceKey, Uses};
+    use crate::control_plane::{
+        GrantSubject, HubControlPlane, InstallationAuthorization, InstallationRole, RoleGrant,
+    };
+    use authority::{Held, Permissions, ResourceKey, Uses};
+    use veoveo_hub_sdk::registration::{
+        Access, AuthorizationDeclaration, PermissionDeclaration, Risk,
+    };
+    use veoveo_hub_sdk::{
+        AccessTokenSubject, Principal, PrincipalKind, ProtectedResourceId, TokenSubject,
+    };
+    use veoveo_types::{
+        AccessSubject, DelegationId, InvocationAuthority, InvocationMode, InvocationProvenance,
+        PolicyVersion, PrincipalId, ResourceTypeName, RoleId, TenantId, WorkContextId,
+        WorkContextMembershipLevel, WorkContextOutputPolicy,
+    };
+
+    // These fixtures own held-fixture and its permissions. No network, signature
+    // verification or outer profile admission is exercised by these method tests.
+    fn held_permission(name: &str, access: Access, risks: &[Risk]) -> PermissionDeclaration {
+        PermissionDeclaration {
+            permission: PermissionName::parse(name).unwrap(),
+            resource: ResourceTypeName::parse("held-fixture.records").unwrap(),
+            access,
+            risks: risks.iter().copied().collect(),
+        }
+    }
+
+    fn held_caller(subject: &str) -> DelegatedCaller {
+        let issuer = TokenIssuer::parse("https://held-fixture.test").unwrap();
+        let principal = Principal {
+            id: PrincipalId::parse(format!("{issuer}#{subject}")).unwrap(),
+            kind: PrincipalKind::User,
+            issuer: issuer.clone(),
+            subject: TokenSubject::parse(subject).unwrap(),
+            tenant: Some(TenantId::parse("held-fixture").unwrap()),
+            groups: BTreeSet::new(),
+            group_roles: BTreeSet::new(),
+            roles: BTreeSet::new(),
+            scopes: BTreeSet::new(),
+            data_labels: BTreeSet::new(),
+            assurances: BTreeSet::new(),
+            authenticated_at: None,
+        };
+        let client = OAuthClientId::parse("held-fixture-delegate").unwrap();
+        let mut actor = principal.clone();
+        actor.id = PrincipalId::parse(format!("{issuer}#{client}")).unwrap();
+        actor.subject = TokenSubject::parse(client.as_str()).unwrap();
+        actor.kind = PrincipalKind::Service;
+        let delegation_id = DelegationId::parse("held-fixture-delegation").unwrap();
+        let authority = InvocationAuthority {
+            work_context: WorkContextId::parse("held-fixture").unwrap(),
+            tenant: principal.tenant.clone().unwrap(),
+            membership: WorkContextMembershipLevel::Owner,
+            policy_revision: PolicyVersion::parse("fixture-policy-v1").unwrap(),
+            output_policy: WorkContextOutputPolicy {
+                owner: AccessSubject::Principal(principal.id.clone()),
+                initial_grants: Vec::new(),
+                classification: None,
+                data_labels: BTreeSet::new(),
+            },
+            provenance: InvocationProvenance::Delegated {
+                initiator: principal.id.clone(),
+                delegation_id: delegation_id.clone(),
+            },
+        };
+        let now = Utc::now();
+        let request_context = HubRequestContext {
+            execution: veoveo_hub_sdk::hosting::testing::execution_context(),
+            audit: veoveo_audit_contract::AuditRequest::background(),
+            access_token: AccessTokenSubject {
+                issuer,
+                subject: principal.subject.clone(),
+                oauth_client_id: client.clone(),
+                session_family: None,
+                audience: ProtectedResourceId::parse("https://held-fixture.test/mcp/fixture")
+                    .unwrap(),
+                work_context: authority.work_context.clone(),
+                invocation_mode: InvocationMode::Delegated,
+                initiator: Some(principal.id.clone()),
+                delegation_id: Some(delegation_id),
+                scopes: principal.scopes.clone(),
+                jwt_id: None,
+                issued_at: now,
+                not_before: None,
+                expires_at: now + TimeDelta::minutes(5),
+            },
+            principal,
+        };
+        request_context.validate_for(&actor, &authority).unwrap();
+        DelegatedCaller {
+            client,
+            actor,
+            authority,
+            request_context,
+            delegation_context: None,
+        }
+    }
+
+    fn held_catalog(grantee: &PrincipalId) -> HubCatalog {
+        let mut plane: HubControlPlane = serde_json::from_value(serde_json::json!({
+            "identityProviders": [], "authorizationServers": [], "profiles": [],
+            "tenants": [], "workContexts": [], "policies": [], "dataLabels": [], "oidcClients": []
+        }))
+        .unwrap();
+        let role = RoleId::parse("held-fixture-reader").unwrap();
+        plane.authorization = InstallationAuthorization {
+            roles: vec![InstallationRole {
+                name: role.clone(),
+                access: BTreeSet::from([Access::Read]),
+                risks: BTreeSet::new(),
+            }],
+            grants: vec![RoleGrant {
+                role,
+                subject: GrantSubject::Principal(grantee.clone()),
+                tenant: None,
+            }],
+            overrides: Vec::new(),
+        };
+        HubCatalog::from_control_plane(plane, crate::test_catalog::binding()).unwrap()
+    }
+
+    fn held_providers() -> (
+        crate::registration::RegisteredServer,
+        crate::registration::RegisteredServer,
+    ) {
+        let mut granting = crate::test_catalog::registered_server(
+            "held-fixture",
+            "https://held-fixture.test/mcp/allowed",
+        );
+        granting.authorization = Arc::new(AuthorizationDeclaration {
+            permissions: vec![
+                held_permission("held-fixture.records.read", Access::Read, &[]),
+                held_permission("held-fixture.records.extra", Access::Read, &[]),
+                held_permission("held-fixture.records.write", Access::Write, &[]),
+            ],
+            requirements: Default::default(),
+            uses: Vec::new(),
+            calls_hub: false,
+        });
+        let mut refusing = crate::test_catalog::registered_server(
+            "held-fixture",
+            "https://held-fixture.test/mcp/refusing",
+        );
+        refusing.client_id = OAuthClientId::parse("held-fixture-refusing").unwrap();
+        refusing.authorization = Arc::new(AuthorizationDeclaration {
+            permissions: vec![held_permission(
+                "held-fixture.records.read",
+                Access::Read,
+                &[Risk::Sensitive],
+            )],
+            requirements: Default::default(),
+            uses: Vec::new(),
+            calls_hub: false,
+        });
+        (granting, refusing)
+    }
+
+    #[test]
+    fn current_permissions_use_existential_raw_providers_and_filter_requested() {
+        let caller = held_caller("original");
+        let base = held_catalog(&caller.request_context.principal.id);
+        let (granting, refusing) = held_providers();
+        let requested = BTreeSet::from([
+            PermissionName::parse("held-fixture.records.read").unwrap(),
+            PermissionName::parse("held-fixture.records.write").unwrap(),
+            PermissionName::parse("held-fixture.records.missing").unwrap(),
+        ]);
+        let expected =
+            BTreeSet::from([PermissionName::parse("held-fixture.records.read").unwrap()]);
+        for granting_newest in [false, true] {
+            for reverse in [false, true] {
+                let mut granting = granting.clone();
+                let mut refusing = refusing.clone();
+                let older = DateTime::from_timestamp(1_000, 0).unwrap();
+                let newer = DateTime::from_timestamp(2_000, 0).unwrap();
+                granting.registered_at = if granting_newest { newer } else { older };
+                refusing.registered_at = if granting_newest { older } else { newer };
+                let latest = if granting_newest {
+                    granting.deployment
+                } else {
+                    refusing.deployment
+                };
+                let slug = granting.slug.clone();
+                let servers = if reverse {
+                    vec![refusing, granting]
+                } else {
+                    vec![granting, refusing]
+                };
+                let catalog = base
+                    .with_registrations(crate::registration::RegistrationSnapshot::new(servers));
+                assert_eq!(catalog.registrations().len(), 2);
+                assert!(catalog.server(&slug).is_none());
+                assert_eq!(
+                    catalog
+                        .registrations()
+                        .namespaces()
+                        .get(&slug)
+                        .unwrap()
+                        .routed,
+                    latest
+                );
+                assert_eq!(
+                    CurrentPermissions {
+                        catalog: &catalog,
+                        caller: &caller
+                    }
+                    .held(&requested),
+                    expected,
+                    "granting_newest={granting_newest}, reverse={reverse}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn current_permissions_handle_empty_requests_and_catalogs() {
+        let caller = held_caller("original");
+        let empty = held_catalog(&caller.request_context.principal.id);
+        let (granting, refusing) = held_providers();
+        let catalog = empty.with_registrations(crate::registration::RegistrationSnapshot::new([
+            granting, refusing,
+        ]));
+        let requested =
+            BTreeSet::from([PermissionName::parse("held-fixture.records.read").unwrap()]);
+        assert!(
+            CurrentPermissions {
+                catalog: &catalog,
+                caller: &caller
+            }
+            .held(&BTreeSet::new())
+            .is_empty()
+        );
+        assert!(empty.registrations().is_empty());
+        assert!(
+            CurrentPermissions {
+                catalog: &empty,
+                caller: &caller
+            }
+            .held(&requested)
+            .is_empty()
+        );
+    }
+
+    #[test]
+    fn current_permissions_use_original_principal_instead_of_actor() {
+        let caller = held_caller("original");
+        assert_ne!(caller.actor.id, caller.request_context.principal.id);
+        let (granting, _) = held_providers();
+        let original = held_catalog(&caller.request_context.principal.id).with_registrations(
+            crate::registration::RegistrationSnapshot::new([granting.clone()]),
+        );
+        let requested =
+            BTreeSet::from([PermissionName::parse("held-fixture.records.read").unwrap()]);
+        assert_eq!(
+            CurrentPermissions {
+                catalog: &original,
+                caller: &caller
+            }
+            .held(&requested),
+            requested
+        );
+        let other = held_caller("other");
+        assert!(
+            CurrentPermissions {
+                catalog: &original,
+                caller: &other
+            }
+            .held(&requested)
+            .is_empty()
+        );
+        let actor_only = held_catalog(&caller.actor.id)
+            .with_registrations(crate::registration::RegistrationSnapshot::new([granting]));
+        assert!(
+            CurrentPermissions {
+                catalog: &actor_only,
+                caller: &caller
+            }
+            .held(&requested)
+            .is_empty()
+        );
+    }
 
     #[test]
     fn native_sets_select_first_undeclared_and_filter_without_changing_ordered_membership() {

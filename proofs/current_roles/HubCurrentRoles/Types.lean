@@ -38,12 +38,308 @@ structure core.alloc.AllocatorClone (Self : Type _) where
 structure core.borrow.Borrow (Self : Type _) (Borrowed : Type _) where
   borrow : Self → Result Borrowed
 
+/-- [core::net::ip_addr::IpAddr]
+    Source: '/rustc/library/core/src/net/ip_addr.rs', lines 30:0-30:15
+    Name pattern: [core::net::ip_addr::IpAddr]
+    Visibility: public -/
+@[discriminant isize, rust_type "core::net::ip_addr::IpAddr"]
+inductive core.net.ip_addr.IpAddr where
+| V4 : core.net.ip_addr.Ipv4Addr → core.net.ip_addr.IpAddr
+| V6 : core.net.ip_addr.Ipv6Addr → core.net.ip_addr.IpAddr
+
 /-- [chrono::offset::utc::Utc]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 52:0-52:14
     Name pattern: [chrono::offset::utc::Utc]
     Visibility: public -/
 @[reducible, rust_type "chrono::offset::utc::Utc"]
 def chrono.offset.utc.Utc := Unit
+
+/-- [prost_types::protobuf::Value]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/prost-types-0.14.4/src/protobuf.rs', lines 2136:0-2136:16
+    Name pattern: [prost_types::protobuf::Value]
+    Visibility: public -/
+@[rust_type "prost_types::protobuf::Value"]
+structure prost_types.protobuf.Value where
+  kind : Option prost_types.protobuf.value.Kind
+
+/-- [prost_types::protobuf::Struct]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/prost-types-0.14.4/src/protobuf.rs', lines 2120:0-2120:17
+    Name pattern: [prost_types::protobuf::Struct]
+    Visibility: public -/
+@[rust_type "prost_types::protobuf::Struct"]
+structure prost_types.protobuf.Struct where
+  fields : alloc.collections.btree.map.BTreeMap String
+    prost_types.protobuf.Value alloc.alloc.Global
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::MiddlewareEndpointSelector]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 99:0-99:37
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::MiddlewareEndpointSelector]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::MiddlewareEndpointSelector"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.MiddlewareEndpointSelector
+  where
+  «include» : alloc.vec.Vec String
+  exclude : alloc.vec.Vec String
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::NetworkMiddlewareConfig]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 77:0-77:34
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::NetworkMiddlewareConfig]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::NetworkMiddlewareConfig"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.NetworkMiddlewareConfig
+  where
+  «name» : String
+  middleware : String
+  config : Option prost_types.protobuf.Struct
+  on_error : String
+  endpoints : Option
+    openshell_core.proto.generated.openshell.sandbox.v1.MiddlewareEndpointSelector
+  order : Std.I32
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::NetworkBinary]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 399:0-399:24
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::NetworkBinary]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::NetworkBinary"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.NetworkBinary
+  where
+  path : String
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::L7QueryMatcher]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 389:0-389:25
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::L7QueryMatcher]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::L7QueryMatcher"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.L7QueryMatcher
+  where
+  glob : String
+  any : alloc.vec.Vec String
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::L7Allow]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 350:0-350:18
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::L7Allow]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::L7Allow"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.L7Allow where
+  method : String
+  path : String
+  command : String
+  query : std.collections.hash.map.HashMap String
+    openshell_core.proto.generated.openshell.sandbox.v1.L7QueryMatcher
+    std.hash.random.RandomState alloc.alloc.Global
+  operation_type : String
+  operation_name : String
+  fields : alloc.vec.Vec String
+  params : std.collections.hash.map.HashMap String
+    openshell_core.proto.generated.openshell.sandbox.v1.L7QueryMatcher
+    std.hash.random.RandomState alloc.alloc.Global
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::L7Rule]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 344:0-344:17
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::L7Rule]
+    Visibility: public -/
+@[rust_type "openshell_core::proto::generated::openshell::sandbox::v1::L7Rule"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.L7Rule where
+  allow : Option openshell_core.proto.generated.openshell.sandbox.v1.L7Allow
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::L7DenyRule]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 306:0-306:21
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::L7DenyRule]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::L7DenyRule"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.L7DenyRule where
+  method : String
+  path : String
+  command : String
+  query : std.collections.hash.map.HashMap String
+    openshell_core.proto.generated.openshell.sandbox.v1.L7QueryMatcher
+    std.hash.random.RandomState alloc.alloc.Global
+  operation_type : String
+  operation_name : String
+  fields : alloc.vec.Vec String
+  params : std.collections.hash.map.HashMap String
+    openshell_core.proto.generated.openshell.sandbox.v1.L7QueryMatcher
+    std.hash.random.RandomState alloc.alloc.Global
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::GraphqlOperation]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 291:0-291:27
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::GraphqlOperation]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::GraphqlOperation"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.GraphqlOperation
+  where
+  operation_type : String
+  operation_name : String
+  fields : alloc.vec.Vec String
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::McpOptions]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 258:0-258:21
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::McpOptions]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::McpOptions"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.McpOptions where
+  strict_tool_names : Option Bool
+  allow_all_known_mcp_methods : Option Bool
+  versions : alloc.vec.Vec String
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::NetworkCredentialBinding]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 111:0-111:35
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::NetworkCredentialBinding]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::NetworkCredentialBinding"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.NetworkCredentialBinding
+  where
+  provider : String
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::NetworkEndpoint]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 119:0-119:26
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::NetworkEndpoint]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::NetworkEndpoint"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.NetworkEndpoint
+  where
+  host : String
+  port : Std.U32
+  protocol : String
+  tls : Std.I32
+  enforcement : Std.I32
+  access : Std.I32
+  rules : alloc.vec.Vec
+    openshell_core.proto.generated.openshell.sandbox.v1.L7Rule
+  allowed_ips : alloc.vec.Vec String
+  ports : alloc.vec.Vec Std.U32
+  deny_rules : alloc.vec.Vec
+    openshell_core.proto.generated.openshell.sandbox.v1.L7DenyRule
+  allow_encoded_slash : Bool
+  persisted_queries : String
+  graphql_persisted_queries : std.collections.hash.map.HashMap String
+    openshell_core.proto.generated.openshell.sandbox.v1.GraphqlOperation
+    std.hash.random.RandomState alloc.alloc.Global
+  graphql_max_body_bytes : Std.U32
+  path : String
+  websocket_credential_rewrite : Bool
+  request_body_credential_rewrite : Bool
+  advisor_proposed : Bool
+  credential_signing : String
+  signing_service : String
+  signing_region : String
+  json_rpc_max_body_bytes : Std.U32
+  mcp : Option openshell_core.proto.generated.openshell.sandbox.v1.McpOptions
+  credential_binding : Option
+    openshell_core.proto.generated.openshell.sandbox.v1.NetworkCredentialBinding
+  allow_uninspected_credentials : Bool
+  provider_credentialed : Bool
+  token_grant_owner : String
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::NetworkPolicyRule]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 64:0-64:28
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::NetworkPolicyRule]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::NetworkPolicyRule"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.NetworkPolicyRule
+  where
+  «name» : String
+  endpoints : alloc.vec.Vec
+    openshell_core.proto.generated.openshell.sandbox.v1.NetworkEndpoint
+  binaries : alloc.vec.Vec
+    openshell_core.proto.generated.openshell.sandbox.v1.NetworkBinary
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::ProcessPolicy]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 54:0-54:24
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::ProcessPolicy]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::ProcessPolicy"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.ProcessPolicy
+  where
+  run_as_user : String
+  run_as_group : String
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::LandlockPolicy]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 47:0-47:25
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::LandlockPolicy]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::LandlockPolicy"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.LandlockPolicy
+  where
+  compatibility : String
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::FilesystemPolicy]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 34:0-34:27
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::FilesystemPolicy]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::FilesystemPolicy"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.FilesystemPolicy
+  where
+  include_workdir : Bool
+  read_only : alloc.vec.Vec String
+  read_write : alloc.vec.Vec String
+
+/-- [openshell_core::proto::generated::openshell::sandbox::v1::SandboxPolicy]
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 4:0-4:24
+    Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::SandboxPolicy]
+    Visibility: public -/
+@[rust_type
+  "openshell_core::proto::generated::openshell::sandbox::v1::SandboxPolicy"]
+structure openshell_core.proto.generated.openshell.sandbox.v1.SandboxPolicy
+  where
+  version : Std.U32
+  filesystem : Option
+    openshell_core.proto.generated.openshell.sandbox.v1.FilesystemPolicy
+  landlock : Option
+    openshell_core.proto.generated.openshell.sandbox.v1.LandlockPolicy
+  process : Option
+    openshell_core.proto.generated.openshell.sandbox.v1.ProcessPolicy
+  network_policies : std.collections.hash.map.HashMap String
+    openshell_core.proto.generated.openshell.sandbox.v1.NetworkPolicyRule
+    std.hash.random.RandomState alloc.alloc.Global
+  network_middlewares : std.collections.hash.map.HashMap String
+    openshell_core.proto.generated.openshell.sandbox.v1.NetworkMiddlewareConfig
+    std.hash.random.RandomState alloc.alloc.Global
+
+/-- [openshell_sdk::config::ClientConfig]
+    Source: '/cargo/git/checkouts/openshell-f2a3eacab63ae477/c28524b/crates/openshell-sdk/src/config.rs', lines 85:0-85:23
+    Name pattern: [openshell_sdk::config::ClientConfig]
+    Visibility: public -/
+@[rust_type "openshell_sdk::config::ClientConfig"]
+structure openshell_sdk.config.ClientConfig where
+  gateway : String
+  ca_cert : Option (alloc.vec.Vec Std.U8)
+  auth : Option openshell_sdk.config.AuthConfig
+  insecure_skip_verify : Bool
+
+/-- [veoveo_audit_contract::model::AuditRequest]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/audit/contract/src/model.rs', lines 62:0-62:23
+    Name pattern: [veoveo_audit_contract::model::AuditRequest]
+    Visibility: public -/
+@[rust_type "veoveo_audit_contract::model::AuditRequest"]
+structure veoveo_audit_contract.model.AuditRequest where
+  id : veoveo_audit_contract.ids.AuditRequestId
+  trace_id : veoveo_audit_contract.ids.AuditTraceId
+  span_id : veoveo_audit_contract.ids.AuditSpanId
+  source_ip : Option core.net.ip_addr.IpAddr
+  task : Option veoveo_types.task.TaskId
+
+/-- [veoveo_hub_sdk::execution::ExecutionContext]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/execution.rs', lines 33:0-33:27
+    Name pattern: [veoveo_hub_sdk::execution::ExecutionContext]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::execution::ExecutionContext"]
+structure veoveo_hub_sdk.execution.ExecutionContext where
+  composition : veoveo_hub_sdk.execution.CompositionRevision
 
 /-- [veoveo_hub_sdk::identity::GroupRole]
     Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 21:0-21:18
@@ -106,6 +402,179 @@ structure veoveo_hub_sdk.identity.Principal where
     veoveo_hub_sdk.identity.PrincipalAssurance alloc.alloc.Global
   authenticated_at : Option (chrono.datetime.DateTime chrono.offset.utc.Utc
     chrono.offset.utc.Utc)
+
+/-- [veoveo_types::provenance::InvocationMode]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/provenance.rs', lines 9:0-9:23
+    Name pattern: [veoveo_types::provenance::InvocationMode]
+    Visibility: public -/
+@[discriminant isize, rust_type "veoveo_types::provenance::InvocationMode"]
+inductive veoveo_types.provenance.InvocationMode where
+| Direct : veoveo_types.provenance.InvocationMode
+| Delegated : veoveo_types.provenance.InvocationMode
+| Automated : veoveo_types.provenance.InvocationMode
+
+/-- [veoveo_hub_sdk::identity::AccessTokenSubject]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 129:0-129:29
+    Name pattern: [veoveo_hub_sdk::identity::AccessTokenSubject]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::identity::AccessTokenSubject"]
+structure veoveo_hub_sdk.identity.AccessTokenSubject where
+  issuer : veoveo_types.identity.TokenIssuer
+  subject : veoveo_types.identity.TokenSubject
+  oauth_client_id : veoveo_types.platform_names.OAuthClientId
+  session_family : Option veoveo_hub_sdk.identity.HubRefreshFamilyId
+  audience : veoveo_hub_sdk.identity.ProtectedResourceId
+  work_context : veoveo_types.identity.WorkContextId
+  invocation_mode : veoveo_types.provenance.InvocationMode
+  initiator : Option veoveo_types.identity.PrincipalId
+  delegation_id : Option veoveo_types.identity.DelegationId
+  scopes : alloc.collections.btree.set.BTreeSet veoveo_types.names.ScopeName
+    alloc.alloc.Global
+  jwt_id : Option veoveo_hub_sdk.identity.JwtId
+  issued_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+  not_before : Option (chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc)
+  expires_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+
+/-- [veoveo_hub_sdk::internal_auth::exchange::DelegatingTask]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 19:0-19:25
+    Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegatingTask]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegatingTask"]
+structure veoveo_hub_sdk.internal_auth.exchange.DelegatingTask where
+  server : veoveo_types.platform_names.ServerSlug
+  deployment : veoveo_types.execution.DeploymentId
+  task : veoveo_hub_sdk.identity.OpaqueTaskId
+
+/-- [veoveo_hub_sdk::internal_auth::ActingServer]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 292:0-292:23
+    Name pattern: [veoveo_hub_sdk::internal_auth::ActingServer]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::internal_auth::ActingServer"]
+structure veoveo_hub_sdk.internal_auth.ActingServer where
+  server : veoveo_types.platform_names.ServerSlug
+  deployment : veoveo_types.execution.DeploymentId
+  client : veoveo_types.platform_names.OAuthClientId
+
+/-- [veoveo_hub_sdk::internal_auth::exchange::DelegationContext]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 29:0-29:28
+    Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegationContext]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegationContext"]
+structure veoveo_hub_sdk.internal_auth.exchange.DelegationContext where
+  actors : alloc.vec.Vec veoveo_hub_sdk.internal_auth.ActingServer
+  task : Option veoveo_hub_sdk.internal_auth.exchange.DelegatingTask
+  expires_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+
+/-- [veoveo_types::provenance::InvocationProvenance]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/provenance.rs', lines 23:0-23:29
+    Name pattern: [veoveo_types::provenance::InvocationProvenance]
+    Visibility: public -/
+@[discriminant isize, rust_type
+  "veoveo_types::provenance::InvocationProvenance"]
+inductive veoveo_types.provenance.InvocationProvenance where
+| Direct :
+  veoveo_types.identity.PrincipalId →
+  veoveo_types.provenance.InvocationProvenance
+| Delegated :
+  veoveo_types.identity.PrincipalId →
+  veoveo_types.identity.DelegationId →
+  veoveo_types.provenance.InvocationProvenance
+| Automated : veoveo_types.provenance.InvocationProvenance
+
+/-- [veoveo_types::identity::AccessSubject]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 40:0-40:22
+    Name pattern: [veoveo_types::identity::AccessSubject]
+    Visibility: public -/
+@[discriminant isize, rust_type "veoveo_types::identity::AccessSubject"]
+inductive veoveo_types.identity.AccessSubject where
+| Principal :
+  veoveo_types.identity.PrincipalId →
+  veoveo_types.identity.AccessSubject
+| Group : veoveo_types.identity.GroupId → veoveo_types.identity.AccessSubject
+
+/-- [veoveo_types::authority::AccessLevel]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 16:0-16:20
+    Name pattern: [veoveo_types::authority::AccessLevel]
+    Visibility: public -/
+@[discriminant isize, rust_type "veoveo_types::authority::AccessLevel"]
+inductive veoveo_types.authority.AccessLevel where
+| Read : veoveo_types.authority.AccessLevel
+| Write : veoveo_types.authority.AccessLevel
+| Admin : veoveo_types.authority.AccessLevel
+
+/-- [veoveo_types::authority::WorkContextGrant]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 53:0-53:27
+    Name pattern: [veoveo_types::authority::WorkContextGrant]
+    Visibility: public -/
+@[rust_type "veoveo_types::authority::WorkContextGrant"]
+structure veoveo_types.authority.WorkContextGrant where
+  subject : veoveo_types.identity.AccessSubject
+  level : veoveo_types.authority.AccessLevel
+
+/-- [veoveo_types::authority::WorkContextOutputPolicy]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 61:0-61:34
+    Name pattern: [veoveo_types::authority::WorkContextOutputPolicy]
+    Visibility: public -/
+@[rust_type "veoveo_types::authority::WorkContextOutputPolicy"]
+structure veoveo_types.authority.WorkContextOutputPolicy where
+  owner : veoveo_types.identity.AccessSubject
+  initial_grants : alloc.vec.Vec veoveo_types.authority.WorkContextGrant
+  classification : Option veoveo_types.identity.DataLabelId
+  data_labels : alloc.collections.btree.set.BTreeSet
+    veoveo_types.identity.DataLabelId alloc.alloc.Global
+
+/-- [veoveo_types::authority::WorkContextMembershipLevel]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 37:0-37:35
+    Name pattern: [veoveo_types::authority::WorkContextMembershipLevel]
+    Visibility: public -/
+@[discriminant isize, rust_type
+  "veoveo_types::authority::WorkContextMembershipLevel"]
+inductive veoveo_types.authority.WorkContextMembershipLevel where
+| Viewer : veoveo_types.authority.WorkContextMembershipLevel
+| Contributor : veoveo_types.authority.WorkContextMembershipLevel
+| Custodian : veoveo_types.authority.WorkContextMembershipLevel
+| Owner : veoveo_types.authority.WorkContextMembershipLevel
+
+/-- [veoveo_types::authority::InvocationAuthority]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 74:0-74:30
+    Name pattern: [veoveo_types::authority::InvocationAuthority]
+    Visibility: public -/
+@[rust_type "veoveo_types::authority::InvocationAuthority"]
+structure veoveo_types.authority.InvocationAuthority where
+  work_context : veoveo_types.identity.WorkContextId
+  tenant : veoveo_types.identity.TenantId
+  membership : veoveo_types.authority.WorkContextMembershipLevel
+  policy_revision : veoveo_types.identity.PolicyVersion
+  output_policy : veoveo_types.authority.WorkContextOutputPolicy
+  provenance : veoveo_types.provenance.InvocationProvenance
+
+/-- [veoveo_hub_sdk::internal_auth::request::HubRequestContext]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/internal_auth/request.rs', lines 8:0-8:28
+    Name pattern: [veoveo_hub_sdk::internal_auth::request::HubRequestContext]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::internal_auth::request::HubRequestContext"]
+structure veoveo_hub_sdk.internal_auth.request.HubRequestContext where
+  execution : veoveo_hub_sdk.execution.ExecutionContext
+  audit : veoveo_audit_contract.model.AuditRequest
+  access_token : veoveo_hub_sdk.identity.AccessTokenSubject
+  principal : veoveo_hub_sdk.identity.Principal
+
+/-- [veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 100:0-100:26
+    Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller"]
+structure veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller where
+  client : veoveo_types.platform_names.OAuthClientId
+  actor : veoveo_hub_sdk.identity.Principal
+  authority : veoveo_types.authority.InvocationAuthority
+  request_context : veoveo_hub_sdk.internal_auth.request.HubRequestContext
+  delegation_context : Option
+    veoveo_hub_sdk.internal_auth.exchange.DelegationContext
 
 /-- [veoveo_hub_sdk::registration::access::Access]
     Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/access.rs', lines 5:0-5:15
@@ -186,6 +655,473 @@ structure veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration
   uses : alloc.vec.Vec veoveo_types.permission_names.PermissionName
   calls_hub : Bool
 
+/-- [veoveo_hub::registration::snapshot::Namespace]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 75:0-78:1
+    Visibility: public -/
+structure registration.snapshot.Namespace where
+  routed : veoveo_types.execution.DeploymentId
+  set_aside : alloc.vec.Vec veoveo_types.execution.DeploymentId
+
+/-- [veoveo_hub::registration::snapshot::ServerCapabilities]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 12:0-18:1
+    Visibility: public -/
+structure registration.snapshot.ServerCapabilities where
+  tools : Bool
+  resources : Bool
+  prompts : Bool
+  completions : Bool
+  tasks : Bool
+
+/-- [veoveo_hub::execution::BranchName]
+    Source: 'crates/veoveo-hub/src/execution.rs', lines 22:0-22:30
+    Visibility: public -/
+@[reducible]
+def execution.BranchName := String
+
+/-- [veoveo_hub::registration::snapshot::RegisteredServer]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 40:0-56:1
+    Visibility: public -/
+structure registration.snapshot.RegisteredServer where
+  deployment : veoveo_types.execution.DeploymentId
+  slug : veoveo_types.platform_names.ServerSlug
+  uri_scheme : veoveo_types.names.ResourceScheme
+  endpoint : veoveo_hub_sdk.registration.declaration.ServerEndpoint
+  version : veoveo_hub_sdk.registration.declaration.ServerVersion
+  client_id : veoveo_types.platform_names.OAuthClientId
+  authorization : alloc.sync.Arc
+    veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration
+  capabilities : registration.snapshot.ServerCapabilities
+  branch : Option execution.BranchName
+  registered_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+  orphaned : Bool
+
+/-- [veoveo_hub::registration::snapshot::RegistrationSnapshot]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 67:0-70:1
+    Visibility: public -/
+structure registration.snapshot.RegistrationSnapshot where
+  servers : alloc.collections.btree.map.BTreeMap
+    veoveo_types.execution.DeploymentId (alloc.sync.Arc
+    registration.snapshot.RegisteredServer) alloc.alloc.Global
+  namespaces : alloc.collections.btree.map.BTreeMap
+    veoveo_types.platform_names.ServerSlug registration.snapshot.Namespace
+    alloc.alloc.Global
+
+/-- [veoveo_hub::control_plane::computers::ComputerGateway]
+    Source: 'crates/veoveo-hub/src/control_plane/computers.rs', lines 58:0-63:1
+    Visibility: public -/
+structure control_plane.computers.ComputerGateway where
+  endpoint : url.Url
+  certificate_authority : std.path.PathBuf
+  bearer_environment : String
+
+/-- [veoveo_hub::contract::identity::SecretReferenceId]
+    Source: 'crates/veoveo-hub/src/contract/identity.rs', lines 11:0-11:37
+    Visibility: public -/
+@[reducible]
+def contract.identity.SecretReferenceId := String
+
+/-- [veoveo_hub::control_plane::computers::ComputerStaticProvider]
+    Source: 'crates/veoveo-hub/src/control_plane/computers.rs', lines 85:0-91:1
+    Visibility: public -/
+structure control_plane.computers.ComputerStaticProvider where
+  profile : String
+  credential_key : String
+  secret : contract.identity.SecretReferenceId
+
+/-- [veoveo_hub::control_plane::computers::ComputerRefreshProvider]
+    Source: 'crates/veoveo-hub/src/control_plane/computers.rs', lines 76:0-81:1
+    Visibility: public -/
+structure control_plane.computers.ComputerRefreshProvider where
+  profile : String
+  credential_key : String
+
+/-- [veoveo_hub::control_plane::computers::ComputerTemplate]
+    Source: 'crates/veoveo-hub/src/control_plane/computers.rs', lines 69:0-72:1
+    Visibility: public -/
+structure control_plane.computers.ComputerTemplate where
+  workspace : String
+  «name» : String
+
+/-- [veoveo_hub::control_plane::computers::Computers]
+    Source: 'crates/veoveo-hub/src/control_plane/computers.rs', lines 20:0-54:1
+    Visibility: public -/
+structure control_plane.computers.Computers where
+  handbook : Option String
+  gateway : control_plane.computers.ComputerGateway
+  template : control_plane.computers.ComputerTemplate
+  policy_file : std.path.PathBuf
+  command : alloc.vec.Vec String
+  oauth_client : veoveo_types.platform_names.OAuthClientId
+  profile : veoveo_hub_sdk.identity.HubProfileId
+  work_context : veoveo_types.identity.WorkContextId
+  port : Std.U16
+  forwarding_connection_limit : core.num.nonzero.NonZero Std.Usize
+    core.num.niche_types.NonZeroUsizeInner
+  collect_after_seconds : Option (core.num.nonzero.NonZero Std.U64
+    core.num.niche_types.NonZeroU64Inner)
+  hub_provider : control_plane.computers.ComputerRefreshProvider
+  model_provider : control_plane.computers.ComputerStaticProvider
+  lore_provider : control_plane.computers.ComputerRefreshProvider
+
+/-- [veoveo_hub::contract::secrets::SecretOwner]
+    Source: 'crates/veoveo-hub/src/contract/secrets.rs', lines 56:0-60:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.secrets.SecretOwner where
+| Hub : contract.secrets.SecretOwner
+| Profile :
+  veoveo_hub_sdk.identity.HubProfileId →
+  contract.secrets.SecretOwner
+| Tenant : veoveo_types.identity.TenantId → contract.secrets.SecretOwner
+
+/-- [veoveo_hub::contract::secrets::SecretPurpose]
+    Source: 'crates/veoveo-hub/src/contract/secrets.rs', lines 38:0-52:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.secrets.SecretPurpose where
+| ProviderApiKey : contract.secrets.SecretPurpose
+| WebhookSecret : contract.secrets.SecretPurpose
+| OAuthClientSecret : contract.secrets.SecretPurpose
+| HubSigningKey : contract.secrets.SecretPurpose
+| JwksPrivateKey : contract.secrets.SecretPurpose
+| TokenExchangeCredential : contract.secrets.SecretPurpose
+| ObjectStoreCredential : contract.secrets.SecretPurpose
+| TlsClientCertificate : contract.secrets.SecretPurpose
+| TlsClientPrivateKey : contract.secrets.SecretPurpose
+| RegistrationSecret : contract.secrets.SecretPurpose
+
+/-- [veoveo_hub::contract::secrets::SecretSource]
+    Source: 'crates/veoveo-hub/src/contract/secrets.rs', lines 27:0-34:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.secrets.SecretSource where
+| Env : contract.secrets.SecretSource
+| Vault : contract.secrets.SecretSource
+| HcpVault : contract.secrets.SecretSource
+| CloudSecretManager : contract.secrets.SecretSource
+| KmsBackedStore : contract.secrets.SecretSource
+| EnterpriseManaged : contract.secrets.SecretSource
+
+/-- [veoveo_hub::contract::identity::SecretLocator]
+    Source: 'crates/veoveo-hub/src/contract/identity.rs', lines 19:0-19:33
+    Visibility: public -/
+@[reducible]
+def contract.identity.SecretLocator := String
+
+/-- [veoveo_hub::contract::secrets::SecretReference]
+    Source: 'crates/veoveo-hub/src/contract/secrets.rs', lines 11:0-21:1
+    Visibility: public -/
+structure contract.secrets.SecretReference where
+  id : contract.identity.SecretReferenceId
+  source : contract.secrets.SecretSource
+  purpose : contract.secrets.SecretPurpose
+  locator : contract.identity.SecretLocator
+  owner : contract.secrets.SecretOwner
+  rotation_hint : Option String
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::computers::spec::PersistenceBackend]
+    Source: 'crates/veoveo-hub/src/computers/spec.rs', lines 12:0-15:1 -/
+@[discriminant isize]
+inductive computers.spec.PersistenceBackend where
+| Docker : computers.spec.PersistenceBackend
+| Kubernetes : computers.spec.PersistenceBackend
+
+/-- [veoveo_hub::computers::spec::ComputerProvisionSpec]
+    Source: 'crates/veoveo-hub/src/computers/spec.rs', lines 19:0-26:1
+    Visibility: public -/
+structure computers.spec.ComputerProvisionSpec where
+  config : control_plane.computers.Computers
+  model_secret : contract.secrets.SecretReference
+  hub_url : String
+  backend : computers.spec.PersistenceBackend
+  policy : alloc.vec.Vec Std.U8
+  template : alloc.vec.Vec Std.U8
+
+/-- [veoveo_hub::forward_connections::Connection]
+    Source: 'crates/veoveo-hub/src/forward_connections.rs', lines 24:0-27:1 -/
+structure forward_connections.Connection where
+  client : tokio.sync.once_cell.OnceCell openshell_sdk.client.OpenShellClient
+  streams : alloc.sync.Arc tokio.sync.semaphore.Semaphore
+
+/-- [veoveo_hub::forward_connections::ForwardConnections]
+    Source: 'crates/veoveo-hub/src/forward_connections.rs', lines 18:0-22:1 -/
+structure forward_connections.ForwardConnections where
+  config : Option openshell_sdk.config.ClientConfig
+  connections : alloc.sync.Arc (Slice forward_connections.Connection)
+
+/-- [veoveo_hub::computers::gateway::Gateway]
+    Source: 'crates/veoveo-hub/src/computers/gateway.rs', lines 59:0-63:1 -/
+structure computers.gateway.Gateway where
+  client : openshell_sdk.client.OpenShellClient
+  forwards : forward_connections.ForwardConnections
+  limit : core.num.nonzero.NonZero Std.Usize
+    core.num.niche_types.NonZeroUsizeInner
+
+/-- [veoveo_hub::computers::provisioning::Provisioner]
+    Source: 'crates/veoveo-hub/src/computers/provisioning.rs', lines 102:0-108:1 -/
+structure computers.provisioning.Provisioner where
+  gateway : computers.gateway.Gateway
+  config : alloc.sync.Arc control_plane.computers.Computers
+  policy : openshell_core.proto.generated.openshell.sandbox.v1.SandboxPolicy
+  «public» : String
+  spec : computers.spec.ComputerProvisionSpec
+
+/-- [veoveo_hub::computers::provisioning::Unavailable]
+    Source: 'crates/veoveo-hub/src/computers/provisioning.rs', lines 60:0-60:35
+    Visibility: public -/
+@[reducible]
+def computers.provisioning.Unavailable := String
+
+/-- [veoveo_hub::computers::provisioning::Current]
+    Source: 'crates/veoveo-hub/src/computers/provisioning.rs', lines 82:0-88:1 -/
+structure computers.provisioning.Current where
+  template : Option (String × Std.U64)
+  checked : tokio.time.instant.Instant
+  result : core.result.Result computers.provisioning.Provisioner
+    computers.provisioning.Unavailable
+
+/-- [veoveo_hub::computers::provisioning::Installation]
+    Source: 'crates/veoveo-hub/src/computers/provisioning.rs', lines 91:0-99:1 -/
+structure computers.provisioning.Installation where
+  gateway : computers.gateway.Gateway
+  config : alloc.sync.Arc control_plane.computers.Computers
+  policy : openshell_core.proto.generated.openshell.sandbox.v1.SandboxPolicy
+  «public» : String
+  model_secret : contract.secrets.SecretReference
+  hub_url : String
+  current : alloc.sync.Arc (tokio.sync.mutex.Mutex (Option
+    computers.provisioning.Current))
+
+/-- [veoveo_hub::computers::runtime::ComputerConfiguration]
+    Source: 'crates/veoveo-hub/src/computers/runtime.rs', lines 19:0-23:1 -/
+structure computers.runtime.ComputerConfiguration where
+  config : alloc.sync.Arc control_plane.computers.Computers
+  installation : computers.provisioning.Installation
+  http : reqwest_1.async_impl.client.Client
+
+/-- [veoveo_hub::hosting::HostedRuntime]
+    Source: 'crates/veoveo-hub/src/hosting.rs', lines 6:0-10:1 -/
+structure hosting.HostedRuntime where
+  upstream_http : mcp.upstream_http.HubUpstreamHttpClientPool
+  computer_gateway : Option control_plane.computers.ComputerGateway
+  computers : Option (alloc.sync.Arc computers.runtime.ComputerConfiguration)
+
+/-- [veoveo_hub::execution::ExecutionConfiguration]
+    Source: 'crates/veoveo-hub/src/execution.rs', lines 13:0-18:1
+    Visibility: public -/
+structure execution.ExecutionConfiguration where
+  base_branch : Option execution.BranchName
+
+/-- [veoveo_hub::control_plane::work_context::WorkContextMembershipRule]
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 26:0-36:1
+    Visibility: public -/
+structure control_plane.work_context.WorkContextMembershipRule where
+  level : veoveo_types.authority.WorkContextMembershipLevel
+  principals : alloc.collections.btree.set.BTreeSet
+    veoveo_types.identity.PrincipalId alloc.alloc.Global
+  groups : alloc.collections.btree.set.BTreeSet veoveo_types.identity.GroupId
+    alloc.alloc.Global
+  roles : alloc.collections.btree.set.BTreeSet veoveo_types.identity.RoleId
+    alloc.alloc.Global
+  oauth_clients : alloc.collections.btree.set.BTreeSet
+    veoveo_types.platform_names.OAuthClientId alloc.alloc.Global
+
+/-- [veoveo_hub::control_plane::work_context::WorkContextDefinition]
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 58:0-67:1
+    Visibility: public -/
+structure control_plane.work_context.WorkContextDefinition where
+  id : veoveo_types.identity.WorkContextId
+  tenant : veoveo_types.identity.TenantId
+  title : String
+  policy_revision : veoveo_types.identity.PolicyVersion
+  output_policy : veoveo_types.authority.WorkContextOutputPolicy
+  memberships : alloc.vec.Vec
+    control_plane.work_context.WorkContextMembershipRule
+
+/-- [veoveo_hub::control_plane::tenant::TenantDefinition]
+    Source: 'crates/veoveo-hub/src/control_plane/tenant.rs', lines 10:0-18:1
+    Visibility: public -/
+structure control_plane.tenant.TenantDefinition where
+  id : veoveo_types.identity.TenantId
+  title : Option String
+  description : Option String
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::control_plane::server_config::AuthMode]
+    Source: 'crates/veoveo-hub/src/control_plane/server_config.rs', lines 180:0-185:1
+    Visibility: public -/
+@[discriminant isize]
+inductive control_plane.server_config.AuthMode where
+| OidcAuthorizationCodePkce : control_plane.server_config.AuthMode
+| EnterpriseManagedAuthorization : control_plane.server_config.AuthMode
+| OAuthClientCredentials : control_plane.server_config.AuthMode
+
+/-- [veoveo_hub::control_plane::server_config::DiscoveryFailureMode]
+    Source: 'crates/veoveo-hub/src/control_plane/server_config.rs', lines 34:0-38:1
+    Visibility: public -/
+@[discriminant isize]
+inductive control_plane.server_config.DiscoveryFailureMode where
+| Isolate : control_plane.server_config.DiscoveryFailureMode
+| FailClosed : control_plane.server_config.DiscoveryFailureMode
+
+/-- [veoveo_hub::control_plane::ids::IdentityProviderId]
+    Source: 'crates/veoveo-hub/src/control_plane/ids.rs', lines 11:0-11:38
+    Visibility: public -/
+@[reducible]
+def control_plane.ids.IdentityProviderId := String
+
+/-- [veoveo_hub::contract::identity::AuthorizationServerId]
+    Source: 'crates/veoveo-hub/src/contract/identity.rs', lines 7:0-7:41
+    Visibility: public -/
+@[reducible]
+def contract.identity.AuthorizationServerId := String
+
+/-- [veoveo_hub::control_plane::server_config::HubProfile]
+    Source: 'crates/veoveo-hub/src/control_plane/server_config.rs', lines 15:0-30:1
+    Visibility: public -/
+structure control_plane.server_config.HubProfile where
+  id : veoveo_hub_sdk.identity.HubProfileId
+  identity_provider : control_plane.ids.IdentityProviderId
+  authorization_server : contract.identity.AuthorizationServerId
+  protected_resource : veoveo_hub_sdk.identity.ProtectedResourceId
+  policy_version : veoveo_types.identity.PolicyVersion
+  auth_modes : alloc.collections.btree.set.BTreeSet
+    control_plane.server_config.AuthMode alloc.alloc.Global
+  discovery_failure_mode : control_plane.server_config.DiscoveryFailureMode
+  required_scopes : alloc.vec.Vec veoveo_types.names.ScopeName
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::control_plane::policy::PolicyEffect]
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 56:0-59:1
+    Visibility: public -/
+@[discriminant isize]
+inductive control_plane.policy.PolicyEffect where
+| Allow : control_plane.policy.PolicyEffect
+| Deny : control_plane.policy.PolicyEffect
+
+/-- [veoveo_hub::control_plane::ids::PolicyRuleId]
+    Source: 'crates/veoveo-hub/src/control_plane/ids.rs', lines 15:0-15:32
+    Visibility: public -/
+@[reducible]
+def control_plane.ids.PolicyRuleId := String
+
+/-- [veoveo_hub::control_plane::policy::PolicyRule]
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 25:0-50:1
+    Visibility: public -/
+structure control_plane.policy.PolicyRule where
+  id : control_plane.ids.PolicyRuleId
+  effect : control_plane.policy.PolicyEffect
+  actions : alloc.collections.btree.set.BTreeSet
+    veoveo_types.actions.ActionName alloc.alloc.Global
+  profiles : alloc.collections.btree.set.BTreeSet
+    veoveo_hub_sdk.identity.HubProfileId alloc.alloc.Global
+  protected_resources : alloc.collections.btree.set.BTreeSet
+    veoveo_hub_sdk.identity.ProtectedResourceId alloc.alloc.Global
+  principal_ids : alloc.collections.btree.set.BTreeSet
+    veoveo_types.identity.PrincipalId alloc.alloc.Global
+  tenant_ids : alloc.collections.btree.set.BTreeSet
+    veoveo_types.identity.TenantId alloc.alloc.Global
+  groups : alloc.collections.btree.set.BTreeSet veoveo_types.identity.GroupId
+    alloc.alloc.Global
+  roles : alloc.collections.btree.set.BTreeSet veoveo_types.identity.RoleId
+    alloc.alloc.Global
+  required_scopes : alloc.collections.btree.set.BTreeSet
+    veoveo_types.names.ScopeName alloc.alloc.Global
+  required_data_labels : alloc.collections.btree.set.BTreeSet
+    veoveo_types.identity.DataLabelId alloc.alloc.Global
+  required_assurances : alloc.collections.btree.set.BTreeSet
+    veoveo_hub_sdk.identity.PrincipalAssurance alloc.alloc.Global
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::control_plane::policy::PolicySet]
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 15:0-20:1
+    Visibility: public -/
+structure control_plane.policy.PolicySet where
+  version : veoveo_types.identity.PolicyVersion
+  rules : alloc.vec.Vec control_plane.policy.PolicyRule
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::control_plane::native_upstreams::NativeUpstreamBinding]
+    Source: 'crates/veoveo-hub/src/control_plane/native_upstreams.rs', lines 23:0-28:1
+    Visibility: public -/
+structure control_plane.native_upstreams.NativeUpstreamBinding where
+  endpoint : veoveo_hub_sdk.registration.declaration.ServerEndpoint
+  workspace : String
+  sandbox : String
+  port : Std.U16
+
+/-- [veoveo_hub::control_plane::native_upstreams::NativeUpstreams]
+    Source: 'crates/veoveo-hub/src/control_plane/native_upstreams.rs', lines 12:0-19:1
+    Visibility: public -/
+structure control_plane.native_upstreams.NativeUpstreams where
+  gateway : url.Url
+  certificate_authority : std.path.PathBuf
+  bearer_environment : String
+  bindings : alloc.vec.Vec control_plane.native_upstreams.NativeUpstreamBinding
+
+/-- [veoveo_hub::factory::image::RegistryHost]
+    Source: 'crates/veoveo-hub/src/factory/image.rs', lines 294:0-294:32
+    Visibility: public -/
+@[reducible]
+def factory.image.RegistryHost := String
+
+/-- [veoveo_hub::factory::image::ImageBuilder]
+    Source: 'crates/veoveo-hub/src/factory/image.rs', lines 44:0-51:1
+    Visibility: public -/
+structure factory.image.ImageBuilder where
+  buildkit : url.Url
+  registry : factory.image.RegistryHost
+
+/-- [veoveo_hub::control_plane::factory::FactoryCaps]
+    Source: 'crates/veoveo-hub/src/control_plane/factory.rs', lines 53:0-58:1
+    Visibility: public -/
+structure control_plane.factory.FactoryCaps where
+  instances_per_user : Std.U32
+  enforce : Bool
+
+/-- [veoveo_hub::control_plane::factory::FactoryConfiguration]
+    Source: 'crates/veoveo-hub/src/control_plane/factory.rs', lines 14:0-48:1
+    Visibility: public -/
+structure control_plane.factory.FactoryConfiguration where
+  gateway : control_plane.computers.ComputerGateway
+  workspace : String
+  policy_file : std.path.PathBuf
+  template : control_plane.computers.ComputerTemplate
+  port : Std.U16
+  hub_issuer : veoveo_types.identity.TokenIssuer
+  lore_server : url.Url
+  registration_profile : String
+  lore_profile : String
+  image_builder : factory.image.ImageBuilder
+  caps : Option control_plane.factory.FactoryCaps
+
+/-- [veoveo_hub::control_plane::data_label::DataLabelDefinition]
+    Source: 'crates/veoveo-hub/src/control_plane/data_label.rs', lines 10:0-20:1
+    Visibility: public -/
+structure control_plane.data_label.DataLabelDefinition where
+  id : veoveo_types.identity.DataLabelId
+  title : Option String
+  description : Option String
+  regulated : Bool
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::control_plane::branding::InstallationBranding]
+    Source: 'crates/veoveo-hub/src/control_plane/branding.rs', lines 16:0-29:1
+    Visibility: public -/
+structure control_plane.branding.InstallationBranding where
+  «name» : String
+  product_label : Option String
+  logo : Option String
+  accent_color : Option String
+
+/-- [veoveo_hub::control_plane::authorization_config::RegistrationSettings]
+    Source: 'crates/veoveo-hub/src/control_plane/authorization_config.rs', lines 84:0-87:1
+    Visibility: public -/
+structure control_plane.authorization_config.RegistrationSettings where
+  secret : contract.identity.SecretReferenceId
+
 /-- [veoveo_hub::control_plane::authorization_config::PermissionOverride]
     Source: 'crates/veoveo-hub/src/control_plane/authorization_config.rs', lines 64:0-72:1
     Visibility: public -/
@@ -239,26 +1175,392 @@ structure control_plane.authorization_config.InstallationAuthorization where
   overrides : alloc.vec.Vec
     control_plane.authorization_config.PermissionOverride
 
-/-- [veoveo_hub::policy::grants::held_roles::{closure#2}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 30:13-30:39 -/
+/-- [veoveo_hub::control_plane::ids::OidcClientId]
+    Source: 'crates/veoveo-hub/src/control_plane/ids.rs', lines 19:0-19:32
+    Visibility: public -/
 @[reducible]
-def policy.grants.held_roles.closure_2 := Unit
+def control_plane.ids.OidcClientId := String
 
-/-- [veoveo_hub::policy::grants::held_roles::{closure#1}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 26:16-29:9 -/
-@[reducible]
-def policy.grants.held_roles.closure_1 := veoveo_hub_sdk.identity.Principal
+/-- [veoveo_hub::control_plane::auth_config::OidcClientAuthMethod]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 191:0-194:1
+    Visibility: public -/
+@[discriminant isize]
+inductive control_plane.auth_config.OidcClientAuthMethod where
+| ClientSecretBasic : control_plane.auth_config.OidcClientAuthMethod
+| ClientSecretPost : control_plane.auth_config.OidcClientAuthMethod
 
-/-- [veoveo_hub::policy::grants::held_roles::{closure}::{closure}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 24:28-24:78 -/
+/-- [veoveo_hub::contract::oauth::OAuthRedirectUri]
+    Source: 'crates/veoveo-hub/src/contract/oauth.rs', lines 110:0-110:36
+    Visibility: public -/
 @[reducible]
-def policy.grants.held_roles.closure.closure :=
-  veoveo_hub_sdk.identity.Principal
+def contract.oauth.OAuthRedirectUri := String
 
-/-- [veoveo_hub::policy::grants::held_roles::{closure}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 20:16-25:9 -/
+/-- [veoveo_hub::contract::oauth::OidcClientRegistrationId]
+    Source: 'crates/veoveo-hub/src/contract/oauth.rs', lines 63:0-63:44
+    Visibility: public -/
 @[reducible]
-def policy.grants.held_roles.closure := veoveo_hub_sdk.identity.Principal
+def contract.oauth.OidcClientRegistrationId := String
+
+/-- [veoveo_hub::control_plane::auth_config::IdentityProviderOidcClientRegistration]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 172:0-185:1
+    Visibility: public -/
+structure control_plane.auth_config.IdentityProviderOidcClientRegistration
+  where
+  id : contract.oauth.OidcClientRegistrationId
+  identity_provider : control_plane.ids.IdentityProviderId
+  authorization_server : contract.identity.AuthorizationServerId
+  allowed_resources : alloc.collections.btree.set.BTreeSet
+    veoveo_hub_sdk.identity.ProtectedResourceId alloc.alloc.Global
+  client_id : control_plane.ids.OidcClientId
+  redirect_uri : contract.oauth.OAuthRedirectUri
+  auth_method : control_plane.auth_config.OidcClientAuthMethod
+  credential_secret : contract.identity.SecretReferenceId
+  scopes : alloc.collections.btree.set.BTreeSet veoveo_types.names.ScopeName
+    alloc.alloc.Global
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::control_plane::auth_config::OAuthClientSurface]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 159:0-163:1
+    Visibility: public -/
+@[discriminant isize]
+inductive control_plane.auth_config.OAuthClientSurface where
+| FullMcp : control_plane.auth_config.OAuthClientSurface
+| ToolsCompat : control_plane.auth_config.OAuthClientSurface
+
+/-- [veoveo_hub::control_plane::server_config::JwksFilePath]
+    Source: 'crates/veoveo-hub/src/control_plane/server_config.rs', lines 128:0-128:32
+    Visibility: public -/
+@[reducible]
+def control_plane.server_config.JwksFilePath := String
+
+/-- [veoveo_hub::control_plane::server_config::HttpsUrl]
+    Source: 'crates/veoveo-hub/src/control_plane/server_config.rs', lines 42:0-42:28
+    Visibility: public -/
+@[reducible]
+def control_plane.server_config.HttpsUrl := String
+
+/-- [veoveo_hub::control_plane::auth_config::JwksSource]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 112:0-115:1
+    Visibility: public -/
+@[discriminant isize]
+inductive control_plane.auth_config.JwksSource where
+| Remote :
+  control_plane.server_config.HttpsUrl →
+  control_plane.auth_config.JwksSource
+| File :
+  control_plane.server_config.JwksFilePath →
+  control_plane.auth_config.JwksSource
+
+/-- [veoveo_hub::contract::oauth::OAuthClientAuthMethod]
+    Source: 'crates/veoveo-hub/src/contract/oauth.rs', lines 277:0-283:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.oauth.OAuthClientAuthMethod where
+| None : contract.oauth.OAuthClientAuthMethod
+| PrivateKeyJwt : contract.oauth.OAuthClientAuthMethod
+| ClientSecretBasic : contract.oauth.OAuthClientAuthMethod
+| ClientSecretPost : contract.oauth.OAuthClientAuthMethod
+| TlsClientAuth : contract.oauth.OAuthClientAuthMethod
+
+/-- [veoveo_hub::contract::oauth::OAuthGrantType]
+    Source: 'crates/veoveo-hub/src/contract/oauth.rs', lines 264:0-271:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.oauth.OAuthGrantType where
+| AuthorizationCodePkce : contract.oauth.OAuthGrantType
+| RefreshToken : contract.oauth.OAuthGrantType
+| ClientCredentials : contract.oauth.OAuthGrantType
+| EnterpriseManagedAuthorization : contract.oauth.OAuthGrantType
+| DeviceAuthorization : contract.oauth.OAuthGrantType
+| TokenExchange : contract.oauth.OAuthGrantType
+
+/-- [veoveo_hub::control_plane::auth_config::OAuthClientRegistration]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 120:0-155:1
+    Visibility: public -/
+structure control_plane.auth_config.OAuthClientRegistration where
+  id : veoveo_types.platform_names.OAuthClientId
+  authorization_server : contract.identity.AuthorizationServerId
+  default_work_context : veoveo_types.identity.WorkContextId
+  invocation_mode : veoveo_types.provenance.InvocationMode
+  display_name : Option String
+  client_surface : control_plane.auth_config.OAuthClientSurface
+  direct_task_call_adapter : Bool
+  allowed_resources : alloc.collections.btree.set.BTreeSet
+    veoveo_hub_sdk.identity.ProtectedResourceId alloc.alloc.Global
+  grant_types : alloc.collections.btree.set.BTreeSet
+    contract.oauth.OAuthGrantType alloc.alloc.Global
+  auth_methods : alloc.collections.btree.set.BTreeSet
+    contract.oauth.OAuthClientAuthMethod alloc.alloc.Global
+  redirect_uris : alloc.vec.Vec contract.oauth.OAuthRedirectUri
+  allowed_scopes : alloc.collections.btree.set.BTreeSet
+    veoveo_types.names.ScopeName alloc.alloc.Global
+  credential_secret : Option contract.identity.SecretReferenceId
+  jwks : Option control_plane.auth_config.JwksSource
+  tenant : Option veoveo_types.identity.TenantId
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::control_plane::server_config::OAuthEndpointUrl]
+    Source: 'crates/veoveo-hub/src/control_plane/server_config.rs', lines 84:0-84:36
+    Visibility: public -/
+@[reducible]
+def control_plane.server_config.OAuthEndpointUrl := String
+
+/-- [veoveo_hub::control_plane::auth_config::ResourceAuthorizationServer]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 87:0-103:1
+    Visibility: public -/
+structure control_plane.auth_config.ResourceAuthorizationServer where
+  id : contract.identity.AuthorizationServerId
+  issuer : veoveo_types.identity.TokenIssuer
+  jwks : control_plane.auth_config.JwksSource
+  access_token_key_id : Option veoveo_hub_sdk.identity.JwtId
+  access_token_signing_key : Option contract.identity.SecretReferenceId
+  identity_provider : Option control_plane.ids.IdentityProviderId
+  authorization_endpoint : Option control_plane.server_config.OAuthEndpointUrl
+  token_endpoint : control_plane.server_config.OAuthEndpointUrl
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::control_plane::auth_config::IdentityProviderTenantClaim]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 79:0-82:1
+    Visibility: public -/
+@[discriminant isize]
+inductive control_plane.auth_config.IdentityProviderTenantClaim where
+| Tenant : control_plane.auth_config.IdentityProviderTenantClaim
+| Tid : control_plane.auth_config.IdentityProviderTenantClaim
+
+/-- [veoveo_hub::control_plane::auth_config::IdentityProviderTenantClaimMapping]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 62:0-66:1
+    Visibility: public -/
+structure control_plane.auth_config.IdentityProviderTenantClaimMapping where
+  claim : control_plane.auth_config.IdentityProviderTenantClaim
+  values : alloc.collections.btree.map.BTreeMap String
+    veoveo_types.identity.TenantId alloc.alloc.Global
+
+/-- [veoveo_hub::control_plane::auth_config::IdentityProviderSubjectClaim]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 51:0-57:1
+    Visibility: public -/
+@[discriminant isize]
+inductive control_plane.auth_config.IdentityProviderSubjectClaim where
+| Sub : control_plane.auth_config.IdentityProviderSubjectClaim
+| Oid : control_plane.auth_config.IdentityProviderSubjectClaim
+| Email : control_plane.auth_config.IdentityProviderSubjectClaim
+| PreferredUsername : control_plane.auth_config.IdentityProviderSubjectClaim
+
+/-- [veoveo_hub::control_plane::auth_config::IdentityProviderClaimMapping]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 33:0-38:1
+    Visibility: public -/
+structure control_plane.auth_config.IdentityProviderClaimMapping where
+  subject : control_plane.auth_config.IdentityProviderSubjectClaim
+  tenant : Option control_plane.auth_config.IdentityProviderTenantClaimMapping
+
+/-- [veoveo_hub::contract::http::CertificateAuthorityFilePath]
+    Source: 'crates/veoveo-hub/src/contract/http.rs', lines 17:0-17:48
+    Visibility: public -/
+@[reducible]
+def contract.http.CertificateAuthorityFilePath := String
+
+/-- [veoveo_hub::contract::http::CertificateAuthoritySource]
+    Source: 'crates/veoveo-hub/src/contract/http.rs', lines 33:0-35:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.http.CertificateAuthoritySource where
+| File :
+  contract.http.CertificateAuthorityFilePath →
+  contract.http.CertificateAuthoritySource
+
+/-- [veoveo_hub::control_plane::auth_config::IdentityProvider]
+    Source: 'crates/veoveo-hub/src/control_plane/auth_config.rs', lines 12:0-28:1
+    Visibility: public -/
+structure control_plane.auth_config.IdentityProvider where
+  id : control_plane.ids.IdentityProviderId
+  issuer : veoveo_types.identity.TokenIssuer
+  jwks : control_plane.auth_config.JwksSource
+  claim_mapping : control_plane.auth_config.IdentityProviderClaimMapping
+  trusted_certificate_authorities : alloc.vec.Vec
+    contract.http.CertificateAuthoritySource
+  authorization_endpoint : Option control_plane.server_config.OAuthEndpointUrl
+  token_endpoint : Option control_plane.server_config.OAuthEndpointUrl
+  enterprise_managed_authorization_endpoint : Option
+    control_plane.server_config.OAuthEndpointUrl
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::control_plane::HubControlPlane]
+    Source: 'crates/veoveo-hub/src/control_plane.rs', lines 86:0-120:1
+    Visibility: public -/
+structure control_plane.HubControlPlane where
+  execution : Option execution.ExecutionConfiguration
+  branding : Option control_plane.branding.InstallationBranding
+  native_upstreams : Option control_plane.native_upstreams.NativeUpstreams
+  computers : Option control_plane.computers.Computers
+  factory : Option control_plane.factory.FactoryConfiguration
+  identity_providers : alloc.vec.Vec control_plane.auth_config.IdentityProvider
+  authorization_servers : alloc.vec.Vec
+    control_plane.auth_config.ResourceAuthorizationServer
+  profiles : alloc.vec.Vec control_plane.server_config.HubProfile
+  authorization : control_plane.authorization_config.InstallationAuthorization
+  registration : Option control_plane.authorization_config.RegistrationSettings
+  extensions : alloc.collections.btree.map.BTreeMap String
+    serde_json.value.Value alloc.alloc.Global
+  tenants : alloc.vec.Vec control_plane.tenant.TenantDefinition
+  work_contexts : alloc.vec.Vec
+    control_plane.work_context.WorkContextDefinition
+  policies : alloc.vec.Vec control_plane.policy.PolicySet
+  data_labels : alloc.vec.Vec control_plane.data_label.DataLabelDefinition
+  oauth_clients : alloc.vec.Vec
+    control_plane.auth_config.OAuthClientRegistration
+  oidc_clients : alloc.vec.Vec
+    control_plane.auth_config.IdentityProviderOidcClientRegistration
+  secrets : alloc.vec.Vec contract.secrets.SecretReference
+  metadata : serde_json.value.Value
+
+/-- [veoveo_hub::contract::catalog::CatalogObjectDescriptor]
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 96:0-101:1
+    Visibility: public -/
+structure contract.catalog.CatalogObjectDescriptor where
+  tenant : Option veoveo_types.identity.TenantId
+  kind : veoveo_types.extensions.ExtensionName
+  id : String
+  value : serde_json.value.Value
+
+/-- [veoveo_hub::contract::identity::ProtectedResourceName]
+    Source: 'crates/veoveo-hub/src/contract/identity.rs', lines 15:0-15:41
+    Visibility: public -/
+@[reducible]
+def contract.identity.ProtectedResourceName := String
+
+/-- [veoveo_hub::contract::catalog::ProtectedResourceDescriptor]
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 86:0-94:1
+    Visibility: public -/
+structure contract.catalog.ProtectedResourceDescriptor where
+  «name» : contract.identity.ProtectedResourceName
+  resource : veoveo_hub_sdk.identity.ProtectedResourceId
+  authorization_server : contract.identity.AuthorizationServerId
+  policy_version : veoveo_types.identity.PolicyVersion
+  required_scopes : alloc.collections.btree.set.BTreeSet
+    veoveo_types.names.ScopeName alloc.alloc.Global
+  grant_types : alloc.collections.btree.set.BTreeSet
+    contract.oauth.OAuthGrantType alloc.alloc.Global
+
+/-- [veoveo_hub::contract::catalog::AdmittedCatalogSections]
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 509:0-514:1
+    Visibility: public -/
+structure contract.catalog.AdmittedCatalogSections where
+  sections : veoveo_types.extensions.AdmittedExtensions
+  resources : alloc.vec.Vec contract.catalog.ProtectedResourceDescriptor
+  objects : alloc.vec.Vec contract.catalog.CatalogObjectDescriptor
+  memberships : alloc.collections.btree.map.BTreeMap
+    veoveo_types.identity.TenantId (alloc.collections.btree.map.BTreeMap
+    veoveo_types.identity.PrincipalId (alloc.collections.btree.set.BTreeSet
+    veoveo_hub_sdk.identity.GroupMembership alloc.alloc.Global)
+    alloc.alloc.Global) alloc.alloc.Global
+
+/-- [veoveo_hub::contract::catalog::ActionAccess]
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 30:0-33:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.catalog.ActionAccess where
+| Read : contract.catalog.ActionAccess
+| Write : contract.catalog.ActionAccess
+
+/-- [veoveo_hub::contract::catalog::SelectorRequirement]
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 24:0-28:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.catalog.SelectorRequirement where
+| Optional : contract.catalog.SelectorRequirement
+| Required : contract.catalog.SelectorRequirement
+| Forbidden : contract.catalog.SelectorRequirement
+
+/-- [veoveo_hub::contract::catalog::RuleSelector]
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 19:0-22:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.catalog.RuleSelector where
+| Profiles : contract.catalog.RuleSelector
+| ProtectedResources : contract.catalog.RuleSelector
+
+/-- [veoveo_hub::contract::catalog::ActionDescriptor]
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 35:0-39:1
+    Visibility: public -/
+structure contract.catalog.ActionDescriptor where
+  access : contract.catalog.ActionAccess
+  target_kinds : alloc.collections.btree.set.BTreeSet
+    veoveo_types.extensions.ExtensionName alloc.alloc.Global
+  selectors : alloc.collections.btree.map.BTreeMap
+    contract.catalog.RuleSelector contract.catalog.SelectorRequirement
+    alloc.alloc.Global
+
+/-- [veoveo_hub::contract::catalog::CatalogRegistry]
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 307:0-314:1
+    Visibility: public -/
+structure contract.catalog.CatalogRegistry where
+  actions : veoveo_types.actions.ActionRegistry
+  descriptors : alloc.collections.btree.map.BTreeMap
+    veoveo_types.actions.ActionName contract.catalog.ActionDescriptor
+    alloc.alloc.Global
+  sections : veoveo_types.extensions.ExtensionRegistry
+  section_declarations : alloc.collections.btree.map.BTreeMap
+    veoveo_types.extensions.ExtensionName contract.catalog.SectionDeclaration
+    alloc.alloc.Global
+  targets : veoveo_types.extensions.ExtensionRegistry
+  target_declarations : alloc.collections.btree.map.BTreeMap
+    veoveo_types.extensions.ExtensionName contract.catalog.TargetDeclaration
+    alloc.alloc.Global
+
+/-- [veoveo_hub::catalog_admission::HubCatalogAdmission]
+    Source: 'crates/veoveo-hub/src/catalog_admission.rs', lines 6:0-8:1
+    Visibility: public -/
+structure catalog_admission.HubCatalogAdmission where
+  registry : Option contract.catalog.CatalogRegistry
+
+/-- [veoveo_hub::catalog::HubCatalog]
+    Source: 'crates/veoveo-hub/src/catalog.rs', lines 230:0-248:1
+    Visibility: public -/
+structure catalog.HubCatalog where
+  admission : catalog_admission.HubCatalogAdmission
+  control_plane_value : alloc.sync.Arc control_plane.HubControlPlane
+  configuration_sha256 : Array Std.U8 32#usize
+  runtime : Option (alloc.sync.Arc hosting.HostedRuntime)
+  identity_providers : alloc.collections.btree.map.BTreeMap
+    control_plane.ids.IdentityProviderId Std.Usize alloc.alloc.Global
+  authorization_servers : alloc.collections.btree.map.BTreeMap
+    contract.identity.AuthorizationServerId Std.Usize alloc.alloc.Global
+  registrations : alloc.sync.Arc registration.snapshot.RegistrationSnapshot
+  profiles : alloc.collections.btree.map.BTreeMap
+    veoveo_hub_sdk.identity.HubProfileId Std.Usize alloc.alloc.Global
+  sections : contract.catalog.AdmittedCatalogSections
+  policies : alloc.collections.btree.map.BTreeMap
+    veoveo_types.identity.PolicyVersion Std.Usize alloc.alloc.Global
+  data_labels : alloc.collections.btree.map.BTreeMap
+    veoveo_types.identity.DataLabelId Std.Usize alloc.alloc.Global
+  tenants : alloc.collections.btree.map.BTreeMap veoveo_types.identity.TenantId
+    Std.Usize alloc.alloc.Global
+  work_contexts : alloc.collections.btree.map.BTreeMap
+    veoveo_types.identity.WorkContextId Std.Usize alloc.alloc.Global
+  oauth_clients : alloc.collections.btree.map.BTreeMap
+    veoveo_types.platform_names.OAuthClientId Std.Usize alloc.alloc.Global
+  oidc_clients : alloc.collections.btree.map.BTreeMap
+    contract.oauth.OidcClientRegistrationId Std.Usize alloc.alloc.Global
+  secrets : alloc.collections.btree.map.BTreeMap
+    contract.identity.SecretReferenceId Std.Usize alloc.alloc.Global
+
+/-- [veoveo_hub::delegation::CurrentPermissions]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 98:0-101:1 -/
+structure delegation.CurrentPermissions where
+  catalog : catalog.HubCatalog
+  caller : veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 160:34-160:58 -/
+@[reducible]
+def registration.snapshot.RegistrationSnapshot.iter.closure := Unit
+
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{closure#1}]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 116:20-116:63 -/
+@[reducible]
+def delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1
+  :=
+  alloc.collections.btree.set.BTreeSet
+  veoveo_types.permission_names.PermissionName alloc.alloc.Global
 
 /-- [veoveo_hub::policy::grants::granted_permissions::{closure#2}]
     Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 59:13-59:55 -/
@@ -284,5 +1586,33 @@ def policy.grants.granted_permissions.closure_1 :=
 def policy.grants.granted_permissions.closure :=
   alloc.collections.btree.set.BTreeSet veoveo_types.identity.RoleId
   alloc.alloc.Global
+
+/-- [veoveo_hub::policy::grants::held_roles::{closure#2}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 30:13-30:39 -/
+@[reducible]
+def policy.grants.held_roles.closure_2 := Unit
+
+/-- [veoveo_hub::policy::grants::held_roles::{closure#1}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 26:16-29:9 -/
+@[reducible]
+def policy.grants.held_roles.closure_1 := veoveo_hub_sdk.identity.Principal
+
+/-- [veoveo_hub::policy::grants::held_roles::{closure}::{closure}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 24:28-24:78 -/
+@[reducible]
+def policy.grants.held_roles.closure.closure :=
+  veoveo_hub_sdk.identity.Principal
+
+/-- [veoveo_hub::policy::grants::held_roles::{closure}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 20:16-25:9 -/
+@[reducible]
+def policy.grants.held_roles.closure := veoveo_hub_sdk.identity.Principal
+
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{closure}]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 109:22-115:13 -/
+def delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure
+  :=
+  control_plane.authorization_config.InstallationAuthorization ×
+  veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller
 
 end veoveo_hub

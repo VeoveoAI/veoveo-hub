@@ -638,3 +638,171 @@ def veoveo_types.permission_names.PermissionName.Insts.CoreCloneClone.clone
   veoveo_types.permission_names.PermissionName → Result
     veoveo_types.permission_names.PermissionName
   := fun value => .ok value
+
+
+
+/- Forward-only FlatMap operational state. Each step invokes actual next/FnMut/
+IntoIterator methods and preserves their returned state. No arbitrary fuel or
+precomputed flattened result is used; totality is a later finite-cursor theorem.
+`exhausted` models the default native Fuse, preventing resurrection after outer
+None. The native FusedIterator specialization can still call next after None;
+correspondence for the concrete stable terminal map/list cursor must be derived,
+not assumed for arbitrary stateful FusedIterator implementations. Post-terminal
+native call-count traces and unused double-ended operations are not modeled. -/
+universe uI uU uF uOuter uItem uInner
+namespace CurrentRolesNative
+
+def flatMapNext {I : Type uI} {U : Type uU} {F : Type uF}
+    {Outer : Type uOuter} {Item : Type uItem} {Inner : Type uInner}
+    (iterator : Aeneas.Std.core.iter.traits.iterator.Iterator I Outer)
+    (into : Aeneas.Std.core.iter.traits.collect.IntoIterator U Item Inner)
+    (mapper : Aeneas.Std.core.ops.function.FnMut F Outer U)
+    (state : core.iter.adapters.flatten.FlatMap I U F Item Inner) :
+    Result (Option Item × core.iter.adapters.flatten.FlatMap I U F Item Inner) := do
+  if state.exhausted then .ok (none, state) else
+  match state.inner with
+  | some inner =>
+    let (entry, next) ← into.iteratorInst.next inner
+    match entry with
+    | some value => .ok (some value, { state with inner := some next })
+    | none => flatMapNext iterator into mapper { state with inner := none }
+  | none =>
+    let (entry, next) ← iterator.next state.iter
+    match entry with
+    | none => .ok (none, { state with iter := next, exhausted := true })
+    | some value =>
+      let (mapped, mapper') ← mapper.call_mut state.mapper value
+      let inner ← into.into_iter mapped
+      flatMapNext iterator into mapper { state with iter := next, mapper := mapper', inner := some inner }
+partial_fixpoint
+
+/- Native Arc::as_ref VALUE projection. Its Rust reference/alias/lifetime
+refinement and the single forwarding closure are explicit trusted adapters. -/
+def arcAsRef {T : Type u} (value : alloc.sync.Arc T) : Result T := .ok value
+
+end CurrentRolesNative
+
+/-- [core::iter::traits::iterator::Iterator::flat_map]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 1547:4-1551:34
+    Name pattern: [core::iter::traits::iterator::Iterator::flat_map]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::flat_map"]
+def core.iter.traits.iterator.Iterator.flat_map.default
+  {Self : Type _} {U : Type _} {F : Type _} {Clause0_Item : Type _}
+  {Clause1_Item : Type _} {Clause1_IntoIter : Type _} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item)
+  (collectIntoIteratorInst : core.iter.traits.collect.IntoIterator U
+  Clause1_Item Clause1_IntoIter) (opsfunctionFnMutFTupleClause0_ItemUInst :
+  core.ops.function.FnMut F Clause0_Item U) :
+  Self → F → Result (core.iter.adapters.flatten.FlatMap Self U F
+    Clause1_Item Clause1_IntoIter)
+  := fun state mapper => .ok { iter := state, mapper := mapper, inner := none, exhausted := false }
+
+/-- [core::iter::adapters::flatten::{impl core::iter::traits::iterator::Iterator<Clause1_Item> for core::iter::adapters::flatten::FlatMap<I, U, F, Clause1_Item, Clause1_IntoIter>}::next]:
+    Source: '/rustc/library/core/src/iter/adapters/flatten.rs', lines 63:4-63:41
+    Name pattern: [core::iter::adapters::flatten::{core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>}::next]
+    Visibility: public -/
+@[rust_fun
+  "core::iter::adapters::flatten::{core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>}::next"]
+def
+  core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator.next
+  {I : Type _} {U : Type _} {F : Type _} {Clause0_Item : Type _} {Clause1_Item
+  : Type _} {Clause1_IntoIter : Type _} (traitsiteratorIteratorInst :
+  core.iter.traits.iterator.Iterator I Clause0_Item)
+  (traitscollectIntoIteratorInst : core.iter.traits.collect.IntoIterator U
+  Clause1_Item Clause1_IntoIter) (opsfunctionFnMutFTupleClause0_ItemUInst :
+  core.ops.function.FnMut F Clause0_Item U) :
+  core.iter.adapters.flatten.FlatMap I U F Clause1_Item Clause1_IntoIter →
+    Result ((Option Clause1_Item) × (core.iter.adapters.flatten.FlatMap I U F
+    Clause1_Item Clause1_IntoIter))
+  := CurrentRolesNative.flatMapNext traitsiteratorIteratorInst
+    traitscollectIntoIteratorInst opsfunctionFnMutFTupleClause0_ItemUInst
+
+/-- [alloc::collections::btree::map::{impl core::iter::traits::iterator::Iterator<&'a V> for alloc::collections::btree::map::Values<'a, K, V>}::next]:
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 2080:4-2080:39
+    Name pattern: [alloc::collections::btree::map::{core::iter::traits::iterator::Iterator<alloc::collections::btree::map::Values<'a, @K, @V>, &'a @V>}::next]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::{core::iter::traits::iterator::Iterator<alloc::collections::btree::map::Values<'a, @K, @V>, &'a @V>}::next"]
+def
+  alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV.next
+  {K : Type _} {V : Type _} :
+  alloc.collections.btree.map.Values K V → Result ((Option V) ×
+    (alloc.collections.btree.map.Values K V))
+  := fun values => .ok (match values with
+  | [] => (none, [])
+  | head :: tail => (some head, tail))
+
+/-- [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<K, V, A>}::values]:
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 2786:4-2786:44
+    Name pattern: [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::values]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::values"]
+def alloc.collections.btree.map.BTreeMap.values
+  {K : Type _} {V : Type _} {A : Type _} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) :
+  alloc.collections.btree.map.BTreeMap K V A → Result
+    (alloc.collections.btree.map.Values K V)
+  := fun entries => .ok (entries.map Prod.snd)
+
+/-- [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<T> for alloc::collections::btree::set::IntoIter<T, A>}::next]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1816:4-1816:35
+    Name pattern: [alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::IntoIter<@T, @A>, @T>}::next]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::IntoIter<@T, @A>, @T>}::next"]
+def
+  alloc.collections.btree.set.IntoIter.Insts.CoreIterTraitsIteratorIterator.next
+  {T : Type _} {A : Type _} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) :
+  alloc.collections.btree.set.IntoIter T A → Result ((Option T) ×
+    (alloc.collections.btree.set.IntoIter T A))
+  := fun values => .ok (match values with
+  | [] => (none, [])
+  | head :: tail => (some head, tail))
+
+/-- [alloc::collections::btree::set::{impl core::iter::traits::collect::IntoIterator<T, alloc::collections::btree::set::IntoIter<T, A>> for alloc::collections::btree::set::BTreeSet<T, A>}::into_iter]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1536:4-1536:40
+    Name pattern: [alloc::collections::btree::set::{core::iter::traits::collect::IntoIterator<alloc::collections::btree::set::BTreeSet<@T, @A>, @T, alloc::collections::btree::set::IntoIter<@T, @A>>}::into_iter]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::collect::IntoIterator<alloc::collections::btree::set::BTreeSet<@T, @A>, @T, alloc::collections::btree::set::IntoIter<@T, @A>>}::into_iter"]
+def
+  alloc.collections.btree.set.BTreeSet.Insts.CoreIterTraitsCollectIntoIteratorTIntoIter.into_iter
+  {T : Type _} {A : Type _} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) :
+  alloc.collections.btree.set.BTreeSet T A → Result
+    (alloc.collections.btree.set.IntoIter T A)
+  := fun set => .ok set.toList
+
+/-- [alloc::sync::{impl core::ops::deref::Deref<T> for alloc::sync::Arc<T>}::deref]:
+    Source: '/rustc/library/alloc/src/sync.rs', lines 2570:4-2570:25
+    Name pattern: [alloc::sync::{core::ops::deref::Deref<alloc::sync::Arc<@T>, @T>}::deref]
+    Visibility: public -/
+@[rust_fun
+  "alloc::sync::{core::ops::deref::Deref<alloc::sync::Arc<@T>, @T>}::deref"]
+def alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref
+  {T : Type _} (A : Type _) : alloc.sync.Arc T → Result T
+  := fun value => .ok value
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{impl core::ops::function::FnMut<(&'_0 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), &'_ veoveo_hub::registration::snapshot::RegisteredServer> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}}::call_mut]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 160:34-160:58 -/
+def
+  registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer.call_mut
+  :
+  registration.snapshot.RegistrationSnapshot.iter.closure → alloc.sync.Arc
+    registration.snapshot.RegisteredServer → Result
+    (registration.snapshot.RegisteredServer ×
+    registration.snapshot.RegistrationSnapshot.iter.closure)
+  := fun state value => do
+    let server ← CurrentRolesNative.arcAsRef value
+    .ok (server, state)
+
+/-- Empty native set constructor, freshly reached by the isolated overdenial
+control. This value model does not claim allocator or native representation behavior. -/
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, alloc::alloc::Global>}::new"]
+def alloc.collections.btree.set.BTreeSetTGlobal.new
+    (T : Type _) : Result (alloc.collections.btree.set.BTreeSet T alloc.alloc.Global) :=
+  .ok ∅

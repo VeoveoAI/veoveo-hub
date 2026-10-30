@@ -49,6 +49,27 @@ impl_def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
     traitsiteratorIteratorInst opsfunctionFnMutPTupleSharedClause0_ItemBoolInst
 }
 
+/-- Trait implementation: [core::iter::adapters::flatten::{impl core::iter::traits::iterator::Iterator<Clause1_Item> for core::iter::adapters::flatten::FlatMap<I, U, F, Clause1_Item, Clause1_IntoIter>}]
+    Source: '/rustc/library/core/src/iter/adapters/flatten.rs', lines 56:0-58:27
+    Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>"]
+impl_def
+  core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator {I :
+  Type _} {U : Type _} {F : Type _} {Clause0_Item : Type _} {Clause1_Item :
+  Type _} {Clause1_IntoIter : Type _} (traitsiteratorIteratorInst :
+  core.iter.traits.iterator.Iterator I Clause0_Item)
+  (traitscollectIntoIteratorInst : core.iter.traits.collect.IntoIterator U
+  Clause1_Item Clause1_IntoIter) (opsfunctionFnMutFTupleClause0_ItemUInst :
+  core.ops.function.FnMut F Clause0_Item U) :
+  core.iter.traits.iterator.Iterator (core.iter.adapters.flatten.FlatMap I U F
+  Clause1_Item Clause1_IntoIter) Clause1_Item := {
+  next :=
+    core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator.next
+    traitsiteratorIteratorInst traitscollectIntoIteratorInst
+    opsfunctionFnMutFTupleClause0_ItemUInst
+}
+
 /-- Trait implementation: [core::iter::adapters::map::{impl core::iter::traits::iterator::Iterator<B> for core::iter::adapters::map::Map<I, F>}]
     Source: '/rustc/library/core/src/iter/adapters/map.rs', lines 99:0-101:27
     Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>] -/
@@ -74,6 +95,19 @@ def alloc.alloc.Global.Insts.CoreAllocAllocatorClone :
   cloneCloneInst := core.clone.CloneGlobal
 }
 
+/-- Trait implementation: [alloc::collections::btree::map::{impl core::iter::traits::iterator::Iterator<&'a V> for alloc::collections::btree::map::Values<'a, K, V>}]
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 2077:0-2077:44
+    Name pattern: [core::iter::traits::iterator::Iterator<alloc::collections::btree::map::Values<'a, @K, @V>, &'a @V>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::iterator::Iterator<alloc::collections::btree::map::Values<'a, @K, @V>, &'a @V>"]
+impl_def
+  alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV
+  (K : Type _) (V : Type _) : core.iter.traits.iterator.Iterator
+  (alloc.collections.btree.map.Values K V) V := {
+  next :=
+    alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV.next
+}
+
 /-- Trait implementation: [alloc::collections::btree::set::{impl core::iter::traits::collect::FromIterator<T> for alloc::collections::btree::set::BTreeSet<T, alloc::alloc::Global>}]
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1470:0-1470:44
     Name pattern: [core::iter::traits::collect::FromIterator<alloc::collections::btree::set::BTreeSet<@T, alloc::alloc::Global>, @T>] -/
@@ -89,6 +123,40 @@ def
     core.iter.traits.collect.IntoIterator I T Clause0_IntoIter) =>
     alloc.collections.btree.set.BTreeSetTGlobal.Insts.CoreIterTraitsCollectFromIterator.from_iter
     corecmpOrdInst coreitertraitscollectIntoIteratorInst
+}
+
+/-- Trait implementation: [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<T> for alloc::collections::btree::set::IntoIter<T, A>}]
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1813:0-1813:54
+    Name pattern: [core::iter::traits::iterator::Iterator<alloc::collections::btree::set::IntoIter<@T, @A>, @T>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::iterator::Iterator<alloc::collections::btree::set::IntoIter<@T, @A>, @T>"]
+impl_def
+  alloc.collections.btree.set.IntoIter.Insts.CoreIterTraitsIteratorIterator (T
+  : Type _) {A : Type _} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) : core.iter.traits.iterator.Iterator
+  (alloc.collections.btree.set.IntoIter T A) T := {
+  next :=
+    alloc.collections.btree.set.IntoIter.Insts.CoreIterTraitsIteratorIterator.next
+    coreallocAllocatorCloneInst
+}
+
+/-- Trait implementation: [alloc::collections::btree::set::{impl core::iter::traits::collect::IntoIterator<T, alloc::collections::btree::set::IntoIter<T, A>> for alloc::collections::btree::set::BTreeSet<T, A>}]
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1520:0-1520:58
+    Name pattern: [core::iter::traits::collect::IntoIterator<alloc::collections::btree::set::BTreeSet<@T, @A>, @T, alloc::collections::btree::set::IntoIter<@T, @A>>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::collect::IntoIterator<alloc::collections::btree::set::BTreeSet<@T, @A>, @T, alloc::collections::btree::set::IntoIter<@T, @A>>"]
+def
+  alloc.collections.btree.set.BTreeSet.Insts.CoreIterTraitsCollectIntoIteratorTIntoIter
+  (T : Type _) {A : Type _} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) : core.iter.traits.collect.IntoIterator
+  (alloc.collections.btree.set.BTreeSet T A) T
+  (alloc.collections.btree.set.IntoIter T A) := {
+  iteratorInst :=
+    alloc.collections.btree.set.IntoIter.Insts.CoreIterTraitsIteratorIterator T
+    coreallocAllocatorCloneInst
+  into_iter :=
+    alloc.collections.btree.set.BTreeSet.Insts.CoreIterTraitsCollectIntoIteratorTIntoIter.into_iter
+    coreallocAllocatorCloneInst
 }
 
 /-- Trait implementation: [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<&'a T> for alloc::collections::btree::set::Iter<'a, T>}]
@@ -418,6 +486,24 @@ def veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd :
   cmp := veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd.cmp
 }
 
+/-- [veoveo_hub::catalog::{veoveo_hub::catalog::HubCatalog}::control_plane]:
+    Source: 'crates/veoveo-hub/src/catalog.rs', lines 383:4-385:5
+    Visibility: public -/
+def catalog.HubCatalog.control_plane
+  (self : catalog.HubCatalog) : Result control_plane.HubControlPlane := do
+  alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+    self.control_plane_value
+
+/-- [veoveo_hub::catalog::{veoveo_hub::catalog::HubCatalog}::registrations]:
+    Source: 'crates/veoveo-hub/src/catalog.rs', lines 418:4-420:5
+    Visibility: public -/
+def catalog.HubCatalog.impl.registrations
+  (self : catalog.HubCatalog) :
+  Result registration.snapshot.RegistrationSnapshot
+  := do
+  alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+    self.registrations
+
 /-- [veoveo_hub::control_plane::authorization_config::{veoveo_hub::control_plane::authorization_config::InstallationRole}::allows]:
     Source: 'crates/veoveo-hub/src/control_plane/authorization_config.rs', lines 34:4-36:5
     Visibility: public -/
@@ -457,239 +543,125 @@ def control_plane.authorization_config.PermissionOverride.permission
   | control_plane.authorization_config.PermissionOverride.Deny permission =>
     ok permission
 
-/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_0 veoveo_hub::control_plane::authorization_config::RoleGrant,), veoveo_types::identity::RoleId> for veoveo_hub::policy::grants::held_roles::{closure#2}}::call_mut]:
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 30:13-30:39 -/
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{impl core::ops::function::FnOnce<(&'_0 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), &'_ veoveo_hub::registration::snapshot::RegisteredServer> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}}::call_once]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 160:34-160:58 -/
 def
-  policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId.call_mut
-  (c : policy.grants.held_roles.closure_2)
-  (tupled_args : control_plane.authorization_config.RoleGrant) :
-  Result (veoveo_types.identity.RoleId × policy.grants.held_roles.closure_2)
+  registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnOnceTupleShared0ArcRegisteredServerSharedRegisteredServer.call_once
+  (c : registration.snapshot.RegistrationSnapshot.iter.closure)
+  (a : alloc.sync.Arc registration.snapshot.RegisteredServer) :
+  Result registration.snapshot.RegisteredServer
   := do
-  let ri ←
-    veoveo_types.identity.RoleId.Insts.CoreCloneClone.clone tupled_args.role
-  ok (ri, c)
+  let (rs, _) ←
+    registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer.call_mut
+      c a
+  ok rs
 
-/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::control_plane::authorization_config::RoleGrant,), veoveo_types::identity::RoleId> for veoveo_hub::policy::grants::held_roles::{closure#2}}::call_once]:
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 30:13-30:39 -/
-def
-  policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0RoleGrantRoleId.call_once
-  (c : policy.grants.held_roles.closure_2)
-  (rg : control_plane.authorization_config.RoleGrant) :
-  Result veoveo_types.identity.RoleId
-  := do
-  let (ri, _) ←
-    policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId.call_mut
-      c rg
-  ok ri
-
-/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::control_plane::authorization_config::RoleGrant,), veoveo_types::identity::RoleId> for veoveo_hub::policy::grants::held_roles::{closure#2}}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 30:13-30:39 -/
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{impl core::ops::function::FnOnce<(&'_0 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), &'_ veoveo_hub::registration::snapshot::RegisteredServer> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 160:34-160:58 -/
 @[reducible]
 def
-  policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0RoleGrantRoleId
-  : core.ops.function.FnOnce policy.grants.held_roles.closure_2
-  control_plane.authorization_config.RoleGrant veoveo_types.identity.RoleId
-  := {
+  registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnOnceTupleShared0ArcRegisteredServerSharedRegisteredServer
+  : core.ops.function.FnOnce
+  registration.snapshot.RegistrationSnapshot.iter.closure (alloc.sync.Arc
+  registration.snapshot.RegisteredServer)
+  registration.snapshot.RegisteredServer := {
   call_once :=
-    policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0RoleGrantRoleId.call_once
+    registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnOnceTupleShared0ArcRegisteredServerSharedRegisteredServer.call_once
 }
 
-/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_0 veoveo_hub::control_plane::authorization_config::RoleGrant,), veoveo_types::identity::RoleId> for veoveo_hub::policy::grants::held_roles::{closure#2}}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 30:13-30:39 -/
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{impl core::ops::function::FnMut<(&'_0 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), &'_ veoveo_hub::registration::snapshot::RegisteredServer> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 160:34-160:58 -/
 @[reducible]
 def
-  policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId
-  : core.ops.function.FnMut policy.grants.held_roles.closure_2
-  control_plane.authorization_config.RoleGrant veoveo_types.identity.RoleId
-  := {
+  registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer
+  : core.ops.function.FnMut
+  registration.snapshot.RegistrationSnapshot.iter.closure (alloc.sync.Arc
+  registration.snapshot.RegisteredServer)
+  registration.snapshot.RegisteredServer := {
   FnOnceInst :=
-    policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0RoleGrantRoleId
+    registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnOnceTupleShared0ArcRegisteredServerSharedRegisteredServer
   call_mut :=
-    policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId.call_mut
+    registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer.call_mut
 }
 
-/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure#1}<'_0>}::call_mut]:
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 26:16-29:9 -/
-def
-  policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
-  (c : policy.grants.held_roles.closure_1)
-  (tupled_args : control_plane.authorization_config.RoleGrant) :
-  Result (Bool × policy.grants.held_roles.closure_1)
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 159:4-161:5
+    Visibility: public -/
+def registration.snapshot.RegistrationSnapshot.iter
+  (self : registration.snapshot.RegistrationSnapshot) :
+  Result (core.iter.adapters.map.Map (alloc.collections.btree.map.Values
+    veoveo_types.execution.DeploymentId (alloc.sync.Arc
+    registration.snapshot.RegisteredServer))
+    registration.snapshot.RegistrationSnapshot.iter.closure)
   := do
-  match tupled_args.subject with
-  | control_plane.authorization_config.GrantSubject.Group group =>
-    let b ←
-      alloc.collections.btree.set.BTreeSet.contains
-        alloc.alloc.Global.Insts.CoreAllocAllocatorClone
-        (core.borrow.Borrow.Blanket veoveo_types.identity.GroupId)
-        veoveo_types.identity.GroupId.Insts.CoreCmpOrd
-        veoveo_types.identity.GroupId.Insts.CoreCmpOrd c.groups group
-    ok (b, c)
-  | control_plane.authorization_config.GrantSubject.Principal id =>
-    let b ←
-      veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId.eq
-        c.id id
-    ok (b, c)
+  let v ←
+    alloc.collections.btree.map.BTreeMap.values
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone self.servers
+  core.iter.traits.iterator.Iterator.map.default
+    (alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV
+    veoveo_types.execution.DeploymentId (alloc.sync.Arc
+    registration.snapshot.RegisteredServer))
+    registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer
+    v ()
 
-/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure#1}<'_0>}::call_once]:
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 26:16-29:9 -/
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{impl core::ops::function::FnMut<(&'_2 veoveo_types::permission_names::PermissionName,), bool> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{closure#1}<'_0, '_1>}::call_mut]:
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 116:20-116:63 -/
 def
-  policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool.call_once
-  (c : policy.grants.held_roles.closure_1)
-  (rg : control_plane.authorization_config.RoleGrant) :
-  Result Bool
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2PermissionNameBool.call_mut
+  (c :
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1)
+  (tupled_args : veoveo_types.permission_names.PermissionName) :
+  Result (Bool ×
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1)
   := do
-  let (b, _) ←
-    policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
-      c rg
-  ok b
-
-/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure#1}<'_0>}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 26:16-29:9 -/
-@[reducible]
-def
-  policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool
-  : core.ops.function.FnOnce policy.grants.held_roles.closure_1
-  control_plane.authorization_config.RoleGrant Bool := {
-  call_once :=
-    policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool.call_once
-}
-
-/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure#1}<'_0>}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 26:16-29:9 -/
-@[reducible]
-def
-  policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool
-  : core.ops.function.FnMut policy.grants.held_roles.closure_1
-  control_plane.authorization_config.RoleGrant Bool := {
-  FnOnceInst :=
-    policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool
-  call_mut :=
-    policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
-}
-
-/-- [veoveo_hub::policy::grants::held_roles::{closure}::{impl core::ops::function::FnOnce<(&'_1 veoveo_types::identity::TenantId,), bool> for veoveo_hub::policy::grants::held_roles::{closure}::{closure}<'_0>}::call_once]:
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 24:28-24:78 -/
-def
-  policy.grants.held_roles.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1TenantIdBool.call_once
-  (c : policy.grants.held_roles.closure.closure)
-  (tupled_args : veoveo_types.identity.TenantId) :
-  Result Bool
-  := do
-  let o ← core.option.Option.as_ref c.tenant
-  core.option.Option.Insts.CoreCmpPartialEqOption.eq (core.cmp.PartialEqShared
-    veoveo_types.identity.TenantId.Insts.CoreCmpPartialEqTenantId) o (some
-    tupled_args)
-
-/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{closure}::{impl core::ops::function::FnOnce<(&'_1 veoveo_types::identity::TenantId,), bool> for veoveo_hub::policy::grants::held_roles::{closure}::{closure}<'_0>}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 24:28-24:78 -/
-@[reducible]
-def
-  policy.grants.held_roles.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1TenantIdBool
-  : core.ops.function.FnOnce policy.grants.held_roles.closure.closure
-  veoveo_types.identity.TenantId Bool := {
-  call_once :=
-    policy.grants.held_roles.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1TenantIdBool.call_once
-}
-
-/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure}<'_0>}::call_mut]:
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 20:16-25:9 -/
-def
-  policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
-  (c : policy.grants.held_roles.closure)
-  (tupled_args : control_plane.authorization_config.RoleGrant) :
-  Result (Bool × policy.grants.held_roles.closure)
-  := do
-  let o ← core.option.Option.as_ref tupled_args.tenant
   let b ←
-    core.option.Option.is_none_or
-      policy.grants.held_roles.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1TenantIdBool
-      o c
+    alloc.collections.btree.set.BTreeSet.contains
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+      (core.borrow.Borrow.Blanket veoveo_types.permission_names.PermissionName)
+      veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd
+      veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd c
+      tupled_args
   ok (b, c)
 
-/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure}<'_0>}::call_once]:
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 20:16-25:9 -/
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{impl core::ops::function::FnOnce<(&'_2 veoveo_types::permission_names::PermissionName,), bool> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{closure#1}<'_0, '_1>}::call_once]:
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 116:20-116:63 -/
 def
-  policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool.call_once
-  (c : policy.grants.held_roles.closure)
-  (rg : control_plane.authorization_config.RoleGrant) :
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared2PermissionNameBool.call_once
+  (c :
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1)
+  (pn : veoveo_types.permission_names.PermissionName) :
   Result Bool
   := do
   let (b, _) ←
-    policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
-      c rg
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2PermissionNameBool.call_mut
+      c pn
   ok b
 
-/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure}<'_0>}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 20:16-25:9 -/
+/-- Trait implementation: [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{impl core::ops::function::FnOnce<(&'_2 veoveo_types::permission_names::PermissionName,), bool> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{closure#1}<'_0, '_1>}]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 116:20-116:63 -/
 @[reducible]
 def
-  policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool
-  : core.ops.function.FnOnce policy.grants.held_roles.closure
-  control_plane.authorization_config.RoleGrant Bool := {
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared2PermissionNameBool
+  : core.ops.function.FnOnce
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1
+  veoveo_types.permission_names.PermissionName Bool := {
   call_once :=
-    policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool.call_once
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared2PermissionNameBool.call_once
 }
 
-/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure}<'_0>}]
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 20:16-25:9 -/
+/-- Trait implementation: [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{impl core::ops::function::FnMut<(&'_2 veoveo_types::permission_names::PermissionName,), bool> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{closure#1}<'_0, '_1>}]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 116:20-116:63 -/
 @[reducible]
 def
-  policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool
-  : core.ops.function.FnMut policy.grants.held_roles.closure
-  control_plane.authorization_config.RoleGrant Bool := {
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2PermissionNameBool
+  : core.ops.function.FnMut
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1
+  veoveo_types.permission_names.PermissionName Bool := {
   FnOnceInst :=
-    policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared2PermissionNameBool
   call_mut :=
-    policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2PermissionNameBool.call_mut
 }
-
-/-- [veoveo_hub::policy::grants::held_roles]:
-    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 13:0-32:1
-    Visibility: public -/
-def policy.grants.held_roles
-  (installation : control_plane.authorization_config.InstallationAuthorization)
-  (principal : veoveo_hub_sdk.identity.Principal) :
-  Result (alloc.collections.btree.set.BTreeSet veoveo_types.identity.RoleId
-    alloc.alloc.Global)
-  := do
-  let s := alloc.vec.Vec.deref installation.grants
-  let i ← core.slice.Slice.iter s
-  let f ←
-    core.iter.traits.iterator.Iterator.filter.default
-      (core.iter.traits.iterator.IteratorSliceIter
-      control_plane.authorization_config.RoleGrant)
-      policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool
-      i principal
-  let f1 ←
-    core.iter.traits.iterator.Iterator.filter.default
-      (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
-      (core.iter.traits.iterator.IteratorSliceIter
-      control_plane.authorization_config.RoleGrant)
-      policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool)
-      policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool
-      f principal
-  let m ←
-    core.iter.traits.iterator.Iterator.map.default
-      (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
-      (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
-      (core.iter.traits.iterator.IteratorSliceIter
-      control_plane.authorization_config.RoleGrant)
-      policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool)
-      policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool)
-      policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId
-      f1 ()
-  core.iter.traits.iterator.Iterator.collect.default
-    (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
-    (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
-    (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
-    (core.iter.traits.iterator.IteratorSliceIter
-    control_plane.authorization_config.RoleGrant)
-    policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool)
-    policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool)
-    policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId)
-    (alloc.collections.btree.set.BTreeSetTGlobal.Insts.CoreIterTraitsCollectFromIterator
-    veoveo_types.identity.RoleId.Insts.CoreCmpOrd) m
 
 /-- [veoveo_hub::policy::grants::granted_permissions::{impl core::ops::function::FnMut<(&'_0 veoveo_hub_sdk::registration::authorization::PermissionDeclaration,), veoveo_types::permission_names::PermissionName> for veoveo_hub::policy::grants::granted_permissions::{closure#2}}::call_mut]:
     Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 59:13-59:55 -/
@@ -989,6 +961,240 @@ def
     policy.grants.granted_permissions.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2InstallationRoleBool.call_mut
 }
 
+/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_0 veoveo_hub::control_plane::authorization_config::RoleGrant,), veoveo_types::identity::RoleId> for veoveo_hub::policy::grants::held_roles::{closure#2}}::call_mut]:
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 30:13-30:39 -/
+def
+  policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId.call_mut
+  (c : policy.grants.held_roles.closure_2)
+  (tupled_args : control_plane.authorization_config.RoleGrant) :
+  Result (veoveo_types.identity.RoleId × policy.grants.held_roles.closure_2)
+  := do
+  let ri ←
+    veoveo_types.identity.RoleId.Insts.CoreCloneClone.clone tupled_args.role
+  ok (ri, c)
+
+/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::control_plane::authorization_config::RoleGrant,), veoveo_types::identity::RoleId> for veoveo_hub::policy::grants::held_roles::{closure#2}}::call_once]:
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 30:13-30:39 -/
+def
+  policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0RoleGrantRoleId.call_once
+  (c : policy.grants.held_roles.closure_2)
+  (rg : control_plane.authorization_config.RoleGrant) :
+  Result veoveo_types.identity.RoleId
+  := do
+  let (ri, _) ←
+    policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId.call_mut
+      c rg
+  ok ri
+
+/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::control_plane::authorization_config::RoleGrant,), veoveo_types::identity::RoleId> for veoveo_hub::policy::grants::held_roles::{closure#2}}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 30:13-30:39 -/
+@[reducible]
+def
+  policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0RoleGrantRoleId
+  : core.ops.function.FnOnce policy.grants.held_roles.closure_2
+  control_plane.authorization_config.RoleGrant veoveo_types.identity.RoleId
+  := {
+  call_once :=
+    policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0RoleGrantRoleId.call_once
+}
+
+/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_0 veoveo_hub::control_plane::authorization_config::RoleGrant,), veoveo_types::identity::RoleId> for veoveo_hub::policy::grants::held_roles::{closure#2}}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 30:13-30:39 -/
+@[reducible]
+def
+  policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId
+  : core.ops.function.FnMut policy.grants.held_roles.closure_2
+  control_plane.authorization_config.RoleGrant veoveo_types.identity.RoleId
+  := {
+  FnOnceInst :=
+    policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0RoleGrantRoleId
+  call_mut :=
+    policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId.call_mut
+}
+
+/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure#1}<'_0>}::call_mut]:
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 26:16-29:9 -/
+def
+  policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
+  (c : policy.grants.held_roles.closure_1)
+  (tupled_args : control_plane.authorization_config.RoleGrant) :
+  Result (Bool × policy.grants.held_roles.closure_1)
+  := do
+  match tupled_args.subject with
+  | control_plane.authorization_config.GrantSubject.Group group =>
+    let b ←
+      alloc.collections.btree.set.BTreeSet.contains
+        alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+        (core.borrow.Borrow.Blanket veoveo_types.identity.GroupId)
+        veoveo_types.identity.GroupId.Insts.CoreCmpOrd
+        veoveo_types.identity.GroupId.Insts.CoreCmpOrd c.groups group
+    ok (b, c)
+  | control_plane.authorization_config.GrantSubject.Principal id =>
+    let b ←
+      veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId.eq
+        c.id id
+    ok (b, c)
+
+/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure#1}<'_0>}::call_once]:
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 26:16-29:9 -/
+def
+  policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool.call_once
+  (c : policy.grants.held_roles.closure_1)
+  (rg : control_plane.authorization_config.RoleGrant) :
+  Result Bool
+  := do
+  let (b, _) ←
+    policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
+      c rg
+  ok b
+
+/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure#1}<'_0>}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 26:16-29:9 -/
+@[reducible]
+def
+  policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool
+  : core.ops.function.FnOnce policy.grants.held_roles.closure_1
+  control_plane.authorization_config.RoleGrant Bool := {
+  call_once :=
+    policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool.call_once
+}
+
+/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure#1}<'_0>}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 26:16-29:9 -/
+@[reducible]
+def
+  policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool
+  : core.ops.function.FnMut policy.grants.held_roles.closure_1
+  control_plane.authorization_config.RoleGrant Bool := {
+  FnOnceInst :=
+    policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool
+  call_mut :=
+    policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
+}
+
+/-- [veoveo_hub::policy::grants::held_roles::{closure}::{impl core::ops::function::FnOnce<(&'_1 veoveo_types::identity::TenantId,), bool> for veoveo_hub::policy::grants::held_roles::{closure}::{closure}<'_0>}::call_once]:
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 24:28-24:78 -/
+def
+  policy.grants.held_roles.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1TenantIdBool.call_once
+  (c : policy.grants.held_roles.closure.closure)
+  (tupled_args : veoveo_types.identity.TenantId) :
+  Result Bool
+  := do
+  let o ← core.option.Option.as_ref c.tenant
+  core.option.Option.Insts.CoreCmpPartialEqOption.eq (core.cmp.PartialEqShared
+    veoveo_types.identity.TenantId.Insts.CoreCmpPartialEqTenantId) o (some
+    tupled_args)
+
+/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{closure}::{impl core::ops::function::FnOnce<(&'_1 veoveo_types::identity::TenantId,), bool> for veoveo_hub::policy::grants::held_roles::{closure}::{closure}<'_0>}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 24:28-24:78 -/
+@[reducible]
+def
+  policy.grants.held_roles.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1TenantIdBool
+  : core.ops.function.FnOnce policy.grants.held_roles.closure.closure
+  veoveo_types.identity.TenantId Bool := {
+  call_once :=
+    policy.grants.held_roles.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1TenantIdBool.call_once
+}
+
+/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure}<'_0>}::call_mut]:
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 20:16-25:9 -/
+def
+  policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
+  (c : policy.grants.held_roles.closure)
+  (tupled_args : control_plane.authorization_config.RoleGrant) :
+  Result (Bool × policy.grants.held_roles.closure)
+  := do
+  let o ← core.option.Option.as_ref tupled_args.tenant
+  let b ←
+    core.option.Option.is_none_or
+      policy.grants.held_roles.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1TenantIdBool
+      o c
+  ok (b, c)
+
+/-- [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure}<'_0>}::call_once]:
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 20:16-25:9 -/
+def
+  policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool.call_once
+  (c : policy.grants.held_roles.closure)
+  (rg : control_plane.authorization_config.RoleGrant) :
+  Result Bool
+  := do
+  let (b, _) ←
+    policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
+      c rg
+  ok b
+
+/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnOnce<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure}<'_0>}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 20:16-25:9 -/
+@[reducible]
+def
+  policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool
+  : core.ops.function.FnOnce policy.grants.held_roles.closure
+  control_plane.authorization_config.RoleGrant Bool := {
+  call_once :=
+    policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool.call_once
+}
+
+/-- Trait implementation: [veoveo_hub::policy::grants::held_roles::{impl core::ops::function::FnMut<(&'_1 &'_2 veoveo_hub::control_plane::authorization_config::RoleGrant,), bool> for veoveo_hub::policy::grants::held_roles::{closure}<'_0>}]
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 20:16-25:9 -/
+@[reducible]
+def
+  policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool
+  : core.ops.function.FnMut policy.grants.held_roles.closure
+  control_plane.authorization_config.RoleGrant Bool := {
+  FnOnceInst :=
+    policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2RoleGrantBool
+  call_mut :=
+    policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool.call_mut
+}
+
+/-- [veoveo_hub::policy::grants::held_roles]:
+    Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 13:0-32:1
+    Visibility: public -/
+def policy.grants.held_roles
+  (installation : control_plane.authorization_config.InstallationAuthorization)
+  (principal : veoveo_hub_sdk.identity.Principal) :
+  Result (alloc.collections.btree.set.BTreeSet veoveo_types.identity.RoleId
+    alloc.alloc.Global)
+  := do
+  let s := alloc.vec.Vec.deref installation.grants
+  let i ← core.slice.Slice.iter s
+  let f ←
+    core.iter.traits.iterator.Iterator.filter.default
+      (core.iter.traits.iterator.IteratorSliceIter
+      control_plane.authorization_config.RoleGrant)
+      policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool
+      i principal
+  let f1 ←
+    core.iter.traits.iterator.Iterator.filter.default
+      (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+      (core.iter.traits.iterator.IteratorSliceIter
+      control_plane.authorization_config.RoleGrant)
+      policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool)
+      policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool
+      f principal
+  let m ←
+    core.iter.traits.iterator.Iterator.map.default
+      (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+      (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+      (core.iter.traits.iterator.IteratorSliceIter
+      control_plane.authorization_config.RoleGrant)
+      policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool)
+      policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool)
+      policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId
+      f1 ()
+  core.iter.traits.iterator.Iterator.collect.default
+    (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.traits.iterator.IteratorSliceIter
+    control_plane.authorization_config.RoleGrant)
+    policy.grants.held_roles.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool)
+    policy.grants.held_roles.closure_1.Insts.CoreOpsFunctionFnMutTupleShared1Shared2RoleGrantBool)
+    policy.grants.held_roles.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0RoleGrantRoleId)
+    (alloc.collections.btree.set.BTreeSetTGlobal.Insts.CoreIterTraitsCollectFromIterator
+    veoveo_types.identity.RoleId.Insts.CoreCmpOrd) m
+
 /-- [veoveo_hub::policy::grants::granted_permissions]:
     Source: 'crates/veoveo-hub/src/policy/grants.rs', lines 37:0-61:1
     Visibility: public -/
@@ -1042,5 +1248,123 @@ def policy.grants.granted_permissions
     policy.grants.granted_permissions.closure_2.Insts.CoreOpsFunctionFnMutTupleShared0PermissionDeclarationPermissionName)
     (alloc.collections.btree.set.BTreeSetTGlobal.Insts.CoreIterTraitsCollectFromIterator
     veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd) m
+
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{impl core::ops::function::FnMut<(&'_3 veoveo_hub::registration::snapshot::RegisteredServer,), alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{closure}<'_0, '_1, '_2>}::call_mut]:
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 109:22-115:13 -/
+def
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnMutTupleShared3RegisteredServerBTreeSetPermissionNameGlobal.call_mut
+  (c :
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure)
+  (tupled_args : registration.snapshot.RegisteredServer) :
+  Result ((alloc.collections.btree.set.BTreeSet
+    veoveo_types.permission_names.PermissionName alloc.alloc.Global) ×
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure)
+  := do
+  let (ia, dc) := c
+  let ad ←
+    alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+      tupled_args.authorization
+  let bs ←
+    policy.grants.granted_permissions ia ad dc.request_context.principal
+  ok (bs, c)
+
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{impl core::ops::function::FnOnce<(&'_3 veoveo_hub::registration::snapshot::RegisteredServer,), alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{closure}<'_0, '_1, '_2>}::call_once]:
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 109:22-115:13 -/
+def
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnOnceTupleShared3RegisteredServerBTreeSetPermissionNameGlobal.call_once
+  (c :
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure)
+  (rs : registration.snapshot.RegisteredServer) :
+  Result (alloc.collections.btree.set.BTreeSet
+    veoveo_types.permission_names.PermissionName alloc.alloc.Global)
+  := do
+  let (bs, _) ←
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnMutTupleShared3RegisteredServerBTreeSetPermissionNameGlobal.call_mut
+      c rs
+  ok bs
+
+/-- Trait implementation: [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{impl core::ops::function::FnOnce<(&'_3 veoveo_hub::registration::snapshot::RegisteredServer,), alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{closure}<'_0, '_1, '_2>}]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 109:22-115:13 -/
+@[reducible]
+def
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnOnceTupleShared3RegisteredServerBTreeSetPermissionNameGlobal
+  : core.ops.function.FnOnce
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure
+  registration.snapshot.RegisteredServer (alloc.collections.btree.set.BTreeSet
+  veoveo_types.permission_names.PermissionName alloc.alloc.Global) := {
+  call_once :=
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnOnceTupleShared3RegisteredServerBTreeSetPermissionNameGlobal.call_once
+}
+
+/-- Trait implementation: [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{impl core::ops::function::FnMut<(&'_3 veoveo_hub::registration::snapshot::RegisteredServer,), alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held::{closure}<'_0, '_1, '_2>}]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 109:22-115:13 -/
+@[reducible]
+def
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnMutTupleShared3RegisteredServerBTreeSetPermissionNameGlobal
+  : core.ops.function.FnMut
+  delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure
+  registration.snapshot.RegisteredServer (alloc.collections.btree.set.BTreeSet
+  veoveo_types.permission_names.PermissionName alloc.alloc.Global) := {
+  FnOnceInst :=
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnOnceTupleShared3RegisteredServerBTreeSetPermissionNameGlobal
+  call_mut :=
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnMutTupleShared3RegisteredServerBTreeSetPermissionNameGlobal.call_mut
+}
+
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Held<alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>> for veoveo_hub::delegation::CurrentPermissions<'_0>}::held]:
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 104:4-118:5
+    Visibility: public -/
+def
+  delegation.CurrentPermissions.Insts.Veoveo_hubDelegationAuthorityHeldBTreeSetPermissionNameGlobal.held
+  (self : delegation.CurrentPermissions)
+  (requested : alloc.collections.btree.set.BTreeSet
+  veoveo_types.permission_names.PermissionName alloc.alloc.Global) :
+  Result (alloc.collections.btree.set.BTreeSet
+    veoveo_types.permission_names.PermissionName alloc.alloc.Global)
+  := do
+  let hcp ← catalog.HubCatalog.control_plane self.catalog
+  let rs ← catalog.HubCatalog.impl.registrations self.catalog
+  let m ← registration.snapshot.RegistrationSnapshot.iter rs
+  let fm ←
+    core.iter.traits.iterator.Iterator.flat_map.default
+      (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+      (alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV
+      veoveo_types.execution.DeploymentId (alloc.sync.Arc
+      registration.snapshot.RegisteredServer))
+      registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer)
+      (alloc.collections.btree.set.BTreeSet.Insts.CoreIterTraitsCollectIntoIteratorTIntoIter
+      veoveo_types.permission_names.PermissionName
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone)
+      delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnMutTupleShared3RegisteredServerBTreeSetPermissionNameGlobal
+      m (hcp.authorization, self.caller)
+  let f ←
+    core.iter.traits.iterator.Iterator.filter.default
+      (core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator
+      (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+      (alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV
+      veoveo_types.execution.DeploymentId (alloc.sync.Arc
+      registration.snapshot.RegisteredServer))
+      registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer)
+      (alloc.collections.btree.set.BTreeSet.Insts.CoreIterTraitsCollectIntoIteratorTIntoIter
+      veoveo_types.permission_names.PermissionName
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone)
+      delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnMutTupleShared3RegisteredServerBTreeSetPermissionNameGlobal)
+      delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2PermissionNameBool
+      fm requested
+  core.iter.traits.iterator.Iterator.collect.default
+    (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+    (alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV
+    veoveo_types.execution.DeploymentId (alloc.sync.Arc
+    registration.snapshot.RegisteredServer))
+    registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer)
+    (alloc.collections.btree.set.BTreeSet.Insts.CoreIterTraitsCollectIntoIteratorTIntoIter
+    veoveo_types.permission_names.PermissionName
+    alloc.alloc.Global.Insts.CoreAllocAllocatorClone)
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure.Insts.CoreOpsFunctionFnMutTupleShared3RegisteredServerBTreeSetPermissionNameGlobal)
+    delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2PermissionNameBool)
+    (alloc.collections.btree.set.BTreeSetTGlobal.Insts.CoreIterTraitsCollectFromIterator
+    veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd) f
 
 end veoveo_hub

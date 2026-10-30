@@ -1,0 +1,3436 @@
+{
+  "schema_version": 1,
+  "scope": "HUB-AUTH-01: actual CurrentPermissions::held, concrete authority composition and focused semantic controls; no deployment.",
+  "status": "qualified-baseline-and-two-semantic-controls-restored",
+  "execution": {
+    "agent": "builder (GPT-6 Luna)",
+    "host": "Ubuntu 24.04.5 LTS, Linux 6.8.0-147-generic, x86_64 native Linux; no container wrapper",
+    "native_rust": "rustc 1.99.0 (b940084d7 2026-09-28), rustup run 1.99.0-x86_64-unknown-linux-gnu; SQLX_OFFLINE=true; CARGO_BUILD_JOBS=2",
+    "charon_rust": "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+    "lean": "Lean 4.35.0 commit eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+    "aeneas_source_commit": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "charon_source_commit": "de8736f7c995ac54dc490345cef9ea5143c06c62",
+    "veoveo_hub_sdk_source_pin": "05273d1f90b9a08e90e377187f4eddd084605fe5",
+    "tool_hashes": {
+      "native_rustc": "f3834d26669b03f6855fa54bd2381443123e860167bc0c7a8dd137e5cf6e5e4f",
+      "native_rustup": "dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71",
+      "charon": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+      "aeneas": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+      "charon_rustc": "f6636ed825b134896bdbff0b433a0d064df766971b8b6610db5e18165d166aee",
+      "lake": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+      "cargo": "dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71"
+    },
+    "lake_dependency_cache": "/home/rozgo/.cache/lean-pilot/baseline/proofs/selection/.lake/packages (shared immutable packages; per-run .lake/build)",
+    "deployment": "none",
+    "model_calls": "none"
+  },
+  "source": {
+    "hub_base_commit": "33849317d6e80c78ba7fd8ed57067a62a2eb677c",
+    "base_archive_sha256": "344fd0b78d97e6c80dea3cc8f60699f8c6853dfdf141480269ea7cecf74031ed",
+    "base_manifest_sha256": "cea24208194b6da9846d9feca00c1b0ddb885df3f06f8a5cf30ff526d99dd1ec",
+    "base_files": 818,
+    "sdk_pin": "05273d1f90b9a08e90e377187f4eddd084605fe5",
+    "native_overlay": {
+      "archive_sha256": "35609ea14ca8e70f5f33a3ba63744a545d402ece89b2af80dcd510d8d9752bc8",
+      "manifest_sha256": "2ab1ede67ddc84b86ffd3b7f183d4981d3ba06abcb0fde31952f80a86abff10a",
+      "file_count": 33,
+      "merged_path_count": 823,
+      "verified": true,
+      "files": [
+        {
+          "path": "crates/veoveo-hub/src/delegation.rs",
+          "bytes": 44946,
+          "sha256": "d05e28c937f3a0bcb50524d4bbf94e7d16ab581dafa190b12da3575a5138599e"
+        },
+        {
+          "path": "crates/veoveo-hub/src/registration/snapshot.rs",
+          "bytes": 8720,
+          "sha256": "4d35ca1aa547817387d7922ec552513516c18e4bf00cd3e99ce4da4a3e68678d"
+        },
+        {
+          "path": "proofs/current_roles/.gitignore",
+          "bytes": 40,
+          "sha256": "473013ab0b90da268a10d4e04a6ecf8e1594539d95ff646dde921e63de58caa2"
+        },
+        {
+          "path": "proofs/current_roles/CollectionProof.lean",
+          "bytes": 9549,
+          "sha256": "972247bcd30bb02e858ef36039132a95aa2d13911beea1c1ba10ae3ae2292397"
+        },
+        {
+          "path": "proofs/current_roles/CurrentPermissionsModelAudit.lean",
+          "bytes": 752,
+          "sha256": "80529c381ee0d831d6bb3a549cabfdc042d191df0ddf66c94742bde2fccf33eb"
+        },
+        {
+          "path": "proofs/current_roles/CurrentPermissionsProof.lean",
+          "bytes": 12449,
+          "sha256": "733eb2bf0d152ec5f369d6e1cd26afd3535ef71ac254eee5238654510f475302"
+        },
+        {
+          "path": "proofs/current_roles/EffectiveRiskProof.lean",
+          "bytes": 11143,
+          "sha256": "50dca8815fe45015e22029df33d670218efb7c29974dd7b5f1a1aa4e16d964f2"
+        },
+        {
+          "path": "proofs/current_roles/FlatMapIteratorProof.lean",
+          "bytes": 8908,
+          "sha256": "58a7202a883772ccf2270aafccf30bf09f02ac9804209bb2d4b9eb90bbaa1fa2"
+        },
+        {
+          "path": "proofs/current_roles/GrantedPermissionsProof.lean",
+          "bytes": 16519,
+          "sha256": "b5df13643b0ed92b212c5e3e38d5710ac8b880d7f31f80ec996c0994cdeb0e22"
+        },
+        {
+          "path": "proofs/current_roles/HeldRoleProof.lean",
+          "bytes": 8977,
+          "sha256": "95ce7d4519b73da67de893d933acc54f9b5c0305409dc00563a3d8177672524c"
+        },
+        {
+          "path": "proofs/current_roles/HubCurrentRoles.lean",
+          "bytes": 28,
+          "sha256": "097d0eba1287bed6e96cb1328ecf48a6c2d2f1ded5ee207f4f31f166b3e3364d"
+        },
+        {
+          "path": "proofs/current_roles/HubCurrentRoles/Funs.lean",
+          "bytes": 87144,
+          "sha256": "77dbfe91b40fa74266ec162de9a128816529a067570384809b6534840832285e"
+        },
+        {
+          "path": "proofs/current_roles/HubCurrentRoles/FunsExternal.lean",
+          "bytes": 46365,
+          "sha256": "bfc9b848a733f726722b4c84625f20e3d4cb0a8183a088e2af077787afba26e9"
+        },
+        {
+          "path": "proofs/current_roles/HubCurrentRoles/Types.lean",
+          "bytes": 79600,
+          "sha256": "18f6df3d66cfe361d2b04d51e418823180ce3565d29a459c18fa0fb8e3a9c106"
+        },
+        {
+          "path": "proofs/current_roles/HubCurrentRoles/TypesExternal.lean",
+          "bytes": 26575,
+          "sha256": "5378af7f0c08aebb231212a1c6179179139df0060af00d74ac835466db28d49f"
+        },
+        {
+          "path": "proofs/current_roles/IteratorProof.lean",
+          "bytes": 10370,
+          "sha256": "29b28849fbfb8830425373b3d0706e8d79cc8ce95502ebf17234de700c80faa4"
+        },
+        {
+          "path": "proofs/current_roles/ModelAudit.lean",
+          "bytes": 462,
+          "sha256": "d2f524e13ab365b8fd4212187972d3e6834e07e476e08a59aef2b357a54de1f0"
+        },
+        {
+          "path": "proofs/current_roles/NativeSetProof.lean",
+          "bytes": 13172,
+          "sha256": "2d0d116f7f32a5d0ed6192c3abcd2c0f50366d0015a725d19df7ced641855a5c"
+        },
+        {
+          "path": "proofs/current_roles/PolicyPrimitives.lean",
+          "bytes": 2627,
+          "sha256": "aafc4b8984c33817ba23034a49e637556e90c5bcb85beed3137386145a7a6b75"
+        },
+        {
+          "path": "proofs/current_roles/README.md",
+          "bytes": 17987,
+          "sha256": "5085ef82bbafe855debcb5c716037da79e590ab9f4e6e1279a8e6f3eb478d1e0"
+        },
+        {
+          "path": "proofs/current_roles/RegistrationIteratorProof.lean",
+          "bytes": 9398,
+          "sha256": "b649c3a4ed744b7b6a4d5cd3b9459be9a88c35818780cba76adc933e9b468893"
+        },
+        {
+          "path": "proofs/current_roles/evidence/current-roles-receipt.json",
+          "bytes": 91434,
+          "sha256": "d6a5e1322c054d62f98b05d51e39bd2f86c137c6969a1844ba3f442e4cba1579"
+        },
+        {
+          "path": "proofs/current_roles/extraction/catalog-field-name.patch",
+          "bytes": 379,
+          "sha256": "d419ecd3f16f120c367966c27c30bda0959b3cddd26fb0f106d15d0833ba3193"
+        },
+        {
+          "path": "proofs/current_roles/lake-manifest.json",
+          "bytes": 3699,
+          "sha256": "fdc65eacc395bd5cad4c2317b64818cd87ae67dcf483f2fa2921ed63c0c881ed"
+        },
+        {
+          "path": "proofs/current_roles/lakefile.lean",
+          "bytes": 807,
+          "sha256": "989c523e4c7c82e56dff4825edea900fd62515f0a4bdc3d78d8c108f182cce94"
+        },
+        {
+          "path": "proofs/current_roles/lean-toolchain",
+          "bytes": 25,
+          "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+        },
+        {
+          "path": "proofs/current_roles/mutations/deny-retains-risks.patch",
+          "bytes": 592,
+          "sha256": "87501596f9624f9596d43f3df9e88c257e27304e36e905d84e40682ac107ca63"
+        },
+        {
+          "path": "proofs/current_roles/mutations/held-role-inverted.patch",
+          "bytes": 342,
+          "sha256": "b8fe5e6a68480b6f12ad5644e1754151fb5aed328899de7073ceb1272e82f75c"
+        },
+        {
+          "path": "proofs/current_roles/mutations/invert-role-acceptance.patch",
+          "bytes": 397,
+          "sha256": "c600a20c218ee8f07f36e31b3ea32466fc5b16edf2b54a2d251dc29de6f22e99"
+        },
+        {
+          "path": "proofs/current_roles/mutations/omit-risk-additions.patch",
+          "bytes": 575,
+          "sha256": "a9c5bf0352bdf2e06e443e15842ed25a3c44d583cb870ba26354ef3622a67924"
+        },
+        {
+          "path": "proofs/current_roles/mutations/risk-or-access.patch",
+          "bytes": 407,
+          "sha256": "276a131e7b82ecb2204965d452307e2dd9ee33ccddf016ffc974d5cd3755a9b7"
+        },
+        {
+          "path": "proofs/current_roles/mutations/subject-inverted.patch",
+          "bytes": 523,
+          "sha256": "3ce0455d25b1b6a482b36b95ed7664a5e0b144633afc0e428111a1c374b13c82"
+        },
+        {
+          "path": "proofs/current_roles/mutations/tenant-different.patch",
+          "bytes": 481,
+          "sha256": "d358e5ea1a09bcc4f678aff8e84982ee6a4dbbefca98f7412f176c243dcf960f"
+        }
+      ],
+      "runtime_relevant_delta": [
+        {
+          "path": "crates/veoveo-hub/src/registration/snapshot.rs",
+          "base_sha256": "3ef7f0d132a2405d9c7cc747815c53175cde645cf804d1692c194e665a70b170",
+          "overlay_sha256": "4d35ca1aa547817387d7922ec552513516c18e4bf00cd3e99ce4da4a3e68678d",
+          "change": "Arc::as_ref function item changed to equivalent closure for Aeneas lifetime translation."
+        },
+        {
+          "path": "crates/veoveo-hub/src/delegation.rs",
+          "base_sha256": "615a5919ec970cf8dde43486de2a8ce8148766b43b3706879433191b0202d82a",
+          "overlay_sha256": "d05e28c937f3a0bcb50524d4bbf94e7d16ab581dafa190b12da3575a5138599e",
+          "change": "cfg(test) native witnesses; production prefix retained unchanged."
+        }
+      ]
+    },
+    "final_proof_overlay": {
+      "archive_sha256": "6c55804af5d2e8e1076b48f0b8df678adfbd775a200dc7305f31f4acc690f66b",
+      "manifest_sha256": "3279ec2f77c11c9c39e372c4dbaca5685162158ed0e850337da704a7be7e90a1",
+      "file_count": 33,
+      "model_patch_sha256": "7af7e933f62cc01ae23bc1b06535edf90cf389b669145299788156e639a60f7e",
+      "files": [
+        {
+          "path": "crates/veoveo-hub/src/delegation.rs",
+          "bytes": 44946,
+          "sha256": "d05e28c937f3a0bcb50524d4bbf94e7d16ab581dafa190b12da3575a5138599e"
+        },
+        {
+          "path": "crates/veoveo-hub/src/registration/snapshot.rs",
+          "bytes": 8720,
+          "sha256": "4d35ca1aa547817387d7922ec552513516c18e4bf00cd3e99ce4da4a3e68678d"
+        },
+        {
+          "path": "proofs/current_roles/.gitignore",
+          "bytes": 40,
+          "sha256": "473013ab0b90da268a10d4e04a6ecf8e1594539d95ff646dde921e63de58caa2"
+        },
+        {
+          "path": "proofs/current_roles/CollectionProof.lean",
+          "bytes": 9549,
+          "sha256": "972247bcd30bb02e858ef36039132a95aa2d13911beea1c1ba10ae3ae2292397"
+        },
+        {
+          "path": "proofs/current_roles/CurrentPermissionsModelAudit.lean",
+          "bytes": 815,
+          "sha256": "b2333f525dc818a041675f6c60e21fc190d5e025c859dcf4fed84253b7d18275"
+        },
+        {
+          "path": "proofs/current_roles/CurrentPermissionsProof.lean",
+          "bytes": 12449,
+          "sha256": "733eb2bf0d152ec5f369d6e1cd26afd3535ef71ac254eee5238654510f475302"
+        },
+        {
+          "path": "proofs/current_roles/EffectiveRiskProof.lean",
+          "bytes": 11143,
+          "sha256": "50dca8815fe45015e22029df33d670218efb7c29974dd7b5f1a1aa4e16d964f2"
+        },
+        {
+          "path": "proofs/current_roles/FlatMapIteratorProof.lean",
+          "bytes": 8908,
+          "sha256": "58a7202a883772ccf2270aafccf30bf09f02ac9804209bb2d4b9eb90bbaa1fa2"
+        },
+        {
+          "path": "proofs/current_roles/GrantedPermissionsProof.lean",
+          "bytes": 16519,
+          "sha256": "b5df13643b0ed92b212c5e3e38d5710ac8b880d7f31f80ec996c0994cdeb0e22"
+        },
+        {
+          "path": "proofs/current_roles/HeldRoleProof.lean",
+          "bytes": 8977,
+          "sha256": "95ce7d4519b73da67de893d933acc54f9b5c0305409dc00563a3d8177672524c"
+        },
+        {
+          "path": "proofs/current_roles/HubCurrentRoles.lean",
+          "bytes": 28,
+          "sha256": "097d0eba1287bed6e96cb1328ecf48a6c2d2f1ded5ee207f4f31f166b3e3364d"
+        },
+        {
+          "path": "proofs/current_roles/HubCurrentRoles/Funs.lean",
+          "bytes": 87144,
+          "sha256": "77dbfe91b40fa74266ec162de9a128816529a067570384809b6534840832285e"
+        },
+        {
+          "path": "proofs/current_roles/HubCurrentRoles/FunsExternal.lean",
+          "bytes": 46805,
+          "sha256": "4df36fef3c47e0607d6cf0de1c7b0c71bfbbcb969e30add01f06b483a9faff2e"
+        },
+        {
+          "path": "proofs/current_roles/HubCurrentRoles/Types.lean",
+          "bytes": 79600,
+          "sha256": "18f6df3d66cfe361d2b04d51e418823180ce3565d29a459c18fa0fb8e3a9c106"
+        },
+        {
+          "path": "proofs/current_roles/HubCurrentRoles/TypesExternal.lean",
+          "bytes": 26575,
+          "sha256": "5378af7f0c08aebb231212a1c6179179139df0060af00d74ac835466db28d49f"
+        },
+        {
+          "path": "proofs/current_roles/IteratorProof.lean",
+          "bytes": 10370,
+          "sha256": "29b28849fbfb8830425373b3d0706e8d79cc8ce95502ebf17234de700c80faa4"
+        },
+        {
+          "path": "proofs/current_roles/ModelAudit.lean",
+          "bytes": 462,
+          "sha256": "d2f524e13ab365b8fd4212187972d3e6834e07e476e08a59aef2b357a54de1f0"
+        },
+        {
+          "path": "proofs/current_roles/NativeSetProof.lean",
+          "bytes": 13172,
+          "sha256": "2d0d116f7f32a5d0ed6192c3abcd2c0f50366d0015a725d19df7ced641855a5c"
+        },
+        {
+          "path": "proofs/current_roles/PolicyPrimitives.lean",
+          "bytes": 2627,
+          "sha256": "aafc4b8984c33817ba23034a49e637556e90c5bcb85beed3137386145a7a6b75"
+        },
+        {
+          "path": "proofs/current_roles/README.md",
+          "bytes": 17987,
+          "sha256": "5085ef82bbafe855debcb5c716037da79e590ab9f4e6e1279a8e6f3eb478d1e0"
+        },
+        {
+          "path": "proofs/current_roles/RegistrationIteratorProof.lean",
+          "bytes": 9398,
+          "sha256": "b649c3a4ed744b7b6a4d5cd3b9459be9a88c35818780cba76adc933e9b468893"
+        },
+        {
+          "path": "proofs/current_roles/evidence/current-roles-receipt.json",
+          "bytes": 91434,
+          "sha256": "d6a5e1322c054d62f98b05d51e39bd2f86c137c6969a1844ba3f442e4cba1579"
+        },
+        {
+          "path": "proofs/current_roles/extraction/catalog-field-name.patch",
+          "bytes": 379,
+          "sha256": "d419ecd3f16f120c367966c27c30bda0959b3cddd26fb0f106d15d0833ba3193"
+        },
+        {
+          "path": "proofs/current_roles/lake-manifest.json",
+          "bytes": 3699,
+          "sha256": "fdc65eacc395bd5cad4c2317b64818cd87ae67dcf483f2fa2921ed63c0c881ed"
+        },
+        {
+          "path": "proofs/current_roles/lakefile.lean",
+          "bytes": 807,
+          "sha256": "989c523e4c7c82e56dff4825edea900fd62515f0a4bdc3d78d8c108f182cce94"
+        },
+        {
+          "path": "proofs/current_roles/lean-toolchain",
+          "bytes": 25,
+          "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+        },
+        {
+          "path": "proofs/current_roles/mutations/deny-retains-risks.patch",
+          "bytes": 592,
+          "sha256": "87501596f9624f9596d43f3df9e88c257e27304e36e905d84e40682ac107ca63"
+        },
+        {
+          "path": "proofs/current_roles/mutations/held-role-inverted.patch",
+          "bytes": 342,
+          "sha256": "b8fe5e6a68480b6f12ad5644e1754151fb5aed328899de7073ceb1272e82f75c"
+        },
+        {
+          "path": "proofs/current_roles/mutations/invert-role-acceptance.patch",
+          "bytes": 397,
+          "sha256": "c600a20c218ee8f07f36e31b3ea32466fc5b16edf2b54a2d251dc29de6f22e99"
+        },
+        {
+          "path": "proofs/current_roles/mutations/omit-risk-additions.patch",
+          "bytes": 575,
+          "sha256": "a9c5bf0352bdf2e06e443e15842ed25a3c44d583cb870ba26354ef3622a67924"
+        },
+        {
+          "path": "proofs/current_roles/mutations/risk-or-access.patch",
+          "bytes": 407,
+          "sha256": "276a131e7b82ecb2204965d452307e2dd9ee33ccddf016ffc974d5cd3755a9b7"
+        },
+        {
+          "path": "proofs/current_roles/mutations/subject-inverted.patch",
+          "bytes": 523,
+          "sha256": "3ce0455d25b1b6a482b36b95ed7664a5e0b144633afc0e428111a1c374b13c82"
+        },
+        {
+          "path": "proofs/current_roles/mutations/tenant-different.patch",
+          "bytes": 481,
+          "sha256": "d358e5ea1a09bcc4f678aff8e84982ee6a4dbbefca98f7412f176c243dcf960f"
+        }
+      ],
+      "differences_from_native_witness_overlay": {
+        "proofs/current_roles/CurrentPermissionsModelAudit.lean": {
+          "native_witness_sha256": "80529c381ee0d831d6bb3a549cabfdc042d191df0ddf66c94742bde2fccf33eb",
+          "final_proof_sha256": "b2333f525dc818a041675f6c60e21fc190d5e025c859dcf4fed84253b7d18275"
+        },
+        "proofs/current_roles/HubCurrentRoles/FunsExternal.lean": {
+          "native_witness_sha256": "bfc9b848a733f726722b4c84625f20e3d4cb0a8183a088e2af077787afba26e9",
+          "final_proof_sha256": "4df36fef3c47e0607d6cf0de1c7b0c71bfbbcb969e30add01f06b483a9faff2e"
+        }
+      }
+    },
+    "catalog_metadata": {
+      "native_catalog_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef",
+      "extract_only_catalog_sha256": "5d7f03636a81b49549ca9645df7c55f44b2b685fc9964c33e382a5df7942bc57",
+      "scratch_annotation": "#[charon::rename(\"control_plane_value\")]",
+      "attribute_line_count": 1,
+      "removing_line_restores_native_hash": true,
+      "rustc_args": [
+        "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+        "--rustc-arg=-Zcrate-attr=register_tool(charon)"
+      ]
+    }
+  },
+  "evidence_summaries": {
+    "native_baseline": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/run-summary.json",
+      "sha256": "e3b95464ec1e7c0fa0a667c70bdf015f50c0971a00f06ce04f6960fa5e5929b5"
+    },
+    "extraction_probe": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/probe-summary.json",
+      "sha256": "a6e5233ae7378b28a655a945ba33ae276652ece7386f955a3ea8862cf6fa5b2d"
+    },
+    "constructor_signature": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-signature-2/probe-summary.json",
+      "sha256": "23c0321744d9e5ca8e4e72b61c4157e49b8a0aa0126ce0be2c889ba62942b42a"
+    },
+    "constructor_model": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/run-summary.json",
+      "sha256": "a833be356e9844343faeaf91a62e81d08cd1c1ba26c733629a2bc90c383236b9"
+    },
+    "held_models": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/held-models-run4/run-summary.json",
+      "sha256": "3df0b7bccb5190c2551a47db2953a3cb20b8ab3be8cbe01e5b49d848f95d5367"
+    },
+    "registration_proof": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/run-summary.json",
+      "sha256": "ba8d69a81bea73f1fee59612c38fc6dd38047d4836694f0d33961fef9824f40b"
+    },
+    "flatmap_proof": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/run-summary.json",
+      "sha256": "ea58c75aecb1a8aea9b8647b569d18e9495930287913cec01bf072fdaafe4266"
+    },
+    "current_permissions_proof": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/run-summary.json",
+      "sha256": "9ab15f78291f840567e3f92aeddf5f56441524d11b749039f40702310e3243a4"
+    },
+    "return_requested": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/run-summary.json",
+      "sha256": "919f2a5ee54846ccaaaac2b1a5d3e4ada3972b71d6bbe09740dab0c92b3a628e"
+    },
+    "return_requested_proof_retry": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/proof-retry-summary.json",
+      "sha256": "4cb247fdef16fa7334777794f8f65216477bde8c5c1d161c110c70af1885b528"
+    },
+    "return_requested_native": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/native-witness-summary.json",
+      "sha256": "b593e40909aa80e39ab3b8f6be85545f6d9376d0d0f5aa35f0a0336f40c547c1"
+    },
+    "return_empty": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/run-summary.json",
+      "sha256": "a6a56c828a1a43898c3ed99325ec4708d33073f883f47cfa1ccd6a535538f9e1"
+    },
+    "return_empty_native": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/native-empty-witness-summary.json",
+      "sha256": "df7355760c83869c20dba894864aaaa9e8ae4c1582bb5fdc02fe88e138a04367"
+    },
+    "final_restoration": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/run-summary.json",
+      "sha256": "9b9ac743716a6b0a7f6604ff997235c6637305a91ffb32b65cc47ba94f98f009"
+    }
+  },
+  "baseline": {
+    "native": {
+      "summary": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/run-summary.json",
+        "sha256": "e3b95464ec1e7c0fa0a667c70bdf015f50c0971a00f06ce04f6960fa5e5929b5"
+      },
+      "stages": [
+        {
+          "stage": "fmt-check",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "fmt",
+            "--all",
+            "--check"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 665,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/logs/fmt-check.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "stage": "authority-adapter-tests",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "delegation::authority_adapter_tests"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 191848,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/logs/authority-adapter-tests.log",
+          "log_sha256": "9f25239d17b190d50238d98ff2ce24825c5eac1802685ba8b8ae90ff77ff75f7"
+        },
+        {
+          "stage": "snapshot-tests",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "registration::snapshot::tests"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 314,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/logs/snapshot-tests.log",
+          "log_sha256": "f8fee7959f8ff6f10a42bb94ad65d0ac655cecf04a4ebaaa1cbf5acd8e1b0a81"
+        },
+        {
+          "stage": "lib-clippy",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "clippy",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 87518,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/logs/lib-clippy.log",
+          "log_sha256": "6f1a72cd2115b0303e59b9242714d27707752f9dbd68383ffcaab3cd5ac27711"
+        }
+      ],
+      "tests": {
+        "authority_adapter_tests": {
+          "passed": 5,
+          "failed": 0
+        },
+        "snapshot_tests": {
+          "passed": 2,
+          "failed": 0
+        }
+      },
+      "native_execution": {
+        "host": "native Linux x86_64",
+        "rustup": "/home/rozgo/.cargo/bin/rustup",
+        "toolchain": "1.99.0-x86_64-unknown-linux-gnu",
+        "cargo_target_dir": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target",
+        "sqlx_offline": true,
+        "cargo_build_jobs": 2
+      }
+    },
+    "extraction": {
+      "summary": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/probe-summary.json",
+        "sha256": "a6e5233ae7378b28a655a945ba33ae276652ece7386f955a3ea8862cf6fa5b2d"
+      },
+      "stages": [
+        {
+          "stage": "charon",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "{impl veoveo_hub::delegation::authority::Held for veoveo_hub::delegation::CurrentPermissions}::held",
+            "--include",
+            "{impl veoveo_hub::delegation::authority::Held<_> for veoveo_hub::delegation::CurrentPermissions}::held",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--opaque",
+            "veoveo_hub::mcp::upstream_http::HubUpstreamHttpClientPool",
+            "--opaque",
+            "veoveo_hub::contract::catalog::SectionDeclaration",
+            "--opaque",
+            "veoveo_hub::contract::catalog::TargetDeclaration",
+            "--opaque",
+            "openshell_sdk::config::AuthConfig",
+            "--opaque",
+            "veoveo_hub::registration::snapshot::_::iter::_::call_mut",
+            "--opaque",
+            "prost_types::protobuf::value::Kind",
+            "--opaque",
+            "serde_json::value::Value",
+            "--dest-file",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/outputs/hub_current_roles.llbc",
+            "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+            "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 24154,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/logs/charon.log",
+          "log_sha256": "a101ac327759843026e1f06a6877fa4fccb9b1a8f0b222cfce49151c7e8e26da"
+        },
+        {
+          "stage": "aeneas-split",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/outputs",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/outputs/hub_current_roles.llbc"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/work",
+          "exit": 0,
+          "elapsed_ms": 1217,
+          "timed_out": false,
+          "timeout_seconds": 120,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/logs/aeneas-split.log",
+          "log_sha256": "4b4204fb1610a160990bf8f4108adcc86869b756208df71692bde8bef971a66f"
+        }
+      ],
+      "llbc": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/outputs/hub_current_roles.llbc",
+        "bytes": 2671495,
+        "sha256": "7ab21f7cf7e7560125c7783d620283dac16917e6fa974925f77cfe3fae22d758",
+        "has_errors": false
+      },
+      "generated_files": [
+        {
+          "path": "Funs.lean",
+          "bytes": 87144,
+          "sha256": "77dbfe91b40fa74266ec162de9a128816529a067570384809b6534840832285e"
+        },
+        {
+          "path": "FunsExternal_Template.lean",
+          "bytes": 36347,
+          "sha256": "ad1ded312e86844dcc141e7f4e9612ed41c9cea208f1d7bd312431e2255e9d96"
+        },
+        {
+          "path": "Types.lean",
+          "bytes": 79600,
+          "sha256": "18f6df3d66cfe361d2b04d51e418823180ce3565d29a459c18fa0fb8e3a9c106"
+        },
+        {
+          "path": "TypesExternal_Template.lean",
+          "bytes": 24054,
+          "sha256": "fa12f60e5d86cad857e715ad8efee9782e0a27bd6b5528ce888b149070c8dfab"
+        }
+      ],
+      "selected_body_audit": {
+        "requested_functions": [
+          {
+            "def_id": 36,
+            "name": "veoveo_hub::registration::snapshot::{Impl}::iter::{Impl}::call_mut",
+            "opacity": "Opaque",
+            "body": "Opaque",
+            "has_errors": false
+          },
+          {
+            "def_id": 41,
+            "name": "veoveo_hub::registration::snapshot::{Impl}::iter",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 46,
+            "name": "veoveo_hub::registration::snapshot::{Impl}::iter::{Impl}::call_once",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 48,
+            "name": "veoveo_hub::policy::grants::granted_permissions",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 180,
+            "name": "veoveo_hub::policy::grants::granted_permissions::{Impl}::call_mut",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 181,
+            "name": "veoveo_hub::policy::grants::granted_permissions::{Impl}::call_mut",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 182,
+            "name": "veoveo_hub::policy::grants::granted_permissions::{Impl}::call_mut",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 183,
+            "name": "veoveo_hub::policy::grants::held_roles",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 216,
+            "name": "veoveo_hub::policy::grants::granted_permissions::{Impl}::call_once",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 217,
+            "name": "veoveo_hub::policy::grants::granted_permissions::{Impl}::call_mut",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 218,
+            "name": "veoveo_hub::policy::grants::effective_risks",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 220,
+            "name": "veoveo_hub::policy::grants::granted_permissions::{Impl}::call_once",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 222,
+            "name": "veoveo_hub::policy::grants::granted_permissions::{Impl}::call_once",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 223,
+            "name": "veoveo_hub::policy::grants::held_roles::{Impl}::call_mut",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 224,
+            "name": "veoveo_hub::policy::grants::held_roles::{Impl}::call_mut",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 225,
+            "name": "veoveo_hub::policy::grants::held_roles::{Impl}::call_mut",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 249,
+            "name": "veoveo_hub::policy::grants::granted_permissions::{Impl}::call_once",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 256,
+            "name": "veoveo_hub::policy::grants::held_roles::{Impl}::call_once",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 259,
+            "name": "veoveo_hub::policy::grants::held_roles::{Impl}::call_once",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 261,
+            "name": "veoveo_hub::policy::grants::held_roles::{Impl}::call_once",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          },
+          {
+            "def_id": 263,
+            "name": "veoveo_hub::policy::grants::held_roles::{Impl}::call_once",
+            "opacity": "Transparent",
+            "body": "Structured",
+            "has_errors": false
+          }
+        ]
+      },
+      "interpretation": "CurrentPermissions::held, snapshot iteration, registration grants, permission helpers and role functions are transparent/structured. Only the synthetic Arc projection FnMut call_mut is opaque; data-only types are selected as external models."
+    }
+  },
+  "constructor_model": {
+    "signature_summary": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-signature-2/probe-summary.json",
+      "sha256": "23c0321744d9e5ca8e4e72b61c4157e49b8a0aa0126ce0be2c889ba62942b42a"
+    },
+    "model_summary": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/run-summary.json",
+      "sha256": "a833be356e9844343faeaf91a62e81d08cd1c1ba26c733629a2bc90c383236b9"
+    },
+    "raw_aeneas_signature": "BTreeSetTGlobal.new (T : Type _) : Result (BTreeSet T Global)",
+    "manual_model": "BTreeSetTGlobal.new returns Result.ok \u2205",
+    "model_file_sha256": "4df36fef3c47e0607d6cf0de1c7b0c71bfbbcb969e30add01f06b483a9faff2e",
+    "constructor_axioms": [
+      "propext",
+      "Quot.sound"
+    ],
+    "stages": [
+      {
+        "stage": "lake-build",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/source/veoveo-hub/proofs/current_roles",
+        "exit": 0,
+        "elapsed_ms": 31467,
+        "timed_out": false,
+        "timeout_seconds": 1800,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/logs/lake-build.log",
+        "log_sha256": "a8e97b04297acaae4cce1e204d6369b62e2d30e27ab1507798da150251d3800c"
+      },
+      {
+        "stage": "current-permissions-proof",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CurrentPermissionsProof.lean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/source/veoveo-hub/proofs/current_roles",
+        "exit": 0,
+        "elapsed_ms": 2668,
+        "timed_out": false,
+        "timeout_seconds": 600,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/logs/current-permissions-proof.log",
+        "log_sha256": "5fb0f101bb2849a23008656cd74ff8fb38bb5d3f80c4325dd12ff70451f60d76"
+      },
+      {
+        "stage": "model-audit",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "ModelAudit.lean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/source/veoveo-hub/proofs/current_roles",
+        "exit": 0,
+        "elapsed_ms": 2568,
+        "timed_out": false,
+        "timeout_seconds": 600,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/logs/model-audit.log",
+        "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312"
+      },
+      {
+        "stage": "current-permissions-model-audit",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CurrentPermissionsModelAudit.lean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/source/veoveo-hub/proofs/current_roles",
+        "exit": 0,
+        "elapsed_ms": 2668,
+        "timed_out": false,
+        "timeout_seconds": 600,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/logs/current-permissions-model-audit.log",
+        "log_sha256": "3ac752ca291548d17ff3818c00563d631f6d2e6d408ad4070c97c49277c9ca7f"
+      }
+    ],
+    "scope_note": "The proof uses this explicit external constructor model; it does not prove the Rust standard-library BTreeSet constructor implementation.",
+    "signature_template": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-signature-2/outputs/FunsExternal_Template.lean",
+      "sha256": "0f8872ed74660a5501fc4c8e8652413ef32e33e0f32df5c6612fa0be165333e1",
+      "lines": "207-211",
+      "observed": "Exact fresh external constructor signature and rust_fun selector."
+    },
+    "actual_held_definition": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-signature-2/outputs/Funs.lean",
+      "sha256": "9ebad3a823d2cad1420285791238be1ac0602bdcd8ae0766d87959c7e10880b2",
+      "lines": "1313-1371",
+      "observed": "Transparent actual held retains getters, raw iterator, grant flat_map, requested filter and collection, then returns the empty constructor in the isolated mutant."
+    }
+  },
+  "proof_checkpoints": [
+    {
+      "name": "held-models-4",
+      "archive_sha256": "80eab81fbf80c849db5845b8366bfd95a982af3b57ae74fa1751385ee2668568",
+      "manifest_sha256": "97af555c2840bc6edba2f64001b2f9732160a4c19fc921756df3e586f85a8963",
+      "summary": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/held-models-run4/run-summary.json",
+        "sha256": "3df0b7bccb5190c2551a47db2953a3cb20b8ab3be8cbe01e5b49d848f95d5367"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "lake-build",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/held-models-run4/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 24205,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/held-models-run4/logs/lake-build.log",
+          "log_sha256": "873bd7217fc8f60da08d2739ce7dc73f662a0a533d6a9e8c6a90afcc26c1734b"
+        },
+        {
+          "stage": "model-audit",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "ModelAudit.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/held-models-run4/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 2618,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/held-models-run4/logs/model-audit.log",
+          "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312"
+        },
+        {
+          "stage": "current-permissions-model-audit",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "CurrentPermissionsModelAudit.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/held-models-run4/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 2568,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/held-models-run4/logs/current-permissions-model-audit.log",
+          "log_sha256": "b4e28394cd8b70e7d1db654be33d35da36092905769c42c6b6e9503ce86d6303"
+        }
+      ],
+      "proof_files": {
+        "proofs/current_roles/CurrentPermissionsModelAudit.lean": "b2333f525dc818a041675f6c60e21fc190d5e025c859dcf4fed84253b7d18275",
+        "proofs/current_roles/HubCurrentRoles/FunsExternal.lean": "4df36fef3c47e0607d6cf0de1c7b0c71bfbbcb969e30add01f06b483a9faff2e"
+      }
+    },
+    {
+      "name": "registration-proof-3",
+      "archive_sha256": "5710859c4a257eae4a6d9531ad526b767087393f4e860c79b62794383bbe2287",
+      "manifest_sha256": "dc3be32b20602403ce6c7e91bddc96ceb063c1c29799454489daaab5345f8aad",
+      "summary": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/run-summary.json",
+        "sha256": "ba8d69a81bea73f1fee59612c38fc6dd38047d4836694f0d33961fef9824f40b"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "prerequisite-build",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "GrantedPermissionsProof",
+            "CurrentPermissionsModelAudit"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 23653,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/logs/prerequisite-build.log",
+          "log_sha256": "7791563821b8eb59239eb17069e738b6830c88fdd540bced40408e54900a7cd3"
+        },
+        {
+          "stage": "registration-proof-direct",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "RegistrationIteratorProof.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 2668,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/logs/registration-proof-direct.log",
+          "log_sha256": "5e609750c21b756a16dd65c7c042efcac3819fb9d478bd55beec0f5daf846db1"
+        },
+        {
+          "stage": "registration-proof-build",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "RegistrationIteratorProof"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 3069,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/logs/registration-proof-build.log",
+          "log_sha256": "3552bc88e6e022b908889f87a0533877e945b20f041f17def7e1000e9d155021"
+        },
+        {
+          "stage": "current-permissions-model-audit",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "CurrentPermissionsModelAudit.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 2618,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/logs/current-permissions-model-audit.log",
+          "log_sha256": "b4e28394cd8b70e7d1db654be33d35da36092905769c42c6b6e9503ce86d6303"
+        }
+      ],
+      "proof_sha256": "b649c3a4ed744b7b6a4d5cd3b9459be9a88c35818780cba76adc933e9b468893"
+    },
+    {
+      "name": "flatmap-proof-3",
+      "archive_sha256": "a9ade33eb8a23cc06d149004670ec621e6e88bc707c3b9e3fcea093f7bb3c3a1",
+      "manifest_sha256": "ce63fa642e4a2986dcf8e03c02800f58ac4632b45bfbf5c6b911cabb3746dc11",
+      "summary": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/run-summary.json",
+        "sha256": "ea58c75aecb1a8aea9b8647b569d18e9495930287913cec01bf072fdaafe4266"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "prerequisite-build",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "RegistrationIteratorProof",
+            "CurrentPermissionsModelAudit"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 25506,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/logs/prerequisite-build.log",
+          "log_sha256": "6642418f49d7bd837f305e48dd04629cf181670e30a4292f7331391d0ff4d14e"
+        },
+        {
+          "stage": "flatmap-proof-direct",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "FlatMapIteratorProof.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 3720,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/logs/flatmap-proof-direct.log",
+          "log_sha256": "2854cc824ea9487872c339196ef3b21e5c5d85817a7276e38204c18d7232322b"
+        },
+        {
+          "stage": "flatmap-proof-build",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "FlatMapIteratorProof"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 4170,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/logs/flatmap-proof-build.log",
+          "log_sha256": "b79b3e30da2e0cf8b8de58ab9d031b981712981662fd1cb8a14306bc069051ff"
+        },
+        {
+          "stage": "current-permissions-model-audit",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "CurrentPermissionsModelAudit.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 2568,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/logs/current-permissions-model-audit.log",
+          "log_sha256": "b4e28394cd8b70e7d1db654be33d35da36092905769c42c6b6e9503ce86d6303"
+        }
+      ],
+      "proof_sha256": "58a7202a883772ccf2270aafccf30bf09f02ac9804209bb2d4b9eb90bbaa1fa2"
+    },
+    {
+      "name": "current-permissions-proof-3",
+      "archive_sha256": "6007d506bd52ab447424c0952a765af1ab5e3e16fe9472c7a82e9871afa8b155",
+      "manifest_sha256": "40b729767ee9b16ed233857db56ca65e86c5edf487bd843918230f16844ec8f3",
+      "summary": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/run-summary.json",
+        "sha256": "9ab15f78291f840567e3f92aeddf5f56441524d11b749039f40702310e3243a4"
+      },
+      "complete": true,
+      "stages": [
+        {
+          "stage": "prerequisite-build",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "FlatMapIteratorProof",
+            "CurrentPermissionsModelAudit"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 28260,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/logs/prerequisite-build.log",
+          "log_sha256": "0cfbe54b600632fc4d2312adb8ad8e295c11e3aaa67232f511f3aa977954cc80"
+        },
+        {
+          "stage": "current-permissions-proof-direct",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "CurrentPermissionsProof.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 2718,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/logs/current-permissions-proof-direct.log",
+          "log_sha256": "5fb0f101bb2849a23008656cd74ff8fb38bb5d3f80c4325dd12ff70451f60d76"
+        },
+        {
+          "stage": "current-permissions-proof-build",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "CurrentPermissionsProof"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 3169,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/logs/current-permissions-proof-build.log",
+          "log_sha256": "e50f203f831f9d9d6d2200e0569131d5ed0cbd716afab8b3bc82f4aa6a17fdd6"
+        },
+        {
+          "stage": "current-permissions-model-audit",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "CurrentPermissionsModelAudit.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 2618,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/logs/current-permissions-model-audit.log",
+          "log_sha256": "b4e28394cd8b70e7d1db654be33d35da36092905769c42c6b6e9503ce86d6303"
+        }
+      ],
+      "proof_sha256": "733eb2bf0d152ec5f369d6e1cd26afd3535ef71ac254eee5238654510f475302"
+    }
+  ],
+  "accepted_controls": [
+    {
+      "name": "return-requested",
+      "patch_sha256": "f941a992efa4e3cf696cbe416cefd86f95676a6eadfaf757184885d310985354",
+      "source": {
+        "native_catalog_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef",
+        "metadata_annotation_extraction_only": true,
+        "native_source_delegation_sha256": "205df8f3e6bd9b6f93a41602ca020e237ef1a72dfb38154ec8878ce23f758a78",
+        "source_verification": {
+          "base_files": 818,
+          "overlay_files": 33,
+          "native_catalog_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef",
+          "extract_catalog_before_metadata_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef",
+          "delegation_before_mutation_sha256": "d05e28c937f3a0bcb50524d4bbf94e7d16ab581dafa190b12da3575a5138599e",
+          "native_catalog_sha256_after_patch": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef"
+        },
+        "native_execution": {
+          "toolchain": "1.99.0-x86_64-unknown-linux-gnu",
+          "command_prefix": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/native-source/veoveo-hub",
+          "cargo_target_dir": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target",
+          "target_policy": "reuse dependency target, explicit clean -p veoveo-hub before this native compile",
+          "sqlx_offline": "true",
+          "catalog_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef"
+        },
+        "extraction_execution": {
+          "toolchain": "nightly-2026-09-17",
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/extraction-source/veoveo-hub",
+          "catalog_sha256": "5d7f03636a81b49549ca9645df7c55f44b2b685fc9964c33e382a5df7942bc57",
+          "sqlx_offline": "true"
+        },
+        "native_test_binary_at_no_run": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b",
+          "sha256": "fbc8e78c0aa3cde9368422db25ba6e84d1343b2389c1efe41e2874d69bdbaf61"
+        }
+      },
+      "compile_and_extract_stages": [
+        {
+          "stage": "clean-hub-cache",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "clean",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/native-source/veoveo-hub/Cargo.toml"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/native-source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 314,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/logs/clean-hub-cache.log",
+          "log_sha256": "762b0610c5485762597a082b3ba7e5f195a5822c67ca4996b30c6a960c63ae03"
+        },
+        {
+          "stage": "native-test-no-run",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "--no-run"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/native-source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 35623,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/logs/native-test-no-run.log",
+          "log_sha256": "0eb2325bc9b2b7d9dee209b451936cd09a496a2fc52112aa5161621e1cb7e1e8"
+        },
+        {
+          "stage": "charon",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "{impl veoveo_hub::delegation::authority::Held for veoveo_hub::delegation::CurrentPermissions}::held",
+            "--include",
+            "{impl veoveo_hub::delegation::authority::Held<_> for veoveo_hub::delegation::CurrentPermissions}::held",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--opaque",
+            "veoveo_hub::mcp::upstream_http::HubUpstreamHttpClientPool",
+            "--opaque",
+            "veoveo_hub::contract::catalog::SectionDeclaration",
+            "--opaque",
+            "veoveo_hub::contract::catalog::TargetDeclaration",
+            "--opaque",
+            "openshell_sdk::config::AuthConfig",
+            "--opaque",
+            "veoveo_hub::registration::snapshot::_::iter::_::call_mut",
+            "--opaque",
+            "prost_types::protobuf::value::Kind",
+            "--opaque",
+            "serde_json::value::Value",
+            "--dest-file",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/outputs/hub_current_roles.llbc",
+            "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+            "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/extraction-source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 189245,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/logs/charon.log",
+          "log_sha256": "dd3356fdc965099643947b272cac4962e4893121b621fa4d7cb9d4f0902655dd"
+        },
+        {
+          "stage": "aeneas-split",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/outputs",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/outputs/hub_current_roles.llbc"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/work",
+          "exit": 0,
+          "elapsed_ms": 1371,
+          "timed_out": false,
+          "timeout_seconds": 120,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/logs/aeneas-split.log",
+          "log_sha256": "c4f5141bc5f4d67551c3be5ee410495df8851913f6f5cebf92fe1df02351f5f0"
+        },
+        {
+          "stage": "proof-prerequisites",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "HubCurrentRoles",
+            "GrantedPermissionsProof",
+            "RegistrationIteratorProof",
+            "FlatMapIteratorProof"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/extraction-source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 29917,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/logs/proof-prerequisites.log",
+          "log_sha256": "7d07086614bb3009641cb2d7f9b87fc7c261689d111ad72cae153909e2c7960e"
+        }
+      ],
+      "initial_primary_attempt": {
+        "exit": 1,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/logs/primary-proof.log",
+        "log_sha256": "cb9fe3927bc30c3f6ce6c1267a95bd9335b64c5387938dcb5b4b8e8ebc2f2f1f",
+        "classification": "missing AuthorityComposition prerequisite; excluded; fixed before accepted retry"
+      },
+      "prerequisite_retry": {
+        "commands": [
+          {
+            "stage": "missing-prerequisite-build",
+            "command": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "build",
+              "FlatMapIteratorProof",
+              "CurrentPermissionsModelAudit"
+            ],
+            "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/extraction-source/veoveo-hub/proofs/current_roles",
+            "exit": 0,
+            "elapsed_ms": 8377,
+            "timeout_seconds": 1800,
+            "timed_out": false,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/logs/missing-prerequisite-build.log",
+            "log_sha256": "aabf52f6192e3d0f2d3ac035a1650ba90886b9ee0799290a3ef4e0998a68b4ec"
+          },
+          {
+            "stage": "primary-proof-retry",
+            "command": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CurrentPermissionsProof.lean"
+            ],
+            "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/extraction-source/veoveo-hub/proofs/current_roles",
+            "exit": 1,
+            "elapsed_ms": 2768,
+            "timeout_seconds": 600,
+            "timed_out": false,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/logs/primary-proof-retry.log",
+            "log_sha256": "f8cdef52e0eef1b16b239bc0bdc0c046e95f4cfd93ab1b08ef254be12ce12f98"
+          }
+        ],
+        "classification": "first direct check omitted AuthorityComposition import; prerequisite build then direct check completed and produced semantic result"
+      },
+      "proof_model_before": {
+        "Types.lean": {
+          "sha256": "18f6df3d66cfe361d2b04d51e418823180ce3565d29a459c18fa0fb8e3a9c106",
+          "bytes": 79600
+        },
+        "Funs.lean": {
+          "sha256": "77dbfe91b40fa74266ec162de9a128816529a067570384809b6534840832285e",
+          "bytes": 87144
+        }
+      },
+      "proof_model_after": {
+        "Types.lean": {
+          "sha256": "594b114f80d120eed2a2e5d2152341662de0cde61a653a9cef0527c6a139bf08",
+          "bytes": 79824
+        },
+        "Funs.lean": {
+          "sha256": "b131c6b30f1367d128e12484bccd1bbeb7c1bff17b3a98befc6fa21a4836ac7a",
+          "bytes": 88071
+        }
+      },
+      "types_diff_review": "Raw Types differs from baseline only in generated Source comment build-target paths; declarations are identical after removing Source comment lines.",
+      "primary_proof": {
+        "file": "CurrentPermissionsProof.lean",
+        "statement": "CurrentPermissionsProof.held_exact",
+        "command": [
+          "lake",
+          "env",
+          "lean",
+          "CurrentPermissionsProof.lean"
+        ],
+        "exit": 1,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/logs/primary-proof-retry.log",
+        "log_sha256": "f8cdef52e0eef1b16b239bc0bdc0c046e95f4cfd93ab1b08ef254be12ce12f98",
+        "classification": "well-typed extracted body; normalization exposes the semantically changed returned set. Not a Lean-produced False goal; error-recovery sorryAx is excluded."
+      },
+      "reviewed_difference": "The unchanged `held_exact` proof could not normalize the body because it computed the filtered intersection and then returned `requested.clone()` instead of the computed set. This is a typed return-trace difference, not a generated False goal.",
+      "native_witness": {
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "delegation::authority_adapter_tests::current_permissions_use_existential_raw_providers_and_filter_requested",
+          "--",
+          "--exact"
+        ],
+        "exit": 101,
+        "elapsed_ms": 1000,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/logs/native-current-permissions-witness.log",
+        "log_sha256": "44bb8e48de7773cc75cb86be3748f313d09bf6cd470dd4567f6e1b81830b70ea",
+        "binary_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b",
+        "binary_sha256_before": "fbc8e78c0aa3cde9368422db25ba6e84d1343b2389c1efe41e2874d69bdbaf61",
+        "binary_sha256_after": "fbc8e78c0aa3cde9368422db25ba6e84d1343b2389c1efe41e2874d69bdbaf61",
+        "binary_unchanged": true,
+        "observed": {
+          "actual": "{missing, read, write}",
+          "expected": "{read}",
+          "fixture_ids": "held-fixture.records.*"
+        },
+        "expected_exit": 101,
+        "classification": "expected test assertion mismatch; mutant is rejected by unchanged native witness"
+      }
+    },
+    {
+      "name": "return-empty",
+      "patch_sha256": "f50f7c1d960757c6d3234811661dec9a0827a013d6ad35819adb7e7284af19b1",
+      "source": {
+        "native_catalog_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef",
+        "metadata_annotation_extraction_only": true,
+        "native_source_delegation_sha256": "5ca61570ededcd3572083a31238f1e94a81e9aceb969ac46ea696b707cd6e469",
+        "source_verification": {
+          "base_files": 818,
+          "overlay_files": 33,
+          "native_catalog_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef",
+          "extract_catalog_before_metadata_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef",
+          "delegation_before_mutation_sha256": "d05e28c937f3a0bcb50524d4bbf94e7d16ab581dafa190b12da3575a5138599e",
+          "native_catalog_sha256_after_patch": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef"
+        },
+        "native_execution": {
+          "toolchain": "1.99.0-x86_64-unknown-linux-gnu",
+          "command_prefix": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/native-source/veoveo-hub",
+          "cargo_target_dir": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target",
+          "target_policy": "reuse dependency target, explicit clean -p veoveo-hub before this native compile",
+          "sqlx_offline": "true",
+          "catalog_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef"
+        },
+        "extraction_execution": {
+          "toolchain": "nightly-2026-09-17",
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/extraction-source/veoveo-hub",
+          "catalog_sha256": "5d7f03636a81b49549ca9645df7c55f44b2b685fc9964c33e382a5df7942bc57",
+          "sqlx_offline": "true"
+        },
+        "native_test_binary_at_no_run": {
+          "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b",
+          "sha256": "9ca338ea7b0828fe81a1a5135cc393840f859862c07416785eb13b5aee969a85"
+        }
+      },
+      "compile_and_extract_stages": [
+        {
+          "stage": "clean-hub-cache",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "clean",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/native-source/veoveo-hub/Cargo.toml"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/native-source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 464,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/logs/clean-hub-cache.log",
+          "log_sha256": "53c768ba8b694ba973b548bdc64cbc4b697cf792c3547b8f9122868874778c5b"
+        },
+        {
+          "stage": "native-test-no-run",
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "--no-run"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/native-source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 34373,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/logs/native-test-no-run.log",
+          "log_sha256": "45fc4c2b82b36b9774aabb5770d54baa402515f236757b4fbb9038238d8ff22c"
+        },
+        {
+          "stage": "charon",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "{impl veoveo_hub::delegation::authority::Held for veoveo_hub::delegation::CurrentPermissions}::held",
+            "--include",
+            "{impl veoveo_hub::delegation::authority::Held<_> for veoveo_hub::delegation::CurrentPermissions}::held",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--opaque",
+            "veoveo_hub::mcp::upstream_http::HubUpstreamHttpClientPool",
+            "--opaque",
+            "veoveo_hub::contract::catalog::SectionDeclaration",
+            "--opaque",
+            "veoveo_hub::contract::catalog::TargetDeclaration",
+            "--opaque",
+            "openshell_sdk::config::AuthConfig",
+            "--opaque",
+            "veoveo_hub::registration::snapshot::_::iter::_::call_mut",
+            "--opaque",
+            "prost_types::protobuf::value::Kind",
+            "--opaque",
+            "serde_json::value::Value",
+            "--dest-file",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/outputs/hub_current_roles.llbc",
+            "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+            "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/extraction-source/veoveo-hub",
+          "exit": 0,
+          "elapsed_ms": 24408,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/logs/charon.log",
+          "log_sha256": "d81ac65be0ee91cf08040527c398c914ecaaf4277d951baa014da27c22c38b43"
+        },
+        {
+          "stage": "aeneas-split",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/outputs",
+            "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/outputs/hub_current_roles.llbc"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/work",
+          "exit": 0,
+          "elapsed_ms": 1222,
+          "timed_out": false,
+          "timeout_seconds": 120,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/logs/aeneas-split.log",
+          "log_sha256": "c68a0c9dc2a9d16f7deea06c83c907e39d72fe1a58a47c7578c6edc95373c79c"
+        },
+        {
+          "stage": "proof-prerequisites",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "HubCurrentRoles",
+            "GrantedPermissionsProof",
+            "RegistrationIteratorProof",
+            "FlatMapIteratorProof",
+            "CurrentPermissionsModelAudit"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/extraction-source/veoveo-hub/proofs/current_roles",
+          "exit": 0,
+          "elapsed_ms": 29513,
+          "timed_out": false,
+          "timeout_seconds": 1800,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/logs/proof-prerequisites.log",
+          "log_sha256": "0c80735f24c8ddbb15b2e3cef47ae4f626e6444fc7f57e58fb5b2e482094780c"
+        },
+        {
+          "stage": "primary-proof",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "CurrentPermissionsProof.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/extraction-source/veoveo-hub/proofs/current_roles",
+          "exit": 1,
+          "elapsed_ms": 2718,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/logs/primary-proof.log",
+          "log_sha256": "8dfe74d9e899af53884d18d1ad2ef720460646fa88d241a2e479fccf3305f44c"
+        }
+      ],
+      "proof_model_before": {
+        "Types.lean": {
+          "sha256": "18f6df3d66cfe361d2b04d51e418823180ce3565d29a459c18fa0fb8e3a9c106",
+          "bytes": 79600
+        },
+        "Funs.lean": {
+          "sha256": "77dbfe91b40fa74266ec162de9a128816529a067570384809b6534840832285e",
+          "bytes": 87144
+        }
+      },
+      "proof_model_after": {
+        "Types.lean": {
+          "sha256": "594b114f80d120eed2a2e5d2152341662de0cde61a653a9cef0527c6a139bf08",
+          "bytes": 79824
+        },
+        "Funs.lean": {
+          "sha256": "9ebad3a823d2cad1420285791238be1ac0602bdcd8ae0766d87959c7e10880b2",
+          "bytes": 87285
+        }
+      },
+      "types_diff_review": "Raw Types differs from baseline only in generated Source comment build-target paths; declarations are identical after removing Source comment lines.",
+      "primary_proof": {
+        "file": "CurrentPermissionsProof.lean",
+        "statement": "CurrentPermissionsProof.held_exact",
+        "command": [
+          "lake",
+          "env",
+          "lean",
+          "CurrentPermissionsProof.lean"
+        ],
+        "exit": 1,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/logs/primary-proof.log",
+        "log_sha256": "8dfe74d9e899af53884d18d1ad2ef720460646fa88d241a2e479fccf3305f44c",
+        "classification": "well-typed extracted body; normalization exposes the semantically changed returned set. Not a Lean-produced False goal; error-recovery sorryAx is excluded."
+      },
+      "reviewed_difference": "The unchanged `held_exact` proof could not normalize the body because it computed the filtered intersection and then returned the modeled empty set. This is a typed return-trace difference, not a generated False goal.",
+      "native_witness": {
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "delegation::authority_adapter_tests::current_permissions_use_existential_raw_providers_and_filter_requested",
+          "--",
+          "--exact"
+        ],
+        "exit": 101,
+        "elapsed_ms": 1120,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/logs/native-current-permissions-empty-witness.log",
+        "log_sha256": "627cc54297a2807842f0eb488159ba014b5ae286bb5df09e3759ee03f8821ef9",
+        "binary_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b",
+        "binary_sha256_before": "9ca338ea7b0828fe81a1a5135cc393840f859862c07416785eb13b5aee969a85",
+        "binary_sha256_after": "9ca338ea7b0828fe81a1a5135cc393840f859862c07416785eb13b5aee969a85",
+        "binary_unchanged": true,
+        "observed": {
+          "actual": "{}",
+          "expected": "{read}",
+          "fixture_id": "held-fixture.records.read"
+        },
+        "expected_exit": 101,
+        "classification": "expected test assertion mismatch; mutant is rejected by unchanged native witness"
+      }
+    }
+  ],
+  "restoration": {
+    "summary_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/run-summary.json",
+    "summary_sha256": "9b9ac743716a6b0a7f6604ff997235c6637305a91ffb32b65cc47ba94f98f009",
+    "complete": true,
+    "stages": [
+      {
+        "stage": "native-clean-hub",
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "clean",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/native-source/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/native-source/veoveo-hub",
+        "exit": 0,
+        "elapsed_ms": 414,
+        "timed_out": false,
+        "timeout_seconds": 600,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/native-clean-hub.log",
+        "log_sha256": "53c768ba8b694ba973b548bdc64cbc4b697cf792c3547b8f9122868874778c5b"
+      },
+      {
+        "stage": "native-fmt-check",
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/native-source/veoveo-hub",
+        "exit": 0,
+        "elapsed_ms": 665,
+        "timed_out": false,
+        "timeout_seconds": 600,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/native-fmt-check.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "stage": "native-authority-adapter-tests",
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "delegation::authority_adapter_tests"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/native-source/veoveo-hub",
+        "exit": 0,
+        "elapsed_ms": 34022,
+        "timed_out": false,
+        "timeout_seconds": 1800,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/native-authority-adapter-tests.log",
+        "log_sha256": "0a19aaa1ac241bc0357929371c918ed51288394b5c0116c975dc6b11b17a57ed"
+      },
+      {
+        "stage": "native-snapshot-tests",
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "registration::snapshot::tests"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/native-source/veoveo-hub",
+        "exit": 0,
+        "elapsed_ms": 264,
+        "timed_out": false,
+        "timeout_seconds": 1800,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/native-snapshot-tests.log",
+        "log_sha256": "d9c9d60d28995df8a189a7aa08915fd61a6cea23c23ae9141ec369fbe3552dec"
+      },
+      {
+        "stage": "native-strict-clippy",
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/native-source/veoveo-hub",
+        "exit": 0,
+        "elapsed_ms": 10231,
+        "timed_out": false,
+        "timeout_seconds": 1800,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/native-strict-clippy.log",
+        "log_sha256": "a3a5ad723bccd50b69f5da6f27614f4136c285f8f4ace811963b23f3ba6e3335"
+      },
+      {
+        "stage": "charon-clean-hub",
+        "command": [
+          "/home/rozgo/.cargo/bin/cargo",
+          "clean",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/source/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/source/veoveo-hub",
+        "exit": 0,
+        "elapsed_ms": 164,
+        "timed_out": false,
+        "timeout_seconds": 600,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/charon-clean-hub.log",
+        "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+      },
+      {
+        "stage": "charon",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+          "cargo",
+          "--sysroot",
+          "default",
+          "--preset=aeneas",
+          "--start-from",
+          "{impl veoveo_hub::delegation::authority::Held for veoveo_hub::delegation::CurrentPermissions}::held",
+          "--include",
+          "{impl veoveo_hub::delegation::authority::Held<_> for veoveo_hub::delegation::CurrentPermissions}::held",
+          "--include",
+          "veoveo_hub::policy::grants::held_roles",
+          "--include",
+          "veoveo_hub::policy::grants::effective_risks",
+          "--include",
+          "veoveo_hub::policy::grants::granted_permissions",
+          "--include",
+          "veoveo_hub::control_plane::authorization_config::_::allows",
+          "--opaque",
+          "veoveo_hub::mcp::upstream_http::HubUpstreamHttpClientPool",
+          "--opaque",
+          "veoveo_hub::contract::catalog::SectionDeclaration",
+          "--opaque",
+          "veoveo_hub::contract::catalog::TargetDeclaration",
+          "--opaque",
+          "openshell_sdk::config::AuthConfig",
+          "--opaque",
+          "veoveo_hub::registration::snapshot::_::iter::_::call_mut",
+          "--opaque",
+          "prost_types::protobuf::value::Kind",
+          "--opaque",
+          "serde_json::value::Value",
+          "--dest-file",
+          "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/outputs/hub_current_roles.llbc",
+          "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+          "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+          "--",
+          "--manifest-path",
+          "crates/veoveo-hub/Cargo.toml",
+          "--lib",
+          "--locked"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/extraction-source/veoveo-hub",
+        "exit": 0,
+        "elapsed_ms": 24354,
+        "timed_out": false,
+        "timeout_seconds": 1800,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/charon.log",
+        "log_sha256": "c6e13bbd4798edb05ba9d52651b188f3791ecd93cf6c3fce1968b4e5ed6f65d6"
+      },
+      {
+        "stage": "aeneas-split",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+          "-backend",
+          "lean",
+          "-filter-trait-methods",
+          "-split-files",
+          "-dest",
+          "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/outputs",
+          "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/outputs/hub_current_roles.llbc"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/work",
+        "exit": 0,
+        "elapsed_ms": 1219,
+        "timed_out": false,
+        "timeout_seconds": 120,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/aeneas-split.log",
+        "log_sha256": "b2554d748b775413670ad5bd9b7d34535d4c6cbd5f54e08763c495d3684bf6f9"
+      },
+      {
+        "stage": "lake-build",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/extraction-source/veoveo-hub/proofs/current_roles",
+        "exit": 0,
+        "elapsed_ms": 30713,
+        "timed_out": false,
+        "timeout_seconds": 1800,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/lake-build.log",
+        "log_sha256": "e60cbec810bd99501c97c99129a287561e9b8b1526cf0640f71d8efbcaf5f190"
+      },
+      {
+        "stage": "current-permissions-proof",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CurrentPermissionsProof.lean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/extraction-source/veoveo-hub/proofs/current_roles",
+        "exit": 0,
+        "elapsed_ms": 2718,
+        "timed_out": false,
+        "timeout_seconds": 600,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/current-permissions-proof.log",
+        "log_sha256": "5fb0f101bb2849a23008656cd74ff8fb38bb5d3f80c4325dd12ff70451f60d76"
+      },
+      {
+        "stage": "model-audit",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "ModelAudit.lean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/extraction-source/veoveo-hub/proofs/current_roles",
+        "exit": 0,
+        "elapsed_ms": 2618,
+        "timed_out": false,
+        "timeout_seconds": 600,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/model-audit.log",
+        "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312"
+      },
+      {
+        "stage": "current-permissions-model-audit",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CurrentPermissionsModelAudit.lean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/extraction-source/veoveo-hub/proofs/current_roles",
+        "exit": 0,
+        "elapsed_ms": 2668,
+        "timed_out": false,
+        "timeout_seconds": 600,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/logs/current-permissions-model-audit.log",
+        "log_sha256": "3ac752ca291548d17ff3818c00563d631f6d2e6d408ad4070c97c49277c9ca7f"
+      }
+    ],
+    "source_verification": {
+      "base_files": 818,
+      "overlay_files": 33,
+      "native_delegation_sha256": "d05e28c937f3a0bcb50524d4bbf94e7d16ab581dafa190b12da3575a5138599e",
+      "extraction_delegation_sha256": "d05e28c937f3a0bcb50524d4bbf94e7d16ab581dafa190b12da3575a5138599e",
+      "native_catalog_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef",
+      "extraction_catalog_sha256": "5d7f03636a81b49549ca9645df7c55f44b2b685fc9964c33e382a5df7942bc57",
+      "metadata_removed_catalog_sha256": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef",
+      "native_unannotated": true,
+      "extraction_annotation_scratch_only": true
+    },
+    "generated_match": {
+      "expected": {
+        "Types.lean": "18f6df3d66cfe361d2b04d51e418823180ce3565d29a459c18fa0fb8e3a9c106",
+        "Funs.lean": "77dbfe91b40fa74266ec162de9a128816529a067570384809b6534840832285e"
+      },
+      "actual": {
+        "Types.lean": "18f6df3d66cfe361d2b04d51e418823180ce3565d29a459c18fa0fb8e3a9c106",
+        "Funs.lean": "77dbfe91b40fa74266ec162de9a128816529a067570384809b6534840832285e"
+      },
+      "matched": true
+    },
+    "generated_files": {
+      "FunsExternal_Template.lean": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/outputs/FunsExternal_Template.lean",
+        "bytes": 36347,
+        "sha256": "ad1ded312e86844dcc141e7f4e9612ed41c9cea208f1d7bd312431e2255e9d96"
+      },
+      "Funs.lean": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/outputs/Funs.lean",
+        "bytes": 87144,
+        "sha256": "77dbfe91b40fa74266ec162de9a128816529a067570384809b6534840832285e"
+      },
+      "Types.lean": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/outputs/Types.lean",
+        "bytes": 79600,
+        "sha256": "18f6df3d66cfe361d2b04d51e418823180ce3565d29a459c18fa0fb8e3a9c106"
+      },
+      "TypesExternal_Template.lean": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/outputs/TypesExternal_Template.lean",
+        "bytes": 24054,
+        "sha256": "fa12f60e5d86cad857e715ad8efee9782e0a27bd6b5528ce888b149070c8dfab"
+      }
+    },
+    "copied_model": {
+      "Types.lean": "18f6df3d66cfe361d2b04d51e418823180ce3565d29a459c18fa0fb8e3a9c106",
+      "Funs.lean": "77dbfe91b40fa74266ec162de9a128816529a067570384809b6534840832285e",
+      "FunsExternal.lean": "4df36fef3c47e0607d6cf0de1c7b0c71bfbbcb969e30add01f06b483a9faff2e"
+    },
+    "native_test_binary": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b",
+      "sha256": "c4083b22ad9798d53cbd4776ac9dba253f908683c773bdddb75900af7c53e632"
+    },
+    "proof_axiom_lines": [
+      "'CurrentPermissionsProof.flat_cursor_law' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "'CurrentPermissionsProof.flat_initial_valid' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "'CurrentPermissionsProof.actual_outer_terminal_stable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "'CurrentPermissionsProof.final_cursor_law' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "'CurrentPermissionsProof.final_values' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "'CurrentPermissionsProof.held_exact' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "'CurrentPermissionsProof.held_membership' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "'CurrentPermissionsProof.empty_request' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "'CurrentPermissionsProof.empty_registrations' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "'CurrentPermissionsProof.lawful_held' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "'CurrentPermissionsProof.issued_membership' depends on axioms: [propext, Classical.choice, Quot.sound]"
+    ],
+    "model_audit_axioms": [
+      {
+        "declaration": "veoveo_hub.policy.grants.held_roles",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "veoveo_hub.policy.grants.effective_risks",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "veoveo_hub.policy.grants.granted_permissions",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "veoveo_hub.control_plane.authorization_config.InstallationRole.allows",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentRolesNative.filterNext",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentRolesNative.any",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentRolesNative.collectSet",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      }
+    ],
+    "current_permissions_audit_axioms": [
+      {
+        "declaration": "veoveo_hub.delegation.CurrentPermissions.Insts.Veoveo_hubDelegationAuthorityHeldBTreeSetPermissionNameGlobal.held",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "veoveo_hub.registration.snapshot.RegistrationSnapshot.iter",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer.call_mut",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentRolesNative.flatMapNext",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentRolesNative.arcAsRef",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "alloc.collections.btree.set.BTreeSetTGlobal.new",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      }
+    ],
+    "current_permissions_direct_axioms": [
+      {
+        "declaration": "CurrentPermissionsProof.flat_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.flat_initial_valid",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.actual_outer_terminal_stable",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.final_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.final_values",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.held_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.held_membership",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.empty_request",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.empty_registrations",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.lawful_held",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.issued_membership",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      }
+    ],
+    "accepted_axiom_universe": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "sorryAx_absent": true,
+    "all_audit_axioms_standard": true,
+    "default_build_axioms": [
+      {
+        "declaration": "AuthorityProof.declare_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityProof.declare_success_iff",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityProof.address_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityProof.provide_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityProof.grant_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityProof.exchange_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityProof.exchange_success_iff",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityProof.narrow_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityProof.narrow_success_iff",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityProof.accepted_permission_survives",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityComposition.issued_membership_bound",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityComposition.downstream_membership_bound",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "AuthorityComposition.exchange_then_downstream_bound",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "veoveo_hub.delegation.CurrentPermissions.Insts.Veoveo_hubDelegationAuthorityHeldBTreeSetPermissionNameGlobal.held",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "veoveo_hub.registration.snapshot.RegistrationSnapshot.iter",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer.call_mut",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentRolesNative.flatMapNext",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentRolesNative.arcAsRef",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "alloc.collections.btree.set.BTreeSetTGlobal.new",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.taggedComparison",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.tagged_order_coherent",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.concrete_clones_exact",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.access_operations_exact",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.risk_operations_exact",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.role_operations_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.group_operations_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.permission_operations_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.principal_tenant_equality_exact",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.memberBy_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.subsetBy_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.insertBy_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.cloneList_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.set_contains_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.set_subset_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.set_clone_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "NativeSetProof.role_allows_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "IteratorProof.list_next_correct",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "IteratorProof.slice_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "IteratorProof.filter_next_correct",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "IteratorProof.filter_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "IteratorProof.map_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "IteratorProof.any_correct",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "IteratorProof.any_stops_at_match",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.exact_of_total",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.collect_set_correct",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.collect_set_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.collect_set_membership",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.iter_to_list_correct",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.iter_to_list_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.vec_from_iterator_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.vec_collect_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.filter_length_bound",
+        "axioms": [
+          "propext"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.map_length_preserved",
+        "axioms": [
+          "propext"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.filtered_initial_valid",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.filtered_machine_bound",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CollectionProof.filtered_vec_collect_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "PolicyPrimitives.set_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "PolicyPrimitives.set_collect_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "PolicyPrimitives.set_extend_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "HeldRoleProof.tenant_closure_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "HeldRoleProof.subject_closure_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "HeldRoleProof.role_closure_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "HeldRoleProof.tenant_predicate_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "HeldRoleProof.subject_predicate_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "HeldRoleProof.role_mapper_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "HeldRoleProof.initial_valid",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "HeldRoleProof.role_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "HeldRoleProof.held_roles_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "HeldRoleProof.held_roles_membership",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "EffectiveRiskProof.risk_universe_complete",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "EffectiveRiskProof.additions_membership",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "EffectiveRiskProof.expected_add",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "EffectiveRiskProof.expected_deny",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "EffectiveRiskProof.effective_loop_correct",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "EffectiveRiskProof.effective_risks_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "EffectiveRiskProof.effective_risks_denied_iff",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "EffectiveRiskProof.effective_risks_present_iff",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "EffectiveRiskProof.effective_risks_membership",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.selected_roles_collect",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.selected_roles_values",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.permission_predicate_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.permission_name_mapper_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.output_initial_valid",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.output_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.granted_permissions_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.granted_permissions_membership",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.selection_closure_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.selection_predicate_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.allows_closure_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.allows_predicate_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.roles_any_correct",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.permission_closure_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "GrantedPermissionsProof.permission_name_closure_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.projection_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.values_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.registration_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.snapshot_iter_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.registration_initial_valid",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.registration_terminal_stable",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.owned_permissions_into_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.owned_permissions_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.provider_membership",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.grant_closure_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.grant_mapper_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.requested_closure_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "RegistrationIteratorProof.requested_predicate_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "FlatMapIteratorProof.flat_map_next_correct",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "FlatMapIteratorProof.flat_map_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "FlatMapIteratorProof.constructor_exact",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "FlatMapIteratorProof.initial_valid",
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "FlatMapIteratorProof.inner_match_stops",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "FlatMapIteratorProof.exhausted_stops",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.flat_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.flat_initial_valid",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.actual_outer_terminal_stable",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.final_cursor_law",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.final_values",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.held_exact",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.held_membership",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.empty_request",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.empty_registrations",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.lawful_held",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "CurrentPermissionsProof.issued_membership",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      }
+    ],
+    "default_build_axiom_declaration_count": 123,
+    "default_build_axiom_sets": [
+      [
+        "propext"
+      ],
+      [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      [
+        "propext",
+        "Quot.sound"
+      ]
+    ],
+    "all_default_build_axioms_standard": true
+  },
+  "excluded_attempts": [
+    {
+      "attempt": "early Charon selector probe (probe-1)",
+      "classification": "setup/selector failure, excluded",
+      "observed": "Charon exited 101 before LLBC; invalid trait-implementation selector was reported. The log also shows a Send-bound overflow warning, but root did not establish it as causal."
+    },
+    {
+      "attempt": "initial opaque selection (probe-3 Aeneas)",
+      "classification": "tool selector setup failure, excluded",
+      "observed": "Aeneas exited 1 on unsupported Arrow and dynamic-trait declarations because requested opacity did not cover the intended items."
+    },
+    {
+      "attempt": "projection closure borrow synthesis (probe-5 Aeneas)",
+      "classification": "translation limitation, superseded",
+      "observed": "After the equivalent map closure spelling addressed the function-item signature issue, Aeneas could not synthesize the synthetic projection FnMut borrow abstraction (\"Can't end abstraction 5 as it is set as non-endable\"). The accepted extraction externalizes only that local forwarding call_mut body and models its Arc value projection with unchanged closure state; it does not prove native lifetime/alias refinement."
+    },
+    {
+      "attempt": "intermediate Charon probes (probe-7/probe-8)",
+      "classification": "compiler configuration attempt, excluded",
+      "observed": "Charon exited 101 while rustc reported a future Send-bound overflow. Causal status not established; no proof result counted."
+    },
+    {
+      "attempt": "requested-control run setup retries",
+      "classification": "setup-only attempts, excluded",
+      "observed": "Duplicate Charon tool-registration attributes; extraction-only catalog annotation accidentally present in native source (E0433); source archive extraction depth mismatch; and a no-run attempt stopped after 154.335 seconds because it used nightly rather than Rust 1.99. Corrected runner separates native Rust 1.99 source from Charon nightly extraction source."
+    },
+    {
+      "attempt": "requested proof first direct check",
+      "classification": "missing prerequisite, excluded",
+      "observed": "Initial direct Lean command could not import AuthorityComposition; prerequisite build was then run and the retry produced the reviewed semantic return mismatch."
+    },
+    {
+      "attempt": "proof authoring iterations before frozen checkpoints",
+      "classification": "superseded drafts, excluded",
+      "observed": "Several manual model and theorem tactic iterations failed to compile; final accepted model/checkpoint archives and their passing logs are listed above. These failures are not semantic-control results."
+    }
+  ],
+  "evidence_integrity": {
+    "accepted_summary_files": [
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/native-witnesses-run1/run-summary.json",
+        "sha256": "e3b95464ec1e7c0fa0a667c70bdf015f50c0971a00f06ce04f6960fa5e5929b5"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-11/probe-summary.json",
+        "sha256": "a6e5233ae7378b28a655a945ba33ae276652ece7386f955a3ea8862cf6fa5b2d"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-signature-2/probe-summary.json",
+        "sha256": "23c0321744d9e5ca8e4e72b61c4157e49b8a0aa0126ce0be2c889ba62942b42a"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/empty-constructor-model-run1/run-summary.json",
+        "sha256": "a833be356e9844343faeaf91a62e81d08cd1c1ba26c733629a2bc90c383236b9"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/held-models-run4/run-summary.json",
+        "sha256": "3df0b7bccb5190c2551a47db2953a3cb20b8ab3be8cbe01e5b49d848f95d5367"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/registration-proof-run3/run-summary.json",
+        "sha256": "ba8d69a81bea73f1fee59612c38fc6dd38047d4836694f0d33961fef9824f40b"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/flatmap-proof-run3/run-summary.json",
+        "sha256": "ea58c75aecb1a8aea9b8647b569d18e9495930287913cec01bf072fdaafe4266"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/current-permissions-proof-run3/run-summary.json",
+        "sha256": "9ab15f78291f840567e3f92aeddf5f56441524d11b749039f40702310e3243a4"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/run-summary.json",
+        "sha256": "919f2a5ee54846ccaaaac2b1a5d3e4ada3972b71d6bbe09740dab0c92b3a628e"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/proof-retry-summary.json",
+        "sha256": "4cb247fdef16fa7334777794f8f65216477bde8c5c1d161c110c70af1885b528"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-requested-run4/native-witness-summary.json",
+        "sha256": "b593e40909aa80e39ab3b8f6be85545f6d9376d0d0f5aa35f0a0336f40c547c1"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/run-summary.json",
+        "sha256": "a6a56c828a1a43898c3ed99325ec4708d33073f883f47cfa1ccd6a535538f9e1"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/control-return-empty-run1/native-empty-witness-summary.json",
+        "sha256": "df7355760c83869c20dba894864aaaa9e8ae4c1582bb5fdc02fe88e138a04367"
+      },
+      {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/final-restoration-run1/run-summary.json",
+        "sha256": "9b9ac743716a6b0a7f6604ff997235c6637305a91ffb32b65cc47ba94f98f009"
+      }
+    ],
+    "remote_log_hashes_checked": 56,
+    "remote_log_hash_mismatches": 0,
+    "summary_logs_verified_against_remote_bytes": true,
+    "native_control_binary_content_hashes_captured": true,
+    "logs_retained_under": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029",
+    "raw_logs_committed": false,
+    "control_binary_hashes_are_historical_observations": true,
+    "control_binary_limit": "Both mutations used the shared native target, with explicit Hub package clean/recompile. Each case logged its binary SHA before and after its witness. The target was later overwritten by final restoration; no separate immutable mutant binary copies are claimed.",
+    "restored_binary_current_sha256": "c4083b22ad9798d53cbd4776ac9dba253f908683c773bdddb75900af7c53e632",
+    "generated_artifacts_verified": 6,
+    "generated_artifacts_hash_mismatches": 0,
+    "final_lake_build_log_sha256": "e60cbec810bd99501c97c99129a287561e9b8b1526cf0640f71d8efbcaf5f190",
+    "verified_log_reference_count": 56,
+    "verified_log_reference_mismatches": 0
+  },
+  "proof_boundary": {
+    "proved": "The actual transparent CurrentPermissions::held returns exactly .ok of requested permissions with at least one raw registration satisfying the established Grants predicate for the supplied original caller. Initial finite registration/FlatMap/filter/collection validity is constructed; empty requests and snapshots are included. Its concrete HeldModel and LawfulHeld are derived from that exact method and instantiate the existing successful-exchange issued_membership theorem: requested AND declared uses AND such a provider grant, with the supplied generic Context preserved. No whole computed-held-result assumption is supplied.",
+    "assumptions_and_limits": [
+      "The existing generic uses/resource laws remain premises of the authority bridge. Preserving a supplied Context does not prove that an asynchronous endpoint constructed Context.caller from the same caller, nor establish catalog/principal freshness. The shared caller at the production call site is source correspondence only.",
+      "The supplied Principal (including native group projection and identity verification), raw declarations, and registration/catalog snapshot are inputs. SQL, snapshot construction/completeness/synchronization and storage authority are not verified.",
+      "Native Eq/Ord/Borrow/Clone correspondence, map/set traversal and representation, allocator/memory behavior, Arc lifetimes/aliasing/reference counts, and Rust standard-library refinement remain explicit boundaries. Ordinary finite Lean collection models are not a proof of native tree/memory implementation or call-count traces.",
+      "Only the synthetic local snapshot projection FnMut call_mut is externalized among the reviewed local forwarding bodies; it delegates to the modeled Arc value projection and preserves state. Native external primitives and opaque unused metadata types also remain documented model boundaries. Charon/Aeneas translation, Rust compiler and extraction configuration are trusted.",
+      "Actual decide_server admission/output, its sampled clock, current profile/principal/scope admission, signing, cryptography and transport remain outside this increment. The separately proved SDK239622d route seam is not adopted by the compiled SDK05273d1 pin.",
+      "Native tests call the actual CurrentPermissions method with synthetic fixtures; they do not authenticate real tokens or exercise deployment, networking, OpenShell execution or model inference."
+    ],
+    "prior_checkpoint_records": [
+      "2026-10-29-current-permissions-extraction.md",
+      "2026-10-29-current-permissions-model.md",
+      "2026-10-29-current-permissions-cursors.md",
+      "2026-10-29-current-permissions-composition.md"
+    ]
+  }
+}

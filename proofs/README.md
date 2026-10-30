@@ -50,7 +50,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | --- | --- | --- | --- |
 | HUB-CONTRACT-01 | Shared MCP extension contracts preserve meaning from declaration to enforcement | partial | Connect declaration generation/validation and current policy to the proved SDK resource requirement |
 | HUB-TASK-01 | Captured Task routing and retry integrity | partial | SQL and asynchronous adapter refinement remain |
-| HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Connect the qualified current-role evaluator through CurrentPermissions and decide_server; then session/issuer continuity |
+| HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Connect decide_server to qualified CurrentPermissions/current-role results, then session/issuer continuity |
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | unproved | Specify the pure current-family decision first |
 | HUB-CONFIG-01 | Coherent live configuration publication | unproved | Model transaction/CAS semantics |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Trace broader routing beyond the linked kernel |
@@ -321,11 +321,23 @@ allow. Delegated callers do not acquire administrative access from an admin prin
   and standard-axiom audits. See the [receipt](current_roles/evidence/current-roles-receipt.json)
   and [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-29-current-role-proof.md).
   Native collections remain extensional models; principal/catalog freshness and
-  external validation remain inputs. This does not yet discharge the earlier
-  authority proof's coarse `CurrentPermissions` premise.
-- **Residual/next:** connect the actual `CurrentPermissions` registration union,
-  requested filtering and collection, then `decide_server` admission/output to the
-  established evaluator. Principal projection, shared MCP extension correspondence
+  external validation remain inputs. That evaluator qualification alone does not
+  discharge the earlier authority proof's coarse `CurrentPermissions` premise.
+- **Qualified current-permission connection:** at Hub `33849317` plus the
+  recorded extraction overlay, [CurrentPermissionsProof](current_roles/CurrentPermissionsProof.lean)
+  proves the actual registration traversal, requested filtering and exact collected
+  set. Its concrete `LawfulHeld` discharges the earlier current-permission premise
+  and instantiates the issuance theorem. The supplied context is preserved; its
+  construction from the same caller by the async endpoint is not proved here.
+  The [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-29-current-permissions-qualification.md)
+  and [receipt](current_roles/evidence/current-permissions-receipt.json) record
+  successful Lean checks and standard-axiom audits, five native adapter tests and
+  two registration tests, two incorrect return-value controls caught by the
+  unchanged proof and native assertions, and fresh restored success with exact
+  generated model hashes. The one production edit is an equivalent snapshot
+  iterator closure spelling; no authorization rule changes.
+- **Residual/next:** connect `decide_server` admission/output to the established
+  evaluator. Principal projection, shared MCP extension correspondence
   and session/issuer continuity remain.
   Catalog/provider discovery, replay, Task reads, route wiring, concrete token
   serialization and clocks remain separate obligations. A new downstream namespace
