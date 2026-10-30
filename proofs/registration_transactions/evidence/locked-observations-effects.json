@@ -1,0 +1,127 @@
+{
+  "date": "2026-10-30",
+  "status": "Checked locked observations and exact write effects; serial-history composition and reachable output/fault executions remain pending",
+  "parent_proof_commit": "d3885bf",
+  "runtime_mapping_commit": "05737d6",
+  "evidence_class": "Handwritten transaction-model proofs mapped to reviewed Rust/SQL; not extracted asynchronous Rust/SQL or formal SQL refinement",
+  "toolchain": "leanprover/lean4:v4.35.0",
+  "aeneas_framework_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "abd478779b97b5a0487c1f6743cde427e9961906d687d3e9f05a18155a88b575",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "4b2206d7808c0f17403b338c29c835e7c6222d2b37656d6007ccc04d3fa36707",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "5ffff6e081435a7818d045e094b8a7a5d3099e7b541d0b72e1b6fad14d3898ae",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "claims": {
+    "active_owner_unique": "Any two active attempts in a reachable fixed-protocol state have the same transaction ID, derived from deployment-lock ownership.",
+    "reached_observations": "Ordinary metadata observations and exact captured replacement rows match current committed state throughout modeled active phases including committing; completed and abort-pending phases excluded.",
+    "admit_exact": "Complete admission writes equal the independent replica specification, preserving old maps except exact candidate keys.",
+    "replacement_exact": "Given an exact current DELETE row listing, complete replacement writes equal the independent replacement specification, removing old registration/logins while preserving unrelated logins and disjoint frame."
+  },
+  "axioms": {
+    "execution_ownership": [
+      "propext"
+    ],
+    "active_owner_unique": [
+      "propext"
+    ],
+    "reached_observations": [
+      "propext",
+      "Quot.sound"
+    ],
+    "admit_exact": [
+      "propext"
+    ],
+    "replacement_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "checks": [
+    {
+      "command": "lake env lean /tmp/RegistrationLocks-packet1.lean",
+      "exit_code": 0,
+      "elapsed_seconds": 3.57,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/locks1-evidence/direct.log",
+        "sha256": "a540f500dd4f4072b3180bbbe2ba2fd7de5bb05701b2e10381b430b0ac746e84"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/locks1-evidence/direct.time",
+        "sha256": "fa70d30a4412cb5de5848f7bb4011b0e1643e773e991b5e35ae367182e96f47b"
+      }
+    },
+    {
+      "command": "lake env lean /tmp/RegistrationEffects-packet4.lean",
+      "exit_code": 0,
+      "elapsed_seconds": 2.73,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/effects4-run1-evidence/direct.log",
+        "sha256": "c93f6d84e44920c10f8a0a6d9feef4f92a076261a09538d30c49bc22185340e2"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/effects4-run1-evidence/direct.time",
+        "sha256": "10b7dfdb5335c24a248a90e5fb6de229a8daf52d8e853c20e5f8940ca1a9b08f"
+      }
+    },
+    {
+      "command": "lake env lean /tmp/RegistrationObservations-packet2.lean",
+      "exit_code": 0,
+      "elapsed_seconds": 5.75,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/observations2-evidence/direct.log",
+        "sha256": "6573d7e925422a22142fb594403e24c17f2857ba2a93db19d6cdbe1301d82f3c"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/observations2-evidence/direct.time",
+        "sha256": "8194c2834c17f2e77af95508ae30588b765a351b9c3b56d9e4079526fe98f3c7"
+      }
+    },
+    {
+      "command": "lake build",
+      "targets": [
+        "RegistrationModel",
+        "RegistrationSpecification",
+        "RegistrationProof",
+        "RegistrationLocks",
+        "RegistrationEffects",
+        "RegistrationObservations"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 7.14,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/observations-effects-package-evidence/logs/build.log",
+        "sha256": "cb0080feac510496b911336ae256dafdaf487a265d0cc95762f084a0abe9b87d"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/observations-effects-package-evidence/build.time",
+        "sha256": "019faeb096eb4dd0fe3d2fd11e9495b4e734ee23049efc9debd970ab43376d36"
+      },
+      "measured_source_hashes": {
+        "path": "/tmp/hub-registration-concurrency-20261030/observations-effects-package-evidence/source-hashes.txt",
+        "sha256": "902b30e40510b3d3e654a8c214200258a505830b0acd1a07f64886903b74caed"
+      }
+    }
+  ],
+  "execution_directory": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+  "cache": "Existing Linux Lean/Aeneas/Mathlib cache reused; no dependency re-resolution or native-test reruns",
+  "review_and_development": [
+    "Observation proof initially left another committing transaction unconstrained. The repaired proof derives its ownership and contradicts simultaneous distinct ownership; no model or runtime change was needed.",
+    "Intermediate effect-proof failures concerned map equality and membership algebra; they do not count as semantic fault controls.",
+    "Unused section-variable and deprecated tactic-name warnings remain; audited final declarations contain no sorryAx or unreviewed axioms."
+  ],
+  "limits": [
+    "One retained deployment with fixed admitted namespace/key; only ordinary registration and instance replacement writers.",
+    "Program completeness, stable observations and exact effects have not yet been composed into the actual commit-history theorem.",
+    "Reachable valid replica/replacement executions, aborted-event exclusion and the original unlocked-read counterexample remain pending.",
+    "SQL isolation, locking, constraints, native field projection, Core login/schema behavior and asynchronous store correspondence remain explicit boundaries.",
+    "Per-client updates, removal, housekeeping, namespace-key changes, external environment preparation and postcommit service audit/reload remain separate obligations.",
+    "No deployment, HTTP liveness, cross-database atomicity or whole-Hub verification claim."
+  ]
+}

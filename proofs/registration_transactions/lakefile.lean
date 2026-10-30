@@ -15,3 +15,12 @@ lean_lib RegistrationSpecification
 
 @[default_target]
 lean_lib RegistrationProof
+
+@[default_target]
+lean_lib RegistrationLocks
+
+@[default_target]
+lean_lib RegistrationEffects
+
+@[default_target]
+lean_lib RegistrationObservations

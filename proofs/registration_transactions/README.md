@@ -1,8 +1,9 @@
 # Registration transaction verification
 
 This slice connects registration transaction reasoning to the actual store and
-PostgreSQL behavior. Native regression evidence and the first complete-program
-theorem are checked; serial-history and valid-output proofs remain pending.
+PostgreSQL behavior. Native regression evidence, complete staged programs, lock
+ownership, stable observations and exact write effects are checked. Serial-history
+composition and reachable valid-output executions remain pending.
 Execution remains manual: run `lake build` in this directory with the pinned
 Lean toolchain.
 
@@ -35,12 +36,25 @@ admission. Primitive commit has no application-correctness guard. The audited
 theorem uses only `propext` and `Quot.sound`; see the
 [complete-program receipt](evidence/program-completeness.json).
 
-This theorem is about program completeness, not serialization. The independent
-`RegistrationSpecification.lean` still has unproved serial-history and abort
-obligations indexed by actual commit events. Next: lock/observation invariants,
-serial equivalence to ordinary replica addition or replacement, exact valid
-same-metadata and replacement outcomes, and the original unlocked-read failure.
-The earlier native test remains separate from these design-model statements.
+`RegistrationLocks.lean` derives exclusive ownership for active fixed-protocol
+attempts. `RegistrationObservations.lean` uses that ownership and program
+alignment to prove that ordinary metadata observations and replacement's captured
+rows still describe the current committed database throughout its active phases,
+including commit-pending. Completed and abort-pending phases are excluded.
+
+`RegistrationEffects.lean` equates complete staged programs with the independent
+replica and replacement specifications, including complete candidate payloads,
+old registration/login removal and unrelated-login preservation. Replacement's
+algebraic theorem takes a current exact row listing as a premise; the observation
+theorem establishes that premise for reachable active replacement attempts.
+See the [lock, observation and effect receipt](evidence/locked-observations-effects.json).
+
+These results are ingredients of serialization, not yet a proof of the complete
+history. `RegistrationSpecification.lean` still has unproved serial-history and
+abort obligations indexed by actual commit events. Next: compose those histories,
+construct exact valid same-metadata and replacement executions, and establish the
+original unlocked-read failure. The earlier native test remains separate from
+these design-model statements.
 
 This first theorem excludes RFC 7592 per-client updates, concurrent removal and
 housekeeping, namespace-key changes, external-environment preparation and
