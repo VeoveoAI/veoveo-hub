@@ -709,9 +709,15 @@ registration. These are target properties to establish, not new admission rules.
 
 The [source review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-registration-transaction-source-review.md)
 separates namespace replica admission, replacement, per-client update and instance
-preparation. The first native probe tests matching-metadata admission against a
-concurrent replacement before choosing lock invariants. This remains unproved;
-an unlocked read is a race hypothesis, not evidence of a reachable defect.
+preparation. The [native overlap probe](registration_transactions/evidence/native-replica-replacement.json)
+confirmed that a replacement could miss an unfinished same-metadata replica,
+leaving both old and new registrations/logins. Locking the deployment read before
+comparison fixes this schedule: the unchanged regression and six existing
+registration integration tests pass, as do formatting and strict library Clippy.
+This is native component evidence; registration remains formally unproved. The
+[first planned model](registration_transactions/README.md) covers committed
+register/replace histories and exact valid outputs before the later update,
+removal and authority composition obligations.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

@@ -2,6 +2,9 @@
 //! schema. Every replica reads the same rows, so a registration admitted by one replica
 //! routes on all of them.
 
+#[cfg(test)]
+mod concurrency_tests;
+
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use secrecy::{ExposeSecret, SecretString};

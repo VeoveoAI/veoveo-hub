@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT server, metadata AS \"metadata: Json<ClientMetadata>\", storage_binding AS \"storage: Json<StorageBinding>\"\nFROM hub.deployment WHERE id = $1\n",
+  "query": "SELECT server, metadata AS \"metadata: Json<ClientMetadata>\", storage_binding AS \"storage: Json<StorageBinding>\"\nFROM hub.deployment WHERE id = $1\n-- Serialize comparison and replica admission with replacement before its DELETE.\nFOR UPDATE\n",
   "describe": {
     "columns": [
       {
@@ -48,5 +48,5 @@
       false
     ]
   },
-  "hash": "9b9684edebb3e1ec670dcc26530d14ea3e3ee1c03489da6527b52cb3c1f9a8fb"
+  "hash": "e5244619feed6adeca21e06f3bb31130e028228c48cfd6d7815d91679c34b8b8"
 }

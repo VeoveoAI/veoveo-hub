@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object(\n    'deployment', (SELECT to_jsonb(d) FROM hub.deployment AS d WHERE d.id = $1),\n    'claim', (SELECT to_jsonb(c) FROM hub.namespace_claim AS c WHERE c.server = $2),\n    'registrations', (SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.client_id), '[]'::jsonb)\n                      FROM hub.registration AS r WHERE r.deployment = $1),\n    'logins', (SELECT coalesce(jsonb_agg(jsonb_build_object(\n        'name', p.rolname, 'login', p.rolcanlogin, 'superuser', p.rolsuper,\n        'create_db', p.rolcreatedb, 'create_role', p.rolcreaterole,\n        'replication', p.rolreplication, 'bypass_rls', p.rolbypassrls,\n        'connection_limit', p.rolconnlimit, 'valid_until', p.rolvaliduntil,\n        'memberships', (SELECT coalesce(jsonb_agg(g.rolname ORDER BY g.rolname), '[]'::jsonb)\n            FROM pg_auth_members AS m JOIN pg_roles AS g ON g.oid = m.roleid\n            WHERE m.member = p.oid)\n    ) ORDER BY p.rolname), '[]'::jsonb)\n    FROM pg_roles AS p WHERE p.rolname = ANY ($3::text[]))\n) AS \"snapshot!\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "snapshot!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0e53eb8579a8ba9b3b415a4703aa3c51bd33ff3eec684bbdffd416987eda917b"
+}

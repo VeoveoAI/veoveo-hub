@@ -43,6 +43,13 @@ namespace deployment with new metadata, under the pinned key, replaces its contr
 endpoint and storage, and an instance's every registration replaces them, key
 included. Registrations and health remain independent per deployment.
 
+Ordinary registration locks its deployment row before reading and comparing the
+stored metadata; instance replacement obtains the same row lock through its
+upsert. Both retain the lock through replacement or replica admission and commit,
+serializing their effects per deployment, including a same-metadata replica's
+admission. This registration ordering does not impose global metadata equality on
+RFC 7592 per-client updates or specify concurrent removal behavior.
+
 Registering is serving: no enrollment step publishes a deployment. A slug with no
 instances routes to its deployment that has registrations. When several deployments
 of one slug have them, the newest registration whose process lives wins: the others

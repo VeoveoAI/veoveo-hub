@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT waiter.pid AS \"pid!\", waiter.query AS \"query!\", waiter.wait_event AS \"event!\"\nFROM pg_stat_activity AS waiter\nWHERE waiter.datname = current_database()\n  AND waiter.wait_event_type = 'Lock'\n  AND $1::integer = ANY (pg_blocking_pids(waiter.pid))\nORDER BY waiter.pid\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pid!",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "pg_stat_activity",
+            "name": "pid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "query!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pg_stat_activity",
+            "name": "query"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "event!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pg_stat_activity",
+            "name": "wait_event"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "540cf7b8e57528f98cd6d1ce6123e865fe2e0f4710ff67df0a98783c3311b566"
+}

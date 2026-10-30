@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT FROM pg_advisory_xact_lock(17031, 1)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "4ddbc6dd50f064e45bf1a24a8c4462a0a9a2445d4abbb3623e0efcc2406fc714"
+}

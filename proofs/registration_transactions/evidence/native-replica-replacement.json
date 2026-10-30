@@ -1,0 +1,243 @@
+{
+  "date": "2026-10-30",
+  "status": "Confirmed native registration race fixed and component checks passed; registration formal verification remains unproved",
+  "source_base_commit": "b347f487",
+  "core_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+  "sdk_revision": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+  "toolchain": "1.99.0-aarch64-apple-darwin",
+  "postgres": "18.6",
+  "platform": "macOS aarch64",
+  "fixed_source_sha256": {
+    "crates/veoveo-hub/src/registration/store.rs": "b09c76385f7087a316b6b2c1594b539fa1e1ce8bbc7b8afe44faaf877c186893",
+    "crates/veoveo-hub/src/registration/store/concurrency_tests.rs": "a7f8d6e68ba21816f394806d9900ddad26327393c9a0d5f154898e639dc481f2",
+    "crates/veoveo-hub/src/registration/store/tests/blocked.sql": "540cf7b8e57528f98cd6d1ce6123e865fe2e0f4710ff67df0a98783c3311b566",
+    "crates/veoveo-hub/src/registration/store/tests/connection.sql": "242ea5edf43bd8a475554130521fe01e25108d597d1fa3923762b7c128e7ef06",
+    "crates/veoveo-hub/src/registration/store/tests/gate.sql": "6711f6d5547bd8cdb911a36fdc326825232c459c1252a6a44d0e0fe798137670",
+    "crates/veoveo-hub/src/registration/store/tests/hold_gate.sql": "4ddbc6dd50f064e45bf1a24a8c4462a0a9a2445d4abbb3623e0efcc2406fc714",
+    "crates/veoveo-hub/src/registration/store/tests/snapshot.sql": "0e53eb8579a8ba9b3b415a4703aa3c51bd33ff3eec684bbdffd416987eda917b",
+    "crates/veoveo-hub/DESIGN.md": "4e1f8ba69fa0f6f0120ec95319ce8374225863e3acbb02625a2b4115cffbc0d2",
+    "crates/veoveo-hub/src/registration/store/deployment.sql": "e5244619feed6adeca21e06f3bb31130e028228c48cfd6d7815d91679c34b8b8"
+  },
+  "regression_test_unchanged": true,
+  "failing_baseline": {
+    "summary": {
+      "path": "/tmp/hub-registration-concurrency-20261030/test-run2-output/summary.json",
+      "sha256": "2a0c2f6777f6b4d691d029b32660f4d9980158ba201c265b52f80db5b21b98af"
+    },
+    "semantic_result": {
+      "path": "/tmp/hub-registration-concurrency-20261030/test-run2-output/result.json",
+      "sha256": "eed1968d5e14288e22f498ac73fb478e5ab6ff0364778819a12f1ff8282785ea"
+    },
+    "stages": [
+      {
+        "stage": "clean",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "clean",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-registration-concurrency-20261030/sqlx-run3/source-parent/source/Cargo.toml"
+        ],
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 404,
+        "log_path": "/tmp/hub-registration-concurrency-20261030/test-run2-output/logs/clean.log",
+        "log_sha256": "3b9096af2188239bf4fef2781d860f0b497c4c07d0e8b1f49abfdbfc4cb14961"
+      },
+      {
+        "stage": "focused-test",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-registration-concurrency-20261030/sqlx-run3/source-parent/source/Cargo.toml",
+          "--lib",
+          "registration::store::concurrency_tests::ordinary_replica_and_replacement_have_a_serial_registration_outcome",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "exit": 101,
+        "timed_out": false,
+        "elapsed_ms": 36237,
+        "log_path": "/tmp/hub-registration-concurrency-20261030/test-run2-output/logs/focused-test.log",
+        "log_sha256": "3f7d2c7afddfeb2a561936ce0e9dba9209c9dc1b83f76f953d5597d75373ad59"
+      }
+    ],
+    "test_result": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 280 filtered out; finished in 0.91s",
+    "cargo_command_elapsed_ms": 36237,
+    "test_harness_elapsed_seconds_rounded": 0.91,
+    "binary_sha256": "495e3715797a89e8dc0787962c6cfd269f5e12df0f39f5262aa4cba1c4b8cd1f",
+    "replacement_blocked_at": "kernel.create_server_login; object lock, after replacement DELETE",
+    "outcome": "Both calls returned Pin::Held. Deployment v0.2, old replica v0.1 and replacement v0.2 both survived, with both LOGIN roles. The assertion failed at two survivors versus one; later winner assertions did not execute."
+  },
+  "fixed_validation": {
+    "summary": {
+      "path": "/tmp/hub-registration-concurrency-20261030/fix1-checks/run2/summary.json",
+      "sha256": "cffa8920f99be9dd3a96220ac5ac82e49c928f68b122252583ea900bb0d98696"
+    },
+    "semantic_result": {
+      "path": "/tmp/hub-registration-concurrency-20261030/fix1-checks/run2/semantic-result.json",
+      "sha256": "440ab4cf74eb58abea2a4673d345b58421d96d7ef811d48694b7f55b77bb0067"
+    },
+    "stages": [
+      {
+        "stage": "fmt-check",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 601,
+        "log_path": "/tmp/hub-registration-concurrency-20261030/fix1-checks/run2/logs/fmt-check.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "stage": "clean-hub",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "clean",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-registration-concurrency-20261030/fix1-sqlx/run2/source/Cargo.toml"
+        ],
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 284,
+        "log_path": "/tmp/hub-registration-concurrency-20261030/fix1-checks/run2/logs/clean-hub.log",
+        "log_sha256": "68e03a8a6e82b4bd76fe8102be2339371ca8a145f7982c489fa7b18cbf7d01a0"
+      },
+      {
+        "stage": "focused-regression",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-registration-concurrency-20261030/fix1-sqlx/run2/source/Cargo.toml",
+          "--lib",
+          "registration::store::concurrency_tests::ordinary_replica_and_replacement_have_a_serial_registration_outcome",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 35215,
+        "log_path": "/tmp/hub-registration-concurrency-20261030/fix1-checks/run2/logs/focused-regression.log",
+        "log_sha256": "003c7016c14956191565ad2c30e994af5a9f300c4513e8a4ed89c94818f6f420"
+      },
+      {
+        "stage": "instance-registration-suite",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-registration-concurrency-20261030/fix1-sqlx/run2/source/Cargo.toml",
+          "--test",
+          "instance_registration"
+        ],
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 57470,
+        "log_path": "/tmp/hub-registration-concurrency-20261030/fix1-checks/run2/logs/instance-registration-suite.log",
+        "log_sha256": "591bd1001017cbbad0d9b49bb051cbc7b375f69278f2b8cc1cfeb96f3ed7da8c"
+      },
+      {
+        "stage": "strict-lib-clippy",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-registration-concurrency-20261030/fix1-sqlx/run2/source/Cargo.toml",
+          "--lib",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 12062,
+        "log_path": "/tmp/hub-registration-concurrency-20261030/fix1-checks/run2/logs/strict-lib-clippy.log",
+        "log_sha256": "19f2469b5f60ea55556c492f69f27a9985ecd4541df8d764cd91c9501236573a"
+      }
+    ],
+    "regression_result": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 280 filtered out; finished in 0.94s",
+    "integration_result": "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.98s",
+    "regression_test_harness_elapsed_seconds_rounded": 0.94,
+    "integration_test_harness_elapsed_seconds_rounded": 24.98,
+    "regression_binary": {
+      "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-5c5dba289373806c",
+      "sha256": "ba184cc8de496bbb86c54568f074ff24042202363f6e4d77d884b4b242b34220"
+    },
+    "integration_binary": {
+      "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/instance_registration-5af003659c883dc1",
+      "sha256": "2ddd40ffc1c941b5a779e510289649e050b8c947aa792719dda0b4010ba99564"
+    },
+    "source_map_unchanged": true,
+    "replacement_blocked_at": "Deployment SELECT FOR UPDATE; transactionid lock, before comparison and replacement DELETE",
+    "outcome": "Only replacement client 03/v0.2/login 03 remains. Exact complete registration fields, removed base and replica identities, deployment, unchanged namespace claim and sole-login privileges/membership assertions all passed."
+  },
+  "sqlx_preparation": {
+    "summary": {
+      "path": "/tmp/hub-registration-concurrency-20261030/fix1-sqlx/run2/summary.json",
+      "sha256": "100dcd1b264f60a4c0cecb49f74e968725ff3774aee4294770388287df428812"
+    },
+    "records": 263,
+    "other_records_unchanged": 262,
+    "removed": [
+      "query-9b9684edebb3e1ec670dcc26530d14ea3e3ee1c03489da6527b52cb3c1f9a8fb.json"
+    ],
+    "added": [
+      "query-e5244619feed6adeca21e06f3bb31130e028228c48cfd6d7815d91679c34b8b8.json"
+    ],
+    "new_deployment_metadata_sha256": "063d267ae65f0fccd38c93ddbd430351c94f3564c7bb8e64e8e80a74a5bcf7de"
+  },
+  "timing_note": "Cargo command elapsed times include compilation and execution; test-body figures are rounded values printed by the Rust test harness. Binary hashes identify observed build bytes; warm-target files may later be overwritten.",
+  "change": "The sole runtime change locks the ordinary deployment SELECT before metadata comparison and admission. Existing instance upsert locking, authorization and per-client update semantics are unchanged.",
+  "limits": [
+    "Native actual-store evidence, not a Lean proof or formal SQL refinement.",
+    "One deterministic ordinary replica-versus-replacement overlap, plus six existing instance-registration integration scenarios.",
+    "The fixture-only gate changes scheduling, not production transaction operations; it observes real pg_blocking_pids.",
+    "No claim of coverage for concurrent RFC7592 update, removal, housekeeping, namespace-key migration or cross-database preparation.",
+    "No deployment, provider/model-driven acceptance, full Docker push gate or post-commit audit/reload fault qualification was performed."
+  ]
+}
