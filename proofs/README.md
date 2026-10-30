@@ -57,7 +57,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | unproved | Trace both registration transaction paths and their callers |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Complete staged programs checked; serial histories, valid outputs and broader operation composition remain |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
@@ -714,10 +714,14 @@ confirmed that a replacement could miss an unfinished same-metadata replica,
 leaving both old and new registrations/logins. Locking the deployment read before
 comparison fixes this schedule: the unchanged regression and six existing
 registration integration tests pass, as do formatting and strict library Clippy.
-This is native component evidence; registration remains formally unproved. The
-[first planned model](registration_transactions/README.md) covers committed
-register/replace histories and exact valid outputs before the later update,
-removal and authority composition obligations.
+This is native component evidence. The subsequent
+[complete-program theorem](registration_transactions/evidence/program-completeness.json)
+derives all staged writes, including captured login removals, for every reachable
+committing attempt in the source-mapped transaction model. Its independent
+sequential specification is not yet proved. Registration coverage is partial:
+lock/observation invariants, serial register/replace histories, exact valid outcomes
+and the original unlocked-read counterexample remain before later update, removal
+and authority composition obligations.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

@@ -1,8 +1,10 @@
 # Registration transaction verification
 
 This slice connects registration transaction reasoning to the actual store and
-PostgreSQL behavior. Native regression evidence is the starting point; there is
-no checked registration Lean theorem yet. Execution remains manual.
+PostgreSQL behavior. Native regression evidence and the first complete-program
+theorem are checked; serial-history and valid-output proofs remain pending.
+Execution remains manual: run `lake build` in this directory with the pinned
+Lean toolchain.
 
 The first native probe uses the real `RegistrationStore::register` with a
 fixture-only barrier before an old-metadata replica's insert. Replacement used
@@ -14,15 +16,31 @@ before comparison makes it participate in the replacement's serialization.
 The [native receipt](evidence/native-replica-replacement.json) records the failing
 original and passing fixed source. The unchanged regression passed all complete
 row and role assertions after the fix; six existing registration integration
-tests, formatting and strict library Clippy also passed. This is component
-evidence, with no new Lean proof or deployment qualification.
+tests, formatting and strict library Clippy also passed. Those checks establish
+native component behavior; the Lean result below is separate. No deployment
+qualification ran.
 
-The first planned theorem concerns one retained deployment under an already
-admitted, fixed namespace/key: ordinary replica addition and changed-metadata or
-instance replacement must have serial-equivalent committed effects. Prove
-complete staged operations rather than assuming a correct effect at commit,
-exact output rows/logins, and abort exclusion. Construct valid same-metadata
-replica success, replacement success, and the former unlocked-read failure.
+`RegistrationModel.lean` represents one retained deployment under an already
+admitted, fixed namespace/key, with parametric complete metadata, row and role
+payloads. Its DELETE captures the exact finite returned rows at statement time;
+commit applies only those staged key deltas. Ordinary fixed-source reads and
+both fixed/original replacement upserts take the deployment lock. A server commit
+request can resolve to commit or abort, independently of client delivery.
+
+`RegistrationTransaction.committing_program_complete` in `RegistrationProof.lean`
+derives complete staged operations for every reachable
+committing attempt from an initial state and any finite modeled interleaving.
+The loop invariant accounts for every captured login removal before candidate
+admission. Primitive commit has no application-correctness guard. The audited
+theorem uses only `propext` and `Quot.sound`; see the
+[complete-program receipt](evidence/program-completeness.json).
+
+This theorem is about program completeness, not serialization. The independent
+`RegistrationSpecification.lean` still has unproved serial-history and abort
+obligations indexed by actual commit events. Next: lock/observation invariants,
+serial equivalence to ordinary replica addition or replacement, exact valid
+same-metadata and replacement outcomes, and the original unlocked-read failure.
+The earlier native test remains separate from these design-model statements.
 
 This first theorem excludes RFC 7592 per-client updates, concurrent removal and
 housekeeping, namespace-key changes, external-environment preparation and

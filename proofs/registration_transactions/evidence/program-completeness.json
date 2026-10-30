@@ -1,0 +1,101 @@
+{
+  "date": "2026-10-30",
+  "status": "Complete staged-program theorem checked; serial history, abort-event exclusion, positive executions and original-protocol counterexample remain pending",
+  "runtime_mapping_commit": "05737d6",
+  "evidence_class": "Handwritten transaction design model with reviewed Rust/SQL mapping and separate native regression evidence; not async Rust/SQL extraction or refinement",
+  "toolchain": "leanprover/lean4:v4.35.0",
+  "aeneas_framework_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "framework_note": "The pinned Lean proof toolkit supplies dependencies; no new Rust-to-Lean extraction is claimed in this package.",
+  "source_sha256": {
+    "RegistrationModel.lean": "abd478779b97b5a0487c1f6743cde427e9961906d687d3e9f05a18155a88b575",
+    "RegistrationSpecification.lean": "4b2206d7808c0f17403b338c29c835e7c6222d2b37656d6007ccc04d3fa36707",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "lakefile.lean": "6e5da648e987723f1e5ccbad088b2ccf4dc0f22532110d74cce2ab66b641acb5",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "freeze": {
+    "path": "/tmp/hub-registration-concurrency-20261030/prefix3-package-source.json",
+    "sha256": "b997f51fe5197fba3dedc4f362a2133ae54416c5f4e210319e2806fe8fd71ad8"
+  },
+  "checked_source_hashes": {
+    "path": "/tmp/hub-registration-concurrency-20261030/prefix3-package-evidence/source-hashes.txt",
+    "sha256": "a5b87cf341c4fc7edaec1904736584847bc6fb1f195c1cca70e28aba0be3e626"
+  },
+  "theorem": {
+    "declaration": "RegistrationTransaction.committing_program_complete",
+    "source": "RegistrationProof.lean",
+    "statement": "For every initial database, request map and finite fixed-source modeled execution, each committing attempt has staged exactly its complete replica-admission or captured replacement program.",
+    "derivation": "Initial alignment and step preservation, including explicit completed/pending captured-login loop progress, imply complete staged writes at committing phase.",
+    "axioms": [
+      "propext",
+      "Quot.sound"
+    ],
+    "unreviewed_axioms": [],
+    "sorryAx": false
+  },
+  "validation": {
+    "direct": {
+      "command": [
+        "lake",
+        "env",
+        "lean",
+        "/tmp/RegistrationProof-packet3.lean"
+      ],
+      "exit": 0,
+      "exit_receipt": {
+        "path": "/tmp/hub-registration-concurrency-20261030/prefix3-run1-evidence/proof-direct-check.exit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      },
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/prefix3-run1-evidence/logs/proof-direct-check.log",
+        "sha256": "e4c13c9d679f09cfcb92b8b9a730d4e14e8f7ac68a0c7df8059ff487ca1e3b20"
+      },
+      "elapsed_seconds_reported_by_builder": 9.8,
+      "timing_note": "Elapsed time reported by the build worker; no separate direct-check timing file was mirrored."
+    },
+    "composed_package": {
+      "command": [
+        "lake",
+        "build"
+      ],
+      "targets": [
+        "RegistrationModel",
+        "RegistrationSpecification",
+        "RegistrationProof"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 6.88,
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/prefix3-package-evidence/build.time",
+        "sha256": "e963b71c826d73d57f2fd09301e0e6f3fb54f920440dec13c5656cb0c34eb9fb"
+      },
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/prefix3-package-evidence/logs/build.log",
+        "sha256": "b50ff1c46f1f7e725e1b2e25620849782a05e3ed992cbd3403dff347d91e62df"
+      },
+      "cache": "Existing Linux Lean/Aeneas/Mathlib dependency cache; no fresh dependency resolution",
+      "warnings": "Unused binder/simp/tactic lint warnings remain; no errors or sorryAx."
+    }
+  },
+  "native_evidence": {
+    "path": "proofs/registration_transactions/evidence/native-replica-replacement.json",
+    "sha256": "48bbfd9536cc6f32b5cd8f1f5185819575dd45892fbe6ee67c8ca80d2faafca3",
+    "rerun_for_this_proof_only_change": false
+  },
+  "review_changes": [
+    "Original ordinary replacement upsert retains its real lock acquisition; only the original matching-metadata read/admission path can remain unlocked.",
+    "DELETE captures exact returned keys at statement time rather than clearing current registrations at commit.",
+    "Server abort may resolve a submitted commit; this is not inferred from a client transport error.",
+    "Explicit drop-loop progress replaces the incorrectly applied empty-progress proof witness; theorem/model intent unchanged."
+  ],
+  "limits": [
+    "One retained deployment and already admitted fixed namespace/key; payloads and key types are parametric.",
+    "This is program completeness, not yet serial-equivalence or an independent formal demonstration of the repaired race.",
+    "SerialGuarantee and AbortGuarantee are pending propositions, not proved declarations; constructive success and original counterexample are pending.",
+    "Native metadata equality, serialization/row projection, SQL/DDL constraints, isolation/locking, Core login/schema functions and notification behavior remain external correspondence boundaries.",
+    "RFC7592 per-client updates, removal, housekeeping, namespace-key changes, external data-environment preparation and postcommit service audit/reload remain separate obligations.",
+    "No unconditional liveness, HTTP-response/current-survival or deployment qualification claim.",
+    "Syntax and intermediate tactic failures are development results, not semantic fault-control evidence."
+  ]
+}
