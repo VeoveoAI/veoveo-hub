@@ -313,8 +313,23 @@ def chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc :
     chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc.offset_from_utc_datetime
 }
 
+/-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::PartialEq<veoveo_hub_sdk::identity::ProtectedResourceId> for veoveo_hub_sdk::identity::ProtectedResourceId}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 163:0-163:43
+    Name pattern: [core::cmp::PartialEq<veoveo_hub_sdk::identity::ProtectedResourceId, veoveo_hub_sdk::identity::ProtectedResourceId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialEq<veoveo_hub_sdk::identity::ProtectedResourceId, veoveo_hub_sdk::identity::ProtectedResourceId>"]
+impl_def
+  veoveo_hub_sdk.identity.ProtectedResourceId.Insts.CoreCmpPartialEqProtectedResourceId
+  : core.cmp.PartialEq veoveo_hub_sdk.identity.ProtectedResourceId
+  veoveo_hub_sdk.identity.ProtectedResourceId := {
+  eq :=
+    veoveo_hub_sdk.identity.ProtectedResourceId.Insts.CoreCmpPartialEqProtectedResourceId.eq
+  ne := core.cmp.PartialEq.ne.trait_default
+    veoveo_hub_sdk.identity.ProtectedResourceId.Insts.CoreCmpPartialEqProtectedResourceId
+}
+
 /-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::PartialEq<veoveo_hub_sdk::identity::LocalToolName> for veoveo_hub_sdk::identity::LocalToolName}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
     Name pattern: [core::cmp::PartialEq<veoveo_hub_sdk::identity::LocalToolName, veoveo_hub_sdk::identity::LocalToolName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::PartialEq<veoveo_hub_sdk::identity::LocalToolName, veoveo_hub_sdk::identity::LocalToolName>"]
@@ -329,7 +344,7 @@ impl_def
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::PartialOrd<veoveo_hub_sdk::identity::LocalToolName> for veoveo_hub_sdk::identity::LocalToolName}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
     Name pattern: [core::cmp::PartialOrd<veoveo_hub_sdk::identity::LocalToolName, veoveo_hub_sdk::identity::LocalToolName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::PartialOrd<veoveo_hub_sdk::identity::LocalToolName, veoveo_hub_sdk::identity::LocalToolName>"]
@@ -346,7 +361,7 @@ impl_def
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::Eq for veoveo_hub_sdk::identity::LocalToolName}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
     Name pattern: [core::cmp::Eq<veoveo_hub_sdk::identity::LocalToolName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Eq<veoveo_hub_sdk::identity::LocalToolName>"]
@@ -357,7 +372,7 @@ def veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpEq : core.cmp.Eq
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::Ord for veoveo_hub_sdk::identity::LocalToolName}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
     Name pattern: [core::cmp::Ord<veoveo_hub_sdk::identity::LocalToolName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_hub_sdk::identity::LocalToolName>"]
@@ -370,7 +385,7 @@ def veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpOrd : core.cmp.Ord
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::PartialEq<veoveo_hub_sdk::identity::PromptName> for veoveo_hub_sdk::identity::PromptName}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
     Name pattern: [core::cmp::PartialEq<veoveo_hub_sdk::identity::PromptName, veoveo_hub_sdk::identity::PromptName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::PartialEq<veoveo_hub_sdk::identity::PromptName, veoveo_hub_sdk::identity::PromptName>"]
@@ -383,7 +398,7 @@ impl_def veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpPartialEqPromptName :
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::PartialOrd<veoveo_hub_sdk::identity::PromptName> for veoveo_hub_sdk::identity::PromptName}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
     Name pattern: [core::cmp::PartialOrd<veoveo_hub_sdk::identity::PromptName, veoveo_hub_sdk::identity::PromptName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::PartialOrd<veoveo_hub_sdk::identity::PromptName, veoveo_hub_sdk::identity::PromptName>"]
@@ -399,7 +414,7 @@ impl_def veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpPartialOrdPromptName :
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::Eq for veoveo_hub_sdk::identity::PromptName}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
     Name pattern: [core::cmp::Eq<veoveo_hub_sdk::identity::PromptName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Eq<veoveo_hub_sdk::identity::PromptName>"]
@@ -410,7 +425,7 @@ def veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpEq : core.cmp.Eq
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::Ord for veoveo_hub_sdk::identity::PromptName}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
     Name pattern: [core::cmp::Ord<veoveo_hub_sdk::identity::PromptName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_hub_sdk::identity::PromptName>"]
@@ -423,7 +438,7 @@ def veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpOrd : core.cmp.Ord
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::cmp::PartialEq<veoveo_hub_sdk::registration::access::Access> for veoveo_hub_sdk::registration::access::Access}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 4:29-4:38
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 4:29-4:38
     Name pattern: [core::cmp::PartialEq<veoveo_hub_sdk::registration::access::Access, veoveo_hub_sdk::registration::access::Access>] -/
 @[reducible, rust_trait_impl
   "core::cmp::PartialEq<veoveo_hub_sdk::registration::access::Access, veoveo_hub_sdk::registration::access::Access>"]
@@ -437,7 +452,7 @@ impl_def veoveo_hub_sdk.registration.access.Access.Insts.CoreCmpPartialEqAccess
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::cmp::Eq for veoveo_hub_sdk::registration::access::Access}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 4:40-4:42
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 4:40-4:42
     Name pattern: [core::cmp::Eq<veoveo_hub_sdk::registration::access::Access>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Eq<veoveo_hub_sdk::registration::access::Access>"]
@@ -448,7 +463,7 @@ def veoveo_hub_sdk.registration.access.Access.Insts.CoreCmpEq : core.cmp.Eq
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::cmp::PartialOrd<veoveo_hub_sdk::registration::access::Access> for veoveo_hub_sdk::registration::access::Access}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 4:44-4:54
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 4:44-4:54
     Name pattern: [core::cmp::PartialOrd<veoveo_hub_sdk::registration::access::Access, veoveo_hub_sdk::registration::access::Access>] -/
 @[reducible, rust_trait_impl
   "core::cmp::PartialOrd<veoveo_hub_sdk::registration::access::Access, veoveo_hub_sdk::registration::access::Access>"]
@@ -465,7 +480,7 @@ impl_def
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::cmp::Ord for veoveo_hub_sdk::registration::access::Access}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 4:56-4:59
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 4:56-4:59
     Name pattern: [core::cmp::Ord<veoveo_hub_sdk::registration::access::Access>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_hub_sdk::registration::access::Access>"]
@@ -478,7 +493,7 @@ def veoveo_hub_sdk.registration.access.Access.Insts.CoreCmpOrd : core.cmp.Ord
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::clone::Clone for veoveo_hub_sdk::registration::access::Risk}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:16-12:21
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:16-12:21
     Name pattern: [core::clone::Clone<veoveo_hub_sdk::registration::access::Risk>] -/
 @[reducible, rust_trait_impl
   "core::clone::Clone<veoveo_hub_sdk::registration::access::Risk>"]
@@ -488,7 +503,7 @@ def veoveo_hub_sdk.registration.access.Risk.Insts.CoreCloneClone :
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::marker::Copy for veoveo_hub_sdk::registration::access::Risk}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:23-12:27
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:23-12:27
     Name pattern: [core::marker::Copy<veoveo_hub_sdk::registration::access::Risk>] -/
 @[reducible, rust_trait_impl
   "core::marker::Copy<veoveo_hub_sdk::registration::access::Risk>"]
@@ -498,7 +513,7 @@ def veoveo_hub_sdk.registration.access.Risk.Insts.CoreMarkerCopy :
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::cmp::PartialEq<veoveo_hub_sdk::registration::access::Risk> for veoveo_hub_sdk::registration::access::Risk}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:29-12:38
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:29-12:38
     Name pattern: [core::cmp::PartialEq<veoveo_hub_sdk::registration::access::Risk, veoveo_hub_sdk::registration::access::Risk>] -/
 @[reducible, rust_trait_impl
   "core::cmp::PartialEq<veoveo_hub_sdk::registration::access::Risk, veoveo_hub_sdk::registration::access::Risk>"]
@@ -511,7 +526,7 @@ impl_def veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpPartialEqRisk :
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::cmp::Eq for veoveo_hub_sdk::registration::access::Risk}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:40-12:42
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:40-12:42
     Name pattern: [core::cmp::Eq<veoveo_hub_sdk::registration::access::Risk>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Eq<veoveo_hub_sdk::registration::access::Risk>"]
@@ -522,7 +537,7 @@ def veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpEq : core.cmp.Eq
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::cmp::PartialOrd<veoveo_hub_sdk::registration::access::Risk> for veoveo_hub_sdk::registration::access::Risk}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:44-12:54
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:44-12:54
     Name pattern: [core::cmp::PartialOrd<veoveo_hub_sdk::registration::access::Risk, veoveo_hub_sdk::registration::access::Risk>] -/
 @[reducible, rust_trait_impl
   "core::cmp::PartialOrd<veoveo_hub_sdk::registration::access::Risk, veoveo_hub_sdk::registration::access::Risk>"]
@@ -538,7 +553,7 @@ impl_def veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpPartialOrdRisk :
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::cmp::Ord for veoveo_hub_sdk::registration::access::Risk}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:56-12:59
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 12:56-12:59
     Name pattern: [core::cmp::Ord<veoveo_hub_sdk::registration::access::Risk>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_hub_sdk::registration::access::Risk>"]
@@ -551,7 +566,7 @@ def veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpOrd : core.cmp.Ord
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::authorization::{impl core::cmp::PartialEq<veoveo_hub_sdk::registration::authorization::RouteAccess> for veoveo_hub_sdk::registration::authorization::RouteAccess}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 30:23-30:32
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 30:23-30:32
     Name pattern: [core::cmp::PartialEq<veoveo_hub_sdk::registration::authorization::RouteAccess, veoveo_hub_sdk::registration::authorization::RouteAccess>] -/
 @[reducible, rust_trait_impl
   "core::cmp::PartialEq<veoveo_hub_sdk::registration::authorization::RouteAccess, veoveo_hub_sdk::registration::authorization::RouteAccess>"]
@@ -676,7 +691,7 @@ def veoveo_types.resource.ResourceUri.Insts.CoreCmpOrd : core.cmp.Ord
 }
 
 /-- [veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}::matches::{impl core::ops::function::FnOnce<(veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'_3>,), bool> for veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}::matches::{closure}<'_0, '_1, '_2>}::call_once]:
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 306:59-306:69
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 306:59-306:69
     Name pattern: [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::{core::ops::function::FnOnce<veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::closure<'0, '1, '2>, (veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'3>), bool>}::call_once] -/
 @[rust_fun
   "veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::{core::ops::function::FnOnce<veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::closure<'0, '1, '2>, (veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'3>), bool>}::call_once"]
@@ -692,7 +707,7 @@ def
     tupled_args c
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}::matches::{impl core::ops::function::FnOnce<(veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'_3>,), bool> for veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}::matches::{closure}<'_0, '_1, '_2>}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 306:59-306:69
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 306:59-306:69
     Name pattern: [core::ops::function::FnOnce<veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::closure<'0, '1, '2>, (veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'3>), bool>] -/
 @[reducible, rust_trait_impl
   "core::ops::function::FnOnce<veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::closure<'0, '1, '2>, (veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'3>), bool>"]
@@ -707,7 +722,7 @@ def
 }
 
 /-- [veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}::matches]:
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 305:4-305:61
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 305:4-305:61
     Name pattern: [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches] -/
 @[rust_fun
   "veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches"]
@@ -725,7 +740,7 @@ def
     o self
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 304:0-304:87
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 304:0-304:87
     Name pattern: [veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>] -/
 @[reducible, rust_trait_impl
   "veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>"]
@@ -739,7 +754,7 @@ def
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Cursor<(&'a veoveo_types::resource_template::ResourceTemplateUri, &'a veoveo_hub_sdk::registration::authorization::RouteAccess)> for alloc::collections::btree::map::Iter<'a, veoveo_types::resource_template::ResourceTemplateUri, veoveo_hub_sdk::registration::authorization::RouteAccess>}]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 294:0-295:79
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 294:0-295:79
     Name pattern: [veoveo_hub_sdk::registration::authorization_decision::Cursor<alloc::collections::btree::map::Iter<'a, veoveo_types::resource_template::ResourceTemplateUri, veoveo_hub_sdk::registration::authorization::RouteAccess>, (&'a veoveo_types::resource_template::ResourceTemplateUri, &'a veoveo_hub_sdk::registration::authorization::RouteAccess)>] -/
 @[reducible, rust_trait_impl
   "veoveo_hub_sdk::registration::authorization_decision::Cursor<alloc::collections::btree::map::Iter<'a, veoveo_types::resource_template::ResourceTemplateUri, veoveo_hub_sdk::registration::authorization::RouteAccess>, (&'a veoveo_types::resource_template::ResourceTemplateUri, &'a veoveo_hub_sdk::registration::authorization::RouteAccess)>"]
@@ -756,7 +771,7 @@ def
 }
 
 /-- [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration}::access]:
-    Source: '/home/rozgo/.cache/lean-pilot/hub-session-family-20261030/session-probe-1/extraction/sdk-root/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 254:4-254:79
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 254:4-254:79
     Name pattern: [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration}::access]
     Visibility: public -/
 @[rust_fun
@@ -1072,6 +1087,21 @@ def veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd :
   cmp := veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd.cmp
 }
 
+/-- Trait implementation: [veoveo_types::platform_names::{impl core::cmp::PartialEq<veoveo_types::platform_names::OAuthClientId> for veoveo_types::platform_names::OAuthClientId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 39:0-39:36
+    Name pattern: [core::cmp::PartialEq<veoveo_types::platform_names::OAuthClientId, veoveo_types::platform_names::OAuthClientId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialEq<veoveo_types::platform_names::OAuthClientId, veoveo_types::platform_names::OAuthClientId>"]
+impl_def
+  veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialEqOAuthClientId
+  : core.cmp.PartialEq veoveo_types.platform_names.OAuthClientId
+  veoveo_types.platform_names.OAuthClientId := {
+  eq :=
+    veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialEqOAuthClientId.eq
+  ne := core.cmp.PartialEq.ne.trait_default
+    veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialEqOAuthClientId
+}
+
 /-- [veoveo_hub::catalog::{veoveo_hub::catalog::HubCatalog}::control_plane]:
     Source: 'crates/veoveo-hub/src/catalog.rs', lines 383:4-385:5
     Visibility: public -/
@@ -1221,6 +1251,19 @@ def
   Result Bool
   := do
   alloc.string.String.Insts.CoreCmpPartialEqString.eq self other
+
+/-- Trait implementation: [veoveo_hub::contract::identity::{impl core::cmp::PartialEq<veoveo_hub::contract::identity::AuthorizationServerId> for veoveo_hub::contract::identity::AuthorizationServerId}]
+    Source: 'crates/veoveo-hub/src/contract/identity.rs', lines 6:0-6:73 -/
+@[reducible]
+impl_def
+  contract.identity.AuthorizationServerId.Insts.CoreCmpPartialEqAuthorizationServerId
+  : core.cmp.PartialEq contract.identity.AuthorizationServerId
+  contract.identity.AuthorizationServerId := {
+  eq :=
+    contract.identity.AuthorizationServerId.Insts.CoreCmpPartialEqAuthorizationServerId.eq
+  ne := core.cmp.PartialEq.ne.trait_default
+    contract.identity.AuthorizationServerId.Insts.CoreCmpPartialEqAuthorizationServerId
+}
 
 /-- [veoveo_hub::control_plane::authorization_config::{veoveo_hub::control_plane::authorization_config::InstallationRole}::allows]:
     Source: 'crates/veoveo-hub/src/control_plane/authorization_config.rs', lines 34:4-36:5
@@ -2556,6 +2599,123 @@ def policy.session.SessionFamilyAuthority.allows
                           else ok false
                         else ok false
                       else ok false
+                    else ok false
+                  else ok false
+                else ok false
+              else ok false
+            else ok false
+          else ok false
+        else ok false
+      else ok false
+    else ok false
+  else ok false
+
+/-- [veoveo_hub::store::refresh::{veoveo_hub::store::refresh::RefreshFamily}::bound_to]:
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 60:4-64:5
+    Visibility: public -/
+def store.refresh.RefreshFamily.bound_to
+  (self : store.refresh.RefreshFamily) (binding : store.refresh.RefreshBinding)
+  :
+  Result Bool
+  := do
+  let b ←
+    contract.identity.AuthorizationServerId.Insts.CoreCmpPartialEqAuthorizationServerId.eq
+      self.authorization_server binding.authorization_server
+  if b
+  then
+    let b1 ←
+      veoveo_hub_sdk.identity.ProtectedResourceId.Insts.CoreCmpPartialEqProtectedResourceId.eq
+        self.protected_resource binding.protected_resource
+    if b1
+    then
+      veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialEqOAuthClientId.eq
+        self.oauth_client_id binding.oauth_client_id
+    else ok false
+  else ok false
+
+/-- [veoveo_hub::store::refresh::deliverable::{impl core::ops::function::FnOnce<(&'_1 veoveo_hub::store::refresh::RefreshDeliveryEnvelope,), bool> for veoveo_hub::store::refresh::deliverable::{closure}<'_0>}::call_once]:
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 555:25-555:61 -/
+def
+  store.refresh.deliverable.closure.Insts.CoreOpsFunctionFnOnceTupleShared1RefreshDeliveryEnvelopeBool.call_once
+  (c : store.refresh.deliverable.closure)
+  (tupled_args : store.refresh.RefreshDeliveryEnvelope) :
+  Result Bool
+  := do
+  core.cmp.PartialOrd.gt.trait_default
+    (chrono.datetime.DateTime.Insts.CoreCmpPartialOrdDateTime
+    chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc
+    chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc) tupled_args.expires_at
+    c
+
+/-- Trait implementation: [veoveo_hub::store::refresh::deliverable::{impl core::ops::function::FnOnce<(&'_1 veoveo_hub::store::refresh::RefreshDeliveryEnvelope,), bool> for veoveo_hub::store::refresh::deliverable::{closure}<'_0>}]
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 555:25-555:61 -/
+@[reducible]
+def
+  store.refresh.deliverable.closure.Insts.CoreOpsFunctionFnOnceTupleShared1RefreshDeliveryEnvelopeBool
+  : core.ops.function.FnOnce store.refresh.deliverable.closure
+  store.refresh.RefreshDeliveryEnvelope Bool := {
+  call_once :=
+    store.refresh.deliverable.closure.Insts.CoreOpsFunctionFnOnceTupleShared1RefreshDeliveryEnvelopeBool.call_once
+}
+
+/-- [veoveo_hub::store::refresh::deliverable]:
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 536:0-556:1 -/
+def store.refresh.deliverable
+  (family : store.refresh.RefreshFamily) (token : store.refresh.RefreshToken)
+  (successor : store.refresh.RefreshToken)
+  (now : chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc)
+  :
+  Result Bool
+  := do
+  let b := core.option.Option.is_some token.consumed_at
+  if b
+  then
+    let b1 := core.option.Option.is_none token.replay_detected_at
+    if b1
+    then
+      let b2 := core.option.Option.is_none family.revoked_at
+      if b2
+      then
+        let b3 ←
+          core.cmp.PartialOrd.gt.trait_default
+            (chrono.datetime.DateTime.Insts.CoreCmpPartialOrdDateTime
+            chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc
+            chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc)
+            family.expires_at now
+        if b3
+        then
+          let b4 ←
+            veoveo_hub_sdk.identity.HubRefreshFamilyId.Insts.CoreCmpPartialEqHubRefreshFamilyId.eq
+              successor.family family.id
+          if b4
+          then
+            let o ← lift (U64.checked_add token.generation 1#u64)
+            let b5 ←
+              core.option.Option.Insts.CoreCmpPartialEqOption.eq
+                core.cmp.PartialEqU64 (some successor.generation) o
+            if b5
+            then
+              if successor.generation = family.current_generation
+              then
+                let b6 ←
+                  core.cmp.PartialOrd.gt.trait_default
+                    (chrono.datetime.DateTime.Insts.CoreCmpPartialOrdDateTime
+                    chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc
+                    chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc)
+                    successor.expires_at now
+                if b6
+                then
+                  let b7 := core.option.Option.is_none successor.consumed_at
+                  if b7
+                  then
+                    let b8 :=
+                      core.option.Option.is_none successor.replay_detected_at
+                    if b8
+                    then
+                      let o1 ← core.option.Option.as_ref successor.delivery
+                      core.option.Option.is_some_and
+                        store.refresh.deliverable.closure.Insts.CoreOpsFunctionFnOnceTupleShared1RefreshDeliveryEnvelopeBool
+                        o1 now
                     else ok false
                   else ok false
                 else ok false

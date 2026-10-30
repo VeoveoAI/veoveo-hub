@@ -723,3 +723,33 @@ no additional collection construction or heap allocation is introduced in that
 adapter. No benchmark or native lifetime/alias refinement is claimed. No
 deployment, full repository Mac/Linux Docker gates, paid model call or async
 endpoint qualification was performed for this increment.
+
+## Refresh binding and delivery predicates
+
+[RefreshPredicateProof.lean](RefreshPredicateProof.lean) proves exact total outputs
+of the extracted `RefreshFamily::bound_to` and `deliverable` bodies. Binding is
+three-field equality. Delivery requires the complete consumed/replay/revocation,
+family, checked-generation, current-generation, token-expiry and envelope-window
+conditions. The proof includes a positive coherent delivery, strict refusal at the
+delivery deadline, and the checked generation's unbounded successor equation.
+
+The field-exact `sessionAuthority` projection connects generation-only family
+updates to the already checked session admission invariant at the same request
+and time. Actual store decoding, `from_stored`/Serde and caller wiring remain
+outside this mathematical projection. No plaintext, crypto or digest operation is
+modeled: UUID, digest and secret-envelope payloads are nominal values. Family-ID
+equality and Chrono timestamp projection/order are ordinary primitive models,
+with native representation correspondence still explicit.
+
+The complete existing package and prior audits pass with the generated refresh
+superset; the new predicate/audit closures use only standard Lean axioms. The
+[compact checkpoint](evidence/refresh-predicate-checkpoint.json) records exact
+inputs, commands, timings and logs. The [extraction record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-refresh-predicate-extraction.md)
+retains the source/body inventory and runner correction. Existing generated
+definitions are unchanged after the recorded Source-comment comparison.
+
+Run `lake build RefreshPredicateProof` and `lake env lean RefreshModelAudit.lean`
+manually. This checkpoint proves the two pure predicates and mathematical
+session projection within the stated models; semantic fault controls remain pending. Refresh transaction ordering, SQL/lock semantics, maintenance
+interleavings, ciphertext recovery and HTTP response behavior require their
+separate model/native evidence; this is not refresh transaction qualification.

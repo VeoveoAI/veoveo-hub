@@ -77,3 +77,9 @@ lean_lib SessionModelAudit
 
 @[default_target]
 lean_lib SessionFamilyProof
+
+@[default_target]
+lean_lib RefreshModelAudit
+
+@[default_target]
+lean_lib RefreshPredicateProof

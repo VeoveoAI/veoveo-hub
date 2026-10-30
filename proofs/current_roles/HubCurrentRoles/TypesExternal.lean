@@ -566,3 +566,15 @@ structure chrono.naive.date.NaiveDate where
 structure chrono.naive.datetime.NaiveDateTime where
   seconds : Int
   nanos : Nat
+
+/- Refresh predicate payloads are nominal, uninterpreted values. No encryption,
+UUID generation/encoding, or SHA-256 operation is modeled or proved here. -/
+@[rust_type "secrecy::SecretBox"]
+structure secrecy.SecretBox (S : Type _) where
+  identity : Nat
+
+@[rust_type "uuid::Uuid"]
+abbrev uuid.Uuid := CurrentRolesId 59
+
+@[rust_type "veoveo_types::digest::Sha256Digest"]
+abbrev veoveo_types.digest.Sha256Digest := CurrentRolesId 60

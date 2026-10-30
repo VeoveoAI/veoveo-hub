@@ -1682,3 +1682,11 @@ def
   veoveo_types.platform_names.OAuthClientId →
     veoveo_types.platform_names.OAuthClientId → Result Bool
   := fun left right => .ok (decide (left = right))
+
+/-- Ordinary nominal equality; native family-ID decoding/refinement is outside
+this extracted predicate proof. -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::cmp::PartialEq<veoveo_hub_sdk::identity::HubRefreshFamilyId, veoveo_hub_sdk::identity::HubRefreshFamilyId>}::eq"]
+def veoveo_hub_sdk.identity.HubRefreshFamilyId.Insts.CoreCmpPartialEqHubRefreshFamilyId.eq
+    (left right : veoveo_hub_sdk.identity.HubRefreshFamilyId) : Result Bool :=
+  .ok (decide (left = right))

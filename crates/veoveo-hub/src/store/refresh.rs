@@ -1,7 +1,7 @@
-//! Rotating refresh-token families. Every change to a family's tokens holds the family's
-//! row lock, so concurrent presentations of one token serialize across replicas: the
-//! first rotates it, a presentation within the successor's delivery window receives the
-//! same successor, and a later one revokes the family as a replay.
+//! Refresh rotation and explicit revocation hold the family's row lock.
+//! Retention uses separate token/family row-lock batches and can race token reads.
+//! The first rotation consumes its token; a retry redelivers a deliverable successor,
+//! otherwise the consumed-token branch marks replay and retains the first revocation.
 use std::collections::BTreeSet;
 
 use crate::contract::{AuthorizationServerId, PrincipalDisplayName};
