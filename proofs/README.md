@@ -57,7 +57,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace qualified; mixed update histories and valid normal update checked; replacement/no-op/control witnesses, removal and broader composition remain |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace qualified; mixed update histories and valid normal/no-op executions checked; old-update control, removal and broader composition remain |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
@@ -703,10 +703,10 @@ registration. These are target properties to establish, not new admission rules.
   separate owners. Ordinary namespace-pinned registration and instance-token
   registration deliberately differ; the specification must retain both. Preparation
   in a different database is not atomic with the installation registration transaction.
-- **Next:** qualify the original unlocked-read failure against the checked serial
-  register/replace history and valid replica/replacement/abort executions. Extend to per-client
-  update/removal and connect
-  deployment/endpoint association with routing and SDK recipient binding.
+- **Next:** complete the paired old-update counterexample against the checked
+  mixed histories and successful no-op execution. Removal remains outside
+  this transaction slice; deployment/endpoint association with routing and SDK
+  recipient binding needs subsequent composition.
 
 The [source review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-registration-transaction-source-review.md)
 separates namespace replica admission, replacement, per-client update and instance
@@ -738,8 +738,8 @@ real lock and has captured only the seed. The completed
 continue through both successful acknowledgements, prove the exact mixed output
 maps and refute the independent serial contract in actual commit order. The first
 register/replace concurrency slice is qualified within its stated model/native
-boundaries. Registration coverage remains partial: per-client update, removal and
-authority composition are next. Captured full rows
+boundaries. The later checkpoints below extend it to per-client updates;
+removal and authority composition remain outside. Captured full rows
 are proof-level snapshot witnesses; native DELETE returns key/server/login fields.
 No SQL refinement follows from these model results.
 
@@ -762,9 +762,13 @@ even when a no-op later acknowledges success. The
 [normal-update witness](registration_transactions/evidence/update-valid-success.json)
 constructs a well-formed two-replica seed and seven actual steps through successful
 acknowledgement, with exact complete output and other-replica/role/binding
-preservation. The replacement/no-op execution and paired old-update counterexample
-remain next. This extends the source-mapped model explicitly; it is not formal
-Rust/SQL refinement.
+preservation. The [replacement/no-op witness](registration_transactions/evidence/update-replacement-noop.json)
+now constructs the old client's preflight, a complete ordinary replacement and the
+stale update's rollback and successful return. The entire replacement database,
+winner response and sole registration commit event are preserved. A shared reached
+replacement state is constructed through real registration steps under both update
+source orders; the paired old-update counterexample remains next. This extends the
+source-mapped model explicitly; it is not formal Rust/SQL refinement.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

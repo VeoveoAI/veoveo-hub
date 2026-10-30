@@ -168,7 +168,24 @@ free lock and sole update event, preserving the other replica, all roles, bindin
 and immutable row fields. Complete metadata/payload/role types remain opaque;
 native metadata and crypto validity remain admitted-input boundaries.
 
-The replacement-overlap/no-op execution and the paired old-update counterexample
-remain next. Neither these models nor the earlier native tests are formal Rust/SQL
-refinement. Removal, housekeeping and broader authority/lifecycle composition
-remain outside this checkpoint.
+The [replacement/no-op witness](evidence/update-replacement-noop.json) constructs
+an old client's real modeled preflight, then all ordinary replacement steps over
+the two-replica seed, then the fixed stale update's deployment write, missing-row
+observation, rollback and successful store return. The final whole database equals
+the independent replacement specification: the complete winner row/role, binding
+and unrelated state survive, both old rows/logins are removed, and the earlier
+replacement success remains. Only the registration commit event is present.
+
+The replacement endpoint is constructed once with real execution evidence under
+both update source orders. Representing that reached state existentially avoids
+expanding its entire nested transaction expression in subsequent proofs; no
+application output guarantee or premise is weakened. The one large helper uses a
+local 800,000-heartbeat checking budget. This changes no runtime behavior or global
+checking limit. The measured, bounded check and normalization diagnostics are in
+the receipt.
+
+The paired old-update counterexample remains next. This witness's unchanged-state
+claim covers its chosen isolated suffix; it does not freeze later writers. Neither
+these models nor the earlier native tests are formal Rust/SQL refinement. Removal,
+housekeeping, service HTTP/audit/reload behavior and broader authority/lifecycle
+composition remain outside this checkpoint.

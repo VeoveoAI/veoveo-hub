@@ -1,0 +1,129 @@
+{
+  "date": "2026-10-30",
+  "status": "Complete fixed stale-update/no-op execution checked; paired old-update counterexample remains next",
+  "base_commit": "a336620",
+  "evidence_class": "Handwritten Lean execution witness; native source correspondence reviewed separately, not formal Rust/SQL refinement",
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "lean_version": "4.35.0",
+  "platform": "Linux x86_64",
+  "proof_toolkit_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94",
+    "RegistrationUpdateEffects.lean": "500fc10b193595c6795690005ef663f8e91a3378e4d23dd17e49392e221bfeb1",
+    "RegistrationUpdateHistory.lean": "75e5dfad45f4d4549465f0ac61b44da9d42edbb3a48aa18c3d91cc84abb603ac",
+    "RegistrationUpdateLocks.lean": "140c786959c1395ad979f3c8b7ae7137d5546d0c0a9c8d68b8a901614e59c2d3",
+    "RegistrationUpdateModel.lean": "a453d6d58a17e8d08d6a31c31b2227785dac66edda8048c14d5217da1ffefcf9",
+    "RegistrationUpdateObservations.lean": "b3c62a290c6d037829be1cb13158ae1d5cdcf71897faeff855df595ba49c9c7c",
+    "RegistrationUpdateProof.lean": "8ed07e65b88297bd14c7edbc3978b04afb1ed77f0a72ab25de1021559fd6f26e",
+    "RegistrationUpdateSpecification.lean": "c92157d4f92472ff09d00ecd5f0ba178f3408cbc5438378d249bab66a3580e67",
+    "RegistrationUpdateWitnesses.lean": "a56ea86620a056fdce5485f6f3c2460291909b7ab413417019920e45dd03d13c",
+    "RegistrationWitnesses.lean": "0c62ccf4ef064f5592fcd781e485f21ac7f107572aa208d0e7d2130c7c44726e",
+    "lakefile.lean": "f1d27539b3fe79d43e43024c3c451f29fbfd0b651ae6897130af1e539f432b9e",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "source_manifest": {
+    "path": "/tmp/hub-registration-concurrency-20261030/update-stale-noop-final-evidence/source-derived.json",
+    "sha256": "6c8b46659588464d2fe562a50fc2531b22ddd8ba85a0dfdf5e5ffdfc73b92832"
+  },
+  "prior_fifteen_modules_and_dependency_pins_unchanged": true,
+  "qualified_native_source_unchanged": true,
+  "inputs": {
+    "domain": "One retained deployment, two old replicas (clients0/1, logins10/11), new candidate client2/login12, unrelated login99; full metadata, row and role payloads, binding and frame are opaque parameters.",
+    "premises": "Old metadata differs from both replacement and requested update metadata. The selected native metadata-constraint relation accepts the update with the retained binding. No premise equates the later database to a desired application outcome.",
+    "preflight": "Read client0 while present and compare the presented digest with the captured full row before replacement starts.",
+    "constraints": "Seed row-key/login validity, exact DELETE listing and create/insert validity are derived from the concrete state. Native SQL CHECK/crypto/authority admission remain boundaries."
+  },
+  "claims": {
+    "stale_update_after_replacement_is_noop": "Construct composable preflight, complete ordinary replacement, and fixed stale update executions. Both store acknowledgements succeed. The final complete database equals expectedReplacement of the original seed/request; lock is free, update transaction rolled back, replacement acknowledgement is preserved, and the sole tagged event is the replacement commit. No update commit event exists.",
+    "shared_prefix": "Construct one reached replacement state with actual fixed-registration execution evidence under both Boolean update-order values; no atomic replacement oracle. Existential packaging avoids reducing its nested representation and retains all output guarantees."
+  },
+  "trace": {
+    "modeled_steps": 20,
+    "sequence": [
+      "Preflight old row and digest (1 step)",
+      "Ordinary replacement: begin/acquire/read, compare/upsert, DELETE/two login drops/dropped, create/insert/request commit, server commit/acknowledge (14 steps)",
+      "Fixed update: begin, deployment metadata lock/write, missing row, rollback, successful acknowledgement (5 steps)"
+    ],
+    "exact_output": "Complete winner row and role, retained binding, unrelated role/frame; both old registrations and roles removed; only the registration commit event survives."
+  },
+  "axiom_closures": {
+    "stale_update_after_replacement_is_noop": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "validation": {
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "composed_package": {
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+      "exit": 0,
+      "elapsed_s": 20.345,
+      "bound_seconds": 900,
+      "default_modules": 16,
+      "lake_jobs_including_dependencies": 3168,
+      "source_unchanged": true,
+      "summary": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-stale-noop-final-evidence/summary.json",
+        "sha256": "c709bd0a158a708c069a1855c663faae7189a1fbbd3c5bc4a2f6ba0b34ec9ad9"
+      },
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-stale-noop-final-evidence/build.log",
+        "sha256": "50873748bf9b74afe07d4b5989ef41f1806560d97f0da99928ac6fec8d857411"
+      }
+    },
+    "diagnostic_direct": {
+      "source_sha256": "e85686b93ffae27e55f7f228eab9034caab397bc054a09f01d0873fc2e6c40e5",
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "RegistrationUpdateWitnesses.lean"
+      ],
+      "exit": 0,
+      "elapsed_s": 20.193,
+      "bound_seconds": 300,
+      "summary": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-witnesses15-evidence/summary.json",
+        "sha256": "cc2661b4454471e34514dae151b035b15d0eb68a9e79bb7af496ddd634d33b7e"
+      },
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-witnesses15-evidence/direct.log",
+        "sha256": "18ab11085bb528c28c31780c7027fc3606e1f03fb4e822177ed59462f374a24e"
+      },
+      "scope": "Pre-final source with diagnostics enabled; final composed build validates the committed source after diagnostics removal."
+    },
+    "checking_budget": "Only replacement_seed_steps has a finite 800000-heartbeat allowance; global defaults remain. Diagnostic counters measured repeated kernel projection/transaction-map reduction, including State.core864379, update132264 and put92071. No logical axiom or runtime mechanism was added.",
+    "development_feedback": "Name-resolution/layout errors and proof-normalization limits were repaired without changing application semantics. Witnesses11 reached its300.039s wall cap with no result; its exact remaining Lean descendant was terminated and subsequent disposable runners terminate their owned process group. Later200000-heartbeat failures were kernel reduction limits, not semantic counterexamples. One final launcher used an incorrect runner basename before any check started; corrected once, then the composed build passed.",
+    "not_run": [
+      "native tests",
+      "full Docker gates",
+      "deployment",
+      "Aeneas extraction",
+      "paid model calls"
+    ]
+  },
+  "boundaries": [
+    "Constructed successful schedule and generic finite-history guarantees are separate results; this witness does not establish unconditional liveness.",
+    "Exact unchanged state applies to the chosen isolated update suffix, not to all future writers or a later service response.",
+    "Native regression uses one old registration; the Lean fixture has two. Existing actual-store tests remain separate evidence with unchanged native source.",
+    "Old-update counterexample remains next. Removal, housekeeping, namespace/authority composition, HTTP/service audit/reload, physical SQL/Core refinement and deployed recovery remain outside."
+  ]
+}
