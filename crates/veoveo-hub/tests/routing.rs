@@ -19,24 +19,21 @@ use rmcp::{
         CallToolRequestParams, CallToolResponse, ClientConfig, ClientRequest, GetTaskParams,
         ListToolsRequest, ListToolsResult, ServerResult, TaskPayload,
     },
-    service::RunningService,
+    service::{RunningService, ServiceError},
 };
 use serde_json::json;
-use servers::{
-    Served, decoded_claims, hosted, mcp_client, mcp_client_with, relay_call, serve, serve_revision,
-};
-use std::time::Duration;
+use servers::{Served, hosted, mcp_client, mcp_client_with, relay_call, serve, serve_revision};
+use std::{collections::BTreeSet, time::Duration};
 use veoveo_fixtures::store::TestDb;
 use veoveo_hub_sdk::{
-    ExecutionContext,
+    ExecutionContext, HubInternalIdentity, HubInternalTokenVerifier,
     hosting::{DomainServer, Hosted, ServerCalls},
     registration::client::Registration,
 };
 use veoveo_hub_sdk_fixture::ledger::{self, LedgerDomain, LedgerTasks};
 use veoveo_store::{Instance, PlatformStore, StoreConfig};
-use veoveo_types::ServerSlug;
+use veoveo_types::{PermissionName, ServerSlug};
 
-const INVOCATION: &str = "https://veoveo.ai/claims/invocation";
 type Client = RunningService<RoleClient, ClientConfig>;
 
 async fn process(registration: &Registration, slug: &str) -> (PlatformStore, Instance) {
@@ -56,14 +53,70 @@ async fn process(registration: &Registration, slug: &str) -> (PlatformStore, Ins
     (store, instance)
 }
 
-/// The routing `server` last received, which it was addressed as.
-fn capture(server: &Served) -> ExecutionContext {
-    let claims = decoded_claims(&server.bearers.last());
+/// Verify the last bearer against the actual recipient's registration response.
+/// The outer recorder runs before hosted admission, so decoding alone is insufficient.
+fn verify_identity(server: &Served, bearer: &str) -> HubInternalIdentity {
+    let trust = server.registration.access_tokens();
+    assert_eq!(trust.deployment, server.metadata.registration.deployment);
     assert_eq!(
-        claims[INVOCATION]["deployment"],
-        json!(server.metadata.registration.deployment)
+        trust.resource,
+        veoveo_hub_sdk::registration::ResourceIndicator::from(
+            &server.metadata.registration.endpoint
+        )
     );
-    serde_json::from_value(claims[INVOCATION]["request_context"]["execution"].clone()).unwrap()
+    let identity =
+        HubInternalTokenVerifier::from_access_tokens(trust, server.metadata.slug().clone())
+            .unwrap()
+            .verify(bearer)
+            .expect("forwarded assertion verifies for the registration that received it");
+    assert_eq!(&identity.server, server.metadata.slug());
+    assert_eq!(identity.deployment, trust.deployment);
+    assert_eq!(identity.audience, trust.resource);
+    assert_eq!(identity.profile.as_str(), "local");
+    assert_eq!(identity.client.as_str(), "acceptance-member");
+    let context = identity
+        .request_context
+        .as_ref()
+        .expect("typed request context");
+    context
+        .validate_for(&identity.actor, &identity.authority)
+        .unwrap();
+    assert_eq!(context.access_token.oauth_client_id, identity.client);
+    identity
+}
+
+fn received_identity(server: &Served) -> HubInternalIdentity {
+    verify_identity(server, &server.bearers.last())
+}
+
+/// A single snapshot includes every HTTP frame, but only unique verified Hub
+/// request IDs count as distinct originating calls. GET/DELETE session cleanup
+/// can arrive after a successful Task reply with that earlier call's context.
+fn received_requests(server: &Served) -> (usize, BTreeSet<veoveo_audit_contract::AuditRequestId>) {
+    let bearers = server.bearers.snapshot();
+    let origins = bearers
+        .iter()
+        .map(|bearer| {
+            verify_identity(server, bearer)
+                .request_context
+                .unwrap()
+                .audit
+                .id
+        })
+        .collect();
+    (bearers.len(), origins)
+}
+
+/// The verified routing context the selected recipient last received.
+fn capture(server: &Served) -> ExecutionContext {
+    received_identity(server).request_context.unwrap().execution
+}
+
+fn permissions(names: &[&str]) -> BTreeSet<PermissionName> {
+    names
+        .iter()
+        .map(|name| PermissionName::parse(*name).unwrap())
+        .collect()
 }
 
 /// Authoritative catalog reads reach the Hub, rather than the native client's private
@@ -318,6 +371,107 @@ async fn scenario() {
     ));
     assert_eq!(capture(&base), base_capture);
     assert_eq!(descriptor(&after).await, second_descriptor);
+
+    // A retained Task pins deployment/composition, not the grants at creation.
+    // Keep this caller/token fixed while publishing current installation policy.
+    let before_policy = received_identity(&base);
+    assert_eq!(
+        before_policy.permissions,
+        permissions(&["ledger.entries.read", "ledger.entries.write"])
+    );
+    let mut plane = hub.control_plane().await;
+    let member = plane["authorization"]["roles"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|role| role["name"] == "member")
+        .unwrap();
+    member["access"] = json!(["read"]);
+    hub.publish_control_plane(&plane).await;
+    // This single-process admin handler replaces the local catalog synchronously
+    // before its successful response (bin/hub/admin/control_plane.rs).
+    assert!(matches!(
+        payload(&after, &retained).await,
+        TaskPayload::Completed { .. }
+    ));
+    let current = received_identity(&base);
+    assert_eq!(current.permissions, permissions(&["ledger.entries.read"]));
+    assert_eq!(current.deployment, before_policy.deployment);
+    assert_eq!(current.audience, before_policy.audience);
+    // Access-token verification stamps authentication time per HTTP request, even
+    // when the bearer is unchanged; all other current actor fields stay equal.
+    assert!(
+        current.actor.authenticated_at.unwrap() >= before_policy.actor.authenticated_at.unwrap()
+    );
+    let mut expected_actor = before_policy.actor.clone();
+    expected_actor.authenticated_at = current.actor.authenticated_at;
+    assert_eq!(current.actor, expected_actor);
+    assert_eq!(current.authority, before_policy.authority);
+    let previous_context = before_policy.request_context.as_ref().unwrap();
+    let current_context = current.request_context.as_ref().unwrap();
+    assert_eq!(current_context.execution, base_capture);
+    assert_eq!(current_context.access_token, previous_context.access_token);
+    assert!(
+        current_context.principal.authenticated_at.unwrap()
+            >= previous_context.principal.authenticated_at.unwrap()
+    );
+    let mut expected_principal = previous_context.principal.clone();
+    expected_principal.authenticated_at = current_context.principal.authenticated_at;
+    assert_eq!(current_context.principal, expected_principal);
+    eprintln!(
+        "retained Task current grant: deployment={} composition={} old_permissions={:?} current_permissions={:?}",
+        current.deployment,
+        current_context.execution.composition.digest(),
+        before_policy.permissions,
+        current.permissions
+    );
+
+    // With the member grant removed, the same canonical Task and caller are denied
+    // without a new forwarded request context; neither historical nor newest
+    // routing is a fallback around current policy. Old session cleanup may continue.
+    plane["authorization"]["grants"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|grant| grant["role"] != "member");
+    hub.publish_control_plane(&plane).await;
+    let before = [&base, &first, &second, &relay].map(received_requests);
+    let refused = after.get_task(GetTaskParams::new(&retained)).await;
+    match &refused {
+        Ok(_) => eprintln!("retained Task after revocation: result=success"),
+        Err(ServiceError::McpError(error)) => eprintln!(
+            "retained Task after revocation: result=McpError code={:?} roles_denial={}",
+            error.code,
+            error.message.contains("Your roles don't grant")
+        ),
+        Err(error) => eprintln!("retained Task after revocation: result=other_error {error}"),
+    }
+    let observed = [&base, &first, &second, &relay].map(received_requests);
+    for (name, (old, new)) in ["base", "first", "second", "relay"]
+        .into_iter()
+        .zip(before.iter().zip(&observed))
+    {
+        eprintln!(
+            "retained Task refusal observation: recipient={name} frames_before={} frames_after={} added_request_ids={:?}",
+            old.0,
+            new.0,
+            new.1.difference(&old.1).collect::<Vec<_>>()
+        );
+    }
+    for (old, new) in before.iter().zip(&observed) {
+        assert_eq!(
+            new.1, old.1,
+            "current policy refusal must create no new forwarded request context"
+        );
+    }
+    match refused {
+        Err(ServiceError::McpError(error)) => {
+            assert!(
+                error.message.contains("Your roles don't grant"),
+                "{error:?}"
+            );
+        }
+        other => panic!("expected a current-policy refusal, got {other:?}"),
+    }
     eprintln!(
         "routing scenario: ledger_base={} ledger_first={} ledger_second={} retained_task={} base_composition={} first_composition={} elapsed_ms={}",
         base.metadata.registration.deployment,

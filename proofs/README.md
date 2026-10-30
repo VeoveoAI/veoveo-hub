@@ -611,6 +611,10 @@ Already captured requests/Tasks retain their exact composition rather than rerou
 - **Tests:** [selection scenario](../crates/veoveo-hub/src/execution/tests.rs)
   and [routing test](../crates/veoveo-hub/tests/routing.rs),
   `the_newest_registered_deployment_serves_and_captures_keep_their_routing`.
+  The [request-routing native receipt](task_continuity/evidence/request-routing-native-receipt.json)
+  records SDK-verified recipient/context assertions and a retained Task's current
+  grant narrowing and revocation, with a deliberate policy-bypass control and
+  restoration. This is component evidence; it adds no Lean coverage of the assembly.
 - **Formal boundary:** the [selection pilot](selection/README.md) is partial
   evidence for this system invariant; its precise proved subproperties are below.
 - **Applicability:** the merge preserves exact proved kernel/model bytes and caller

@@ -43,6 +43,10 @@ use super::hub::Hub;
 pub struct Bearers(Arc<Mutex<Vec<String>>>);
 
 impl Bearers {
+    pub fn snapshot(&self) -> Vec<String> {
+        self.0.lock().unwrap().clone()
+    }
+
     pub fn last(&self) -> String {
         self.0
             .lock()

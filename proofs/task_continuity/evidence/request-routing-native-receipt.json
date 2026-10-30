@@ -1,0 +1,380 @@
+{
+  "schema_version": 1,
+  "kind": "native component qualification, not a new Lean proof",
+  "date": "2026-10-30",
+  "hub_base": "eb099bb885c2d8e55b001dbf2c75bdd3dcc10753",
+  "sdk_pin": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+  "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+  "runtime_changed": false,
+  "models_changed": false,
+  "execution": {
+    "coordination": "GPT-6 Astra",
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "host": "macOS aarch64",
+    "rust": "1.99.0-aarch64-apple-darwin",
+    "postgresql": "18.6",
+    "model_calls": 0,
+    "deployments": 0,
+    "full_repository_gates": false
+  },
+  "test_source_sha256": {
+    "crates/veoveo-hub/tests/routing.rs": "32acdd0fc31be72c98cb7c569664f5fde56d0e80ca22c7b441de5c111f8a134f",
+    "crates/veoveo-hub/tests/support/servers.rs": "dc6a015a4e024409a716fab760a4e1c5e0cbc49f7a6020b520552a13920626fc"
+  },
+  "runtime_source_sha256": {
+    "crates/veoveo-hub/src/mcp/authorization.rs": "9c417b771fe4e232e652ad9bfda666370ceff66ed704975bf1dd8846f734fa00",
+    "crates/veoveo-hub/src/mcp/upstream_authorized_http.rs": "78ee55d86837ae52db01b258f5bf1760afcea0120b2e81a066fcd0dded493a1b",
+    "crates/veoveo-hub/src/auth/verified.rs": "ce7a9c98af592bcd2097bf252bced6dc96a1b76dc344f2044741cf2d5212f91c",
+    "crates/veoveo-hub/src/auth/access_token.rs": "4e28f55d058567a7634b96baeda93978eda5d8a492571425ae5b5f068e533e29",
+    "crates/veoveo-hub/src/registration/snapshot.rs": "4d35ca1aa547817387d7922ec552513516c18e4bf00cd3e99ce4da4a3e68678d",
+    "crates/veoveo-hub/src/bin/hub/admin/control_plane.rs": "4055fca62f6efad55b08600bb3c527fc0d5404e90cc52a420f98ec917dc811f9",
+    "crates/veoveo-hub/src/catalog.rs": "240f410e22959bbf40983b95b532511f310b237d972e592d6f8ce7ad9dfc37ef"
+  },
+  "prior_formal_source_applicability": {
+    "task_decision_sha256": "42001518ef51d33535d79fb5dbe57a911fda35c762235fd09f97864a98222344",
+    "pinned_sdk_recipient_sha256": "038868d521a67a8780e458fe404688a960da05c3837aece655372d266d6830f4",
+    "matches_qualified_receipt": true,
+    "old_dependency_caveat_discharged_for_this_pin": true,
+    "no_new_composition_theorem": true
+  },
+  "scenario": {
+    "caller": "acceptance-member, profile local, unchanged bearer after restart",
+    "recipients": [
+      "base ledger",
+      "revision A ledger",
+      "revision B ledger",
+      "relay"
+    ],
+    "checks": [
+      "SDK verifies signature, server/deployment/resource, client/profile and typed current context",
+      "Fresh/delegated/retained routing assertions across actual Hub restart",
+      "Same retained Task after current read/write grant narrows to read",
+      "Current grant removed; one subsequent get_task refuses after synchronous local publication; no new verified audit origin at any fixture endpoint"
+    ],
+    "clock_boundary": "Full actor/principal comparison normalizes only per-request authenticated_at; nondecreasing values observed in this fixture. No general clock monotonicity theorem.",
+    "data": "Synthetic SDK fixtures on private PostgreSQL, no paid inference"
+  },
+  "mutation": {
+    "path": "proofs/task_continuity/mutations/current-task-policy-bypass.patch",
+    "sha256": "7ec693939f8bec7a5a2442684d38fb9249b53295896b16cd78a6bfc9b79b0652",
+    "source_original_sha256": "9c417b771fe4e232e652ad9bfda666370ceff66ed704975bf1dd8846f734fa00",
+    "source_mutant_sha256": "8bbe2c181c20f8859f8d8cfe81c0f65eaf2d772628b1059ca7c9874d1e40865a",
+    "change": "Bypass only final current-policy call in authorize_task_route; preserve owner/capture/exposure/current grants/issuer/SDK checks",
+    "observed": "Successful get_task, exactly one new verified base request ID; unchanged equality assertion fails",
+    "interpretation": "Control runner complete=false reflects nonzero expected test exit; source, compiled Hub/test identities, test count and exact assertion independently reviewed"
+  },
+  "runs": [
+    {
+      "name": "native-baseline9-restored",
+      "outcome": "pass",
+      "summary_path": "/tmp/hub-request-composition-20261030/native-baseline9-restored/summary.json",
+      "summary_sha256": "69c9d661b80a97edb438ea4fd24c2bba29841eab00c42cb4843e8b07668ddc90",
+      "runner_complete_flag": true,
+      "stages": [
+        {
+          "stage": "scoped-cargo-clean-hub",
+          "argv": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "clean",
+            "-p",
+            "veoveo-hub"
+          ],
+          "elapsed_s": 0.912,
+          "timeout_s": 180,
+          "timed_out": false,
+          "exit": 0,
+          "log": "/tmp/hub-request-composition-20261030/native-baseline9-restored/logs/scoped-cargo-clean-hub.log",
+          "log_bytes": 38,
+          "log_sha256": "8d86f8e3afc8a151f30330679ae3a61ddd40016043b01967b88e2f8af4f9da68",
+          "hub_binary_after_clean_exists": false
+        },
+        {
+          "stage": "focused-routing-test",
+          "argv": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--test",
+            "routing",
+            "the_newest_registered_deployment_serves_and_captures_keep_their_routing",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "elapsed_s": 53.873,
+          "timeout_s": 1800,
+          "timed_out": false,
+          "exit": 0,
+          "log": "/tmp/hub-request-composition-20261030/native-baseline9-restored/logs/focused-routing-test.log",
+          "log_bytes": 1734,
+          "log_sha256": "d9550ef3f1793efcddfef20df2a8d7d6774bf9d740b7f763238bdac29a9aa1c5",
+          "test_count": 1,
+          "test_failures": 0,
+          "binary": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/routing-e643ec1ef21182ad",
+            "bytes": 109105496,
+            "sha256": "9efc6942dfefd5ea5d13453c03c164571f5bfbf0dc48069d2c34d150fdd8cfd2"
+          },
+          "hub_binary_after": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/veoveo-hub",
+            "exists": true,
+            "bytes": 170454152,
+            "sha256": "6729be6924bdc95016802c519431860d0d7b0923c9c4270ef88aa5ad40be17bc",
+            "mtime_ns": 1793402532013126519
+          },
+          "harness_seconds": 12.73,
+          "observations": [
+            "retained Task current grant: deployment=01a18f1f-0559-7473-8ac7-5c93512cbf7c composition=sha256:47cc1a4f0799dd54c01159680c93d47dd4135129fd4457569806156130de3d9d old_permissions={PermissionName(\"ledger.entries.read\"), PermissionName(\"ledger.entries.write\")} current_permissions={PermissionName(\"ledger.entries.read\")}",
+            "retained Task after revocation: result=McpError code=ErrorCode(-32600) roles_denial=true",
+            "retained Task refusal observation: recipient=base frames_before=145 frames_after=145 added_request_ids=[]",
+            "retained Task refusal observation: recipient=first frames_before=7 frames_after=7 added_request_ids=[]",
+            "retained Task refusal observation: recipient=second frames_before=8 frames_after=8 added_request_ids=[]",
+            "retained Task refusal observation: recipient=relay frames_before=14 frames_after=14 added_request_ids=[]"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "native-bypass-control3",
+      "outcome": "expected semantic assertion failure",
+      "summary_path": "/tmp/hub-request-composition-20261030/native-bypass-control3/summary.json",
+      "summary_sha256": "c8f7c64582789b5c13e7c24351cf43cf4f08a079c8585d02fcb76fae5048801a",
+      "runner_complete_flag": false,
+      "stages": [
+        {
+          "stage": "scoped-cargo-clean-hub",
+          "argv": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "clean",
+            "-p",
+            "veoveo-hub"
+          ],
+          "elapsed_s": 0.547,
+          "timeout_s": 180,
+          "timed_out": false,
+          "exit": 0,
+          "log": "/tmp/hub-request-composition-20261030/native-bypass-control3/logs/scoped-cargo-clean-hub.log",
+          "log_bytes": 38,
+          "log_sha256": "d3f4315efac1833197b7485e833a5209956bdd8839e43946748e4f9b0261597c",
+          "hub_binary_after_clean_exists": false
+        },
+        {
+          "stage": "focused-guard-bypass-test",
+          "argv": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--test",
+            "routing",
+            "the_newest_registered_deployment_serves_and_captures_keep_their_routing",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "elapsed_s": 51.289,
+          "timeout_s": 1800,
+          "timed_out": false,
+          "exit": 101,
+          "log": "/tmp/hub-request-composition-20261030/native-bypass-control3/logs/focused-guard-bypass-test.log",
+          "log_bytes": 54610,
+          "log_sha256": "074bdd71708b8964123b5232e8ce0808907909beb0b9378b8178c6f0e169d31f",
+          "test_count": 1,
+          "test_failures": 1,
+          "binary": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/routing-e643ec1ef21182ad",
+            "bytes": 109122472,
+            "sha256": "fb88b1bdbcb750773e44835436fda6580fdcd0ae881341fd7f705d74cc6aae4e"
+          },
+          "hub_binary_after": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/veoveo-hub",
+            "exists": true,
+            "bytes": 170456920,
+            "sha256": "fd0ebcda78e9e301e8ca2e764243576dcbd856b65328a7b6ca111f7d0aff877b",
+            "mtime_ns": 1793402663155861581
+          },
+          "harness_seconds": 12.95,
+          "observations": [
+            "retained Task current grant: deployment=01a18f21-07af-7a90-9284-fe1014325823 composition=sha256:74bdb74d2692c7f1aba4241d83d9da2a535c2a171613e6b5fcb9c7b792ba678f old_permissions={PermissionName(\"ledger.entries.read\"), PermissionName(\"ledger.entries.write\")} current_permissions={PermissionName(\"ledger.entries.read\")}",
+            "retained Task after revocation: result=success",
+            "retained Task refusal observation: recipient=base frames_before=147 frames_after=149 added_request_ids=[AuditRequestId(01a18f21-2a0d-7da0-b3e5-8379fd7d4c90)]",
+            "retained Task refusal observation: recipient=first frames_before=7 frames_after=7 added_request_ids=[]",
+            "retained Task refusal observation: recipient=second frames_before=8 frames_after=8 added_request_ids=[]",
+            "retained Task refusal observation: recipient=relay frames_before=14 frames_after=14 added_request_ids=[]"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "native-restore9-control",
+      "outcome": "pass",
+      "summary_path": "/tmp/hub-request-composition-20261030/native-restore9-control/summary.json",
+      "summary_sha256": "b1c6ff038e44c0dba7333550630f5851bc258b6d84077a663ba1020f264c9f9f",
+      "runner_complete_flag": true,
+      "stages": [
+        {
+          "stage": "scoped-cargo-clean-hub",
+          "argv": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "clean",
+            "-p",
+            "veoveo-hub"
+          ],
+          "elapsed_s": 0.385,
+          "timeout_s": 180,
+          "timed_out": false,
+          "exit": 0,
+          "log": "/tmp/hub-request-composition-20261030/native-restore9-control/logs/scoped-cargo-clean-hub.log",
+          "log_bytes": 38,
+          "log_sha256": "fd289f8ec3f339c4106b908500935b8ad0cbdf754a1a42672cb20c7df65be4e4",
+          "hub_binary_after_clean_exists": false
+        },
+        {
+          "stage": "focused-routing-test",
+          "argv": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--test",
+            "routing",
+            "the_newest_registered_deployment_serves_and_captures_keep_their_routing",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "elapsed_s": 50.962,
+          "timeout_s": 1800,
+          "timed_out": false,
+          "exit": 0,
+          "log": "/tmp/hub-request-composition-20261030/native-restore9-control/logs/focused-routing-test.log",
+          "log_bytes": 1734,
+          "log_sha256": "a5c01bdec0e023f472f82968366fc9efdbcd90676cf0fcdede3d2af2dcb2987f",
+          "test_count": 1,
+          "test_failures": 0,
+          "binary": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/routing-e643ec1ef21182ad",
+            "bytes": 109105496,
+            "sha256": "4806251259501561c34aee4d3478877b275f3d7379b71d696b9048cc834e9d3e"
+          },
+          "hub_binary_after": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/veoveo-hub",
+            "exists": true,
+            "bytes": 170454152,
+            "sha256": "b918c6097d302b21804f329e0b624f332e0b04e30ecab90743bc8085756b73ec",
+            "mtime_ns": 1793402731824602385
+          },
+          "harness_seconds": 12.53,
+          "observations": [
+            "retained Task current grant: deployment=01a18f22-0fbe-7f22-be2d-056086442a06 composition=sha256:41763cb2ba252f8c85367e867416fa74a6635ab854533b75bb66fee9342ccd37 old_permissions={PermissionName(\"ledger.entries.read\"), PermissionName(\"ledger.entries.write\")} current_permissions={PermissionName(\"ledger.entries.read\")}",
+            "retained Task after revocation: result=McpError code=ErrorCode(-32600) roles_denial=true",
+            "retained Task refusal observation: recipient=base frames_before=145 frames_after=145 added_request_ids=[]",
+            "retained Task refusal observation: recipient=first frames_before=7 frames_after=7 added_request_ids=[]",
+            "retained Task refusal observation: recipient=second frames_before=8 frames_after=8 added_request_ids=[]",
+            "retained Task refusal observation: recipient=relay frames_before=14 frames_after=14 added_request_ids=[]"
+          ]
+        },
+        {
+          "stage": "cargo-fmt-check",
+          "argv": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "elapsed_s": 0.703,
+          "timeout_s": 900,
+          "timed_out": false,
+          "exit": 0,
+          "log": "/tmp/hub-request-composition-20261030/native-restore9-control/logs/cargo-fmt-check.log",
+          "log_bytes": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "stage": "strict-routing-clippy",
+          "argv": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "clippy",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--test",
+            "routing",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "elapsed_s": 10.84,
+          "timeout_s": 900,
+          "timed_out": false,
+          "exit": 0,
+          "log": "/tmp/hub-request-composition-20261030/native-restore9-control/logs/strict-routing-clippy.log",
+          "log_bytes": 157,
+          "log_sha256": "21d1d4d4a9d891333d1c098d962b972b1eff737ee6d9eb2f41adbe5a5e7d7e1e"
+        }
+      ]
+    }
+  ],
+  "excluded_attempts": [
+    {
+      "name": "native-baseline2",
+      "reason": "wrong test-only ResourceIndicator import; compile failure, no test outcome"
+    },
+    {
+      "name": "native-baseline3",
+      "reason": "overstrict cross-request authenticated_at equality; corrected according to production verifier"
+    },
+    {
+      "name": "native-baseline5 and native-bypass-control1",
+      "reason": "earlier polling test: positive pass and bounded nonrefusal control; superseded by one-shot correlated test"
+    },
+    {
+      "name": "native-baseline7 and native-baseline9",
+      "reason": "invalid original-runtime claims: shared named Hub executable remained the deliberate scratch mutant; test executable alone had rebuilt",
+      "stale_hub_sha256": "c2d249aff44718d39507a0c243d0746f30fd9750fb8223f163ee5d780ffaf7b9"
+    },
+    {
+      "name": "native-bypass-control2",
+      "reason": "interrupted after rebuild and test start to insert an unnecessary clean; no completed test outcome"
+    }
+  ],
+  "artifact_fidelity": "Each accepted source-root switch scoped-cleans only Hub, rebuilds the actual named Hub executable, and records both Hub and test executable identities. Dependency cache retained. Earlier contaminated observations establish no production defect.",
+  "boundaries": [
+    "No new production rule, behavior, dependency or protected SDK change",
+    "No new Lean theorem or formal routing/claims/SQL/crypto/transport refinement",
+    "Single-process local publication; no distributed replica convergence or deployed validation",
+    "Captured deployment can change endpoint; same-deployment endpoint update not exercised",
+    "Async cleanup may reuse old request context; raw frame counts alone do not prove a new admission",
+    "No new complete delegation/deadline/issuer-lifetime coverage; existing separate contracts retain their boundaries"
+  ]
+}

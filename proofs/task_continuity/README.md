@@ -19,10 +19,33 @@ their algorithms or resolving the full Hub/SDK dependency graphs:
 
 The implementation bases are Hub `651390dbbb8b4e65b5b8bcd3f8714a981fac2371`
 and SDK `7e2489dccbee6d00b377b174f68f9d5de692a68b`. A qualification records the
-exact changed source bytes from both repositories. Hub's SDK dependency remains
-`a41c9cc6c81f6c0305dd41165defb142740ed6b1`; this package does not claim that
-the pinned dependency already contains the private SDK refactor. No wire contract,
+exact changed source bytes from both repositories. At that qualification, Hub's SDK
+dependency was `a41c9cc6c81f6c0305dd41165defb142740ed6b1`; the qualification did not
+claim that this historical pin contained the private SDK refactor. No wire contract,
 dependency pin or protected SDK hosting/Task implementation changes here.
+
+## Current request-routing native coverage
+
+Hub `eb099bb` pins SDK `239622d`. Its Task decision source and that pinned SDK's
+recipient source match the qualified proof inputs byte for byte; the older dependency
+caveat above does not describe this current pin. This source applicability check
+does not extend the old theorem to the intervening routing and token assembly.
+
+The [native routing regression](../../crates/veoveo-hub/tests/routing.rs) now verifies
+recorded tokens with the actual recipient's registration keys and checks the complete
+server/deployment/resource association and typed request context. After a Hub restart,
+the same caller's retained Task keeps its deployment and composition while current
+grants narrow from read/write to read and then are removed. Refusal is checked against
+new **verified audit request IDs** at all four fixture endpoints; an old connection's
+cleanup may continue under its earlier request context. Authentication timestamps are
+fresh per request; only that field is normalized in the cross-request principal
+comparison. This is a single-process component test against private PostgreSQL and
+SDK fixtures, not a new Lean theorem, replica-convergence result or deployed test.
+
+The [native receipt](evidence/request-routing-native-receipt.json) records source and
+both test/Hub executable identities, the deliberate policy-bypass control and exact
+restoration. Endpoint changes within the same captured deployment, full claims
+assembly, live snapshot timing and other lifecycle operations remain separate work.
 
 ## Properties and assumptions
 
