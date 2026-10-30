@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/evaluation.rs
++++ b/crates/veoveo-hub/src/policy/evaluation.rs
+@@ -69,7 +69,7 @@
+         PolicyTarget::Server { server }
+         | PolicyTarget::Task { server, .. }
+         | PolicyTarget::PlatformTask { server, .. } => Some((server, None)),
+-        PolicyTarget::Tool { server, tool } => Some((server, Some(RequirementTarget::Tool(tool)))),
++        PolicyTarget::Tool { server, .. } => Some((server, None)),
+         PolicyTarget::Resource { server, uri } => {
+             Some((server, Some(RequirementTarget::Resource(uri))))
+         }

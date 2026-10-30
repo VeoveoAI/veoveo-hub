@@ -8,6 +8,20 @@ evaluator from Hub `b9b6cec1b9c36a2e84afb980e208d2d116a84185`, with SDK pin
 permissions, native collections and dependency pins were unchanged. The connected extension below includes one equivalent iterator closure spelling.
 Verification remains manual; there is no CI hook, runner or new authorization gate.
 
+## Preliminary conditional server-decision extension (unqualified)
+
+The current worktree adds an untouched generated superset from Hub `bb2e97f`
+with the unchanged compiled SDK `05273d1`, retaining all qualified Held/grant bodies.
+Its first milestone is model/type compilation and rerunning existing proofs.
+`NativePolicyModelAudit` explicitly exposes TWO native operation symbols:
+`chrono::Utc::now` and SDK `AuthorizationDeclaration::access`. They are not filled
+with fixed timestamps or a deny-all route implementation. New branch/output
+proofs will be conditional on their observed successful results; this is NOT
+standard-three-only axiom qualification, a real-clock/SDK-route proof, or a proof
+of the asynchronous endpoint. SDK `239622d` adoption/correspondence remains open.
+All other additional metadata/clone/action primitives have ordinary value models.
+Historical receipts below remain unchanged and do not qualify this extension.
+
 ## Connected CurrentPermissions boundary
 
 This extension uses Hub `33849317d6e80c78ba7fd8ed57067a62a2eb677c`, with the same

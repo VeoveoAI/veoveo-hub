@@ -33,6 +33,23 @@ def core.borrow.Borrow.Blanket (T : Type _) : core.borrow.Borrow T T := {
   borrow := core.borrow.Borrow.Blanket.borrow
 }
 
+/-- Trait implementation: [core::convert::{impl core::convert::AsRef<U> for &'_0 T}]
+    Source: '/rustc/library/core/src/convert/mod.rs', lines 714:0-716:24
+    Name pattern: [core::convert::AsRef<&'0 @T, @U>] -/
+@[reducible, rust_trait_impl "core::convert::AsRef<&'0 @T, @U>"]
+def Shared0T.Insts.CoreConvertAsRef {T : Type _} {U : Type _} (AsRefInst :
+  core.convert.AsRef T U) : core.convert.AsRef T U := {
+  as_ref := Shared0T.Insts.CoreConvertAsRef.as_ref AsRefInst
+}
+
+/-- Trait implementation: [core::convert::{impl core::convert::AsRef<str> for str}]
+    Source: '/rustc/library/core/src/convert/mod.rs', lines 850:0-850:29
+    Name pattern: [core::convert::AsRef<str, str>] -/
+@[reducible, rust_trait_impl "core::convert::AsRef<str, str>"]
+def Str.Insts.CoreConvertAsRefStr : core.convert.AsRef Str Str := {
+  as_ref := Str.Insts.CoreConvertAsRefStr.as_ref
+}
+
 /-- Trait implementation: [core::iter::adapters::filter::{impl core::iter::traits::iterator::Iterator<Clause0_Item> for core::iter::adapters::filter::Filter<I, P>}]
     Source: '/rustc/library/core/src/iter/adapters/filter.rs', lines 90:0-92:31
     Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::filter::Filter<@I, @P>, @Clause0_Item>] -/
@@ -313,6 +330,16 @@ def veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpOrd : core.cmp.Ord
   cmp := veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpOrd.cmp
 }
 
+/-- Trait implementation: [veoveo_types::extensions::{impl core::fmt::Debug for veoveo_types::extensions::ExtensionError}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/extensions.rs', lines 29:9-29:14
+    Name pattern: [core::fmt::Debug<veoveo_types::extensions::ExtensionError>] -/
+@[reducible, rust_trait_impl
+  "core::fmt::Debug<veoveo_types::extensions::ExtensionError>"]
+def veoveo_types.extensions.ExtensionError.Insts.CoreFmtDebug : core.fmt.Debug
+  veoveo_types.extensions.ExtensionError := {
+  fmt := veoveo_types.extensions.ExtensionError.Insts.CoreFmtDebug.fmt
+}
+
 /-- Trait implementation: [veoveo_types::identity::{impl core::cmp::PartialEq<veoveo_types::identity::PrincipalId> for veoveo_types::identity::PrincipalId}]
     Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 9:0-9:69
     Name pattern: [core::cmp::PartialEq<veoveo_types::identity::PrincipalId, veoveo_types::identity::PrincipalId>] -/
@@ -324,6 +351,16 @@ impl_def veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId :
   eq := veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId.eq
   ne := core.cmp.PartialEq.ne.trait_default
     veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId
+}
+
+/-- Trait implementation: [veoveo_types::identity::{impl core::clone::Clone for veoveo_types::identity::TenantId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 13:0-13:69
+    Name pattern: [core::clone::Clone<veoveo_types::identity::TenantId>] -/
+@[reducible, rust_trait_impl
+  "core::clone::Clone<veoveo_types::identity::TenantId>"]
+def veoveo_types.identity.TenantId.Insts.CoreCloneClone : core.clone.Clone
+  veoveo_types.identity.TenantId := {
+  clone := veoveo_types.identity.TenantId.Insts.CoreCloneClone.clone
 }
 
 /-- Trait implementation: [veoveo_types::identity::{impl core::cmp::PartialEq<veoveo_types::identity::TenantId> for veoveo_types::identity::TenantId}]
@@ -504,6 +541,127 @@ def catalog.HubCatalog.impl.registrations
   alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
     self.registrations
 
+/-- [veoveo_hub::contract::actions::{impl veoveo_types::vocabulary::Vocabulary for veoveo_hub::contract::actions::HubAction}::as_str]:
+    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 3:9-3:33
+    Visibility: public -/
+def contract.actions.HubAction.Insts.Veoveo_typesVocabularyVocabulary.as_str
+  (self : contract.actions.HubAction) : Result Str := do
+  match self with
+  | contract.actions.HubAction.ToolsList => ok (toStr "tools_list")
+  | contract.actions.HubAction.ToolsCall => ok (toStr "tools_call")
+  | contract.actions.HubAction.ResourcesList => ok (toStr "resources_list")
+  | contract.actions.HubAction.ResourcesTemplatesList =>
+    ok (toStr "resources_templates_list")
+  | contract.actions.HubAction.ResourcesRead => ok (toStr "resources_read")
+  | contract.actions.HubAction.SubscriptionsListen =>
+    ok (toStr "subscriptions_listen")
+  | contract.actions.HubAction.PromptsList => ok (toStr "prompts_list")
+  | contract.actions.HubAction.PromptsGet => ok (toStr "prompts_get")
+  | contract.actions.HubAction.CompletionComplete =>
+    ok (toStr "completion_complete")
+  | contract.actions.HubAction.TasksGet => ok (toStr "tasks_get")
+  | contract.actions.HubAction.TasksUpdate => ok (toStr "tasks_update")
+  | contract.actions.HubAction.TasksCancel => ok (toStr "tasks_cancel")
+  | contract.actions.HubAction.AdminRead => ok (toStr "admin_read")
+  | contract.actions.HubAction.AdminWrite => ok (toStr "admin_write")
+
+/-- [veoveo_hub::contract::actions::{veoveo_hub::contract::actions::HubAction}::as_str]:
+    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 3:9-3:33
+    Visibility: public -/
+def contract.actions.HubAction.as_str
+  (self : contract.actions.HubAction) : Result Str := do
+  contract.actions.HubAction.Insts.Veoveo_typesVocabularyVocabulary.as_str self
+
+/-- [veoveo_hub::contract::actions::{veoveo_hub::contract::actions::HubAction}::mcp_method]:
+    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 28:4-44:5
+    Visibility: public -/
+def contract.actions.HubAction.mcp_method
+  (self : contract.actions.HubAction) : Result (Option Str) := do
+  match self with
+  | contract.actions.HubAction.ToolsList => ok (some (toStr "tools/list"))
+  | contract.actions.HubAction.ToolsCall => ok (some (toStr "tools/call"))
+  | contract.actions.HubAction.ResourcesList =>
+    ok (some (toStr "resources/list"))
+  | contract.actions.HubAction.ResourcesTemplatesList =>
+    ok (some (toStr "resources/templates/list"))
+  | contract.actions.HubAction.ResourcesRead =>
+    ok (some (toStr "resources/read"))
+  | contract.actions.HubAction.SubscriptionsListen =>
+    ok (some (toStr "subscriptions/listen"))
+  | contract.actions.HubAction.PromptsList => ok (some (toStr "prompts/list"))
+  | contract.actions.HubAction.PromptsGet => ok (some (toStr "prompts/get"))
+  | contract.actions.HubAction.CompletionComplete =>
+    ok (some (toStr "completion/complete"))
+  | contract.actions.HubAction.TasksGet => ok (some (toStr "tasks/get"))
+  | contract.actions.HubAction.TasksUpdate => ok (some (toStr "tasks/update"))
+  | contract.actions.HubAction.TasksCancel => ok (some (toStr "tasks/cancel"))
+  | contract.actions.HubAction.AdminRead => ok none
+  | contract.actions.HubAction.AdminWrite => ok none
+
+/-- [veoveo_hub::contract::actions::{veoveo_hub::contract::actions::HubAction}::targets_registered_server]:
+    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 24:4-26:5
+    Visibility: public -/
+def contract.actions.HubAction.targets_registered_server
+  (self : contract.actions.HubAction) : Result Bool := do
+  let o ← contract.actions.HubAction.mcp_method self
+  ok (core.option.Option.is_some o)
+
+/-- [veoveo_hub::contract::actions::{veoveo_hub::contract::actions::PolicyAction}::name]:
+    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 54:4-61:5
+    Visibility: public -/
+def contract.actions.PolicyAction.name
+  (self : contract.actions.PolicyAction) :
+  Result veoveo_types.actions.ActionName
+  := do
+  match self with
+  | contract.actions.PolicyAction.Kernel action =>
+    let s ← contract.actions.HubAction.as_str action
+    let r ←
+      veoveo_types.actions.ActionName.parse (Shared0T.Insts.CoreConvertAsRef
+        Str.Insts.CoreConvertAsRefStr) s
+    core.result.Result.expect
+      veoveo_types.extensions.ExtensionError.Insts.CoreFmtDebug r (toStr
+      "closed kernel action spelling")
+  | contract.actions.PolicyAction.Registered action =>
+    let an ← veoveo_types.actions.ActionHandle.name action
+    veoveo_types.actions.ActionName.Insts.CoreCloneClone.clone an
+
+/-- [veoveo_hub::contract::catalog::{impl core::clone::Clone for veoveo_hub::contract::catalog::TargetAuditResource}::clone]:
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 163:16-163:21
+    Visibility: public -/
+def contract.catalog.TargetAuditResource.Insts.CoreCloneClone.clone
+  (self : contract.catalog.TargetAuditResource) :
+  Result contract.catalog.TargetAuditResource
+  := do
+  let ss ←
+    veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+      self.server
+  let ru ←
+    veoveo_types.resource.ResourceUri.Insts.CoreCloneClone.clone self.uri
+  ok { server := ss, uri := ru }
+
+/-- [veoveo_hub::contract::catalog::{impl core::clone::Clone for veoveo_hub::contract::catalog::AdmittedPolicyTarget}::clone]:
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 541:9-541:14
+    Visibility: public -/
+def contract.catalog.AdmittedPolicyTarget.Insts.CoreCloneClone.clone
+  (self : contract.catalog.AdmittedPolicyTarget) :
+  Result contract.catalog.AdmittedPolicyTarget
+  := do
+  let ae ←
+    veoveo_types.extensions.AdmittedExtensions.Insts.CoreCloneClone.clone
+      self.extensions
+  let en ←
+    veoveo_types.extensions.ExtensionName.Insts.CoreCloneClone.clone
+      self.section
+  let en1 ←
+    veoveo_types.extensions.ExtensionName.Insts.CoreCloneClone.clone self.kind
+  let v ← serde_json.value.Value.Insts.CoreCloneClone.clone self.wire
+  let tar ←
+    contract.catalog.TargetAuditResource.Insts.CoreCloneClone.clone self.audit
+  ok
+    { extensions := ae, «section» := en, kind := en1, wire := v, audit := tar
+    }
+
 /-- [veoveo_hub::control_plane::authorization_config::{veoveo_hub::control_plane::authorization_config::InstallationRole}::allows]:
     Source: 'crates/veoveo-hub/src/control_plane/authorization_config.rs', lines 34:4-36:5
     Visibility: public -/
@@ -542,6 +700,92 @@ def control_plane.authorization_config.PermissionOverride.permission
     ok permission
   | control_plane.authorization_config.PermissionOverride.Deny permission =>
     ok permission
+
+/-- [veoveo_hub::control_plane::ids::{impl core::clone::Clone for veoveo_hub::control_plane::ids::TraceId}::clone]:
+    Source: 'crates/veoveo-hub/src/control_plane/ids.rs', lines 50:0-50:43
+    Visibility: public -/
+def control_plane.ids.TraceId.Insts.CoreCloneClone.clone
+  (self : control_plane.ids.TraceId) : Result control_plane.ids.TraceId := do
+  let s ← alloc.string.String.Insts.CoreCloneClone.clone self
+  ok s
+
+/-- [veoveo_hub::control_plane::policy::{impl core::clone::Clone for veoveo_hub::control_plane::policy::DecodedPolicyTarget}::clone]:
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 271:9-271:14
+    Visibility: public -/
+def control_plane.policy.DecodedPolicyTarget.Insts.CoreCloneClone.clone
+  (self : control_plane.policy.DecodedPolicyTarget) :
+  Result control_plane.policy.DecodedPolicyTarget
+  := do
+  let v ← serde_json.value.Value.Insts.CoreCloneClone.clone self
+  ok v
+
+/-- [veoveo_hub::control_plane::policy::{impl core::clone::Clone for veoveo_hub::control_plane::policy::PolicyTarget}::clone]:
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 215:16-215:21
+    Visibility: public -/
+def control_plane.policy.PolicyTarget.Insts.CoreCloneClone.clone
+  (self : control_plane.policy.PolicyTarget) :
+  Result control_plane.policy.PolicyTarget
+  := do
+  match self with
+  | control_plane.policy.PolicyTarget.Hub =>
+    ok control_plane.policy.PolicyTarget.Hub
+  | control_plane.policy.PolicyTarget.Server __self_0 =>
+    let ss ←
+      veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+        __self_0
+    ok (control_plane.policy.PolicyTarget.Server ss)
+  | control_plane.policy.PolicyTarget.Tool __self_0 __self_1 =>
+    let ss ←
+      veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+        __self_0
+    let ltn ←
+      veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCloneClone.clone __self_1
+    ok (control_plane.policy.PolicyTarget.Tool ss ltn)
+  | control_plane.policy.PolicyTarget.Resource __self_0 __self_1 =>
+    let ss ←
+      veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+        __self_0
+    let ru ←
+      veoveo_types.resource.ResourceUri.Insts.CoreCloneClone.clone __self_1
+    ok (control_plane.policy.PolicyTarget.Resource ss ru)
+  | control_plane.policy.PolicyTarget.ResourceTemplate __self_0 __self_1 =>
+    let ss ←
+      veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+        __self_0
+    let rtu ←
+      veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCloneClone.clone
+        __self_1
+    ok (control_plane.policy.PolicyTarget.ResourceTemplate ss rtu)
+  | control_plane.policy.PolicyTarget.Prompt __self_0 __self_1 =>
+    let ss ←
+      veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+        __self_0
+    let pn ←
+      veoveo_hub_sdk.identity.PromptName.Insts.CoreCloneClone.clone __self_1
+    ok (control_plane.policy.PolicyTarget.Prompt ss pn)
+  | control_plane.policy.PolicyTarget.Task __self_0 __self_1 =>
+    let ss ←
+      veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+        __self_0
+    let cti ←
+      veoveo_hub_sdk.identity.CanonicalTaskId.Insts.CoreCloneClone.clone
+        __self_1
+    ok (control_plane.policy.PolicyTarget.Task ss cti)
+  | control_plane.policy.PolicyTarget.PlatformTask __self_0 __self_1 =>
+    let ss ←
+      veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+        __self_0
+    let ti ← veoveo_types.task.TaskId.Insts.CoreCloneClone.clone __self_1
+    ok (control_plane.policy.PolicyTarget.PlatformTask ss ti)
+  | control_plane.policy.PolicyTarget.Owner __self_0 =>
+    let apt ←
+      contract.catalog.AdmittedPolicyTarget.Insts.CoreCloneClone.clone __self_0
+    ok (control_plane.policy.PolicyTarget.Owner apt)
+  | control_plane.policy.PolicyTarget.Unadmitted __self_0 =>
+    let dpt ←
+      control_plane.policy.DecodedPolicyTarget.Insts.CoreCloneClone.clone
+        __self_0
+    ok (control_plane.policy.PolicyTarget.Unadmitted dpt)
 
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{impl core::ops::function::FnOnce<(&'_0 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), &'_ veoveo_hub::registration::snapshot::RegisteredServer> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}}::call_once]:
     Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 160:34-160:58 -/
@@ -1366,5 +1610,295 @@ def
     delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2PermissionNameBool)
     (alloc.collections.btree.set.BTreeSetTGlobal.Insts.CoreIterTraitsCollectFromIterator
     veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd) f
+
+/-- [veoveo_hub::policy::evaluation::registered_target]:
+    Source: 'crates/veoveo-hub/src/policy/evaluation.rs', lines 65:0-84:1 -/
+def policy.evaluation.registered_target
+  (target : control_plane.policy.PolicyTarget) :
+  Result (Option (veoveo_types.platform_names.ServerSlug × (Option
+    veoveo_hub_sdk.registration.authorization.RequirementTarget)))
+  := do
+  match target with
+  | control_plane.policy.PolicyTarget.Hub => ok none
+  | control_plane.policy.PolicyTarget.Server server => ok (some (server, none))
+  | control_plane.policy.PolicyTarget.Tool server tool =>
+    ok (some (server, some
+      (veoveo_hub_sdk.registration.authorization.RequirementTarget.Tool tool)))
+  | control_plane.policy.PolicyTarget.Resource server uri =>
+    ok (some (server, some
+      (veoveo_hub_sdk.registration.authorization.RequirementTarget.Resource
+      uri)))
+  | control_plane.policy.PolicyTarget.ResourceTemplate server uri =>
+    ok (some (server, some
+      (veoveo_hub_sdk.registration.authorization.RequirementTarget.ResourceTemplate
+      uri)))
+  | control_plane.policy.PolicyTarget.Prompt server prompt =>
+    ok (some (server, some
+      (veoveo_hub_sdk.registration.authorization.RequirementTarget.Prompt
+      prompt)))
+  | control_plane.policy.PolicyTarget.Task server _ => ok (some (server, none))
+  | control_plane.policy.PolicyTarget.PlatformTask server _ =>
+    ok (some (server, none))
+  | control_plane.policy.PolicyTarget.Owner _ => ok none
+  | control_plane.policy.PolicyTarget.Unadmitted _ => ok none
+
+/-- [veoveo_hub::policy::evaluation::declared_route_access]:
+    Source: 'crates/veoveo-hub/src/policy/evaluation.rs', lines 87:0-95:1 -/
+def policy.evaluation.declared_route_access
+  {T0 : Type _} (catalogPolicyCatalogViewInst :
+  policy.catalog.PolicyCatalogView T0) (catalog : T0)
+  (target : control_plane.policy.PolicyTarget) :
+  Result (Option veoveo_hub_sdk.registration.authorization.RouteAccess)
+  := do
+  let o ← policy.evaluation.registered_target target
+  let cf ← core.option.Option.Insts.CoreOpsTry_traitTry.branch o
+  match cf with
+  | core.ops.control_flow.ControlFlow.Continue p =>
+    let (server, o1) := p
+    match o1 with
+    | none => ok none
+    | some requirement =>
+      let o2 ←
+        catalogPolicyCatalogViewInst.server_authorization catalog server
+      let cf1 ← core.option.Option.Insts.CoreOpsTry_traitTry.branch o2
+      match cf1 with
+      | core.ops.control_flow.ControlFlow.Continue val =>
+        veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access
+          val requirement
+      | core.ops.control_flow.ControlFlow.Break residual =>
+        core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
+          veoveo_hub_sdk.registration.authorization.RouteAccess residual
+  | core.ops.control_flow.ControlFlow.Break residual =>
+    core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
+      veoveo_hub_sdk.registration.authorization.RouteAccess residual
+
+/-- [veoveo_hub::policy::evaluation::decision]:
+    Source: 'crates/veoveo-hub/src/policy/evaluation.rs', lines 292:0-314:1 -/
+def policy.evaluation.decision
+  (request : policy.evaluation.PolicyRequest)
+  (effect : control_plane.policy.PolicyEffect)
+  (reason : control_plane.policy.PolicyReasonCode)
+  (policy_version : Option veoveo_types.identity.PolicyVersion)
+  (rule_id : Option control_plane.ids.PolicyRuleId) :
+  Result control_plane.policy.PolicyDecision
+  := do
+  let dt ← chrono.offset.utc.Utc.now
+  let hpi ←
+    veoveo_hub_sdk.identity.HubProfileId.Insts.CoreCloneClone.clone
+      request.profile
+  let an ← contract.actions.PolicyAction.name request.action
+  let pt ←
+    control_plane.policy.PolicyTarget.Insts.CoreCloneClone.clone request.target
+  let pi ←
+    veoveo_types.identity.PrincipalId.Insts.CoreCloneClone.clone
+      request.principal.id
+  let o ←
+    core.option.Option.Insts.CoreCloneClone.clone
+      veoveo_types.identity.TenantId.Insts.CoreCloneClone
+      request.principal.tenant
+  let bs ←
+    alloc.collections.btree.set.BTreeSetTGlobal.new
+      veoveo_types.permission_names.PermissionName
+  let ti ←
+    control_plane.ids.TraceId.Insts.CoreCloneClone.clone request.trace_id
+  ok
+    {
+      effect,
+      reason,
+      evaluated_at := dt,
+      profile := hpi,
+      action := an,
+      target := pt,
+      principal := (some pi),
+      tenant := o,
+      policy_version,
+      rule_id,
+      permission := none,
+      granted := bs,
+      trace_id := ti
+    }
+
+/-- [veoveo_hub::policy::evaluation::deny]:
+    Source: 'crates/veoveo-hub/src/policy/evaluation.rs', lines 284:0-290:1 -/
+def policy.evaluation.deny
+  (request : policy.evaluation.PolicyRequest)
+  (reason : control_plane.policy.PolicyReasonCode)
+  (policy_version : Option veoveo_types.identity.PolicyVersion) :
+  Result control_plane.policy.PolicyDecision
+  := do
+  policy.evaluation.decision request control_plane.policy.PolicyEffect.Deny
+    reason policy_version none
+
+/-- [veoveo_hub::policy::evaluation::decide_server]:
+    Source: 'crates/veoveo-hub/src/policy/evaluation.rs', lines 97:0-155:1 -/
+def policy.evaluation.decide_server
+  {T0 : Type _} (catalogPolicyCatalogViewInst :
+  policy.catalog.PolicyCatalogView T0) (catalog : T0)
+  (request : policy.evaluation.PolicyRequest)
+  (server : veoveo_types.platform_names.ServerSlug)
+  (requirement : Option
+  veoveo_hub_sdk.registration.authorization.RequirementTarget)
+  (version : Option veoveo_types.identity.PolicyVersion) :
+  Result control_plane.policy.PolicyDecision
+  := do
+  match request.action with
+  | contract.actions.PolicyAction.Kernel action =>
+    let b ← contract.actions.HubAction.targets_registered_server action
+    if b
+    then
+      let o ←
+        catalogPolicyCatalogViewInst.server_authorization catalog server
+      match o with
+      | none =>
+        policy.evaluation.deny request
+          control_plane.policy.PolicyReasonCode.UnknownServer version
+      | some declaration =>
+        let ia ←
+          catalogPolicyCatalogViewInst.installation_authorization catalog
+        let granted ←
+          policy.grants.granted_permissions ia declaration request.principal
+        match requirement with
+        | none =>
+          let b1 ←
+            alloc.collections.btree.set.BTreeSet.is_empty
+              alloc.alloc.Global.Insts.CoreAllocAllocatorClone granted
+          if ¬ b1
+          then
+            if ¬ b1
+            then
+              let decision ←
+                policy.evaluation.decision request
+                  control_plane.policy.PolicyEffect.Allow
+                  control_plane.policy.PolicyReasonCode.PolicyAllow version
+                  none
+              if ¬ b1
+              then ok { decision with permission := none, granted }
+              else ok { decision with permission := none }
+            else
+              let decision ←
+                policy.evaluation.decision request
+                  control_plane.policy.PolicyEffect.Allow
+                  control_plane.policy.PolicyReasonCode.MissingPermission
+                  version none
+              if ¬ b1
+              then ok { decision with permission := none, granted }
+              else ok { decision with permission := none }
+          else
+            if ¬ b1
+            then
+              let decision ←
+                policy.evaluation.decision request
+                  control_plane.policy.PolicyEffect.Deny
+                  control_plane.policy.PolicyReasonCode.PolicyAllow version
+                  none
+              if ¬ b1
+              then ok { decision with permission := none, granted }
+              else ok { decision with permission := none }
+            else
+              let decision ←
+                policy.evaluation.decision request
+                  control_plane.policy.PolicyEffect.Deny
+                  control_plane.policy.PolicyReasonCode.MissingPermission
+                  version none
+              if ¬ b1
+              then ok { decision with permission := none, granted }
+              else ok { decision with permission := none }
+        | some target =>
+          let o1 ←
+            policy.evaluation.declared_route_access
+              catalogPolicyCatalogViewInst catalog request.target
+          match o1 with
+          | none =>
+            match target with
+            | veoveo_hub_sdk.registration.authorization.RequirementTarget.Tool
+              _ =>
+              policy.evaluation.deny request
+                control_plane.policy.PolicyReasonCode.UnknownTool version
+            |
+              veoveo_hub_sdk.registration.authorization.RequirementTarget.Resource
+              _ =>
+              policy.evaluation.deny request
+                control_plane.policy.PolicyReasonCode.UndeclaredTarget version
+            |
+              veoveo_hub_sdk.registration.authorization.RequirementTarget.ResourceTemplate
+              _ =>
+              policy.evaluation.deny request
+                control_plane.policy.PolicyReasonCode.UndeclaredTarget version
+            |
+              veoveo_hub_sdk.registration.authorization.RequirementTarget.Prompt
+              _ =>
+              policy.evaluation.deny request
+                control_plane.policy.PolicyReasonCode.UnknownPrompt version
+          | some ra =>
+            match ra with
+            |
+              veoveo_hub_sdk.registration.authorization.RouteAccess.Authenticated
+              =>
+              let decision ←
+                policy.evaluation.decision request
+                  control_plane.policy.PolicyEffect.Allow
+                  control_plane.policy.PolicyReasonCode.PolicyAllow version
+                  none
+              ok { decision with permission := none, granted }
+            | veoveo_hub_sdk.registration.authorization.RouteAccess.Permission
+              permission =>
+              let pn ←
+                veoveo_types.permission_names.PermissionName.Insts.CoreCloneClone.clone
+                  permission
+              let allowed ←
+                alloc.collections.btree.set.BTreeSet.contains
+                  alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                  (core.borrow.Borrow.Blanket
+                  veoveo_types.permission_names.PermissionName)
+                  veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd
+                  veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd
+                  granted permission
+              if allowed
+              then
+                if allowed
+                then
+                  let decision ←
+                    policy.evaluation.decision request
+                      control_plane.policy.PolicyEffect.Allow
+                      control_plane.policy.PolicyReasonCode.PolicyAllow version
+                      none
+                  if allowed
+                  then ok { decision with permission := (some pn), granted }
+                  else ok { decision with permission := (some pn) }
+                else
+                  let decision ←
+                    policy.evaluation.decision request
+                      control_plane.policy.PolicyEffect.Allow
+                      control_plane.policy.PolicyReasonCode.MissingPermission
+                      version none
+                  if allowed
+                  then ok { decision with permission := (some pn), granted }
+                  else ok { decision with permission := (some pn) }
+              else
+                if allowed
+                then
+                  let decision ←
+                    policy.evaluation.decision request
+                      control_plane.policy.PolicyEffect.Deny
+                      control_plane.policy.PolicyReasonCode.PolicyAllow version
+                      none
+                  if allowed
+                  then ok { decision with permission := (some pn), granted }
+                  else ok { decision with permission := (some pn) }
+                else
+                  let decision ←
+                    policy.evaluation.decision request
+                      control_plane.policy.PolicyEffect.Deny
+                      control_plane.policy.PolicyReasonCode.MissingPermission
+                      version none
+                  if allowed
+                  then ok { decision with permission := (some pn), granted }
+                  else ok { decision with permission := (some pn) }
+    else
+      policy.evaluation.deny request
+        control_plane.policy.PolicyReasonCode.PolicyDeny version
+  | contract.actions.PolicyAction.Registered _ =>
+    policy.evaluation.deny request
+      control_plane.policy.PolicyReasonCode.PolicyDeny version
 
 end veoveo_hub

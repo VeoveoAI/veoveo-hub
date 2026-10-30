@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/evaluation.rs
++++ b/crates/veoveo-hub/src/policy/evaluation.rs
+@@ -115,7 +115,7 @@
+     );
+     let (required, allowed) = match requirement {
+         Some(target) => match declared_route_access(catalog, request.target) {
+-            Some(RouteAccess::Authenticated) => (None, true),
++            Some(RouteAccess::Authenticated) => (None, !granted.is_empty()),
+             Some(RouteAccess::Permission(permission)) => {
+                 (Some(permission.clone()), granted.contains(permission))
+             }

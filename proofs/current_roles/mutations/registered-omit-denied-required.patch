@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/evaluation.rs
++++ b/crates/veoveo-hub/src/policy/evaluation.rs
+@@ -147,7 +147,7 @@
+         version,
+         None,
+     );
+-    decision.permission = required;
++    decision.permission = if allowed { required } else { None };
+     if allowed {
+         decision.granted = granted;
+     }

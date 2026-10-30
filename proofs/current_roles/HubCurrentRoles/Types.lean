@@ -655,6 +655,26 @@ structure veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration
   uses : alloc.vec.Vec veoveo_types.permission_names.PermissionName
   calls_hub : Bool
 
+/-- [veoveo_hub_sdk::registration::authorization::RequirementTarget]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 143:0-143:30
+    Name pattern: [veoveo_hub_sdk::registration::authorization::RequirementTarget]
+    Visibility: public -/
+@[discriminant isize, rust_type
+  "veoveo_hub_sdk::registration::authorization::RequirementTarget"]
+inductive veoveo_hub_sdk.registration.authorization.RequirementTarget where
+| Tool :
+  veoveo_hub_sdk.identity.LocalToolName →
+  veoveo_hub_sdk.registration.authorization.RequirementTarget
+| Resource :
+  veoveo_types.resource.ResourceUri →
+  veoveo_hub_sdk.registration.authorization.RequirementTarget
+| ResourceTemplate :
+  veoveo_types.resource_template.ResourceTemplateUri →
+  veoveo_hub_sdk.registration.authorization.RequirementTarget
+| Prompt :
+  veoveo_hub_sdk.identity.PromptName →
+  veoveo_hub_sdk.registration.authorization.RequirementTarget
+
 /-- [veoveo_hub::registration::snapshot::Namespace]
     Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 75:0-78:1
     Visibility: public -/
@@ -1543,6 +1563,157 @@ structure catalog.HubCatalog where
   secrets : alloc.collections.btree.map.BTreeMap
     contract.identity.SecretReferenceId Std.Usize alloc.alloc.Global
 
+/-- [veoveo_hub::contract::actions::HubAction]
+    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 4:0-19:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.actions.HubAction where
+| ToolsList : contract.actions.HubAction
+| ToolsCall : contract.actions.HubAction
+| ResourcesList : contract.actions.HubAction
+| ResourcesTemplatesList : contract.actions.HubAction
+| ResourcesRead : contract.actions.HubAction
+| SubscriptionsListen : contract.actions.HubAction
+| PromptsList : contract.actions.HubAction
+| PromptsGet : contract.actions.HubAction
+| CompletionComplete : contract.actions.HubAction
+| TasksGet : contract.actions.HubAction
+| TasksUpdate : contract.actions.HubAction
+| TasksCancel : contract.actions.HubAction
+| AdminRead : contract.actions.HubAction
+| AdminWrite : contract.actions.HubAction
+
+/-- [veoveo_hub::contract::actions::PolicyAction]
+    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 49:0-52:1
+    Visibility: public -/
+@[discriminant isize]
+inductive contract.actions.PolicyAction where
+| Kernel : contract.actions.HubAction → contract.actions.PolicyAction
+| Registered :
+  veoveo_types.actions.ActionHandle →
+  contract.actions.PolicyAction
+
+/-- [veoveo_hub::contract::catalog::TargetAuditResource]
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 164:0-167:1
+    Visibility: public -/
+structure contract.catalog.TargetAuditResource where
+  server : veoveo_types.platform_names.ServerSlug
+  uri : veoveo_types.resource.ResourceUri
+
+/-- [veoveo_hub::contract::catalog::AdmittedPolicyTarget]
+    Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 542:0-548:1
+    Visibility: public -/
+structure contract.catalog.AdmittedPolicyTarget where
+  extensions : veoveo_types.extensions.AdmittedExtensions
+  «section» : veoveo_types.extensions.ExtensionName
+  kind : veoveo_types.extensions.ExtensionName
+  wire : serde_json.value.Value
+  audit : contract.catalog.TargetAuditResource
+
+/-- [veoveo_hub::control_plane::ids::TraceId]
+    Source: 'crates/veoveo-hub/src/control_plane/ids.rs', lines 51:0-51:27
+    Visibility: public -/
+@[reducible]
+def control_plane.ids.TraceId := String
+
+/-- [veoveo_hub::control_plane::policy::DecodedPolicyTarget]
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 272:0-272:50
+    Visibility: public -/
+@[reducible]
+def control_plane.policy.DecodedPolicyTarget := serde_json.value.Value
+
+/-- [veoveo_hub::control_plane::policy::PolicyTarget]
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 222:0-268:1
+    Visibility: public -/
+@[discriminant isize]
+inductive control_plane.policy.PolicyTarget where
+| Hub : control_plane.policy.PolicyTarget
+| Server :
+  veoveo_types.platform_names.ServerSlug →
+  control_plane.policy.PolicyTarget
+| Tool :
+  veoveo_types.platform_names.ServerSlug →
+  veoveo_hub_sdk.identity.LocalToolName →
+  control_plane.policy.PolicyTarget
+| Resource :
+  veoveo_types.platform_names.ServerSlug →
+  veoveo_types.resource.ResourceUri →
+  control_plane.policy.PolicyTarget
+| ResourceTemplate :
+  veoveo_types.platform_names.ServerSlug →
+  veoveo_types.resource_template.ResourceTemplateUri →
+  control_plane.policy.PolicyTarget
+| Prompt :
+  veoveo_types.platform_names.ServerSlug →
+  veoveo_hub_sdk.identity.PromptName →
+  control_plane.policy.PolicyTarget
+| Task :
+  veoveo_types.platform_names.ServerSlug →
+  veoveo_hub_sdk.identity.CanonicalTaskId →
+  control_plane.policy.PolicyTarget
+| PlatformTask :
+  veoveo_types.platform_names.ServerSlug →
+  veoveo_types.task.TaskId →
+  control_plane.policy.PolicyTarget
+| Owner :
+  contract.catalog.AdmittedPolicyTarget →
+  control_plane.policy.PolicyTarget
+| Unadmitted :
+  control_plane.policy.DecodedPolicyTarget →
+  control_plane.policy.PolicyTarget
+
+/-- [veoveo_hub::control_plane::policy::PolicyReasonCode]
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 150:0-179:1
+    Visibility: public -/
+@[discriminant isize]
+inductive control_plane.policy.PolicyReasonCode where
+| PolicyAllow : control_plane.policy.PolicyReasonCode
+| PolicyDeny : control_plane.policy.PolicyReasonCode
+| UnknownProfile : control_plane.policy.PolicyReasonCode
+| UnknownServer : control_plane.policy.PolicyReasonCode
+| UnknownTool : control_plane.policy.PolicyReasonCode
+| UnknownResource : control_plane.policy.PolicyReasonCode
+| UnknownPrompt : control_plane.policy.PolicyReasonCode
+| UnknownTask : control_plane.policy.PolicyReasonCode
+| UnknownPrincipal : control_plane.policy.PolicyReasonCode
+| UnknownScope : control_plane.policy.PolicyReasonCode
+| UnknownDataLabel : control_plane.policy.PolicyReasonCode
+| UnknownTenant : control_plane.policy.PolicyReasonCode
+| UnknownTokenIssuer : control_plane.policy.PolicyReasonCode
+| MissingPrincipal : control_plane.policy.PolicyReasonCode
+| MissingTenant : control_plane.policy.PolicyReasonCode
+| MissingGroup : control_plane.policy.PolicyReasonCode
+| MissingRole : control_plane.policy.PolicyReasonCode
+| MissingScope : control_plane.policy.PolicyReasonCode
+| MissingDataLabel : control_plane.policy.PolicyReasonCode
+| MissingPrincipalAssurance : control_plane.policy.PolicyReasonCode
+| TokenAudienceMismatch : control_plane.policy.PolicyReasonCode
+| TokenExpired : control_plane.policy.PolicyReasonCode
+| TokenNotYetValid : control_plane.policy.PolicyReasonCode
+| ReplayDetected : control_plane.policy.PolicyReasonCode
+| UndeclaredTarget : control_plane.policy.PolicyReasonCode
+| MissingPermission : control_plane.policy.PolicyReasonCode
+
+/-- [veoveo_hub::control_plane::policy::PolicyDecision]
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 94:0-118:1
+    Visibility: public -/
+structure control_plane.policy.PolicyDecision where
+  effect : control_plane.policy.PolicyEffect
+  reason : control_plane.policy.PolicyReasonCode
+  evaluated_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+  profile : veoveo_hub_sdk.identity.HubProfileId
+  action : veoveo_types.actions.ActionName
+  target : control_plane.policy.PolicyTarget
+  principal : Option veoveo_types.identity.PrincipalId
+  tenant : Option veoveo_types.identity.TenantId
+  policy_version : Option veoveo_types.identity.PolicyVersion
+  rule_id : Option control_plane.ids.PolicyRuleId
+  permission : Option veoveo_types.permission_names.PermissionName
+  granted : alloc.collections.btree.set.BTreeSet
+    veoveo_types.permission_names.PermissionName alloc.alloc.Global
+  trace_id : control_plane.ids.TraceId
+
 /-- [veoveo_hub::delegation::CurrentPermissions]
     Source: 'crates/veoveo-hub/src/delegation.rs', lines 98:0-101:1 -/
 structure delegation.CurrentPermissions where
@@ -1614,5 +1785,35 @@ def delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure
   :=
   control_plane.authorization_config.InstallationAuthorization ×
   veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller
+
+/-- Trait declaration: [veoveo_hub::policy::catalog::PolicyCatalogView]
+    Source: 'crates/veoveo-hub/src/policy/catalog.rs', lines 12:0-22:1
+    Visibility: public -/
+structure policy.catalog.PolicyCatalogView (Self : Type _) where
+  registry : Self → Result contract.catalog.CatalogRegistry
+  sections : Self → Result contract.catalog.AdmittedCatalogSections
+  profile : Self → veoveo_hub_sdk.identity.HubProfileId → Result (Option
+    control_plane.server_config.HubProfile)
+  policy : Self → veoveo_types.identity.PolicyVersion → Result (Option
+    control_plane.policy.PolicySet)
+  data_label : Self → veoveo_types.identity.DataLabelId → Result (Option
+    control_plane.data_label.DataLabelDefinition)
+  tenant : Self → veoveo_types.identity.TenantId → Result (Option
+    control_plane.tenant.TenantDefinition)
+  installation_authorization : Self → Result
+    control_plane.authorization_config.InstallationAuthorization
+  server_authorization : Self → veoveo_types.platform_names.ServerSlug →
+    Result (Option
+    veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration)
+
+/-- [veoveo_hub::policy::evaluation::PolicyRequest]
+    Source: 'crates/veoveo-hub/src/policy/evaluation.rs', lines 16:0-22:1
+    Visibility: public -/
+structure policy.evaluation.PolicyRequest where
+  principal : veoveo_hub_sdk.identity.Principal
+  profile : veoveo_hub_sdk.identity.HubProfileId
+  action : contract.actions.PolicyAction
+  target : control_plane.policy.PolicyTarget
+  trace_id : control_plane.ids.TraceId
 
 end veoveo_hub

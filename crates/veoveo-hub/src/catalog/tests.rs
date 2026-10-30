@@ -751,6 +751,13 @@ fn registered_authenticated_routes_keep_current_admission_and_task_boundaries() 
             HubAction::ResourcesList,
         ),
         (
+            PolicyTarget::Task {
+                server: Observatory::slug(),
+                task_id: CanonicalTaskId::parse(uuid::Uuid::now_v7().to_string()).unwrap(),
+            },
+            HubAction::TasksGet,
+        ),
+        (
             PolicyTarget::PlatformTask {
                 server: Observatory::slug(),
                 task_id: veoveo_types::TaskId::new(),
@@ -770,6 +777,235 @@ fn registered_authenticated_routes_keep_current_admission_and_task_boundaries() 
         );
         assert_eq!(denied.effect, PolicyEffect::Deny);
         assert_eq!(denied.reason, PolicyReasonCode::MissingPermission);
+    }
+}
+
+// This fixture owns this namespace; no installed server participates.
+const REGISTERED_POLICY_FIXTURE: &str = "registered-policy-fixture";
+
+fn registered_fixture_permission(action: &str) -> veoveo_types::PermissionName {
+    veoveo_types::PermissionName::parse(format!("{REGISTERED_POLICY_FIXTURE}.records.{action}"))
+        .unwrap()
+}
+
+fn registered_policy_fixture() -> (crate::policy::PolicyCatalog, Principal) {
+    use crate::control_plane::{
+        GrantSubject, InstallationAuthorization, InstallationRole, RoleGrant,
+    };
+    use veoveo_hub_sdk::registration::{
+        Access, AuthorizationDeclaration, PermissionDeclaration, Requirements, RouteAccess,
+    };
+    let caller = principal(&["operator:use"]);
+    let slug = ServerSlug::parse(REGISTERED_POLICY_FIXTURE).unwrap();
+    let role = RoleId::parse("registered-policy-reader").unwrap();
+    let mut plane = catalog().control_plane().clone();
+    plane.authorization = InstallationAuthorization {
+        roles: vec![InstallationRole {
+            name: role.clone(),
+            access: BTreeSet::from([Access::Read]),
+            risks: BTreeSet::new(),
+        }],
+        grants: vec![RoleGrant {
+            role,
+            subject: GrantSubject::Principal(caller.id.clone()),
+            tenant: caller.tenant.clone(),
+        }],
+        overrides: Vec::new(),
+    };
+    let declaration = AuthorizationDeclaration {
+        permissions: [
+            ("read", Access::Read),
+            ("inspect", Access::Read),
+            ("write", Access::Write),
+        ]
+        .into_iter()
+        .map(|(action, access)| PermissionDeclaration {
+            permission: registered_fixture_permission(action),
+            resource: veoveo_types::ResourceTypeName::parse(format!(
+                "{REGISTERED_POLICY_FIXTURE}.records"
+            ))
+            .unwrap(),
+            access,
+            risks: BTreeSet::new(),
+        })
+        .collect(),
+        requirements: Requirements {
+            tools: [
+                (
+                    veoveo_hub_sdk::LocalToolName::parse("read").unwrap(),
+                    RouteAccess::Permission(registered_fixture_permission("read")),
+                ),
+                (
+                    veoveo_hub_sdk::LocalToolName::parse("write").unwrap(),
+                    RouteAccess::Permission(registered_fixture_permission("write")),
+                ),
+            ]
+            .into(),
+            ..Requirements::default()
+        },
+        uses: Vec::new(),
+        calls_hub: false,
+    };
+    declaration
+        .check(
+            &slug,
+            &veoveo_types::ResourceScheme::parse(REGISTERED_POLICY_FIXTURE).unwrap(),
+        )
+        .unwrap();
+    (
+        crate::policy::PolicyCatalog::new(plane, crate::test_catalog::registry())
+            .unwrap()
+            .with_server(slug, declaration),
+        caller,
+    )
+}
+
+#[test]
+fn registered_permission_denial_keeps_required_and_correlation() {
+    let (catalog, caller) = registered_policy_fixture();
+    let profile = HubProfileId::parse("default").unwrap();
+    let trace = TraceId::parse("registered-policy-fields").unwrap();
+    for (tool, effect, reason, grants) in [
+        (
+            "read",
+            PolicyEffect::Allow,
+            PolicyReasonCode::PolicyAllow,
+            BTreeSet::from([
+                registered_fixture_permission("read"),
+                registered_fixture_permission("inspect"),
+            ]),
+        ),
+        (
+            "write",
+            PolicyEffect::Deny,
+            PolicyReasonCode::MissingPermission,
+            BTreeSet::new(),
+        ),
+    ] {
+        let target = PolicyTarget::Tool {
+            server: ServerSlug::parse(REGISTERED_POLICY_FIXTURE).unwrap(),
+            tool: veoveo_hub_sdk::LocalToolName::parse(tool).unwrap(),
+        };
+        let before = Utc::now();
+        let output = crate::policy::decide(
+            &catalog,
+            PolicyRequest {
+                principal: &caller,
+                profile: &profile,
+                action: HubAction::ToolsCall.into(),
+                target: &target,
+                trace_id: &trace,
+            },
+        );
+        let after = Utc::now();
+        assert!(before <= output.evaluated_at && output.evaluated_at <= after);
+        // Only the observed timestamp is reused; every other expected field is
+        // supplied independently from this fixture and the requested scenario.
+        assert_eq!(
+            output,
+            crate::control_plane::PolicyDecision {
+                effect,
+                reason,
+                evaluated_at: output.evaluated_at,
+                profile: profile.clone(),
+                action: HubAction::ToolsCall.into(),
+                target,
+                principal: Some(caller.id.clone()),
+                tenant: caller.tenant.clone(),
+                policy_version: Some(veoveo_types::PolicyVersion::parse("2026-07-02").unwrap()),
+                rule_id: None,
+                permission: Some(registered_fixture_permission(tool)),
+                granted: grants,
+                trace_id: trace.clone(),
+            }
+        );
+    }
+}
+
+#[test]
+fn registered_missing_targets_keep_distinct_reasons() {
+    let (catalog, caller) = registered_policy_fixture();
+    let profile = HubProfileId::parse("default").unwrap();
+    let trace = TraceId::parse("registered-policy-unknown").unwrap();
+    let slug = ServerSlug::parse(REGISTERED_POLICY_FIXTURE).unwrap();
+    for (target, action, reason) in [
+        (
+            PolicyTarget::Tool {
+                server: slug.clone(),
+                tool: veoveo_hub_sdk::LocalToolName::parse("missing").unwrap(),
+            },
+            HubAction::ToolsCall,
+            PolicyReasonCode::UnknownTool,
+        ),
+        (
+            PolicyTarget::Prompt {
+                server: slug.clone(),
+                prompt: veoveo_hub_sdk::PromptName::parse("missing").unwrap(),
+            },
+            HubAction::PromptsGet,
+            PolicyReasonCode::UnknownPrompt,
+        ),
+        (
+            PolicyTarget::Resource {
+                server: slug.clone(),
+                uri: veoveo_types::ResourceUri::new(format!(
+                    "{REGISTERED_POLICY_FIXTURE}://missing"
+                ))
+                .unwrap(),
+            },
+            HubAction::ResourcesRead,
+            PolicyReasonCode::UndeclaredTarget,
+        ),
+        (
+            PolicyTarget::ResourceTemplate {
+                server: slug,
+                uri: veoveo_types::ResourceTemplateUri::new(format!(
+                    "{REGISTERED_POLICY_FIXTURE}://missing/{{id}}"
+                ))
+                .unwrap(),
+            },
+            HubAction::ResourcesTemplatesList,
+            PolicyReasonCode::UndeclaredTarget,
+        ),
+        (
+            PolicyTarget::Server {
+                server: ServerSlug::parse("registered-policy-absent").unwrap(),
+            },
+            HubAction::ResourcesList,
+            PolicyReasonCode::UnknownServer,
+        ),
+    ] {
+        let before = Utc::now();
+        let output = crate::policy::decide(
+            &catalog,
+            PolicyRequest {
+                principal: &caller,
+                profile: &profile,
+                action: action.into(),
+                target: &target,
+                trace_id: &trace,
+            },
+        );
+        let after = Utc::now();
+        assert!(before <= output.evaluated_at && output.evaluated_at <= after);
+        assert_eq!(
+            output,
+            crate::control_plane::PolicyDecision {
+                effect: PolicyEffect::Deny,
+                reason,
+                evaluated_at: output.evaluated_at,
+                profile: profile.clone(),
+                action: action.into(),
+                target,
+                principal: Some(caller.id.clone()),
+                tenant: caller.tenant.clone(),
+                policy_version: Some(veoveo_types::PolicyVersion::parse("2026-07-02").unwrap()),
+                rule_id: None,
+                permission: None,
+                granted: BTreeSet::new(),
+                trace_id: trace.clone(),
+            }
+        );
     }
 }
 

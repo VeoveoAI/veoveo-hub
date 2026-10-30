@@ -526,3 +526,17 @@ abbrev prost_types.protobuf.value.Kind := CurrentRolesId 54
     Visibility: public -/
 @[rust_type "serde_json::value::Value"]
 abbrev serde_json.value.Value := CurrentRolesId 55
+
+/- Conditional native-policy extension. Nominal values remain unbounded;
+ActionHandle retains a separate registry-identity token and its observed name.
+This models value preservation, not native Arc pointer identity or admission. -/
+@[rust_type "veoveo_hub_sdk::identity::CanonicalTaskId"]
+abbrev veoveo_hub_sdk.identity.CanonicalTaskId := CurrentRolesId 56
+
+@[rust_type "veoveo_types::extensions::ExtensionError"]
+abbrev veoveo_types.extensions.ExtensionError := CurrentRolesId 57
+
+@[rust_type "veoveo_types::actions::ActionHandle"]
+structure veoveo_types.actions.ActionHandle where
+  identity : CurrentRolesId 58
+  actionName : veoveo_types.actions.ActionName

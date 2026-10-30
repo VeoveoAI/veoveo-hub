@@ -806,3 +806,317 @@ control. This value model does not claim allocator or native representation beha
 def alloc.collections.btree.set.BTreeSetTGlobal.new
     (T : Type _) : Result (alloc.collections.btree.set.BTreeSet T alloc.alloc.Global) :=
   .ok ∅
+
+/- Conditional policy-decision extension. Existing primitive models above are
+unchanged. The only new native operation assumptions are explicitly marked.
+Debug formatting is inert; no formatting trace is claimed, and closed kernel
+action spelling must prove parse success before expect. -/
+
+/-- [core::convert::{impl core::convert::AsRef<U> for &'_0 T}::as_ref]:
+    Source: '/rustc/library/core/src/convert/mod.rs', lines 719:4-719:26
+    Name pattern: [core::convert::{core::convert::AsRef<&'0 @T, @U>}::as_ref]
+    Visibility: public -/
+@[rust_fun "core::convert::{core::convert::AsRef<&'0 @T, @U>}::as_ref"]
+def Shared0T.Insts.CoreConvertAsRef.as_ref
+  {T : Type _} {U : Type _} (AsRefInst : core.convert.AsRef T U) :
+  T → Result U
+  := fun value => AsRefInst.as_ref value
+
+/-- [core::convert::{impl core::convert::AsRef<str> for str}::as_ref]:
+    Source: '/rustc/library/core/src/convert/mod.rs', lines 852:4-852:28
+    Name pattern: [core::convert::{core::convert::AsRef<str, str>}::as_ref]
+    Visibility: public -/
+@[rust_fun "core::convert::{core::convert::AsRef<str, str>}::as_ref"]
+def Str.Insts.CoreConvertAsRefStr.as_ref : Str → Result Str
+  := fun value => .ok value
+
+/-- [core::option::{impl core::clone::Clone for core::option::Option<T>}::clone]:
+    Source: '/rustc/library/core/src/option.rs', lines 2278:4-2278:27
+    Name pattern: [core::option::{core::clone::Clone<core::option::Option<@T>>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "core::option::{core::clone::Clone<core::option::Option<@T>>}::clone"]
+def core.option.Option.Insts.CoreCloneClone.clone
+  {T : Type _} (cloneCloneInst : core.clone.Clone T) :
+  Option T → Result (Option T)
+  := fun value => do
+    match value with
+    | none => .ok none
+    | some item =>
+      let copied ← cloneCloneInst.clone item
+      .ok (some copied)
+
+/-- [core::option::{impl core::ops::try_trait::Try for core::option::Option<T>}::branch]:
+    Source: '/rustc/library/core/src/option.rs', lines 2875:4-2875:64
+    Name pattern: [core::option::{core::ops::try_trait::Try<core::option::Option<@T>>}::branch]
+    Visibility: public -/
+@[rust_fun
+  "core::option::{core::ops::try_trait::Try<core::option::Option<@T>>}::branch"]
+def core.option.Option.Insts.CoreOpsTry_traitTry.branch
+  {T : Type _} :
+  Option T → Result (core.ops.control_flow.ControlFlow (Option Never) T)
+  := fun value => .ok (match value with
+    | none => .Break none
+    | some item => .Continue item)
+
+/-- [core::option::{impl core::ops::try_trait::FromResidual<core::option::Option<!>> for core::option::Option<T>}::from_residual]:
+    Source: '/rustc/library/core/src/option.rs', lines 2889:4-2889:49
+    Name pattern: [core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual]
+    Visibility: public -/
+@[rust_fun
+  "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
+def
+  core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
+  (T : Type _) : Option Never → Result (Option T)
+  := fun residual => match residual with
+    | none => .ok none
+    | some impossible => nomatch impossible
+
+/-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, A>}::is_empty]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1292:4-1292:40
+    Name pattern: [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::is_empty]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::is_empty"]
+def alloc.collections.btree.set.BTreeSet.is_empty
+  {T : Type _} {A : Type _} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) :
+  alloc.collections.btree.set.BTreeSet T A → Result Bool
+  := fun values => .ok (decide (values = ∅))
+
+/-- [alloc::string::{impl core::clone::Clone for alloc::string::String}::clone]:
+    Source: '/rustc/library/alloc/src/string.rs', lines 2425:4-2425:27
+    Name pattern: [alloc::string::{core::clone::Clone<alloc::string::String>}::clone]
+    Visibility: public -/
+@[rust_fun "alloc::string::{core::clone::Clone<alloc::string::String>}::clone"]
+def alloc.string.String.Insts.CoreCloneClone.clone : String → Result String
+  := fun value => .ok value
+
+-- EXPLICIT NATIVE OPERATION SYMBOL: conditional observation, not an implementation.
+/-- [chrono::offset::utc::{chrono::offset::utc::Utc}::now]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/utc.rs', lines 95:4-95:33
+    Name pattern: [chrono::offset::utc::{chrono::offset::utc::Utc}::now]
+    Visibility: public -/
+@[rust_fun "chrono::offset::utc::{chrono::offset::utc::Utc}::now"]
+axiom chrono.offset.utc.Utc.now
+  :
+  Result (chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc)
+
+/-- [serde_json::value::{impl core::clone::Clone for serde_json::value::Value}::clone]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/src/value/mod.rs', lines 115:9-115:14
+    Name pattern: [serde_json::value::{core::clone::Clone<serde_json::value::Value>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "serde_json::value::{core::clone::Clone<serde_json::value::Value>}::clone"]
+def serde_json.value.Value.Insts.CoreCloneClone.clone
+  : serde_json.value.Value → Result serde_json.value.Value
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::identity::{impl core::clone::Clone for veoveo_hub_sdk::identity::HubProfileId}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 154:0-154:40
+    Name pattern: [veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::HubProfileId>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::HubProfileId>}::clone"]
+def veoveo_hub_sdk.identity.HubProfileId.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.identity.HubProfileId → Result
+    veoveo_hub_sdk.identity.HubProfileId
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::identity::{impl core::clone::Clone for veoveo_hub_sdk::identity::LocalToolName}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 171:0-171:40
+    Name pattern: [veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::LocalToolName>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::LocalToolName>}::clone"]
+def veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.identity.LocalToolName → Result
+    veoveo_hub_sdk.identity.LocalToolName
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::identity::{impl core::clone::Clone for veoveo_hub_sdk::identity::PromptName}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 175:0-175:40
+    Name pattern: [veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::PromptName>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::PromptName>}::clone"]
+def veoveo_hub_sdk.identity.PromptName.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.identity.PromptName → Result
+    veoveo_hub_sdk.identity.PromptName
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::identity::{impl core::clone::Clone for veoveo_hub_sdk::identity::CanonicalTaskId}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/identity.rs', lines 187:0-187:39
+    Name pattern: [veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::CanonicalTaskId>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::CanonicalTaskId>}::clone"]
+def veoveo_hub_sdk.identity.CanonicalTaskId.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.identity.CanonicalTaskId → Result
+    veoveo_hub_sdk.identity.CanonicalTaskId
+  := fun value => .ok value
+
+-- EXPLICIT NATIVE OPERATION SYMBOL: conditional observation, not an implementation.
+/-- [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration}::access]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 254:4-254:79
+    Name pattern: [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration}::access]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration}::access"]
+axiom veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access
+  :
+  veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration →
+    veoveo_hub_sdk.registration.authorization.RequirementTarget → Result
+    (Option veoveo_hub_sdk.registration.authorization.RouteAccess)
+
+/-- [veoveo_types::actions::{impl core::clone::Clone for veoveo_types::actions::ActionName}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/actions.rs', lines 6:0-6:38
+    Name pattern: [veoveo_types::actions::{core::clone::Clone<veoveo_types::actions::ActionName>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::actions::{core::clone::Clone<veoveo_types::actions::ActionName>}::clone"]
+def veoveo_types.actions.ActionName.Insts.CoreCloneClone.clone
+  : veoveo_types.actions.ActionName → Result veoveo_types.actions.ActionName
+  := fun value => .ok value
+
+/-- [veoveo_types::actions::{veoveo_types::actions::ActionName}::parse]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/actions.rs', lines 6:0-6:38
+    Name pattern: [veoveo_types::actions::{veoveo_types::actions::ActionName}::parse]
+    Visibility: public -/
+@[rust_fun "veoveo_types::actions::{veoveo_types::actions::ActionName}::parse"]
+def veoveo_types.actions.ActionName.parse
+  {T0 : Type _} (coreconvertAsRefT0StrInst : core.convert.AsRef T0 Str) :
+  T0 → Result (core.result.Result veoveo_types.actions.ActionName
+    veoveo_types.extensions.ExtensionError)
+  := fun value => do
+    let text ← coreconvertAsRefT0StrInst.as_ref value
+    let bytes := text.val.map (fun byte => byte.val)
+    let firstLower := match bytes with
+      | [] => false
+      | first :: _ => decide (97 ≤ first ∧ first ≤ 122)
+    let allowed := bytes.all (fun byte => decide (
+      (97 ≤ byte ∧ byte ≤ 122) ∨ (48 ≤ byte ∧ byte ≤ 57) ∨
+      byte = 95 ∨ byte = 45 ∨ byte = 46))
+    if firstLower && decide (bytes.length ≤ 128) && allowed then
+      .ok (.Ok ⟨_root_.String.ofList (bytes.map Char.ofNat)⟩)
+    else .ok (.Err ⟨"invalid action name"⟩)
+
+/-- [veoveo_types::actions::{veoveo_types::actions::ActionHandle}::name]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/actions.rs', lines 25:4-25:37
+    Name pattern: [veoveo_types::actions::{veoveo_types::actions::ActionHandle}::name]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::actions::{veoveo_types::actions::ActionHandle}::name"]
+def veoveo_types.actions.ActionHandle.name
+  :
+  veoveo_types.actions.ActionHandle → Result veoveo_types.actions.ActionName
+  := fun handle => .ok handle.actionName
+
+/-- [veoveo_types::extensions::{impl core::clone::Clone for veoveo_types::extensions::ExtensionName}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/extensions.rs', lines 15:0-15:41
+    Name pattern: [veoveo_types::extensions::{core::clone::Clone<veoveo_types::extensions::ExtensionName>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::extensions::{core::clone::Clone<veoveo_types::extensions::ExtensionName>}::clone"]
+def veoveo_types.extensions.ExtensionName.Insts.CoreCloneClone.clone
+  :
+  veoveo_types.extensions.ExtensionName → Result
+    veoveo_types.extensions.ExtensionName
+  := fun value => .ok value
+
+/-- [veoveo_types::extensions::{impl core::fmt::Debug for veoveo_types::extensions::ExtensionError}::fmt]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/extensions.rs', lines 29:9-29:14
+    Name pattern: [veoveo_types::extensions::{core::fmt::Debug<veoveo_types::extensions::ExtensionError>}::fmt]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::extensions::{core::fmt::Debug<veoveo_types::extensions::ExtensionError>}::fmt"]
+def veoveo_types.extensions.ExtensionError.Insts.CoreFmtDebug.fmt
+  :
+  veoveo_types.extensions.ExtensionError → core.fmt.Formatter → Result
+    ((core.result.Result Unit core.fmt.Error) × core.fmt.Formatter)
+  := fun _ formatter => .ok (.Ok (), formatter)
+
+/-- [veoveo_types::extensions::{impl core::clone::Clone for veoveo_types::extensions::AdmittedExtensions}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/extensions.rs', lines 235:9-235:14
+    Name pattern: [veoveo_types::extensions::{core::clone::Clone<veoveo_types::extensions::AdmittedExtensions>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::extensions::{core::clone::Clone<veoveo_types::extensions::AdmittedExtensions>}::clone"]
+def veoveo_types.extensions.AdmittedExtensions.Insts.CoreCloneClone.clone
+  :
+  veoveo_types.extensions.AdmittedExtensions → Result
+    veoveo_types.extensions.AdmittedExtensions
+  := fun value => .ok value
+
+/-- [veoveo_types::identity::{impl core::clone::Clone for veoveo_types::identity::PrincipalId}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 9:0-9:69
+    Name pattern: [veoveo_types::identity::{core::clone::Clone<veoveo_types::identity::PrincipalId>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::identity::{core::clone::Clone<veoveo_types::identity::PrincipalId>}::clone"]
+def veoveo_types.identity.PrincipalId.Insts.CoreCloneClone.clone
+  :
+  veoveo_types.identity.PrincipalId → Result
+    veoveo_types.identity.PrincipalId
+  := fun value => .ok value
+
+/-- [veoveo_types::identity::{impl core::clone::Clone for veoveo_types::identity::TenantId}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 13:0-13:69
+    Name pattern: [veoveo_types::identity::{core::clone::Clone<veoveo_types::identity::TenantId>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::identity::{core::clone::Clone<veoveo_types::identity::TenantId>}::clone"]
+def veoveo_types.identity.TenantId.Insts.CoreCloneClone.clone
+  : veoveo_types.identity.TenantId → Result veoveo_types.identity.TenantId
+  := fun value => .ok value
+
+/-- [veoveo_types::platform_names::{impl core::clone::Clone for veoveo_types::platform_names::ServerSlug}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 5:0-5:38
+    Name pattern: [veoveo_types::platform_names::{core::clone::Clone<veoveo_types::platform_names::ServerSlug>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::platform_names::{core::clone::Clone<veoveo_types::platform_names::ServerSlug>}::clone"]
+def veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+  :
+  veoveo_types.platform_names.ServerSlug → Result
+    veoveo_types.platform_names.ServerSlug
+  := fun value => .ok value
+
+/-- [veoveo_types::resource::{impl core::clone::Clone for veoveo_types::resource::ResourceUri}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/resource.rs', lines 8:16-8:21
+    Name pattern: [veoveo_types::resource::{core::clone::Clone<veoveo_types::resource::ResourceUri>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::resource::{core::clone::Clone<veoveo_types::resource::ResourceUri>}::clone"]
+def veoveo_types.resource.ResourceUri.Insts.CoreCloneClone.clone
+  :
+  veoveo_types.resource.ResourceUri → Result
+    veoveo_types.resource.ResourceUri
+  := fun value => .ok value
+
+/-- [veoveo_types::resource_template::{impl core::clone::Clone for veoveo_types::resource_template::ResourceTemplateUri}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/resource_template.rs', lines 21:16-21:21
+    Name pattern: [veoveo_types::resource_template::{core::clone::Clone<veoveo_types::resource_template::ResourceTemplateUri>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::resource_template::{core::clone::Clone<veoveo_types::resource_template::ResourceTemplateUri>}::clone"]
+def
+  veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCloneClone.clone
+  :
+  veoveo_types.resource_template.ResourceTemplateUri → Result
+    veoveo_types.resource_template.ResourceTemplateUri
+  := fun value => .ok value
+
+/-- [veoveo_types::task::{impl core::clone::Clone for veoveo_types::task::TaskId}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/task.rs', lines 16:0-16:41
+    Name pattern: [veoveo_types::task::{core::clone::Clone<veoveo_types::task::TaskId>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::task::{core::clone::Clone<veoveo_types::task::TaskId>}::clone"]
+def veoveo_types.task.TaskId.Insts.CoreCloneClone.clone
+  : veoveo_types.task.TaskId → Result veoveo_types.task.TaskId
+  := fun value => .ok value

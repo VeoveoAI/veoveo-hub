@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/evaluation.rs
++++ b/crates/veoveo-hub/src/policy/evaluation.rs
+@@ -124,7 +124,7 @@
+                     RequirementTarget::Tool(_) => PolicyReasonCode::UnknownTool,
+                     RequirementTarget::Prompt(_) => PolicyReasonCode::UnknownPrompt,
+                     RequirementTarget::Resource(_) | RequirementTarget::ResourceTemplate(_) => {
+-                        PolicyReasonCode::UndeclaredTarget
++                        PolicyReasonCode::UnknownTool
+                     }
+                 };
+                 return deny(request, reason, version);

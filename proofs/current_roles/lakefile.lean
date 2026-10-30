@@ -41,3 +41,18 @@ lean_lib FlatMapIteratorProof
 
 @[default_target]
 lean_lib CurrentPermissionsProof
+
+@[default_target]
+lean_lib NativePolicyModelAudit
+
+@[default_target]
+lean_lib RegisteredServerPolicyProof
+
+@[default_target]
+lean_lib RegisteredServerDecisionProof
+
+@[default_target]
+lean_lib RegisteredServerAdmissionProof
+
+@[default_target]
+lean_lib RegisteredServerDownstreamProof

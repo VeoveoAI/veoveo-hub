@@ -893,6 +893,292 @@ mod tests {
     }
 
     #[test]
+    fn actual_registered_policy_narrows_current_grants() {
+        use crate::control_plane::{HubControlPlane, PolicyEffect};
+        use std::collections::BTreeSet;
+        use veoveo_hub_sdk::registration::{
+            Access, AuthorizationDeclaration, PermissionDeclaration, Requirements, RouteAccess,
+        };
+        use veoveo_types::{PermissionName, PolicyVersion};
+        // A complete, validated local catalog fixture; these URLs are never fetched.
+        // This test owns every registered-policy-fixture name below.
+        let plane: HubControlPlane = serde_json::from_value(serde_json::json!({
+            "identityProviders": [{ "id": "registered-policy-idp", "issuer": "https://registered-policy.example", "jwks": { "source": "remote", "jwksUri": "https://registered-policy.example/keys" } }],
+            "authorizationServers": [{ "id": "registered-policy-as", "issuer": "https://registered-policy.example", "jwks": { "source": "remote", "jwksUri": "https://registered-policy.example/keys" }, "tokenEndpoint": "https://registered-policy.example/token" }],
+            "profiles": [{ "id": "registered-policy", "identityProvider": "registered-policy-idp", "authorizationServer": "registered-policy-as", "protectedResource": "https://registered-policy.example/mcp", "policyVersion": "2026-10-30", "authModes": ["oauth_client_credentials"] }],
+            "authorization": {
+                "roles": [{ "name": "registered-policy-reader", "access": ["read"] }],
+                "grants": [{ "role": "registered-policy-reader", "subject": { "principal": "registered-policy-caller" } }]
+            },
+            "policies": [{ "version": "2026-10-30", "rules": [] }],
+            "tenants": [], "workContexts": [], "dataLabels": [], "oidcClients": []
+        })).unwrap();
+        let slug = ServerSlug::parse("registered-policy-fixture").unwrap();
+        let permission = |action: &str| {
+            PermissionName::parse(format!("registered-policy-fixture.records.{action}")).unwrap()
+        };
+        let read = permission("read");
+        let inspect = permission("inspect");
+        let write = permission("write");
+        let declaration = AuthorizationDeclaration {
+            permissions: [
+                (read.clone(), Access::Read),
+                (inspect.clone(), Access::Read),
+                (write.clone(), Access::Write),
+            ]
+            .into_iter()
+            .map(|(permission, access)| PermissionDeclaration {
+                permission,
+                resource: veoveo_types::ResourceTypeName::parse(
+                    "registered-policy-fixture.records",
+                )
+                .unwrap(),
+                access,
+                risks: BTreeSet::new(),
+            })
+            .collect(),
+            requirements: Requirements {
+                tools: [
+                    (
+                        LocalToolName::parse("authenticated").unwrap(),
+                        RouteAccess::Authenticated,
+                    ),
+                    (
+                        LocalToolName::parse("read").unwrap(),
+                        RouteAccess::Permission(read.clone()),
+                    ),
+                    (
+                        LocalToolName::parse("write").unwrap(),
+                        RouteAccess::Permission(write.clone()),
+                    ),
+                ]
+                .into(),
+                ..Requirements::default()
+            },
+            uses: Vec::new(),
+            calls_hub: false,
+        };
+        declaration
+            .check(
+                &slug,
+                &veoveo_types::ResourceScheme::parse("registered-policy-fixture").unwrap(),
+            )
+            .unwrap();
+        let catalog = crate::policy::PolicyCatalog::new(plane, crate::test_catalog::registry())
+            .unwrap()
+            .with_server(slug.clone(), declaration);
+        let caller = veoveo_hub_sdk::Principal {
+            id: veoveo_types::PrincipalId::parse("registered-policy-caller").unwrap(),
+            kind: veoveo_hub_sdk::PrincipalKind::User,
+            issuer: veoveo_hub_sdk::TokenIssuer::parse("https://registered-policy.example")
+                .unwrap(),
+            subject: veoveo_hub_sdk::TokenSubject::parse("registered-policy-subject").unwrap(),
+            tenant: None,
+            groups: BTreeSet::new(),
+            group_roles: BTreeSet::new(),
+            roles: BTreeSet::new(),
+            scopes: BTreeSet::new(),
+            data_labels: BTreeSet::new(),
+            assurances: BTreeSet::new(),
+            authenticated_at: None,
+        };
+        let mut other = caller.clone();
+        other.id = veoveo_types::PrincipalId::parse("registered-policy-other").unwrap();
+        let profile = HubProfileId::parse("registered-policy").unwrap();
+        let trace = TraceId::parse("registered-policy-downstream").unwrap();
+        let tool = |name| PolicyTarget::Tool {
+            server: slug.clone(),
+            tool: LocalToolName::parse(name).unwrap(),
+        };
+        let held = BTreeSet::from([read.clone(), inspect.clone()]);
+        let empty = BTreeSet::new();
+        // (target, action, caller, managed, carried, effect, reason, required, grants)
+        for (target, action, principal, managed, carried, effect, reason, required, granted) in [
+            (
+                tool("authenticated"),
+                HubAction::ToolsCall,
+                &other,
+                true,
+                empty.clone(),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                None,
+                empty.clone(),
+            ),
+            (
+                tool("authenticated"),
+                HubAction::ToolsCall,
+                &caller,
+                true,
+                empty.clone(),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                None,
+                empty.clone(),
+            ),
+            (
+                tool("read"),
+                HubAction::ToolsCall,
+                &caller,
+                true,
+                BTreeSet::from([read.clone(), inspect.clone(), write.clone()]),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                Some(read.clone()),
+                held.clone(),
+            ),
+            (
+                tool("read"),
+                HubAction::ToolsCall,
+                &caller,
+                true,
+                BTreeSet::from([read.clone()]),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                Some(read.clone()),
+                BTreeSet::from([read.clone()]),
+            ),
+            (
+                tool("read"),
+                HubAction::ToolsCall,
+                &caller,
+                true,
+                BTreeSet::from([inspect.clone()]),
+                PolicyEffect::Deny,
+                PolicyReasonCode::MissingPermission,
+                Some(read.clone()),
+                BTreeSet::from([inspect.clone()]),
+            ),
+            (
+                tool("write"),
+                HubAction::ToolsCall,
+                &caller,
+                true,
+                BTreeSet::from([write.clone()]),
+                PolicyEffect::Deny,
+                PolicyReasonCode::MissingPermission,
+                Some(write.clone()),
+                empty.clone(),
+            ),
+            (
+                PolicyTarget::Server {
+                    server: slug.clone(),
+                },
+                HubAction::ResourcesList,
+                &caller,
+                true,
+                BTreeSet::from([inspect.clone()]),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                None,
+                BTreeSet::from([inspect.clone()]),
+            ),
+            (
+                PolicyTarget::Server {
+                    server: slug.clone(),
+                },
+                HubAction::ResourcesList,
+                &caller,
+                true,
+                empty.clone(),
+                PolicyEffect::Deny,
+                PolicyReasonCode::MissingPermission,
+                None,
+                empty.clone(),
+            ),
+            (
+                PolicyTarget::Task {
+                    server: slug.clone(),
+                    task_id: veoveo_hub_sdk::CanonicalTaskId::parse(
+                        uuid::Uuid::now_v7().to_string(),
+                    )
+                    .unwrap(),
+                },
+                HubAction::TasksGet,
+                &caller,
+                true,
+                BTreeSet::from([inspect.clone()]),
+                PolicyEffect::Allow,
+                PolicyReasonCode::PolicyAllow,
+                None,
+                BTreeSet::from([inspect.clone()]),
+            ),
+            (
+                PolicyTarget::PlatformTask {
+                    server: slug.clone(),
+                    task_id: veoveo_types::TaskId::new(),
+                },
+                HubAction::TasksGet,
+                &caller,
+                true,
+                empty.clone(),
+                PolicyEffect::Deny,
+                PolicyReasonCode::MissingPermission,
+                None,
+                empty.clone(),
+            ),
+            (
+                tool("missing"),
+                HubAction::ToolsCall,
+                &caller,
+                true,
+                held.clone(),
+                PolicyEffect::Deny,
+                PolicyReasonCode::UnknownTool,
+                None,
+                empty.clone(),
+            ),
+            (
+                tool("read"),
+                HubAction::ToolsCall,
+                &caller,
+                false,
+                empty.clone(),
+                PolicyEffect::Deny,
+                PolicyReasonCode::PolicyDeny,
+                Some(read.clone()),
+                held.clone(),
+            ),
+        ] {
+            let before = chrono::Utc::now();
+            let base = crate::policy::decide(
+                &catalog,
+                crate::policy::PolicyRequest {
+                    principal,
+                    profile: &profile,
+                    action: action.into(),
+                    target: &target,
+                    trace_id: &trace,
+                },
+            );
+            let after = chrono::Utc::now();
+            assert!(before <= base.evaluated_at && base.evaluated_at <= after);
+            let sampled = base.evaluated_at;
+            let access = crate::policy::declared_route_access(&catalog, &target);
+            let route = super::delegated_route(access, &target);
+            let output = super::narrow_policy_decision(base, managed, Some(&carried), route);
+            assert_eq!(
+                output,
+                PolicyDecision {
+                    effect,
+                    reason,
+                    evaluated_at: sampled,
+                    profile: profile.clone(),
+                    action: action.into(),
+                    target,
+                    principal: Some(principal.id.clone()),
+                    tenant: None,
+                    policy_version: Some(PolicyVersion::parse("2026-10-30").unwrap()),
+                    rule_id: None,
+                    permission: required,
+                    granted,
+                    trace_id: trace.clone(),
+                }
+            );
+        }
+    }
+
+    #[test]
     fn delegated_policy_assembly_preserves_prior_denial_and_non_delegated_decisions() {
         use crate::control_plane::PolicyEffect;
         use crate::delegation::authority::Route;
