@@ -488,8 +488,17 @@ and implementation scope are recorded in the
 The two actual predicates and the delivery closure now translate transparently
 through Charon/Aeneas with the previous extraction roots preserved; see the
 [extraction checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-refresh-predicate-extraction.md).
-Ordinary model additions, exact-result proofs and native fixtures are in progress.
-No refresh transaction proof or new native result is claimed at this checkpoint.
+The subsequent [exact predicate checkpoint](current_roles/RefreshPredicateProof.lean)
+proves binding and complete delivery acceptance/refusal, coherent success, strict
+deadline refusal and checked generation arithmetic. It also composes a generation-only
+update with session admission through an explicit mathematical projection. The full
+package and eight theorem axiom checks pass; see the
+[proof record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-refresh-predicate-proofs.md).
+Separately, four new PostgreSQL transaction tests and five existing `hub_state`
+tests, formatting and strict library Clippy pass; see the
+[native baseline](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-refresh-native-baseline.md).
+Semantic fault controls and transaction-model correctness remain pending. Neither
+checkpoint proves SQL refinement or the full refresh lifecycle.
 
 ## HUB-CONFIG-01 — Coherent atomic live publication
 
