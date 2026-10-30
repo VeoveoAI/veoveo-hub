@@ -1,7 +1,8 @@
 //! What owners change in the Lore section: who may reach a repository, the groups of a
 //! tenant and their memberships. Each change is made as one caller, who must own what
-//! they change and must still own it afterwards, so neither a repository nor a group is
-//! ever left without an owner by a change of these.
+//! they change and must still own it afterwards, and a deleted group must leave each
+//! repository it owned another owner, so neither a repository nor a group is ever left
+//! without an owner by a change of these.
 use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
@@ -76,6 +77,8 @@ pub(crate) enum Refusal {
     KeepRepositoryOwner,
     #[error("the change would leave the caller without the owner role in the group")]
     KeepGroupOwner,
+    #[error("the group is the one owner of a repository")]
+    GroupOwnsRepository,
 }
 
 /// The person who calls, in their tenant.
@@ -248,6 +251,41 @@ impl Lore {
             }],
         });
         Ok(self.groups.last().expect("the group just pushed"))
+    }
+
+    /// Delete the tenant's group `name` and every assignment naming it, as `caller`, an
+    /// owner of the group, unless a repository it owns has no other owner. A grant outside
+    /// Lore that names its ID holds nothing afterwards, since no group is given it again.
+    pub(crate) fn delete_group(
+        &mut self,
+        caller: Caller<'_>,
+        name: &GroupName,
+    ) -> Result<(), Refusal> {
+        let group = self
+            .group_named(caller.tenant, name)
+            .ok_or(Refusal::UnknownGroup)?;
+        if group.role(caller.principal) != Some(GroupRole::Owner) {
+            return Err(Refusal::NotGroupOwner);
+        }
+        let id = group.id.clone();
+        let names = |a: &Assignment| matches!(&a.subject, Subject::Group(named) if named == &id);
+        let owner = |a: &Assignment| a.actions.contains(&NativeAction::Owner);
+        let orphans = self.assignments.iter().any(|owned| {
+            names(owned)
+                && owner(owned)
+                && !self.assignments.iter().any(|other| {
+                    !names(other)
+                        && owner(other)
+                        && other.deployment == owned.deployment
+                        && other.repository == owned.repository
+                })
+        });
+        if orphans {
+            return Err(Refusal::GroupOwnsRepository);
+        }
+        self.groups.retain(|g| g.id != id);
+        self.assignments.retain(|a| !names(a));
+        Ok(())
     }
 
     /// Set `person`'s role in the tenant's group `name` to the one `setting` names, or

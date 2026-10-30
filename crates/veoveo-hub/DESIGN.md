@@ -780,7 +780,7 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 | `PUT /factory/{profile}/watch?repository=<id>` | The Hub watches a Lore repository as the caller; 204, or 403 without the caller's grant |
 | `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
 | `GET`/`PUT /lore/{profile}/repositories/{id}/access` | Who may reach a repository; an owner shares it with a person or a group ([groups and sharing](#groups-and-sharing)) |
-| `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members` | The caller's groups; creating one; an owner sets a membership |
+| `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members`, `DELETE /lore/{profile}/groups/{name}` | The caller's groups; creating one; an owner sets a membership or deletes the group |
 | `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person holds a grant on, own or through a group, for Lore's repository listing |
 | `POST /ucs.auth.RebacApi/CreateResource` | gRPC: registers the repository Lore is about to create, its creator its owner |
 | `POST /ucs.auth.RebacApi/DeleteResource` | gRPC: removes the repository Lore is about to delete, when an owner deletes it |
@@ -1022,7 +1022,9 @@ level that replaces an administrator's actions and removes it, and is refused, w
 nothing changed, a change that would leave them without `owner`; someone without
 `owner`, an unknown repository or group and another tenant's repository are refused; a
 group's creator is its one member and owner, a name is taken once in a tenant, only an
-owner sets memberships and no owner lowers or removes themselves; only an owner, own or
+owner sets memberships and no owner lowers or removes themselves; only an owner deletes
+a group, which takes every assignment naming it, and not while it is a repository's one
+owner; only an owner, own or
 through a group and of the repository's tenant, deletes a repository, which takes every
 assignment on it, and an unregistered one leaves nothing to remove; and what the changes
 leave is admitted. They also check the listing's caller, tenant and deployment bounds,
@@ -1051,7 +1053,9 @@ lets that principal's repository token be issued and Lore's listing name the rep
 with `owner`; removing the membership takes both away. An administrator's assignment
 with other actions is listed with them and replaced by the level an owner sets, and a
 principal without a `hub.person` row is listed with a null email and name after the
-people. No identity provider or Lore server is involved.
+people. Deleting the group, refused to a member who is not its owner, answers the
+caller's remaining groups and takes its assignment off the repository, and a second
+deletion answers `group-not-found`. No identity provider or Lore server is involved.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed
@@ -1579,12 +1583,19 @@ membership. From there the existing contracts carry them, and nothing else chang
 
 | Contract | Carries | Decides |
 |---|---|---|
-| The installation's roles, grants and policy rules, in `policy::decide` | the subject's `groups` | a role granted to `{"group": "<id>"}` is held through the group, so the caller's `tools/list`, admission and forwarded permissions follow it |
-| Work Context memberships | the subject's `groups` | a membership naming the group |
+| The installation's roles, grants and policy rules, in `policy::decide` | the subject's `groups` | a role granted to one of them is held through it, so the caller's `tools/list`, admission and forwarded permissions follow it |
+| Work Context memberships | the subject's `groups` | a membership naming one of them |
 | The forwarded token, RFC 9068 | `groups`, which the SDK requires to equal the embedded actor's | each server's own decisions over groups |
 | The invocation claim `https://veoveo.ai/claims/invocation` | the actor's `group_roles` | the SDK's `Principal::group_memberships`, by which Artifact caps a group grant |
 | Token exchange, RFC 8693 | the caller as the forwarded token or the Task's route retains it, groups included | the roles evaluated again at each exchange |
 | A server's call for a caller | no groups: its actor is the server, and the SDK refuses a server actor with groups | nothing through groups, as before |
+
+The installation names only what exists before it is published: people and its identity
+provider's groups. Its roles, rules and Work Context memberships therefore never name a
+Lore group, which people make and delete at runtime. A Lore group is named by the grants
+people make at runtime: Lore's assignments, and each server's own, such as Artifact's.
+Whether a person may call a billed or other risky tool is their role's to decide, never a
+Lore group's.
 
 What is granted to a group is therefore held by whomever its owners add. A group granted
 `write` on an artifact lets every member write, and one granted `admin` lets its owners
@@ -1627,6 +1638,7 @@ the section alone (`sharing/changes.rs`). Fields that need two words are camelCa
 | `POST /lore/{profile}/groups` | anyone | `{"name": "<name>"}`: creates the group with the caller as its one member, its owner; 201 with the group |
 | `GET /lore/{profile}/groups` | anyone | `{"groups": [<group>]}`: the groups the caller belongs to, by name |
 | `PUT /lore/{profile}/groups/{name}/members` | an owner of the group | `{"person": "<email>", "role": "member", "owner" or "none"}`: sets or removes that membership, and answers the group |
+| `DELETE /lore/{profile}/groups/{name}` | an owner of the group | Deletes the group and every assignment naming it, and answers the caller's groups as `GET` does. A grant outside Lore naming its `id` holds nothing afterwards: no group is given that ID again |
 
 The access list is `{"repository": "<id>", "access": [<entry>]}`, each entry an
 assignment on the repository: `{"person": {"email", "name"}, "access", "actions"}` or
@@ -1652,7 +1664,8 @@ a grant on it 403 `repository-access-forbidden`, and changing it without `owner`
 `group-owner-required`, and a taken group name 409 `group-exists`. A change that would
 leave the caller without `owner` on the repository, own or through a group, answers 409
 `repository-owner-kept`, and one that would lower or remove the caller's own owner role
-in a group 409 `group-owner-kept`, so neither is ever left without an owner by these
+in a group 409 `group-owner-kept`, and deleting a group that is the one owner of a
+repository 409 `group-owns-repository`, so neither is ever left without an owner by these
 routes. A body of another shape answers 400 `invalid-request`, an invalid group name 400
 `invalid-group-name`, and a failed read or publication 503 `sharing-unavailable`.
 

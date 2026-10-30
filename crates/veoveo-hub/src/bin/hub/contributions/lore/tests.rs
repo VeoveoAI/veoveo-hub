@@ -1130,6 +1130,69 @@ fn a_group_is_created_by_its_owner_whose_owners_set_its_memberships() {
 }
 
 #[test]
+fn an_owner_deletes_a_group_with_its_assignments_leaving_each_repository_an_owner() {
+    use super::sharing::{Named, Refusal, Setting};
+    let [tenant, elsewhere] = ["tenant-a", "tenant-b"].map(|t| TenantId::parse(t).unwrap());
+    let [alice, bob] =
+        ["native-alice", "native-bob"].map(|principal| PrincipalId::parse(principal).unwrap());
+    let source = DeploymentId::parse("source").unwrap();
+    let first = RepositoryId::parse(FIRST).unwrap();
+    let bioma = GroupName::parse("bioma").unwrap();
+    let mut section = shared();
+
+    // Alice is a member, not an owner; no other tenant has the group, nor bioma another name.
+    assert_eq!(
+        section.delete_group(caller(&tenant, &alice), &bioma),
+        Err(Refusal::NotGroupOwner)
+    );
+    assert_eq!(
+        section.delete_group(caller(&elsewhere, &bob), &bioma),
+        Err(Refusal::UnknownGroup)
+    );
+    assert_eq!(
+        section.delete_group(caller(&tenant, &bob), &GroupName::parse("nobody").unwrap()),
+        Err(Refusal::UnknownGroup)
+    );
+
+    // Bioma is FIRST's one owner, so bob deletes it once alice owns FIRST herself.
+    assert_eq!(
+        section.delete_group(caller(&tenant, &bob), &bioma),
+        Err(Refusal::GroupOwnsRepository)
+    );
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(alice.clone()),
+            Setting::Owner
+        ),
+        Ok(true)
+    );
+    assert_eq!(section.delete_group(caller(&tenant, &bob), &bioma), Ok(()));
+    assert!(section.group_named(&tenant, &bioma).is_none());
+    assert!(
+        section
+            .assignments
+            .iter()
+            .all(|a| !matches!(a.subject, Subject::Group(_)))
+    );
+    use NativeAction::Owner;
+    assert_eq!(
+        actions(&section, "native-alice", "tenant-a", FIRST),
+        Some(vec![Owner])
+    );
+    assert_eq!(actions(&section, "native-alice", "tenant-a", SECOND), None);
+    assert_eq!(actions(&section, "native-bob", "tenant-a", FIRST), None);
+
+    let mut plane = grouped();
+    plane
+        .extensions
+        .insert("lore".into(), serde_json::to_value(&section).unwrap());
+    assert!(admits(plane));
+}
+
+#[test]
 fn an_owner_deletes_a_repository_with_every_assignment_on_it() {
     use super::sharing::Refusal;
     let [tenant, elsewhere] = ["tenant-a", "tenant-b"].map(|t| TenantId::parse(t).unwrap());
