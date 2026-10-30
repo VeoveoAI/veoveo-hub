@@ -153,7 +153,15 @@ current until commit. This connects the complete staged update to the independen
 corresponds to an absent current row and the identity operation. No current-row
 claim extends to arbitrary completed/aborted states or later acknowledgements.
 
-Mixed serial histories, general abort-event exclusion, valid complete update
-executions and the old-update counterexample remain next. Neither these models nor
-the earlier native tests are formal Rust/SQL refinement. Removal, housekeeping and
-broader authority/lifecycle composition remain outside this checkpoint.
+The [mixed-history checkpoint](evidence/update-serial-history.json) now proves
+independent register/replace/update effects in the actual tagged server-commit
+order for every finite modeled mixed execution. The operation specification uses
+the original requests, not a replay of the event's staged writes. Confirmed aborted
+attempts contribute no commit event, including a no-op that later acknowledges
+success. This concerns each attempt's own contribution; it does not erase another
+writer's effects or assert that a successful registration remains present forever.
+
+Valid complete update/no-op executions and the old-update counterexample remain
+next. Neither these models nor the earlier native tests are formal Rust/SQL
+refinement. Removal, housekeeping and broader authority/lifecycle composition
+remain outside this checkpoint.

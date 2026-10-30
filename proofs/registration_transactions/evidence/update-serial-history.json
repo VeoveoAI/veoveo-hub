@@ -1,0 +1,120 @@
+{
+  "date": "2026-10-30",
+  "status": "Mixed serial histories and aborted-event exclusion checked; constructive update/control witnesses remain next",
+  "base_commit": "9518418",
+  "evidence_class": "Handwritten source-mapped transaction model, not formal Rust/SQL refinement",
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "lean_version": "4.35.0",
+  "platform": "Linux x86_64",
+  "proof_toolkit_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94",
+    "RegistrationUpdateEffects.lean": "500fc10b193595c6795690005ef663f8e91a3378e4d23dd17e49392e221bfeb1",
+    "RegistrationUpdateHistory.lean": "75e5dfad45f4d4549465f0ac61b44da9d42edbb3a48aa18c3d91cc84abb603ac",
+    "RegistrationUpdateLocks.lean": "140c786959c1395ad979f3c8b7ae7137d5546d0c0a9c8d68b8a901614e59c2d3",
+    "RegistrationUpdateModel.lean": "a453d6d58a17e8d08d6a31c31b2227785dac66edda8048c14d5217da1ffefcf9",
+    "RegistrationUpdateObservations.lean": "b3c62a290c6d037829be1cb13158ae1d5cdcf71897faeff855df595ba49c9c7c",
+    "RegistrationUpdateProof.lean": "8ed07e65b88297bd14c7edbc3978b04afb1ed77f0a72ab25de1021559fd6f26e",
+    "RegistrationUpdateSpecification.lean": "c92157d4f92472ff09d00ecd5f0ba178f3408cbc5438378d249bab66a3580e67",
+    "RegistrationWitnesses.lean": "0c62ccf4ef064f5592fcd781e485f21ac7f107572aa208d0e7d2130c7c44726e",
+    "lakefile.lean": "8cd0292bd5aa09cbe4bfe37855ceb05d6f5b3df69af149324308c9a00e14d823",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "source_manifest": {
+    "path": "/tmp/hub-registration-concurrency-20261030/update-history-final-evidence/source-derived.json",
+    "sha256": "e916cd7637831c75fdd18f8e4076b1878143798c216049e880fdc5a583c7b3c0"
+  },
+  "prior_fourteen_modules_and_dependency_pins_unchanged": true,
+  "qualified_native_source_unchanged": true,
+  "claims": {
+    "committing_sequential_register": "Old component prefix/effect lemmas combine with the reached mixed Alignment, Choices and StableObservations to derive the independent register/replace effect. No atomic registration correctness assumption is introduced.",
+    "execution_serial": "Every finite fixed mixed execution has the independent registration/replacement and current-row update effects in its ACTUAL tagged server-commit event order. Specifications consume immutable original requests and ignore event write payloads; only disjoint frame changes are normalized.",
+    "aborted_events_excluded": "Confirmed aborted register/update attempts have no matching actual commit event, including no-op updates that later return success. This excludes their own contribution, not pre-existing equal rows or another writer's effects."
+  },
+  "axiom_closures": {
+    "committing_sequential_register": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "execution_serial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "aborted_events_excluded": [
+      "propext"
+    ]
+  },
+  "validation": {
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "direct": {
+      "argv": [
+        "lake",
+        "env",
+        "lean",
+        "RegistrationUpdateHistory.lean"
+      ],
+      "exit": 0,
+      "elapsed_s": 3.65,
+      "bound_seconds": 300,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-history2-evidence/direct.log",
+        "sha256": "e6e5565cb507bf99cd4bedc6f21ed7b473ea992d0e10f79bae13232fd37136d5"
+      },
+      "time": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-history2-evidence/direct.time",
+        "sha256": "cf7b1524fd109af479095c8b84566443369e8c4928855b9b7e83ddedb523d371"
+      }
+    },
+    "composed_package": {
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+      "exit": 0,
+      "elapsed_s": 4.771,
+      "bound_seconds": 900,
+      "default_modules": 15,
+      "lake_jobs_including_dependencies": 3166,
+      "source_unchanged": true,
+      "summary": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-history-final-evidence/summary.json",
+        "sha256": "ffa5bb3f82ad7566a7357da76ed9c8e676654f503e6e44fef2cd20a49ea7e72c"
+      },
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-history-final-evidence/build.log",
+        "sha256": "54d44ade9361bf82e5f228d0d8248b6e69ad113253c721288071d6ecbc81fba6"
+      }
+    },
+    "warnings": "Section-variable warnings remain; successful checks contain no proof errors or unreviewed axioms.",
+    "development_feedback": "The first direct leaf needed an explicit index-equality split for request projection through conditional map updates; subsequent proof-only repair preserved the model and final statements. This was not a semantic negative control.",
+    "not_run": [
+      "native tests",
+      "full Docker gates",
+      "deployment",
+      "Aeneas extraction",
+      "paid model calls"
+    ]
+  },
+  "boundaries": [
+    "Same one-retained-deployment, admission, native statement-constraint and PostgreSQL assumptions as earlier receipts. No source/model change except the new history proof and default target.",
+    "This is actual commit-order serial equivalence, not response-order/current-survival, liveness, physical SQL refinement or a proof about all external services.",
+    "Valid complete update/no-op executions and paired old-update counterexample remain next; this milestone alone does not close the mixed slice.",
+    "Removal/housekeeping, broader authority/identity composition, physical SQL/Core/serialization refinement, service postcommit behavior, cross-database preparation and deployed recovery remain outside."
+  ]
+}

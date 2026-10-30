@@ -48,3 +48,6 @@ lean_lib RegistrationUpdateLocks
 
 @[default_target]
 lean_lib RegistrationUpdateObservations
+
+@[default_target]
+lean_lib RegistrationUpdateHistory
