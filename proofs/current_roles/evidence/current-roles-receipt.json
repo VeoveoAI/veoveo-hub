@@ -1,0 +1,2211 @@
+{
+  "accepted_controls": [
+    {
+      "binary_content_sha256_captured": false,
+      "generated_model": {
+        "Funs.lean": {
+          "bytes": 62306,
+          "sha256": "ce6bb5630e7a889c63db930b7bac8213c7646de09c952469ee57f613070eefcb"
+        },
+        "FunsExternal_Template.lean": {
+          "bytes": 29366,
+          "sha256": "f265ed5bcea7e0853c2749df5383df48d16f123c50404ba7090aa0b3db96f961"
+        },
+        "Types.lean": {
+          "bytes": 14244,
+          "sha256": "06e638efa74eed8818acb43cbae8df475476b9f0ddfb14d2d3e8c88e517d5515"
+        },
+        "TypesExternal_Template.lean": {
+          "bytes": 7461,
+          "sha256": "bdacf093f850fa5bb6d27aee37b56c4d7a74a9e95ae6403d435bc6ec1e465877"
+        }
+      },
+      "name": "tenant-different-v2",
+      "native_binary_invocation_line": "Running unittests src/lib.rs (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b)",
+      "native_source_compile_line": "Compiling veoveo-hub v0.1.0 (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/controls-qualification-1/tenant-different-v2/source/veoveo-hub/crates/veoveo-hub)",
+      "native_witness": "policy::grants::tests::tenant_scope_preserves_missing_and_matching_tenants",
+      "native_witness_classification": "assertion mismatch",
+      "native_witness_excerpt": [
+        "running 1 test",
+        "test policy::grants::tests::tenant_scope_preserves_missing_and_matching_tenants ... FAILED",
+        "",
+        "failures:",
+        "thread 'policy::grants::tests::tenant_scope_preserves_missing_and_matching_tenants' (1283847) panicked at crates/veoveo-hub/src/policy/grants.rs:307:13:",
+        "assertion `left == right` failed: grant tenant Some(\"dev\"), caller tenant Some(\"dev\")",
+        "  left: {}",
+        " right: {RoleId(\"fixture-member\")}",
+        "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.00s",
+        "error: test failed, to rerun pass `-p veoveo-hub --lib`"
+      ],
+      "native_witness_exit": 101,
+      "native_witness_log": "controls-qualification-1/tenant-different-v2/logs/native-witness.log",
+      "native_witness_log_sha256": "7783d6050ce98923e574cf694bdb8f8f192d9af630e038e9482ef0e2ce1a5264",
+      "patch_application_exit": 0,
+      "patch_path": "/tmp/hub-current-role-proof-20261029/tenant-different-v2.patch",
+      "patch_sha256": "d358e5ea1a09bcc4f678aff8e84982ee6a4dbbefca98f7412f176c243dcf960f",
+      "primary_direct_exit": 1,
+      "primary_direct_log": "controls-qualification-1/tenant-different-v2/logs/primary-proof-direct.log",
+      "primary_direct_log_sha256": "648fa3d8add91eba2bfddac0b747de57b461752a1f5eccfe39a53c8e897ed2d4",
+      "primary_failure_review": "The unchanged tenant closure theorem leaves some.none and some.some branches with goal False after the inverted tenant predicate; no opaque ne gap remains.",
+      "primary_theorem": "HeldRoleProof.tenant_closure_exact",
+      "source_root": "controls-qualification-1/tenant-different-v2/source/veoveo-hub",
+      "source_verification": {
+        "base_files": 792,
+        "grants_before_sha256": "97f4816f5b6cf4a3236f704c9c12ef376bb0af7264db2b56caea93f34827e454",
+        "merged_paths": 817,
+        "overlay_files": 26,
+        "verified": true
+      },
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "check",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib"
+          ],
+          "elapsed_ms": 9831,
+          "exit": 0,
+          "log": "controls-qualification-1/tenant-different-v2/logs/cargo-check.log",
+          "log_sha256": "73808bcf86d30129bee962c4997d35696a80e215e8466745305340393be5f31a",
+          "stage": "cargo-check"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "veoveo_hub::policy::grants::held_roles",
+            "--start-from",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--start-from",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--start-from",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--dest-file",
+            "../outputs/hub_current_roles.llbc",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 26414,
+          "exit": 0,
+          "log": "controls-qualification-1/tenant-different-v2/logs/charon.log",
+          "log_sha256": "e41e1fcae4d77a0facf73f572a5d04e3e4594425499f7f206d1ce94bf33c2667",
+          "stage": "charon"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "../outputs",
+            "../outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1266,
+          "exit": 0,
+          "log": "controls-qualification-1/tenant-different-v2/logs/aeneas-split.log",
+          "log_sha256": "8a8d80def1821cf6141c9dff5edb31cb8ed74d8b475ec3100a611d8abcd2846e",
+          "stage": "aeneas-split"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles"
+          ],
+          "elapsed_ms": 11484,
+          "exit": 0,
+          "log": "controls-qualification-1/tenant-different-v2/logs/lake-build-generated.log",
+          "log_sha256": "37b613b48d55c76bc08bbb91feeeaeb317f415ba7b2b6773df83f8a7cf8cf183",
+          "stage": "lake-build-generated"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "PolicyPrimitives"
+          ],
+          "elapsed_ms": 13344,
+          "exit": 0,
+          "log": "controls-qualification-1/tenant-different-v2/logs/lake-build-prerequisites.log",
+          "log_sha256": "507d34e2ca3d776e84a88abc067d7f2c9cd7bb05057777103b1af031c8ff88c5",
+          "stage": "lake-build-prerequisites"
+        },
+        {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "HeldRoleProof.lean"
+          ],
+          "elapsed_ms": 3020,
+          "exit": 1,
+          "expected_exit": "semantic nonzero",
+          "log": "controls-qualification-1/tenant-different-v2/logs/primary-proof-direct.log",
+          "log_sha256": "648fa3d8add91eba2bfddac0b747de57b461752a1f5eccfe39a53c8e897ed2d4",
+          "stage": "primary-proof-direct"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::grants::tests::tenant_scope_preserves_missing_and_matching_tenants",
+            "--",
+            "--exact"
+          ],
+          "elapsed_ms": 36428,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "controls-qualification-1/tenant-different-v2/logs/native-witness.log",
+          "log_sha256": "7783d6050ce98923e574cf694bdb8f8f192d9af630e038e9482ef0e2ce1a5264",
+          "stage": "native-witness"
+        }
+      ],
+      "summary_path": "controls-qualification-1/tenant-different-v2/control-summary.json",
+      "summary_sha256": "a41f075bfb2d40e0e547dca937a84ef96b96eb1a4680780b07ae4354edddec2c",
+      "types_diff_review": "Types differed only in Aeneas Source comment span 24:28-24:78 to 24:28-24:81; declarations equal after removing Source comment lines. Reviewed by coder."
+    },
+    {
+      "binary_content_sha256_captured": false,
+      "generated_model": {
+        "Funs.lean": {
+          "bytes": 62273,
+          "sha256": "c86c508092c422d8706827563322f1902d4474c93646857091996d7bbc76f9d7"
+        },
+        "FunsExternal_Template.lean": {
+          "bytes": 29366,
+          "sha256": "f265ed5bcea7e0853c2749df5383df48d16f123c50404ba7090aa0b3db96f961"
+        },
+        "Types.lean": {
+          "bytes": 14244,
+          "sha256": "f96d5d6e700d44f04d13b78d1e78bcc056a3752083302fa15f81ef1646dfd6ca"
+        },
+        "TypesExternal_Template.lean": {
+          "bytes": 7461,
+          "sha256": "bdacf093f850fa5bb6d27aee37b56c4d7a74a9e95ae6403d435bc6ec1e465877"
+        }
+      },
+      "name": "subject-inverted",
+      "native_binary_invocation_line": "Running unittests src/lib.rs (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b)",
+      "native_source_compile_line": "Compiling veoveo-hub v0.1.0 (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/controls-qualification-1/subject-inverted/source/veoveo-hub/crates/veoveo-hub)",
+      "native_witness": "policy::grants::tests::subjects_match_only_direct_id_or_group_membership",
+      "native_witness_classification": "assertion mismatch",
+      "native_witness_excerpt": [
+        "running 1 test",
+        "test policy::grants::tests::subjects_match_only_direct_id_or_group_membership ... FAILED",
+        "",
+        "failures:",
+        "thread 'policy::grants::tests::subjects_match_only_direct_id_or_group_membership' (1250470) panicked at crates/veoveo-hub/src/policy/grants.rs:355:13:",
+        "assertion `left == right` failed",
+        "  left: {}",
+        " right: {RoleId(\"fixture-member\")}",
+        "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.00s",
+        "error: test failed, to rerun pass `-p veoveo-hub --lib`"
+      ],
+      "native_witness_exit": 101,
+      "native_witness_log": "controls-qualification-1/subject-inverted/logs/native-witness.log",
+      "native_witness_log_sha256": "1b68d14678af5b1f9493a3b534b12cb2069f3734a7e437256001ccd150849545",
+      "patch_application_exit": 0,
+      "patch_path": "proofs/current_roles/mutations/subject-inverted.patch",
+      "patch_sha256": "3ce0455d25b1b6a482b36b95ed7664a5e0b144633afc0e428111a1c374b13c82",
+      "primary_direct_exit": 1,
+      "primary_direct_log": "controls-qualification-1/subject-inverted/logs/primary-proof-direct.log",
+      "primary_direct_log_sha256": "d7220bc8a20e9c2337c56657fbdbebe4ffbefaacc814ce3ca8a8d9b6a81e044c",
+      "primary_failure_review": "Subject closure theorem leaves a group-member case with goal False.",
+      "primary_theorem": "HeldRoleProof.subject_closure_exact",
+      "source_root": "controls-qualification-1/subject-inverted/source/veoveo-hub",
+      "source_verification": {
+        "base_files": 792,
+        "grants_before_sha256": "97f4816f5b6cf4a3236f704c9c12ef376bb0af7264db2b56caea93f34827e454",
+        "merged_paths": 817,
+        "overlay_files": 26,
+        "verified": true
+      },
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "check",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib"
+          ],
+          "elapsed_ms": 8729,
+          "exit": 0,
+          "log": "controls-qualification-1/subject-inverted/logs/cargo-check.log",
+          "log_sha256": "195551bc3830a286506a8dc16d592e2e993dc2996fd4e4578a5e6628c40174e8",
+          "stage": "cargo-check"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "veoveo_hub::policy::grants::held_roles",
+            "--start-from",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--start-from",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--start-from",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--dest-file",
+            "../outputs/hub_current_roles.llbc",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 23655,
+          "exit": 0,
+          "log": "controls-qualification-1/subject-inverted/logs/charon.log",
+          "log_sha256": "bd949f377a6c40ad874315a4916c9b70f7fd5423c755ea3327380e338899f959",
+          "stage": "charon"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "../outputs",
+            "../outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1016,
+          "exit": 0,
+          "log": "controls-qualification-1/subject-inverted/logs/aeneas-split.log",
+          "log_sha256": "9351ac1af9ca161c068687546bd385323ce18a88d05c97659425c1043ea5ba81",
+          "stage": "aeneas-split"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles"
+          ],
+          "elapsed_ms": 11284,
+          "exit": 0,
+          "log": "controls-qualification-1/subject-inverted/logs/lake-build-generated.log",
+          "log_sha256": "469d11d2f3005d8bc3b1682b4807a70e5cce5f60065b47a886354998a618fb47",
+          "stage": "lake-build-generated"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "PolicyPrimitives"
+          ],
+          "elapsed_ms": 9480,
+          "exit": 0,
+          "log": "controls-qualification-1/subject-inverted/logs/lake-build-prerequisites.log",
+          "log_sha256": "cf49e846b96ecf765a220947500038f15d518043590dbf5abcbe5e5be1eae8e7",
+          "stage": "lake-build-prerequisites"
+        },
+        {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "HeldRoleProof.lean"
+          ],
+          "elapsed_ms": 2769,
+          "exit": 1,
+          "expected_exit": "semantic nonzero",
+          "log": "controls-qualification-1/subject-inverted/logs/primary-proof-direct.log",
+          "log_sha256": "d7220bc8a20e9c2337c56657fbdbebe4ffbefaacc814ce3ca8a8d9b6a81e044c",
+          "stage": "primary-proof-direct"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::grants::tests::subjects_match_only_direct_id_or_group_membership",
+            "--",
+            "--exact"
+          ],
+          "elapsed_ms": 174230,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "controls-qualification-1/subject-inverted/logs/native-witness.log",
+          "log_sha256": "1b68d14678af5b1f9493a3b534b12cb2069f3734a7e437256001ccd150849545",
+          "stage": "native-witness"
+        }
+      ],
+      "summary_path": "controls-qualification-1/subject-inverted/control-summary.json",
+      "summary_sha256": "0f6d9800a19d6c74fedd65ddb57dc58869329dabbba29c0cb8b7ec9a98cb8f9e",
+      "types_diff_review": "Types declarations match baseline byte-for-byte."
+    },
+    {
+      "binary_content_sha256_captured": false,
+      "generated_model": {
+        "Funs.lean": {
+          "bytes": 62273,
+          "sha256": "720130d75ecc10916ece7ca4adc99cfee49529ba5e071915cc49726728f022b2"
+        },
+        "FunsExternal_Template.lean": {
+          "bytes": 29366,
+          "sha256": "f265ed5bcea7e0853c2749df5383df48d16f123c50404ba7090aa0b3db96f961"
+        },
+        "Types.lean": {
+          "bytes": 14244,
+          "sha256": "aadd8468927e999eeeeff87fa35f0f37b382eefb0763a5dbbf1bb0963941df0e"
+        },
+        "TypesExternal_Template.lean": {
+          "bytes": 7461,
+          "sha256": "bdacf093f850fa5bb6d27aee37b56c4d7a74a9e95ae6403d435bc6ec1e465877"
+        }
+      },
+      "name": "held-role-inverted",
+      "native_binary_invocation_line": "Running unittests src/lib.rs (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b)",
+      "native_source_compile_line": "Compiling veoveo-hub v0.1.0 (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/controls-qualification-1/held-role-inverted/source/veoveo-hub/crates/veoveo-hub)",
+      "native_witness": "policy::grants::tests::unheld_or_unconfigured_roles_do_not_grant",
+      "native_witness_classification": "assertion mismatch",
+      "native_witness_excerpt": [
+        "running 1 test",
+        "test policy::grants::tests::unheld_or_unconfigured_roles_do_not_grant ... FAILED",
+        "",
+        "failures:",
+        "thread 'policy::grants::tests::unheld_or_unconfigured_roles_do_not_grant' (1273275) panicked at crates/veoveo-hub/src/policy/grants.rs:376:9:",
+        "assertion `left == right` failed",
+        "  left: [\"fixture.inspect\"]",
+        " right: []",
+        "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.00s",
+        "error: test failed, to rerun pass `-p veoveo-hub --lib`"
+      ],
+      "native_witness_exit": 101,
+      "native_witness_log": "controls-qualification-1/held-role-inverted/logs/native-witness.log",
+      "native_witness_log_sha256": "3627615509dff8000f33989fb7ea29d85629e4daac6b4988531487322d53a05e",
+      "patch_application_exit": 0,
+      "patch_path": "proofs/current_roles/mutations/held-role-inverted.patch",
+      "patch_sha256": "b8fe5e6a68480b6f12ad5644e1754151fb5aed328899de7073ceb1272e82f75c",
+      "primary_direct_exit": 1,
+      "primary_direct_log": "controls-qualification-1/held-role-inverted/logs/primary-proof-direct.log",
+      "primary_direct_log_sha256": "0a33a0a44436d57a741d80afd20970741100ea007ef96834c9bb917c66ccca52",
+      "primary_failure_review": "Selection closure theorem leaves a held-role membership case with goal False.",
+      "primary_theorem": "GrantedPermissionsProof.selection_closure_exact",
+      "source_root": "controls-qualification-1/held-role-inverted/source/veoveo-hub",
+      "source_verification": {
+        "base_files": 792,
+        "grants_before_sha256": "97f4816f5b6cf4a3236f704c9c12ef376bb0af7264db2b56caea93f34827e454",
+        "merged_paths": 817,
+        "overlay_files": 26,
+        "verified": true
+      },
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "check",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib"
+          ],
+          "elapsed_ms": 9028,
+          "exit": 0,
+          "log": "controls-qualification-1/held-role-inverted/logs/cargo-check.log",
+          "log_sha256": "7eec346fb86c2dcc79a9236e42613a9cfbe87c32bebd68e47cd07dd805d1a0bb",
+          "stage": "cargo-check"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "veoveo_hub::policy::grants::held_roles",
+            "--start-from",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--start-from",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--start-from",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--dest-file",
+            "../outputs/hub_current_roles.llbc",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 24057,
+          "exit": 0,
+          "log": "controls-qualification-1/held-role-inverted/logs/charon.log",
+          "log_sha256": "ef2452728fbc12ffaeb6607701b7053f0142c4af5d5ceb164010e191d11db6fd",
+          "stage": "charon"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "../outputs",
+            "../outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1067,
+          "exit": 0,
+          "log": "controls-qualification-1/held-role-inverted/logs/aeneas-split.log",
+          "log_sha256": "629b67686cf3fb4eaafbfc962c7c1a0e1f54805dffe24f59ac7fecca2a7e3017",
+          "stage": "aeneas-split"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles"
+          ],
+          "elapsed_ms": 29960,
+          "exit": 0,
+          "log": "controls-qualification-1/held-role-inverted/logs/lake-build-generated.log",
+          "log_sha256": "15784354aa8aa75e5f4e2795b9098f6876da5f191fdb0615a5c98a86e6a94566",
+          "stage": "lake-build-generated"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HeldRoleProof",
+            "EffectiveRiskProof"
+          ],
+          "elapsed_ms": 20529,
+          "exit": 0,
+          "log": "controls-qualification-1/held-role-inverted/logs/lake-build-prerequisites.log",
+          "log_sha256": "50055d5157418bef7c2420c8a3dc32e36e73742187c1392ae1a31dc830899949",
+          "stage": "lake-build-prerequisites"
+        },
+        {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "GrantedPermissionsProof.lean"
+          ],
+          "elapsed_ms": 3471,
+          "exit": 1,
+          "expected_exit": "semantic nonzero",
+          "log": "controls-qualification-1/held-role-inverted/logs/primary-proof-direct.log",
+          "log_sha256": "0a33a0a44436d57a741d80afd20970741100ea007ef96834c9bb917c66ccca52",
+          "stage": "primary-proof-direct"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::grants::tests::unheld_or_unconfigured_roles_do_not_grant",
+            "--",
+            "--exact"
+          ],
+          "elapsed_ms": 41442,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "controls-qualification-1/held-role-inverted/logs/native-witness.log",
+          "log_sha256": "3627615509dff8000f33989fb7ea29d85629e4daac6b4988531487322d53a05e",
+          "stage": "native-witness"
+        }
+      ],
+      "summary_path": "controls-qualification-1/held-role-inverted/control-summary.json",
+      "summary_sha256": "02b088a35d270e83ede443a020d238884228d0f9a46b77778e2a1336e7c18f4d",
+      "types_diff_review": "Types differed only in Aeneas Source comment span 46:16-46:48 to 46:16-46:49; declarations equal after removing Source comment lines. Reviewed by coder."
+    },
+    {
+      "binary_content_sha256_captured": false,
+      "generated_model": {
+        "Funs.lean": {
+          "bytes": 62629,
+          "sha256": "7c610e1226c6c732bb761ce9dec1e268f82710144f0011e433b99d705d476649"
+        },
+        "FunsExternal_Template.lean": {
+          "bytes": 29366,
+          "sha256": "f265ed5bcea7e0853c2749df5383df48d16f123c50404ba7090aa0b3db96f961"
+        },
+        "Types.lean": {
+          "bytes": 14244,
+          "sha256": "f96d5d6e700d44f04d13b78d1e78bcc056a3752083302fa15f81ef1646dfd6ca"
+        },
+        "TypesExternal_Template.lean": {
+          "bytes": 7461,
+          "sha256": "bdacf093f850fa5bb6d27aee37b56c4d7a74a9e95ae6403d435bc6ec1e465877"
+        }
+      },
+      "name": "deny-retains-risks-v2",
+      "native_binary_invocation_line": "Running unittests src/lib.rs (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b)",
+      "native_source_compile_line": "Compiling veoveo-hub v0.1.0 (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/controls-qualification-1/deny-retains-risks-v2/source/veoveo-hub/crates/veoveo-hub)",
+      "native_witness": "policy::grants::tests::matching_deny_wins_in_any_position",
+      "native_witness_classification": "assertion mismatch",
+      "native_witness_excerpt": [
+        "running 1 test",
+        "test policy::grants::tests::matching_deny_wins_in_any_position ... FAILED",
+        "",
+        "failures:",
+        "thread 'policy::grants::tests::matching_deny_wins_in_any_position' (1339567) panicked at crates/veoveo-hub/src/policy/grants.rs:490:13:",
+        "assertion `left == right` failed",
+        "  left: Some({Sensitive})",
+        " right: None",
+        "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.00s",
+        "error: test failed, to rerun pass `-p veoveo-hub --lib`"
+      ],
+      "native_witness_exit": 101,
+      "native_witness_log": "controls-qualification-1/deny-retains-risks-v2/logs/native-witness.log",
+      "native_witness_log_sha256": "82162ffd199488fc3f3d1678cd3dff486bad7ac9fc77f1c18dc74de70dcf4938",
+      "patch_application_exit": 0,
+      "patch_path": "/tmp/hub-current-role-proof-20261029/deny-retains-risks-v2.patch",
+      "patch_sha256": "87501596f9624f9596d43f3df9e88c257e27304e36e905d84e40682ac107ca63",
+      "primary_direct_exit": 1,
+      "primary_direct_log": "controls-qualification-1/deny-retains-risks-v2/logs/primary-proof-direct.log",
+      "primary_direct_log_sha256": "efc71c94c14492fc2be60a6612b8c62b4908aab50d6229c2fa9b463b0ff1cfec",
+      "primary_failure_review": "The mutated matching-Deny branch returns Some(risks), while the unchanged invariant requires None; the direct proof diagnostic was none = target where the actual invariant requires some risks = target.",
+      "primary_theorem": "EffectiveRiskProof.effective_loop_correct",
+      "source_root": "controls-qualification-1/deny-retains-risks-v2/source/veoveo-hub",
+      "source_verification": {
+        "base_files": 792,
+        "grants_before_sha256": "97f4816f5b6cf4a3236f704c9c12ef376bb0af7264db2b56caea93f34827e454",
+        "merged_paths": 817,
+        "overlay_files": 26,
+        "verified": true
+      },
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "check",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib"
+          ],
+          "elapsed_ms": 9229,
+          "exit": 0,
+          "log": "controls-qualification-1/deny-retains-risks-v2/logs/cargo-check.log",
+          "log_sha256": "eefcf73d9b87b3cbf51896b5c0e50eb9986e7ed5474b8eabca76b1e8b2182350",
+          "stage": "cargo-check"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "veoveo_hub::policy::grants::held_roles",
+            "--start-from",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--start-from",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--start-from",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--dest-file",
+            "../outputs/hub_current_roles.llbc",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 25156,
+          "exit": 0,
+          "log": "controls-qualification-1/deny-retains-risks-v2/logs/charon.log",
+          "log_sha256": "72e7293fb3aff59597b0462b504399b591ef9900c25868b1ce9f4869fef49aa8",
+          "stage": "charon"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "../outputs",
+            "../outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1117,
+          "exit": 0,
+          "log": "controls-qualification-1/deny-retains-risks-v2/logs/aeneas-split.log",
+          "log_sha256": "afbeb9ceca22406aa1cbc96250502dde2129f2f212711b573c000b535693df34",
+          "stage": "aeneas-split"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles"
+          ],
+          "elapsed_ms": 11383,
+          "exit": 0,
+          "log": "controls-qualification-1/deny-retains-risks-v2/logs/lake-build-generated.log",
+          "log_sha256": "63c22425a214994c0f2bef1182041fa776bca421007ec20082b20a8745954695",
+          "stage": "lake-build-generated"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "PolicyPrimitives"
+          ],
+          "elapsed_ms": 9429,
+          "exit": 0,
+          "log": "controls-qualification-1/deny-retains-risks-v2/logs/lake-build-prerequisites.log",
+          "log_sha256": "8b1cbe4785009ddc3abfaa0f42d0f9da47d32071d1ec3c7f359af4ee27b2022b",
+          "stage": "lake-build-prerequisites"
+        },
+        {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "EffectiveRiskProof.lean"
+          ],
+          "elapsed_ms": 2819,
+          "exit": 1,
+          "expected_exit": "semantic nonzero",
+          "log": "controls-qualification-1/deny-retains-risks-v2/logs/primary-proof-direct.log",
+          "log_sha256": "efc71c94c14492fc2be60a6612b8c62b4908aab50d6229c2fa9b463b0ff1cfec",
+          "stage": "primary-proof-direct"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::grants::tests::matching_deny_wins_in_any_position",
+            "--",
+            "--exact"
+          ],
+          "elapsed_ms": 35475,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "controls-qualification-1/deny-retains-risks-v2/logs/native-witness.log",
+          "log_sha256": "82162ffd199488fc3f3d1678cd3dff486bad7ac9fc77f1c18dc74de70dcf4938",
+          "stage": "native-witness"
+        }
+      ],
+      "summary_path": "controls-qualification-1/deny-retains-risks-v2/control-summary.json",
+      "summary_sha256": "bc9b6143c462f21ee794c1d6df113d5a40b380326f51167c8b9d3f2192851cea",
+      "types_diff_review": "Types declarations match baseline byte-for-byte."
+    },
+    {
+      "binary_content_sha256_captured": false,
+      "generated_model": {
+        "Funs.lean": {
+          "bytes": 62657,
+          "sha256": "502f00c64d54ef22145a6a5903b8ccee252c4f4e97dc8185effef2c91d0d5cf6"
+        },
+        "FunsExternal_Template.lean": {
+          "bytes": 29366,
+          "sha256": "f265ed5bcea7e0853c2749df5383df48d16f123c50404ba7090aa0b3db96f961"
+        },
+        "Types.lean": {
+          "bytes": 14244,
+          "sha256": "f96d5d6e700d44f04d13b78d1e78bcc056a3752083302fa15f81ef1646dfd6ca"
+        },
+        "TypesExternal_Template.lean": {
+          "bytes": 7461,
+          "sha256": "bdacf093f850fa5bb6d27aee37b56c4d7a74a9e95ae6403d435bc6ec1e465877"
+        }
+      },
+      "name": "omit-risk-additions-v2",
+      "native_binary_invocation_line": "Running unittests src/lib.rs (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b)",
+      "native_source_compile_line": "Compiling veoveo-hub v0.1.0 (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/controls-qualification-1/omit-risk-additions-v2/source/veoveo-hub/crates/veoveo-hub)",
+      "native_witness": "policy::grants::tests::overrides_accumulate_all_matching_risks",
+      "native_witness_classification": "assertion mismatch",
+      "native_witness_excerpt": [
+        "running 1 test",
+        "test policy::grants::tests::overrides_accumulate_all_matching_risks ... FAILED",
+        "",
+        "failures:",
+        "thread 'policy::grants::tests::overrides_accumulate_all_matching_risks' (1343159) panicked at crates/veoveo-hub/src/policy/grants.rs:451:9:",
+        "assertion `left == right` failed",
+        "  left: Some({Sensitive})",
+        " right: Some({Sensitive, Billed, Physical})",
+        "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.00s",
+        "error: test failed, to rerun pass `-p veoveo-hub --lib`"
+      ],
+      "native_witness_exit": 101,
+      "native_witness_log": "controls-qualification-1/omit-risk-additions-v2/logs/native-witness.log",
+      "native_witness_log_sha256": "ade0077538dffc0a5363999c3796c9a1faf2bbb389ba2dace592820354a513b7",
+      "patch_application_exit": 0,
+      "patch_path": "/tmp/hub-current-role-proof-20261029/omit-risk-additions-v2.patch",
+      "patch_sha256": "a9c5bf0352bdf2e06e443e15842ed25a3c44d583cb870ba26354ef3622a67924",
+      "primary_direct_exit": 1,
+      "primary_direct_log": "controls-qualification-1/omit-risk-additions-v2/logs/primary-proof-direct.log",
+      "primary_direct_log_sha256": "e4320e04d46ef79cafc966f845f9636066debe0f323f4e86fc49af1a104e92e0",
+      "primary_failure_review": "Effective-risk invariant expects the updated set after matching AddRisks, while the mutated state retains the original risks set.",
+      "primary_theorem": "EffectiveRiskProof.effective_loop_correct",
+      "source_root": "controls-qualification-1/omit-risk-additions-v2/source/veoveo-hub",
+      "source_verification": {
+        "base_files": 792,
+        "grants_before_sha256": "97f4816f5b6cf4a3236f704c9c12ef376bb0af7264db2b56caea93f34827e454",
+        "merged_paths": 817,
+        "overlay_files": 26,
+        "verified": true
+      },
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "check",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib"
+          ],
+          "elapsed_ms": 8829,
+          "exit": 0,
+          "log": "controls-qualification-1/omit-risk-additions-v2/logs/cargo-check.log",
+          "log_sha256": "40810e3d5d2741d5d4e107ce81e837b93fe269f7f77bf3135ddbfb5ec1451bcc",
+          "stage": "cargo-check"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "veoveo_hub::policy::grants::held_roles",
+            "--start-from",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--start-from",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--start-from",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--dest-file",
+            "../outputs/hub_current_roles.llbc",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 24106,
+          "exit": 0,
+          "log": "controls-qualification-1/omit-risk-additions-v2/logs/charon.log",
+          "log_sha256": "ee009630ed678579bf40bd16d98aff05ce01a61760955d4ebcdd1caab4e4d738",
+          "stage": "charon"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "../outputs",
+            "../outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1067,
+          "exit": 0,
+          "log": "controls-qualification-1/omit-risk-additions-v2/logs/aeneas-split.log",
+          "log_sha256": "1c01ea180d7095625e36c8b8fa35d430535459c5e12e84b24165fb27393bce6a",
+          "stage": "aeneas-split"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles"
+          ],
+          "elapsed_ms": 10430,
+          "exit": 0,
+          "log": "controls-qualification-1/omit-risk-additions-v2/logs/lake-build-generated.log",
+          "log_sha256": "1e11825a4dd94b8b205c047fa1ab27fb769ee8524df92243e357c3ca38ba90e8",
+          "stage": "lake-build-generated"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "PolicyPrimitives"
+          ],
+          "elapsed_ms": 9730,
+          "exit": 0,
+          "log": "controls-qualification-1/omit-risk-additions-v2/logs/lake-build-prerequisites.log",
+          "log_sha256": "0b37b85b3e227b1f720deaacc7666f5e3511d13cde239e264132c4c52fd4c074",
+          "stage": "lake-build-prerequisites"
+        },
+        {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "EffectiveRiskProof.lean"
+          ],
+          "elapsed_ms": 2768,
+          "exit": 1,
+          "expected_exit": "semantic nonzero",
+          "log": "controls-qualification-1/omit-risk-additions-v2/logs/primary-proof-direct.log",
+          "log_sha256": "e4320e04d46ef79cafc966f845f9636066debe0f323f4e86fc49af1a104e92e0",
+          "stage": "primary-proof-direct"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::grants::tests::overrides_accumulate_all_matching_risks",
+            "--",
+            "--exact"
+          ],
+          "elapsed_ms": 34627,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "controls-qualification-1/omit-risk-additions-v2/logs/native-witness.log",
+          "log_sha256": "ade0077538dffc0a5363999c3796c9a1faf2bbb389ba2dace592820354a513b7",
+          "stage": "native-witness"
+        }
+      ],
+      "summary_path": "controls-qualification-1/omit-risk-additions-v2/control-summary.json",
+      "summary_sha256": "6abbb997b2f106ba966e3d57c4bb72459f91e621599ae7cf2b33e51fd216c01e",
+      "types_diff_review": "Types declarations match baseline byte-for-byte."
+    },
+    {
+      "binary_content_sha256_captured": false,
+      "generated_model": {
+        "Funs.lean": {
+          "bytes": 62269,
+          "sha256": "35fee4bcaa80946bb5a740810231e0b3262cbc7b7bf5921486f5e30c56ef3e88"
+        },
+        "FunsExternal_Template.lean": {
+          "bytes": 29366,
+          "sha256": "f265ed5bcea7e0853c2749df5383df48d16f123c50404ba7090aa0b3db96f961"
+        },
+        "Types.lean": {
+          "bytes": 14244,
+          "sha256": "f96d5d6e700d44f04d13b78d1e78bcc056a3752083302fa15f81ef1646dfd6ca"
+        },
+        "TypesExternal_Template.lean": {
+          "bytes": 7461,
+          "sha256": "bdacf093f850fa5bb6d27aee37b56c4d7a74a9e95ae6403d435bc6ec1e465877"
+        }
+      },
+      "name": "risk-or-access",
+      "native_binary_invocation_line": "Running unittests src/lib.rs (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b)",
+      "native_source_compile_line": "Compiling veoveo-hub v0.1.0 (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/controls-qualification-1/risk-or-access/source/veoveo-hub/crates/veoveo-hub)",
+      "native_witness": "policy::grants::tests::one_configured_role_must_cover_access_and_all_risks",
+      "native_witness_classification": "assertion mismatch",
+      "native_witness_excerpt": [
+        "running 1 test",
+        "test policy::grants::tests::one_configured_role_must_cover_access_and_all_risks ... FAILED",
+        "",
+        "failures:",
+        "thread 'policy::grants::tests::one_configured_role_must_cover_access_and_all_risks' (1299440) panicked at crates/veoveo-hub/src/policy/grants.rs:409:13:",
+        "assertion `left == right` failed",
+        "  left: [\"fixture.inspect\"]",
+        " right: []",
+        "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.00s",
+        "error: test failed, to rerun pass `-p veoveo-hub --lib`"
+      ],
+      "native_witness_exit": 101,
+      "native_witness_log": "controls-qualification-1/risk-or-access/logs/native-witness.log",
+      "native_witness_log_sha256": "9eea0d21249721316818e65471225c6f9c44e6aca3483f373a7bef5478e63184",
+      "patch_application_exit": 0,
+      "patch_path": "proofs/current_roles/mutations/risk-or-access.patch",
+      "patch_sha256": "276a131e7b82ecb2204965d452307e2dd9ee33ccddf016ffc974d5cd3755a9b7",
+      "primary_direct_exit": 1,
+      "primary_direct_log": "controls-qualification-1/risk-or-access/logs/primary-proof-direct.log",
+      "primary_direct_log_sha256": "257ae177ecdc49fe76a1935e272f28d6ad6475bd9e256d9d882301670c03fe18",
+      "primary_failure_review": "InstallationRole.allows theorem fails in both access-hit and access-miss cases because access and risk checks are no longer conjoined.",
+      "primary_theorem": "NativeSetProof.role_allows_exact",
+      "source_root": "controls-qualification-1/risk-or-access/source/veoveo-hub",
+      "source_verification": {
+        "base_files": 792,
+        "grants_before_sha256": "97f4816f5b6cf4a3236f704c9c12ef376bb0af7264db2b56caea93f34827e454",
+        "merged_paths": 817,
+        "overlay_files": 26,
+        "verified": true
+      },
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "check",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib"
+          ],
+          "elapsed_ms": 8928,
+          "exit": 0,
+          "log": "controls-qualification-1/risk-or-access/logs/cargo-check.log",
+          "log_sha256": "8a4c06cc93e2a0cca0022380efc7ffa8d7d202f70a79a26ad8c8d48ebb74b3dc",
+          "stage": "cargo-check"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "veoveo_hub::policy::grants::held_roles",
+            "--start-from",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--start-from",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--start-from",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--dest-file",
+            "../outputs/hub_current_roles.llbc",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 24005,
+          "exit": 0,
+          "log": "controls-qualification-1/risk-or-access/logs/charon.log",
+          "log_sha256": "d867ba425d85b1c791dab28be45b863a467817eb0863cb74e934152e3759f6f6",
+          "stage": "charon"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "../outputs",
+            "../outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1019,
+          "exit": 0,
+          "log": "controls-qualification-1/risk-or-access/logs/aeneas-split.log",
+          "log_sha256": "3e9b17ec714e81944aef4dbe93a9961fa7c860defa86443fd1f0313ff41fd62d",
+          "stage": "aeneas-split"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles"
+          ],
+          "elapsed_ms": 9981,
+          "exit": 0,
+          "log": "controls-qualification-1/risk-or-access/logs/lake-build-generated.log",
+          "log_sha256": "54f7e5b84efc39a2e8a49b3cf09196b3780d2dc0fe9ff7f1840d6d9fd6e8aa4d",
+          "stage": "lake-build-generated"
+        },
+        {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "NativeSetProof.lean"
+          ],
+          "elapsed_ms": 2818,
+          "exit": 1,
+          "expected_exit": "semantic nonzero",
+          "log": "controls-qualification-1/risk-or-access/logs/primary-proof-direct.log",
+          "log_sha256": "257ae177ecdc49fe76a1935e272f28d6ad6475bd9e256d9d882301670c03fe18",
+          "stage": "primary-proof-direct"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::grants::tests::one_configured_role_must_cover_access_and_all_risks",
+            "--",
+            "--exact"
+          ],
+          "elapsed_ms": 36877,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "controls-qualification-1/risk-or-access/logs/native-witness.log",
+          "log_sha256": "9eea0d21249721316818e65471225c6f9c44e6aca3483f373a7bef5478e63184",
+          "stage": "native-witness"
+        }
+      ],
+      "summary_path": "controls-qualification-1/risk-or-access/control-summary.json",
+      "summary_sha256": "756f627d42abbe881935d37f4adcab7dd76633e9cf19f740e447ced5100f79a2",
+      "types_diff_review": "Types declarations match baseline byte-for-byte."
+    },
+    {
+      "binary_content_sha256_captured": false,
+      "generated_model": {
+        "Funs.lean": {
+          "bytes": 62273,
+          "sha256": "5be38efa6de4d617f00a8f6154260285cd06932fc6d09645c24e334be846a497"
+        },
+        "FunsExternal_Template.lean": {
+          "bytes": 29366,
+          "sha256": "f265ed5bcea7e0853c2749df5383df48d16f123c50404ba7090aa0b3db96f961"
+        },
+        "Types.lean": {
+          "bytes": 14244,
+          "sha256": "79e481ee00f8dd5a7b20d9937f21d55d500a11e9b07f1c7c5927e3cdf2d0ea23"
+        },
+        "TypesExternal_Template.lean": {
+          "bytes": 7461,
+          "sha256": "bdacf093f850fa5bb6d27aee37b56c4d7a74a9e95ae6403d435bc6ec1e465877"
+        }
+      },
+      "name": "invert-role-acceptance",
+      "native_binary_invocation_line": "Running unittests src/lib.rs (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/native-target/debug/deps/veoveo_hub-c8f3579f44b9e27b)",
+      "native_source_compile_line": "Compiling veoveo-hub v0.1.0 (/home/rozgo/.cache/lean-pilot/hub-current-role-proof-20261029/controls-qualification-1/invert-role-acceptance/source/veoveo-hub/crates/veoveo-hub)",
+      "native_witness": "policy::grants::tests::valid_permission_occurrences_and_empty_inputs",
+      "native_witness_classification": "assertion mismatch",
+      "native_witness_excerpt": [
+        "running 1 test",
+        "test policy::grants::tests::valid_permission_occurrences_and_empty_inputs ... FAILED",
+        "",
+        "failures:",
+        "thread 'policy::grants::tests::valid_permission_occurrences_and_empty_inputs' (1306575) panicked at crates/veoveo-hub/src/policy/grants.rs:498:9:",
+        "assertion `left == right` failed",
+        "  left: []",
+        " right: [\"fixture.inspect\"]",
+        "note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.00s",
+        "error: test failed, to rerun pass `-p veoveo-hub --lib`"
+      ],
+      "native_witness_exit": 101,
+      "native_witness_log": "controls-qualification-1/invert-role-acceptance/logs/native-witness.log",
+      "native_witness_log_sha256": "a9ce1f1fe9052b41bb28a30c9a227956790694e3d7024cbebd82ed3d0b0e0315",
+      "patch_application_exit": 0,
+      "patch_path": "proofs/current_roles/mutations/invert-role-acceptance.patch",
+      "patch_sha256": "c600a20c218ee8f07f36e31b3ea32466fc5b16edf2b54a2d251dc29de6f22e99",
+      "primary_direct_exit": 1,
+      "primary_direct_log": "controls-qualification-1/invert-role-acceptance/logs/primary-proof-direct.log",
+      "primary_direct_log_sha256": "7a3d4a84c9f7b518ac99f30fb81b529edc573b1bcfcb3d1b82e1bd8efa1db455",
+      "primary_failure_review": "Permission closure theorem has normalized Boolean tuple mismatches in both directions.",
+      "primary_theorem": "GrantedPermissionsProof.allows_closure_exact",
+      "source_root": "controls-qualification-1/invert-role-acceptance/source/veoveo-hub",
+      "source_verification": {
+        "base_files": 792,
+        "grants_before_sha256": "97f4816f5b6cf4a3236f704c9c12ef376bb0af7264db2b56caea93f34827e454",
+        "merged_paths": 817,
+        "overlay_files": 26,
+        "verified": true
+      },
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "check",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib"
+          ],
+          "elapsed_ms": 9079,
+          "exit": 0,
+          "log": "controls-qualification-1/invert-role-acceptance/logs/cargo-check.log",
+          "log_sha256": "abeb34db5f90a3499593afc868ffcb65d204c010ef4f0cc37f6e806a3d606789",
+          "stage": "cargo-check"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "veoveo_hub::policy::grants::held_roles",
+            "--start-from",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--start-from",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--start-from",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--dest-file",
+            "../outputs/hub_current_roles.llbc",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 25058,
+          "exit": 0,
+          "log": "controls-qualification-1/invert-role-acceptance/logs/charon.log",
+          "log_sha256": "436ab4617bc5ac008946f5ca97c3b2a561a90f2077c367d51355e9f68d9c51f8",
+          "stage": "charon"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "../outputs",
+            "../outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1068,
+          "exit": 0,
+          "log": "controls-qualification-1/invert-role-acceptance/logs/aeneas-split.log",
+          "log_sha256": "bf479a35de777034cdad18e822714451d145e1ab05fa64f151a78799793a9d77",
+          "stage": "aeneas-split"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles"
+          ],
+          "elapsed_ms": 11588,
+          "exit": 0,
+          "log": "controls-qualification-1/invert-role-acceptance/logs/lake-build-generated.log",
+          "log_sha256": "d0776b48de8228fd9cf753103bfda21c3ab5702262f1fdb8bc02bea1e12f8cd3",
+          "stage": "lake-build-generated"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HeldRoleProof",
+            "EffectiveRiskProof"
+          ],
+          "elapsed_ms": 11885,
+          "exit": 0,
+          "log": "controls-qualification-1/invert-role-acceptance/logs/lake-build-prerequisites.log",
+          "log_sha256": "9a4665f8d9f4798653f8c25171180d432dc4d73cf0bb27f6e98f75bf6b1d4288",
+          "stage": "lake-build-prerequisites"
+        },
+        {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "GrantedPermissionsProof.lean"
+          ],
+          "elapsed_ms": 2919,
+          "exit": 1,
+          "expected_exit": "semantic nonzero",
+          "log": "controls-qualification-1/invert-role-acceptance/logs/primary-proof-direct.log",
+          "log_sha256": "7a3d4a84c9f7b518ac99f30fb81b529edc573b1bcfcb3d1b82e1bd8efa1db455",
+          "stage": "primary-proof-direct"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib",
+            "policy::grants::tests::valid_permission_occurrences_and_empty_inputs",
+            "--",
+            "--exact"
+          ],
+          "elapsed_ms": 36431,
+          "exit": 101,
+          "expected_exit": 101,
+          "log": "controls-qualification-1/invert-role-acceptance/logs/native-witness.log",
+          "log_sha256": "a9ce1f1fe9052b41bb28a30c9a227956790694e3d7024cbebd82ed3d0b0e0315",
+          "stage": "native-witness"
+        }
+      ],
+      "summary_path": "controls-qualification-1/invert-role-acceptance/control-summary.json",
+      "summary_sha256": "e7c2ebdc6073f91f48bbb27da7904844b795ef73575a64998d6725483bfc067c",
+      "types_diff_review": "Types differed only in Aeneas Source comment span 57:21-57:66 to 57:21-57:67; declarations equal after removing Source comment lines. Reviewed by coder."
+    }
+  ],
+  "baseline": {
+    "complete": true,
+    "generated_split_files": {
+      "Funs.lean": {
+        "bytes": 62270,
+        "sha256": "390d5b405fe454ea4a776d4fd3fec1d6896ace1b53fe2737c88b5a5495ff9f52"
+      },
+      "FunsExternal_Template.lean": {
+        "bytes": 29366,
+        "sha256": "f265ed5bcea7e0853c2749df5383df48d16f123c50404ba7090aa0b3db96f961"
+      },
+      "Types.lean": {
+        "bytes": 14244,
+        "sha256": "f96d5d6e700d44f04d13b78d1e78bcc056a3752083302fa15f81ef1646dfd6ca"
+      },
+      "TypesExternal_Template.lean": {
+        "bytes": 7461,
+        "sha256": "bdacf093f850fa5bb6d27aee37b56c4d7a74a9e95ae6403d435bc6ec1e465877"
+      }
+    },
+    "stages": [
+      {
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "elapsed_ms": 715,
+        "exit": 0,
+        "log": "baseline-qualification-1/logs/native-fmt.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "native-fmt"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "policy::grants::tests"
+        ],
+        "elapsed_ms": 191208,
+        "exit": 0,
+        "log": "baseline-qualification-1/logs/native-grant-witnesses.log",
+        "log_sha256": "23e2c60d5e6092a8230bd96ae693862d75bae5e7a5f2a7ee7039746705316bb9",
+        "stage": "native-grant-witnesses"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "control_plane::authorization_config::tests"
+        ],
+        "elapsed_ms": 264,
+        "exit": 0,
+        "log": "baseline-qualification-1/logs/native-config-witness.log",
+        "log_sha256": "9039384434ce832cbd6494e5b6f6dc6fad1e9a062f24379152bb4a53c1b6a57c",
+        "stage": "native-config-witness"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+          "cargo",
+          "--sysroot",
+          "default",
+          "--preset=aeneas",
+          "--start-from",
+          "veoveo_hub::policy::grants::held_roles",
+          "--start-from",
+          "veoveo_hub::policy::grants::effective_risks",
+          "--start-from",
+          "veoveo_hub::policy::grants::granted_permissions",
+          "--start-from",
+          "veoveo_hub::control_plane::authorization_config::_::allows",
+          "--include",
+          "veoveo_hub::policy::grants::held_roles",
+          "--include",
+          "veoveo_hub::policy::grants::effective_risks",
+          "--include",
+          "veoveo_hub::policy::grants::granted_permissions",
+          "--include",
+          "veoveo_hub::control_plane::authorization_config::_::allows",
+          "--dest-file",
+          "../outputs/hub_current_roles.llbc",
+          "--",
+          "--manifest-path",
+          "crates/veoveo-hub/Cargo.toml",
+          "--lib",
+          "--locked"
+        ],
+        "elapsed_ms": 194861,
+        "exit": 0,
+        "log": "baseline-qualification-1/logs/charon.log",
+        "log_sha256": "fb9a326aaebb988a2ff73684e047796cb9d32d3ff6094db162d9058fe118d580",
+        "stage": "charon"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+          "-backend",
+          "lean",
+          "-filter-trait-methods",
+          "-split-files",
+          "-dest",
+          "../outputs",
+          "../outputs/hub_current_roles.llbc"
+        ],
+        "elapsed_ms": 1018,
+        "exit": 0,
+        "log": "baseline-qualification-1/logs/aeneas-split.log",
+        "log_sha256": "225cb936a6674f2a98f4e5f31a44cb1c5adedcfd85f27de19875ea1bedb25b13",
+        "stage": "aeneas-split"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build",
+          "HubCurrentRoles"
+        ],
+        "elapsed_ms": 11483,
+        "exit": 0,
+        "log": "baseline-qualification-1/logs/lake-build-generated.log",
+        "log_sha256": "82ae809f033c9c46a2c9b90da4603997e491078352075c936a5354385963dca8",
+        "stage": "lake-build-generated"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build"
+        ],
+        "elapsed_ms": 13787,
+        "exit": 0,
+        "log": "baseline-qualification-1/logs/lake-build-default.log",
+        "log_sha256": "e68ca49479dc340a264ee411f2bfca982cb63655a2a6ba0b16f7a5f508effb0a",
+        "stage": "lake-build-default"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "GrantedPermissionsProof.lean"
+        ],
+        "elapsed_ms": 2918,
+        "exit": 0,
+        "log": "baseline-qualification-1/logs/lean-granted-direct.log",
+        "log_sha256": "be9e2cc9c3824894f7351895c7159802ed116adbfc30946c124bf9dde08f351f",
+        "stage": "lean-granted-direct"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "ModelAudit.lean"
+        ],
+        "elapsed_ms": 2618,
+        "exit": 0,
+        "log": "baseline-qualification-1/logs/lean-model-audit.log",
+        "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312",
+        "stage": "lean-model-audit"
+      }
+    ],
+    "summary_path": "baseline-qualification-1/baseline-summary.json",
+    "summary_sha256": "c583aad8f805625f0ddc884efa85011d2bb67a2225e3721a422b0d7f2529d962"
+  },
+  "evidence_limits": [
+    "Native Cargo output records compilation from the specific mutated source root and test execution, but per-case test executable content hashes were not captured.",
+    "The two initial risk variants and tenant != variant are retained as excluded attempts; only their reviewed v2 replacements count among accepted controls.",
+    "The shared-target restored-final-2 failure is excluded; restored-final-3 is the post-control clean restoration.",
+    "This qualifies the frozen finite implementation slice and its listed mutation witnesses. It is not a deployment or full-platform gate."
+  ],
+  "excluded_attempts": [
+    {
+      "name": "tenant-different",
+      "original_patch_sha256": "00b4fcac70f2640dac0c8316b4dc5bc5372a771699a8f96914a452fe94e7047f",
+      "reason": "Original `!=` mutation was excluded: unchanged proof did not normalize the generated Option.ne.trait_default call. Replaced by coder-reviewed external v2 patch using negated existing equality; only v2 is counted.",
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "check",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib"
+          ],
+          "elapsed_ms": 101942,
+          "exit": 0,
+          "log": "controls-qualification-1/tenant-different/logs/cargo-check.log",
+          "log_sha256": "3923e87fb914a981b63b8233ef333671255137a28f8ad51ee04356b5696a892a",
+          "stage": "cargo-check"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "veoveo_hub::policy::grants::held_roles",
+            "--start-from",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--start-from",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--start-from",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--dest-file",
+            "../outputs/hub_current_roles.llbc",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 193297,
+          "exit": 0,
+          "log": "controls-qualification-1/tenant-different/logs/charon.log",
+          "log_sha256": "4461a4587f42bb43352965d5820b976130c4a7304f370391ec4f607102e86c59",
+          "stage": "charon"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "../outputs",
+            "../outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1119,
+          "exit": 0,
+          "log": "controls-qualification-1/tenant-different/logs/aeneas-split.log",
+          "log_sha256": "bd13eda8277078ff0ea483c9c1962a29e91a704f960e168ffe55048b2545a930",
+          "stage": "aeneas-split"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles"
+          ],
+          "elapsed_ms": 10983,
+          "exit": 0,
+          "log": "controls-qualification-1/tenant-different/logs/lake-build-generated.log",
+          "log_sha256": "b53544d7334af285d4fb537fdda7e92e76b4b6c82aaf8f5667fc3ad982eae415",
+          "stage": "lake-build-generated"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "PolicyPrimitives"
+          ],
+          "elapsed_ms": 9580,
+          "exit": 0,
+          "log": "controls-qualification-1/tenant-different/logs/lake-build-prerequisites.log",
+          "log_sha256": "bb5dc73b6a52368db6f683a169b1e66318397d8d49a6dc5077c918f9dd56ffe2",
+          "stage": "lake-build-prerequisites"
+        },
+        {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "HeldRoleProof.lean"
+          ],
+          "elapsed_ms": 2719,
+          "exit": 1,
+          "expected_exit": "semantic nonzero",
+          "log": "controls-qualification-1/tenant-different/logs/primary-proof-direct.log",
+          "log_sha256": "10c31a9ea36bbb7834673ff943f4a30c6ed4f2b3dd15615a3a6e061c7f769f29",
+          "stage": "primary-proof-direct"
+        }
+      ],
+      "summary_path": "controls-qualification-1/tenant-different/control-summary.json",
+      "summary_sha256": "0823a0aa920ed04cf71ea1ed228aa5ff578e330cfb7b65c2c38011d190396909"
+    },
+    {
+      "name": "deny-retains-risks",
+      "original_patch_sha256": "a880827912fddd80125ed4e107db704b758afdf7aa2546758f7fefc06797b7ce",
+      "reason": "Original Some/None branch mutation was excluded: the unchanged proof developed projection and outer-bind elaboration errors/sorryAx. Coder-reviewed v2 guard gave a direct none=target versus some-risks=target semantic failure.",
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "check",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib"
+          ],
+          "elapsed_ms": 10035,
+          "exit": 0,
+          "log": "controls-qualification-1/deny-retains-risks/logs/cargo-check.log",
+          "log_sha256": "3d665f47f9966c8d563b9e5bc5ffb26a0673642cdd806176db0897cc8777b675",
+          "stage": "cargo-check"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "veoveo_hub::policy::grants::held_roles",
+            "--start-from",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--start-from",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--start-from",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--dest-file",
+            "../outputs/hub_current_roles.llbc",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 24809,
+          "exit": 0,
+          "log": "controls-qualification-1/deny-retains-risks/logs/charon.log",
+          "log_sha256": "8304b9e58375d9e2db85651a15895b6da14dfda39cdce0e40f9a42fec98be8cb",
+          "stage": "charon"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "../outputs",
+            "../outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1067,
+          "exit": 0,
+          "log": "controls-qualification-1/deny-retains-risks/logs/aeneas-split.log",
+          "log_sha256": "091b1688e45ee0775941f6aa5755e78e6c814c65f93a92428bac232d062c71ad",
+          "stage": "aeneas-split"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles"
+          ],
+          "elapsed_ms": 11233,
+          "exit": 0,
+          "log": "controls-qualification-1/deny-retains-risks/logs/lake-build-generated.log",
+          "log_sha256": "f19374f84a6bb90e6b15e46072c9a3c7cdb588e04ec820bd16515cb3eb73c5ca",
+          "stage": "lake-build-generated"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "PolicyPrimitives"
+          ],
+          "elapsed_ms": 9631,
+          "exit": 0,
+          "log": "controls-qualification-1/deny-retains-risks/logs/lake-build-prerequisites.log",
+          "log_sha256": "61c82ba5e38f307d89d23b9b620aac98e5c103856781a9edeca1e6d80cce8876",
+          "stage": "lake-build-prerequisites"
+        },
+        {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "EffectiveRiskProof.lean"
+          ],
+          "elapsed_ms": 2920,
+          "exit": 1,
+          "expected_exit": "semantic nonzero",
+          "log": "controls-qualification-1/deny-retains-risks/logs/primary-proof-direct.log",
+          "log_sha256": "e6a7855a012d194024b0ea575c5ee47e225e2bce775bf2e2bd556ed804cb80b4",
+          "stage": "primary-proof-direct"
+        }
+      ],
+      "summary_path": "controls-qualification-1/deny-retains-risks/control-summary.json",
+      "summary_sha256": "61143f61d62cd2b2247b14538a7761880df531f6f75ccb12d900dac9b9173265"
+    },
+    {
+      "name": "replace-risk-additions",
+      "original_patch_sha256": "1d3ebf2e7415865c09e9e4d5059bced20b8ddc8dd566735b1746d3ac9b332f6a",
+      "reason": "Original clone/replacement mutation was excluded: unchanged proof rewrite/elaboration failed with sorryAx. Coder-reviewed omit-risk-additions-v2 was the final semantic control.",
+      "stages": [
+        {
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-x86_64-unknown-linux-gnu",
+            "cargo",
+            "check",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--lib"
+          ],
+          "elapsed_ms": 9380,
+          "exit": 0,
+          "log": "controls-qualification-1/replace-risk-additions/logs/cargo-check.log",
+          "log_sha256": "cb323ad63824feb42fe3cbfe12446d5a314e7ebe3540b279bbc8135a4116d621",
+          "stage": "cargo-check"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+            "cargo",
+            "--sysroot",
+            "default",
+            "--preset=aeneas",
+            "--start-from",
+            "veoveo_hub::policy::grants::held_roles",
+            "--start-from",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--start-from",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--start-from",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--include",
+            "veoveo_hub::policy::grants::held_roles",
+            "--include",
+            "veoveo_hub::policy::grants::effective_risks",
+            "--include",
+            "veoveo_hub::policy::grants::granted_permissions",
+            "--include",
+            "veoveo_hub::control_plane::authorization_config::_::allows",
+            "--dest-file",
+            "../outputs/hub_current_roles.llbc",
+            "--",
+            "--manifest-path",
+            "crates/veoveo-hub/Cargo.toml",
+            "--lib",
+            "--locked"
+          ],
+          "elapsed_ms": 24458,
+          "exit": 0,
+          "log": "controls-qualification-1/replace-risk-additions/logs/charon.log",
+          "log_sha256": "632ead46e25a0111e10051ec4ccef1fa18e2daedf5407e6095c8cc9d41c95890",
+          "stage": "charon"
+        },
+        {
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "../outputs",
+            "../outputs/hub_current_roles.llbc"
+          ],
+          "elapsed_ms": 1067,
+          "exit": 0,
+          "log": "controls-qualification-1/replace-risk-additions/logs/aeneas-split.log",
+          "log_sha256": "c335155cd92f60a349cddd92580de7145826c3177c3a9c743944ba8f0dd19993",
+          "stage": "aeneas-split"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "HubCurrentRoles"
+          ],
+          "elapsed_ms": 12486,
+          "exit": 0,
+          "log": "controls-qualification-1/replace-risk-additions/logs/lake-build-generated.log",
+          "log_sha256": "e2d69a96ed077d90f6f346d95faab0cdb6293dab7681ec3c9eb918ec566a2a4e",
+          "stage": "lake-build-generated"
+        },
+        {
+          "command": [
+            "lake",
+            "build",
+            "PolicyPrimitives"
+          ],
+          "elapsed_ms": 9580,
+          "exit": 0,
+          "log": "controls-qualification-1/replace-risk-additions/logs/lake-build-prerequisites.log",
+          "log_sha256": "0b37b85b3e227b1f720deaacc7666f5e3511d13cde239e264132c4c52fd4c074",
+          "stage": "lake-build-prerequisites"
+        },
+        {
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "EffectiveRiskProof.lean"
+          ],
+          "elapsed_ms": 2869,
+          "exit": 1,
+          "expected_exit": "semantic nonzero",
+          "log": "controls-qualification-1/replace-risk-additions/logs/primary-proof-direct.log",
+          "log_sha256": "d6b386f30d37950ee29d0626eaf36d7cd9bc69fcb0bc92752c0d70cbda40cfbc",
+          "stage": "primary-proof-direct"
+        }
+      ],
+      "summary_path": "controls-qualification-1/replace-risk-additions/control-summary.json",
+      "summary_sha256": "e8180fa71126c437568afcfdb5cb11fd871c9630af02fe1fc78a742edba099a1"
+    }
+  ],
+  "excluded_restore_attempt": {
+    "classification": "excluded stale-target attempt; not accepted restoration",
+    "observation": "The grants tests exited 101 in 264 ms, with no `Compiling veoveo-hub` line, while two assertions matched earlier mutant behavior. Its runner pointed CARGO_TARGET_DIR at the shared top-level native-target. Cache reuse is the likely explanation; that inference is not conclusively instrumented.",
+    "stages": [
+      {
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "elapsed_ms": 665,
+        "exit": 0,
+        "log": "restored-final-2/logs/native-fmt.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "native-fmt"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "policy::grants::tests"
+        ],
+        "elapsed_ms": 264,
+        "exit": 101,
+        "log": "restored-final-2/logs/native-grant-witnesses.log",
+        "log_sha256": "d06ff67568e3a142026ce43c8c98ba68e2e93f1ce1f218d40fed9b7730e63056",
+        "stage": "native-grant-witnesses"
+      }
+    ],
+    "summary_path": "restored-final-2/baseline-summary.json",
+    "summary_sha256": "c7ec0d103391a1bd8c66a4f972bd2bc31f6ab78e556cc79240c8b3b8ae08a9be",
+    "superseded_by": "restored-final-3/baseline-summary.json"
+  },
+  "execution": {
+    "aeneas": "nightly-2026.10.23-fdebf20; `-filter-trait-methods -split-files`.",
+    "aeneas_source_commit": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "base_paths": 792,
+    "charon": "0.1.293 de8736f7c995ac54dc490345cef9ea5143c06c62; `--sysroot default`, pinned Rust nightly-2026-09-17.",
+    "dependency_cache": "Pinned Lake packages reused from immutable cache; each restored snapshot has separate native/Charon/Lake outputs. Controls used dedicated per-control source/model/log directories and a shared Cargo target; every witness log shows `Compiling veoveo-hub` from its own source root.",
+    "deployment": "none",
+    "hub_grants_frozen_source_sha256": "97f4816f5b6cf4a3236f704c9c12ef376bb0af7264db2b56caea93f34827e454",
+    "lean": "4.35.0 commit eb6cafb7290e8bd5f2937522d8d804f58f02bafc.",
+    "merged_paths": 817,
+    "operating_system": "Ubuntu 24.04.5 LTS, Linux 6.8.0-147-generic, x86_64; native Linux host, no container wrapper.",
+    "overlay_archive_sha256": "357a95a0830b780167a0649e55bb8870a07b2ab8c78715c9a94ee9ed1f16d1cf",
+    "overlay_manifest_sha256": "45035c1d986baec88d46e330a00925bc2fe82a242a91420e03b156d320a5e01c",
+    "overlay_paths": 26,
+    "overlay_paths_sha256": {
+      "crates/veoveo-hub/src/policy/grants.rs": "97f4816f5b6cf4a3236f704c9c12ef376bb0af7264db2b56caea93f34827e454",
+      "proofs/current_roles/.gitignore": "473013ab0b90da268a10d4e04a6ecf8e1594539d95ff646dde921e63de58caa2",
+      "proofs/current_roles/CollectionProof.lean": "972247bcd30bb02e858ef36039132a95aa2d13911beea1c1ba10ae3ae2292397",
+      "proofs/current_roles/EffectiveRiskProof.lean": "50dca8815fe45015e22029df33d670218efb7c29974dd7b5f1a1aa4e16d964f2",
+      "proofs/current_roles/GrantedPermissionsProof.lean": "b5df13643b0ed92b212c5e3e38d5710ac8b880d7f31f80ec996c0994cdeb0e22",
+      "proofs/current_roles/HeldRoleProof.lean": "95ce7d4519b73da67de893d933acc54f9b5c0305409dc00563a3d8177672524c",
+      "proofs/current_roles/HubCurrentRoles.lean": "097d0eba1287bed6e96cb1328ecf48a6c2d2f1ded5ee207f4f31f166b3e3364d",
+      "proofs/current_roles/HubCurrentRoles/Funs.lean": "390d5b405fe454ea4a776d4fd3fec1d6896ace1b53fe2737c88b5a5495ff9f52",
+      "proofs/current_roles/HubCurrentRoles/FunsExternal.lean": "c596bda7ab34eb9b94bf07d27565f8b206378a423baa0534406528482e520a03",
+      "proofs/current_roles/HubCurrentRoles/Types.lean": "f96d5d6e700d44f04d13b78d1e78bcc056a3752083302fa15f81ef1646dfd6ca",
+      "proofs/current_roles/HubCurrentRoles/TypesExternal.lean": "e89a51ea889db1efea4ba2e0c2b0b7c1fbdabadbb13f46a65377ca7addb0039a",
+      "proofs/current_roles/IteratorProof.lean": "29b28849fbfb8830425373b3d0706e8d79cc8ce95502ebf17234de700c80faa4",
+      "proofs/current_roles/ModelAudit.lean": "d2f524e13ab365b8fd4212187972d3e6834e07e476e08a59aef2b357a54de1f0",
+      "proofs/current_roles/NativeSetProof.lean": "2d0d116f7f32a5d0ed6192c3abcd2c0f50366d0015a725d19df7ced641855a5c",
+      "proofs/current_roles/PolicyPrimitives.lean": "aafc4b8984c33817ba23034a49e637556e90c5bcb85beed3137386145a7a6b75",
+      "proofs/current_roles/README.md": "935fbf7dde55571797f4bb16c737667aee69450d209d73cad2bca944363e0dd0",
+      "proofs/current_roles/lake-manifest.json": "e0a5e727347acb0d6367a6370f0163098563fe90928510aa67f5ec021d20f463",
+      "proofs/current_roles/lakefile.lean": "430a53bf9db5ef4007630386b504838c8185b614e4a77e5c1ca6e6ae0e4a8c13",
+      "proofs/current_roles/lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+      "proofs/current_roles/mutations/deny-retains-risks.patch": "a880827912fddd80125ed4e107db704b758afdf7aa2546758f7fefc06797b7ce",
+      "proofs/current_roles/mutations/held-role-inverted.patch": "b8fe5e6a68480b6f12ad5644e1754151fb5aed328899de7073ceb1272e82f75c",
+      "proofs/current_roles/mutations/invert-role-acceptance.patch": "c600a20c218ee8f07f36e31b3ea32466fc5b16edf2b54a2d251dc29de6f22e99",
+      "proofs/current_roles/mutations/replace-risk-additions.patch": "1d3ebf2e7415865c09e9e4d5059bced20b8ddc8dd566735b1746d3ac9b332f6a",
+      "proofs/current_roles/mutations/risk-or-access.patch": "276a131e7b82ecb2204965d452307e2dd9ee33ccddf016ffc974d5cd3755a9b7",
+      "proofs/current_roles/mutations/subject-inverted.patch": "3ce0455d25b1b6a482b36b95ed7664a5e0b144633afc0e428111a1c374b13c82",
+      "proofs/current_roles/mutations/tenant-different.patch": "00b4fcac70f2640dac0c8316b4dc5bc5372a771699a8f96914a452fe94e7047f"
+    },
+    "rust": "rustc 1.99.0 (b940084d7 2026-09-28); SQLX_OFFLINE=true; CARGO_BUILD_JOBS=2.",
+    "source_base_archive_sha256": "80cc151c34417e71ea058f795bfb231abb888156e8726c1098b1f523f343768b",
+    "source_base_commit": "b9b6cec1b9c36a2e84afb980e208d2d116a84185",
+    "source_base_manifest_sha256": "ebbf637c2c2a5b541fe3a68c1558fc84ad9d927dde08baebb1d776da54c0cc15",
+    "tool_hashes": {
+      "aeneas": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+      "cargo_1_99": "e951141cc55a6cd7b9876d187bd30a3720e6086b99413af95e3b8de1cdd72f14",
+      "charon": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+      "lake": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+      "lean": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+      "rustc_1_99": "f3834d26669b03f6855fa54bd2381443123e860167bc0c7a8dd137e5cf6e5e4f",
+      "rustfmt_1_99": "a3ab6c445b26eda8d7bcfd5cc3f4b068dd7136af96822fd21378fc6fe8c2f2a3"
+    },
+    "veoveo_hub_sdk_source_pin": "05273d1f90b9a08e90e377187f4eddd084605fe5"
+  },
+  "restoration": {
+    "axiom_audit_log": "restored-final-3/logs/lean-model-audit.log",
+    "axiom_audit_log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312",
+    "axiom_closure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "complete": true,
+    "generated_split_files": {
+      "Funs.lean": {
+        "bytes": 62270,
+        "sha256": "390d5b405fe454ea4a776d4fd3fec1d6896ace1b53fe2737c88b5a5495ff9f52"
+      },
+      "FunsExternal_Template.lean": {
+        "bytes": 29366,
+        "sha256": "f265ed5bcea7e0853c2749df5383df48d16f123c50404ba7090aa0b3db96f961"
+      },
+      "Types.lean": {
+        "bytes": 14244,
+        "sha256": "f96d5d6e700d44f04d13b78d1e78bcc056a3752083302fa15f81ef1646dfd6ca"
+      },
+      "TypesExternal_Template.lean": {
+        "bytes": 7461,
+        "sha256": "bdacf093f850fa5bb6d27aee37b56c4d7a74a9e95ae6403d435bc6ec1e465877"
+      }
+    },
+    "sorryAx_absent": true,
+    "source_verification": {
+      "base_files": 792,
+      "base_manifest_sha256": "ebbf637c2c2a5b541fe3a68c1558fc84ad9d927dde08baebb1d776da54c0cc15",
+      "grants_sha256": "97f4816f5b6cf4a3236f704c9c12ef376bb0af7264db2b56caea93f34827e454",
+      "merged_paths": 817,
+      "overlap_paths": [
+        "crates/veoveo-hub/src/policy/grants.rs"
+      ],
+      "overlay_files": 26,
+      "overlay_manifest_sha256": "45035c1d986baec88d46e330a00925bc2fe82a242a91420e03b156d320a5e01c",
+      "verified": true
+    },
+    "stages": [
+      {
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "elapsed_ms": 665,
+        "exit": 0,
+        "log": "restored-final-3/logs/native-fmt.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "native-fmt"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "policy::grants::tests"
+        ],
+        "elapsed_ms": 192311,
+        "exit": 0,
+        "log": "restored-final-3/logs/native-grant-witnesses.log",
+        "log_sha256": "91121b0126e4d88c7d7754ce5ec8461dd81592eae75a9929eff9dcbe79d7b7e0",
+        "stage": "native-grant-witnesses"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-x86_64-unknown-linux-gnu",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--lib",
+          "control_plane::authorization_config::tests"
+        ],
+        "elapsed_ms": 314,
+        "exit": 0,
+        "log": "restored-final-3/logs/native-config-witness.log",
+        "log_sha256": "3dc9325dcd6e28474410448be2589158e3b1109b17fbafc721ae242435504276",
+        "stage": "native-config-witness"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+          "cargo",
+          "--sysroot",
+          "default",
+          "--preset=aeneas",
+          "--start-from",
+          "veoveo_hub::policy::grants::held_roles",
+          "--start-from",
+          "veoveo_hub::policy::grants::effective_risks",
+          "--start-from",
+          "veoveo_hub::policy::grants::granted_permissions",
+          "--start-from",
+          "veoveo_hub::control_plane::authorization_config::_::allows",
+          "--include",
+          "veoveo_hub::policy::grants::held_roles",
+          "--include",
+          "veoveo_hub::policy::grants::effective_risks",
+          "--include",
+          "veoveo_hub::policy::grants::granted_permissions",
+          "--include",
+          "veoveo_hub::control_plane::authorization_config::_::allows",
+          "--dest-file",
+          "../outputs/hub_current_roles.llbc",
+          "--",
+          "--manifest-path",
+          "crates/veoveo-hub/Cargo.toml",
+          "--lib",
+          "--locked"
+        ],
+        "elapsed_ms": 194261,
+        "exit": 0,
+        "log": "restored-final-3/logs/charon.log",
+        "log_sha256": "530c4451da89cfdd388ad0772c9e4e665d4f294e2af61939c35f9357f1461c2e",
+        "stage": "charon"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+          "-backend",
+          "lean",
+          "-filter-trait-methods",
+          "-split-files",
+          "-dest",
+          "../outputs",
+          "../outputs/hub_current_roles.llbc"
+        ],
+        "elapsed_ms": 1068,
+        "exit": 0,
+        "log": "restored-final-3/logs/aeneas-split.log",
+        "log_sha256": "283dc6e9f6eccbc5cc24266afe9059b090a955da5cad96b8b4d34ffc1236a294",
+        "stage": "aeneas-split"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build",
+          "HubCurrentRoles"
+        ],
+        "elapsed_ms": 11883,
+        "exit": 0,
+        "log": "restored-final-3/logs/lake-build-generated.log",
+        "log_sha256": "5ccdf96e303c95aef068ad7f493531cb30f7cc8dac55968862d38d3979f020ee",
+        "stage": "lake-build-generated"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build"
+        ],
+        "elapsed_ms": 13687,
+        "exit": 0,
+        "log": "restored-final-3/logs/lake-build-default.log",
+        "log_sha256": "d53377c801e17b4de13caa803427a1f07c607ba0b83bdb746087c17e2534db39",
+        "stage": "lake-build-default"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "GrantedPermissionsProof.lean"
+        ],
+        "elapsed_ms": 2919,
+        "exit": 0,
+        "log": "restored-final-3/logs/lean-granted-direct.log",
+        "log_sha256": "be9e2cc9c3824894f7351895c7159802ed116adbfc30946c124bf9dde08f351f",
+        "stage": "lean-granted-direct"
+      },
+      {
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "ModelAudit.lean"
+        ],
+        "elapsed_ms": 2670,
+        "exit": 0,
+        "log": "restored-final-3/logs/lean-model-audit.log",
+        "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312",
+        "stage": "lean-model-audit"
+      }
+    ],
+    "summary_path": "restored-final-3/baseline-summary.json",
+    "summary_sha256": "81726e54bb11b129c45cf025a3680daf9526e0931ee8315da2a62411fe78db81"
+  },
+  "schema_version": 1,
+  "scope": "HUB-AUTH/current-role finite extraction and semantic-control qualification; validation only, no deployment."
+}

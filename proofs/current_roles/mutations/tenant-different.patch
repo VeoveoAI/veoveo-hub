@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/grants.rs
++++ b/crates/veoveo-hub/src/policy/grants.rs
+@@ -21,7 +21,7 @@
+             grant
+                 .tenant
+                 .as_ref()
+-                .is_none_or(|tenant| principal.tenant.as_ref() == Some(tenant))
++                .is_none_or(|tenant| !(principal.tenant.as_ref() == Some(tenant)))
+         })
+         .filter(|grant| match &grant.subject {
+             GrantSubject::Group(group) => principal.groups.contains(group),

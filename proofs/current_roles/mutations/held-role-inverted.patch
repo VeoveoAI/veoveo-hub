@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/grants.rs
++++ b/crates/veoveo-hub/src/policy/grants.rs
+@@ -43,7 +43,7 @@
+     let roles: Vec<_> = installation
+         .roles
+         .iter()
+-        .filter(|role| held.contains(&role.name))
++        .filter(|role| !held.contains(&role.name))
+         .collect();
+     declaration
+         .permissions

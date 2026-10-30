@@ -26,8 +26,10 @@ Historical named-environment checks are not forward-looking requirements here.
 The Task-continuity qualification is a separate source boundary: changed Hub files
 based on `651390dbbb8b4e65b5b8bcd3f8714a981fac2371` and the exact sibling SDK files
 based on `7e2489dccbee6d00b377b174f68f9d5de692a68b`. Its shared-source package records
-both snapshots. Hub's SDK pin remains `a41c9cc6c81f6c0305dd41165defb142740ed6b1`;
-the private SDK refactor is not claimed to be present in that dependency or deployed.
+both snapshots. At that qualification, Hub's SDK pin was
+`a41c9cc6c81f6c0305dd41165defb142740ed6b1`; the private SDK refactor was not
+claimed to be present in that dependency or deployed. Subsequent dependency adoption
+has its own source-correspondence boundary.
 
 Keep two independent fields for each result:
 
@@ -48,7 +50,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | --- | --- | --- | --- |
 | HUB-CONTRACT-01 | Shared MCP extension contracts preserve meaning from declaration to enforcement | partial | Connect declaration generation/validation and current policy to the proved SDK resource requirement |
 | HUB-TASK-01 | Captured Task routing and retry integrity | partial | SQL and asynchronous adapter refinement remain |
-| HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Prove extension interpretation/current roles and session/issuer continuity beyond the qualified assembly |
+| HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Connect the qualified current-role evaluator through CurrentPermissions and decide_server; then session/issuer continuity |
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | unproved | Specify the pure current-family decision first |
 | HUB-CONFIG-01 | Coherent live configuration publication | unproved | Model transaction/CAS semantics |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Trace broader routing beyond the linked kernel |
@@ -306,8 +308,25 @@ allow. Delegated callers do not acquire administrative access from an admin prin
   policy or BTreeSet. Deadline preservation is equality of an opaque input value,
   not proof of SDK clamping/signing. Production sequencing/adapters were reviewed
   and tested; Lean composition is not extraction of the asynchronous caller.
-- **Residual/next:** shared MCP extension interpretation first, then current
-  role/risk evaluation, principal projection and session/issuer continuity.
+- **Qualified current-role evaluator:** the [manual package](current_roles/README.md)
+  extracts unchanged `held_roles`, `effective_risks`, `granted_permissions` and
+  `InstallationRole::allows` at Hub `b9b6cec`, with actual SDK pin `05273d1`.
+  Total exact-result and membership equivalences cover arbitrary finite raw
+  inputs, including duplicates and empties: tenant/subject membership, all matching
+  risk additions, any matching deny, and one held configured role covering access
+  and every risk. Actual extracted iterator closures and grant composition are
+  included. Seven semantic mutants each failed the intended proof and native
+  assertion after successful compilation/extraction. Final dedicated-target
+  restoration passed 12 grant tests, one configuration test, extraction, all proofs
+  and standard-axiom audits. See the [receipt](current_roles/evidence/current-roles-receipt.json)
+  and [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-29-current-role-proof.md).
+  Native collections remain extensional models; principal/catalog freshness and
+  external validation remain inputs. This does not yet discharge the earlier
+  authority proof's coarse `CurrentPermissions` premise.
+- **Residual/next:** connect the actual `CurrentPermissions` registration union,
+  requested filtering and collection, then `decide_server` admission/output to the
+  established evaluator. Principal projection, shared MCP extension correspondence
+  and session/issuer continuity remain.
   Catalog/provider discovery, replay, Task reads, route wiring, concrete token
   serialization and clocks remain separate obligations. A new downstream namespace
   is constrained by current caller grants and declared uses; it need not be a

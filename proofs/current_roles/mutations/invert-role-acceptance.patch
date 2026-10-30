@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/grants.rs
++++ b/crates/veoveo-hub/src/policy/grants.rs
+@@ -54,7 +54,7 @@
+             };
+             roles
+                 .iter()
+-                .any(|role| role.allows(permission.access, &risks))
++                .any(|role| !role.allows(permission.access, &risks))
+         })
+         .map(|permission| permission.permission.clone())
+         .collect()

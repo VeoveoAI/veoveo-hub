@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/policy/grants.rs
++++ b/crates/veoveo-hub/src/policy/grants.rs
+@@ -24,7 +24,7 @@
+                 .is_none_or(|tenant| principal.tenant.as_ref() == Some(tenant))
+         })
+         .filter(|grant| match &grant.subject {
+-            GrantSubject::Group(group) => principal.groups.contains(group),
++            GrantSubject::Group(group) => !principal.groups.contains(group),
+             GrantSubject::Principal(id) => &principal.id == id,
+         })
+         .map(|grant| grant.role.clone())

@@ -1,0 +1,16 @@
+--- a/crates/veoveo-hub/src/policy/grants.rs
++++ b/crates/veoveo-hub/src/policy/grants.rs
+@@ -71,7 +71,12 @@
+             continue;
+         }
+         match permission_override {
+-            PermissionOverride::Deny { .. } => return None,
++            PermissionOverride::Deny { .. } => {
++                if permission_override.permission() != permission_override.permission() {
++                    return None;
++                }
++                return Some(risks);
++            }
+             PermissionOverride::AddRisks { risks: added, .. } => risks.extend(added),
+         }
+     }

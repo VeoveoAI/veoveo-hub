@@ -251,4 +251,288 @@ mod tests {
         bob.id = PrincipalId::parse("user:bob").unwrap();
         assert!(granted_permissions(&installation, &declaration(), &bob).is_empty());
     }
+    fn fixture_permission(access: Access, risks: &[Risk]) -> PermissionDeclaration {
+        PermissionDeclaration {
+            permission: PermissionName::parse("fixture.inspect").unwrap(),
+            resource: ResourceTypeName::parse("fixture.item").unwrap(),
+            access,
+            risks: risks.iter().copied().collect(),
+        }
+    }
+
+    fn fixture_declaration(permissions: Vec<PermissionDeclaration>) -> AuthorizationDeclaration {
+        AuthorizationDeclaration {
+            permissions,
+            requirements: Requirements::default(),
+            uses: Vec::new(),
+            calls_hub: false,
+        }
+    }
+
+    fn fixture_installation() -> InstallationAuthorization {
+        InstallationAuthorization {
+            roles: vec![role("fixture-member", &[Access::Read], &[])],
+            grants: vec![grant("fixture-member", "fixture-group", None)],
+            overrides: Vec::new(),
+        }
+    }
+
+    fn fixture_addition(permission: &str, risks: &[Risk]) -> PermissionOverride {
+        PermissionOverride::AddRisks {
+            permission: PermissionName::parse(permission).unwrap(),
+            risks: risks.iter().copied().collect(),
+        }
+    }
+
+    #[test]
+    fn tenant_scope_preserves_missing_and_matching_tenants() {
+        let declaration = fixture_declaration(vec![fixture_permission(Access::Read, &[])]);
+        for (grant_tenant, caller_tenant, expected) in [
+            (Some("dev"), Some("dev"), true),
+            (Some("dev"), None, false),
+            (Some("dev"), Some("other"), false),
+            (None, None, true),
+            (None, Some("dev"), true),
+            (None, Some("other"), true),
+        ] {
+            let mut installation = fixture_installation();
+            installation.grants[0].tenant = grant_tenant.map(|t| TenantId::parse(t).unwrap());
+            let mut caller = principal(&["fixture-group"], "dev");
+            caller.tenant = caller_tenant.map(|t| TenantId::parse(t).unwrap());
+            let expected_roles = if expected {
+                BTreeSet::from([RoleId::parse("fixture-member").unwrap()])
+            } else {
+                BTreeSet::new()
+            };
+            assert_eq!(
+                held_roles(&installation, &caller),
+                expected_roles,
+                "grant tenant {grant_tenant:?}, caller tenant {caller_tenant:?}"
+            );
+            let expected_permissions = if expected {
+                vec!["fixture.inspect".to_owned()]
+            } else {
+                Vec::new()
+            };
+            assert_eq!(
+                names(granted_permissions(&installation, &declaration, &caller)),
+                expected_permissions
+            );
+        }
+    }
+
+    #[test]
+    fn subjects_match_only_direct_id_or_group_membership() {
+        let group = GroupId::parse("fixture-group").unwrap();
+        let declaration = fixture_declaration(vec![fixture_permission(Access::Read, &[])]);
+        for (subject, groups, expected) in [
+            (
+                GrantSubject::Group(group.clone()),
+                vec!["fixture-group"],
+                true,
+            ),
+            (GrantSubject::Group(group.clone()), Vec::new(), false),
+            (GrantSubject::Group(group), vec!["other-group"], false),
+            (
+                GrantSubject::Principal(PrincipalId::parse("user:alice").unwrap()),
+                Vec::new(),
+                true,
+            ),
+            (
+                GrantSubject::Principal(PrincipalId::parse("user:bob").unwrap()),
+                Vec::new(),
+                false,
+            ),
+        ] {
+            let mut installation = fixture_installation();
+            installation.grants[0].subject = subject;
+            let caller = principal(&groups, "dev");
+            let expected_roles = if expected {
+                BTreeSet::from([RoleId::parse("fixture-member").unwrap()])
+            } else {
+                BTreeSet::new()
+            };
+            assert_eq!(held_roles(&installation, &caller), expected_roles);
+            let expected_permissions = if expected {
+                vec!["fixture.inspect".to_owned()]
+            } else {
+                Vec::new()
+            };
+            assert_eq!(
+                names(granted_permissions(&installation, &declaration, &caller)),
+                expected_permissions
+            );
+        }
+    }
+
+    #[test]
+    fn unheld_or_unconfigured_roles_do_not_grant() {
+        let declaration = fixture_declaration(vec![fixture_permission(Access::Read, &[])]);
+        let mut installation = fixture_installation();
+        let mut caller = principal(&[], "dev");
+        caller
+            .roles
+            .insert(RoleId::parse("fixture-member").unwrap());
+        assert_eq!(
+            names(granted_permissions(&installation, &declaration, &caller)),
+            Vec::<String>::new()
+        );
+        caller
+            .groups
+            .insert(GroupId::parse("fixture-group").unwrap());
+        installation.grants[0].role = RoleId::parse("missing-role").unwrap();
+        assert_eq!(
+            names(granted_permissions(&installation, &declaration, &caller)),
+            Vec::<String>::new()
+        );
+        installation.grants[0].role = RoleId::parse("fixture-member").unwrap();
+        assert_eq!(
+            names(granted_permissions(&installation, &declaration, &caller)),
+            ["fixture.inspect"]
+        );
+    }
+
+    #[test]
+    fn one_configured_role_must_cover_access_and_all_risks() {
+        let permission = fixture_permission(Access::Read, &[Risk::Sensitive]);
+        let declaration = fixture_declaration(vec![permission.clone()]);
+        let caller = principal(&["fixture-group"], "dev");
+        for second_name in ["risk-member", "fixture-member"] {
+            let mut installation = fixture_installation();
+            installation.roles = vec![
+                role("fixture-member", &[Access::Read], &[]),
+                role(second_name, &[Access::Write], &[Risk::Sensitive]),
+            ];
+            installation
+                .grants
+                .push(grant("risk-member", "fixture-group", None));
+            assert_eq!(
+                names(granted_permissions(&installation, &declaration, &caller)),
+                Vec::<String>::new()
+            );
+            for configured in &installation.roles {
+                assert!(
+                    !configured.allows(permission.access, &permission.risks),
+                    "{configured:?}"
+                );
+            }
+            installation
+                .roles
+                .push(role("complete-member", &[Access::Read], &[Risk::Sensitive]));
+            installation
+                .grants
+                .push(grant("complete-member", "fixture-group", None));
+            assert_eq!(
+                names(granted_permissions(&installation, &declaration, &caller)),
+                ["fixture.inspect"]
+            );
+        }
+    }
+
+    #[test]
+    fn overrides_accumulate_all_matching_risks() {
+        let permission = fixture_permission(Access::Read, &[Risk::Sensitive]);
+        let declaration = fixture_declaration(vec![permission.clone()]);
+        let caller = principal(&["fixture-group"], "dev");
+        let mut installation = fixture_installation();
+        installation.overrides = vec![
+            fixture_addition("fixture.other", &[Risk::Administer]),
+            fixture_addition("fixture.inspect", &[Risk::Physical]),
+            fixture_addition("fixture.inspect", &[Risk::Billed]),
+            fixture_addition("fixture.inspect", &[Risk::Physical]),
+            PermissionOverride::Deny {
+                permission: PermissionName::parse("fixture.other").unwrap(),
+            },
+        ];
+        assert_eq!(
+            effective_risks(&installation, &permission),
+            Some(BTreeSet::from([
+                Risk::Sensitive,
+                Risk::Physical,
+                Risk::Billed
+            ]))
+        );
+        installation.roles[0].risks = BTreeSet::from([Risk::Sensitive, Risk::Physical]);
+        assert_eq!(
+            names(granted_permissions(&installation, &declaration, &caller)),
+            Vec::<String>::new()
+        );
+        installation.roles[0].risks.insert(Risk::Billed);
+        assert_eq!(
+            names(granted_permissions(&installation, &declaration, &caller)),
+            ["fixture.inspect"]
+        );
+    }
+
+    #[test]
+    fn matching_deny_wins_in_any_position() {
+        let permission = fixture_permission(Access::Read, &[Risk::Sensitive]);
+        let declaration = fixture_declaration(vec![permission.clone()]);
+        let caller = principal(&["fixture-group"], "dev");
+        let addition = fixture_addition("fixture.inspect", &[Risk::Physical]);
+        let other = fixture_addition("fixture.other", &[Risk::Administer]);
+        let deny = PermissionOverride::Deny {
+            permission: permission.permission.clone(),
+        };
+        for overrides in [
+            vec![deny.clone(), addition.clone(), other.clone()],
+            vec![addition.clone(), deny.clone(), other.clone()],
+            vec![addition, other, deny],
+        ] {
+            let mut installation = fixture_installation();
+            installation.roles[0].risks = BTreeSet::from([Risk::Sensitive, Risk::Physical]);
+            installation.overrides = overrides;
+            assert_eq!(effective_risks(&installation, &permission), None);
+            assert_eq!(
+                names(granted_permissions(&installation, &declaration, &caller)),
+                Vec::<String>::new()
+            );
+        }
+    }
+
+    #[test]
+    fn valid_permission_occurrences_and_empty_inputs() {
+        let installation = fixture_installation();
+        let caller = principal(&["fixture-group"], "dev");
+        let declaration = fixture_declaration(vec![fixture_permission(Access::Read, &[])]);
+        assert_eq!(
+            names(granted_permissions(&installation, &declaration, &caller)),
+            ["fixture.inspect"]
+        );
+        let empty_declaration = fixture_declaration(Vec::new());
+        assert_eq!(
+            names(granted_permissions(
+                &installation,
+                &empty_declaration,
+                &caller
+            )),
+            Vec::<String>::new()
+        );
+        let mut no_roles = installation.clone();
+        no_roles.roles.clear();
+        assert_eq!(
+            names(granted_permissions(&no_roles, &declaration, &caller)),
+            Vec::<String>::new()
+        );
+        let mut no_grants = installation.clone();
+        no_grants.grants.clear();
+        assert_eq!(
+            names(granted_permissions(&no_grants, &declaration, &caller)),
+            Vec::<String>::new()
+        );
+        let mut duplicates = fixture_declaration(vec![
+            fixture_permission(Access::Read, &[Risk::Sensitive]),
+            fixture_permission(Access::Write, &[]),
+            fixture_permission(Access::Read, &[]),
+        ]);
+        assert_eq!(
+            names(granted_permissions(&installation, &duplicates, &caller)),
+            ["fixture.inspect"]
+        );
+        duplicates.permissions.pop();
+        assert_eq!(
+            names(granted_permissions(&installation, &duplicates, &caller)),
+            Vec::<String>::new()
+        );
+    }
 }

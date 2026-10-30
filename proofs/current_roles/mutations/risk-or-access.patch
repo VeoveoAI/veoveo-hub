@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/control_plane/authorization_config.rs
++++ b/crates/veoveo-hub/src/control_plane/authorization_config.rs
+@@ -32,7 +32,7 @@
+ 
+ impl InstallationRole {
+     pub fn allows(&self, access: Access, risks: &BTreeSet<Risk>) -> bool {
+-        self.access.contains(&access) && risks.is_subset(&self.risks)
++        self.access.contains(&access) || risks.is_subset(&self.risks)
+     }
+ }
+ 
