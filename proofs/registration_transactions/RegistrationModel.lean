@@ -4,17 +4,21 @@ import Mathlib.Tactic
 /-!
 Design model of `registration/store.rs`, not extraction of async Rust/SQL.
 
-Scope: one retained deployment, admitted fixed namespace/key, register/replace
-writers only. `Metadata` is the FULL equality payload compared by ordinary
+Scope: one retained deployment and register/replace writers only, under a fixed
+external namespace-claim ownership/admission boundary. This does not restrict
+candidate metadata keys: instance replacement can carry a new admitted key.
+`Metadata` is the FULL equality payload compared by ordinary
 registration (ClientMetadata plus its admitted storage binding), not selected
 version/endpoint fields. `Row` and `Role` retain the remaining complete candidate
 row/login payloads; native typed serialization/projection is a separate boundary.
 All key types are parametric; no global UUID freshness is postulated.
 
 `Frame` contains only disjoint application state, not PostgreSQL catalogs or
-NOTIFY effects. Fixed namespace/binding/creation fields are outside this mutable
-projection. Core ensure_server/login internals remain a correspondence boundary.
-These are not a model of RFC7592 updates, removal, housekeeping, key changes, preparation
+NOTIFY effects. Namespace-claim ownership/admission and immutable deployment
+fields such as created_at are outside this mutable projection. Core
+ensure_server/login internals remain a correspondence boundary.
+These are not a model of RFC7592 updates, removal, housekeeping, namespace-claim
+ownership/admission changes, preparation
 in another environment database, or service postcommit audit/reload.
 -/
 namespace RegistrationTransaction
@@ -50,8 +54,11 @@ def put {α β : Type} [DecidableEq α] (rows : α → β) (key : α) (value : �
 def rowMap (rows : List (Registration C L M R)) : C → Option (Registration C L M R) :=
   rows.foldr (fun row rest => put rest row.client (some row)) (fun _ => none)
 
-/-- Finite exact DELETE RETURNING result at THAT statement's snapshot. Order is
-arbitrary; duplicate client keys are excluded by the physical registration PK. -/
+/-- Finite exact proof-level witness of rows at THAT DELETE statement's snapshot.
+Native RETURNING supplies client_id/server/login, not metadata/payload. Only the
+captured client/login projections drive modeled writes; no extra native copy or
+query is implied. Order is arbitrary; the physical registration PK excludes
+duplicate client keys. -/
 def Listing (db : Database C L M R P F) (rows : List (Registration C L M R)) : Prop :=
   (rows.map (·.client)).Nodup ∧ db.registrations = rowMap rows
 

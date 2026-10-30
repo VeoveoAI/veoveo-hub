@@ -57,7 +57,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Serial histories and valid replica/replacement/abort executions checked; original-fault witness and broader composition remain |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace serial histories, valid outputs and original-race counterexample qualified; update/removal and broader composition remain |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
@@ -733,9 +733,13 @@ also establish changed-metadata ordinary replacement, unconditional instance
 replacement and abort after staged private writes, with exact effects and responses.
 The [original-protocol midpoint](registration_transactions/evidence/original-midpoint.json)
 constructs the old replica's successful commit while replacement still holds its
-real lock and has captured only the seed. Registration coverage remains partial:
-the completed counterexample and serial-contract refutation are next, followed by
-update, removal and authority composition. Captured full rows
+real lock and has captured only the seed. The completed
+[counterexample and qualification](registration_transactions/evidence/registration-transactions-receipt.json)
+continue through both successful acknowledgements, prove the exact mixed output
+maps and refute the independent serial contract in actual commit order. The first
+register/replace concurrency slice is qualified within its stated model/native
+boundaries. Registration coverage remains partial: per-client update, removal and
+authority composition are next. Captured full rows
 are proof-level snapshot witnesses; native DELETE returns key/server/login fields.
 No SQL refinement follows from these model results.
 

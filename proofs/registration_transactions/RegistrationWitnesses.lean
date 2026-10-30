@@ -708,15 +708,133 @@ private theorem original_midpoint_reachable (old next : M) (seedPayload firstPay
   · rw [result.2.2.2.1]
     simp [seedRow]
 
+private theorem serial_owner_fold (rs : Nat → Request Nat Nat M R P)
+    {first last : Database Nat Nat M R P F} {events : List (Nat × List (Write Nat Nat M R P))}
+    (history : SerialHistory rs first events last) :
+    last = (events.map Prod.fst).foldl (fun db id => sequential db (rs id)) first := by
+  induction history with
+  | nil => rfl
+  | snoc history id writes ih =>
+    simp only [List.map_append, List.map_cons, List.map_nil, List.foldl_append,
+      List.foldl_cons, List.foldl_nil]
+    rw [← ih]
+
+/-- The original actual commit order is A then B. Both succeed, but the
+independent final maps are a replacement of seed by B followed by an unchecked
+addition of old A, NOT the sequential registration operation for A. -/
+theorem original_overlap_is_not_serial (old next : M) (seedPayload firstPayload secondPayload : R)
+    (seedRole firstRole secondRole unrelatedRole : P) (frame : F) (different : old ≠ next) :
+    let db := seed old seedPayload seedRole unrelatedRole frame
+    let rs := requests old next firstPayload secondPayload firstRole secondRole .ordinary
+    ∃ midpoint result : State Nat Nat M R P F,
+      WellFormed db ∧ Execution false (initial db rs) midpoint ∧
+      midpoint.db = expectedReplica db (rs 0) ∧ midpoint.lock = some 1 ∧
+      (midpoint.transactions 0).response = .success ∧
+      (midpoint.transactions 1).phase = .creating ∧
+      ((midpoint.transactions 1).captured.map (·.client)) = [0] ∧
+      Execution false midpoint result ∧
+      result.db = expectedReplica (expectedReplacement db (rs 1)) (rs 0) ∧
+      (result.transactions 0).response = .success ∧
+      (result.transactions 1).response = .success ∧ result.lock = none ∧
+      result.commits.map Prod.fst = [0, 1] ∧
+      ¬SerialHistory rs db result.commits (owned result.db db.frame) := by
+  dsimp only
+  let db := seed old seedPayload seedRole unrelatedRole frame
+  let rs := requests old next firstPayload secondPayload firstRole secondRole .ordinary
+  let seedRow : Registration Nat Nat M R := ⟨0, 10, old, seedPayload⟩
+  let midpoint := finishInsert (originalPrefix db rs seedRow) 0
+  let ready := update midpoint 1 { midpoint.transactions 1 with
+    phase := .inserting
+    staged := (midpoint.transactions 1).staged ++
+      [.createLogin (midpoint.transactions 1).request.candidate.login (midpoint.transactions 1).request.role] }
+  let result := finishInsert ready 1
+  obtain ⟨wf, midpointExecution, midpointDB, midpointLock, firstResponse, secondPhase, capture⟩ :=
+    original_midpoint_reachable old next seedPayload firstPayload secondPayload
+      seedRole firstRole secondRole unrelatedRole frame different
+  change midpoint.db = expectedReplica db (rs 0) at midpointDB
+  change midpoint.lock = some 1 at midpointLock
+  change (midpoint.transactions 0).response = .success at firstResponse
+  change (midpoint.transactions 1).phase = .creating at secondPhase
+  change (midpoint.transactions 1).captured.map (·.client) = [0] at capture
+  have midpointFields := originalAfterA_fields db rs seedRow
+  have secondTx := midpointFields.2.2.2.1
+  change midpoint.transactions 1 = _ at secondTx
+  have midpointOwners : midpoint.commits.map Prod.fst = [0] := midpointFields.2.2.2.2
+  have validCreate : ValidWrite (applyWrites midpoint.db (midpoint.transactions 1).staged)
+      (.createLogin (midpoint.transactions 1).request.candidate.login (midpoint.transactions 1).request.role) := by
+    rw [midpointDB, secondTx]
+    simp [ValidWrite, applyWrites, applyWrite, expectedReplica, db, seed, rs, requests, seedRow, put]
+  have createStep : Step false midpoint ready := Step.create midpoint 1 secondPhase validCreate
+  have readyFields : ready.db = midpoint.db ∧ (ready.transactions 1).request = rs 1 ∧
+      (ready.transactions 1).phase = .inserting ∧
+      (ready.transactions 1).staged =
+        [.deployment (rs 1).candidate.metadata, .deleteRows [seedRow.client], .dropLogin seedRow.login,
+         .createLogin (rs 1).candidate.login (rs 1).role] ∧
+      (ready.transactions 1).response = .pending := by
+    simp [ready, update, put, secondTx]
+  have validInsert : ValidWrite (applyWrites ready.db (ready.transactions 1).staged)
+      (.insert (ready.transactions 1).request.candidate) := by
+    rw [readyFields.1, readyFields.2.1, readyFields.2.2.2.1, midpointDB]
+    simp [ValidWrite, applyWrites, applyWrite, expectedReplica, db, seed, rs, requests, seedRow, put]
+    intro key stored lookup
+    by_cases one : key = 1 <;> by_cases zero : key = 0 <;> simp_all
+    all_goals first | (rintro rfl; simp) | (subst stored; simp)
+  have finish := finishInsert_execution false ready 1 readyFields.2.2.1 readyFields.2.2.2.2 validInsert
+  have suffix : Execution false midpoint result :=
+    execution_trans (Execution.tail (Execution.refl midpoint) createStep) finish
+  have listing : Listing db [seedRow] := by constructor; simp [seedRow]; rfl
+  have mixedDelta : commit (expectedReplica db (rs 0)) (replaceWrites (rs 1) [seedRow]) =
+      expectedReplica (expectedReplacement db (rs 1)) (rs 0) := by
+    rw [← replacement_exact db (rs 1) [seedRow] listing]
+    apply Database.ext
+    · rfl
+    · funext key
+      by_cases zero : key = 0 <;> by_cases one : key = 1 <;> by_cases two : key = 2 <;>
+        simp [commit, applyWrites, applyWrite, expectedReplica, replaceWrites, admitWrites,
+          db, seed, rs, requests, seedRow, put, zero, one, two]
+    · funext login
+      by_cases seedLogin : login = 10 <;> by_cases firstLogin : login = 11 <;>
+        by_cases secondLogin : login = 12 <;>
+        simp [commit, applyWrites, applyWrite, expectedReplica, replaceWrites, admitWrites,
+          db, seed, rs, requests, seedRow, put, seedLogin, firstLogin, secondLogin]
+    · rfl
+  have resultFields := finishInsert_fields ready 1
+  have wrongDB : result.db = expectedReplica (expectedReplacement db (rs 1)) (rs 0) := by
+    rw [resultFields.1, readyFields.1, readyFields.2.1, readyFields.2.2.2.1, midpointDB]
+    exact mixedDelta
+  have owners : result.commits.map Prod.fst = [0, 1] := by
+    simp [result, finishInsert, inserted, commitRequested, committedState, ready,
+      update, put, midpointOwners]
+  have notSerial : ¬SerialHistory rs db result.commits (owned result.db db.frame) := by
+    intro history
+    have folded := serial_owner_fold rs history
+    rw [owners] at folded
+    simp only [List.foldl_cons, List.foldl_nil] at folded
+    have actual : (owned result.db db.frame).registrations 1 = some (rs 0).candidate := by
+      rw [wrongDB]
+      simp [owned, expectedReplica, rs, requests, put]
+    have serial : (sequential (sequential db (rs 0)) (rs 1)).registrations 1 = none := by
+      simp [sequential, expectedReplica, expectedReplacement, db, seed, rs, requests, put, different]
+    have compared := congrArg (fun value : Database Nat Nat M R P F => value.registrations 1) folded
+    rw [actual, serial] at compared
+    cases compared
+  refine ⟨midpoint, result, wf, midpointExecution, midpointDB, midpointLock, firstResponse,
+    secondPhase, capture, suffix, wrongDB, ?_, resultFields.2.2.2, ?_, owners, notSerial⟩
+  · have keeps : (result.transactions 0).response = (midpoint.transactions 0).response := by
+      simp [result, finishInsert, inserted, commitRequested, committedState, ready, update, put]
+    exact keeps.trans firstResponse
+  · simp [result, finishInsert, inserted, commitRequested, committedState, ready, update, put, release, midpointLock]
+
 #print axioms original_midpoint_reachable
 #print axioms seeded_replica_admitted
 #print axioms same_metadata_overlap_succeeds
 #print axioms staged_abort_is_reachable
 #print axioms ordinary_replacement_succeeds
 #print axioms instance_replacement_succeeds
+#print axioms original_overlap_is_not_serial
 run_cmd do
   for declaration in [``original_midpoint_reachable, ``seeded_replica_admitted, ``same_metadata_overlap_succeeds, ``staged_abort_is_reachable,
-      ``ordinary_replacement_succeeds, ``instance_replacement_succeeds] do
+      ``ordinary_replacement_succeeds, ``instance_replacement_succeeds, ``original_overlap_is_not_serial] do
     let axioms ← Lean.collectAxioms declaration
     for name in axioms do
       unless name == ``propext || name == ``Classical.choice || name == ``Quot.sound do

@@ -5,8 +5,10 @@ PostgreSQL behavior. Native regression evidence, complete staged programs, lock
 ownership, stable observations, exact write effects, serial-history composition
 and abort-event exclusion are checked. Constructed valid replica admission and
 completed same-metadata overlap, ordinary/instance replacement and partial-write
-abort are checked too. The original protocol's stale-capture midpoint is reachable;
-its completed counterexample remains pending.
+abort are checked too. The completed original-protocol execution violates the
+independent serial contract in its actual commit order. This qualifies the first
+register/replace concurrency slice within the boundaries below; broader registration
+lifecycle coverage remains partial.
 Execution remains manual: run `lake build` in this directory with the pinned
 Lean toolchain.
 
@@ -24,9 +26,10 @@ tests, formatting and strict library Clippy also passed. Those checks establish
 native component behavior; the Lean result below is separate. No deployment
 qualification ran.
 
-`RegistrationModel.lean` represents one retained deployment under an already
-admitted, fixed namespace/key, with parametric complete metadata, row and role
-payloads. Its DELETE captures the exact finite returned rows at statement time;
+`RegistrationModel.lean` represents one retained deployment with namespace-claim
+ownership and request admission supplied externally. Complete metadata, row and role
+payloads are parametric, including authorized instance metadata key changes.
+Its DELETE captures proof-level full rows from the statement snapshot;
 commit applies only those staged key deltas. Ordinary fixed-source reads and
 both fixed/original replacement upserts take the deployment lock. A server commit
 request can resolve to commit or abort, independently of client delivery.
@@ -92,7 +95,20 @@ acknowledges success while replacement still owns the deployment lock, has
 captured only the seed row and is ready to create its login. The database equals
 the independent first-replica result. Replacement's real upsert lock is retained;
 the witness does not bypass it. See the [midpoint receipt](evidence/original-midpoint.json).
-Finishing replacement and refuting the independent serial contract remain next.
+`original_overlap_is_not_serial` continues that same reached state through
+replacement's login creation, insert, commit and success acknowledgement. Both
+calls succeed, actual commit IDs are `[0, 1]`, the lock is released, and the exact
+final database contains both the old replica and the replacement with replacement
+metadata. Its output equals `expectedReplica (expectedReplacement seed B) A`;
+this final unchecked addition is not the sequential ordinary-registration operation
+for A. The theorem derives an independent sequential fold from the actual event
+IDs and proves that its required result has no A row, contradicting the actual
+result. It refutes the defined actual-commit-order contract, without claiming a
+separate theorem over every alternative serialization order.
+
+The [qualification receipt](evidence/registration-transactions-receipt.json)
+ties the checked counterexample to the fixed protocol's serial-history theorem,
+valid success/abort witnesses, source identities and separate native regression.
 
 The earlier native test
 remains separate from these design-model statements. Neither the history theorem nor a successful
@@ -100,7 +116,7 @@ acknowledgement implies that a registration survives a later replacement; the
 constructed successful schedule is not an unconditional liveness proof.
 
 This first theorem excludes RFC 7592 per-client updates, concurrent removal and
-housekeeping, namespace-key changes, external-environment preparation and
+housekeeping, namespace-claim changes, external-environment preparation and
 post-commit service audit/reload. These remain later obligations in HUB-REGISTER-01;
 they are not silently assumed to share the same transaction or invariant.
 PostgreSQL isolation, constraints and lock semantics, native metadata equality

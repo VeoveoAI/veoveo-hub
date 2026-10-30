@@ -1,8 +1,8 @@
 import RegistrationModel
 
-/- Independent sequential contract and proposed proof statements. No theorem in
-this file is asserted without proof; the Guarantee definitions name obligations
-for the next proof modules. These are not SQL/Rust extraction claims. -/
+/- Independent sequential contract and named guarantee propositions. The proof
+modules establish ordered staging, actual finite commit histories, abort-event
+exclusion and constructive executions. These are not SQL/Rust extraction claims. -/
 namespace RegistrationTransaction
 noncomputable section
 variable {C L M R P F : Type}
@@ -72,19 +72,23 @@ def AbortGuarantee : Prop :=
 * acquire/read: ordinary deployment.sql FOR UPDATE; instance acquire/upsert is
   replace_deployment.sql's conflict update, with no invented instance comparison.
 * replica/replace: store.rs compares FULL metadata plus admitted binding.
-* delete: replace_registrations.sql captures finite exact rows at statement time.
+* delete: replace_registrations.sql returns client_id/server/login at statement
+  time. Full captured rows here are proof-level snapshot witnesses; only their
+  key/login projections drive writes, with no extra native query or payload copy.
 * drop/create/insert: drop_login.sql + ensure_server/create_login.sql +
-  create_registration.sql. ensure_server is the fixed-namespace Core boundary.
+  create_registration.sql. ensure_server is the admitted-namespace Core boundary.
 * requestCommit/serverCommit/abort: SQLx transaction commit/drop with no
   application-correctness oracle in the primitive commit function.
   A pending commit can resolve by serverCommit or serverAbort; a client error
   alone is not modeled as proof of a server rollback decision.
 * frame: explicitly unrelated application data only.
 
-To prove: ProgramGuarantee, SerialGuarantee, AbortGuarantee; reachable exact-match
-replica preserving both candidates/logins; changed and unconditional instance
-replacement exact maps; original-protocol read/delete/late-insert counterexample.
-These goals remain pending until checked by Lean. -/
+RegistrationProof derives complete ordered staging; RegistrationHistory proves
+actual finite independent serial histories and abort-event exclusion.
+RegistrationWitnesses constructs valid replica/replacement/abort executions and
+the original read/delete/late-insert counterexample. Namespace-claim ownership
+and admission remain external; arbitrary admitted metadata includes instance key
+changes. Broader update/removal/authority composition remains outside this slice. -/
 def sourceMapping : Unit := ()
 
 end

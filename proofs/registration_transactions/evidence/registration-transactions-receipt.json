@@ -1,0 +1,200 @@
+{
+  "date": "2026-10-30",
+  "status": "First retained-deployment register/replace concurrency slice qualified within the stated model and native-component boundaries; HUB-REGISTER-01 and the comprehensive goal remain partial",
+  "parent_proof_commit": "82be7bd",
+  "runtime_fix_commit": "05737d6",
+  "evidence_class": "Handwritten Lean transaction model with reviewed Rust/SQL mapping and separate native regression. This package is not an Aeneas extraction of async Rust or SQL and does not establish formal SQL refinement.",
+  "toolchain": "leanprover/lean4:v4.35.0",
+  "aeneas_framework_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94",
+    "RegistrationWitnesses.lean": "0c62ccf4ef064f5592fcd781e485f21ac7f107572aa208d0e7d2130c7c44726e",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "4f9661de5c968ef5083243221005fbf04ae7932306c2d40e44a9e0bf08b65ecf",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "source_manifest": {
+    "path": "/tmp/hub-registration-concurrency-20261030/final-registration-source.json",
+    "sha256": "e479201f850bf83bdd67e5ed4ef2df3c170ec6a9f52ba8c79809678866aba05d"
+  },
+  "completed_counterexample": {
+    "declaration": "RegistrationTransaction.Witnesses.original_overlap_is_not_serial",
+    "inputs": "Parametric complete metadata, row/role payloads and disjoint frame, with unequal old/new metadata; seed client0/login10, A client1/login11, B client2/login12, unrelated login99.",
+    "schedule": [
+      "A reads old metadata without locking and stages login creation",
+      "B reads old metadata, chooses replacement, takes its real upsert lock and captures/deletes only seed",
+      "B stages seed-login removal; A inserts, commits and acknowledges success while B still owns lock1",
+      "B creates its own login, inserts, commits and acknowledges success"
+    ],
+    "exact_output": "expectedReplica (expectedReplacement seed B) A: old A and new B rows/logins survive with B deployment metadata, seed removed, unrelated login/frame preserved; both responses success, free lock, actual commit IDs [0,1]. This unchecked addition of A is not the sequential operation for A.",
+    "refutation": "Derive the independent sequential fold from actual commit event IDs. Its A-then-B result has no A registration, but the actual result has A. Therefore SerialHistory cannot hold for these actual events and final state.",
+    "scope": "Refutes the defined actual-commit-order contract; no separate all-alternative-orders theorem is claimed."
+  },
+  "fixed_protocol": [
+    "Every reached committing attempt stages the complete ordered admission/replacement program.",
+    "Active attempts own the deployment lock exclusively; their metadata observations and captured replacement rows still describe the current committed database.",
+    "Each reached commit equals the independent sequential operation for its original request; every finite fixed-protocol execution follows its actual server-commit order.",
+    "Aborted attempt identities never appear in the actual commit trace.",
+    "Constructed well-formed executions admit replicas, complete overlapping same-metadata requests, replace on changed ordinary metadata, replace unconditionally for instances including equal metadata, and abort after private writes with exact outputs."
+  ],
+  "axiom_audit": {
+    "RegistrationTransaction.admit_exact": [
+      "propext"
+    ],
+    "RegistrationTransaction.replacement_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "RegistrationTransaction.committing_program_complete": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationTransaction.execution_ownership": [
+      "propext"
+    ],
+    "RegistrationTransaction.active_owner_unique": [
+      "propext"
+    ],
+    "RegistrationTransaction.reached_observations": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationTransaction.committing_effect": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "RegistrationTransaction.execution_serial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "RegistrationTransaction.aborted_event_excluded": [
+      "propext"
+    ],
+    "RegistrationTransaction.serial_history_and_abort": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "_private.RegistrationWitnesses.0.RegistrationTransaction.Witnesses.original_midpoint_reachable": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationTransaction.Witnesses.seeded_replica_admitted": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationTransaction.Witnesses.same_metadata_overlap_succeeds": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationTransaction.Witnesses.staged_abort_is_reachable": [
+      "propext"
+    ],
+    "RegistrationTransaction.Witnesses.ordinary_replacement_succeeds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "RegistrationTransaction.Witnesses.instance_replacement_succeeds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "RegistrationTransaction.Witnesses.original_overlap_is_not_serial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "checks": [
+    {
+      "command": "LAKE_NO_UPDATE=1 /home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake env lean RegistrationWitnesses.lean",
+      "resource_bound_seconds": 300,
+      "elapsed_seconds": 33.15,
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/witnesses16-evidence/direct.log",
+        "sha256": "eabfbdca0c3e92086068bd6706d71eadf616a4a549d96c6035554dabedc873a4"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/witnesses16-evidence/direct.time",
+        "sha256": "25561fec2f7eab1a78ab0b53b17b4544841a843a930d39c5e4dc92a50485fa5a"
+      }
+    },
+    {
+      "command": "LAKE_NO_UPDATE=1 /home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake build",
+      "resource_bound_seconds": 900,
+      "elapsed_seconds": 58.35,
+      "exit_code": 0,
+      "own_default_targets": [
+        "RegistrationModel",
+        "RegistrationSpecification",
+        "RegistrationProof",
+        "RegistrationLocks",
+        "RegistrationEffects",
+        "RegistrationObservations",
+        "RegistrationHistory",
+        "RegistrationWitnesses"
+      ],
+      "reported_jobs_including_dependencies": 3152,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/final-build-evidence/build.log",
+        "sha256": "a51e28bd9bb64d5f8c153bd22c5daeedcf21af578ffbb34a85a94f6f5fb53d59"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/final-build-evidence/build.time",
+        "sha256": "55a635b0d98fa4340709182736d6230410d0c3ab5fd6380dc30acb07b4d1bfa9"
+      },
+      "source_before": {
+        "path": "/tmp/hub-registration-concurrency-20261030/final-build-evidence/source.before.sha256",
+        "sha256": "b2fb9c0395da3ce0cd36a1ce4c1b4d8638c501f18ee3cc9a8912a5bfbbeac8f9"
+      },
+      "source_after": {
+        "path": "/tmp/hub-registration-concurrency-20261030/final-build-evidence/source.after.sha256",
+        "sha256": "b2fb9c0395da3ce0cd36a1ce4c1b4d8638c501f18ee3cc9a8912a5bfbbeac8f9"
+      }
+    }
+  ],
+  "execution_directory": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+  "native_component_evidence": {
+    "receipt": "proofs/registration_transactions/evidence/native-replica-replacement.json",
+    "sha256": "48bbfd9536cc6f32b5cd8f1f5185819575dd45892fbe6ee67c8ca80d2faafca3",
+    "fixed_source_sha256": {
+      "crates/veoveo-hub/src/registration/store.rs": "b09c76385f7087a316b6b2c1594b539fa1e1ce8bbc7b8afe44faaf877c186893",
+      "crates/veoveo-hub/src/registration/store/concurrency_tests.rs": "a7f8d6e68ba21816f394806d9900ddad26327393c9a0d5f154898e639dc481f2",
+      "crates/veoveo-hub/src/registration/store/tests/blocked.sql": "540cf7b8e57528f98cd6d1ce6123e865fe2e0f4710ff67df0a98783c3311b566",
+      "crates/veoveo-hub/src/registration/store/tests/connection.sql": "242ea5edf43bd8a475554130521fe01e25108d597d1fa3923762b7c128e7ef06",
+      "crates/veoveo-hub/src/registration/store/tests/gate.sql": "6711f6d5547bd8cdb911a36fdc326825232c459c1252a6a44d0e0fe798137670",
+      "crates/veoveo-hub/src/registration/store/tests/hold_gate.sql": "4ddbc6dd50f064e45bf1a24a8c4462a0a9a2445d4abbb3623e0efcc2406fc714",
+      "crates/veoveo-hub/src/registration/store/tests/snapshot.sql": "0e53eb8579a8ba9b3b415a4703aa3c51bd33ff3eec684bbdffd416987eda917b",
+      "crates/veoveo-hub/DESIGN.md": "4e1f8ba69fa0f6f0120ec95319ce8374225863e3acbb02625a2b4115cffbc0d2",
+      "crates/veoveo-hub/src/registration/store/deployment.sql": "e5244619feed6adeca21e06f3bb31130e028228c48cfd6d7815d91679c34b8b8"
+    },
+    "all_nine_entries_rechecked_unchanged": true,
+    "result": "Original actual-store schedule failed; the unchanged regression passed after deployment SELECT FOR UPDATE. Six existing instance-registration integration tests, formatting and strict library Clippy passed. No native checks were repeated for these proof-only changes."
+  },
+  "development_notes": [
+    "The first completed-counterexample check exited1 in35.89s on proof-local state aliases and row-equality elimination; its audit rejected the resulting unfinished theorem. No runtime/model/specification change was used to repair it.",
+    "The successful direct run was preceded by a missing-file copy error before any Lean process started. The hash-verified source was transferred, then the check ran once.",
+    "The earlier resource-limited prefix construction and repair are recorded in original-midpoint.json; they are not semantic fault-control evidence.",
+    "Final Model/Specification edits clarify only comments: full captured rows are proof-level witnesses, native RETURNING fields are client_id/server/login, and external namespace-claim admission does not prohibit arbitrary admitted instance metadata keys.",
+    "Existing unused section-variable, simp-argument and unreachable-tactic warnings remain; audited theorem closures contain only the recorded standard axioms."
+  ],
+  "limits": [
+    "One retained deployment with namespace-claim ownership and admitted requests supplied externally; only register/replace writers and explicitly disjoint frame changes are modeled.",
+    "PostgreSQL READ COMMITTED visibility, transactional atomicity, locking and constraint semantics, Core role/schema internals, native metadata comparison/projection and async Rust/SQL correspondence remain explicit boundaries.",
+    "Successful acknowledgement does not imply a registration survives later replacement. A modeled server abort is not inferred from a client transport error.",
+    "Constructed traces show reachability, not unconditional progress, physical durability, HTTP or deployed liveness.",
+    "Initial deployment creation, RFC7592 per-client update, removal/housekeeping, namespace-claim changes, external-database preparation and postcommit audit/catalog adoption remain broader obligations.",
+    "No new runtime authorization rule, proof service, CI hook, deployment, paid model/provider call or full Mac/Linux Docker push gate in this milestone."
+  ]
+}
