@@ -27,3 +27,6 @@ lean_lib RegistrationObservations
 
 @[default_target]
 lean_lib RegistrationHistory
+
+@[default_target]
+lean_lib RegistrationWitnesses

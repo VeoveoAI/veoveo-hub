@@ -1,0 +1,103 @@
+{
+  "date": "2026-10-30",
+  "status": "Constructed valid seeded admission and completed same-metadata overlap checked; replacement/abort witnesses and original counterexample remain pending",
+  "parent_proof_commit": "f43441c",
+  "runtime_mapping_commit": "05737d6",
+  "evidence_class": "Constructive executions of the handwritten transaction model; no native JSON, credential or PostgreSQL-role encoding claim",
+  "toolchain": "leanprover/lean4:v4.35.0",
+  "aeneas_framework_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "abd478779b97b5a0487c1f6743cde427e9961906d687d3e9f05a18155a88b575",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "4b2206d7808c0f17403b338c29c835e7c6222d2b37656d6007ccc04d3fa36707",
+    "RegistrationWitnesses.lean": "7aedf3a7396b3b9fb18a1de910a543f810dcc7b9e66ca1150a45f067af466437",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "4f9661de5c968ef5083243221005fbf04ae7932306c2d40e44a9e0bf08b65ecf",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "inputs": {
+    "parametric": "Full metadata M, row payload R, role payload P and disjoint frame F; arbitrary supplied payload values.",
+    "seed": {
+      "client": 0,
+      "login": 10
+    },
+    "attempt_0": {
+      "client": 1,
+      "login": 11,
+      "kind": "ordinary",
+      "metadata": "same as seed"
+    },
+    "attempt_1": {
+      "client": 2,
+      "login": 12,
+      "kind": "ordinary",
+      "metadata": "same as seed"
+    },
+    "unrelated_login": 99,
+    "identifier_note": "Nat representatives distinguish mathematical fixture keys; these are not native OAuth client IDs or LOGIN role names."
+  },
+  "claims": {
+    "seeded_replica_admitted": "Proves initial WellFormed seed, a full actual-step execution, exact expectedReplica output, first success, second waiting and released lock.",
+    "same_metadata_overlap_succeeds": "Both attempts begin before the first releases the lock, then complete with actual commit IDs [0,1], both success acknowledgements and free lock. Exact database equals two independent expectedReplica operations; seed, candidates, role payloads, unrelated login and frame are preserved."
+  },
+  "axioms": {
+    "seeded_replica_admitted": [
+      "propext",
+      "Quot.sound"
+    ],
+    "same_metadata_overlap_succeeds": [
+      "propext",
+      "Quot.sound"
+    ]
+  },
+  "checks": [
+    {
+      "command": "lake env lean /tmp/RegistrationWitnesses-packet6.lean",
+      "exit_code": 0,
+      "elapsed_seconds": 7.09,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/witnesses6-evidence/direct.log",
+        "sha256": "7bfbf5e3621103d30fffc16224f288c18515b0288f69642b22ecd6203e02c62a"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/witnesses6-evidence/direct.time",
+        "sha256": "89cf21f223851fc4943eadf2adfc8d6737780be88959a11c1c12bce48078fd14"
+      }
+    },
+    {
+      "command": "lake build",
+      "target_count": 8,
+      "exit_code": 0,
+      "elapsed_seconds": 6.1,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/witnesses6-package-evidence/logs/build.log",
+        "sha256": "af56b5e97076a4beba6bfe9855bc75ffe371e50a16818141108bc0e1f85198b2"
+      },
+      "timing": {
+        "path": "/tmp/hub-registration-concurrency-20261030/witnesses6-package-evidence/build.time",
+        "sha256": "540089b9e6f3165b167623f981ffcb0799b18d7ef7b798da35b2cb8bbe64c80f"
+      },
+      "measured_source_hashes": {
+        "path": "/tmp/hub-registration-concurrency-20261030/witnesses6-package-evidence/source-hashes.txt",
+        "sha256": "2ff29b26623c8cf191ca3b581a0f90c4dfe4c1cbc22cbae4b02ea5a197a5b714"
+      }
+    }
+  ],
+  "execution_directory": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+  "development_repairs": [
+    "Explicit Step types disambiguated the locking parameter in the finishing helper.",
+    "The second insertion proves login uniqueness by considering both surviving registration keys, substituting the stored row and simplifying its concrete login field. No uniqueness premise was weakened.",
+    "Intermediate elaboration/constraint-proof failures are development results, not semantic fault-control evidence."
+  ],
+  "validation_scope": "Existing Linux Lean cache reused. Seven prior modules and runtime unchanged; no native checks, Rust extraction, deployment or OpenCode/provider acceptance calls repeated.",
+  "limits": [
+    "Constructed successful schedules establish reachability, not eventual completion under every scheduler.",
+    "Only same-metadata ordinary admission is constructed here; replacement, abort and original-protocol failure witnesses remain pending.",
+    "Initial validity and each selected SQL-like constraint are proved within the model; native field/role projection, PostgreSQL semantics and asynchronous Rust/SQL correspondence remain boundaries.",
+    "Broader per-client update/removal, authority, housekeeping and postcommit adoption obligations remain. No full registration or whole-Hub verification claim."
+  ]
+}

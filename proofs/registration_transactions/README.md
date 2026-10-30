@@ -3,8 +3,9 @@
 This slice connects registration transaction reasoning to the actual store and
 PostgreSQL behavior. Native regression evidence, complete staged programs, lock
 ownership, stable observations, exact write effects, serial-history composition
-and abort-event exclusion are checked. Reachable valid-output executions and the
-original-protocol counterexample remain pending.
+and abort-event exclusion are checked. Constructed valid replica admission and
+completed same-metadata overlap are checked too; replacement/abort witnesses and
+the original-protocol counterexample remain pending.
 Execution remains manual: run `lake build` in this directory with the pinned
 Lean toolchain.
 
@@ -60,10 +61,21 @@ changes. `aborted_event_excluded` excludes an aborted attempt's identity from
 those events; `serial_history_and_abort` establishes both facts for the same
 reached state. See the [serial-history receipt](evidence/serial-history.json).
 
-Next: construct exact valid same-metadata and replacement executions and establish
-the original unlocked-read failure. The earlier native test remains separate from
-these design-model statements. Neither this history theorem nor a successful
-acknowledgement implies that a registration survives a later replacement.
+`RegistrationWitnesses.lean` constructs valid initial rows/logins and actual
+step-by-step executions. `seeded_replica_admitted` admits a replica while a second
+attempt is waiting; `same_metadata_overlap_succeeds` completes both attempts, which
+began before the first released its lock. Both acknowledge success in actual
+commit order `[0, 1]`; the exact output equals two independent replica additions,
+preserving the seed, both complete candidate rows/roles, unrelated login and frame.
+Metadata, row payloads, role payloads and frame stay parametric; only mathematical
+client/login representatives are fixed. See the
+[valid-replica receipt](evidence/valid-replicas.json).
+
+Next: construct replacement/abort executions and establish the original
+unlocked-read failure. The earlier native test remains separate from these
+design-model statements. Neither the history theorem nor a successful
+acknowledgement implies that a registration survives a later replacement; the
+constructed successful schedule is not an unconditional liveness proof.
 
 This first theorem excludes RFC 7592 per-client updates, concurrent removal and
 housekeeping, namespace-key changes, external-environment preparation and
