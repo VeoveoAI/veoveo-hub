@@ -181,7 +181,17 @@ async fn discovery_recovers_one_disconnect_without_repeating_domain_mutations() 
             (Fault::InvalidJson, 1),
         ] {
             let fixture = Fixture::start(fault).await;
-            assert!(fixture.connect().await.is_err());
+            let Err(error) = fixture.connect().await else {
+                panic!("discovery should fail after {attempts} attempts");
+            };
+            if matches!(fault, Fault::Disconnect(_)) {
+                // The refusal names the cause, not only the request that failed.
+                let message = &error.protocol().message;
+                assert!(
+                    message.contains("client error (SendRequest): "),
+                    "{message}"
+                );
+            }
             assert_eq!(fixture.attempts.load(Ordering::SeqCst), attempts);
             assert_eq!(fixture.mutations.load(Ordering::SeqCst), 0);
         }

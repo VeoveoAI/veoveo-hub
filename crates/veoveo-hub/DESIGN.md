@@ -176,7 +176,9 @@ level the cause deserves.
 - **Registered servers.** A server's connection that closes, as when its sandbox is
   replaced, is a reconnect: discovery and idempotent requests retry once on new
   connections ([Upstream Transport](#upstream-transport)), each logging one WARN that
-  names the server and the transport error.
+  names the server and the transport error. A transport error names each of its causes
+  after the request, such as a refused, reset or closed connection, in the log and in
+  the refusal alike.
 
 ## Configuration
 
