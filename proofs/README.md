@@ -46,7 +46,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 
 | ID | System property | Formal status | Next useful work |
 | --- | --- | --- | --- |
-| HUB-CONTRACT-01 | Shared MCP extension contracts preserve meaning from declaration to enforcement | unproved | Trace SDK authorization declaration, representations and target resolution into Hub and SDK dispatch |
+| HUB-CONTRACT-01 | Shared MCP extension contracts preserve meaning from declaration to enforcement | partial | Connect declaration generation/validation and current policy to the proved SDK resource requirement |
 | HUB-TASK-01 | Captured Task routing and retry integrity | partial | SQL and asynchronous adapter refinement remain |
 | HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Prove extension interpretation/current roles and session/issuer continuity beyond the qualified assembly |
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | unproved | Specify the pure current-family decision first |
@@ -73,7 +73,7 @@ Lore permissions, the existing Task/logout semantics and asynchronous propagatio
 
 Implement in this dependency order, finishing a qualified slice before the next:
 
-0. **Shared extension contracts:** after the in-flight delegated-assembly slice,
+0. **Shared extension contracts:** after the qualified delegated-assembly slice,
    prioritize the SDK-to-Hub contract foundation below. Prove the semantics that
    producers and consumers share before accumulating more isolated internal
    predicates. The interface is part of the existing architecture, not a new API.
@@ -164,24 +164,46 @@ between MCP camelCase and OAuth snake_case without duplicating their semantics.
   native route/template tests and Hub policy/registration/calls tests. Wire round trips
   and generated-schema checks are test evidence unless their serialization mapping
   is itself proved. Rust traits establish structure, not behavioral equivalence.
+- **Qualified formal boundary:** the SDK's
+  [manual authorization package](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/proofs/authorization/README.md)
+  proves actual shared Rust resource resolution and parsed root/path/query matching.
+  Exact entries win without visiting templates; otherwise all matching complete
+  access values must agree. The first conflict stops at its immediate next cursor.
+  Total matcher results cover literal/scalar/tail segments, trailing slashes and
+  query names, accepting valid empty tails and explicit `Authenticated` requirements.
+  A composed generated-function trace derives matching before applying agreement;
+  it does not assume an already-authorized candidate list. A concrete interpretation
+  establishes satisfiable primitive laws. Five legal semantic mutations fail their
+  intended theorem and separate Rust witness, and a fresh restored run passes.
+  The [receipt](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/proofs/authorization/evidence/authorization-receipt.json)
+  identifies SDK `8489a58d12f880e88bb71b226c720e57a5399084` plus its exact overlay.
+  These decisions are **proved-within-stated-boundary**; HUB-CONTRACT-01 stays partial.
 - **Boundary:** standard MCP transport, Serde/Schemars, cryptography and domain handler
   correctness remain separate. Prove our semantic transformations and decisions;
   do not claim every conforming server's application behavior is verified. Pure SDK
   contracts are proved at their owner; Hub composes those results. Protected hosting
   and durable-Task modules keep their existing ownership and admission rules.
-- **Next:** inventory the existing extension surfaces and their producer/consumer
-  links; implement the authorization/registration semantic boundary first. Then map
+- **Residual/next:** native exact lookup/iteration, template grammar, Core decoding,
+  primitive text/set semantics and parent call/borrow wiring remain explicit adapter
+  obligations. Borrow identity has source review and native pointer-identity tests,
+  not a Lean alias proof. Connect the established route requirement to current
+  role/risk evaluation and policy output, then identity, declaration generation/
+  validation and typed-route dispatch. Map
   Tasks, usage metadata, discovery degradation and App dependency metadata to their
   owning contracts and relevant guarantees. They are not all interchangeable
   `capabilities.extensions` declarations: some use `_meta` or native MCP extensions.
 
 The qualified [authority package](authority/README.md) consumes decoded
 authorization semantics and proves only its stated internal sub-boundary. It does
-not discharge this contract chain or prove serialization. This shared contract
-foundation is the next slice before more independent internal-policy work.
+not discharge this contract chain or prove serialization. The SDK matcher result
+now supplies an established sub-boundary; its composition with actual Hub policy
+and the asynchronous caller still needs proof. The sibling SDK work is not claimed
+to be present in Hub's pinned dependency or deployed.
 
-The existing MCP additions define the following coverage obligations; their presence
-in the SDK is not evidence that they have been proved:
+The following inventory records the inspected SDK `8489a58` snapshot. Separate
+extension naming/removal work is outside this qualification; current SDK definitions
+own the active surface. This snapshot explains the proof trace, and presence in it
+is not evidence of formal coverage:
 
 - `ai.veoveo/registration` and `ai.veoveo/authorization` are advertised in
   `capabilities.extensions`. Cover identity/declaration preservation, route
