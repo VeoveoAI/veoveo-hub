@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "status": "proved prefix/field-preservation checkpoint; transaction history/no-fork/positive concurrent executions/controls pending",
+  "date": "2026-10-30",
+  "agents": {
+    "coordination": "GPT-6 Astra",
+    "implementation": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna"
+  },
+  "evidence_class": "Handwritten transaction design model with existing extracted pure types/predicate; no async Rust/SQL/crypto refinement.",
+  "pins": {
+    "lean": "4.35.0",
+    "aeneas": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "sdk": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "core": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "current_roles_pure_commit": "c00037d",
+    "actual_predicate_proof_sha256": "07a0b7ff84c110b459ba2d7556b08c3891104837a6fa1605a71d6ddd25f8eded"
+  },
+  "source_sha256": {
+    ".gitignore": "fde850d24186b6e99c8c0debd641fb3ab85198b109eb66f71a1fea02bd6ea1b3",
+    "RefreshTransactionModel.lean": "ea64493f1fb70ec5303df18d24f6b931f86e231f7eae4cfd05d0edf6a9a0ddc5",
+    "RefreshTransactionProof.lean": "a92c92858848ceba6f163fc55a427df787102f726258e03a3e6d4c637bbb1038",
+    "lake-manifest.json": "48bba0ac9bec4e0ffaf264f1096fa79d23f45b692752465dbaadad00e5958df2",
+    "lakefile.lean": "dcd90bb9f6611e685ee3421e0d930ab6038a159aab688d78129c4c3eb6e0b0b2",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "summary": {
+    "path": "/tmp/hub-refresh-concurrency-20261030/evidence-transaction-prefix/summary.json",
+    "sha256": "1a1402c49cd4268aaf88406ffeeb73d44e5f8b66b0ea0074bbaeb919ebb6db3f"
+  },
+  "stages": [
+    {
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/refresh_transactions",
+      "elapsed_ms": 26415,
+      "exit": 0,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-transaction-prefix-package-run1/logs/lake-build.log",
+      "log_sha256": "7fba9809effd3053841aaefbc300434285567cef1c14be5917f8706adfaafe32",
+      "stage": "lake-build"
+    },
+    {
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "RefreshTransactionProof.lean"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/refresh_transactions",
+      "elapsed_ms": 6537,
+      "exit": 0,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-transaction-prefix-package-run1/logs/direct-lean.log",
+      "log_sha256": "c84ca393d1af08d6bf8e1e20022972352c943af290911477f5fc3ca1c8e079ab",
+      "stage": "direct-lean"
+    }
+  ],
+  "axiom_output": [
+    "'RefreshTransaction.committing_program_complete' depends on axioms: [propext, Classical.choice, Quot.sound]",
+    "'RefreshTransaction.rotation_family_exact' depends on axioms: [propext, Quot.sound]",
+    "'RefreshTransaction.rotation_preserves_admission' depends on axioms: [propext, Classical.choice, Quot.sound]",
+    "'RefreshTransaction.revocation_preserves_first' depends on axioms: [propext, Quot.sound]"
+  ],
+  "guarantees": [
+    "Under arbitrary finite protocol/environment Step interleavings, a committing attempt has staged its entire recorded program. The primitive commit itself has no completeness guard.",
+    "The concrete ordered four-write rotation list changes family generation only and composes with the proved session-generation invariant.",
+    "Duplicate audit-only program preserves family/token rows; missing-row consume/mark do not recreate a token.",
+    "A later revoke preserves an already stored first timestamp/reason."
+  ],
+  "explicit_pending": [
+    "Reachable chosen-outcome\u2192program/history composition and exact whole rotation/duplicate outputs.",
+    "Retained-incarnation no-fork/monotone generation, aborted attempt exclusion, and constructive rotation/duplicate executions.",
+    "Actual semantic fault controls and restoration; native baseline is separately measured, not substituted for these formal obligations."
+  ],
+  "boundaries": [
+    "Raw family/token types and mathematical session projection reuse current_roles; native SQL/Serde/from_stored/JWT/caller wiring is unproved.",
+    "WellFormed explicitly lists map-key/FK/digest/generation/range constraints; it is not a proved native schema/decoder contract.",
+    "Tracked family deletion ends this incarnation; no permanent UUID nonreuse or global family-lock-only-writer claim.",
+    "Token maintenance may delete/clear between plain read and UPDATE. Staged deltas preserve disjoint rows; retention scheduling/batch/query-plan/physical durability are external.",
+    "Commit outcome/acknowledgement is separate. State decrypt/digest checks and HTTP success/denial auditing remain outside."
+  ],
+  "development_failures": [
+    "Model packet1 had two multiline record/lambda parser errors; packet2 fixes layout only.",
+    "Proof packet1 left conditional/list normalization and record field equality goals; packet2 fixes tactics without changing statements/model. Failed declarations recovery axioms were rejected."
+  ],
+  "applicability": "Only six source files listed were package-built. README/receipt are reporting-only. New History draft is excluded and unqualified."
+}
