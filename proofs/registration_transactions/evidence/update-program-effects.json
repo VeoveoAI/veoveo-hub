@@ -1,0 +1,184 @@
+{
+  "date": "2026-10-30",
+  "status": "Checked update-program and captured-row-effects milestone; mixed serial-history extension remains open",
+  "base_commit": "22cdabbf308ea5bc0033045088dd32dc001f5a1a",
+  "evidence_class": "Handwritten source-mapped Lean model and independently specified effects; not Rust/SQL extraction or refinement",
+  "implementation_changes": "None. Current native fix/source applicability checked against native-stale-update.json; no native tests rerun.",
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "lean_version": "4.35.0",
+  "platform": "Linux x86_64",
+  "proof_toolkit_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "source_sha256": {
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94",
+    "RegistrationWitnesses.lean": "0c62ccf4ef064f5592fcd781e485f21ac7f107572aa208d0e7d2130c7c44726e",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "7f5705128dd32c6e1d0d4e12a721296fd16550f353ad3336c949f01bfeb23ea0",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+    "RegistrationUpdateModel.lean": "a453d6d58a17e8d08d6a31c31b2227785dac66edda8048c14d5217da1ffefcf9",
+    "RegistrationUpdateSpecification.lean": "c92157d4f92472ff09d00ecd5f0ba178f3408cbc5438378d249bab66a3580e67",
+    "RegistrationUpdateEffects.lean": "500fc10b193595c6795690005ef663f8e91a3378e4d23dd17e49392e221bfeb1",
+    "RegistrationUpdateProof.lean": "8ed07e65b88297bd14c7edbc3978b04afb1ed77f0a72ab25de1021559fd6f26e"
+  },
+  "source_manifest": {
+    "path": "/tmp/hub-registration-concurrency-20261030/update-final-build-evidence/source-derived.json",
+    "sha256": "8faeec8194ea3115e10f5de28bb2f6d65da7bf66fd53241f3986d4d0e53ca3b9"
+  },
+  "prior_eight_modules_and_dependency_pins_unchanged": true,
+  "native_source_sha256": {
+    "crates/veoveo-hub/DESIGN.md": "74093672d29619557d4818f07ef9f6ad78d250e6252ea1f959647fc491114169",
+    "crates/veoveo-hub/src/registration/store.rs": "e6e7b01208da6d5a4a431617e02e3e6f36544d3d5fb55812bea1e6afa36e43a3",
+    "crates/veoveo-hub/src/registration/store/concurrency_tests.rs": "56cb9b5d4832aafd8e30958b7f54b17fee5705987aeeaf650100c9fe67421483"
+  },
+  "claims": {
+    "committing_program_complete": "Every reached update commit request in any finite fixed mixed execution stages exactly deployment metadata then the keyed matched-row patch; both ordering and updated outcome are derived from real steps, not required by primitive commit.",
+    "committing_exact_fields": "Applying that reached staged program gives the independent expectedMatched transformation of its actual captured row. Current-row stability until commit is not yet proved.",
+    "noop_program_discarded": "A reached no-op rollback/aborted state retains exactly the metadata-only private staged program and no matched row; this is a staging theorem, not general event exclusion.",
+    "rollback_noop_exact": "An actual no-op rollback transition preserves committed database, update event list and original registration commit list; it does not freeze other writers until acknowledgement.",
+    "field_effects": "Patch changes only client metadata, software statement and update time. Current matched-row identity/login/digest/issue-time/stable remainder, other replicas, roles, frame and deployment storage binding are preserved. Row-carried binding is ghost admission context, not a native column."
+  },
+  "axiom_closures": {
+    "RegistrationUpdate.matched_fields": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationUpdate.rollback_noop_exact": [
+      "propext"
+    ],
+    "RegistrationUpdate.committing_program_complete": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationUpdate.noop_program_discarded": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationUpdate.committing_exact_fields": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationUpdate.patched_exact": [],
+    "RegistrationUpdate.matched_program_exact": [],
+    "RegistrationUpdate.matched_sequential_exact": [],
+    "RegistrationUpdate.matched_key": []
+  },
+  "validation": {
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "model_direct": {
+      "exit_code": 0,
+      "elapsed_seconds": 3.16,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-model2-evidence/direct.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "time": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-model2-evidence/direct.time",
+        "sha256": "4f5757c018167919a3749f23ae406398d4567d24aa40f56210ce49d5a926cf67"
+      }
+    },
+    "specification_olean": {
+      "stage": "spec-olean",
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "-o",
+        ".lake/build/lib/lean/RegistrationUpdateSpecification.olean",
+        "RegistrationUpdateSpecification.lean"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+      "exit": 0,
+      "timed_out": false,
+      "elapsed_s": 2.768,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "effects_olean": {
+      "stage": "effects-olean",
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "-o",
+        ".lake/build/lib/lean/RegistrationUpdateEffects.olean",
+        "RegistrationUpdateEffects.lean"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+      "exit": 0,
+      "timed_out": false,
+      "elapsed_s": 3.169,
+      "log_sha256": "455b31c71b02213e4cf57aca965af6f153bdcfe2896449bfe35c17b9fa3ca06d"
+    },
+    "proof_direct": {
+      "argv": [
+        "lake",
+        "env",
+        "lean",
+        "RegistrationUpdateProof.lean"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 4.13,
+      "bound_seconds": 300,
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-proof4-evidence/direct.log",
+        "sha256": "d848ef0f42a13bf888240ce453d0a71fa37116d4e00232b7c3625eaef3e2e4c6"
+      },
+      "time": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-proof4-evidence/direct.time",
+        "sha256": "9d4fe3ca9866bd9b04a461be3c1d91fad1879109774ba701d1a18bbcc43b568f"
+      }
+    },
+    "composed_package": {
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions",
+      "exit_code": 0,
+      "elapsed_seconds": 11.382,
+      "bound_seconds": 900,
+      "default_modules": 12,
+      "lake_jobs_including_dependencies": 3160,
+      "source_unchanged": true,
+      "summary": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-final-build-evidence/summary.json",
+        "sha256": "254b3f20bdbcaeca55cec38222eae8b36337b4c1ec7d33ddb93196e48094f0f1"
+      },
+      "log": {
+        "path": "/tmp/hub-registration-concurrency-20261030/update-final-build-evidence/build.log",
+        "sha256": "d971b5f241b558a0df1c379ef700a9dc368cb446aef9c1d97bbf3ad574f220a4"
+      }
+    },
+    "warnings": "Unused section-variable warnings remain; no proof errors or unreviewed axioms in successful package.",
+    "not_run": [
+      "new native tests",
+      "Aeneas extraction",
+      "full Docker checks",
+      "deployment",
+      "paid model calls"
+    ]
+  },
+  "development_feedback": [
+    "Review corrected illegal Prop-to-Type classification into a relation over real registration steps, keyed row writes by request client, and partitioned failed update attempts by their ghost method identity.",
+    "Model1 had a dotted-identifier elaboration failure; Effects1 had an unintroduced other-key contradiction; Proof2/3 needed phase-specialization and explicit abort-branch reasoning. These were proof-script/typechecking failures, not semantic negative controls.",
+    "Three launch preflights stopped before compiling: a malformed expected hash, nested shell/awk quoting, and a truncated hash. Final manifests were generated from actual file bytes and verified unchanged before/after one successful package build."
+  ],
+  "assumptions_and_boundaries": [
+    "One retained deployment, external namespace admission, admitted changed-metadata store calls; native metadata statement constraints are an explicit relation independent of lock/post-state correctness.",
+    "Real fixed registration transition relation retained. Static method identities, captured rows and event lists are ghost proof data; no runtime bookkeeping or auth rule is added.",
+    "PostgreSQL statement snapshots, transactional staging/commit/rollback and row-lock semantics are modeled assumptions, not proofs of PostgreSQL.",
+    "Authentication/crypto/serialization, SQL/Core refinement, service equal-metadata short circuit, postcommit audit/reload/reply and deployed behavior remain outside.",
+    "Current-row stability, arbitrary mixed independent serial histories, general abort-event exclusion, constructive valid update/no-op histories and the old-update counterexample remain next.",
+    "Removal/housekeeping, broader authority/identity-reuse composition, cross-database preparation and liveness/recovery are not claimed."
+  ]
+}

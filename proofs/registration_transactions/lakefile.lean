@@ -30,3 +30,15 @@ lean_lib RegistrationHistory
 
 @[default_target]
 lean_lib RegistrationWitnesses
+
+@[default_target]
+lean_lib RegistrationUpdateModel
+
+@[default_target]
+lean_lib RegistrationUpdateSpecification
+
+@[default_target]
+lean_lib RegistrationUpdateEffects
+
+@[default_target]
+lean_lib RegistrationUpdateProof

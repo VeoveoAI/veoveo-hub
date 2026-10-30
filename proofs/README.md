@@ -57,7 +57,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace serial histories, valid outputs and original-race counterexample qualified; update/removal and broader composition remain |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace qualified; update program/field effects checked; mixed histories, removal and broader composition remain |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
@@ -748,9 +748,14 @@ reproduces an update with a row captured before replacement that later overwrite
 the replacement's deployment metadata after its original row is gone. The minimal
 fix uses deployment-first locking and rollback on a missing registration, retaining
 no-op success and existing per-client semantics. Both native concurrency tests and
-six instance-registration tests pass. The update-operation formal model and its
-mixed-operation guarantees remain pending; the prior serial theorem explicitly
-excludes these writers.
+six instance-registration tests pass. The subsequent
+[update program/effects checkpoint](registration_transactions/evidence/update-program-effects.json)
+derives complete update staging in arbitrary finite mixed executions and exact
+captured-row field effects, plus the no-op's staged program and rollback effect.
+Current-row stability through commit, mixed serial histories, valid update
+executions and the old-update counterexample remain next. The prior serial theorem
+does not automatically extend to these writers; this remains a handwritten
+source-mapped model, not formal Rust/SQL refinement.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

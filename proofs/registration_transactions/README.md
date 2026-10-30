@@ -129,9 +129,25 @@ would contradict the existing per-client update semantics.
 
 The next [native update probe](evidence/native-stale-update.json) reproduced a
 stale request overwriting replacement deployment metadata after its own registration
-had disappeared. The store now takes the deployment lock first and rolls back both
-pending writes when the registration update affects no row, completing as a no-op
+had disappeared. The store now takes the deployment lock first and rolls back the
+pending deployment write when the registration update affects no row, completing as a no-op
 without a new refusal. The identical regression passes, as do both concurrency
-tests together and six existing instance-registration tests. This is native evidence
-only: extending the formal model to update writers remains next, followed by
-removal and broader lifecycle composition.
+tests together and six existing instance-registration tests. This is native evidence,
+separate from the update proof checkpoint below.
+
+The [update program/effects checkpoint](evidence/update-program-effects.json) adds
+four modules over the existing real register/replace transitions. For every finite
+mixed execution, it derives the exact deployment-then-registration staged program
+at an update's commit request. The full field transformation preserves the matched
+row's client/login/token/issue time/stable remainder, other replicas and logins,
+and the deployment's storage binding. A no-op retains only the private metadata
+write; the explicit rollback transition preserves the database and event lists.
+These results introduce no runtime check or rejection.
+
+The matched row is captured at the UPDATE statement, rather than copied from
+preflight. Proving that it remains current until commit requires the next shared-lock
+and observation invariants. This checkpoint does not yet establish mixed serial
+histories, general abort-event exclusion, valid complete update executions or the
+old-update counterexample. Neither the new model nor the earlier native tests are
+formal Rust/SQL refinement. Removal, housekeeping and broader authority/lifecycle
+composition remain outside this checkpoint.
