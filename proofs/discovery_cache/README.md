@@ -184,7 +184,58 @@ actual completion equation. This dependency does not mean addition executes duri
 a start. Earlier parser, projection and induction-index errors are recorded as failed
 authoring attempts; no `sorryAx` appears in accepted closures. Seventeen inputs and
 twelve prerequisite artifacts were gated around the final check. Actual-source
-semantic controls, server-wide invalidation and listener freshness remain open.
+semantic controls are qualified below; server-wide invalidation and
+listener freshness remain open.
+
+Two [actual-source semantic controls](evidence/semantic-controls-20261031.json)
+are qualified in isolated private source/build trees. Native times below cover whole
+Cargo commands including compilation; test bodies take about 0.00–0.01s, so these
+are not cache-operation latencies. These deliberately inserted
+faults are not new production defects. The accepted runtime, generated files,
+external primitive models and all nine proof leaves remain unchanged.
+
+The [generation-clear fault](mutations/generation-clear.patch) deletes only the
+newer-generation in-flight clear. The unchanged native test fails at the intended
+old-cache absence assertion in 33.092s and passes restored in 10.829s. Its fresh
+model (9.791s), KeyFrame (2.827s) and StartSpecification (2.582s) compile; unchanged
+`start_exact` then fails in 2.926s on retained old in-flight state instead of a
+reset/singleton. The audit rejects cascading `sorryAx`, and no failed-target OLean
+exists. Exact source/raw restoration and a new baseline build pass: model 9.448s,
+all nine proof leaves 2.528–3.082s each.
+
+The original [key-presence candidate](mutations/ticket-presence.patch) also fails
+its native old-cache assertion (31.525s) and passes restored (12.078s), but its
+extraction prunes Option/UUID equality dictionaries named by unchanged
+`ticket_guard_exact`. Source review rejected it as a suitable formal control;
+there is no claimed Lean run or missing-name semantic failure. Its full map/raw4
+also restore exactly. Its nonfatal unused-request warning is recorded separately.
+
+The qualified [ticket fault](mutations/ticket-equality-retained.patch) retains the
+comparison and conjoins key absence, preserving that dependency while admitting a
+wrong present ticket. Its unchanged native test fails in 31.325s and passes restored
+in 9.995s. The fresh model (8.841s), KeyFrame (2.676s), StartSpecification (2.630s),
+StartProof (2.981s) and CompleteSpecification (2.629s) compile. Unchanged
+`complete_exact` fails in 2.984s: its stale-case complete no-op conflicts with the
+mutant's key-present consume/write path. `ticket_guard_exact` remains standard-only;
+there is no missing-name/type error or failed-target OLean. The audit rejects the
+failed declaration's cascading `sorryAx`. Exact source/raw restoration and another
+fresh baseline build pass: model 8.990s, all nine proof leaves 2.586–3.130s each.
+
+Every baseline restoration verifies the original 1083-file map and all four accepted
+raw files byte-for-byte, including templates/metadata. Both restored packages start
+without own build artifacts and rebuild all thirteen modules. All nine proof OLean
+hashes match the earlier accepted artifacts; the alternate's nine proof logs also
+match the generation baseline. The four model OLeans are recorded with measured
+fresh bytes/hashes; binary identity or a cause for their differences is not claimed.
+The existing exact `Instant.add` boundary is unchanged. Native assertions, semantic
+proof residuals and the rejected interface-pruning candidate are distinct evidence.
+
+The native ticket fixture invalidates by server, while the formal history fence
+uses supported key invalidation. Server-wide retain remains unproved. Each native
+mutant aborts at the first old-cache assertion; later replacement-completion
+assertions are not claimed as observed. These controls qualify sensitivity of the
+stated synchronous contracts, not native async/mutex refinement, listener freshness
+or the full catalog/cursor goal.
 
 Validation used Lean 4.35.0 and the pinned Aeneas revision with the existing
 [qualified discriminant instance-name patch](../request_composition/tooling/qualified-discriminant-instance.patch)

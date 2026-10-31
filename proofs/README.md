@@ -104,7 +104,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
-| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories and fences checked; qualify source controls, server invalidation and listener freshness |
+| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and two source controls checked; server invalidation, cursor/listener and native refinement open |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
@@ -892,8 +892,8 @@ Prevents cross-context disclosure and stale routing represented as current disco
   read/removal proofs have only standard Lean logical axioms. See the
   [qualification receipt](discovery_cache/evidence/read-key-invalidation-20261031.json).
   Native collection/identifier/clone correspondence and async mutex refinement
-  remain explicit boundaries. Finite histories, semantic controls and server-wide
-  invalidation remain pending. The read/removal checkpoint alone does not
+  remain explicit boundaries. Later sections qualify finite histories and semantic
+  controls; server-wide invalidation remains open. The read/removal checkpoint alone does not
   establish stale-response fencing or listener freshness.
 - **Checked fetch-start contract:** [the start receipt](discovery_cache/evidence/start-contract-20261031.json)
   connects the actual generated operation to an independent complete-state
@@ -904,8 +904,8 @@ Prevents cross-context disclosure and stale routing represented as current disco
   no clock, retry or pending-record premise; capacity still refuses replacements.
   Callback Results retain failure/divergence rather than assuming success.
   The final leaf passed in 7.398 s with sixteen executable standard-only axiom
-  guards. This establishes neither native invocation counts nor sorted/unique-map
-  invariant preservation, which is still needed for history refinement.
+  guards. This start contract alone does not establish native invocation counts
+  or map invariant closure; the latter is established below.
 - **Checked completion and direct key fence:** [the completion receipt](discovery_cache/evidence/complete-contract-20261031.json)
   connects actual completion to an independent full-state specification. Missing
   or mismatched tickets produce a complete no-op. Current success preserves the
@@ -918,8 +918,8 @@ Prevents cross-context disclosure and stale routing represented as current disco
   primitive/frame axiom guards are standard-only; seven actual-completion guards
   additionally admit precisely the existing native `Instant.add` Result boundary.
   This does not prove native addition or arbitrary payload structural equality.
-  No comparison/clock success assumption is required for stale rejection. Longer
-  histories and invariant preservation remain open.
+  No comparison/clock success assumption is required for stale rejection. Later
+  sections establish supported state invariants and finite histories.
 - **Checked key order and map preservation:** the
   [key/map receipt](discovery_cache/evidence/key-map-invariants-20261031.json)
   connects the actual extracted comparator to a lossless full-field lexicographic
@@ -929,8 +929,8 @@ Prevents cross-context disclosure and stale routing represented as current disco
   Room followed by insertion preserves the 4096 bound; the named head victim is
   the minimum key. The key leaf passed in 12.449 s and the final map leaf in 2.533 s,
   with 32 executable standard-only axiom guards across the pair. This does not
-  verify Rust's `BTreeMap` implementation or establish reachable cache-state
-  invariants; those require composing the established operation contracts.
+  verify Rust's `BTreeMap` implementation. The later state/history composition
+  establishes model-relative reachable invariants.
 - **Checked actual-operation state invariants:** the
   [state receipt](discovery_cache/evidence/state-invariants-20261031.json)
   proves the empty represented state has strictly ordered, unique, bounded maps
@@ -941,8 +941,9 @@ Prevents cross-context disclosure and stale routing represented as current disco
   An older-generation completion is therefore a whole-state no-op without a
   ticket-freshness premise. The leaf passed in 2.776 s with seventeen guards:
   fourteen standard-only and three permitting the existing native `Instant.add`
-  boundary. No after-state invariant or separate callback-success premise is assumed. Finite
-  histories and native constructor/mutex correspondence are still separate.
+  boundary. No after-state invariant or separate callback-success premise is assumed.
+  Histories are established below; native constructor/mutex correspondence remains
+  external.
 - **Checked finite actual-operation histories:** the
   [history receipt](discovery_cache/evidence/finite-histories-20261031.json)
   records induction over actual read/start/complete/removal equations, with no
@@ -956,13 +957,33 @@ Prevents cross-context disclosure and stale routing represented as current disco
   existing time-addition boundary also appears in start-history theorem closures
   because the history relation includes completion equations. This is neither
   universal UUID freshness nor a proof of native async scheduling.
-- **Boundary/effort:** moderate for key/cursor comparisons; substantial for the
-  cache/listener state machine. Assume collision-resistant identity hashing, correct
-  authenticated inputs and mutex/watch-channel semantics where effects are modeled.
-- **Residual/next:** qualify actual-source semantic controls and close
-  server-wide invalidation's translation boundary. The supported history proofs
-  do not establish reconnect
-  delivery, actual client caching behavior or cross-replica notification reliability.
+- **Qualified actual-source controls:** the [control receipt](discovery_cache/evidence/semantic-controls-20261031.json)
+  records two isolated source faults. Native timings include Cargo compilation;
+  test bodies take about 0.00–0.01 s, not the reported whole-command durations.
+  Omitting newer-generation in-flight clearing
+  fails the unchanged native old-cache assertion (33.092 s) and unchanged
+  `start_exact` (2.926 s) after its fresh model/prerequisites compile. Weakening
+  refusal to ticket mismatch **and** key absence fails the native assertion
+  (31.325 s) and unchanged `complete_exact` stale no-op equation (2.984 s), with
+  the equality dictionary/helper intact. Failed target OLeans are absent; audits
+  reject cascading `sorryAx`. Same-tree reversal restores both original full maps
+  and raw4 exactly. Selected native tests pass restored (10.829/9.995 s), and two
+  separate fresh baseline packages compile all thirteen own modules and all guards.
+  Nine proof OLean hashes match earlier accepted artifacts; model binary identity
+  is not claimed. An earlier key-presence-only candidate demonstrates native wrong
+  behavior but prunes required dictionaries; it was rejected before Lean and is
+  retained as an interface diagnostic, not a qualified formal control. These are
+  deliberate test faults, not newly discovered production defects. Native ticket
+  setup uses server invalidation; the formal history fence uses key invalidation.
+- **Boundary/effort:** substantial for the cache/listener state machine. Native
+  collection/identifier/clone/equality/time and mutex/observation refinement remain
+  explicit. Any hash-based identity correspondence is conditional on no collisions
+  among the relevant finite observed contexts, not impossible global injectivity.
+- **Residual/next:** close server-wide invalidation's translation boundary and
+  establish the outstanding catalog-cursor/listener isolation and freshness
+  contracts. Supported cache histories and source controls do not establish native
+  async scheduling, reconnect delivery, client caching behavior or cross-replica
+  notification reliability.
 
 ## HUB-FACTORY-01 — Reconciliation and native lifecycle recovery
 

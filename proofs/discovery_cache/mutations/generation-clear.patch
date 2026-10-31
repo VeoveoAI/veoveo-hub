@@ -1,0 +1,10 @@
+--- a/crates/veoveo-hub/src/mcp/discovery.rs
++++ b/crates/veoveo-hub/src/mcp/discovery.rs
+@@ -112,7 +112,6 @@
+         }
+         if key.catalog_generation > self.generation {
+             self.entries.clear();
+-            self.in_flight.clear();
+             self.failed.clear();
+             self.generation = key.catalog_generation;
+         }

@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/mcp/discovery.rs
++++ b/crates/veoveo-hub/src/mcp/discovery.rs
+@@ -142,7 +142,7 @@
+     where
+         N: FnOnce() -> Instant,
+     {
+-        if self.in_flight.get(&fetch.key) != Some(&fetch.request) {
++        if !self.in_flight.contains_key(&fetch.key) {
+             return false;
+         }
+         self.in_flight.remove(&fetch.key);

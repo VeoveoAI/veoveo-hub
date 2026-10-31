@@ -1,0 +1,1779 @@
+{
+  "case": "discovery-cache-actual-source-semantic-controls-20261031",
+  "status": "qualified for the two required source-fault control classes; original pruned-interface ticket candidate retained as unqualified diagnostic",
+  "qualified": true,
+  "evidence_class": "Deliberate isolated Rust source faults, unchanged native regression assertions, freshly extracted models and unchanged proof checks; not newly discovered production defects",
+  "team": {
+    "implementation": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source": {
+    "runtime_revision": "688b91a",
+    "archive_revision": "f81159fbb9f049422682df41e7c1eff420d80968",
+    "archive_tree": "5b39e138fbc01022898baaae74e7e4d8126297e5",
+    "archive": {
+      "local_path": "/tmp/hub-discovery-cache-control-20261031/state-operations-plan1/hub-current-f81159f.tar",
+      "sha256": "a95b39097c776b032df258b45329b51a883e11fabea41225de7c5441be4af55f"
+    },
+    "manifest": {
+      "local_path": "/tmp/hub-discovery-cache-control-20261031/state-operations-plan1/hub-current-f81159f.manifest.json",
+      "sha256": "e0e278abd301df6d1956a15de4c36233e12c2f75ad5d225607bd6ffa01de78db"
+    },
+    "full_file_count": 1083,
+    "baseline_full_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee",
+    "discovery_rs_original_sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+    "proof_revision": "5aa01efb1415dcd964bb53d1bae90ff78b6f777a",
+    "proof_packet": {
+      "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/proof-inputs.json",
+      "sha256": "785d8a2591cb5bbdb9c010995a8a0207ff1d8f66275027bda634db5125bf6a5f",
+      "bytes": 4025
+    },
+    "sdk_revision": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+    "core_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "production_changes": "None; each patch affects only a new private copy of the accepted native archive."
+  },
+  "toolchain": {
+    "native": "1.99.0-aarch64-apple-darwin",
+    "extraction_rust": "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+    "charon_sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+    "aeneas_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "lean": "4.35.0",
+    "aeneas_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "private_dependency": "Previously qualified discriminant instance-name patch, no new tool change; clean unpatched reproduction remains unmeasured.",
+    "effective_lakefile_sha256": "ec24f002e4aa4e1c4c6986b8443f4566752f2855d8cae27fa2e07115181c071b",
+    "effective_manifest_sha256": "2bbd5afa9c8e51f8033f5715cc74818997fd2640f1cff10b2dc85d165228ed23",
+    "qualified_ops_sha256": "c2f45dde6c27c1dec53c067a4f6fdcd2981ae8e3a6c4e3a40e6e4f102df368c5",
+    "qualified_scalar_eqord_sha256": "6a9f3bd0e4d6346067f0fe4cd16f27d027e10d5c72ccd246d7fea1d4fc545a50",
+    "qualified_core_cmp_sha256": "56fcfd5ddade64d9205096fb1b830a5356772a4a0f52fee761cf4239ba1e4eb7"
+  },
+  "extraction_scope": {
+    "starts": [
+      "veoveo_hub::mcp::discovery::_::cached",
+      "veoveo_hub::mcp::discovery::_::start",
+      "veoveo_hub::mcp::discovery::_::complete",
+      "veoveo_hub::mcp::discovery::_::remove_cached",
+      "veoveo_hub::mcp::discovery::_::discard_key"
+    ],
+    "include_count": 18,
+    "explicit_opaque_count": 0,
+    "own_gate": "All five roots, two FnOnce bodies, four key derive methods and actual SDK TTL initializer transparent/error-free. No own opaque transition accepted.",
+    "not_covered": {
+      "operation": "veoveo_hub::mcp::discovery::_::discard_server",
+      "status": "explicitly unsupported/open; excluded only from this intermediate graph, not from the full six-operation/history goal",
+      "reason": "Unchanged six-root generated FnOnce/FnMut dictionaries fail Lean elaboration when retain passes mutable values; diagnostic2 reports six type mismatches. No tool patch or opaque own transition accepted."
+    },
+    "accepted_raw4_sha256": {
+      "Funs.lean": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+      "FunsExternal_Template.lean": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7",
+      "Types.lean": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+      "TypesExternal_Template.lean": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71"
+    }
+  },
+  "fresh_build_requirement": {
+    "status": "Both required mutant packages and both restored baselines measured; no old own build/proof artifacts reused.",
+    "own_package_modules": 13,
+    "rule": "Separate new source/build directories per case and phase; no own model/proof OLean, Lake output, or companion artifact copied from the accepted or other mutant graph. Only qualified external dependency packages reused.",
+    "model_command": "LAKE_NO_UPDATE=1 lake build HubDiscoveryCacheState",
+    "proof_order": [
+      "CacheKeyFrameProof",
+      "CacheStartSpecification",
+      "CacheStartProof",
+      "CacheCompleteSpecification",
+      "CacheCompleteProof",
+      "CacheKeyOrderProof",
+      "CacheMapInvariantProof",
+      "CacheStateInvariantProof",
+      "CacheHistoryProof"
+    ],
+    "proof_command": "LAKE_NO_UPDATE=1 lake env lean <leaf>.lean -o .lake/build/lib/lean/<leaf>.olean",
+    "stop_rule": "A model/interface/setup failure is not semantic evidence. Stop at the first intended unchanged theorem rejection; inspect the exact residual and failed-target OLean absence.",
+    "restored_rule": "Reverse same Rust patch in same source tree; exact original 1083-file map and accepted raw4 must restore without normalization, then build all 13 own modules fresh."
+  },
+  "controls": [
+    {
+      "name": "generation-clear",
+      "status": "qualified: native wrong behavior, intended fresh formal rejection, exact source/raw restoration and fresh baseline proof checks reviewed",
+      "qualified": true,
+      "patch": {
+        "path": "../mutations/generation-clear.patch",
+        "sha256": "aea9a20fdb907efb9ec1a3e9c09da2b60303516daada06a93b294f40fbae8d17",
+        "bytes": 348
+      },
+      "mutant_discovery_rs_sha256": "2d000669657699f75f068d2f89b8fa45d5f58d086219f31689929cd5f507407c",
+      "native": {
+        "status": "reviewed expected assertion failure, then restored pass",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/native-evidence/summary.json",
+          "sha256": "28e36a7dc52e7272a0a166a6baf7f04161c6ab77d94515ea23ea7e1af8328243",
+          "bytes": 4905
+        },
+        "source_file_count": 1083,
+        "mutant_full_map_sha256": "f671c4cb4de94fc4b637eed9f447d62a8a3f9071f4c7515bc04654ec3ec498a7",
+        "restored_full_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee",
+        "source_exactly_restored": true,
+        "assertion": "discovery.rs:866: old key(1,\"one\") catalog items must be absent; mutation leaves stale cached payload visible",
+        "observed_tests": {
+          "mutant": {
+            "passed": 0,
+            "failed": 1
+          },
+          "restored": {
+            "passed": 1,
+            "failed": 0
+          }
+        },
+        "later_test_assertions": "Execution aborts at the first old-cache assertion; later replacement-completion assertions are not claimed as measured mutant observations.",
+        "warning": null,
+        "commands": [
+          {
+            "stage": "mutant-native-regression",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/native-source/Cargo.toml",
+              "--lib",
+              "mcp::discovery::tests::discovery_is_coalesced_and_catalog_generation_is_monotonic",
+              "--",
+              "--exact",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/native-source",
+            "exit_status": 101,
+            "elapsed_ms": 33092,
+            "timed_out": false,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/native-evidence/logs/mutant-native-regression.log",
+              "sha256": "a00a548e92825b8c16c3d5bce63c46c83d91230dbbaf555948d5e057dd5b3bd9",
+              "bytes": 1068
+            },
+            "executed_binary": {
+              "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+              "sha256": "34f5e2620054c97503d8f0d0583b89133a5af1a8f811f87bdd88b2a36df078d1",
+              "bytes": 168127912
+            }
+          },
+          {
+            "stage": "restored-native-regression",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/native-source/Cargo.toml",
+              "--lib",
+              "mcp::discovery::tests::discovery_is_coalesced_and_catalog_generation_is_monotonic",
+              "--",
+              "--exact",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/native-source",
+            "exit_status": 0,
+            "elapsed_ms": 10829,
+            "timed_out": false,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/native-evidence/logs/restored-native-regression.log",
+              "sha256": "9f75afa612763f29b21d96f4f4b4ae798b794302b935f8127c1228afaf641a2a",
+              "bytes": 560
+            },
+            "executed_binary": {
+              "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+              "sha256": "e773ffef48be2eff3c4b7869964bea304be6db6ba28be1b38cc3b4fa8e9f5832",
+              "bytes": 168128168
+            }
+          }
+        ]
+      },
+      "frozen_packets": {
+        "control.json": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/control.json",
+          "sha256": "e568a620a4a0dd20e6d65910720e097c2d75387ed000930e5a20f326b5187db0",
+          "bytes": 768
+        },
+        "run-native.py": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/run-native.py",
+          "sha256": "1d3f8207f79205c3dacc6a59f316f3ca18d3e15c13bf45d79540bd5cc73fbadb",
+          "bytes": 5122
+        },
+        "extraction-plan.json": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/extraction-plan.json",
+          "sha256": "abec851ca4d5bbdd920dd54a4d558ecf9015221d6d63c2ea32917236817f14b8",
+          "bytes": 18940
+        },
+        "run-extraction.py": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/run-extraction.py",
+          "sha256": "68dfe01a6df1b477b4098924f7795db7cb6da6dc63e65a3c67809b2c60ba981f",
+          "bytes": 25981
+        },
+        "run-lean.py": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/run-lean.py",
+          "sha256": "81b1a28c34c270b3b680cc278c62b95262876f5207cb5f2b0081ad79966e9463",
+          "bytes": 6633
+        }
+      },
+      "mutant_extraction": {
+        "status": "root-reviewed raw delta and transparent/error-free five-root inventory",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-extraction/summary.json",
+          "sha256": "4a000fc2d51348d74815ef63ef79477184fdd7252ad5e1667f3ad916dd72bbcc",
+          "bytes": 157501
+        },
+        "inventory": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-extraction/llbc-inventory.json",
+          "sha256": "fce4080a7bda73f3e545b76f49a7ccc2f89bb3f485615f32efb9bfbb5153e3e0",
+          "bytes": 834181
+        },
+        "llbc": {
+          "sha256": "222eb223df49672eaa2d1ecc9b92bc7267eaa380b32694485071b76bd072b870",
+          "bytes": 1229048,
+          "has_errors": false,
+          "inventory_gate_pass": true
+        },
+        "source_map": {
+          "full_map_verified": true,
+          "mutant_sha256": "2d000669657699f75f068d2f89b8fa45d5f58d086219f31689929cd5f507407c",
+          "original_sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+          "patch_sha256": "aea9a20fdb907efb9ec1a3e9c09da2b60303516daada06a93b294f40fbae8d17",
+          "same_tree_source": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/source",
+          "source_file": "crates/veoveo-hub/src/mcp/discovery.rs",
+          "source_map_file": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-extraction/source-map.json",
+          "source_map_file_sha256": "df29da25c28e35075f887bf0778cbfe4300336a511ee61dbfe595c73a29020f3",
+          "source_map_sha256": "f671c4cb4de94fc4b637eed9f447d62a8a3f9071f4c7515bc04654ec3ec498a7"
+        },
+        "raw4": {
+          "Funs.lean": {
+            "accepted_sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+            "byte_identical": false,
+            "bytes": 32821,
+            "diff_sha256": "0635d70632038fd7990b9b763fc89fffb0349ff6c2bf0c7b227d4fd918576bfa",
+            "sha256": "8a97a5d444c19496c6bd0cf8b7dbaaa614b891938232eebe3fc07565eb004d8c"
+          },
+          "FunsExternal_Template.lean": {
+            "accepted_sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7",
+            "byte_identical": true,
+            "bytes": 16286,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7"
+          },
+          "Types.lean": {
+            "accepted_sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+            "byte_identical": false,
+            "bytes": 3732,
+            "diff_sha256": "40d7b2f2da0e1c2957c91400ea13e673ac5c3e1c6ba1a2950f7ecc365867eb40",
+            "sha256": "784d262eec2bd06c2b28be9bd25c23cd3e13f88afd413b65c6f0762b8d53f36c"
+          },
+          "TypesExternal_Template.lean": {
+            "accepted_sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71",
+            "byte_identical": true,
+            "bytes": 2623,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71"
+          }
+        },
+        "stages": [
+          {
+            "stage": "charon-five-state-roots",
+            "exit_status": 0,
+            "elapsed_ms": 29719,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-extraction/logs/charon-five-state-roots.log",
+              "sha256": "bfac3121e92fcf02f2ba4ddb5f4e730411e7ed590d1c9f201198e853e36d8dd8",
+              "bytes": 4848
+            }
+          },
+          {
+            "stage": "aeneas-five-state-translation",
+            "exit_status": 0,
+            "elapsed_ms": 1066,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-extraction/logs/aeneas-five-state-translation.log",
+              "sha256": "6f973db2424a89adfa99fda6406b09824a458bc839f9e0e32889f04d96ec7fde",
+              "bytes": 3611
+            }
+          }
+        ]
+      },
+      "mutant_lean": {
+        "status": "root-reviewed intended semantic rejection; model and prerequisites compiled",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-lean/evidence/summary.json",
+          "sha256": "d80521db21c27ddc0a531e4f10394b9b78bbdf2e6712d51ce2d0e3108fbce33b",
+          "bytes": 14392
+        },
+        "initial_own_build_artifacts": {},
+        "failed_target_olean_absent": true,
+        "stopped_at": "CacheStartProof",
+        "stages": [
+          {
+            "stage": "model-build",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "build",
+              "HubDiscoveryCacheState"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 9791,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-lean/evidence/model-build.log",
+              "sha256": "385c99d9b1df321bebfe6b9092327fee9218f5c48d903a0acfb97093b8a1d717",
+              "bytes": 288
+            }
+          },
+          {
+            "stage": "CacheKeyFrameProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheKeyFrameProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheKeyFrameProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2827,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-lean/evidence/CacheKeyFrameProof.log",
+              "sha256": "75c05b947e0db53c991746a8244abc9405dcb6fab4d628f415923900551bbc97",
+              "bytes": 6200
+            }
+          },
+          {
+            "stage": "CacheStartSpecification",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheStartSpecification.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheStartSpecification.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2582,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-lean/evidence/CacheStartSpecification.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "stage": "CacheStartProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheStartProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheStartProof.olean"
+            ],
+            "exit_status": 1,
+            "elapsed_ms": 2926,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-lean/evidence/CacheStartProof.log",
+              "sha256": "b3a2f97bd03f29949590c88ff109c46738670468c98f1c479dbeb901c880454a",
+              "bytes": 11799
+            }
+          }
+        ],
+        "fresh_own_oleans": {
+          "CacheKeyFrameProof.olean": {
+            "sha256": "77db850a6d78475196f50a3195f152020f86b77b150d9d9c77e7a627ce150373",
+            "bytes": 768784
+          },
+          "CacheStartSpecification.olean": {
+            "sha256": "aa169ffbaf86796dae3fb8f02d1bcb06513f3b2f98a309c36cf5280f749e75fa",
+            "bytes": 88264
+          },
+          "HubDiscoveryCacheState/Funs.olean": {
+            "sha256": "cfb2b2f1fb35faaef8137cda8e678426846d3f6e59693708e42272db258332d0",
+            "bytes": 147808
+          },
+          "HubDiscoveryCacheState/FunsExternal.olean": {
+            "sha256": "c140900881b346ea7e53118cfe0f33932213a4967365e0912c2aed0bdebe48a2",
+            "bytes": 204136
+          },
+          "HubDiscoveryCacheState/Types.olean": {
+            "sha256": "bd1ce21f5f34ebed89ec64b8378582ee615497285596a7af8c627193b450f2ca",
+            "bytes": 164024
+          },
+          "HubDiscoveryCacheState/TypesExternal.olean": {
+            "sha256": "522d8676ab09ec4f3bfaa72b29c5c0676d09d0d62f2d24305129c7412850c1ab",
+            "bytes": 111560
+          }
+        },
+        "input_before": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-lean/evidence/inputs-before.json",
+          "sha256": "2539144d58486eae42c9fe25b613c9266a482d99daf65daf7252d2a416c12e4d",
+          "bytes": 1687
+        },
+        "input_after": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/mutant-lean/evidence/inputs-after-CacheStartProof.json",
+          "sha256": "2539144d58486eae42c9fe25b613c9266a482d99daf65daf7252d2a416c12e4d",
+          "bytes": 1687
+        },
+        "semantic_review": "Unchanged start_exact residual explicitly retains old state.in_flight/inserts into the prior map instead of the specified newer-generation reset/singleton. No missing-name/type mismatch. Subsequent executable audit rejects cascading sorryAx; no failed theorem/OLean accepted."
+      },
+      "restored_extraction": {
+        "status": "root-reviewed exact original full source map and byte-identical accepted raw4 restored",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-extraction/summary.json",
+          "sha256": "9f857c8e7ff554b48d2dffb091a038b2a3a087cbddb61dd488f43c13b1f2773c",
+          "bytes": 157563
+        },
+        "inventory": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-extraction/llbc-inventory.json",
+          "sha256": "4e25cc4b8ef0d1ff0e82418453da52b86b0e68a2fc640d6a7b66e9af31c9de24",
+          "bytes": 834186
+        },
+        "llbc": {
+          "sha256": "f6e38b81a1752b347ff1d867a5181bebe5255f9017adacb4f1c0741e4e0ed95a",
+          "bytes": 1234122,
+          "has_errors": false,
+          "inventory_gate_pass": true
+        },
+        "source_map": {
+          "full_map_verified": true,
+          "mutant_sha256": "2d000669657699f75f068d2f89b8fa45d5f58d086219f31689929cd5f507407c",
+          "original_sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+          "patch_sha256": "aea9a20fdb907efb9ec1a3e9c09da2b60303516daada06a93b294f40fbae8d17",
+          "same_tree_source": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/source",
+          "source_file": "crates/veoveo-hub/src/mcp/discovery.rs",
+          "source_map_file": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-extraction/source-map.json",
+          "source_map_file_sha256": "bc040a5a88bbec5b5540b1d9c7a4d4c46048f2044bdb9d742921f72bcc13e10c",
+          "source_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee"
+        },
+        "raw4": {
+          "Funs.lean": {
+            "accepted_sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+            "byte_identical": true,
+            "bytes": 33054,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706"
+          },
+          "FunsExternal_Template.lean": {
+            "accepted_sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7",
+            "byte_identical": true,
+            "bytes": 16286,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7"
+          },
+          "Types.lean": {
+            "accepted_sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+            "byte_identical": true,
+            "bytes": 3732,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3"
+          },
+          "TypesExternal_Template.lean": {
+            "accepted_sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71",
+            "byte_identical": true,
+            "bytes": 2623,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71"
+          }
+        },
+        "stages": [
+          {
+            "stage": "charon-five-state-roots",
+            "exit_status": 0,
+            "elapsed_ms": 28617,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-extraction/logs/charon-five-state-roots.log",
+              "sha256": "90a6d32a964e286362bfc34e6752d3afb250c58e9f1681211b8d28f956a52284",
+              "bytes": 4848
+            }
+          },
+          {
+            "stage": "aeneas-five-state-translation",
+            "exit_status": 0,
+            "elapsed_ms": 1117,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-extraction/logs/aeneas-five-state-translation.log",
+              "sha256": "87a9a15da966988c769a89a8df629b825ba4863434f75a05b7a944632b249f60",
+              "bytes": 3623
+            }
+          }
+        ]
+      },
+      "restored_lean": {
+        "status": "root-reviewed all 10 stages pass; four model modules and nine unchanged proof leaves rebuilt fresh",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/summary.json",
+          "sha256": "748b30b4800536fc6bf305fca2cd23cee6a8fd354a845dc751f0723ec5e9feb3",
+          "bytes": 20088
+        },
+        "initial_own_build_artifacts": {},
+        "stages": [
+          {
+            "stage": "model-build",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "build",
+              "HubDiscoveryCacheState"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 9448,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/model-build.log",
+              "sha256": "1b23e8fab29d84e196508cf595c11126c27f73a36af9fd0400f87cbcb8fee741",
+              "bytes": 288
+            }
+          },
+          {
+            "stage": "CacheKeyFrameProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheKeyFrameProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheKeyFrameProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2932,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/CacheKeyFrameProof.log",
+              "sha256": "75c05b947e0db53c991746a8244abc9405dcb6fab4d628f415923900551bbc97",
+              "bytes": 6200
+            }
+          },
+          {
+            "stage": "CacheStartSpecification",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheStartSpecification.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheStartSpecification.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2528,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/CacheStartSpecification.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "stage": "CacheStartProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheStartProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheStartProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 3082,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/CacheStartProof.log",
+              "sha256": "3dadac163feadf60968abfc79c68c2796c40b0d73cfaa80912064180388cd8e0",
+              "bytes": 7578
+            }
+          },
+          {
+            "stage": "CacheCompleteSpecification",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheCompleteSpecification.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheCompleteSpecification.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2679,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/CacheCompleteSpecification.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "stage": "CacheCompleteProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheCompleteProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheCompleteProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2980,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/CacheCompleteProof.log",
+              "sha256": "7711c9cf70a63ff97819042e89782f7281d5f5dce0411393aa78eab257abbb03",
+              "bytes": 7411
+            }
+          },
+          {
+            "stage": "CacheKeyOrderProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheKeyOrderProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheKeyOrderProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2631,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/CacheKeyOrderProof.log",
+              "sha256": "12b2d6f1f6680bc3708216448cf0502fb07315f4270f189921bc1f1e0e690ae5",
+              "bytes": 384
+            }
+          },
+          {
+            "stage": "CacheMapInvariantProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheMapInvariantProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheMapInvariantProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2783,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/CacheMapInvariantProof.log",
+              "sha256": "28b127e6022737b3fab862072cde1d9b758f6224e6085978d6a5ef33c9bd7a2f",
+              "bytes": 2661
+            }
+          },
+          {
+            "stage": "CacheStateInvariantProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheStateInvariantProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheStateInvariantProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2629,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/CacheStateInvariantProof.log",
+              "sha256": "b6ce5e8a324bb9fe9f9a916633a0ebea3542224aea74ead039740639ae59c138",
+              "bytes": 1610
+            }
+          },
+          {
+            "stage": "CacheHistoryProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheHistoryProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheHistoryProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2929,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/CacheHistoryProof.log",
+              "sha256": "8e12d74b50b88472044f3b86925690f7ee120da4fc182845e30e3c0a340be25a",
+              "bytes": 1436
+            }
+          }
+        ],
+        "fresh_own_oleans": {
+          "CacheCompleteProof.olean": {
+            "sha256": "6c464fa5adb5c10fab046ede0dab0be8fb36b7351aaaf1a950fdac1328775ebc",
+            "bytes": 662280
+          },
+          "CacheCompleteSpecification.olean": {
+            "sha256": "4d7df8b6d293d04fcd7599eec11f6c848ae191865388e19bacb5935969c2c530",
+            "bytes": 58264
+          },
+          "CacheHistoryProof.olean": {
+            "sha256": "174e90daf949c70e1794899ea3d3f5dce882e0c1149acc5ae4e0ac947556b45e",
+            "bytes": 589072
+          },
+          "CacheKeyFrameProof.olean": {
+            "sha256": "77db850a6d78475196f50a3195f152020f86b77b150d9d9c77e7a627ce150373",
+            "bytes": 768784
+          },
+          "CacheKeyOrderProof.olean": {
+            "sha256": "99c1b330a28ab1e2c70c1d34a035970eaf2df67c3f011f250dbddc4c8bc15038",
+            "bytes": 97360
+          },
+          "CacheMapInvariantProof.olean": {
+            "sha256": "04d441d950a8c35fc2e5e3c51579611863a5bdd332fb0cc2d30de02f99e294c2",
+            "bytes": 364144
+          },
+          "CacheStartProof.olean": {
+            "sha256": "62b5c9716d4897b657caf894cbfd598d2d77b9b26b64f9b7f8ca76f532a25054",
+            "bytes": 901152
+          },
+          "CacheStartSpecification.olean": {
+            "sha256": "aa169ffbaf86796dae3fb8f02d1bcb06513f3b2f98a309c36cf5280f749e75fa",
+            "bytes": 88264
+          },
+          "CacheStateInvariantProof.olean": {
+            "sha256": "6d08d94c6468d5186026264ca120947c9acf9e2f2d0cfad9685075e72d0fcc13",
+            "bytes": 367544
+          },
+          "HubDiscoveryCacheState/Funs.olean": {
+            "sha256": "5103c96c1bd01941f979584991d67fa9c7d401ff2c4eaae1ba37be92dd73b473",
+            "bytes": 148384
+          },
+          "HubDiscoveryCacheState/FunsExternal.olean": {
+            "sha256": "21149e983f16850da83b2c12e8bb90edc512253781f2ee84e560be8534cd2875",
+            "bytes": 204136
+          },
+          "HubDiscoveryCacheState/Types.olean": {
+            "sha256": "c098140161ed3ff5f1c629b9067202999c6929e97ea4dce3b88804800aeb7e32",
+            "bytes": 164024
+          },
+          "HubDiscoveryCacheState/TypesExternal.olean": {
+            "sha256": "7c9c3439febbae016784e07fad01b1fb69b4fdf66167bef44a894f908a381f32",
+            "bytes": 111560
+          }
+        },
+        "input_before": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/inputs-before.json",
+          "sha256": "a8c9658a1a3b41c90d5e9a2c65ba1b15c6d1a87958d7dbcfbd2547215118029b",
+          "bytes": 1687
+        },
+        "input_after": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/generation-clear/restored-lean/evidence/inputs-after-CacheHistoryProof.json",
+          "sha256": "a8c9658a1a3b41c90d5e9a2c65ba1b15c6d1a87958d7dbcfbd2547215118029b",
+          "bytes": 1687
+        },
+        "all_nine_proof_olean_hashes_equal_prior_accepted": true,
+        "four_model_olean_identity": "Fresh measured hashes/byte sizes differ from earlier accepted model OLeans; no claim that all13 binaries are byte-identical. Raw4 sources are exactly restored.",
+        "accepted_complete_state_history_logs_byte_identical": true,
+        "audit_review": "Root inspected all logs: no compiler errors or sorryAx; existing exact Instant.add boundary unchanged."
+      },
+      "qualification_role": "required control candidate"
+    },
+    {
+      "name": "ticket-presence",
+      "status": "native negative control and native/source/raw restoration reviewed; superseded formal candidate because generated interface dictionaries were pruned; no formal run",
+      "qualified": false,
+      "patch": {
+        "path": "../mutations/ticket-presence.patch",
+        "sha256": "d537318ab4676fbd9e9b3bb3c62686e7e48a17d60ac117f76febbc985d91c3af",
+        "bytes": 367
+      },
+      "mutant_discovery_rs_sha256": "f5f1110ae1ad8b03f3896f5517097b2c9565352ad87d0307eebf20dfb2ddccd2",
+      "native": {
+        "status": "reviewed expected assertion failure, then restored pass",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/native-evidence/summary.json",
+          "sha256": "9a4c94c8e25be2561aac642b2701537533a17994494b9bc540a7604ec0290dc1",
+          "bytes": 4936
+        },
+        "source_file_count": 1083,
+        "mutant_full_map_sha256": "1c5515adbeff7b99ba7265a0cfcf46fad5f44aed8f4c022b575e6b56c17eacf2",
+        "restored_full_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee",
+        "source_exactly_restored": true,
+        "assertion": "discovery.rs:912: old key(1,\"one\") catalog items must be absent; mutation leaves stale cached payload visible",
+        "observed_tests": {
+          "mutant": {
+            "passed": 0,
+            "failed": 1
+          },
+          "restored": {
+            "passed": 1,
+            "failed": 0
+          }
+        },
+        "later_test_assertions": "Execution aborts at the first old-cache assertion; later replacement-completion assertions are not claimed as measured mutant observations.",
+        "warning": "Ticket-presence intentionally leaves request unread; its dead-code warning is not a compilation failure.",
+        "commands": [
+          {
+            "stage": "mutant-native-regression",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/native-source/Cargo.toml",
+              "--lib",
+              "mcp::discovery::tests::invalidated_in_flight_response_cannot_replace_new_contents_or_finish_new_request",
+              "--",
+              "--exact",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/native-source",
+            "exit_status": 101,
+            "elapsed_ms": 31525,
+            "timed_out": false,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/native-evidence/logs/mutant-native-regression.log",
+              "sha256": "c304b62966862fa15f0dc1d32dcd6643590304d7f050aa07bdcae742d458c6cc",
+              "bytes": 1677
+            },
+            "executed_binary": {
+              "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+              "sha256": "d475a123cc3ac2be2890ba8b35f94f626f4f7210453cfa1c07b60f72a72c0ee3",
+              "bytes": 168127400
+            }
+          },
+          {
+            "stage": "restored-native-regression",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/native-source/Cargo.toml",
+              "--lib",
+              "mcp::discovery::tests::invalidated_in_flight_response_cannot_replace_new_contents_or_finish_new_request",
+              "--",
+              "--exact",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/native-source",
+            "exit_status": 0,
+            "elapsed_ms": 12078,
+            "timed_out": false,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/native-evidence/logs/restored-native-regression.log",
+              "sha256": "f204ad03cd4e5056f158b175643e1e062fc7355bad4e1c08f31359e5be459167",
+              "bytes": 582
+            },
+            "executed_binary": {
+              "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+              "sha256": "0393c0bb230d324994dd01130d70b3380b6829ba3b7d5a4abe619b810e893ffd",
+              "bytes": 168127912
+            }
+          }
+        ]
+      },
+      "frozen_packets": {
+        "control.json": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/control.json",
+          "sha256": "331af31ea3699c2cda201869d479ed308728330338a6acd5092fd29cc9ea8594",
+          "bytes": 879
+        },
+        "run-native.py": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/run-native.py",
+          "sha256": "2cc25826c2af3f8181f7a366648fc436d91742befe5249b1003e25a2adc8ba85",
+          "bytes": 5121
+        },
+        "extraction-plan.json": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/extraction-plan.json",
+          "sha256": "d3a45a8bc7c53766592a7cce0a8ab3e415465b190b735e27840850dc1158ec18",
+          "bytes": 19041
+        },
+        "run-extraction.py": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/run-extraction.py",
+          "sha256": "35a9b86b6575af7c177fbbf7ed1c9dfc2b724d30ff19366e720182254a802633",
+          "bytes": 25980
+        },
+        "run-lean.py": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/run-lean.py",
+          "sha256": "757523118769e58aa99037917f6837db51c3d1ca52103adf1f3de3778b023c4b",
+          "bytes": 6632
+        }
+      },
+      "mutant_extraction": {
+        "status": "source-reviewed interface-pruning diagnostic; not formal semantic qualification",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/mutant-extraction/summary.json",
+          "sha256": "bcd4bdffe4cc061102f73fe71a722c68be3c9ba4ec1cba624bf0222b9eb4a078",
+          "bytes": 157473
+        },
+        "raw4": {
+          "Funs.lean": {
+            "accepted_sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+            "byte_identical": false,
+            "bytes": 31523,
+            "diff_sha256": "bd728e25d6b94d5975fcb454e4b09bdba8a542a2b1b00aaecad2bb21c995ec6c",
+            "sha256": "00ae549bae2ccdd7d2e1f11ff4815c28b1abab5b93a67a4df6cbae3ce38ed32a"
+          },
+          "FunsExternal_Template.lean": {
+            "accepted_sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7",
+            "byte_identical": false,
+            "bytes": 15255,
+            "diff_sha256": "cd36913e878afe8b301a874cc973dfd2e60db321c3a319cfb367f0319f068dca",
+            "sha256": "1cac776f199ee9d504a73301ce123f19923384d54fe88682e3b13c824aa27a61"
+          },
+          "Types.lean": {
+            "accepted_sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+            "byte_identical": true,
+            "bytes": 3732,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3"
+          },
+          "TypesExternal_Template.lean": {
+            "accepted_sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71",
+            "byte_identical": true,
+            "bytes": 2623,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71"
+          }
+        },
+        "source_review": "Generated Option.CoreCmpPartialEqOption and Uuid.CoreCmpPartialEqUuid dictionaries disappear; unchanged CacheCompleteProof.ticket_guard_exact references them. Missing-name failure would be interface evidence, not semantic rejection."
+      },
+      "mutant_lean": {
+        "status": "not run; candidate rejected before Lean at source review",
+        "expected_first_proof_failure": "CacheCompleteProof.lean",
+        "measured": null,
+        "semantic_review": "No theorem rejection claimed. No generated/proof adapter edited to conceal the missing dictionaries."
+      },
+      "restored_extraction": {
+        "status": "root-reviewed exact original full source map and byte-identical accepted raw4 restored",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/restored-extraction/summary.json",
+          "sha256": "b45047fab7265d4f0f1396539e37abb248d2e5dfe9ba48626d7bf696dbd4bb95",
+          "bytes": 157535
+        },
+        "inventory": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/restored-extraction/llbc-inventory.json",
+          "sha256": "9e8c1e8c27984cb819a475e55a42a3a1b477839effecf47429ee8d2c97aa5c84",
+          "bytes": 834185
+        },
+        "llbc": {
+          "sha256": "1c4c707cf5a6ff247605644442a621ce2f6e9039c73968ad212b9c720e88f6db",
+          "bytes": 1234121,
+          "has_errors": false,
+          "inventory_gate_pass": true
+        },
+        "source_map": {
+          "full_map_verified": true,
+          "mutant_sha256": "f5f1110ae1ad8b03f3896f5517097b2c9565352ad87d0307eebf20dfb2ddccd2",
+          "original_sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+          "patch_sha256": "d537318ab4676fbd9e9b3bb3c62686e7e48a17d60ac117f76febbc985d91c3af",
+          "same_tree_source": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/source",
+          "source_file": "crates/veoveo-hub/src/mcp/discovery.rs",
+          "source_map_file": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/restored-extraction/source-map.json",
+          "source_map_file_sha256": "bc040a5a88bbec5b5540b1d9c7a4d4c46048f2044bdb9d742921f72bcc13e10c",
+          "source_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee"
+        },
+        "raw4": {
+          "Funs.lean": {
+            "accepted_sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+            "byte_identical": true,
+            "bytes": 33054,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706"
+          },
+          "FunsExternal_Template.lean": {
+            "accepted_sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7",
+            "byte_identical": true,
+            "bytes": 16286,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7"
+          },
+          "Types.lean": {
+            "accepted_sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+            "byte_identical": true,
+            "bytes": 3732,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3"
+          },
+          "TypesExternal_Template.lean": {
+            "accepted_sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71",
+            "byte_identical": true,
+            "bytes": 2623,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71"
+          }
+        },
+        "stages": [
+          {
+            "stage": "charon-five-state-roots",
+            "exit_status": 0,
+            "elapsed_ms": 28770,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/restored-extraction/logs/charon-five-state-roots.log",
+              "sha256": "31f889b4e3a95655aa4cccb965f83292d8d2694af6896252d5cfec2f77b4e054",
+              "bytes": 4847
+            }
+          },
+          {
+            "stage": "aeneas-five-state-translation",
+            "exit_status": 0,
+            "elapsed_ms": 1067,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-presence/restored-extraction/logs/aeneas-five-state-translation.log",
+              "sha256": "07e82afb3a4f1c90a2b2398621a81955f3bc84f206a05593d4918a52cbf3db87",
+              "bytes": 3701
+            }
+          }
+        ]
+      },
+      "restored_lean": {
+        "status": "deliberately skipped; source-reviewed unsuitable formal candidate, no Lean result claimed",
+        "measured": null
+      },
+      "qualification_role": "superseded formal candidate; native result and interface-pruning diagnostic retained"
+    },
+    {
+      "name": "ticket-equality-retained",
+      "status": "qualified: native wrong behavior, intended fresh formal rejection, exact source/raw restoration and fresh baseline proof checks reviewed",
+      "qualified": true,
+      "purpose": "Retain the original equality dependency while also requiring key absence for refusal, so a wrong present ticket is still accepted.",
+      "patch": {
+        "path": "../mutations/ticket-equality-retained.patch",
+        "sha256": "5f61c3214227c6622e5333adff39e402c9ec23b8492c349cf6c718484169b827",
+        "bytes": 447
+      },
+      "mutant_discovery_rs_sha256": "04d77b2f82c79890ed2273ce2b724e9d13e00dc23df40b2d3e1d7186db1b7eea",
+      "native": {
+        "status": "root-reviewed intended assertion failure then restored pass",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/native-evidence/summary.json",
+          "sha256": "266cdfa9ef78868dfbcf76901c15adc3d02c6cbf54f0b9720a1bed5a3ab5fc2b",
+          "bytes": 5061
+        },
+        "source_file_count": 1083,
+        "mutant_full_map_sha256": "41a2d70240839f443247d8e70346e6848d32dc9727d2c1e8eb6e6d1ae8f30e64",
+        "restored_full_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee",
+        "source_exactly_restored": true,
+        "assertion": "discovery.rs:914: old key(1,\"one\") catalog items must be absent; mutated guard accepts the wrong present ticket",
+        "observed_tests": {
+          "mutant": {
+            "passed": 0,
+            "failed": 1
+          },
+          "restored": {
+            "passed": 1,
+            "failed": 0
+          }
+        },
+        "later_test_assertions": "Mutant aborts at first old-cache absence assertion; later replacement assertions not claimed as observed.",
+        "commands": [
+          {
+            "stage": "mutant-native-regression",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/native-source/Cargo.toml",
+              "--lib",
+              "mcp::discovery::tests::invalidated_in_flight_response_cannot_replace_new_contents_or_finish_new_request",
+              "--",
+              "--exact",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/native-source",
+            "exit_status": 101,
+            "elapsed_ms": 31325,
+            "timed_out": false,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/native-evidence/logs/mutant-native-regression.log",
+              "sha256": "bbe6a736a62ea2b94bdf4bceeba0aa72ebf72f11388dbc3d75e6a24262b75873",
+              "bytes": 1142
+            },
+            "executed_binary": {
+              "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+              "sha256": "227d132eb6aeafe858699c575a0aeab41514e895342da6159a47cf8e95966146",
+              "bytes": 168130248
+            }
+          },
+          {
+            "stage": "restored-native-regression",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/native-source/Cargo.toml",
+              "--lib",
+              "mcp::discovery::tests::invalidated_in_flight_response_cannot_replace_new_contents_or_finish_new_request",
+              "--",
+              "--exact",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/native-source",
+            "exit_status": 0,
+            "elapsed_ms": 9995,
+            "timed_out": false,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/native-evidence/logs/restored-native-regression.log",
+              "sha256": "d78cae864ea6c49ba33753ce3ed25e03f3077ca2a6598d2059749b03b2ec9695",
+              "bytes": 590
+            },
+            "executed_binary": {
+              "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+              "sha256": "f73d3a545399455c7ee86668792d2822175ab9b3e8666b0ac19b35249a27baac",
+              "bytes": 168130248
+            }
+          }
+        ]
+      },
+      "frozen_packets": {
+        "control.json": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/control.json",
+          "sha256": "2c1b137d4204e270c0d39bd540d2b14a8031a19453a4754b8a22478dd87a702b",
+          "bytes": 1228
+        },
+        "run-native.py": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/run-native.py",
+          "sha256": "ea8e6a173c9012f4df4d99a7e6ec2e7226fc0d28a1ca5b1f3495531631367c5a",
+          "bytes": 5130
+        },
+        "extraction-plan.json": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/extraction-plan.json",
+          "sha256": "15652e0db552f3b1bc59a9cd9c138681fc1fd89c339aed9e8b102a767d20d1ef",
+          "bytes": 19482
+        },
+        "run-extraction.py": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/run-extraction.py",
+          "sha256": "4993530cac8062ba42c00794f369adb9546a834d1f265dce33c24ce1b49d0c3f",
+          "bytes": 25989
+        },
+        "run-lean.py": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/run-lean.py",
+          "sha256": "d4eed996eedee2c6fb614d7af3ebea099c7533b600c47fd6ac1a5bad21abb5e3",
+          "bytes": 6641
+        }
+      },
+      "mutant_extraction": {
+        "status": "root-reviewed suitable interface-preserving raw delta; equality dictionaries retained and templates unchanged",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-extraction/summary.json",
+          "sha256": "ef8ad279f4c337857942937f5c8bc33b2da553e7f45c0287f4ad1f7b4f5d842e",
+          "bytes": 157725
+        },
+        "inventory": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-extraction/llbc-inventory.json",
+          "sha256": "1fec4b9bcea47a61fbde1153ad5cd17a06823e51078a866570cff74d49a1002d",
+          "bytes": 834192
+        },
+        "llbc": {
+          "sha256": "9e344f98c4930efef54251b06d2298c7283cf3fc0151d7a1dcfaf498b2a52e1e",
+          "bytes": 1240750,
+          "has_errors": false,
+          "inventory_gate_pass": true
+        },
+        "source_map": {
+          "full_map_verified": true,
+          "mutant_sha256": "04d77b2f82c79890ed2273ce2b724e9d13e00dc23df40b2d3e1d7186db1b7eea",
+          "original_sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+          "patch_sha256": "5f61c3214227c6622e5333adff39e402c9ec23b8492c349cf6c718484169b827",
+          "same_tree_source": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/source",
+          "source_file": "crates/veoveo-hub/src/mcp/discovery.rs",
+          "source_map_file": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-extraction/source-map.json",
+          "source_map_file_sha256": "da8c518c6c1368df16d26251efda7a0613a45ced862fde6350e3598bfc6a2cc5",
+          "source_map_sha256": "41a2d70240839f443247d8e70346e6848d32dc9727d2c1e8eb6e6d1ae8f30e64"
+        },
+        "raw4": {
+          "Funs.lean": {
+            "accepted_sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+            "byte_identical": false,
+            "bytes": 38332,
+            "diff_sha256": "86d388988a65840743d1de48e13f3d0256872d6b016061debac3f3d7387cd5b5",
+            "sha256": "8d016118ffca3bbebb1c8c30ae0163ccc342cd38896a0e8fd4ff119858f69c84"
+          },
+          "FunsExternal_Template.lean": {
+            "accepted_sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7",
+            "byte_identical": true,
+            "bytes": 16286,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7"
+          },
+          "Types.lean": {
+            "accepted_sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+            "byte_identical": false,
+            "bytes": 3732,
+            "diff_sha256": "ab3f87df62cc75db4106a45efd3b51f0fd6ff80de2adb2ed647cacd834bae2cb",
+            "sha256": "d7ad3af611b3176888fcf1ffa2b47d07809cbf4cdb1a1c4a08dcaea12a325a2d"
+          },
+          "TypesExternal_Template.lean": {
+            "accepted_sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71",
+            "byte_identical": true,
+            "bytes": 2623,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71"
+          }
+        },
+        "stages": [
+          {
+            "stage": "charon-five-state-roots",
+            "exit_status": 0,
+            "elapsed_ms": 28217,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-extraction/logs/charon-five-state-roots.log",
+              "sha256": "bf5d3ff3dc06ada4168c52c422d4bb54d58bdf33b1338d069a27e55c8803c446",
+              "bytes": 4856
+            }
+          },
+          {
+            "stage": "aeneas-five-state-translation",
+            "exit_status": 0,
+            "elapsed_ms": 1317,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-extraction/logs/aeneas-five-state-translation.log",
+              "sha256": "6e44704339d13d2b03c9b472a78639fe7c78e7a56dac77964cdfc68a0feeed30",
+              "bytes": 3743
+            }
+          }
+        ]
+      },
+      "mutant_lean": {
+        "status": "root-reviewed intended semantic rejection after compiling fresh model/prerequisites",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-lean-remote-run1/evidence/summary.json",
+          "sha256": "db7ba10800c7c6d7607c4e9da8ba6a3eb6312281201bdf244b11d8faf232a92b",
+          "bytes": 16376
+        },
+        "initial_own_build_artifacts": {},
+        "failed_target_olean_absent": true,
+        "stopped_at": "CacheCompleteProof",
+        "stages": [
+          {
+            "stage": "model-build",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "build",
+              "HubDiscoveryCacheState"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 8841,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-lean-remote-run1/evidence/model-build.log",
+              "sha256": "085bc69117752adaf3453f499d0ea3f65d2459ba2344a1ac812e292a9a605cea",
+              "bytes": 288
+            }
+          },
+          {
+            "stage": "CacheKeyFrameProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheKeyFrameProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheKeyFrameProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2676,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-lean-remote-run1/evidence/CacheKeyFrameProof.log",
+              "sha256": "75c05b947e0db53c991746a8244abc9405dcb6fab4d628f415923900551bbc97",
+              "bytes": 6200
+            }
+          },
+          {
+            "stage": "CacheStartSpecification",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheStartSpecification.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheStartSpecification.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2630,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-lean-remote-run1/evidence/CacheStartSpecification.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "stage": "CacheStartProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheStartProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheStartProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2981,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-lean-remote-run1/evidence/CacheStartProof.log",
+              "sha256": "3dadac163feadf60968abfc79c68c2796c40b0d73cfaa80912064180388cd8e0",
+              "bytes": 7578
+            }
+          },
+          {
+            "stage": "CacheCompleteSpecification",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheCompleteSpecification.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheCompleteSpecification.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2629,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-lean-remote-run1/evidence/CacheCompleteSpecification.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "stage": "CacheCompleteProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheCompleteProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheCompleteProof.olean"
+            ],
+            "exit_status": 1,
+            "elapsed_ms": 2984,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-lean-remote-run1/evidence/CacheCompleteProof.log",
+              "sha256": "f136834eb99ffd2c94c4c403d88df37854a722cd2f143fd37ed61504d03feb45",
+              "bytes": 13043
+            }
+          }
+        ],
+        "fresh_own_oleans": {
+          "CacheCompleteSpecification.olean": {
+            "sha256": "4d7df8b6d293d04fcd7599eec11f6c848ae191865388e19bacb5935969c2c530",
+            "bytes": 58264
+          },
+          "CacheKeyFrameProof.olean": {
+            "sha256": "77db850a6d78475196f50a3195f152020f86b77b150d9d9c77e7a627ce150373",
+            "bytes": 768784
+          },
+          "CacheStartProof.olean": {
+            "sha256": "62b5c9716d4897b657caf894cbfd598d2d77b9b26b64f9b7f8ca76f532a25054",
+            "bytes": 901152
+          },
+          "CacheStartSpecification.olean": {
+            "sha256": "aa169ffbaf86796dae3fb8f02d1bcb06513f3b2f98a309c36cf5280f749e75fa",
+            "bytes": 88264
+          },
+          "HubDiscoveryCacheState/Funs.olean": {
+            "sha256": "471d6337290a8326fbc9e042ca21aa90b3c1f2511b5599f466decea969b65f14",
+            "bytes": 160432
+          },
+          "HubDiscoveryCacheState/FunsExternal.olean": {
+            "sha256": "a73f20d4a37b36e8a8dfe4f21adf38308b71fc84e2e829c795f2ed0428ce3b32",
+            "bytes": 204144
+          },
+          "HubDiscoveryCacheState/Types.olean": {
+            "sha256": "7691fbc546bf81a797f90d765e07056b2ff5dc1e056387d59b725a8aa8f68d4f",
+            "bytes": 164032
+          },
+          "HubDiscoveryCacheState/TypesExternal.olean": {
+            "sha256": "e60881b7b5c406769729414a3d549b913da9afc73df4813b60ffa1728edf657e",
+            "bytes": 111568
+          }
+        },
+        "input_before": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-lean-remote-run1/evidence/inputs-before.json",
+          "sha256": "22ea5b3375d6396b44c73f3a0d48966c757bf8b26bb8bd30e780809efbd31c5c",
+          "bytes": 1687
+        },
+        "input_after": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/mutant-lean-remote-run1/evidence/inputs-after-CacheCompleteProof.json",
+          "sha256": "22ea5b3375d6396b44c73f3a0d48966c757bf8b26bb8bd30e780809efbd31c5c",
+          "bytes": 1687
+        },
+        "semantic_review": "Unchanged complete_exact stale case expects whole-state no-op; mutant key-present path consumes ticket and can write entries/failed despite request mismatch. ticket_guard_exact remains standard-only; no missing names/type/interface failure. Cascading sorryAx from rejected declaration is caught by executable audit, and no failed target OLean is accepted."
+      },
+      "restored_extraction": {
+        "status": "root-reviewed exact original full source map and byte-identical accepted raw4 restored",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-extraction-remote-run1/restored-extraction/summary.json",
+          "sha256": "8eb45c208ee2fe8ddd33c45952dc8e48567eb6feeed3f3ba317e03dd05a89e6d",
+          "bytes": 157787
+        },
+        "inventory": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-extraction-remote-run1/restored-extraction/llbc-inventory.json",
+          "sha256": "d4d3b5b1d90480a02cb87685cbe7ef264a20d1d47edb2683fa138f8468b3af40",
+          "bytes": 834194
+        },
+        "llbc": {
+          "sha256": "7e77c8748413bba8958e6b2215e85548f6c3f84d57efc514a21aa7d60c4b9dfe",
+          "bytes": 1234130,
+          "has_errors": false,
+          "inventory_gate_pass": true
+        },
+        "source_map": {
+          "full_map_verified": true,
+          "mutant_sha256": "04d77b2f82c79890ed2273ce2b724e9d13e00dc23df40b2d3e1d7186db1b7eea",
+          "original_sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+          "patch_sha256": "5f61c3214227c6622e5333adff39e402c9ec23b8492c349cf6c718484169b827",
+          "same_tree_source": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/source",
+          "source_file": "crates/veoveo-hub/src/mcp/discovery.rs",
+          "source_map_file": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-extraction/source-map.json",
+          "source_map_file_sha256": "bc040a5a88bbec5b5540b1d9c7a4d4c46048f2044bdb9d742921f72bcc13e10c",
+          "source_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee"
+        },
+        "raw4": {
+          "Funs.lean": {
+            "accepted_sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+            "byte_identical": true,
+            "bytes": 33054,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706"
+          },
+          "FunsExternal_Template.lean": {
+            "accepted_sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7",
+            "byte_identical": true,
+            "bytes": 16286,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "213e25be362920b0f046a9433a1951c3ad9bee9b2243d6774315822310c4cde7"
+          },
+          "Types.lean": {
+            "accepted_sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+            "byte_identical": true,
+            "bytes": 3732,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3"
+          },
+          "TypesExternal_Template.lean": {
+            "accepted_sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71",
+            "byte_identical": true,
+            "bytes": 2623,
+            "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": "cb295a6e4585e6669f3189e2dd93dd35df680dfe5618e93049fbc15e14e35e71"
+          }
+        },
+        "stages": [
+          {
+            "stage": "charon-five-state-roots",
+            "exit_status": 0,
+            "elapsed_ms": 28723,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-extraction-remote-run1/restored-extraction/logs/charon-five-state-roots.log",
+              "sha256": "70d786ada3665cb3dc06ca35214ca7d8cb2e216d71aaedfc54fb47590af9dac0",
+              "bytes": 4856
+            }
+          },
+          {
+            "stage": "aeneas-five-state-translation",
+            "exit_status": 0,
+            "elapsed_ms": 1069,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-extraction-remote-run1/restored-extraction/logs/aeneas-five-state-translation.log",
+              "sha256": "bdde0e1735a258924ef32573c0313e598acbe128c011c08b0aa038843a140acb",
+              "bytes": 3755
+            }
+          }
+        ]
+      },
+      "restored_lean": {
+        "status": "root-reviewed all10 stages pass; four models and nine unchanged proof leaves rebuilt fresh",
+        "summary": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/summary.json",
+          "sha256": "45b4fd94a711db21e214e88fc677b7dc4d3519441f4a103116fd79ace281bf95",
+          "bytes": 20264
+        },
+        "initial_own_build_artifacts": {},
+        "stages": [
+          {
+            "stage": "model-build",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "build",
+              "HubDiscoveryCacheState"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 8990,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/model-build.log",
+              "sha256": "6455ee682df7b4671ef12e2353a0270a7b40c17342855236423e2d6a038c716d",
+              "bytes": 288
+            }
+          },
+          {
+            "stage": "CacheKeyFrameProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheKeyFrameProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheKeyFrameProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2779,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/CacheKeyFrameProof.log",
+              "sha256": "75c05b947e0db53c991746a8244abc9405dcb6fab4d628f415923900551bbc97",
+              "bytes": 6200
+            }
+          },
+          {
+            "stage": "CacheStartSpecification",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheStartSpecification.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheStartSpecification.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2629,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/CacheStartSpecification.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "stage": "CacheStartProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheStartProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheStartProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 3033,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/CacheStartProof.log",
+              "sha256": "3dadac163feadf60968abfc79c68c2796c40b0d73cfaa80912064180388cd8e0",
+              "bytes": 7578
+            }
+          },
+          {
+            "stage": "CacheCompleteSpecification",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheCompleteSpecification.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheCompleteSpecification.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2586,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/CacheCompleteSpecification.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "stage": "CacheCompleteProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheCompleteProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheCompleteProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 3130,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/CacheCompleteProof.log",
+              "sha256": "7711c9cf70a63ff97819042e89782f7281d5f5dce0411393aa78eab257abbb03",
+              "bytes": 7411
+            }
+          },
+          {
+            "stage": "CacheKeyOrderProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheKeyOrderProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheKeyOrderProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2829,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/CacheKeyOrderProof.log",
+              "sha256": "12b2d6f1f6680bc3708216448cf0502fb07315f4270f189921bc1f1e0e690ae5",
+              "bytes": 384
+            }
+          },
+          {
+            "stage": "CacheMapInvariantProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheMapInvariantProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheMapInvariantProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2679,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/CacheMapInvariantProof.log",
+              "sha256": "28b127e6022737b3fab862072cde1d9b758f6224e6085978d6a5ef33c9bd7a2f",
+              "bytes": 2661
+            }
+          },
+          {
+            "stage": "CacheStateInvariantProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheStateInvariantProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheStateInvariantProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2735,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/CacheStateInvariantProof.log",
+              "sha256": "b6ce5e8a324bb9fe9f9a916633a0ebea3542224aea74ead039740639ae59c138",
+              "bytes": 1610
+            }
+          },
+          {
+            "stage": "CacheHistoryProof",
+            "argv": [
+              "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+              "env",
+              "lean",
+              "CacheHistoryProof.lean",
+              "-o",
+              ".lake/build/lib/lean/CacheHistoryProof.olean"
+            ],
+            "exit_status": 0,
+            "elapsed_ms": 2981,
+            "log": {
+              "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/CacheHistoryProof.log",
+              "sha256": "8e12d74b50b88472044f3b86925690f7ee120da4fc182845e30e3c0a340be25a",
+              "bytes": 1436
+            }
+          }
+        ],
+        "fresh_own_oleans": {
+          "CacheCompleteProof.olean": {
+            "sha256": "6c464fa5adb5c10fab046ede0dab0be8fb36b7351aaaf1a950fdac1328775ebc",
+            "bytes": 662280
+          },
+          "CacheCompleteSpecification.olean": {
+            "sha256": "4d7df8b6d293d04fcd7599eec11f6c848ae191865388e19bacb5935969c2c530",
+            "bytes": 58264
+          },
+          "CacheHistoryProof.olean": {
+            "sha256": "174e90daf949c70e1794899ea3d3f5dce882e0c1149acc5ae4e0ac947556b45e",
+            "bytes": 589072
+          },
+          "CacheKeyFrameProof.olean": {
+            "sha256": "77db850a6d78475196f50a3195f152020f86b77b150d9d9c77e7a627ce150373",
+            "bytes": 768784
+          },
+          "CacheKeyOrderProof.olean": {
+            "sha256": "99c1b330a28ab1e2c70c1d34a035970eaf2df67c3f011f250dbddc4c8bc15038",
+            "bytes": 97360
+          },
+          "CacheMapInvariantProof.olean": {
+            "sha256": "04d441d950a8c35fc2e5e3c51579611863a5bdd332fb0cc2d30de02f99e294c2",
+            "bytes": 364144
+          },
+          "CacheStartProof.olean": {
+            "sha256": "62b5c9716d4897b657caf894cbfd598d2d77b9b26b64f9b7f8ca76f532a25054",
+            "bytes": 901152
+          },
+          "CacheStartSpecification.olean": {
+            "sha256": "aa169ffbaf86796dae3fb8f02d1bcb06513f3b2f98a309c36cf5280f749e75fa",
+            "bytes": 88264
+          },
+          "CacheStateInvariantProof.olean": {
+            "sha256": "6d08d94c6468d5186026264ca120947c9acf9e2f2d0cfad9685075e72d0fcc13",
+            "bytes": 367544
+          },
+          "HubDiscoveryCacheState/Funs.olean": {
+            "sha256": "7a73650fea2ec4a3c4b4292526ba1e418935d87b6e3b253f51361c8bdb66c0a8",
+            "bytes": 148392
+          },
+          "HubDiscoveryCacheState/FunsExternal.olean": {
+            "sha256": "d51af38054da5e3eed85b129a31d629334f86d6a645e294906217e414da74e4f",
+            "bytes": 204144
+          },
+          "HubDiscoveryCacheState/Types.olean": {
+            "sha256": "8cf193ac87e7ad6fd9fde30b8a384d7deee9bbddb531ab1b2eecd4668b6bb7d1",
+            "bytes": 164032
+          },
+          "HubDiscoveryCacheState/TypesExternal.olean": {
+            "sha256": "548396122e37dda98a2bf0931dbf68faee423d5136ba4d273df7ab48b082e88a",
+            "bytes": 111568
+          }
+        },
+        "input_before": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/inputs-before.json",
+          "sha256": "a8c9658a1a3b41c90d5e9a2c65ba1b15c6d1a87958d7dbcfbd2547215118029b",
+          "bytes": 1687
+        },
+        "input_after": {
+          "path": "/tmp/hub-discovery-cache-control-20261031/semantic-controls1/ticket-equality-retained/restored-lean-remote-run1/evidence/inputs-after-CacheHistoryProof.json",
+          "sha256": "a8c9658a1a3b41c90d5e9a2c65ba1b15c6d1a87958d7dbcfbd2547215118029b",
+          "bytes": 1687
+        },
+        "effective_inputs_equal_generation_restored": true,
+        "all_nine_proof_olean_hashes_equal_prior_accepted": true,
+        "all_nine_proof_logs_equal_generation_restored": true,
+        "four_model_olean_identity": "Fresh measured hashes/byte sizes recorded. No claim of model-binary identity to previous packages or cause for differences. Raw4 sources restore exactly.",
+        "audit_review": "Root inspected all10stage logs: no compiler errors or sorryAx; all executable guards accept only their prior standard/exact Instant.add boundaries."
+      },
+      "qualification_role": "required control candidate"
+    }
+  ],
+  "boundaries": [
+    "These are deliberate test faults, not new production defects or runtime changes.",
+    "The existing native ticket regression uses server-wide invalidation, whose retained-closure FnOnce/FnMut translation remains unsupported. The checked five-root formal history fence uses actual key invalidation, not server invalidation.",
+    "Finite normal-return model histories retain explicit native map/order/identifier/clone/equality/time/allocation/destructor and async mutex/observation refinement boundaries; no native scheduler, post-panic state or liveness proof.",
+    "Arbitrary descriptor PartialEq.ne Results are retained; no structural/reflexive equality, universally fresh UUID or globally injective hash assumption is added.",
+    "Only the previously accepted native Instant.add axiom is permitted beyond standard logical axioms where the whole complete/history definition is referenced.",
+    "Full catalog/cursor/listener isolation and cross-replica freshness remain partial."
+  ],
+  "unplanned_repairs": [
+    {
+      "type": "test-only source-fault revision before formal checking",
+      "original_case": "ticket-presence",
+      "replacement_case": "ticket-equality-retained",
+      "cause": "Original fault prunes dictionaries named by unchanged helper proof; a missing-name failure would not test semantics.",
+      "change": "Keep exact ticket comparison and conjoin key absence; no production source, generated model or proof change."
+    }
+  ],
+  "required_control_classes": {
+    "newer_generation_fence": "generation-clear",
+    "request_ticket_fence": "ticket-equality-retained"
+  },
+  "qualification_summary": {
+    "required_control_classes_qualified": 2,
+    "superseded_diagnostic_candidates": 1,
+    "pending_required_stages": [],
+    "broader_goal": "HUB-CATALOG-01 remains partial; server-wide invalidation/retained closures, native async/refinement and cursor/listener obligations remain open."
+  },
+  "timing_note": "Native elapsed_ms measures the entire Cargo command including compilation; selected test bodies report approximately0.00\u20130.01s. These are not cache-operation latencies. Extraction/Lean timings also measure whole commands."
+}
