@@ -43,6 +43,7 @@ impl Candidate {
                         .unwrap(),
                 )
                 .unwrap(),
+                surfaces: None,
             },
             AuthorizationDeclaration {
                 permissions: vec![],

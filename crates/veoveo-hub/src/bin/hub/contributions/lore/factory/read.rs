@@ -77,8 +77,8 @@ pub(super) async fn tree(
 }
 
 /// The files to read for a revision whose `openshell/run` is an executable file: `run`,
-/// `policy.yaml` and the `image/` subtree. None when the revision has no executable
-/// `openshell/run`.
+/// `policy.yaml`, `providers.yaml` and the `image/` subtree. None when the revision has
+/// no executable `openshell/run`.
 pub(super) fn plan(nodes: &[TreeNode]) -> Result<Option<Vec<File>>> {
     let run = format!("{ROOT}/run");
     let file = |node: &TreeNode| node.node_type == NodeType::File as i32;
@@ -90,10 +90,15 @@ pub(super) fn plan(nodes: &[TreeNode]) -> Result<Option<Vec<File>>> {
         return Ok(None);
     }
     let policy = format!("{ROOT}/policy.yaml");
+    let providers = format!("{ROOT}/providers.yaml");
     let image = format!("{ROOT}/image/");
     let mut files = Vec::new();
     for node in nodes.iter().filter(|node| file(node)) {
-        if node.path != run && node.path != policy && !node.path.starts_with(&image) {
+        if node.path != run
+            && node.path != policy
+            && node.path != providers
+            && !node.path.starts_with(&image)
+        {
             continue;
         }
         ensure!(
@@ -164,14 +169,17 @@ pub(super) async fn write(
 /// What a revision written under `directory` applies.
 pub(super) fn prepared(directory: &Path) -> Result<Prepared> {
     let root = directory.join(ROOT);
-    let policy = root.join("policy.yaml");
+    let text = |name: &str| {
+        let path = root.join(name);
+        path.exists()
+            .then(|| std::fs::read_to_string(&path))
+            .transpose()
+            .with_context(|| format!("the revision's openshell/{name} is not text"))
+    };
     Ok(Prepared {
         image_context: root.join("image"),
-        policy: policy
-            .exists()
-            .then(|| std::fs::read_to_string(&policy))
-            .transpose()
-            .context("the revision's openshell/policy.yaml is not text")?,
+        policy: text("policy.yaml")?,
+        providers: text("providers.yaml")?,
     })
 }
 
@@ -287,9 +295,23 @@ mod tests {
             10,
         );
         let policy = node("openshell/policy.yaml", NodeType::File, FileMode::None, 5);
+        let providers = node(
+            "openshell/providers.yaml",
+            NodeType::File,
+            FileMode::None,
+            4,
+        );
         let notes = node("openshell/NOTES.md", NodeType::File, FileMode::None, 5);
         let run = node("openshell/run", NodeType::File, FileMode::Executable, 3);
-        let nodes = vec![image, dockerfile, script, policy, notes, run.clone()];
+        let nodes = vec![
+            image,
+            dockerfile,
+            script,
+            policy,
+            providers,
+            notes,
+            run.clone(),
+        ];
         let files = plan(&nodes).unwrap().unwrap();
         let paths = files
             .iter()
@@ -301,10 +323,11 @@ mod tests {
                 "openshell/image/Dockerfile",
                 "openshell/image/setup.sh",
                 "openshell/policy.yaml",
+                "openshell/providers.yaml",
                 "openshell/run"
             ]
         );
-        assert!(files[1].executable && files[3].executable && !files[0].executable);
+        assert!(files[1].executable && files[4].executable && !files[0].executable);
 
         let mut plain = run.clone();
         plain.mode = FileMode::None as u64;

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM hub.app_origin_code WHERE code_digest IN (\n    SELECT code_digest FROM hub.app_origin_code WHERE expires_at <= $1 ORDER BY expires_at LIMIT 1000\n)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d965e7b3c30c4e93b359d0e9061c845118d0e972e8e79af1ef5d99df01a1aa67"
+}

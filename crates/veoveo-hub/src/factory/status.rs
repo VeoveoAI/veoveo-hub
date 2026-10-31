@@ -33,6 +33,10 @@ pub struct InstanceStatus {
     pub failed: Option<Failure>,
     /// Why the instance was created above a cap.
     pub warning: Option<String>,
+    /// The providers its revision requested in `openshell/providers.yaml` that the
+    /// installation does not grant its repository, so the sandbox runs without them.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub ungranted_providers: Vec<String>,
 }
 
 /// The sandbox's lifecycle as OpenShell reports it. OpenShell restarts its main program

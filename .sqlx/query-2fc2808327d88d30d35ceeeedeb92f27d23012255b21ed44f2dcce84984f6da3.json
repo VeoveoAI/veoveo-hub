@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.instance\nSET ungranted_providers = $2\nWHERE deployment = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2fc2808327d88d30d35ceeeedeb92f27d23012255b21ed44f2dcce84984f6da3"
+}

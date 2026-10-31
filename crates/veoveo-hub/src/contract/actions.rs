@@ -14,15 +14,18 @@ pub enum HubAction {
     TasksGet,
     TasksUpdate,
     TasksCancel,
+    // A request on a registered server's app origin.
+    AppOrigin,
     AdminRead,
     AdminWrite,
 }
 
 impl HubAction {
-    /// Actions on a registered server's tools, resources, prompts and Tasks. Installation
-    /// roles grant them through the server's declared permissions; policy rules do not.
+    /// Actions on a registered server's tools, resources, prompts, Tasks and app origin.
+    /// Installation roles grant them through the server's declared permissions; policy
+    /// rules do not.
     pub fn targets_registered_server(self) -> bool {
-        self.mcp_method().is_some()
+        self.mcp_method().is_some() || self == Self::AppOrigin
     }
 
     pub fn mcp_method(self) -> Option<&'static str> {
@@ -39,7 +42,7 @@ impl HubAction {
             Self::TasksGet => Some("tasks/get"),
             Self::TasksUpdate => Some("tasks/update"),
             Self::TasksCancel => Some("tasks/cancel"),
-            Self::AdminRead | Self::AdminWrite => None,
+            Self::AppOrigin | Self::AdminRead | Self::AdminWrite => None,
         }
     }
 }

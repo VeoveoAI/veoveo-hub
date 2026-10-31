@@ -656,6 +656,7 @@ fn policy_denial_message(decision: &PolicyDecision) -> String {
         PolicyTarget::Task { task_id, .. } => format!("access task `{task_id}`"),
         PolicyTarget::PlatformTask { task_id, .. } => format!("access task `{task_id}`"),
         PolicyTarget::Server { server } => format!("use the `{server}` server"),
+        PolicyTarget::AppOrigin { server } => format!("open the app origin of `{server}`"),
         PolicyTarget::Hub | PolicyTarget::Owner(_) | PolicyTarget::Unadmitted(_) => {
             "make this request".to_owned()
         }
@@ -1018,6 +1019,7 @@ mod tests {
                     (read_prompt.clone(), RouteAccess::Permission(read.clone())),
                 ]
                 .into(),
+                app_origin: None,
             },
             uses: Vec::new(),
             calls_hub: false,

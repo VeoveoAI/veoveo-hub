@@ -1,38 +1,55 @@
-//! The Apps listener: the sandbox proxy at `GET /` and nothing else. The listener a
-//! request arrives on decides what serves it, so this router reads no `Host`.
+//! The Apps listener: a request whose `X-Forwarded-Host` names a server's app origin goes
+//! to that origin; every other is the sandbox proxy's, at `GET /` and nothing else, whatever
+//! its `Host`.
 use std::sync::Arc;
 
 use axum::{
     Router,
-    extract::{RawQuery, State},
+    extract::{RawQuery, Request, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::get,
 };
+use tower::ServiceExt as _;
 
-use super::{csp::AppPolicy, origins::AppOrigins, pages};
+use super::{csp::AppPolicy, origins::AppOrigins, pages, server_origin::ServerOrigins};
 use crate::problem::Problem;
 
-/// The sandbox proxy of the installation's Apps.
-#[derive(Debug, Clone)]
+/// The sandbox proxy of the installation's Apps, and the servers' app origins beside it.
+#[derive(Clone)]
 pub struct SandboxProxy {
     origins: Arc<AppOrigins>,
+    servers: Option<ServerOrigins>,
 }
 
 impl SandboxProxy {
-    pub fn new(origins: AppOrigins) -> Self {
+    pub fn new(origins: AppOrigins, servers: Option<ServerOrigins>) -> Self {
         Self {
             origins: Arc::new(origins),
+            servers,
         }
     }
 
-    /// The Apps listener's routes: `GET /`, and 404 for every other path.
+    /// The Apps listener's routes: a server's app origin by `X-Forwarded-Host`; otherwise
+    /// `GET /`, and 404 for every other path.
     pub fn router(self) -> Router {
-        Router::new()
-            .route("/", get(proxy))
-            .fallback(|| async { Problem::not_found().into_response() })
-            .with_state(self)
+        Router::new().fallback(dispatch).with_state(self)
     }
+}
+
+async fn dispatch(State(listener): State<SandboxProxy>, request: Request) -> Response {
+    if let Some(servers) = &listener.servers
+        && let Some(server) = servers.server(request.headers())
+    {
+        return servers.serve(server, request).await;
+    }
+    Router::new()
+        .route("/", get(proxy))
+        .fallback(|| async { Problem::not_found().into_response() })
+        .with_state(listener)
+        .oneshot(request)
+        .await
+        .unwrap_or_else(|never| match never {})
 }
 
 /// `GET /`: the proxy page under the App policy its query names, validated again.

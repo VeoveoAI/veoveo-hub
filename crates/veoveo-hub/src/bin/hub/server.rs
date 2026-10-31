@@ -58,6 +58,8 @@ pub(super) struct ServeConfig {
     pub(super) allow_loopback_hosts: bool,
     /// The sandbox proxy's public origin and the address of the Apps listener.
     pub(super) apps: Option<(veoveo_hub::apps::SandboxOrigin, SocketAddr)>,
+    /// The most open live-resource listens of one browser session.
+    pub(super) apps_listens_per_session: std::num::NonZeroUsize,
     pub(super) offline_mode: bool,
     pub(super) audit_retention_days: std::num::NonZeroU32,
     pub(super) audit_exports: veoveo_audit::export::AuditExportConfig,
@@ -78,6 +80,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         refresh_delivery_window,
         allow_loopback_hosts,
         apps: apps_config,
+        apps_listens_per_session,
         offline_mode,
         audit_retention_days,
         audit_signing_key,
@@ -175,6 +178,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         },
         server_database,
         registration_grace,
+        app_origins.clone(),
     )?;
     registrations.refresh().await?;
     let delegation = veoveo_hub::delegation::DelegationService::new(
@@ -233,7 +237,15 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         .route("/oauth/jwks.json", get(authorization_server_jwks))
         .with_state(state.clone())
         .merge(registration::router(registrations.clone()))
-        .merge(crate::contributions::lore::catalog::router(state.clone()));
+        .merge(crate::contributions::lore::catalog::router(state.clone()))
+        .merge(
+            veoveo_hub::surfaces::PublicRoutes::new(
+                catalog.clone(),
+                upstream_http.clone(),
+                deployment.host_authority(),
+            )?
+            .router(),
+        );
 
     let auth_state = ProfileAuthState {
         catalog: catalog.clone(),
@@ -269,10 +281,29 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
                 origins,
                 deployment.host_authority(),
                 mcp_router.clone(),
+                veoveo_hub::apps::ListenLimits {
+                    per_session: apps_listens_per_session,
+                    ..Default::default()
+                },
             )
         })
         .transpose()?;
     router = router.merge(mcp_router);
+    // Servers' app origins: their entry on the issuer here, their origins on the Apps
+    // listener.
+    let server_origins = app_origins.clone().map(|origins| {
+        veoveo_hub::apps::ServerOrigins::new(
+            catalog.clone(),
+            hub_state.clone(),
+            origins,
+            auth_state.clone(),
+            internal_token_issuer.clone(),
+            upstream_http.clone(),
+        )
+    });
+    if let Some(servers) = &server_origins {
+        router = router.merge(servers.clone().entry_router());
+    }
 
     router = router.merge(
         Router::new()
@@ -388,11 +419,9 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             "/admin/{profile}/usage/daily",
             get(super::admin::daily_usage),
         );
-    router = router.merge(
-        admin_router
-            .with_state(admin_state)
-            .layer(middleware::from_fn_with_state(auth_state, authenticate_mcp)),
-    );
+    router = router.merge(admin_router.with_state(admin_state).layer(
+        middleware::from_fn_with_state(auth_state.clone(), authenticate_mcp),
+    ));
     if let Some(apps) = apps {
         router = router.merge(apps.router());
     }
@@ -420,8 +449,8 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             .await
             .with_context(|| format!("listen on {listen_address}"))?,
     };
-    // The Apps listener serves the sandbox proxy and nothing else: the listener, not a
-    // Host header, decides what answers.
+    // The Apps listener serves the sandbox proxy and the servers' app origins, which
+    // `X-Forwarded-Host` tells apart; the Hub's own listener serves neither.
     let apps_serving = match (app_origins, apps_listen_address) {
         (Some(origins), Some(address)) => {
             let apps_listener = tokio::net::TcpListener::bind(address)
@@ -433,10 +462,15 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
                 sandbox = origins.sandbox(),
                 "apps listening"
             );
-            let apps_router = veoveo_hub::apps::SandboxProxy::new(origins).router().layer(
-                TraceLayer::new_for_http()
-                    .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
-            );
+            let apps_router = veoveo_hub::apps::SandboxProxy::new(origins, server_origins)
+                .router()
+                .layer(axum::middleware::from_fn(
+                    veoveo_hub::request_observation::observe_request,
+                ))
+                .layer(
+                    TraceLayer::new_for_http()
+                        .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
+                );
             let stop = ct.clone();
             Some(tokio::spawn(std::future::IntoFuture::into_future(
                 axum::serve(apps_listener, apps_router)

@@ -274,6 +274,7 @@ fn registered(row: &StoredRegistration) -> RegisteredServer {
         authorization: Arc::new(row.metadata.authorization.clone()),
         capabilities: ServerCapabilities::from_declaration(&row.metadata.authorization),
         branch: row.branch.clone(),
+        surfaces: registration.surfaces.clone(),
         registered_at: row.issued_at,
         orphaned: row.orphaned_at.is_some(),
     }

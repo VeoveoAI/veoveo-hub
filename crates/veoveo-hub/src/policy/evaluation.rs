@@ -79,6 +79,7 @@ fn registered_target(
         PolicyTarget::Prompt { server, prompt } => {
             Some((server, Some(RequirementTarget::Prompt(prompt))))
         }
+        PolicyTarget::AppOrigin { server } => Some((server, Some(RequirementTarget::AppOrigin))),
         PolicyTarget::Hub | PolicyTarget::Owner(_) | PolicyTarget::Unadmitted(_) => None,
     }
 }
@@ -123,9 +124,9 @@ fn decide_server(
                 let reason = match target {
                     RequirementTarget::Tool(_) => PolicyReasonCode::UnknownTool,
                     RequirementTarget::Prompt(_) => PolicyReasonCode::UnknownPrompt,
-                    RequirementTarget::Resource(_) | RequirementTarget::ResourceTemplate(_) => {
-                        PolicyReasonCode::UndeclaredTarget
-                    }
+                    RequirementTarget::Resource(_)
+                    | RequirementTarget::ResourceTemplate(_)
+                    | RequirementTarget::AppOrigin => PolicyReasonCode::UndeclaredTarget,
                 };
                 return deny(request, reason, version);
             }

@@ -5,6 +5,8 @@
 //! owns the `hub` schema and applies its migrations after core's kernel migrations.
 //! Registrations and Task routes run their own statements against the same schema.
 
+mod app_origins;
+pub use app_origins::AppOriginCode;
 mod authorization;
 mod device;
 mod execution;

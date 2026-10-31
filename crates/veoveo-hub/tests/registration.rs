@@ -221,6 +221,48 @@ async fn qualify() {
             other => panic!("expected the slug {slug} to be refused, got {other:?}"),
         }
     }
+    // A public route's base names this instance under the issuer's origin; an app origin
+    // needs the installation's Apps, which this Hub does not host.
+    let hooks = surfaces_client(
+        &http,
+        &registration_endpoint,
+        registration_secret,
+        &server_endpoint,
+        serde_json::json!({"publicRoutes": [
+            {"prefix": "/beacon/hooks/", "maxBodyBytes": 1024, "requestsPerMinute": 60}
+        ]}),
+    );
+    let deployment = hooks.metadata().registration.deployment;
+    let registered = hooks.register().await.unwrap();
+    assert_eq!(
+        registered.public_base().map(|base| base.as_str()),
+        Some(format!("{}/instances/{deployment}/beacon", hub.base).as_str())
+    );
+    assert!(registered.app_origin().is_none());
+    hooks.deregister(registered).await.unwrap();
+    let origin = surfaces_client(
+        &http,
+        &registration_endpoint,
+        registration_secret,
+        &server_endpoint,
+        serde_json::json!({"appOrigin": true}),
+    );
+    match origin.register().await {
+        Err(ClientError::Rejected {
+            status: reqwest::StatusCode::BAD_REQUEST,
+            error: Some(error),
+        }) => {
+            assert_eq!(error.error, RegistrationErrorCode::InvalidClientMetadata);
+            assert!(
+                error
+                    .error_description
+                    .as_deref()
+                    .is_some_and(|text| text.contains("hosts no Apps")),
+                "{error:?}"
+            );
+        }
+        other => panic!("expected the app origin to be refused, got {other:?}"),
+    }
     // The installation's registration secret is the initial access token.
     let unauthorized = registration_client(
         &http,
@@ -452,6 +494,52 @@ fn registration_client(
             uri_scheme: ResourceScheme::parse("observatory").unwrap(),
             version: ServerVersion::new("0.1.0").unwrap(),
             endpoint: ServerEndpoint::new(url::Url::parse(server_endpoint).unwrap()).unwrap(),
+            surfaces: None,
+        },
+        authorization,
+    )
+    .unwrap();
+    RegistrationClient::new(
+        http.clone(),
+        endpoint.clone(),
+        SecretString::from(secret.to_owned()),
+        key,
+        metadata,
+    )
+    .unwrap()
+}
+
+/// A registration of `beacon` that declares `surfaces`, in MCP Discover's camelCase,
+/// with an authenticated app origin requirement when it declares an app origin.
+fn surfaces_client(
+    http: &reqwest::Client,
+    endpoint: &url::Url,
+    secret: &str,
+    server_endpoint: &str,
+    surfaces: serde_json::Value,
+) -> RegistrationClient {
+    let key = ServerKeyPair::generate().unwrap();
+    let requirements = if surfaces["appOrigin"] == true {
+        serde_json::json!({"appOrigin": {"kind": "authenticated"}})
+    } else {
+        serde_json::json!({})
+    };
+    let authorization: AuthorizationDeclaration = serde_json::from_value(
+        serde_json::json!({ "permissions": [], "requirements": requirements }),
+    )
+    .unwrap();
+    let metadata = ClientMetadata::new(
+        *key.public_key(),
+        RegistrationDeclaration {
+            deployment: veoveo_hub_sdk::DeploymentId::new(),
+            slug: ServerSlug::parse("beacon").unwrap(),
+            uri_scheme: ResourceScheme::parse("beacon").unwrap(),
+            version: ServerVersion::new("0.1.0").unwrap(),
+            endpoint: ServerEndpoint::new(
+                url::Url::parse(&server_endpoint.replace("/observatory/", "/beacon/")).unwrap(),
+            )
+            .unwrap(),
+            surfaces: Some(serde_json::from_value(surfaces).unwrap()),
         },
         authorization,
     )
@@ -486,6 +574,7 @@ fn reserved_slug_client(
             uri_scheme: ResourceScheme::parse(slug).unwrap(),
             version: ServerVersion::new("0.1.0").unwrap(),
             endpoint: ServerEndpoint::new(url::Url::parse(server_endpoint).unwrap()).unwrap(),
+            surfaces: None,
         },
         authorization,
     )

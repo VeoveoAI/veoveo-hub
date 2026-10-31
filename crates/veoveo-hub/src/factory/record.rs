@@ -114,6 +114,23 @@ pub(super) async fn warn(
     Ok(())
 }
 
+/// Record the providers the revision requested that its repository is not granted.
+pub(super) async fn ungranted(
+    store: &PlatformStore,
+    deployment: DeploymentId,
+    providers: &[String],
+) -> Result<()> {
+    sqlx::query_file!(
+        "src/factory/record/ungranted.sql",
+        deployment.as_uuid(),
+        providers
+    )
+    .execute(store.pool())
+    .await
+    .context("failed to record the instance's ungranted providers")?;
+    Ok(())
+}
+
 pub(super) async fn applied(
     store: &PlatformStore,
     deployment: DeploymentId,
@@ -156,6 +173,7 @@ pub(super) struct Record {
     pub served: bool,
     pub failed: Option<Failure>,
     pub warning: Option<String>,
+    pub ungranted_providers: Vec<String>,
 }
 
 pub(super) async fn read(
@@ -185,5 +203,6 @@ pub(super) async fn read(
         served: row.served,
         failed,
         warning: row.warning,
+        ungranted_providers: row.ungranted_providers,
     }))
 }

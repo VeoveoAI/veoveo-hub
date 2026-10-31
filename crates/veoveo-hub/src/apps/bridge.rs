@@ -17,7 +17,8 @@ use veoveo_types::InvocationProvenance;
 use super::{
     admission::{self, INTERNAL_ERROR, Method, Refusal, RequestId, ViewRequest},
     csp::AppPolicy,
-    mcp::{Answer, Failure, PersonMcp},
+    listen::{self, ListenLimits, Listens},
+    mcp::{Answer, Failure, Listened, PersonMcp},
     origins::AppOrigins,
     pages,
     route::AppView,
@@ -28,6 +29,9 @@ use crate::{HubCatalog, HubCatalogHandle, HubState, problem::Problem};
 const MAX_REQUEST_BYTES: usize = 256 * 1024;
 /// How long the bearer of one bridge request lives, at most.
 const BEARER_SECONDS: u32 = 60;
+/// How long the bearer of one listen lives, at most: the longest a listen's forwarded
+/// token lives.
+const LISTEN_BEARER_SECONDS: u32 = 15 * 60;
 
 /// The Apps host on the issuer's origin: host pages, the host script and bridges.
 #[derive(Clone)]
@@ -37,17 +41,21 @@ pub struct AppsService {
     origins: Arc<AppOrigins>,
     host: HeaderValue,
     mcp: Router,
+    limits: ListenLimits,
+    listens: Arc<Listens>,
 }
 
 impl AppsService {
     /// The host for the Hub whose `/mcp/{profile}` routes `mcp` serves, with their own
-    /// authentication, at the `Host` authority `host`.
+    /// authentication, at the `Host` authority `host`, with live resources bounded by
+    /// `limits`.
     pub fn new(
         catalog: HubCatalogHandle,
         hub: HubState,
         origins: AppOrigins,
         host: &str,
         mcp: Router,
+        limits: ListenLimits,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             catalog,
@@ -55,6 +63,8 @@ impl AppsService {
             origins: Arc::new(origins),
             host: HeaderValue::from_str(host).context("the issuer's host authority")?,
             mcp,
+            limits,
+            listens: Arc::default(),
         })
     }
 
@@ -62,73 +72,92 @@ impl AppsService {
         &self.origins
     }
 
-    /// `GET /apps/host.js`, and `GET` and `POST /apps/{slug}/{page}`.
+    /// `GET /apps/host-{digest}.js`, and `GET` and `POST /apps/{slug}/{page}`.
     pub fn router(self) -> Router {
         Router::new()
-            .route(pages::HOST_SCRIPT, get(|| async { pages::host_script() }))
+            .route(
+                pages::host_script_path(),
+                get(|| async { pages::host_script() }),
+            )
             .route("/apps/{slug}/{*page}", get(open).post(bridge))
             .with_state(self)
     }
 
-    /// The person's MCP client for this session, with a bearer of its refresh family.
+    /// The person's MCP client for this session, with a bearer of its refresh family
+    /// that lives at most `lifetime` seconds.
     async fn person(
         &self,
         catalog: &HubCatalog,
         config: &crate::control_plane::Computers,
         session: &crate::computers::BrowserSession,
+        observation: crate::request_observation::RequestObservation,
+        lifetime: u32,
     ) -> anyhow::Result<PersonMcp> {
-        let family = self
-            .hub
-            .hub_store()
-            .refresh_family(session.family())
-            .await?
-            .context("the session's refresh family is gone")?;
-        let profile = catalog
-            .profile(&config.profile)
-            .context("the Computers profile is unavailable")?;
-        let server = catalog
-            .authorization_server(&profile.authorization_server)
-            .context("the Computers authorization server is unavailable")?;
-        let principal = &family.principal.principal;
-        let token = crate::issuance::issue_access_token(
-            catalog,
-            server,
-            &family.protected_resource,
-            &principal.subject,
-            &family.oauth_client_id,
-            PrincipalKind::User,
-            Some(principal),
-            Some(&family.principal.display_name),
-            None,
-            crate::issuance::AccessTokenInvocation {
-                lifetime: Some(crate::token_profile::TokenLifetime::from_seconds(
-                    std::num::NonZeroU32::new(BEARER_SECONDS).expect("nonzero"),
-                )),
-                not_after: Some(family.expires_at),
-                purpose: None,
-                extensions: Default::default(),
-                session_family: Some(family.id.clone()),
-                work_context: family.work_context.clone(),
-                provenance: InvocationProvenance::Direct {
-                    initiator: principal.id.clone(),
-                },
-            },
-            principal.id.clone(),
-            &family.scopes,
-        )
-        .await?;
+        let token = family_bearer(&self.hub, catalog, config, session, lifetime).await?;
         Ok(PersonMcp {
             router: self.mcp.clone(),
             host: self.host.clone(),
             profile: config.profile.clone(),
             bearer: HeaderValue::from_str(&format!("Bearer {}", token.access_token))?,
+            expires_at: token.expires_at,
+            observation,
         })
     }
 }
 
+/// An access token of `session`'s refresh family under the Computers profile that lives
+/// at most `lifetime` seconds and never past the family.
+pub(super) async fn family_bearer(
+    hub: &crate::HubState,
+    catalog: &HubCatalog,
+    config: &crate::control_plane::Computers,
+    session: &crate::computers::BrowserSession,
+    lifetime: u32,
+) -> anyhow::Result<crate::issuance::IssuedAccessToken> {
+    let family = hub
+        .hub_store()
+        .refresh_family(session.family())
+        .await?
+        .context("the session's refresh family is gone")?;
+    let profile = catalog
+        .profile(&config.profile)
+        .context("the Computers profile is unavailable")?;
+    let server = catalog
+        .authorization_server(&profile.authorization_server)
+        .context("the Computers authorization server is unavailable")?;
+    let principal = &family.principal.principal;
+    crate::issuance::issue_access_token(
+        catalog,
+        server,
+        &family.protected_resource,
+        &principal.subject,
+        &family.oauth_client_id,
+        PrincipalKind::User,
+        Some(principal),
+        Some(&family.principal.display_name),
+        None,
+        crate::issuance::AccessTokenInvocation {
+            lifetime: Some(crate::token_profile::TokenLifetime::from_seconds(
+                std::num::NonZeroU32::new(lifetime).context("a bearer lives a while")?,
+            )),
+            not_after: Some(family.expires_at),
+            purpose: None,
+            extensions: Default::default(),
+            session_family: Some(family.id.clone()),
+            work_context: family.work_context.clone(),
+            provenance: InvocationProvenance::Direct {
+                initiator: principal.id.clone(),
+            },
+        },
+        principal.id.clone(),
+        &family.scopes,
+    )
+    .await
+}
+
 /// A browser's page load: a GET the browser marks as a navigation, of a document when it
 /// names the destination.
-fn document_navigation(headers: &HeaderMap) -> bool {
+pub(super) fn document_navigation(headers: &HeaderMap) -> bool {
     headers
         .get("sec-fetch-mode")
         .is_some_and(|value| value == "navigate")
@@ -165,6 +194,9 @@ fn unavailable(error: &dyn std::fmt::Display) -> Response {
 /// `GET /apps/{slug}/{page}`: the App's host page, once the App is in the catalog the
 /// person sees and its declared policy is admitted.
 async fn open(State(apps): State<AppsService>, request: Request) -> Response {
+    let Some(observation) = request_observation(&request) else {
+        return unavailable(&"the request carries no correlation");
+    };
     let Some(view) = AppView::from_path(request.uri().path()) else {
         return pages::message(
             StatusCode::NOT_FOUND,
@@ -196,7 +228,16 @@ async fn open(State(apps): State<AppsService>, request: Request) -> Response {
         Ok(None) => return sign_in_required(),
         Err(error) => return unavailable(&error),
     };
-    let person = match apps.person(&catalog, &config, &session).await {
+    let person = match apps
+        .person(
+            &catalog,
+            &config,
+            &session,
+            observation.clone(),
+            BEARER_SECONDS,
+        )
+        .await
+    {
         Ok(person) => person,
         Err(error) => return unavailable(&error),
     };
@@ -226,7 +267,9 @@ async fn open(State(apps): State<AppsService>, request: Request) -> Response {
         }
     };
     let title = app.title.as_deref().unwrap_or(&app.name);
-    pages::host_page(&view, title, &policy, &apps.origins)
+    let app_origin = super::server_origin::declares_origin(&catalog, view.server())
+        .then(|| apps.origins.app_origin(view.server()));
+    pages::host_page(&view, title, &policy, &apps.origins, app_origin)
 }
 
 fn response(id: &RequestId, answer: Answer) -> Response {
@@ -249,6 +292,9 @@ fn error(code: i64, message: impl Into<String>) -> Answer {
 /// `POST /apps/{slug}/{page}`: one JSON-RPC request of the App's view, admitted against
 /// the catalogs the person sees now and run through the Hub's MCP endpoint as them.
 async fn bridge(State(apps): State<AppsService>, request: Request) -> Response {
+    let Some(observation) = request_observation(&request) else {
+        return unavailable(&"the request carries no correlation");
+    };
     let Some(view) = AppView::from_path(request.uri().path()) else {
         return Problem::not_found().into_response();
     };
@@ -268,6 +314,11 @@ async fn bridge(State(apps): State<AppsService>, request: Request) -> Response {
             Ok(None) => return sign_in_required(),
             Err(error) => return unavailable(&error),
         };
+    // An open listen reads the session again from these cookies alone.
+    let mut cookies = HeaderMap::new();
+    for value in request.headers().get_all(header::COOKIE) {
+        cookies.append(header::COOKIE, value.clone());
+    }
     let bytes = match axum::body::to_bytes(request.into_body(), MAX_REQUEST_BYTES).await {
         Ok(bytes) => bytes,
         Err(_) => {
@@ -289,7 +340,25 @@ async fn bridge(State(apps): State<AppsService>, request: Request) -> Response {
         .into_response();
     };
     let id = view_request.id.clone();
-    let person = match apps.person(&catalog, &config, &session).await {
+    if Method::parse(&view_request.method) == Some(Method::SubscriptionsListen) {
+        let session = Admitted {
+            catalog,
+            config,
+            session,
+            cookies,
+        };
+        return listen(&apps, &view, view_request, session, observation).await;
+    }
+    let person = match apps
+        .person(
+            &catalog,
+            &config,
+            &session,
+            observation.clone(),
+            BEARER_SECONDS,
+        )
+        .await
+    {
         Ok(person) => person,
         Err(error) => return unavailable(&error),
     };
@@ -303,6 +372,137 @@ async fn bridge(State(apps): State<AppsService>, request: Request) -> Response {
                 error(INTERNAL_ERROR, "The Hub could not complete this request."),
             )
         }
+    }
+}
+
+/// The browser session a bridge request was admitted with.
+struct Admitted {
+    catalog: Arc<HubCatalog>,
+    config: Arc<crate::control_plane::Computers>,
+    session: crate::computers::BrowserSession,
+    /// The request's cookies, from which an open listen reads the session again.
+    cookies: HeaderMap,
+}
+
+/// A view's `subscriptions/listen`: admitted against the person's catalog, within the
+/// session's ceiling, sent as the person with the view's own `id`, and answered with the
+/// endpoint's event stream, relayed unchanged.
+async fn listen(
+    apps: &AppsService,
+    view: &AppView,
+    request: ViewRequest,
+    admitted: Admitted,
+    observation: crate::request_observation::RequestObservation,
+) -> Response {
+    let Admitted {
+        catalog,
+        config,
+        session,
+        cookies,
+    } = admitted;
+    let id = request.id;
+    let params = request.params.unwrap_or_default();
+    let person = match apps
+        .person(
+            &catalog,
+            &config,
+            &session,
+            observation.clone(),
+            BEARER_SECONDS,
+        )
+        .await
+    {
+        Ok(person) => person,
+        Err(error) => return unavailable(&error),
+    };
+    let unanswered = |cause: String| {
+        tracing::warn!(app = view.uri(), %cause, "App listen unavailable");
+        response(
+            &id,
+            error(INTERNAL_ERROR, "The Hub could not complete this request."),
+        )
+    };
+    let resources: Vec<Resource> = match person.list("resources/list", "resources").await {
+        Ok(resources) => resources,
+        Err(Failure::Unauthenticated) => return sign_in_required(),
+        Err(Failure::Unavailable(cause)) => return unanswered(cause),
+    };
+    if let Err(refusal) =
+        admission::find_app(view, &resources).and_then(|_| admission::admit_listen(view, &params))
+    {
+        tracing::info!(app = view.uri(), method = "subscriptions/listen", %refusal, "App request refused");
+        return response(&id, error(refusal.code(), refusal.to_string()));
+    }
+    let Some(permit) = apps
+        .listens
+        .acquire(session.family(), apps.limits.per_session)
+    else {
+        tracing::info!(
+            app = view.uri(),
+            limit = apps.limits.per_session.get(),
+            "App listen refused at the session's ceiling"
+        );
+        return Problem::new(
+            StatusCode::TOO_MANY_REQUESTS,
+            "apps-listen-limit",
+            "Too many live listens",
+        )
+        .detail(format!(
+            "This browser session holds {} open listens, the most it may.",
+            apps.limits.per_session
+        ))
+        .into_response();
+    };
+    let wire_id = match serde_json::to_value(&id) {
+        Ok(wire_id) => wire_id,
+        Err(cause) => return unanswered(cause.to_string()),
+    };
+    // The listen alone gets the bearer that lives as long as a listen's forwarded token.
+    let person = match apps
+        .person(
+            &catalog,
+            &config,
+            &session,
+            observation,
+            LISTEN_BEARER_SECONDS,
+        )
+        .await
+    {
+        Ok(person) => person,
+        Err(error) => return unavailable(&error),
+    };
+    match person.listen(&wire_id, params).await {
+        Ok(Listened::Answer(answer)) => response(&id, answer),
+        Ok(Listened::Stream(body)) => {
+            let hub = apps.hub.clone();
+            let handle = apps.catalog.clone();
+            let family = session.family().clone();
+            let cookies = Arc::new(cookies);
+            listen::relay(listen::Relay {
+                id: wire_id,
+                app: view.uri().to_owned(),
+                body,
+                permit,
+                expires_at: person.expires_at,
+                recheck: apps.limits.recheck,
+                admitted: Arc::new(move || {
+                    let (hub, handle, family, cookies) =
+                        (hub.clone(), handle.clone(), family.clone(), cookies.clone());
+                    Box::pin(async move {
+                        matches!(
+                            tokio::time::timeout(
+                                crate::computers::ADMISSION_READ_TIMEOUT,
+                                crate::computers::app_session(&hub, &handle.current(), &cookies),
+                            )
+                            .await,
+                            Ok(Ok(Some((_, session)))) if session.family() == &family
+                        )
+                    })
+                }),
+            })
+        }
+        Err(Failure::Unauthenticated) => sign_in_required(),
+        Err(Failure::Unavailable(cause)) => unanswered(cause),
     }
 }
 
@@ -338,6 +538,8 @@ async fn serve(
         Method::TasksGet | Method::TasksUpdate | Method::TasksCancel => {
             admission::admit_task(&params).map(|()| None)
         }
+        // The bridge answers a listen with its stream before it comes here.
+        Method::SubscriptionsListen => Err(Refusal::Listen),
     });
     let tool = match admitted {
         Ok(tool) => tool,
@@ -350,4 +552,15 @@ async fn serve(
         return Ok(Answer::Result(Value::Object(Map::new())));
     }
     person.request(method.name(), params, tool.as_ref()).await
+}
+
+/// The correlation the Hub's request observation gave this browser request; the
+/// in-process MCP request carries it, so its records name the browser request.
+fn request_observation(
+    request: &Request,
+) -> Option<crate::request_observation::RequestObservation> {
+    request
+        .extensions()
+        .get::<crate::request_observation::RequestObservation>()
+        .cloned()
 }

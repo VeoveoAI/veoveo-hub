@@ -118,6 +118,9 @@ pub struct Prepared {
     /// The revision's `openshell/policy.yaml`, which adds network rules to the
     /// installation's base policy.
     pub policy: Option<String>,
+    /// The revision's `openshell/providers.yaml`, which requests the installation's
+    /// providers by name.
+    pub providers: Option<String>,
 }
 
 /// An instance's own OAuth client. The gateway refreshes the sandbox's Lore token with
@@ -158,6 +161,9 @@ struct Source {
     policy: p::sandbox::v1::SandboxPolicy,
     /// The size and driver configuration of the installation's factory template.
     shape: sandbox::Shape,
+    /// The installation's providers the revision requested that are granted to its
+    /// repository, sorted.
+    providers: Vec<String>,
 }
 
 /// The factory sandboxes of one installation, in its factory workspace.
@@ -303,6 +309,16 @@ impl Factory {
         let shape = self
             .recorded(deployment, Stage::Create, self.shape())
             .await?;
+        let requested = self
+            .recorded(deployment, Stage::Create, async {
+                sandbox::requested_providers(prepared.providers.as_deref())
+            })
+            .await?;
+        let (providers, ungranted) = self.config.granted_providers(repository, &requested);
+        if !ungranted.is_empty() {
+            tracing::warn!(%deployment, ?ungranted, "the revision requests providers its repository is not granted");
+        }
+        record::ungranted(&self.store, deployment, &ungranted).await?;
         let mut remote = self.config.lore_server.clone();
         remote.set_path(&format!("/{repository}"));
         let source = Source {
@@ -310,13 +326,14 @@ impl Factory {
             image,
             policy,
             shape,
+            providers,
         };
         let branch = record::push(&self.store, deployment, &push.pusher).await?;
         let current = self
             .recorded(deployment, Stage::Create, self.sandbox(&name))
             .await?;
         match current {
-            Some(sandbox) if sandbox::runs(&sandbox, &source) => {
+            Some(sandbox) if sandbox::runs(&name, &sandbox, &source) => {
                 self.recorded(deployment, Stage::Restart, self.restart(&name, &sandbox))
                     .await?;
             }
@@ -421,6 +438,7 @@ impl Factory {
             applied_revision: record.revision,
             failed,
             warning: record.warning,
+            ungranted_providers: record.ungranted_providers,
         }))
     }
 

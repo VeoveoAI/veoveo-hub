@@ -34,6 +34,49 @@ pub(super) fn providers(sandbox: &str) -> Vec<String> {
     vec![registration_provider(sandbox), lore_provider(sandbox)]
 }
 
+/// The most providers a revision may request.
+const MAX_REQUESTED_PROVIDERS: usize = 16;
+
+/// The revision's `openshell/providers.yaml`: `providers`, a list of the installation's
+/// provider names, each a lowercase DNS label, at most 16 and each once. No file requests
+/// none.
+pub(super) fn requested_providers(file: Option<&str>) -> Result<Vec<String>> {
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Requested {
+        #[serde(default)]
+        providers: Vec<String>,
+    }
+    let Some(file) = file else {
+        return Ok(Vec::new());
+    };
+    let requested: Requested = serde_yaml::from_str(file).map_err(|error| {
+        anyhow::anyhow!("the repository's openshell/providers.yaml is invalid: {error}")
+    })?;
+    let mut seen = std::collections::BTreeSet::new();
+    ensure!(
+        requested.providers.len() <= MAX_REQUESTED_PROVIDERS
+            && requested.providers.iter().all(|name| {
+                (1..=63).contains(&name.len())
+                    && name
+                        .bytes()
+                        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+                    && !name.starts_with('-')
+                    && !name.ends_with('-')
+                    && seen.insert(name.as_str())
+            }),
+        "the repository's openshell/providers.yaml names at most {MAX_REQUESTED_PROVIDERS} providers, each a lowercase DNS label, once"
+    );
+    Ok(requested.providers)
+}
+
+/// Every provider the instance's sandbox attaches: its own and the granted ones.
+fn attached(sandbox: &str, source: &Source) -> Vec<String> {
+    let mut attached = providers(sandbox);
+    attached.extend(source.providers.iter().cloned());
+    attached
+}
+
 /// The server setting the registration profile carries the instance's token in.
 pub(super) const REGISTRATION_SECRET: &str = "VEOVEO_REGISTRATION_SECRET";
 
@@ -174,7 +217,7 @@ pub(super) fn create_request(
                 ..Default::default()
             }),
             policy: Some(source.policy.clone()),
-            providers: providers(&name),
+            providers: attached(&name, source),
             command: start_command(&source.remote, branch),
             restart_policy: p::SandboxRestartPolicy::Always as i32,
             ..Default::default()
@@ -183,17 +226,24 @@ pub(super) fn create_request(
     }
 }
 
-/// Whether the sandbox runs this source: its image, under its policy, with its shape, as
-/// OpenShell recorded its create request. OpenShell records a created sandbox's policy in
-/// its canonical form, which [`policy`] returns, so an unchanged policy compares equal,
-/// and its size and driver configuration as they were sent.
-pub(super) fn runs(sandbox: &p::Sandbox, source: &Source) -> bool {
+/// Whether the sandbox `name` runs this source: its image, under its policy, with its
+/// shape and its providers, as OpenShell recorded its create request. OpenShell records a
+/// created sandbox's policy in its canonical form, which [`policy`] returns, so an
+/// unchanged policy compares equal, and its size, driver configuration and providers as
+/// they were sent.
+pub(super) fn runs(name: &str, sandbox: &p::Sandbox, source: &Source) -> bool {
+    let mut attached = attached(name, source);
+    attached.sort();
     sandbox.spec.as_ref().is_some_and(|spec| {
-        spec.template.as_ref().is_some_and(|template| {
-            template.image == source.image.as_str()
-                && template.resources == source.shape.resources
-                && template.driver_config == source.shape.driver_config
-        }) && spec.policy.as_ref() == Some(&source.policy)
+        let mut providers = spec.providers.clone();
+        providers.sort();
+        providers == attached
+            && spec.template.as_ref().is_some_and(|template| {
+                template.image == source.image.as_str()
+                    && template.resources == source.shape.resources
+                    && template.driver_config == source.shape.driver_config
+            })
+            && spec.policy.as_ref() == Some(&source.policy)
     })
 }
 
@@ -226,6 +276,36 @@ fn limits(cpu: &str, memory: &str) -> Option<Struct> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_revision_requests_providers_by_label_once_in_the_files_form() {
+        assert_eq!(requested_providers(None).unwrap(), Vec::<String>::new());
+        assert_eq!(
+            requested_providers(Some("{}")).unwrap(),
+            Vec::<String>::new()
+        );
+        assert_eq!(
+            requested_providers(Some("providers:\n  - vv-factory-model\n  - mail\n")).unwrap(),
+            ["vv-factory-model", "mail"]
+        );
+        let many = format!(
+            "providers: [{}]",
+            (0..17)
+                .map(|i| format!("p{i}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        for file in [
+            "providers: [Model]",
+            "providers: [-model]",
+            "providers: [model, model]",
+            "providers: model",
+            "provider: [model]",
+            many.as_str(),
+        ] {
+            assert!(requested_providers(Some(file)).is_err(), "{file}");
+        }
+    }
 
     #[test]
     fn sandbox_names_are_routable_dns_labels_from_the_deployment() {

@@ -168,6 +168,7 @@ each registration's login and creates each data environment's database. The othe
 | `VEOVEO_ALLOW_LOOPBACK_HOSTS` | Accept loopback `Host` headers beside the issuer's host |
 | `VEOVEO_APPS_SANDBOX_ORIGIN` | Optional: the public origin of the Apps sandbox proxy, such as `https://sandbox.apps.veoveo.example`; without it the Hub hosts no App ([Apps host](#apps-host)) |
 | `VEOVEO_APPS_LISTEN_ADDRESS` | The socket address of the Apps listener, which serves only the sandbox proxy, `127.0.0.1:8081` by default; bound only with `VEOVEO_APPS_SANDBOX_ORIGIN` |
+| `VEOVEO_APPS_LISTENS_PER_SESSION` | The most open live-resource listens of one browser session on a replica, 8 by default ([live resources](#live-resources)) |
 
 The configuration's `secrets` section names the remaining secrets, such as the
 registration secret and the hosted authorization server's signing key, by
@@ -246,6 +247,17 @@ the others. The login is
 identifier, and its password is 256 random bits. The response grants the login as
 `veoveo_database`: `VEOVEO_SERVER_DATABASE_URL`, or the Hub's own URL without its
 user, with the login and its password. The Hub keeps only the login's name.
+
+A registration whose metadata declares surfaces, the SDK's `veoveo_surfaces`, is told
+where the Hub serves them. A server that declares a public route gets
+`veoveo_public_base`, `{issuer origin}/instances/{deployment}/{slug}`: the deployment
+names the instance, so two branches of one server have different bases, and a branch
+keeps its base across pushes because its instance keeps its deployment
+([public routes](#public-routes)). A server that declares an app origin gets
+`veoveo_app_origin`, `{slug}.{apps domain}` with the sandbox origin's scheme and port
+([app origins](#app-origins)); a registration or update that declares one is refused
+with `invalid_client_metadata` when the installation hosts no Apps or the slug is not a
+DNS label. The response is checked before anything is stored.
 
 An instance is one branch of a server repository, served from its own sandbox.
 `registration::create_instance` gives it a new deployment ID and a random 256-bit
@@ -370,7 +382,17 @@ secret only the gateway keeps; the Hub stores the secret's digest. The sandbox t
 the pushed image by digest, the factory template's size and driver configuration,
 restart policy `always`, both providers, and the installation's base policy with the
 network rules of the revision's `openshell/policy.yaml` added; a repository policy that
-sets anything else or reuses a base rule's name is refused. Its environment names
+sets anything else or reuses a base rule's name is refused. It also attaches the
+installation's providers that the revision requests in `openshell/providers.yaml`,
+`providers:` and a list of at most 16 provider names, each a lowercase DNS label, once,
+and that the control plane's `factory.providers` grants to the instance's repository:
+each grant names a provider the installation created in the factory workspace, such as
+`vv-factory-model`, and the Lore repository IDs it is granted to. A request never adds a
+policy rule, so a branch gains only what the provider's own endpoints allow. The
+instance's status names each requested provider its repository is not granted, as
+`ungrantedProviders`, and the sandbox runs without it; a file that is not that form fails
+the push at `create`, and a granted provider the workspace does not hold fails the
+sandbox's creation. Its environment names
 `VEOVEO_DEPLOYMENT_ID`, `LORE_IDENTITY`, `VEOVEO_PUBLIC_BASE_URL`
 (`http://<sandbox>.internal:<port>`), `VEOVEO_PORT` and `VEOVEO_HUB_ISSUER`. Its fixed
 start command clones `<loreServer>/<repository>` into `/sandbox/src` when no checkout
@@ -426,13 +448,14 @@ and holds no assignment of its own; a pusher without the grant is refused with
 `invalid_grant`. Before every sandbox creation and restart the Hub rotates the
 credential, so the sandbox starts as the latest pusher.
 
-A push applies to an existing instance by the image, the policy, the size and the
-driver configuration its sandbox runs, which OpenShell reports as the sandbox's spec:
-the policy in the canonical form OpenShell records at creation, which is the form the
-Hub composes, and the size and driver configuration as the Hub passed them. The Hub
-never updates a sandbox's configuration; OpenShell's `UpdateConfig` needs
-`config:write`, which the Hub's identity does not hold. With the same image, policy,
-size and driver configuration the Hub stops and starts the sandbox; the start command
+A push applies to an existing instance by the image, the policy, the size, the driver
+configuration and the providers its sandbox runs, which OpenShell reports as the
+sandbox's spec: the policy in the canonical form OpenShell records at creation, which is
+the form the Hub composes, the size and driver configuration as the Hub passed them, and
+the providers as a set. The Hub never updates a sandbox's configuration; OpenShell's
+`UpdateConfig` needs `config:write`, which the Hub's identity does not hold. With the
+same image, policy, size, driver configuration and providers the Hub stops and starts
+the sandbox; the start command
 fetches the branch's latest revision. OpenShell's stop answers once the sandbox
 stopped, from ready, from a failed program and from a crash loop's automatic restart,
 and resets the restart count; its start runs the program at once. A sandbox still
@@ -551,7 +574,9 @@ access kind and every one of its risks. An explicitly declared `Authenticated`
 route needs current principal/profile admission and no additional permission; a target
 the server did not declare is denied. Server-wide and Task targets retain their
 requirement for at least one granted permission in that server's namespace.
-The Hub's own administrative actions are decided by the configuration's policy
+A request on a server's app origin is the action `app_origin` on the target
+`app_origin`, decided by the server's `app_origin` requirement as a tool's requirement
+is. The Hub's own administrative actions are decided by the configuration's policy
 rules. A grant or rule that names a group matches the caller's groups: their identity
 provider's, and their Lore groups by ID ([groups and sharing](#groups-and-sharing)).
 
@@ -783,6 +808,36 @@ retaining owner mappings, native workspace IDs and working storage. Tasks,
 Artifacts, trusted configuration and unrelated storage are untouched. A fresh
 ordinary login establishes new custody; there is no legacy binding or backfill.
 
+## Public Routes
+
+A server's public routes carry no Hub authentication and serve only callers that verify
+themselves, such as a signed webhook. Each is a prefix its registration declares under
+its mount, with the largest body it admits and its request rate. `src/surfaces` serves
+every deployment's at `{issuer origin}/instances/{deployment}/{slug}/...`, the
+deployment's `veoveo_public_base` followed by the rest of the prefix, so an instance's
+routes need no tunnel route or Hub service of their own, and a branch keeps its URLs
+across pushes. The path after the deployment is the server's own, `/{slug}/...`, and the
+request reaches that deployment, live or orphaned, as long as it is registered:
+
+1. The path must be one of nonempty segments with no dot segment and no encoded slash,
+   dot or backslash, and it must lie within a declared prefix; anything else, an unknown
+   deployment included, answers 404, so a server's own router reads the path as the Hub
+   matched it and nothing outside its prefixes is reached.
+2. Each prefix of each deployment has a token bucket in each replica that holds as many
+   requests as its rate and refills at its rate; an empty bucket answers 429 with
+   `Retry-After`.
+3. A body declared or read beyond the prefix's limit answers 413; the Hub reads the body,
+   at most 16 MiB, before it forwards.
+4. The request goes over the deployment's upstream transport, its factory sandbox's
+   forward for an instance, with its method, path, query and headers, minus hop-by-hop
+   fields and `Cookie`, since the issuer's cookies are the Hub's sessions, and with
+   `Host` set to the issuer's host, the public base's, which the server admits for its
+   public routes. The answer comes back streamed, minus hop-by-hop fields and
+   `Set-Cookie`, since no server sets a cookie on the issuer's origin.
+
+The Hub records no audit of a public route request: no person makes it, and the server
+verifies its caller.
+
 ## Apps Host
 
 The Hub is the installation's MCP Apps host, a web host by MCP Apps `2026-01-26`. An
@@ -804,19 +859,22 @@ first label is `sandbox`, and the rest is the apps domain, whose wildcard
 |---|---|---|
 | The issuer's | The Hub's | Each App's host page and bridge |
 | `sandbox.{apps domain}` | The Apps listener | The sandbox proxy, and nothing else |
-| `{slug}.{apps domain}` | None | A server's own app origin, which a full web application's App frames; the Hub serves none, and admits it only as the one `frameDomains` source of that server's Apps |
+| `{slug}.{apps domain}` | The Apps listener | The app origin of a server whose registration declares one: its authenticated routes for a signed-in person ([server app origins](#server-app-origins)), which that server's Apps open top-level with `ui/open-link` |
 
-The listener a request arrives on decides what serves it, never its `Host` or
-`X-Forwarded-Host`: OpenShell's native ingress selects the Hub sandbox's service by
-the service hostname and rewrites the upstream `Host`, so the Hub never sees the public
-name. The Apps listener, on `VEOVEO_APPS_LISTEN_ADDRESS` and loopback-only by default
-like the Hub's, is exposed as the Hub sandbox's OpenShell service `apps`, beside its
-`http` service, and the route for `*.{apps domain}` names that service. It serves
-`GET /`, the proxy page, and answers 404 for every other path, whatever the request's
-`Host`; the Hub's own listener never serves the proxy page, and the Apps listener
-reaches no other route. The issuer's origin and the sandbox origin come from
-configuration, and the host page uses the latter as the proxy frame's source and as
-its `postMessage` target origin.
+The Hub's own listener never serves the proxy page or an app origin, and the Apps
+listener reaches no route of the Hub's own. OpenShell's native ingress selects the Hub
+sandbox's service by the service hostname and rewrites the upstream `Host`, so the Apps
+listener reads the public name from `X-Forwarded-Host`, which the installation's tunnel
+sets on the wildcard route from the name the browser asked for, replacing any value a
+client sent, and which the ingress passes on. A request whose one `X-Forwarded-Host` is
+`{slug}.{apps domain}`, with the sandbox origin's port, of a server whose registration
+declares an app origin goes to that origin. Every other request is the proxy's: `GET /`
+answers the proxy page and any other path 404, whatever the request's `Host`. The Apps
+listener, on `VEOVEO_APPS_LISTEN_ADDRESS` and loopback-only by default like the Hub's, is
+exposed as the Hub sandbox's OpenShell service `apps`, beside its `http` service, and the
+route for `*.{apps domain}` names that service. The issuer's origin and the sandbox origin
+come from configuration, and the host page uses the latter as the proxy frame's source
+and as its `postMessage` target origin.
 
 Startup refuses a sandbox origin that is not an `https` or `http` origin, whose host's
 first label is not `sandbox` or whose apps domain is not a lowercase DNS name of at
@@ -825,8 +883,64 @@ slug equal to the issuer's first label would then share the host page's origin. 
 origins take the sandbox origin's scheme and port. The slug `sandbox` names the
 proxy's origin, so registration refuses it, and no App path names it.
 
-Serving a server's app origin needs the request's public hostname, which this ingress
-does not convey, so the Hub serves no app origin.
+### Server App Origins
+
+A server whose application needs its own cookies, storage and routes, such as an
+existing web editor, declares an app origin in its registration's surfaces and the
+permission that admits a person to it as its `app_origin` requirement. Its origin is
+`{slug}.{apps domain}`; the origin is the server's alone, so its script reaches neither
+the issuer, nor the sandbox origin, nor another server's origin. The Hub signs the person
+in through the issuer, as identity-aware proxies do, and holds the session itself:
+
+1. A page load on the app origin without an admitted session is sent with 303 to the
+   issuer's `/app-origins/{slug}?path={path}&state={digest}`, carrying a new random
+   state in the host-only cookie `__Host-veoveo-app-state` of the app origin, valid ten
+   minutes, and its SHA-256 in `state`. `path` is the path and query to return to,
+   absolute, without a scheme-relative start, backslash or control character, at most
+   2 KiB. Any other request without a session answers 401.
+2. On the issuer, the person's Computer session admits them as it admits an App's host
+   page: without one, a page load signs in at `/computer`, and the sign-in returns to the
+   same entry. A server that no registration declares an app origin for answers 404.
+   The server's `app_origin` requirement must allow the person, decided as for a request
+   on the origin (step 4): a bearer of the family through the Hub's profile
+   authentication in process, so the decision sees the subject every request sees, its
+   scopes and groups included; otherwise the entry answers 403. The Hub then stores a code, 256 random bits of which it
+   keeps the SHA-256, bound to the state's digest, the server, the person's Computer and
+   session family and the return path, valid 60 seconds, and sends the browser with 303
+   to `https://{slug}.{apps domain}/_veoveo/session?code={code}`.
+3. `/_veoveo/session` is the one path of every app origin that the Hub answers itself:
+   a code is consumed once, only on its server's origin and only with the state cookie
+   whose digest it is bound to, so a code that leaks opens nothing in another browser,
+   and a code another browser started cannot be planted. It opens a session, 256 random
+   bits whose SHA-256 the Hub keeps with the server, the Computer and the family, sets it
+   in the host-only cookie `__Host-veoveo-app` until the family expires, clears the state
+   cookie and returns to the path. Every redirect answers `private, no-store` and
+   `Referrer-Policy: no-referrer`.
+4. Each request with a session cookie is admitted again: the session must belong to
+   this server, and its family is admitted as the Computer's own session admits it,
+   unrevoked, unexpired and still the Computer's. The Hub issues the family a bearer that
+   lives 60 seconds, as the bridge does, and admits it through the Hub's own profile
+   authentication in process. Admitted to the person's execution, the request routes to
+   the instance they selected for the server, which must declare the app origin; the
+   server's `app_origin` requirement must allow them, or the request answers 403. It
+   goes over that deployment's upstream transport with its method, path, query, headers
+   and streamed body, minus hop-by-hop fields and the Hub's own cookies, with `Host` set
+   to the app origin's host and the person's forwarded token, which lives 60 seconds and
+   names the server's endpoint as its audience. The answer streams back minus hop-by-hop
+   fields and any `Set-Cookie` of the Hub's own cookie names; the application's own
+   cookies, on its own origin, pass both ways. A protocol upgrade answers 501.
+
+An App opens its server's app origin with MCP Apps' `ui/open-link`; it cannot frame it.
+A frame nested in the App's frame inherits that frame's `sandbox="allow-scripts"` and
+its opaque origin, so the origin's session cookie is not sent and the application has
+no storage: measured in Chrome, such a nested frame got the Hub's 401 where a plain
+same-site frame of the origin reached the application. The host page carries the App's
+server's app origin when the server declares one, and its `ui/open-link` navigates the
+page to a URL of exactly that origin and refuses every other target.
+
+`hub.app_origin_code` and `hub.app_origin_session` hold the codes and sessions; a family's
+or Computer's deletion removes them, and an expired or revoked family admits none.
+Ending a person's sessions therefore ends their app origin sessions with them.
 
 ### Direct URL
 
@@ -859,7 +973,12 @@ policy sources and proxy URL as JSON data in a `<script type="application/json">
 element, never as markup. Its policy is `default-src 'none'; script-src 'self';
 connect-src 'self'; frame-src {sandbox origin}; img-src 'self' data:; base-uri 'none';
 form-action 'none'; frame-ancestors 'none'`, and it answers `Cache-Control: private,
-no-store` and `Referrer-Policy: no-referrer`.
+no-store` and `Referrer-Policy: no-referrer`. Its script is at `/apps/host-{digest}.js`,
+the first 16 bytes of the script's SHA-256 in hex, and answers `Cache-Control: public,
+max-age=31536000, immutable`: a cache anywhere between the Hub and the browser may keep
+it, and a new Hub's host pages, which no cache keeps, name its new script. A CDN rewrites
+a shorter lifetime, such as Cloudflare's four-hour browser lifetime over `no-cache`, so
+a script at a fixed path would outlive the Hub that served it.
 
 1. The host page creates the proxy frame from the sandbox origin with
    `sandbox="allow-scripts allow-same-origin"`, as the specification asks of the
@@ -948,6 +1067,7 @@ the person sees now:
 | `tools/call` | The SDK's `resolve_app_tool` finds the name for this App: a tool of the App's own server whose `_meta.ui` links it to this exact App with a visibility that includes `app` | `tools/call` of `{slug}__{name}` |
 | `resources/read` | The URI is the App's own server's: its scheme is the slug, or it starts with `ui://{slug}/` | `resources/read` |
 | `tasks/get`, `tasks/update`, `tasks/cancel` | Always; the Hub's Task routes admit only the person's own Tasks | The same request |
+| `subscriptions/listen` | It names only `resourceSubscriptions`, each of them the App's own server's ([live resources](#live-resources)) | The same request, answered with an event stream |
 | `ping` | Always | Answered by the bridge |
 
 Another method answers `-32601`; a refused tool or resource answers `-32602` naming
@@ -975,9 +1095,47 @@ the reason, logged at INFO, and reaches no server.
   App's policy, whose `script-src` and `style-src` allow `'unsafe-inline'`. Its frame
   is `allow-scripts` only, so its forms do not submit.
 
-Known limit: the host serves no reactive adapter. A view's `subscriptions/listen`
-answers `-32601`, so a reactive view reads current state through ordinary requests
-and receives no `ui/notifications/resource-updated` wake.
+### Live Resources
+
+MCP Apps `2026-01-26` lets a host forward a view's methods outside `ui/`, and the host
+forwards MCP's own `subscriptions/listen`: nothing is added to the `ui/` namespace. A
+view sends it to its bridge, `POST /apps/{slug}/{page}`, as every request, and the
+answer is the listen's stream, `text/event-stream` with one event per JSON-RPC message.
+The bridge route carries it because a POST answered by an event stream is MCP's own
+Streamable HTTP pattern, the one the Hub's endpoint answers a listen with; because that
+route already holds the session, exact-`Origin` and size checks; and because a page may
+itself end in any segment, so no suffix route such as `…/listen` names one App. The
+host page reads the stream with `fetch`, since `EventSource` cannot POST.
+
+- **Admission.** The App is in the person's catalog, and `params.notifications` names
+  `resourceSubscriptions` and nothing else: 1 to 64 URIs, each the App's own server's
+  by the rule of `resources/read`. A listen for list changes or Tasks, or for another
+  server's resource, answers `-32602` and reaches no server.
+- **Forwarding.** The bridge sends the listen, with the view's own request `id`, to the
+  Hub's `/mcp/{computers.profile}` in process as the person, as it sends every request,
+  so the profile's ordinary listen serves it: resource policy, the upstream listens on
+  the selected deployments, URI projection, and completion with a hint when the catalog
+  or the person's selection changes. Its bearer lives 15 minutes, the longest a
+  listen's forwarded token lives, and never beyond the session's refresh family.
+- **Relay.** Each message of the endpoint's stream becomes one event whose data is the
+  message's JSON text unchanged: `notifications/subscriptions/acknowledged`, each
+  `notifications/resources/updated` `{"uri": …}`, and the listen's final response, all
+  of which name the view's request. A listen the endpoint refuses answers JSON, as any
+  bridge request does. A comment every 15 seconds keeps the stream open through
+  proxies. A notification carries no domain state: the view reads current state through
+  an ordinary `resources/read`.
+- **Limits.** One browser session, its refresh family, holds at most
+  `VEOVEO_APPS_LISTENS_PER_SESSION` open listens on a replica, 8 by default; one more
+  answers 429 and reaches no server. The bridge reads the session again every five
+  seconds, under the five-second read bound of Computer streams, and ends the stream
+  when the session no longer admits, as after a logout or a refresh-token replay, or
+  when the listen's bearer expires. It then sends one final JSON-RPC error naming the
+  listen and why, and the view may listen again.
+- **Teardown.** The host page delivers the stream's messages into the frame unchanged,
+  and only after `ui/notifications/initialized`. It ends the stream, by aborting the
+  fetch, when the view sends `notifications/cancelled` naming the listen, when it tears
+  the App down, and when the page goes away. Ending the stream drops the in-process
+  listen, which ends its upstream listens on the servers.
 
 ## HTTP Surface
 
@@ -1002,16 +1160,21 @@ and receives no `ui/notifications/resource-updated` wake.
 | `POST /ucs.auth.RebacApi/CreateResource` | gRPC: registers the repository Lore is about to create, its creator its owner |
 | `POST /ucs.auth.RebacApi/DeleteResource` | gRPC: removes the repository Lore is about to delete, when an owner deletes it |
 | `GET /apps/{slug}/{page}` | The host page of the App `ui://{slug}/{page}` for the browser session ([Apps host](#apps-host)) |
-| `POST /apps/{slug}/{page}` | That App's bridge: one JSON-RPC request of its view, run as the person |
-| `GET /apps/host.js` | The host page's script |
+| `POST /apps/{slug}/{page}` | That App's bridge: one JSON-RPC request of its view, run as the person; a `subscriptions/listen` answers with its event stream |
+| `GET /apps/host-{digest}.js` | The host page's script, immutable ([host page](#host-page-and-sandbox-proxy)) |
+| Any method, `/instances/{deployment}/{slug}/...` | A deployment's public route, within a prefix its registration declares ([public routes](#public-routes)) |
+| `GET /app-origins/{slug}?path=…&state=…` | The entry of a server's app origin: a code for the browser holding the state ([server app origins](#server-app-origins)) |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
-The Apps listener serves one route, whatever the request's `Host`:
+The Apps listener serves the sandbox proxy and the servers' app origins, which
+`X-Forwarded-Host` tells apart:
 
 | Route | Purpose |
 |---|---|
-| `GET /` | The sandbox proxy, at `sandbox.{apps domain}`, under the App's policy its query names ([Apps host](#apps-host)) |
+| `GET /` | The sandbox proxy, at `sandbox.{apps domain}` or any other name that is not a declared app origin, under the App's policy its query names ([Apps host](#apps-host)) |
+| `GET /_veoveo/session?code=…` on `{slug}.{apps domain}` | A code's redemption for a session on the app origin |
+| Any other request on `{slug}.{apps domain}` | The server's authenticated routes, for the signed-in person |
 
 `GET /admin/{profile}/control-plane` answers the active control plane with its
 revision ID, in the body as `revisionId` and as the strong entity tag

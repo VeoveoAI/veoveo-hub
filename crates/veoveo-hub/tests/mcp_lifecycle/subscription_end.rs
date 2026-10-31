@@ -147,6 +147,7 @@ async fn qualify() {
             uri_scheme: "streamfixture".parse().unwrap(),
             version: ServerVersion::new("0.1.0").unwrap(),
             endpoint: ServerEndpoint::new(endpoint.parse().unwrap()).unwrap(),
+            surfaces: None,
         },
         serde_json::from_value(serde_json::json!({
             "permissions": [{

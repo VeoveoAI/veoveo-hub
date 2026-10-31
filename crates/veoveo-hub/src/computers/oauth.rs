@@ -567,18 +567,25 @@ fn return_cookies(headers: &HeaderMap) -> Vec<String> {
         .collect()
 }
 
-/// The App path of the request's one return cookie, when it parses as an App's. Two
-/// return cookies name no App.
+/// Where a sign-in returns: an App's path, or the entry of a server's app origin,
+/// re-spelled canonically; anything else is none.
+fn return_target(path: &str) -> Option<String> {
+    crate::apps::AppView::from_path(path)
+        .map(|view| view.path())
+        .or_else(|| crate::apps::entry_from_path(path))
+}
+
+/// The return target of the request's one return cookie. Two return cookies name none.
 fn returning_app(headers: &HeaderMap) -> Option<String> {
     match return_cookies(headers).as_slice() {
-        [path] => crate::apps::AppView::from_path(path).map(|view| view.path()),
+        [path] => return_target(path),
         _ => None,
     }
 }
 
 fn return_cookie(path: &str, age: i64) -> Result<HeaderValue> {
     ensure!(
-        path.is_empty() || crate::apps::AppView::from_path(path).is_some(),
+        path.is_empty() || return_target(path).as_deref() == Some(path),
         "invalid App return path"
     );
     Ok(HeaderValue::from_str(&format!(
@@ -593,6 +600,16 @@ pub(crate) fn sign_in_for_app(view: &crate::apps::AppView) -> Result<Response> {
     response
         .headers_mut()
         .append(header::SET_COOKIE, return_cookie(&view.path(), LOGIN_TTL)?);
+    Ok(response)
+}
+
+/// Sign in to enter a server's app origin: `/computer` signs the browser in, and the
+/// callback returns it to `entry`, the issuer's entry of that origin.
+pub(crate) fn sign_in_for_entry(entry: &str) -> Result<Response> {
+    let mut response = redirect(super::pages::ENTRY)?;
+    response
+        .headers_mut()
+        .append(header::SET_COOKIE, return_cookie(entry, LOGIN_TTL)?);
     Ok(response)
 }
 

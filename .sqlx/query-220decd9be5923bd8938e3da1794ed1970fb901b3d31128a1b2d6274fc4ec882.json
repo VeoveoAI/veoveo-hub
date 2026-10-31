@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT revision, served_at IS NOT NULL AS \"served!\", failed_stage, failed_message, warning\nFROM hub.instance\nWHERE deployment = $1\n",
+  "query": "SELECT revision, served_at IS NOT NULL AS \"served!\", failed_stage, failed_message, warning,\n    ungranted_providers\nFROM hub.instance\nWHERE deployment = $1\n",
   "describe": {
     "columns": [
       {
@@ -52,6 +52,17 @@
             "name": "warning"
           }
         }
+      },
+      {
+        "ordinal": 5,
+        "name": "ungranted_providers",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "ungranted_providers"
+          }
+        }
       }
     ],
     "parameters": {
@@ -64,8 +75,9 @@
       null,
       true,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "3eaa3be541deaf3747ec4ae04b8688f379b15652d1bcb3935db8ec46e4cbe8be"
+  "hash": "220decd9be5923bd8938e3da1794ed1970fb901b3d31128a1b2d6274fc4ec882"
 }

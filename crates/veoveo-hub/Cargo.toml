@@ -62,6 +62,7 @@ schemars = { workspace = true, features = ["chrono04", "url2", "uuid1"] }
 secrecy.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+serde_yaml.workspace = true
 sha2.workspace = true
 sse-stream.workspace = true
 sqlx.workspace = true

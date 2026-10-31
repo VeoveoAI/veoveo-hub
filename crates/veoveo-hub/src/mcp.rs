@@ -20,6 +20,7 @@ mod upstream;
 mod upstream_authorized_http;
 mod upstream_connection;
 mod upstream_http;
+pub(crate) use upstream_authorized_http::forwarded_bearer;
 pub use upstream_http::{HubUpstreamHttpClientPool, upstream_client_builder};
 
 use std::{future::Future, sync::Arc};

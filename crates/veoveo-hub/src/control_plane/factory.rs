@@ -45,6 +45,47 @@ pub struct FactoryConfiguration {
     /// Per-user caps; without them, nothing is counted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub caps: Option<FactoryCaps>,
+    /// The installation's providers a branch may request in `openshell/providers.yaml`,
+    /// each with the repositories granted it. An instance gets only those it requests
+    /// that are granted to its repository.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub providers: Vec<FactoryProviderGrant>,
+}
+
+/// One of the installation's providers in the factory workspace, such as
+/// `vv-factory-model`, and the Lore repositories whose instances may have it attached.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FactoryProviderGrant {
+    pub provider: String,
+    /// Lore repository IDs: 32 lowercase hexadecimal digits each.
+    pub repositories: Vec<String>,
+}
+
+impl FactoryConfiguration {
+    /// The providers among `requested` granted to `repository`, and those not granted,
+    /// each sorted and once.
+    pub fn granted_providers(
+        &self,
+        repository: &str,
+        requested: &[String],
+    ) -> (Vec<String>, Vec<String>) {
+        let requested: std::collections::BTreeSet<&String> = requested.iter().collect();
+        let (granted, ungranted): (Vec<&String>, Vec<&String>) =
+            requested.into_iter().partition(|name| {
+                self.providers.iter().any(|grant| {
+                    &&grant.provider == name
+                        && grant
+                            .repositories
+                            .iter()
+                            .any(|granted| granted == repository)
+                })
+            });
+        (
+            granted.into_iter().cloned().collect(),
+            ungranted.into_iter().cloned().collect(),
+        )
+    }
 }
 
 /// Soft caps: exceeding one warns in the instance's status, unless `enforce` refuses it.
@@ -107,6 +148,23 @@ impl FactoryConfiguration {
         {
             return Err(invalid("a cap admits at least one instance"));
         }
+        let mut named = std::collections::BTreeSet::new();
+        for grant in &self.providers {
+            if !dns_label(&grant.provider)
+                || !named.insert(grant.provider.as_str())
+                || grant.repositories.is_empty()
+                || !grant.repositories.iter().all(|repository| {
+                    repository.len() == 32
+                        && repository
+                            .bytes()
+                            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                })
+            {
+                return Err(invalid(
+                    "a provider grant names one provider by a lowercase DNS label, once, and Lore repository IDs of 32 lowercase hexadecimal digits",
+                ));
+            }
+        }
         Ok(())
     }
 }
@@ -118,4 +176,49 @@ fn dns_label(value: &str) -> bool {
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
         && !value.starts_with('-')
         && !value.ends_with('-')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_repository_gets_only_the_requested_providers_granted_it() {
+        let mut configuration: FactoryConfiguration = serde_json::from_value(serde_json::json!({
+            "gateway": {"endpoint": "https://gateway.example/", "certificateAuthority": "/ca.pem", "bearerEnvironment": "BEARER"},
+            "workspace": "vv-factory",
+            "policyFile": "/policy.yaml",
+            "template": {"workspace": "vv-factory", "name": "factory"},
+            "port": 8800,
+            "hubIssuer": "https://hub.example",
+            "loreServer": "grpcs://lore.example:41337",
+            "registrationProfile": "vv-factory-registration",
+            "loreProfile": "vv-factory-lore",
+            "imageBuilder": {"buildkit": "tcp://buildkitd.internal:1234", "registry": "registry.internal:5000"},
+            "providers": [
+                {"provider": "vv-factory-model", "repositories": ["0123456789abcdef0123456789abcdef"]}
+            ]
+        }))
+        .unwrap();
+        let requested = [
+            "mail".to_owned(),
+            "vv-factory-model".to_owned(),
+            "mail".to_owned(),
+        ];
+        assert_eq!(
+            configuration.granted_providers("0123456789abcdef0123456789abcdef", &requested),
+            (vec!["vv-factory-model".to_owned()], vec!["mail".to_owned()])
+        );
+        assert_eq!(
+            configuration.granted_providers("fedcba9876543210fedcba9876543210", &requested),
+            (
+                Vec::new(),
+                vec!["mail".to_owned(), "vv-factory-model".to_owned()]
+            )
+        );
+        configuration.providers[0].repositories = vec!["not-a-repository".into()];
+        let plane: HubControlPlane =
+            serde_json::from_str(include_str!("../../testdata/hub.json")).unwrap();
+        assert!(configuration.validate(&plane).is_err());
+    }
 }

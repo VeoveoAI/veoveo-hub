@@ -12,10 +12,10 @@ use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
 use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditRequest};
 use veoveo_hub_sdk::registration::{
-    AccessTokenTrust, ClientInformation, ClientMetadata, ClientRegistrationRequest,
+    AccessTokenTrust, AppOrigin, ClientInformation, ClientMetadata, ClientRegistrationRequest,
     ClientUpdateRequest, DatabaseGrant, DatabaseIdentifier, DatabaseUrl, Ed25519Jwk, Ed25519JwkSet,
-    RegistrationAccessToken, RegistrationErrorCode, ResourceIndicator, SoftwareStatement,
-    StorageBinding, statement::verify_statement,
+    PublicBase, RegistrationAccessToken, RegistrationErrorCode, ResourceIndicator,
+    SoftwareStatement, StorageBinding, statement::verify_statement,
 };
 use veoveo_hub_sdk::{HubInternalSigningKey, TokenIssuer};
 use veoveo_store::{LoginName, ServerSchema};
@@ -94,7 +94,15 @@ pub(super) struct Inner {
     /// How long a registration may go without a live kernel instance of its login.
     pub(super) grace: Duration,
     pub(super) live: parking_lot::RwLock<LiveRegistrations>,
+    /// The issuer's origin, under which an instance's public routes are served.
+    pub(super) public_origin: String,
+    /// The installation's Apps origins, without which no server has an app origin.
+    pub(super) app_origins: Option<crate::apps::AppOrigins>,
 }
+
+/// The path segment under the issuer's origin that holds instances' public routes:
+/// `/instances/{deployment}/{slug}/...`.
+pub const INSTANCES_PATH: &str = "instances";
 
 /// A request's bearer credential, as the endpoint received it.
 pub enum Bearer<'a> {
@@ -201,10 +209,12 @@ impl RegistrationService {
         identity: RegistrationIdentity,
         database: ServerDatabase,
         grace: Duration,
+        app_origins: Option<crate::apps::AppOrigins>,
     ) -> anyhow::Result<Self> {
         veoveo_hub_sdk::registration::issuer_url(&identity.issuer)
             .context("the Hub issuer must be an https URL, or http on a local host")?;
         let issuer_url = url::Url::parse(identity.issuer.as_str())?;
+        let public_origin = issuer_url.origin().ascii_serialization();
         let mut registration_endpoint = issuer_url.clone();
         registration_endpoint.set_path("/oauth/register");
         let mut jwks_uri = issuer_url;
@@ -222,6 +232,8 @@ impl RegistrationService {
                 database,
                 grace,
                 live: parking_lot::RwLock::new(LiveRegistrations::default()),
+                public_origin,
+                app_origins,
             }),
         })
     }
@@ -276,6 +288,7 @@ impl RegistrationService {
         let authority = self.registration_authority(bearer).await?;
         let request: ClientRegistrationRequest = decode(body)?;
         request.metadata.check().map_err(invalid_metadata)?;
+        self.surfaces(&request.metadata)?;
         let now = Utc::now();
         let slug = request.metadata.slug().clone();
         if slug.as_str() == crate::store::SCHEMA {
@@ -453,6 +466,7 @@ impl RegistrationService {
             ));
         }
         request.metadata.check().map_err(invalid_metadata)?;
+        self.surfaces(&request.metadata)?;
         let deployment = registration.metadata.registration.deployment;
         if request.metadata.registration.deployment != deployment {
             return Err(RegistrationError::rejected(
@@ -619,6 +633,7 @@ impl RegistrationService {
         software_statement: SoftwareStatement,
         database: Option<DatabaseGrant>,
     ) -> Result<ClientInformation, RegistrationError> {
+        let (public_base, app_origin) = self.surfaces(&metadata)?;
         let information = ClientInformation {
             registration_client_uri: self.registration_client_uri(&client_id),
             client_id,
@@ -633,11 +648,54 @@ impl RegistrationService {
             metadata,
             software_statement,
             database,
+            public_base,
+            app_origin,
         };
         information
             .check()
             .context("the Hub built an invalid registration response")?;
         Ok(information)
+    }
+
+    /// Where the Hub serves the surfaces `metadata` declares: its instance's public base,
+    /// `{issuer origin}/instances/{deployment}/{slug}`, when it declares a public route,
+    /// and its app origin when it declares one, which needs the installation's Apps
+    /// origins and a slug that is a DNS label.
+    fn surfaces(
+        &self,
+        metadata: &ClientMetadata,
+    ) -> Result<(Option<PublicBase>, Option<AppOrigin>), RegistrationError> {
+        let Some(surfaces) = &metadata.registration.surfaces else {
+            return Ok((None, None));
+        };
+        let slug = metadata.slug();
+        let public_base = if surfaces.public_routes.is_empty() {
+            None
+        } else {
+            let base = format!(
+                "{}/{INSTANCES_PATH}/{}/{slug}",
+                self.inner.public_origin, metadata.registration.deployment
+            );
+            Some(PublicBase::parse(&base).map_err(invalid_metadata)?)
+        };
+        let app_origin = if surfaces.app_origin {
+            let Some(origins) = &self.inner.app_origins else {
+                return Err(RegistrationError::rejected(
+                    RegistrationErrorCode::InvalidClientMetadata,
+                    "this installation hosts no Apps, so no server has an app origin",
+                ));
+            };
+            if !dns_label(slug.as_str()) {
+                return Err(RegistrationError::rejected(
+                    RegistrationErrorCode::InvalidClientMetadata,
+                    format!("software_id `{slug}` is not a DNS label, so it names no app origin"),
+                ));
+            }
+            Some(AppOrigin::parse(&origins.app_origin(slug)).map_err(invalid_metadata)?)
+        } else {
+            None
+        };
+        Ok((public_base, app_origin))
     }
 
     pub(super) async fn audit(
@@ -686,6 +744,17 @@ fn decode<T: serde::de::DeserializeOwned>(body: &[u8]) -> Result<T, Registration
             ),
         )
     })
+}
+
+/// RFC 1035 §2.3.1 as RFC 1123 §2.1 relaxes it: 1 to 63 lowercase letters, digits and
+/// hyphens, neither first nor last a hyphen.
+fn dns_label(value: &str) -> bool {
+    (1..=63).contains(&value.len())
+        && !value.starts_with('-')
+        && !value.ends_with('-')
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
 }
 
 fn invalid_metadata(error: veoveo_hub_sdk::registration::DeclarationError) -> RegistrationError {

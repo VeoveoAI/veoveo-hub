@@ -22,6 +22,11 @@ pub(crate) struct ComputerConfiguration {
     pub(super) http: Client,
 }
 impl ComputerConfiguration {
+    /// The Computers section this runtime was prepared from.
+    pub(crate) fn config(&self) -> &Arc<Computers> {
+        &self.config
+    }
+
     pub async fn prepare(
         config: Computers,
         previous: Option<&Self>,

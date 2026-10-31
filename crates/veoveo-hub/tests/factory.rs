@@ -212,6 +212,25 @@ impl Fixture {
         .with_builder(self.builder.clone())
     }
 
+    /// Another factory on the same gateway, database and builder, granting `providers`.
+    fn with_providers(&self, providers: serde_json::Value) -> Factory {
+        let mut configuration = configuration_json(
+            self.directory.path(),
+            "https://gateway.example/",
+            Path::new("/unused/ca.pem"),
+            json!(null),
+        );
+        configuration["providers"] = providers;
+        Factory::new(
+            serde_json::from_value(configuration).unwrap(),
+            self.catalog.clone(),
+            self.client.clone(),
+            self.db.a.clone(),
+        )
+        .unwrap()
+        .with_builder(self.builder.clone())
+    }
+
     /// A revision's `openshell/` whose image `Dockerfile` is `dockerfile`.
     fn prepared(&self, dockerfile: &str, policy: Option<&str>) -> Prepared {
         let context = tempfile::tempdir_in(self.directory.path()).unwrap().keep();
@@ -219,6 +238,7 @@ impl Fixture {
         Prepared {
             image_context: context,
             policy: policy.map(str::to_owned),
+            providers: None,
         }
     }
 
@@ -2277,6 +2297,128 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         assert_eq!(
             taken["type"],
             "https://veoveo.ai/problems/repository-exists"
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn an_instance_gets_only_the_requested_providers_granted_to_its_repository() {
+    bounded(async {
+        let fixture = Fixture::start(json!(null)).await;
+        // The installation's providers exist in the factory workspace; a branch only
+        // requests them.
+        fixture.gateway.add_provider(WORKSPACE, "vv-factory-model");
+        let factory = fixture.with_providers(json!([
+            {"provider": "vv-factory-model", "repositories": [REPOSITORY]},
+            {"provider": "vv-factory-mail", "repositories": ["fedcba9876543210fedcba9876543210"]},
+        ]));
+        let requesting = |providers: Option<&str>| {
+            let mut prepared = fixture.prepared("FROM a", None);
+            prepared.providers = providers.map(str::to_owned);
+            prepared
+        };
+        let attached = |deployment| {
+            let mut providers = fixture.sandbox(deployment).unwrap().spec.unwrap().providers;
+            providers.sort();
+            providers
+        };
+        let request = "providers: [vv-factory-model, vv-factory-mail, vv-factory-search]\n";
+        factory
+            .apply(
+                &REPOSITORY,
+                &branch_name(BASE),
+                push('1', "alice"),
+                requesting(Some(request)),
+            )
+            .await
+            .unwrap();
+        let status = fixture.status(BASE).await.unwrap();
+        let deployment = status.deployment;
+        let name = sandbox_name(deployment);
+        // Granted to another repository or to none: named in the status, not attached.
+        assert_eq!(
+            status.ungranted_providers,
+            ["vv-factory-mail", "vv-factory-search"]
+        );
+        assert_eq!(
+            attached(deployment),
+            [
+                format!("{name}-lore"),
+                format!("{name}-registration"),
+                "vv-factory-model".into()
+            ]
+        );
+        let ready = async || {
+            fixture
+                .gateway
+                .set_phase(WORKSPACE, &name, p::SandboxPhase::Ready);
+            served(&fixture.db.a, deployment).await;
+            fixture.gateway.take_calls();
+        };
+        ready().await;
+
+        // The same request again restarts the sandbox; dropping the request replaces it,
+        // as a changed policy does, and clears the status.
+        factory
+            .apply(
+                &REPOSITORY,
+                &branch_name(BASE),
+                push('2', "alice"),
+                requesting(Some(request)),
+            )
+            .await
+            .unwrap();
+        let calls = fixture.gateway.take_calls();
+        assert!(
+            !calls
+                .iter()
+                .any(|call| matches!(call, Call::CreateSandbox(_))),
+            "an unchanged request restarts: {calls:?}"
+        );
+        ready().await;
+        factory
+            .apply(
+                &REPOSITORY,
+                &branch_name(BASE),
+                push('3', "alice"),
+                requesting(None),
+            )
+            .await
+            .unwrap();
+        let calls = fixture.gateway.take_calls();
+        assert!(
+            calls
+                .iter()
+                .any(|call| matches!(call, Call::CreateSandbox(_))),
+            "a changed request replaces the sandbox: {calls:?}"
+        );
+        assert_eq!(
+            attached(deployment),
+            [format!("{name}-lore"), format!("{name}-registration")]
+        );
+        assert!(
+            fixture
+                .status(BASE)
+                .await
+                .unwrap()
+                .ungranted_providers
+                .is_empty()
+        );
+
+        // A request that is not the file's form fails the push and leaves the sandbox.
+        let failed = factory
+            .apply(
+                &REPOSITORY,
+                &branch_name(BASE),
+                push('4', "alice"),
+                requesting(Some("providers: [Not-A-Label]\n")),
+            )
+            .await;
+        assert!(failed.is_err());
+        assert_eq!(
+            fixture.status(BASE).await.unwrap().failed.unwrap().stage,
+            Stage::Create
         );
     })
     .await;

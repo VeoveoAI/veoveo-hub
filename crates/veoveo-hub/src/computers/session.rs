@@ -71,6 +71,34 @@ impl HubState {
         .context("Computer admission read deadline")?
     }
 
+    /// The browser session of a session cookie on `server`'s app origin: the admission of
+    /// the Computer's own session, for the family the cookie's sign-in opened there.
+    pub async fn app_origin_browser_session(
+        &self,
+        catalog: &HubCatalog,
+        config: &Computers,
+        digest: &Sha256Digest,
+        server: &veoveo_types::ServerSlug,
+    ) -> Result<Option<BrowserSession>> {
+        tokio::time::timeout(ADMISSION_READ_TIMEOUT, async {
+            let Some((computer, family)) =
+                self.hub_store().app_origin_session(digest, server).await?
+            else {
+                return Ok(None);
+            };
+            if !computer.ready
+                || computer.handoff.is_some()
+                || computer.family.as_ref() != Some(&family.id)
+            {
+                return Ok(None);
+            }
+            self.admit_computer_family(catalog, config, computer, family)
+                .await
+        })
+        .await
+        .context("app origin admission read deadline")?
+    }
+
     /// The browser session of a sign-in that joins the family the Computer already
     /// holds, while that family is still admitted. None when the Computer has no
     /// admitted family or its custody is changing: the sign-in hands its own off.
