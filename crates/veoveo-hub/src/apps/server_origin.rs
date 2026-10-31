@@ -614,7 +614,9 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
         Ok(bearer) => bearer,
         Err(error) => return unavailable(&error),
     };
-    let client = match origins.upstream.http_client(
+    // The catalog's pool carries the native transport to factory sandboxes, as MCP's does.
+    let pool = catalog.upstream_http().unwrap_or(&origins.upstream);
+    let client = match pool.http_client(
         registered.deployment,
         &registered.endpoint,
         registered.branch.is_some(),

@@ -157,7 +157,9 @@ async fn forward(State(routes): State<PublicRoutes>, request: Request) -> Respon
     let Ok(body) = axum::body::to_bytes(body, limit).await else {
         return too_large();
     };
-    let client = match routes.upstream.http_client(
+    // The catalog's pool carries the native transport to factory sandboxes, as MCP's does.
+    let pool = catalog.upstream_http().unwrap_or(&routes.upstream);
+    let client = match pool.http_client(
         server.deployment,
         &server.endpoint,
         server.branch.is_some(),
