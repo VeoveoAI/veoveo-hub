@@ -161,6 +161,39 @@ canonical model. Keep raw generated outputs untouched and restore the source bef
 checking canonical hashes and the ordinary proof. This supplies no native-execution
 or full selected-pipeline guarantee beyond the stated model boundary.
 
+## Checked finite selection scan
+
+[SelectedCollectionProof.lean](SelectedCollectionProof.lean) establishes the next
+collection building block. Its independent `Eligible` relation requires a component
+requesting the exact deployment key, a matching keyed lookup of the whole row, and
+the requested server slug. The reference emission sequence contains exactly these
+rows. Equal emitted deployment keys imply equal whole rows by deterministic lookup;
+no component-uniqueness or desired-route premise is used.
+
+The component cursor and this package's `filterMapNext` recurrence are total over
+finite suffixes. The actual extracted entry predicate supplies each decision and
+preserves the complete snapshot closure. Each resulting cursor step advances through
+the reference emission sequence. These recurrence proofs concern the explicit
+standard-library operational models used by the extraction, not independent native
+verification of Rust's iterators, BTreeMap or Arc.
+
+The [finite-scan receipt](evidence/finite-selection-scan-checkpoint.json) records
+the direct check (**2.774 s**) and nondefault target build (**3.429 s**), with five
+standard-only audits and an unchanged 62-entry effective source/configuration map
+for the target. The prior entry proof and generated models retain their hashes.
+With the documented private patched-tool setup, run explicitly:
+
+```sh
+LAKE_NO_UPDATE=1 lake env lean SelectedCollectionProof.lean
+LAKE_NO_UPDATE=1 lake build SelectedCollectionProof
+```
+
+Ordered map insertion, `collectMap`'s complete result and connection to the actual
+`selected` body remain open. So do per-slug route uniqueness, constructor coherence,
+namespace-helper completion and request/issuer composition. The finite-scan proofs
+use no namespace-helper success assumption. This checkpoint does not close the full
+selection slice or its semantic qualification.
+
 ## Intended contract
 
 For an admitted request, the selected registration determines the recipient slug,

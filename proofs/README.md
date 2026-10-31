@@ -651,6 +651,13 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   semantic counterexample and exact canonical restoration
   ([control receipt](request_composition/evidence/selected-entry-control.json)).
   Full collection, derived route uniqueness and composed request routing remain open.
+  The [finite scan](request_composition/SelectedCollectionProof.lean) now establishes
+  total cursor steps in the explicit iterator model using the qualified extracted
+  entry predicate, exact eligible reference-sequence contents, and equal-key whole-row
+  consistency. Five standard-only audits and direct/nondefault target checks pass
+  ([receipt](request_composition/evidence/finite-selection-scan-checkpoint.json)).
+  This does not yet prove ordered map insertion, `collectMap`'s result or the full
+  `selected` body; native iterator/collection correspondence remains a boundary.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

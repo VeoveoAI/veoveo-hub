@@ -1,0 +1,232 @@
+{
+  "kind": "finite selection scan over explicit iterator models with qualified extracted entry predicate",
+  "status": "checked partial request-composition milestone; map collection and full selected correctness remain open",
+  "source": {
+    "hub_runtime_revision": "3bc2923ca1d2e0c559e532286c16ec3d6a5ceb7a",
+    "hub_checkpoint_parent": "9b367d3ee1f358347372277d6e8009f588bac507",
+    "sdk_pin": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "extraction_receipt": "extraction-checkpoint.json",
+    "tooling_receipt": "discriminant-tooling-checkpoint.json",
+    "qualified_entry_receipt": "selected-entry-control.json"
+  },
+  "proof": {
+    "path": "SelectedCollectionProof.lean",
+    "sha256": "ee42d4430aaff9e1d01949b13488b806178890bf3bc9805c80bb1fb1421de8b0",
+    "declarations": [
+      "component_cursor_law",
+      "filter_map_next_correct",
+      "filtered_cursor_law",
+      "emitted_membership",
+      "emitted_key_functional"
+    ],
+    "allowed_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "axiom_audits": {
+      "component_cursor_law": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "emitted_key_functional": [
+        "propext",
+        "Quot.sound"
+      ],
+      "emitted_membership": [
+        "propext",
+        "Quot.sound"
+      ],
+      "filter_map_next_correct": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "filtered_cursor_law": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ]
+    },
+    "canonical_lakefile_sha256": "7ecb62053cfd9c9c63bb1a1031fc6591fd99218383bba53f5bec5e5ab30fbfa9",
+    "private_lakefile_sha256": "e7af7b71b8862a215a50047f3b779839b0f0a0f4ba54aa0f7e46d28f14ed94de"
+  },
+  "effective_sources": {
+    "baseline_receipt": "registration-lookup-checkpoint.json",
+    "baseline_receipt_sha256": "294ae4c99889158303c882e16ca9b14a4e3d8eda1b5fed3001d151175e7d71ca",
+    "baseline_json_pointer": "/validation/summary/private_source_map_before",
+    "overrides": {
+      "request_composition/SelectedRegistrationProof.lean": "01751908a5a2ffcb5ee9756b938fe87478929a557d066361a69996aac3fee209",
+      "request_composition/lakefile.lean": "e7af7b71b8862a215a50047f3b779839b0f0a0f4ba54aa0f7e46d28f14ed94de",
+      "request_composition/SelectedCollectionProof.lean": "ee42d4430aaff9e1d01949b13488b806178890bf3bc9805c80bb1fb1421de8b0"
+    },
+    "entries": 62,
+    "effective_map_sha256_canonical_json_sorted_compact": "6fa0d2a649e5cd8b04abfeb41fec2ea97ffd607fd21c923a8fb5e91df1a8033d",
+    "unchanged_during_checks": true,
+    "historical_map_field_correction": {
+      "baseline": {
+        "canonical_map_sha256": "56bc58ac1e99f593ff04be18f07ec145eefcc4c066c2563842a2a35eef0a42a6",
+        "receipt_sha256": "f1f84da46d22b44338467c48fae56719938bb147963301fdb7b92721862c4bdf",
+        "source_map_entries": 61
+      },
+      "created_utc": "2026-10-30",
+      "historical_summary": {
+        "path": "/tmp/hub-request-composition-20261030/evidence-selected-collection-target1/summary.json",
+        "sha256": "3a4917c5299fe3cddca402cd7cb488c5b278e8c5fe2897ce86d2d85f05dd1b98"
+      },
+      "historical_summary_preserved": true,
+      "kind": "supplemental source-map interpretation receipt",
+      "runner": {
+        "path": "/tmp/hub-request-composition-20261030/run-selected-collection-target1.py",
+        "sha256": "b6bd4ee2e3d287276a1c166b8c529d5b3541bc0ae0f86a42ee8e9fc95b9da025"
+      },
+      "source_map_fields_explanation": {
+        "differences_from_baseline": [
+          {
+            "baseline_sha256": "b05788f3150aa4112cedb19d3cad8f2a658e20be0f1000964fb8c63e610ef1be",
+            "effective_sha256": "e7af7b71b8862a215a50047f3b779839b0f0a0f4ba54aa0f7e46d28f14ed94de",
+            "path": "request_composition/lakefile.lean",
+            "reason": "approved private nondefault target declaration"
+          },
+          {
+            "baseline": "absent",
+            "effective_sha256": "ee42d4430aaff9e1d01949b13488b806178890bf3bc9805c80bb1fb1421de8b0",
+            "path": "request_composition/SelectedCollectionProof.lean",
+            "reason": "new proof leaf, already directly checked"
+          }
+        ],
+        "effective_map_entries": 62,
+        "effective_map_equal_to_after_map_plus_leaf": true,
+        "effective_map_sha256_canonical_json_sorted_compact": "6fa0d2a649e5cd8b04abfeb41fec2ea97ffd607fd21c923a8fb5e91df1a8033d",
+        "other_baseline_entries_unchanged": 60,
+        "private_lakefile_sha256_current": "e7af7b71b8862a215a50047f3b779839b0f0a0f4ba54aa0f7e46d28f14ed94de",
+        "proof_sha256_current": "ee42d4430aaff9e1d01949b13488b806178890bf3bc9805c80bb1fb1421de8b0",
+        "source_map_unchanged_semantics": "Runner compared every expected final effective entry after the build against the approved map: the 61-entry baseline with the lakefile hash replaced by the approved private target configuration, plus the leaf hash. Thus the boolean is true although the two serialized source_map_before/source_map_after objects are not directly equal.",
+        "summary_source_map_after_entries": 61,
+        "summary_source_map_after_semantics": "The baseline path set read after the build; existing lakefile value is the approved private override. The added leaf path is not in that baseline path set.",
+        "summary_source_map_before_entries": 62,
+        "summary_source_map_before_semantics": "The 61 baseline entries as originally hashed (including the original lakefile hash) plus the new SelectedCollectionProof leaf. This is not the effective compiler input map because the approved private lakefile override is applied after baseline verification and before invoking Lake."
+      },
+      "target_execution": {
+        "all_five_audits_present": true,
+        "audit_allowlist": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "command": "LAKE_NO_UPDATE=1 lake build SelectedCollectionProof",
+        "current_private_lakefile_sha256": "e7af7b71b8862a215a50047f3b779839b0f0a0f4ba54aa0f7e46d28f14ed94de",
+        "current_private_leaf_sha256": "ee42d4430aaff9e1d01949b13488b806178890bf3bc9805c80bb1fb1421de8b0",
+        "current_target_olean_sha256": "d4510ce839ec95aa2f9a6a33aae7fb372c02931999510ddc3e861cac17135830",
+        "elapsed_seconds": 3.429,
+        "exit": 0,
+        "log_evidence": "target.log in the historical evidence directory; it shows SelectedCollectionProof.lean audit declarations and Build completed successfully.",
+        "sorryAx_present": false,
+        "target_artifact_path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition/.lake/build/lib/lean/SelectedCollectionProof.olean",
+        "target_artifact_sha256": "d4510ce839ec95aa2f9a6a33aae7fb372c02931999510ddc3e861cac17135830",
+        "target_log_sha256": "bfef94a7346427fbfaf145886ba7be0c4f6bf9aef83ac5ab707df67c41ba65ca",
+        "timed_out": false
+      },
+      "validation_action": "Read-only reconciliation of the historical runner, receipt, target log, source files and OLean. No rerun and no historical receipt rewrite."
+    }
+  },
+  "validation": {
+    "lean_toolchain": "leanprover/lean4:v4.35.0",
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "packet_sha256": "ada1eb1476198f50274b2390db343d907f8896d31bc6bf197dd28d12285a13cd",
+    "direct": {
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "SelectedCollectionProof.lean"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+      "started_unix": 1793413684.6060147,
+      "elapsed_s": 2.774,
+      "timeout_s": 300,
+      "timed_out": false,
+      "exit": 0,
+      "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-collection-direct5/direct.log",
+      "log_bytes": 1802,
+      "log_sha256": "014b72b533a4f6be22eb78d995a0f28a80ff8b051dc8a962f94e1b6317069058",
+      "summary_sha256": "87e6ebdee25a852d054798ae276a6e01a0fcee75a07420b905e466f4c6bc9d41",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-selected-collection-direct5/summary.json"
+    },
+    "target": {
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build",
+        "SelectedCollectionProof"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+      "started_unix": 1793413787.5512834,
+      "elapsed_s": 3.429,
+      "timeout_s": 300,
+      "timed_out": false,
+      "exit": 0,
+      "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-collection-target1/target.log",
+      "log_bytes": 56747,
+      "log_sha256": "bfef94a7346427fbfaf145886ba7be0c4f6bf9aef83ac5ab707df67c41ba65ca",
+      "summary_sha256": "3a4917c5299fe3cddca402cd7cb488c5b278e8c5fe2897ce86d2d85f05dd1b98",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-selected-collection-target1/summary.json"
+    },
+    "artifact": {
+      "exists": true,
+      "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition/.lake/build/lib/lean/SelectedCollectionProof.olean",
+      "sha256": "d4510ce839ec95aa2f9a6a33aae7fb372c02931999510ddc3e861cac17135830"
+    },
+    "clarification_sha256": "44d2ba55d76463761425a7b611630045276108f942ed28d342afeb77eabdd983",
+    "no_full_package_or_native_run": true
+  },
+  "failed_attempts": [
+    {
+      "attempt": 1,
+      "cause": "Iterator projections were not reduced before case analysis.",
+      "proof_sha256": "9c25120c2fb53591851531ab3b6df0abb2e8852e31ed7349ac26d75e49708cc2",
+      "elapsed_s": 2.622,
+      "summary_sha256": "7cada1f25fa004d84d485d1fb7c9f30276624905f15384671ec561f0d33491f3",
+      "log_sha256": "76cddade33aee53526962e61abc909f047e8bdaf570484b2f293eef1cf62448e",
+      "qualification_credit": false
+    },
+    {
+      "attempt": 2,
+      "cause": "The finite-suffix equation needed rewriting before changing the goal.",
+      "proof_sha256": "8e53d5c905b2b1411edce2cd5bed68a2b829d009292b85406a294aea186c1ce9",
+      "elapsed_s": 2.472,
+      "summary_sha256": "4c67b49fc29b491c65f262c4a9121610a6219c0a948b718e4074e87e5b1fa895",
+      "log_sha256": "f043edc60c4370f5f50776c266d0f9f91efb02d6d329d469b3b8b63248ce2629",
+      "qualification_credit": false
+    },
+    {
+      "attempt": 3,
+      "cause": "The generated concrete callback did not match the trait projection used in the rewrite.",
+      "proof_sha256": "fe4d740619382b604f4af82da5be5719b56d83e91c5bbee25958961eff4603ae",
+      "elapsed_s": 2.522,
+      "summary_sha256": "3aa1a1918a891af032f774b8af4d9e3d2914cad6f878b0c77e3fc5160315aee3",
+      "log_sha256": "f5f8198c081770aece562c526f62653efc22e8d80b162d3029d7392ee99dab44",
+      "qualification_credit": false
+    },
+    {
+      "attempt": 4,
+      "cause": "A redundant simplification tactic failed with no progress after the semantic goals were fixed.",
+      "proof_sha256": "4cb29ec7135cc2f81d820a221840a9d5b4a142999fe31825a40b9fcafed93521",
+      "elapsed_s": 2.674,
+      "summary_sha256": "e98bbb6e52cd2e31476d5572211c5e0c409940b6c0f3e12fce91063d52647c0b",
+      "log_sha256": "4697326099fcde0443e52fcbcd3a981ec11b57462f1699c80637df5e69d24581",
+      "qualification_credit": false
+    }
+  ],
+  "limits": [
+    "Eligible is an independent exact-key lookup and requested-slug relation. Reference emissions have exactly those whole rows in both directions, and equal emitted keys carry equal rows without a composition-uniqueness premise.",
+    "The extracted selected-entry closure is qualified. The cursor and filterMapNext recurrences are handwritten operational models; their native Rust standard-library correspondence is not proved here.",
+    "No namespace-helper success or SDK issuer result is assumed by these five declarations. Compiler/translator, native collection, equality and clone correspondence remain explicit boundaries.",
+    "Ordered insertion, actual collectMap output, the full selected method, route uniqueness, constructor coherence, namespace construction, current-policy provenance and SDK issuer/recipient composition remain open.",
+    "The target requires the documented private patched-tool setup; it is not a default target. Raw generated models and the earlier entry proof are unchanged.",
+    "No production source, dependency pin, policy, native component result, deployment or model-driven acceptance changed. Four development failures are not semantic controls."
+  ]
+}
