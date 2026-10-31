@@ -672,6 +672,10 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   uninterpreted namespace helper. Its completion, native representation refinement,
   constructor coherence, per-slug uniqueness, combined semantic qualification and
   broader request/issuer composition remain open.
+  An [unchanged-helper probe](request_composition/evidence/namespace-helper-translation-probe.json)
+  confirms that Charon extracts the namespace algorithm but the pinned Aeneas
+  fails on its nested borrows and an indexed projection. Partial outputs are not
+  adopted; this adds no proof coverage and does not justify a runtime change.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

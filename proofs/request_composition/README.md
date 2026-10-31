@@ -251,6 +251,14 @@ qualification of this combined contract remain open. Successful-result correctne
 does not establish unconditional `selected` success. No production defect or runtime
 change is claimed by this proof-only checkpoint.
 
+The subsequent [unchanged-helper translation probe](evidence/namespace-helper-translation-probe.json)
+exposed `build_namespaces` without changing its Rust. Charon extracted all sixteen
+requested roots and the helper's closures without errors. Aeneas failed on nested
+borrowed collections and while translating `deployments[0].deployment`, producing
+a partial helper containing `sorry`. Those outputs were not adopted. This records
+a translator limitation, not a production bug or additional proof coverage; the
+namespace-helper boundary remains open.
+
 ## Intended contract
 
 For an admitted request, the selected registration determines the recipient slug,
