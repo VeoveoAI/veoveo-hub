@@ -43,6 +43,15 @@ proofs retain their scope and assumptions. See the
 This does not update Hub's dependency pin or qualify its newer App-origin path,
 changed registration record, or the unfinished caller control.
 
+Hub merge `1ccb868` subsequently integrates upstream `0ff0819`, retaining all local
+proof work. Its runtime/configuration bytes match that upstream parent exactly;
+the published SDK pin is now `154a473`, with Core still `120306e`. Thirteen focused
+native tests, formatting and strict library Clippy pass on the exact merged tree.
+The [integration receipt](request_composition/evidence/merged-hub-source-20261031.json)
+records the source and results. Re-extraction and formal qualification of the added
+App-origin, registration-surface and administrative-revocation domains remain open
+at this checkpoint. Native success does not extend the old model's domain.
+
 The Task-continuity qualification is a separate source boundary: changed Hub files
 based on `651390dbbb8b4e65b5b8bcd3f8714a981fac2371` and the exact sibling SDK files
 based on `7e2489dccbee6d00b377b174f68f9d5de692a68b`. Its shared-source package records

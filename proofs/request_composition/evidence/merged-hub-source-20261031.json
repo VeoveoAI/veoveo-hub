@@ -1,0 +1,276 @@
+{
+  "milestone": "Current upstream Hub runtime integrated with existing proof work",
+  "classification": "Source integration and focused native checks; current graph proof qualification remains pending",
+  "agents": {
+    "integration": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source": {
+    "commit": "1ccb8681de067184bdf2fb38a95f6625182af9fe",
+    "parents": [
+      "1072084bfc94dcab9ebc64188459db71851e5232",
+      "0ff0819f313ca8c1e7cb9f0d5b72283c63841d9b"
+    ],
+    "tree": "1988d039d60f804841758084e85a15f20618ce3e",
+    "archive": "/tmp/hub-merge-20261031/source-1988d03.tar",
+    "archive_sha256": "ea96fc280f9a74996cd1e87669285131f74d8a82170cd9381e42068ef13fba03",
+    "tracked_files": 1076,
+    "source_map_sha256": "1f269349c7a513d15e2774dc7dce0b8eb5172479a17e6258bd99be026970c6f4",
+    "source_map_after_checks_matches_current_repository": true,
+    "upstream_native_difference_paths": [],
+    "proof_only_difference_paths": 56,
+    "merge_conflicts": false,
+    "sdk_pin": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+    "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "registration_fixes_in_both_parents": [
+      "05737d63808d00a68d8aefc94f733c3aea685933",
+      "22cdabbf308ea5bc0033045088dd32dc001f5a1a"
+    ]
+  },
+  "execution": {
+    "platform": "macOS aarch64",
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+    "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target",
+    "sqlx_offline": true,
+    "stages": [
+      {
+        "stage": "fmt-check",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "cwd": "/tmp/hub-merge-20261031/source",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 643,
+        "log_path": "/tmp/hub-merge-20261031/focused-native1/logs/fmt-check.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "log_bytes": 0
+      },
+      {
+        "stage": "registration-concurrency",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-merge-20261031/source/Cargo.toml",
+          "--lib",
+          "registration::store::concurrency_tests",
+          "--",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-merge-20261031/source",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 39924,
+        "log_path": "/tmp/hub-merge-20261031/focused-native1/logs/registration-concurrency.log",
+        "log_sha256": "2e3fa674d27749a904c5c2b0cf7e54b7b5de2f7cd875bf0549cc1c2833297c2f",
+        "log_bytes": 10947,
+        "test_count": 2,
+        "harness_seconds": 1.21
+      },
+      {
+        "stage": "instance-registration",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-merge-20261031/source/Cargo.toml",
+          "--test",
+          "instance_registration",
+          "--",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-merge-20261031/source",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 61268,
+        "log_path": "/tmp/hub-merge-20261031/focused-native1/logs/instance-registration.log",
+        "log_sha256": "a84c73e0fc12f2cb2aef40be335533e097b5beea675ceffdf57f24665566e5c3",
+        "log_bytes": 964,
+        "test_count": 6,
+        "harness_seconds": 24.97
+      },
+      {
+        "stage": "strict-lib-clippy",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-merge-20261031/source/Cargo.toml",
+          "--lib",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "cwd": "/tmp/hub-merge-20261031/source",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 19977,
+        "log_path": "/tmp/hub-merge-20261031/focused-native1/logs/strict-lib-clippy.log",
+        "log_sha256": "5e96a327977438ea619d0887b1d92e53a1908ebf72460c84cbb5109e404e891c",
+        "log_bytes": 4100
+      },
+      {
+        "stage": "app-origin-issuer",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-merge-20261031/source/Cargo.toml",
+          "--lib",
+          "apps::tests::an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_them",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-merge-20261031/source",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 1581,
+        "log_path": "/tmp/hub-merge-20261031/affected-tests1/logs/app-origin-issuer.log",
+        "log_sha256": "237e0f2c2f26d9755d736e94c3df6808143ac34077bb489eabe4913e950b0987",
+        "log_bytes": 422,
+        "test_count": 1,
+        "harness_seconds": 0.89
+      },
+      {
+        "stage": "shared-policy-catalogs",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-merge-20261031/source/Cargo.toml",
+          "--test",
+          "shared_policy",
+          "hub_and_background_catalogs_preserve_policy_semantics",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-merge-20261031/source",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 1535,
+        "log_path": "/tmp/hub-merge-20261031/affected-tests1/logs/shared-policy-catalogs.log",
+        "log_sha256": "6702f06877af81a802498bcb7800c92bb57c94170ebc67172ca05b2ac3d809b5",
+        "log_bytes": 474,
+        "test_count": 1,
+        "harness_seconds": 0.01
+      },
+      {
+        "stage": "authorized-upstream-http",
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-merge-20261031/source/Cargo.toml",
+          "--lib",
+          "mcp::upstream_authorized_http::tests::",
+          "--",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-merge-20261031/source",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 339,
+        "log_path": "/tmp/hub-merge-20261031/affected-tests1/logs/authorized-upstream-http.log",
+        "log_sha256": "3c696c079a7b848cf1ee0fe63eb7e3b418a6469fa2312672b9754e523cab4608",
+        "log_bytes": 682,
+        "test_count": 3,
+        "harness_seconds": 0.01
+      }
+    ],
+    "total_focused_tests": 13,
+    "binaries": {
+      "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d": {
+        "sha256": "ce9b765e64d164a484bf253e415f6220a01627aaac6d86cd943bc6c8389fe79d",
+        "bytes": 168001352,
+        "observation": "Post-run file named by test log; warm target may be reused later."
+      },
+      "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/instance_registration-5adf9c42e746f689": {
+        "sha256": "ff4421e62e9ec10563184656b6a818552c3434bfba2eb38f8071f69670ee7455",
+        "bytes": 44544008,
+        "observation": "Post-run file named by test log; warm target may be reused later."
+      },
+      "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/shared_policy-c63818865f093f96": {
+        "sha256": "133cc92f4018ab7b84fba780403815d1890f8f3b61b274ed903325a7f7087c2b",
+        "bytes": 19407936,
+        "observation": "Post-run file named by test log; warm target may be reused later."
+      }
+    },
+    "summaries": [
+      {
+        "path": "/tmp/hub-merge-20261031/focused-native1/summary.json",
+        "sha256": "6c61e70fdb8fd7edbcd963578497efc4b952e06d9e44421a3ca9eb94db08cee0"
+      },
+      {
+        "path": "/tmp/hub-merge-20261031/affected-tests1/summary.json",
+        "sha256": "af933f44dcdbbf6be38f9713c4f11cfd9927f9911b170f3d4e6d0160606e3bb4"
+      }
+    ]
+  },
+  "formal_boundary": {
+    "current_graph_reextraction": "pending at this checkpoint",
+    "generated_models_and_proofs_changed": false,
+    "new_theorems": false,
+    "new_domains_needing_qualification": [
+      "HubAction.AppOrigin and PolicyTarget.AppOrigin",
+      "SDK RequirementTarget.AppOrigin and Requirements.app_origin",
+      "RegisteredServer.surfaces including ordered complete public route metadata",
+      "RefreshRevocation.AdministratorRevocation"
+    ],
+    "separate_forwarder": "forwarded_bearer is outside current shared graph roots; clock/lifetime/context/error path remains separate.",
+    "sdk_issuer": "Merged SDK issuer model correspondence does not automatically qualify Hub published SDK154a473 as the prepared SDK graph.",
+    "caller_deadline_control": "Independent witness remains incomplete and was not retried."
+  },
+  "limits": [
+    "No full repository publication gate, Linux native suite, deployment or paid model call.",
+    "Native tests and unchanged runtime source do not imply formal coverage of new enum or record domains.",
+    "No new authorization rule, runtime proof machinery, compiler patch or compatibility path."
+  ]
+}
