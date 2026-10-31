@@ -76,6 +76,7 @@ impl AppsService {
         catalog: &HubCatalog,
         config: &crate::control_plane::Computers,
         session: &crate::computers::BrowserSession,
+        observation: crate::request_observation::RequestObservation,
     ) -> anyhow::Result<PersonMcp> {
         let family = self
             .hub
@@ -122,6 +123,7 @@ impl AppsService {
             host: self.host.clone(),
             profile: config.profile.clone(),
             bearer: HeaderValue::from_str(&format!("Bearer {}", token.access_token))?,
+            observation,
         })
     }
 }
@@ -165,6 +167,9 @@ fn unavailable(error: &dyn std::fmt::Display) -> Response {
 /// `GET /apps/{slug}/{page}`: the App's host page, once the App is in the catalog the
 /// person sees and its declared policy is admitted.
 async fn open(State(apps): State<AppsService>, request: Request) -> Response {
+    let Some(observation) = request_observation(&request) else {
+        return unavailable(&"the request carries no correlation");
+    };
     let Some(view) = AppView::from_path(request.uri().path()) else {
         return pages::message(
             StatusCode::NOT_FOUND,
@@ -196,7 +201,10 @@ async fn open(State(apps): State<AppsService>, request: Request) -> Response {
         Ok(None) => return sign_in_required(),
         Err(error) => return unavailable(&error),
     };
-    let person = match apps.person(&catalog, &config, &session).await {
+    let person = match apps
+        .person(&catalog, &config, &session, observation.clone())
+        .await
+    {
         Ok(person) => person,
         Err(error) => return unavailable(&error),
     };
@@ -249,6 +257,9 @@ fn error(code: i64, message: impl Into<String>) -> Answer {
 /// `POST /apps/{slug}/{page}`: one JSON-RPC request of the App's view, admitted against
 /// the catalogs the person sees now and run through the Hub's MCP endpoint as them.
 async fn bridge(State(apps): State<AppsService>, request: Request) -> Response {
+    let Some(observation) = request_observation(&request) else {
+        return unavailable(&"the request carries no correlation");
+    };
     let Some(view) = AppView::from_path(request.uri().path()) else {
         return Problem::not_found().into_response();
     };
@@ -289,7 +300,10 @@ async fn bridge(State(apps): State<AppsService>, request: Request) -> Response {
         .into_response();
     };
     let id = view_request.id.clone();
-    let person = match apps.person(&catalog, &config, &session).await {
+    let person = match apps
+        .person(&catalog, &config, &session, observation.clone())
+        .await
+    {
         Ok(person) => person,
         Err(error) => return unavailable(&error),
     };
@@ -350,4 +364,15 @@ async fn serve(
         return Ok(Answer::Result(Value::Object(Map::new())));
     }
     person.request(method.name(), params, tool.as_ref()).await
+}
+
+/// The correlation the Hub's request observation gave this browser request; the
+/// in-process MCP request carries it, so its records name the browser request.
+fn request_observation(
+    request: &Request,
+) -> Option<crate::request_observation::RequestObservation> {
+    request
+        .extensions()
+        .get::<crate::request_observation::RequestObservation>()
+        .cloned()
 }

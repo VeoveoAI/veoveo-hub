@@ -191,6 +191,14 @@ async fn admitted(endpoint: &Endpoint, headers: &HeaderMap) -> bool {
 
 async fn mcp(State(endpoint): State<Endpoint>, request: Request) -> Response {
     let headers = request.headers().clone();
+    // The Hub's MCP endpoint refuses a request without the browser request's correlation.
+    assert!(
+        request
+            .extensions()
+            .get::<crate::request_observation::RequestObservation>()
+            .is_some(),
+        "the in-process request carries the browser request's correlation"
+    );
     if !admitted(&endpoint, &headers).await {
         return StatusCode::UNAUTHORIZED.into_response();
     }
@@ -280,7 +288,10 @@ impl Fixture {
             endpoint,
         )
         .unwrap()
-        .router();
+        .router()
+        .layer(axum::middleware::from_fn(
+            crate::request_observation::observe_request,
+        ));
         (
             Self {
                 router,

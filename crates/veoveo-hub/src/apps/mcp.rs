@@ -46,6 +46,8 @@ pub(super) struct PersonMcp {
     pub(super) host: HeaderValue,
     pub(super) profile: HubProfileId,
     pub(super) bearer: HeaderValue,
+    /// The browser request's correlation, which every record of the in-process request names.
+    pub(super) observation: crate::request_observation::RequestObservation,
 }
 
 impl PersonMcp {
@@ -106,9 +108,10 @@ impl PersonMcp {
             "jsonrpc": "2.0", "id": 1, "method": method, "params": params
         }))
         .map_err(|error| Failure::Unavailable(error.to_string()))?;
-        let request = request
+        let mut request = request
             .body(Body::from(body))
             .map_err(|error| Failure::Unavailable(error.to_string()))?;
+        request.extensions_mut().insert(self.observation.clone());
         let response = self
             .router
             .clone()
