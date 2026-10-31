@@ -36,6 +36,12 @@ pub struct Computers {
     pub work_context: WorkContextId,
     /// Native loopback destination inside each admitted sandbox.
     pub port: u16,
+    /// Further programs of the Computer version, each served under
+    /// `/computer/c/{computer}/apps/{name}/` from its own loopback port with the
+    /// Computer's admission, headers and limits. The Computer's own program keeps every
+    /// other path.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub apps: Vec<ComputerApp>,
     /// Global bound on simultaneous native Computer forwarding connections.
     #[serde(default = "default_forwarding_connection_limit")]
     pub forwarding_connection_limit: NonZeroUsize,
@@ -51,6 +57,15 @@ pub struct Computers {
     /// client, whose tokens are the owner's login token or the token of the one repository
     /// a scope names; the sandbox's Lore command line reads the credential's placeholder.
     pub lore_provider: ComputerRefreshProvider,
+}
+
+/// A further program of the Computer version: its name, a lowercase DNS label, which
+/// names it in its path, and the loopback port it serves on.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ComputerApp {
+    pub name: String,
+    pub port: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -95,8 +110,26 @@ fn default_forwarding_connection_limit() -> NonZeroUsize {
 }
 
 impl Computers {
+    /// The further program named `name`.
+    pub fn app(&self, name: &str) -> Option<&ComputerApp> {
+        self.apps.iter().find(|app| app.name == name)
+    }
+
     pub(super) fn validate(&self, plane: &HubControlPlane) -> Result<(), HubControlPlaneError> {
         let invalid = |reason| HubControlPlaneError::InvalidComputers(reason);
+        let mut names = std::collections::BTreeSet::new();
+        let mut ports = std::collections::BTreeSet::from([self.port]);
+        for app in &self.apps {
+            if !veoveo_hub_sdk::hub::LinkName::parse(&app.name).is_ok()
+                || !names.insert(app.name.as_str())
+                || app.port == 0
+                || !ports.insert(app.port)
+            {
+                return Err(invalid(
+                    "each Computer app needs a distinct lowercase DNS label for its name and a nonzero loopback port of its own",
+                ));
+            }
+        }
         if self.gateway.endpoint.scheme() != "https"
             || self.gateway.endpoint.host_str().is_none()
             || !self.gateway.endpoint.username().is_empty()

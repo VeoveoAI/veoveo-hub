@@ -15,7 +15,7 @@ use http_body_util::BodyExt;
 use openshell_sdk::raw::proto::ProviderCredentialRefreshStrategy as Strategy;
 use veoveo_types::{PrincipalId, TenantId};
 
-use super::{restart, status, version};
+use super::{keep_on, restart, status, stop, version};
 use crate::computers::{
     oauth::{SESSION_COOKIE, digest},
     test_fixture::{
@@ -116,4 +116,111 @@ async fn a_bearer_gets_json_and_a_browser_gets_pages_on_the_same_paths() {
     })
     .await
     .expect("the action test exceeded its bound");
+}
+
+#[tokio::test]
+async fn an_owner_keeps_the_computer_on_or_stops_it() {
+    tokio::time::timeout(Duration::from_secs(90), async {
+        let (fake, provisioner) = gateway(Strategy::Oauth2ClientCredentials).await;
+        let db = crate::test_store::TestDb::new().await;
+        let hub = hub(&db);
+        let catalog = catalog();
+        let computer = ready_computer(&hub, &catalog, &provisioner, &digest(COOKIE)).await;
+        provisioner
+            .replace(&computer, uuid::Uuid::now_v7())
+            .await
+            .unwrap();
+        let store = hub.hub_store();
+        let runtime = runtime(hub.clone(), catalog, installation(&provisioner));
+        let mut subject = crate::mcp::task_ownership_tests::subject();
+        subject.principal.id = PrincipalId::parse(OWNER).unwrap();
+        subject.principal.tenant = Some(TenantId::parse("tenant-a").unwrap());
+        let bearer = || Some(Extension(subject.clone()));
+        let json_body = |keep: &str| {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/json"),
+            );
+            (
+                headers,
+                axum::body::Bytes::from(format!("{{\"keepOn\":{keep}}}")),
+            )
+        };
+        let collectable = || async {
+            store
+                .collectable_computers(chrono::Utc::now())
+                .await
+                .unwrap()
+                .iter()
+                .any(|collectable| collectable.id == computer.id)
+        };
+        assert!(collectable().await);
+
+        // Kept on, collection never considers it, and its status says so.
+        let (headers, body) = json_body("true");
+        let kept = keep_on(runtime.clone(), bearer(), headers, body).await;
+        assert_eq!(kept.status(), StatusCode::NO_CONTENT);
+        assert!(!collectable().await);
+        let answer = json(status(runtime.clone(), bearer(), HeaderMap::new()).await).await;
+        assert_eq!(answer["keepOn"], true);
+        let (headers, _) = json_body("true");
+        let refused = keep_on(runtime.clone(), bearer(), headers, "{\"keepOn\":1}".into()).await;
+        assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+
+        // The status page's form turns it off, from this origin only.
+        let mut session = HeaderMap::new();
+        session.insert(
+            header::COOKIE,
+            HeaderValue::from_str(&format!("{SESSION_COOKIE}={COOKIE}")).unwrap(),
+        );
+        let form = || axum::body::Bytes::from_static(b"keepOn=false");
+        let refused = keep_on(runtime.clone(), None, session.clone(), form()).await;
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+        session.insert(header::ORIGIN, HeaderValue::from_static(PUBLIC));
+        let turned = keep_on(runtime.clone(), None, session.clone(), form()).await;
+        assert_eq!(turned.status(), StatusCode::SEE_OTHER);
+        assert_eq!(turned.headers()[header::LOCATION], "/computer/status");
+        assert!(collectable().await);
+
+        // Stopping deletes its sandbox and keeps its home, kept on or not; a second stop
+        // has nothing to stop.
+        let (headers, body) = json_body("true");
+        keep_on(runtime.clone(), bearer(), headers, body).await;
+        let name = computer.native_name();
+        assert!(fake.sandbox(&name, &name).is_some());
+        let stopped = stop(runtime.clone(), bearer(), HeaderMap::new()).await;
+        assert_eq!(stopped.status(), StatusCode::NO_CONTENT);
+        assert!(fake.sandbox(&name, &name).is_none());
+        let answer = json(status(runtime.clone(), bearer(), HeaderMap::new()).await).await;
+        assert_eq!(answer["sandbox"], "none");
+        assert!(answer["collected"].is_string(), "{answer}");
+        assert_eq!(answer["keepOn"], true, "stopping keeps the setting");
+        assert_eq!(
+            stop(runtime.clone(), bearer(), HeaderMap::new())
+                .await
+                .status(),
+            StatusCode::NO_CONTENT
+        );
+        // The owner's browser stops it from this origin, then reads the status page.
+        let stopped = stop(runtime.clone(), None, session).await;
+        assert_eq!(stopped.status(), StatusCode::SEE_OTHER);
+        assert_eq!(stopped.headers()[header::LOCATION], "/computer/status");
+
+        // While a restart holds its running sandbox, a stop is refused.
+        provisioner
+            .replace(&computer, uuid::Uuid::now_v7())
+            .await
+            .unwrap();
+        assert_eq!(
+            restart(runtime.clone(), bearer(), HeaderMap::new())
+                .await
+                .status(),
+            StatusCode::ACCEPTED
+        );
+        let busy = stop(runtime.clone(), bearer(), HeaderMap::new()).await;
+        assert_eq!(busy.status(), StatusCode::CONFLICT);
+    })
+    .await
+    .expect("the keep-on test exceeded its bound");
 }

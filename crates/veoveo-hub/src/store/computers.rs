@@ -32,6 +32,8 @@ pub struct Computer {
     pub update_notice: Option<UpdateNotice>,
     /// When collection deleted its idle sandbox, until an operation creates one again.
     pub collected_at: Option<DateTime<Utc>>,
+    /// Whether its owner keeps it on: collection never deletes its sandbox.
+    pub keep_on: bool,
 }
 
 /// A replacement of a Computer's sandbox: since when it runs and the version it
@@ -77,6 +79,7 @@ struct ComputerRow {
     failure: Option<Json<ComputerFailure>>,
     update_notice: Option<Json<UpdateNotice>>,
     collected_at: Option<DateTime<Utc>>,
+    keep_on: bool,
 }
 impl TryFrom<ComputerRow> for Computer {
     type Error = HubStoreError;
@@ -126,6 +129,7 @@ impl TryFrom<ComputerRow> for Computer {
             failure: row.failure.map(|failure| failure.0),
             update_notice: row.update_notice.map(|notice| notice.0),
             collected_at: row.collected_at,
+            keep_on: row.keep_on,
         })
     }
 }
@@ -339,8 +343,26 @@ impl HubStore {
         .await?
         .is_some())
     }
-    /// Every ready Computer with no replacement running, or only one that began before
-    /// `stale_before`: those collection may consider.
+    /// Keep `computer` on, or no longer: collection skips a Computer kept on, and the
+    /// setting outlives every replacement until its owner changes it.
+    pub async fn keep_computer_on(
+        &self,
+        computer: &Computer,
+        keep_on: bool,
+    ) -> Result<(), HubStoreError> {
+        sqlx::query_file!(
+            "src/store/computers/keep_on.sql",
+            computer.id.as_uuid(),
+            computer.tenant.as_str(),
+            computer.principal.as_str(),
+            keep_on
+        )
+        .execute(self.pool())
+        .await?;
+        Ok(())
+    }
+    /// Every ready Computer its owner does not keep on, with no replacement running, or
+    /// only one that began before `stale_before`: those collection may consider.
     pub async fn collectable_computers(
         &self,
         stale_before: DateTime<Utc>,

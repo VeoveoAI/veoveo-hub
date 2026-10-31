@@ -1106,10 +1106,11 @@ A frame nested in the App's frame inherits that frame's `sandbox="allow-scripts"
 its opaque origin, so the origin's session cookie is not sent and the application has
 no storage: measured in Chrome, such a nested frame got the Hub's 401 where a plain
 same-site frame of the origin reached the application. The host page carries the App's
-server's app origin when the server declares one. Its `ui/open-link` navigates the page
-to a URL of exactly that origin, or to a URL under `/computer/apps/` on the issuer's
-origin, which reaches the signed-in person's own Computer alone, and refuses every
-other target.
+server's app origin when the server declares one, and `computerApps`,
+`/computer/apps/`. Its `ui/open-link` navigates the page to a URL of exactly that
+origin, or to a URL under `/computer/apps/` on the issuer's origin, a relative one
+resolving there and its dot segments resolved first, which reaches the signed-in
+person's own Computer alone, and refuses every other target.
 
 `hub.app_origin_code` and `hub.app_origin_session` hold the codes and sessions; a family's
 or Computer's deletion removes them, and an expired or revoked family admits none.
@@ -1878,10 +1879,12 @@ without a browser. A long job with no traffic is collected; that is the accepted
 Without the setting nothing is collected. It is not part of the Computer version.
 
 An owner may keep their Computer on, so its own automations run while they are away: a
-Computer kept on (`keep_on`) is never collected, and it stays kept on across restarts and
-updates until its owner turns it off. The owner stops it themselves with
-`POST /computer/stop`, through the same lifecycle path as a collection, keeping its
-home and recording it as collected; their next entry starts it again.
+Computer kept on (`keep_on`) is never collected, and it stays kept on across restarts
+and updates until its owner turns it off (`hub.computer.keep_on`, migration `0034`), and
+the status page offers turning it on and off, and stopping a running Computer. The owner
+stops it themselves with `POST /computer/stop`, through the same lifecycle path as a
+collection, keeping its home and recording it as collected; their next entry starts it
+again.
 
 The proxy records, in memory, the time of each browser request it forwards to a
 Computer. OpenShell records the sandbox's traffic as `SandboxStatus.last_activity_time`
@@ -2024,25 +2027,31 @@ provider health/status assertion substitutes for proof of which family was hande
 off. No alternate token store, provisioning controller or reconciliation daemon is
 introduced.
 
-Mounted requests admit the exact Computer owner before opening authenticated
-native ForwardTcp to its fixed loopback port. The installation may name further
-programs of the Computer version in `computers.apps`, each a name, a lowercase DNS
-label, and a loopback port: `/computer/c/{computer}/apps/{name}/{*path}` reaches that
-port with the same admission, headers and limits, and the program serves under that
-path. The Computer's own program keeps every other path. `GET /computer/apps/{name}/{*path}`,
-with its query, is the stable way in that names no Computer: it signs the person in as
-`GET /computer` does, starts their Computer when it is not ready, and then redirects to
-that path of their own Computer, so a link to it reaches whoever follows it in their own
-Computer and nobody else's. HTTP entities remain encoded streams;
-hop-by-hop and Connection-nominated headers, incoming credentials/cookies/forwarded
-identity, backend cookies and CORS headers do not cross this boundary. Unsafe HTTP
-and WebSocket requests require exactly the public origin; Origin is then removed
-before the trusted loopback backend. WebSocket upgrades preserve the byte stream.
-Each active connection has an independent family-expiry deadline and fresh native
-family/client/profile/membership checks every five seconds, with a five-second DB
-read bound. Errors fail closed; revocation observation is at most ten seconds under
-normally scheduled checks. Dropping a response or upgrade cancels its native stream
-and releases a bounded connection permit. Proxy responses are private/no-store.
+Mounted requests admit the exact Computer owner before opening authenticated native
+ForwardTcp to its fixed loopback port. The installation may name further programs of the
+Computer version in `computers.apps`, each a name, a lowercase DNS label, and a loopback
+port: `/computer/c/{computer}/apps/{name}/{*path}` reaches that port with the same
+admission, headers and limits, and the program serves under that path. The Computer's
+own program keeps every other path, a program its version does not name among them. A
+further program receives its path as the Computer's program does, after the Computer's
+base path, as `/apps/{name}/…`; it shares the forwarding limit, waits for its own
+listener on a page load, and its mount without the slash is redirected to it. The
+programs are part of the Computer version, so a Computer serves those of the version it
+was created at. `GET /computer/apps/{name}/{*path}`, with its query, is the stable way
+in that names no Computer: it signs the person in as `GET /computer` does, returning
+there after the sign-in, starts their Computer when it is not ready, on the start page,
+and then redirects to that path of their own Computer, so a link to it reaches whoever
+follows it in their own Computer and nobody else's. It answers `404` for a program the
+installation does not name. HTTP entities remain encoded streams; hop-by-hop and
+Connection-nominated headers, incoming credentials/cookies/forwarded identity, backend
+cookies and CORS headers do not cross this boundary. Unsafe HTTP and WebSocket requests
+require exactly the public origin; Origin is then removed before the trusted loopback
+backend. WebSocket upgrades preserve the byte stream. Each active connection has an
+independent family-expiry deadline and fresh native family/client/profile/membership
+checks every five seconds, with a five-second DB read bound. Errors fail closed;
+revocation observation is at most ten seconds under normally scheduled checks. Dropping
+a response or upgrade cancels its native stream and releases a bounded connection
+permit. Proxy responses are private/no-store.
 
 A ForwardTcp, a Computer's or a server's, holds one HTTP/2 stream to the gateway for
 the whole life of the connection it carries, and the Hub sandbox's supervisor admits at
@@ -2066,7 +2075,8 @@ The Computer's routes:
 | `GET /computer` | The way in: sign-in, creation of a missing sandbox, the start page while the sandbox is created or started, then the Computer; the status page when a failure or a sandbox the Hub can no longer serve needs the owner |
 | `GET /computer/status` | The owner's status page, or the status as JSON for a bearer |
 | `POST /computer/restart`, `POST /computer/previous` | A replacement at the current version, or of the recorded version after a failure: for the owner's session, from this origin only, then `/computer`; for a bearer, `202` with the status, `409` while one runs, `503` when no Computer can start |
-| `POST /computer/keep-on`, `POST /computer/stop` | The owner keeps their Computer on, with `{"keepOn": true}` or `false`, or stops it now, keeping its home: for the owner's session, from this origin only, then `/computer`; for a bearer, `204`, and `409` while an operation runs |
+| `POST /computer/keep-on`, `POST /computer/stop` | The owner keeps their Computer on, with `{"keepOn": true}` or `false`, or the status page's form `keepOn=true` or `false`, or stops it now, keeping its home and its keep-on: for the owner's session, from this origin only, then the status page, since `/computer` would start it again; for a bearer, `204`, and for a stop `409` while an operation holds a running sandbox |
+| `GET /computer/apps/{name}/{*path}` | The stable way into a further program of the person's own Computer: sign-in, start, then that path of their Computer |
 | `GET /computer/version` | Public: the current version and its release note's first line only, for a server that names it in a tool description |
 | `GET /computer/callback` | The sign-in's code exchange and custody, then `/computer`, or the App whose sign-in it was ([Apps host](#apps-host)) |
 

@@ -82,6 +82,8 @@ struct State {
     ready_on_start: bool,
     /// Where a TCP forwarding stream is relayed, when set.
     forward_to: Option<std::net::SocketAddr>,
+    /// Where a forwarding stream to one sandbox port is relayed instead, by port.
+    forward_ports: HashMap<u32, std::net::SocketAddr>,
     /// How long a sandbox takes to go once deleted, when it does not go at once; `None`
     /// inside keeps it deleting for good.
     deletion: Option<Option<std::time::Duration>>,
@@ -293,6 +295,16 @@ impl Gateway {
     }
 
     /// Relay every TCP forwarding stream to `address`, as to the sandbox's listener.
+    /// Relay a forwarding stream to the sandbox port `port` to `address`, whatever
+    /// [`Self::forward_to`] names.
+    pub fn forward_port(&self, port: u16, address: std::net::SocketAddr) {
+        self.state
+            .lock()
+            .unwrap()
+            .forward_ports
+            .insert(u32::from(port), address);
+    }
+
     pub fn forward_to(&self, address: std::net::SocketAddr) {
         self.state.lock().unwrap().forward_to = Some(address);
     }
@@ -793,7 +805,12 @@ impl tonic::server::StreamingService<p::TcpForwardFrame> for Forward {
                 {
                     return Err(Status::not_found("sandbox not found"));
                 }
-                state.forward_to
+                let port = match &init.target {
+                    Some(p::tcp_forward_init::Target::Tcp(target)) => Some(target.port),
+                    _ => None,
+                };
+                port.and_then(|port| state.forward_ports.get(&port).copied())
+                    .or(state.forward_to)
             };
             let Some(target) = target else {
                 return Ok(tonic::Response::new(

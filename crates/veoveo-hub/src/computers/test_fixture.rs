@@ -72,8 +72,15 @@ pub(super) fn profile(id: &str, key: &str, refresh: Option<Strategy>) -> p::Prov
 }
 
 pub(super) async fn gateway(lore: Strategy) -> (fake::Gateway, Provisioner) {
+    gateway_with(lore, config()).await
+}
+
+/// [`gateway`] for Computers configured as `config`.
+pub(super) async fn gateway_with(
+    lore: Strategy,
+    config: Computers,
+) -> (fake::Gateway, Provisioner) {
     let (fake, client) = fake::Gateway::start().await;
-    let config = config();
     fake.set_profile(profile(
         &config.hub_provider.profile,
         &config.hub_provider.credential_key,
@@ -175,6 +182,7 @@ pub(super) fn computer(provisioner: &Provisioner) -> Computer {
         failure: None,
         update_notice: None,
         collected_at: None,
+        keep_on: false,
     }
 }
 

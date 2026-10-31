@@ -284,6 +284,33 @@ fn status_body(status: &ComputerStatus) -> String {
             );
         }
         body.push_str(KEPT);
+        body.push_str(&keep_on(status));
+    }
+    body
+}
+
+/// Keeping the Computer on while the owner is away, and stopping it now.
+fn keep_on(status: &ComputerStatus) -> String {
+    let mut body = if status.keep_on {
+        "<p>Your Computer stays on while you're away, so your own automations keep running.</p>\
+         <form method=post action=\"/computer/keep-on\"><input type=hidden name=keepOn value=false>\
+         <button>Let it sleep while I'm away</button></form>"
+            .to_owned()
+    } else {
+        "<p>Your Computer sleeps when you're away for a while.</p>\
+         <form method=post action=\"/computer/keep-on\"><input type=hidden name=keepOn value=true>\
+         <button>Keep it on while I'm away</button></form>"
+            .to_owned()
+    };
+    if !matches!(
+        status.sandbox,
+        "none" | "stopped" | "completed" | "stopping" | "deleting"
+    ) {
+        let _ = write!(
+            body,
+            "<form method=post action=\"/computer/stop\"><button>Stop it now</button></form>\
+             <p>Stopping keeps your home; opening your Computer starts it again, {FILES_KEPT}.</p>"
+        );
     }
     body
 }
@@ -327,11 +354,35 @@ mod tests {
             blocked: None,
             updated: None,
             collected: None,
+            keep_on: false,
         }
     }
 
     fn at() -> chrono::DateTime<Utc> {
         Utc.with_ymd_and_hms(2026, 10, 23, 23, 48, 29).unwrap()
+    }
+
+    #[test]
+    fn the_status_page_keeps_the_computer_on_or_stops_it() {
+        let running = status_body(&computer("ready"));
+        assert!(
+            running.contains("<input type=hidden name=keepOn value=true>"),
+            "{running}"
+        );
+        assert!(running.contains("Keep it on while I'm away"), "{running}");
+        assert!(running.contains("action=\"/computer/stop\""), "{running}");
+        let mut kept = computer("ready");
+        kept.keep_on = true;
+        let kept = status_body(&kept);
+        assert!(kept.contains("stays on while you're away"), "{kept}");
+        assert!(
+            kept.contains("<input type=hidden name=keepOn value=false>"),
+            "{kept}"
+        );
+        // A Computer that does not run has nothing to stop.
+        let asleep = status_body(&computer("none"));
+        assert!(!asleep.contains("/computer/stop"), "{asleep}");
+        assert!(asleep.contains("/computer/keep-on"), "{asleep}");
     }
 
     #[test]

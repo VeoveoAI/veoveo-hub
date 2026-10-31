@@ -1812,6 +1812,35 @@ fn computer_bootstrap_admits_only_fixed_direct_clients_and_env_provider_seeds() 
     assert!(serde_json::from_value::<Computers>(collecting).is_err());
     plane.computers = Some(computers);
     plane.validate(&crate::catalog_fixture::registry()).unwrap();
+    // Further programs each take a DNS label and a loopback port of their own.
+    let with_apps = |apps: &[(&str, u16)]| {
+        let mut with = plane.clone();
+        with.computers.as_mut().unwrap().apps = apps
+            .iter()
+            .map(|(name, port)| super::ComputerApp {
+                name: (*name).to_owned(),
+                port: *port,
+            })
+            .collect();
+        with.validate(&crate::catalog_fixture::registry())
+    };
+    with_apps(&[("ledger", 5678), ("notes", 5679)]).unwrap();
+    let main = plane.computers.as_ref().unwrap().port;
+    for apps in [
+        vec![("Ledger", 5678)],
+        vec![("ledger", 0)],
+        vec![("ledger", main)],
+        vec![("ledger", 5678), ("ledger", 5679)],
+        vec![("ledger", 5678), ("notes", 5678)],
+    ] {
+        assert!(
+            matches!(
+                with_apps(&apps),
+                Err(HubControlPlaneError::InvalidComputers(_))
+            ),
+            "{apps:?}"
+        );
+    }
     let mut bad = plane.clone();
     bad.secrets.last_mut().unwrap().source = SecretSource::Vault;
     assert!(matches!(

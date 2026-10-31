@@ -508,6 +508,10 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
             data.get("appOrigin").is_none(),
             "a server that declares no app origin is no target of ui/open-link"
         );
+        assert_eq!(
+            data["computerApps"], "/computer/apps/",
+            "ui/open-link opens the person's own Computer's programs on this origin"
+        );
         assert!(page.contains("<title>Board &lt;/script&gt;</title>"));
         let script = page
             .split_once("<script src=\"")
@@ -553,6 +557,7 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
         assert_eq!(headers[header::CACHE_CONTROL], "public, max-age=31536000, immutable");
         let body = String::from_utf8(body).unwrap();
         assert!(body.contains("allow-scripts allow-same-origin"));
+        assert!(body.contains("url.pathname.startsWith(config.computerApps)"));
         assert_eq!(digest, hex::encode(&Sha256::digest(body.as_bytes())[..16]));
         let stale = axum::http::Request::get("/apps/host.js").body(Body::empty()).unwrap();
         assert_eq!(fixture.send(stale).await.0, StatusCode::NOT_FOUND);

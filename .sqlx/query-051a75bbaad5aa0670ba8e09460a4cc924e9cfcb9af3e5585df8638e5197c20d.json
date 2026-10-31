@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, tenant, principal_id, workspace_request, model_provider_request, hub_provider_request, handoff_id, configure_request, rotate_request, family_id, ready, provisioning AS \"provisioning: Json<ComputerProvisionSpec>\", operation_id, operation_started_at, operation_provisioning AS \"operation_provisioning: Json<ComputerProvisionSpec>\", operation_notice_shown, failure AS \"failure: Json<ComputerFailure>\", update_notice AS \"update_notice: Json<UpdateNotice>\", collected_at FROM hub.computer WHERE id = $1 AND tenant = $2 AND principal_id = $3 FOR UPDATE\n",
+  "query": "SELECT id, tenant, principal_id, workspace_request, model_provider_request, hub_provider_request, handoff_id, configure_request, rotate_request, family_id, ready, provisioning AS \"provisioning: Json<ComputerProvisionSpec>\", operation_id, operation_started_at, operation_provisioning AS \"operation_provisioning: Json<ComputerProvisionSpec>\", operation_notice_shown, failure AS \"failure: Json<ComputerFailure>\", update_notice AS \"update_notice: Json<UpdateNotice>\", collected_at, keep_on FROM hub.computer WHERE id = $1 AND tenant = $2 AND principal_id = $3\n",
   "describe": {
     "columns": [
       {
@@ -211,6 +211,17 @@
             "name": "collected_at"
           }
         }
+      },
+      {
+        "ordinal": 19,
+        "name": "keep_on",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "keep_on"
+          }
+        }
       }
     ],
     "parameters": {
@@ -239,8 +250,9 @@
       false,
       true,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "213e0f350738124c58d6ef9b6f19ad783f221ff93662ea618d75bef72eea9f81"
+  "hash": "051a75bbaad5aa0670ba8e09460a4cc924e9cfcb9af3e5585df8638e5197c20d"
 }

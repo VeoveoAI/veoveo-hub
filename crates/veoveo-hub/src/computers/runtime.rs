@@ -128,8 +128,9 @@ impl ComputerService {
         .spawn(stop);
     }
     /// The browser's routes under `/computer` and the public current version. The
-    /// Computer's actions, `GET /computer/status` and `POST /computer/restart` and
-    /// `/computer/previous`, admit either the owner's browser session or a bearer of
+    /// Computer's actions, `GET /computer/status` and `POST /computer/restart`,
+    /// `/computer/previous`, `/computer/keep-on` and `/computer/stop`, admit either the
+    /// owner's browser session or a bearer of
     /// the Computers' profile, such as the Computer's own Hub credential or a server
     /// calling the Hub for its caller.
     pub fn router(self, auth: crate::http::ProfileAuthState) -> Router {
@@ -147,11 +148,19 @@ impl ComputerService {
             .route("/computer/status", get(super::api::status))
             .route("/computer/restart", post(super::api::restart))
             .route("/computer/previous", post(super::api::previous))
+            .route("/computer/keep-on", post(super::api::keep_on))
+            .route("/computer/stop", post(super::api::stop))
     }
     fn routes(actions: Router<Self>) -> Router<Self> {
         Router::new()
             .route("/computer", get(super::oauth::entry))
             .route("/computer/", get(super::oauth::entry))
+            .route("/computer/apps/{name}", get(super::oauth::app_entry))
+            .route("/computer/apps/{name}/", get(super::oauth::app_entry))
+            .route(
+                "/computer/apps/{name}/{*path}",
+                get(super::oauth::app_entry),
+            )
             .route("/computer/version", get(super::api::version))
             .route("/computer/callback", get(super::oauth::callback))
             .route("/computer/logout", post(super::oauth::logout))

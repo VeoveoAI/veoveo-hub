@@ -300,6 +300,15 @@ fn response_headers(headers: &mut HeaderMap, upgrade: bool) {
         headers.insert(header::UPGRADE, HeaderValue::from_static("websocket"));
     }
 }
+/// The further program a Computer's path names, `/apps/{name}` or below it, when its
+/// version serves one by that name: its port, and whether the path is the mount itself
+/// without its slash.
+fn app_port(config: &crate::control_plane::Computers, path: &str) -> Option<(u16, bool)> {
+    let rest = path.strip_prefix("/apps/")?;
+    let end = rest.find(['/', '?']).unwrap_or(rest.len());
+    let app = config.app(&rest[..end])?;
+    Some((app.port, !rest[end..].starts_with('/')))
+}
 fn route(uri: &Uri) -> Option<(ComputerId, String)> {
     // Inspect the raw path, not an extractor's decoded alias. The native app
     // receives its own original path/query after the exact owner prefix.
@@ -399,12 +408,19 @@ pub(super) async fn forward(runtime: ComputerRuntime, mut request: Request) -> R
     };
     // The owner's browser uses the Computer: it is not idle.
     runtime.browser.record(&id, chrono::Utc::now());
-    // Canonical mount slash matters to native browser URL resolution.
-    if request.uri().path() == session.computer().base_path().trim_end_matches('/') {
+    // Canonical mount slash matters to native browser URL resolution, for the
+    // Computer's own program and each further one.
+    let app_mount = runtime
+        .installation
+        .for_computer(session.computer())
+        .ok()
+        .and_then(|provisioner| app_port(&provisioner.config, &path))
+        .is_some_and(|(_, mount)| mount);
+    if request.uri().path() == session.computer().base_path().trim_end_matches('/') || app_mount {
         let mut response = StatusCode::PERMANENT_REDIRECT.into_response();
         let location = format!(
-            "{}{}",
-            session.computer().base_path(),
+            "{}/{}",
+            request.uri().path().trim_end_matches('/'),
             request
                 .uri()
                 .query()
@@ -480,19 +496,24 @@ async fn stream(
             .is_some(),
         AdmissionEnded("before forwarding")
     );
+    // A further program of the Computer's version serves its own path from its own
+    // port; the Computer's program keeps every other path. Both share the forwarding
+    // limit and wait for their listener on a page load.
+    let port =
+        app_port(&provisioner.config, path).map_or(provisioner.config.port, |(port, _)| port);
     let (socket, forward) = if navigation {
         provisioner
             .gateway
             .stream_when_ready(
                 session.computer().native_name(),
-                provisioner.config.port,
+                port,
                 super::provisioning::READY_TIMEOUT,
             )
             .await?
     } else {
         provisioner
             .gateway
-            .stream(session.computer().native_name(), provisioner.config.port)
+            .stream(session.computer().native_name(), port)
             .await?
     };
     // A cold listener wait can outlast revocation/expiry. Re-admit before any
