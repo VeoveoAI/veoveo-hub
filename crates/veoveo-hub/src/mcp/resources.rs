@@ -67,19 +67,19 @@ impl HubMcp {
         context: RequestContext<RoleServer>,
         subject: crate::AuthenticatedSubject,
     ) -> Result<(Vec<rmcp::model::Resource>, HubDiscovery, u32), McpError> {
-        let profile_server_list = self.profile_servers();
         let snapshot = self.catalog.snapshot();
-        let catalog = snapshot.catalog().clone();
         let catalog_generation = snapshot.generation();
         let authorization_fingerprint = super::discovery_authorization_fingerprint(&subject)?;
         let mut keys = Vec::new();
         let mut cached_at_start = std::collections::BTreeMap::new();
-        for server_slug in profile_server_list {
+        for server in self.reachable(&subject, |_| true) {
+            let server_slug = server.slug.clone();
             let key = DiscoveryCacheKey {
                 catalog_generation,
                 principal: subject.actor.id.clone(),
                 authorization_fingerprint,
                 server: server_slug.clone(),
+                link: server.link().cloned(),
             };
             keys.push(key.clone());
             if self.discovery_watch_active(&key).await
@@ -95,8 +95,8 @@ impl HubMcp {
             else {
                 continue;
             };
-            let hub = self.clone();
-            let catalog = catalog.clone();
+            let hub = self.at(&server);
+            let catalog = hub.catalog.current();
             let context = context.clone();
             let subject = subject.clone();
             tokio::spawn(async move {
@@ -143,9 +143,18 @@ impl HubMcp {
                 }
                 None => None,
             };
-            if let Some(mut cached) = cached {
+            if let Some(cached) = cached {
                 denied = denied.saturating_add(cached.denied);
-                resources.append(&mut cached.items);
+                // The runners of a linked server share its Apps: each `ui://` resource is
+                // listed once, from the first runner by link.
+                for resource in cached.items {
+                    if !resources
+                        .iter()
+                        .any(|listed: &rmcp::model::Resource| listed.uri == resource.uri)
+                    {
+                        resources.push(resource);
+                    }
+                }
             } else {
                 let code = self
                     .discovery
@@ -188,7 +197,10 @@ impl HubMcp {
             let projection = self.project_upstream_resource(server_slug, &resource.uri)?;
             project_listed_resource_uri(manifest, &mut resource)?;
             project_listed_resource(&mut resource, &projection);
-            targets.push(resource_policy_target(projection.server, &resource.uri)?);
+            targets.push(resource_policy_target(
+                projection.server,
+                projection.upstream_uri.as_str(),
+            )?);
             resources.push(DiscoveredResource {
                 resource,
                 upstream_uri: projection.upstream_uri,
@@ -274,17 +286,18 @@ impl HubMcp {
         subject: crate::AuthenticatedSubject,
     ) -> Result<(Vec<ResourceTemplate>, HubDiscovery, u32), McpError> {
         let snapshot = self.catalog.snapshot();
-        let catalog = snapshot.catalog().clone();
         let catalog_generation = snapshot.generation();
         let authorization_fingerprint = super::discovery_authorization_fingerprint(&subject)?;
         let mut keys = Vec::new();
         let mut cached_at_start = std::collections::BTreeMap::new();
-        for server_slug in self.profile_servers() {
+        for server in self.reachable(&subject, |_| true) {
+            let server_slug = server.slug.clone();
             let key = DiscoveryCacheKey {
                 catalog_generation,
                 principal: subject.actor.id.clone(),
                 authorization_fingerprint,
                 server: server_slug.clone(),
+                link: server.link().cloned(),
             };
             keys.push(key.clone());
             if self.discovery_watch_active(&key).await
@@ -300,8 +313,8 @@ impl HubMcp {
             else {
                 continue;
             };
-            let hub = self.clone();
-            let catalog = catalog.clone();
+            let hub = self.at(&server);
+            let catalog = hub.catalog.current();
             let context = context.clone();
             let subject = subject.clone();
             tokio::spawn(async move {
@@ -353,9 +366,15 @@ impl HubMcp {
                 }
                 None => None,
             };
-            if let Some(mut cached) = cached {
+            if let Some(cached) = cached {
                 denied = denied.saturating_add(cached.denied);
-                templates.append(&mut cached.items);
+                for template in cached.items {
+                    if !templates.iter().any(|listed: &ResourceTemplate| {
+                        listed.uri_template == template.uri_template
+                    }) {
+                        templates.push(template);
+                    }
+                }
             } else {
                 let code = self
                     .discovery
@@ -393,11 +412,12 @@ impl HubMcp {
         let mut templates = Vec::with_capacity(upstream_templates.len());
         let mut targets = Vec::with_capacity(upstream_templates.len());
         for mut template in upstream_templates {
-            project_resource_template_uri(manifest, &mut template)?;
+            // The server's declaration names its own templates.
             targets.push(resource_template_policy_target(
                 server_slug.clone(),
                 &template.uri_template,
             )?);
+            project_resource_template_uri(manifest, &mut template)?;
             templates.push(template);
         }
         let allowed = self

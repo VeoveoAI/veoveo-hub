@@ -86,18 +86,22 @@ deployment plus endpoint. Publication hints complete existing listens normally,
 requiring native re-listen and current admission instead of silently keeping a stale
 selection alive.
 
-Each authenticated principal's selection, `hub.selection`, names a branch per
-server. Each server that has registered instances, or that the selection names,
-routes to the instance of the selected branch, or else of the configured
-`execution.baseBranch`, instead of its registered deployment. When that instance is
-missing, when several instances serve that branch, or when no base branch is
-configured, the component is `unavailable`, never another branch or the server's
-other deployment, and a tool call to that server answers with the cause.
-`PUT /selection/{profile}/{server}` with `{"branch": "…"}` and `DELETE` of the same
-path change the caller's own selection and nothing else, so authentication is their
-only check; a delegated caller changes the selection of the principal it carries.
-Each change notifies the `hub` channel with the principal, and every replica
-completes only that principal's open listens with a list-changed hint.
+Each authenticated principal's selection, `hub.selection`, names a branch per server.
+Each server that has registered instances, or that the selection names, routes to the
+instance of the selected branch, or else of the configured `execution.baseBranch`,
+instead of its registered deployment. When that instance is missing, when several
+instances serve that branch, or when no base branch is configured, the component is
+`unavailable`, never another branch or the server's other deployment, and a tool call to
+that server answers with the cause. A server whose selected branch is
+[linked](#linked-repositories) routes to the runners of that branch instead, one per
+link, as the catalog lists them: the composition's `runners` component names each link's
+runner, so a captured composition keeps routing each link where it did. A branch with
+both an instance and runners is unavailable, as one with two instances is. `PUT
+/selection/{profile}/{server}` with `{"branch": "…"}` and `DELETE` of the same path
+change the caller's own selection and nothing else, so authentication is their only
+check; a delegated caller changes the selection of the principal it carries. Each change
+notifies the `hub` channel with the principal, and every replica completes only that
+principal's open listens with a list-changed hint.
 
 Tasks persist exact deployment and composition before the projected response.
 A native retry of the same Task preserves its first capture. Later reads, changes,
@@ -443,9 +447,15 @@ The instance's client is no installed OAuth client. At `/oauth/token` a
 pusher for the instance's repository, issued by the one Lore deployment that registers
 that repository ID: the token the deployment's one public token-exchange client would
 obtain for that person, which the Lore contribution's profile admits against the
-person's current [grant](#groups-and-sharing) on every issue. The client requests no scope or resource
-and holds no assignment of its own; a pusher without the grant is refused with
-`invalid_grant`. Before every sandbox creation and restart the Hub rotates the
+person's current [grant](#groups-and-sharing) on every issue. The client requests no resource and
+holds no assignment of its own; a pusher without the grant is refused with
+`invalid_grant`. It may request a `scope`, which names one repository by the deployment's
+scope template, as Lore's per-request scope does for the repository each request names:
+the instance's own repository, answered as without a scope, or a
+[runner's](#linked-repositories) linked repository, answered with the token of the
+tracked branch's latest pusher for that repository. Any other scope is refused with
+`invalid_scope`. The token carries the pusher's actions; the instance only reads, which
+any grant, a reader's included, allows. Before every sandbox creation and restart the Hub rotates the
 credential, so the sandbox starts as the latest pusher.
 
 A push applies to an existing instance by the image, the policy, the size, the driver
@@ -504,42 +514,153 @@ watcher and why the last subscription as them failed, and `prepareFailure`, why 
 branch's latest push could not be read; without an instance its detail names those
 causes. The route exists when the installation configures a factory.
 
-The Lore contribution turns pushes into instances (`src/bin/hub/contributions/lore/factory`).
-`PUT /factory/{profile}/watch?repository=<id>` subscribes to the repository's Lore
-notifications as the caller, answers 403 when Lore or the caller's grant refuses
-them and 204 otherwise, and records the caller as the repository's watcher in
+The Lore contribution turns pushes into instances
+(`src/bin/hub/contributions/lore/factory`). `PUT
+/factory/{profile}/watch?repository=<id>` subscribes to the repository's Lore
+notifications as the caller, answers 403 when Lore or the caller's grant refuses them
+and 204 otherwise, and records the caller as the repository's watcher in
 `hub.lore_watch`; a later watch replaces the watcher and its follower, which stops
-between pushes. One follower per watched repository subscribes as its watcher, and
-again five seconds after any subscription ends, including Lore ending a lagging
-subscriber's stream with `ABORTED`; at startup the Hub resumes every recorded watch.
-A subscription is idle between pushes, and connection tracking on the way to Lore
-forgets an idle connection (Cilium's after 2 h 13 min), after which Lore's events are
-dropped without either end noticing. So every connection to Lore sends HTTP/2
-keepalive pings every 30 seconds and ends when one goes unanswered for 20 seconds:
-the pings keep the connection known, and a dead one ends its subscription, which the
-follower then subscribes again.
-Every subscription starts with a re-check of every branch: each live branch whose
-latest revision its instance has not applied is prepared as that revision's committer,
-and the instance of a deleted branch whose name no live branch took is removed.
-`BranchPushed` prepares the pushed revision as its pusher; `BranchCreated` and
-`BranchDeleted` re-check. Preparing reads `openshell/` at the revision as that person:
-the revision tree lists the files, proved by the revision's signature, and Lore's own
-command line writes `run`, `policy.yaml` and the `image/` subtree from a bare clone of
-that revision into a temporary directory, with the sizes and executable bits the tree
-names. A revision with an executable `openshell/run` is applied with `image/` as its
-image context and `policy.yaml` as its policy; one without it removes the branch's
-instance. One push is applied to an instance at a time. A failed read leaves the
-instance as it serves and is recorded in `hub.lore_prepare_failure` until the branch's
-next push is prepared. Lore checks access only when a subscription starts, so a
-watcher who lost access is noticed at the next subscription: the failure is recorded on
-the watch and the follower stops until someone with access watches again. Every Lore
-call issues a new token for its person, so each acts under that person's current grant.
+between pushes. One follower per watched repository subscribes as its watcher, and again
+five seconds after any subscription ends, including Lore ending a lagging subscriber's
+stream with `ABORTED`; at startup the Hub resumes every recorded watch. A subscription
+is idle between pushes, and connection tracking on the way to Lore forgets an idle
+connection (Cilium's after 2 h 13 min), after which Lore's events are dropped without
+either end noticing. So every connection to Lore sends HTTP/2 keepalive pings every 30
+seconds and ends when one goes unanswered for 20 seconds: the pings keep the connection
+known, and a dead one ends its subscription, which the follower then subscribes again.
+Every subscription starts with a re-check of every branch: each live branch whose latest
+revision its instance has not applied is prepared as that revision's committer, and the
+instance of a deleted branch whose name no live branch took is removed. `BranchPushed`
+prepares the pushed revision as its pusher; `BranchCreated` and `BranchDeleted`
+re-check. Preparing reads `openshell/` at the revision as that person: the revision tree
+lists the files, proved by the revision's signature, and Lore's own command line writes
+`run`, `policy.yaml` and the `image/` subtree from a bare clone of that revision into a
+temporary directory, with the sizes and executable bits the tree names. A revision with
+an executable `openshell/run` is applied with `image/` as its image context and
+`policy.yaml` as its policy; one without it removes the branch's instance, and so does
+one without `openshell/`, whose walk Lore answers, after naming the revision, with
+`NotFound` for the prefix: the Hub reads that as an empty `openshell/`, and a linked
+repository's missing `openshell/` adds nothing. One push is applied to an instance at a
+time. A failed read leaves the instance as it serves and is recorded in
+`hub.lore_prepare_failure` until the branch's next push is prepared. Lore checks access
+only when a subscription starts, so a watcher who lost access is noticed at the next
+subscription: the failure is recorded on the watch and the follower stops until someone
+with access watches again. Every Lore call issues a new token for its person, so each
+acts under that person's current grant.
 
 The Hub forwards to an instance through `nativeUpstreams`, which must name the
 factory's gateway: an instance's deployment binds to its sandbox in the factory
 workspace, at the port of the endpoint it registered, instead of to a control-plane
 binding of its endpoint. When the registrations no longer name an instance's
 deployment, every replica closes its forwarding listener and forgets its clients.
+
+### Linked Repositories
+
+A server repository may compose other repositories with Lore's links. A link at the top
+level of a branch's revision, whose name is a lowercase DNS label, makes that branch
+linked: the Hub runs one runner for each such link instead of the branch's instance. Any
+other link would end the clone of a factory sandbox's checkout, which leaves out only
+those links, so preparing refuses a revision that holds a link below its top level, or
+one at its top level not named by a lowercase DNS label, whether or not the branch also
+has top-level links or `openshell/run`: the refusal is recorded in
+`hub.lore_prepare_failure` and the branch's instance or runners keep serving as they do.
+Preparing reads the links from the revision's own tree, its top level and then each
+top-level directory, without entering a top-level link, so every push of a branch with
+`openshell/run` lists that tree once. The parent repository decides which repositories
+are composed and the program that serves them; each linked repository decides its own
+content and, through its own grants, who reaches it. A person never needs a grant on the
+parent to reach a runner, and a grant on the parent reaches no linked repository, as
+Lore itself refuses a link its person may not read.
+
+The Hub reads a revision's links from its tree, as it reads `openshell/`: Lore's
+thin-client `RevisionTree` lists each top-level link without entering it, with the
+linked repository's ID and the revision it pins in its address and whether it follows
+the parent's branch. Lore's link records the branch it tracks in one of two ways, and
+the Hub reads each from where Lore keeps it:
+
+- A link that follows the parent's branch, Lore's default, records no branch of its own
+  and tracks the linked repository's branch with the parent branch's ID. Lore creates
+  that branch when the link is added or the parent branch is created, named after the
+  parent's branch, or `<name>-<id>` when the linked repository already had a branch of
+  that name.
+- A link added with `--disable-branching` tracks the branch of its pinned revision, which
+  Lore resolved and recorded when the link was pinned. The Hub reads it with
+  `RevisionInfo` of the pinned revision in the linked repository.
+
+The Hub reads the linked repository as its watcher: the tracked branch, its name and
+latest revision, and that revision's committer, its latest pusher until a push names
+another. A link whose linked repository nobody watches, or whose watcher Lore or the
+Hub refuses, gets no runner; the Hub records why in `hub.lore_runner_failure`, the
+runner's status says so, and the link runs once someone with a grant watches the linked
+repository, whose re-check retries it. A team therefore changes what its runner serves
+by pushing to the tracked branch, which for a following link may carry the suffixed
+name; the runner's status names the tracked branch, by ID and name, so people and their
+Computers know where to push.
+
+A runner is an instance keyed by the parent repository, the branch and the link name,
+which also records the linked repository, the tracked branch's ID and name, that
+branch's latest pusher and the revision of it last applied. Its sandbox is built as an
+instance's is, from the parent's revision: the image, `run` and policy of the parent's
+`openshell/`, read as the parent branch's latest pusher. Added to the parent's are the
+network rules of the linked repository's `openshell/policy.yaml`, under the same limits
+as a branch's, none of which may name a program under `/sandbox/link`, and the providers
+that the linked repository's `openshell/providers.yaml` requests and `factory.providers`
+grants to the linked repository; the parent's own provider requests apply to no runner.
+The start command checks the parent's branch out at `/sandbox/src` under Lore's own
+view, `--view` at the first clone and `.lore/view` on every start, which leaves out
+every link at the revision's top level, so Lore reaches no linked repository through the
+parent, where a refused link would end the clone. It clones the linked repository into
+`/sandbox/link` at the tracked branch's ID and runs `lore sync --reset <tracked>@LATEST`
+there, then resets the parent's checkout as an instance's start does, before `exec
+./openshell/run`. A runner therefore serves the head of that branch, not the revision
+the parent pins: a linked repository releases by pushing to its tracked branch, and the
+parent changes only to add, retarget or remove a link. The command names the links it
+leaves out, so a parent push that changes them recreates the runners' sandboxes. The
+runner's program is the parent's, built and run under `/sandbox/src`; the linked
+repository is content, its workflows and files, which that program reads and never code
+of its own. No rule of a runner's policy names a program under `/sandbox/link`: the
+installation's base policy admits programs under `/sandbox/src` alone to the Hub's
+metadata and token endpoints and to the database, and the Hub refuses a linked
+repository's rule whose binary path or glob can match a path under `/sandbox/link`
+(`/**`, `/sandbox/**` or `/sandbox/link/…` among them), when it reads the tracked
+branch: the link gets no runner, or its runner keeps serving what it applied, and
+`hub.lore_runner_failure` says why until a push of the tracked branch, or of the parent,
+runs it. So nothing under `/sandbox/link` reaches the Hub, the database or a linked
+repository's endpoints as a program of its own. Two limits remain the parent's:
+OpenShell matches a rule against a program and the programs that started it, so a
+program the parent's program starts from `/sandbox/link` runs with the parent's rules;
+and the base policy's internet rule names every program. The runner's Lore provider
+issues the token of the tracked branch's latest pusher, for the linked repository, as an
+instance's issues its pusher's for its own repository; its checkout of the parent is
+read through the same Lore provider's token for the parent, issued for the parent
+branch's latest pusher. Lore's per-request scope picks between them, which the
+instance's client answers ([above](#factory-sandboxes)): the installation's factory Lore
+profile names the repository of each request by `lore-partition-bin`, as a Computer's
+does.
+
+The Hub follows both repositories. A push to the parent's branch reads its links again:
+it removes the branch's ordinary instance, creates the runner of a new link, removes the
+runner of a link that is gone, and applies the new program to every runner of the
+branch; a push whose revision holds no link removes the runners and serves the branch
+from its instance again. Moving a pin to another branch is a parent push, so the link is
+read again. A push to a linked repository's tracked branch applies to each runner whose
+link tracks it, as that push's pusher, and restarts only those runners. A linked
+repository needs its own watch by someone with a grant on it; a runner whose linked
+repository nobody watches any more says so in its status, and serves the tracked branch
+as it last read it. Each subscription to a linked repository re-checks its runners as
+it re-checks branches: a runner whose tracked branch moved applies its head.
+
+Each runner has its own data environment, a database named by the branch and the link,
+`DatabaseName::of_branch` of the branch name and the link name joined by a hyphen, on
+the base branch too, so runners of one program never share a schema. A runner registers
+as an instance of the parent's slug with its link: several instances of one slug
+coexist when they are the runners of one parent repository, and an instance of another
+repository is still refused that slug. A runner's status names its link, its linked
+repository and tracked branch, and the revision of each that it applied.
+`GET /factory/{profile}/instance?…&link=<name>` answers it to a caller with a grant on
+the linked repository, or, for a link that has no runner, its `runnerFailure`; the
+answer adds `linkedWatch`, the linked repository's watcher, and `runnerFailure`, why the
+link could not run.
 
 ## Routing And Catalog
 
@@ -548,7 +669,26 @@ A server's MCP surfaces follow its authorization declaration: tools when it decl
 tool requirements, resources and completions when it declares resources or templates,
 prompts when it declares prompts. A server's URI scheme equals its slug, so resource
 URIs pass through unchanged and the Hub routes them by scheme or `ui://{slug}/`.
-Tools are listed as `{slug}__{tool}`.
+Tools are listed as `{slug}__{tool}`. A slug holds no two consecutive underscores, so a
+name splits at its first `__`.
+
+A server served by [runners](#linked-repositories) is listed once for each link of the
+caller's selected branch whose linked repository the caller holds a
+[grant](#groups-and-sharing) on, from that link's runner: its tools as
+`{slug}__{link}__{tool}`, and its resources and templates as `{slug}://{link}/{rest}`,
+which reach the runner as `{slug}://{rest}`, so the program never knows its link's name.
+Its `ui://{slug}/` resources, its prompts and its app origin are one set for the server,
+served by the first runner by link the caller reaches. A name or URI that names a link
+the caller holds no grant on, or no link of the selected branch, or a linked server's
+name without a link, is refused as a target the server did not declare, and the denial
+is recorded as one. Each runner is discovered, watched and cached on its own, and policy
+decides on the server's own names and URIs, which every runner of the server declares
+alike; a view holding several runners that declare differently decides nothing for the
+server. The caller's grant comes from the installation's sections, as their group
+memberships do: the Lore section lists every assignment with its actions, and a person
+reaches a runner through their own assignment or one of a group they belong to. Tasks
+keep the runner that created them, as they keep an instance: a Task's route names the
+runner's deployment, which its captured composition selects.
 
 Each profile's discovery cache keys admitted descriptors by catalog generation,
 server, complete current policy principal, invocation actor and authority, OAuth client,
@@ -609,13 +749,17 @@ provider's, and their Lore groups by ID ([groups and sharing](#groups-and-sharin
 
 ## Forwarded Identity
 
-`mcp/upstream_authorized_http.rs` issues a fresh RFC 9068 token for each upstream
-HTTP request. Its `aud` is the server's registered MCP endpoint, `client_id` the
-caller's OAuth client, `act` the Hub's issuer, and `authorization_details` the
-permissions granted in the server's namespace. Ordinary tokens live at most 60
-seconds and a `subscriptions/listen` token at most 15 minutes, never longer than the
-caller's own token. The server verifies them with the keys its registration response
-names in `veoveo_access_tokens`.
+`mcp/upstream_authorized_http.rs` issues a fresh RFC 9068 token for each upstream HTTP
+request. Its `aud` is the server's registered MCP endpoint, `client_id` the caller's
+OAuth client, `act` the Hub's issuer, and `authorization_details` the permissions
+granted in the server's namespace. A token for a [runner](#linked-repositories) adds a
+second RFC 9396 detail, of type `https://veoveo.ai/oauth/repository`, whose `identifier`
+is the linked repository's ID and whose `actions` are the caller's Lore actions on it,
+the same set a Lore token for that repository would carry, so the server decides by the
+grant Lore decides by; the SDK's verifier reads it. A token for a runner's app origin
+carries it too. Ordinary tokens live at most 60 seconds and a `subscriptions/listen`
+token at most 15 minutes, never longer than the caller's own token. The server verifies
+them with the keys its registration response names in `veoveo_access_tokens`.
 
 The issuer's RFC 8414 metadata names `{issuer}/jwks.json` as its `jwks_uri`. That JWK
 Set lists the same keys: the public half of each forwarded-token key, with its RFC
@@ -962,8 +1106,10 @@ A frame nested in the App's frame inherits that frame's `sandbox="allow-scripts"
 its opaque origin, so the origin's session cookie is not sent and the application has
 no storage: measured in Chrome, such a nested frame got the Hub's 401 where a plain
 same-site frame of the origin reached the application. The host page carries the App's
-server's app origin when the server declares one, and its `ui/open-link` navigates the
-page to a URL of exactly that origin and refuses every other target.
+server's app origin when the server declares one. Its `ui/open-link` navigates the page
+to a URL of exactly that origin, or to a URL under `/computer/apps/` on the issuer's
+origin, which reaches the signed-in person's own Computer alone, and refuses every
+other target.
 
 `hub.app_origin_code` and `hub.app_origin_session` hold the codes and sessions; a family's
 or Computer's deletion removes them, and an expired or revoked family admits none.
@@ -1348,6 +1494,18 @@ with its cause, that a change completes only the changed principal's listens wit
 tool-list hint, and that a Task started before a change completes on the instance it
 started on, under its captured composition.
 
+`tests/linked.rs` starts the binary with base branch `dev` linked: two runners of the
+Ledger fixture register for the links `team-a` and `team-b`, each of a synthetic linked
+repository, and the Lore section grants the `member` caller `write` on team-a's
+repository and the `admin` caller a read grant on both. It checks that the member lists
+team-a's tools as `ledger__team-a__{tool}` and its templates as `ledger://team-a/…`, and
+nothing of team-b, while the admin lists both; that a call reaches its link's runner
+with the caller's grant on its repository in the forwarded token's repository detail;
+that a name of team-b, of a link the branch lacks, or without a link, is refused as a
+tool the server did not declare; that a runner's resource reads back under its linked
+URI and another link's is refused; and that a Task completes on the runner that
+created it. Synthetic fixture data; no Lore server or sandbox is involved.
+
 `tests/factory.rs` applies pushes against an in-process fake OpenShell gateway
 (`tests/factory/gateway.rs`), which answers the methods the factory sends with the
 gateway's stop and start rules, and a fake image builder whose digest is the SHA-256 of
@@ -1382,25 +1540,43 @@ grant on, another scope, a resource, a wrong or replaced secret and an instance'
 are refused. A person who creates a repository through an in-process fake of Lore's
 repository service, which tells the Hub's `RebacApi` of each creation as Lore does, owns it
 at once: the answer comes once the revision is active, and the
-repository's next token for their Computer holds it with `owner`; another creator, an
+repository's next token for their Computer holds it with `write` and `owner`; another creator, an
 unregistered creation of theirs and a taken name answer as the creation route says.
 Images and revisions are synthetic values; no OpenShell, Lore server, BuildKit or image
 is involved.
 
 `src/bin/hub/contributions/lore/factory/tests.rs` runs watching against an in-process
-fake of Lore and the factory itself on the same fake gateway, a fake image builder and
-a disposable database. The fake Lore admits only the people it holds a grant for and
+fake of Lore and the factory itself on the same fake gateway, a fake image builder and a
+disposable database. The fake Lore admits only the people it holds a grant for and
 serves each subscription from a channel the test feeds. Watching subscribes as the
 watcher and re-checks every branch, applying the unapplied one as its committer,
 building nothing for the applied one and removing the instances of a branch without
 `openshell/run` and of a deleted branch; a push is read as its pusher and applied with
 its image context and policy, or removes the instance; after `ABORTED` the next
-subscription re-checks and applies the branch's new revision and nothing else; a
-watcher who lost access is recorded as failed at the resubscription and the follower
-stops, and the route answers 403, 400 and 204; a failed read is recorded for the branch
-until a push is prepared; another process resumes every recorded watch as its watcher;
-and a later watch replaces the follower. The real Lore adapter is exercised only
-against a deployed Lore.
+subscription re-checks and applies the branch's new revision and nothing else; a watcher
+who lost access is recorded as failed at the resubscription and the follower stops, and
+the route answers 403, 400 and 204; a failed read is recorded for the branch until a
+push is prepared; another process resumes every recorded watch as its watcher; and a
+later watch replaces the follower. A revision with a following link and a pinned one
+gets a runner for each and no instance: the following link tracks its linked
+repository's branch of the parent branch's ID under its suffixed name, the pinned one
+the branch of its pinned revision, each linked repository is read as its watcher and its
+tracked head as its committer, each runner's command leaves both links out of the
+parent's checkout and clones its linked repository at the tracked branch, under its
+linked repository's network rules, and its status names the tracked branch; a push to a
+tracked branch applies to its runner alone, as its pusher. A link whose linked
+repository nobody watches gets no runner and its failure says so, until a watch of the
+linked repository runs it; a push that drops a link removes its runner, and one without
+links serves the branch from an instance again. A revision holding a link below its top
+level, of a branch with or without top-level links or `openshell/`, or a top-level link
+whose name is no DNS label, is refused at prepare with a recorded failure that names the
+link, while the branch's instance keeps serving and no runner starts. A linked
+repository's rule that names a program under `/sandbox/link` is refused when its tracked
+branch is read: its link gets no runner until a push of that branch names the parent's
+program instead, and a later push that names one again leaves the runner serving what it
+applied, with its failure. The real Lore adapter is exercised only against a deployed
+Lore; Lore's view keeping a clone and a reset sync of the parent from every excluded
+link, and its clone and sync of a branch by ID, were probed against a local Lore server.
 
 `tests/lore_catalog.rs` starts the binary with one Lore deployment whose resource IDs
 are `urc-{id}` and asks `UrcAuthApi.LookupUserPermissions` over cleartext HTTP/2 on the
@@ -1433,7 +1609,12 @@ role, and that today's documents read and write as before. They check that a Com
 client asks for its owner's login token without a scope and for one repository's token
 with that repository's scope, refusing any other scope, that a repository its owner holds
 no grant on is refused at admission, and that no token carries more than one repository.
-They check the sharing changes: an owner shares with a person and with a group, sets a
+They check that each level is its Lore actions in the token, `reader` none, `member`
+`write` and `owner` `write` and `owner`, and that a level shows the actions that decide
+it; that a reader's listing names the repository without actions and a reader reads the
+access list but changes nothing; that a group's levels unite with a person's own; and
+that a registered creator holds `write` and `owner`. They check the sharing changes: an
+owner shares with a person and with a group, sets a
 level that replaces an administrator's actions and removes it, and is refused, with
 nothing changed, a change that would leave them without `owner`; someone without
 `owner`, an unknown repository or group and another tenant's repository are refused; a
@@ -1458,16 +1639,17 @@ holds none; and a role granted to a group's ID is held through it.
 records synthetic `hub.person` rows as a sign-in writes them, and calls the access and
 group routes as the acceptance callers. It checks the exact answers: the creator's owner
 entry, a share with a person named by an email in any case and the list that follows,
-by email, and a group created with its creator as owner and its `id`, listed only to its
-members.
+by email, the same person lowered to `reader`, without actions, and back, and a group
+created with its creator as owner and its `id`, listed only to its members.
 It checks the refusals by problem type: reading without a grant, sharing or changing a
 group without being its owner, an email no one signed in with, whose detail asks for a
 sign-in, the caller's own lowering or removal on a repository and in a group, bodies of
 another shape, an unknown repository, group and group name, and a taken name. Sharing
 the repository with a group and adding the `client_secret_post` client's principal to it
 lets that principal's repository token be issued and Lore's listing name the repository
-with `owner`; removing the membership takes both away. An administrator's assignment
-with other actions is listed with them and replaced by the level an owner sets, and a
+with `write` and `owner`, beside the repository it reads without actions; removing the
+membership takes both away. An administrator's assignment with other actions is listed
+with them, at the level they show, and replaced by the level an owner sets, and a
 principal without a `hub.person` row is listed with a null email and name after the
 people. Deleting the group, refused to a member who is not its owner, answers the
 caller's remaining groups and takes its assignment off the repository, and a second
@@ -1695,6 +1877,12 @@ its model through OpenShell's proxy whatever its client, so the second covers wo
 without a browser. A long job with no traffic is collected; that is the accepted cost.
 Without the setting nothing is collected. It is not part of the Computer version.
 
+An owner may keep their Computer on, so its own automations run while they are away: a
+Computer kept on (`keep_on`) is never collected, and it stays kept on across restarts and
+updates until its owner turns it off. The owner stops it themselves with
+`POST /computer/stop`, through the same lifecycle path as a collection, keeping its
+home and recording it as collected; their next entry starts it again.
+
 The proxy records, in memory, the time of each browser request it forwards to a
 Computer. OpenShell records the sandbox's traffic as `SandboxStatus.last_activity_time`
 (pin `c80bda201`): the latest 10-second activity summary from the supervisor that held
@@ -1837,7 +2025,15 @@ off. No alternate token store, provisioning controller or reconciliation daemon 
 introduced.
 
 Mounted requests admit the exact Computer owner before opening authenticated
-native ForwardTcp to its fixed loopback port. HTTP entities remain encoded streams;
+native ForwardTcp to its fixed loopback port. The installation may name further
+programs of the Computer version in `computers.apps`, each a name, a lowercase DNS
+label, and a loopback port: `/computer/c/{computer}/apps/{name}/{*path}` reaches that
+port with the same admission, headers and limits, and the program serves under that
+path. The Computer's own program keeps every other path. `GET /computer/apps/{name}/{*path}`,
+with its query, is the stable way in that names no Computer: it signs the person in as
+`GET /computer` does, starts their Computer when it is not ready, and then redirects to
+that path of their own Computer, so a link to it reaches whoever follows it in their own
+Computer and nobody else's. HTTP entities remain encoded streams;
 hop-by-hop and Connection-nominated headers, incoming credentials/cookies/forwarded
 identity, backend cookies and CORS headers do not cross this boundary. Unsafe HTTP
 and WebSocket requests require exactly the public origin; Origin is then removed
@@ -1870,6 +2066,7 @@ The Computer's routes:
 | `GET /computer` | The way in: sign-in, creation of a missing sandbox, the start page while the sandbox is created or started, then the Computer; the status page when a failure or a sandbox the Hub can no longer serve needs the owner |
 | `GET /computer/status` | The owner's status page, or the status as JSON for a bearer |
 | `POST /computer/restart`, `POST /computer/previous` | A replacement at the current version, or of the recorded version after a failure: for the owner's session, from this origin only, then `/computer`; for a bearer, `202` with the status, `409` while one runs, `503` when no Computer can start |
+| `POST /computer/keep-on`, `POST /computer/stop` | The owner keeps their Computer on, with `{"keepOn": true}` or `false`, or stops it now, keeping its home: for the owner's session, from this origin only, then `/computer`; for a bearer, `204`, and `409` while an operation runs |
 | `GET /computer/version` | Public: the current version and its release note's first line only, for a server that names it in a tool description |
 | `GET /computer/callback` | The sign-in's code exchange and custody, then `/computer`, or the App whose sign-in it was ([Apps host](#apps-host)) |
 
@@ -1976,9 +2173,17 @@ Every Lore token names its person by Hub principal ID in its `identity` claim, s
 pusher a Lore branch event names is a Hub principal. A repository token's `resources`
 hold one entry, for the repository its `scope` names, with the person's native actions
 on it as `permission`; a login token holds none. `root_domains` names the private Lore
-recipient's host. An assignment without actions still allows Lore's ordinary
-unprotected operations, writes included; no read-only role is inferred from it. Only an
-explicit assignment, to the person or to a group they belong to, grants a repository.
+recipient's host. The actions are Lore's own, by Lore's names, and Lore checks one on
+every operation that changes a repository, from the token alone: `write` to write and to
+push to an unprotected branch, `push-protected` to push to a protected branch, `owner`
+or `admin` to protect branches and delete the repository (Lore also lets `write` do that
+for the repository's recorded creator), `obliterate` and `migrate` for those operations.
+Any entry for the repository reads it, so an assignment without actions is read-only. No
+action implies another: `owner` holds no `push-protected`. Assignments carry levels of
+these actions (below): a reader none, a member `write`, an owner `write` and `owner`; an
+administrator may publish any of `write`, `owner`, `admin`, `push-protected`,
+`obliterate` and `migrate`. Only an explicit assignment, to the person or to a group they
+belong to, grants a repository.
 Creating a repository, through the Hub or with Lore, makes its creator the owner; no
 other grant is automatic, and no administrator role or Work Context membership grants repositories.
 Removing an assignment or a membership stops further issuance, while tokens already
@@ -1990,8 +2195,8 @@ directly or through a server that calls the Hub for them, with no administrator 
 and no quota. The Hub creates the repository in the one Lore deployment as the
 caller, with a Lore login token it issues for them through the deployment's public
 client, so Lore records them as creator. It then publishes one revision that
-registers the repository, titled by its name, and assigns the caller `owner`. The
-Hub prepares no personal repository of its own. The publication takes the process's
+registers the repository, titled by its name, and assigns the caller the owner level,
+`write` and `owner`. The Hub prepares no personal repository of its own. The publication takes the process's
 publication lock and is built again on a revision conflict. The route answers 201
 with `{id, name, remote}`, where `remote` is `<deployment endpoint>/<id>`, once the
 revision is active in this process, so the caller's next repository token holds it. Lore
@@ -2015,9 +2220,10 @@ The Lore section holds groups beside repositories and assignments. A group has a
 32-hex `id`, a `tenant`, a `name` unique in its tenant (1 to 64 of `a`–`z`, `0`–`9` and
 `-`, starting with a letter) and `members`, each a principal of the tenant with the role
 `member` or `owner`. An assignment names exactly one subject: a `principal`, or a `group`
-of the repository's tenant. A person's actions on a repository are the union of their own
-assignment's and those of every group of the tenant they belong to; holding any of those
-assignments is holding a grant on the repository. Every reader of grants uses that one
+of the repository's tenant, at the same levels for either. A person's actions on a
+repository are the union of their own assignment's and those of every group of the tenant
+they belong to; holding any of those assignments is holding a grant on the repository,
+and one without actions, a reader's, grants it read-only. Every reader of grants uses that one
 rule: repository tokens, for a Computer, an exchange or a factory instance's pusher, the
 listing, and the watch and status routes; the selection route reads no grant. Groups are
 catalog objects of kind `lore.group`. An assignment keeps its `principal` member and adds
@@ -2086,7 +2292,7 @@ the section alone (`sharing/changes.rs`). Fields that need two words are camelCa
 | Route | Who | Behavior |
 |---|---|---|
 | `GET /lore/{profile}/repositories/{id}/access` | a holder of a grant on it | The access list |
-| `PUT /lore/{profile}/repositories/{id}/access` | an owner of it | `{"person": "<email>", "access": …}` or `{"group": "<name>", "access": …}`, exactly one of `person` and `group`, with `access` `member`, `owner` or `none`. Sets that subject's assignment, or removes it, and answers the access list |
+| `PUT /lore/{profile}/repositories/{id}/access` | an owner of it | `{"person": "<email>", "access": …}` or `{"group": "<name>", "access": …}`, exactly one of `person` and `group`, with `access` `reader`, `member`, `owner` or `none`. Sets that subject's assignment, or removes it, and answers the access list |
 | `POST /lore/{profile}/groups` | anyone | `{"name": "<name>"}`: creates the group with the caller as its one member, its owner; 201 with the group |
 | `GET /lore/{profile}/groups` | anyone | `{"groups": [<group>]}`: the groups the caller belongs to, by name |
 | `PUT /lore/{profile}/groups/{name}/members` | an owner of the group | `{"person": "<email>", "role": "member", "owner" or "none"}`: sets or removes that membership, and answers the group |
@@ -2100,9 +2306,12 @@ person is named by the email and display name of their last sign-in; one with no
 `hub.person` row, such as a principal an administrator assigned, has both `null` and is
 listed after the people who signed in. `actions` is the assignment's native action set
 as the section stores it, in its canonical order, and `access` its level: `owner` when
-the actions hold `owner`, otherwise `member`. An owner sets a level: `member`, an
-assignment without actions, or `owner`, the `owner` action, which replaces whatever
-actions an administrator published. Groups, assignments and memberships are listed by
+the actions hold `owner`, `member` when they hold `write`, otherwise `reader`. An owner
+sets a level, which replaces whatever actions an administrator published: `reader`, an
+assignment without actions, which clones and pulls and pushes nothing; `member`, `write`,
+which also pushes to unprotected branches; or `owner`, `write` and `owner`, which also
+shares the repository, protects its branches and deletes it. A protected branch takes
+`push-protected`, which only an administrator publishes. Groups, assignments and memberships are listed by
 email and name. A group also shows its `id`, which grants outside Lore name it by; other
 IDs stay internal.
 
@@ -2164,8 +2373,8 @@ Hub answers both as gRPC on its own listener, at `/ucs.auth.RebacApi/CreateResou
 `/ucs.auth.RebacApi/DeleteResource`, and admits the same tokens as the listing.
 
 A creation publishes the revision the creation route publishes: the repository,
-registered in the token's person's tenant and titled by its name, and their `owner`
-assignment. A repository registered as theirs already changes nothing; one registered
+registered in the token's person's tenant and titled by its name, and their owner
+assignment, `write` and `owner`. A repository registered as theirs already changes nothing; one registered
 without their own owner assignment answers `PERMISSION_DENIED`, so Lore stores nothing.
 A deletion by a person whose actions on the repository, own or through a group, hold
 `owner` removes its registration and every assignment on it; anyone else's answers

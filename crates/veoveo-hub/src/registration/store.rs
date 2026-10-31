@@ -30,6 +30,8 @@ pub(crate) struct StoredRegistration {
     pub orphaned_at: Option<DateTime<Utc>>,
     /// The branch of the instance the registration's deployment is, if it is one.
     pub branch: Option<BranchName>,
+    /// The link the instance serves, when it is the runner of one.
+    pub runner: Option<super::RunnerOf>,
 }
 
 struct RegistrationRow {
@@ -41,6 +43,8 @@ struct RegistrationRow {
     issued_at: DateTime<Utc>,
     orphaned_at: Option<DateTime<Utc>>,
     branch: Option<String>,
+    link: Option<String>,
+    linked_repository: Option<String>,
 }
 
 impl TryFrom<RegistrationRow> for StoredRegistration {
@@ -67,6 +71,15 @@ impl TryFrom<RegistrationRow> for StoredRegistration {
                 .map(BranchName::parse)
                 .transpose()
                 .context("stored instance branch is malformed")?,
+            runner: match (row.link, row.linked_repository) {
+                (Some(link), Some(repository)) => Some(super::RunnerOf {
+                    link: veoveo_hub_sdk::hub::LinkName::parse(link)
+                        .context("stored runner link is malformed")?,
+                    repository: veoveo_hub_sdk::registration::RepositoryId::parse(repository)
+                        .context("stored runner repository is malformed")?,
+                }),
+                _ => None,
+            },
         })
     }
 }
@@ -223,7 +236,9 @@ impl RegistrationStore {
     }
 
     /// Record a new instance of `branch` of `repository` in `database` under the digest
-    /// of its registration token.
+    /// of its registration token: the runner of `runner`'s link, or with none the branch's
+    /// ordinary instance.
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_instance(
         &self,
         deployment: DeploymentId,
@@ -232,6 +247,7 @@ impl RegistrationStore {
         database: &DatabaseName,
         branch: &BranchName,
         now: DateTime<Utc>,
+        runner: Option<&crate::factory::Link>,
     ) -> Result<()> {
         sqlx::query_file!(
             "src/registration/store/create_instance.sql",
@@ -241,6 +257,10 @@ impl RegistrationStore {
             database.as_str(),
             branch.as_str(),
             now,
+            runner.map(|link| link.name.as_str()),
+            runner.map(|link| link.repository.as_str()),
+            runner.map(|link| link.tracked.id.as_str()),
+            runner.map(|link| link.tracked.name.as_str()),
         )
         .execute(self.store.pool())
         .await

@@ -13,36 +13,66 @@ use super::super::{
     Repository, RepositoryId, Subject,
 };
 
-/// An assignment's level: `member`, an assignment without actions, or `owner`, which
-/// holds the `owner` action.
+/// An assignment's level, in Lore's actions: `reader`, an assignment without actions,
+/// which clones and pulls; `member`, `write`, which also pushes to unprotected branches;
+/// or `owner`, `write` and `owner`, which also shares the repository, protects its
+/// branches and deletes it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum Level {
+    Reader,
     Member,
     Owner,
 }
 
 impl Level {
-    /// The level an assignment's actions show: `owner` when they hold the `owner` action.
-    /// An administrator may publish other actions; they are listed beside the level.
+    /// The level an assignment's actions show: `owner` when they hold `owner`, `member`
+    /// when they hold `write`, otherwise `reader`. An administrator may publish other
+    /// actions, such as `push-protected`; they are listed beside the level.
     pub(crate) fn of(actions: &BTreeSet<NativeAction>) -> Self {
         if actions.contains(&NativeAction::Owner) {
             Self::Owner
-        } else {
+        } else if actions.contains(&NativeAction::Write) {
             Self::Member
+        } else {
+            Self::Reader
         }
     }
 
-    fn actions(self) -> BTreeSet<NativeAction> {
+    /// The actions an assignment of this level holds.
+    pub(crate) fn actions(self) -> BTreeSet<NativeAction> {
         match self {
-            Self::Member => BTreeSet::new(),
-            Self::Owner => BTreeSet::from([NativeAction::Owner]),
+            Self::Reader => BTreeSet::new(),
+            Self::Member => BTreeSet::from([NativeAction::Write]),
+            Self::Owner => BTreeSet::from([NativeAction::Write, NativeAction::Owner]),
         }
     }
 }
 
-/// What an owner sets for a person or a group: `member` or `owner`, or `none`, which
-/// removes the assignment or the membership.
+/// What an owner sets for a person or a group on a repository: a level, or `none`,
+/// which removes the assignment.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum Access {
+    Reader,
+    Member,
+    Owner,
+    None,
+}
+
+impl Access {
+    fn level(self) -> Option<Level> {
+        match self {
+            Self::Reader => Some(Level::Reader),
+            Self::Member => Some(Level::Member),
+            Self::Owner => Some(Level::Owner),
+            Self::None => None,
+        }
+    }
+}
+
+/// What a group's owner sets for a person: the role `member` or `owner`, or `none`,
+/// which removes the membership.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum Setting {
@@ -145,7 +175,7 @@ impl Lore {
             .ok_or(Refusal::NotGranted)
     }
 
-    /// Set `subject`'s assignment on the repository to the level `setting` names,
+    /// Set `subject`'s assignment on the repository to the level `access` names,
     /// replacing whatever actions it held, or remove it, as `caller`, an owner of the
     /// repository who stays one. Answers whether the section changed.
     pub(crate) fn set_access(
@@ -154,7 +184,7 @@ impl Lore {
         repository: &RepositoryId,
         caller: Caller<'_>,
         subject: &Named,
-        setting: Setting,
+        access: Access,
     ) -> Result<bool, Refusal> {
         self.repository_of(deployment, repository, caller.tenant)?;
         if !self.owns(deployment, repository, caller) {
@@ -169,11 +199,7 @@ impl Lore {
                     .clone(),
             ),
         };
-        let level = match setting {
-            Setting::Member => Some(Level::Member),
-            Setting::Owner => Some(Level::Owner),
-            Setting::None => None,
-        };
+        let level = access.level();
         let existing = self.assignments.iter().position(|a| {
             &a.deployment == deployment && &a.repository == repository && a.subject == subject
         });

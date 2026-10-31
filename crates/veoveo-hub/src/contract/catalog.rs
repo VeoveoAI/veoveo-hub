@@ -106,6 +106,21 @@ pub struct GroupMembershipDescriptor {
     pub principal: PrincipalId,
     pub membership: GroupMembership,
 }
+/// Who holds a repository grant: a principal, or the members of a group a section holds.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum RepositoryGrantee {
+    Principal(PrincipalId),
+    Group(veoveo_types::GroupId),
+}
+/// One grant on a source repository a section holds, with the repository's own actions,
+/// as the repository's server names them. An empty set is a grant that reads.
+#[derive(Debug, Clone)]
+pub struct RepositoryGrantDescriptor {
+    pub tenant: TenantId,
+    pub repository: veoveo_hub_sdk::registration::RepositoryId,
+    pub grantee: RepositoryGrantee,
+    pub actions: BTreeSet<veoveo_hub_sdk::registration::RepositoryAction>,
+}
 impl std::fmt::Debug for CatalogObjectDescriptor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CatalogObjectDescriptor")
@@ -129,6 +144,11 @@ pub trait CatalogSection:
     fn group_memberships(&self) -> Result<Vec<GroupMembershipDescriptor>, ExtensionError> {
         Ok(Vec::new())
     }
+    /// Every grant on the section's repositories. A grant decides who reaches the runner
+    /// that serves the repository, and the forwarded token carries it.
+    fn repository_grants(&self) -> Result<Vec<RepositoryGrantDescriptor>, ExtensionError> {
+        Ok(Vec::new())
+    }
 }
 pub type SectionKey<T> = ExtensionKey<T>;
 pub type TargetKey<T> = ExtensionKey<T>;
@@ -141,6 +161,7 @@ type SectionFacts = Arc<
                 Vec<ProtectedResourceDescriptor>,
                 Vec<CatalogObjectDescriptor>,
                 Vec<GroupMembershipDescriptor>,
+                Vec<RepositoryGrantDescriptor>,
             ),
             ExtensionError,
         > + Send
@@ -230,13 +251,14 @@ impl CatalogRegistryBuilder {
             SectionDeclaration {
                 facts: Arc::new(move |sections, facts| {
                     let Some(section) = sections.get(&captured)? else {
-                        return Ok((Vec::new(), Vec::new(), Vec::new()));
+                        return Ok((Vec::new(), Vec::new(), Vec::new(), Vec::new()));
                     };
                     section.validate(facts)?;
                     Ok((
                         section.protected_resources(),
                         section.objects()?,
                         section.group_memberships()?,
+                        section.repository_grants()?,
                     ))
                 }),
                 schema: T::json_schema,
@@ -389,11 +411,18 @@ impl CatalogRegistry {
         let mut resources = Vec::new();
         let mut objects = Vec::new();
         let mut memberships = GroupMemberships::new();
+        let mut repository_grants = RepositoryGrants::new();
         let mut identities = BTreeSet::new();
         for section in self.section_declarations.values() {
-            let (section_resources, section_objects, section_memberships) =
+            let (section_resources, section_objects, section_memberships, section_grants) =
                 (section.facts)(&sections, facts)?;
             resources.extend(section_resources);
+            for grant in section_grants {
+                repository_grants
+                    .entry((grant.tenant, grant.repository))
+                    .or_default()
+                    .push((grant.grantee, grant.actions));
+            }
             for descriptor in section_memberships {
                 memberships
                     .entry(descriptor.tenant)
@@ -423,6 +452,7 @@ impl CatalogRegistry {
             resources,
             objects,
             memberships,
+            repository_grants,
         })
     }
     pub fn contribute_target<T: Serialize + 'static>(
@@ -505,12 +535,20 @@ impl CatalogRegistry {
     }
 }
 type GroupMemberships = BTreeMap<TenantId, BTreeMap<PrincipalId, BTreeSet<GroupMembership>>>;
+type RepositoryGrants = BTreeMap<
+    (TenantId, veoveo_hub_sdk::registration::RepositoryId),
+    Vec<(
+        RepositoryGrantee,
+        BTreeSet<veoveo_hub_sdk::registration::RepositoryAction>,
+    )>,
+>;
 #[derive(Debug, Clone)]
 pub struct AdmittedCatalogSections {
     sections: AdmittedExtensions,
     resources: Vec<ProtectedResourceDescriptor>,
     objects: Vec<CatalogObjectDescriptor>,
     memberships: GroupMemberships,
+    repository_grants: RepositoryGrants,
 }
 impl AdmittedCatalogSections {
     pub fn get<T: Send + Sync + 'static>(
@@ -536,6 +574,36 @@ impl AdmittedCatalogSections {
             .and_then(|principals| principals.get(principal))
             .into_iter()
             .flatten()
+    }
+    /// The grant `principal` holds on `repository` in `tenant`: the union of the actions
+    /// of their own grants and of those of every group of the tenant they belong to, or
+    /// none when they hold none.
+    pub fn repository_grant(
+        &self,
+        tenant: &TenantId,
+        principal: &PrincipalId,
+        repository: &veoveo_hub_sdk::registration::RepositoryId,
+    ) -> Option<veoveo_hub_sdk::registration::RepositoryGrant> {
+        let groups = self
+            .group_memberships(tenant, principal)
+            .map(|membership| &membership.group)
+            .collect::<BTreeSet<_>>();
+        let mut held = self
+            .repository_grants
+            .get(&(tenant.clone(), repository.clone()))?
+            .iter()
+            .filter(|(grantee, _)| match grantee {
+                RepositoryGrantee::Principal(own) => own == principal,
+                RepositoryGrantee::Group(group) => groups.contains(group),
+            })
+            .peekable();
+        held.peek()?;
+        Some(veoveo_hub_sdk::registration::RepositoryGrant {
+            repository: repository.clone(),
+            actions: held
+                .flat_map(|(_, actions)| actions.iter().cloned())
+                .collect(),
+        })
     }
 }
 #[derive(Clone, PartialEq, Eq)]

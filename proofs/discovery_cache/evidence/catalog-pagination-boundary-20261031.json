@@ -1,0 +1,387 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "declaration_counts": {
+        "fun_decls": 742,
+        "global_decls": 214,
+        "trait_decls": 81,
+        "trait_impls": 285,
+        "type_decls": 237
+      },
+      "inventory": {
+        "bytes": 5379818,
+        "sha256": "07111d50846cf42564ac1c4bfe8773a2468520b0dfaa4c417637a5aa955070bc"
+      },
+      "llbc": {
+        "bytes": 6865447,
+        "sha256": "8bd9b86dbea89f565b94646e0e24180ec090fa9c501c825b38c0efd50758c0f3"
+      },
+      "llbc_has_errors": false,
+      "outcome": "Stopped at own-body inventory: SDK CatalogPage compiler-generated DropGlue remained Foreign/Opaque. Aeneas did not run.",
+      "own_functions": 258,
+      "own_functions_transparent_body_errorfree": 257,
+      "roots": 10,
+      "selector_counts": {
+        "expected_resolved_root_functions": 10,
+        "include_selectors": 9,
+        "opaques": 0,
+        "start_selectors": 7
+      },
+      "source_final_map_verified": true,
+      "stages": [
+        {
+          "elapsed_ms": 1216,
+          "exit": 0,
+          "log_bytes": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "verify-source-pin-metadata",
+          "timed_out": false,
+          "timeout_seconds": 180
+        },
+        {
+          "elapsed_ms": 215,
+          "exit": 0,
+          "log_bytes": 21,
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+          "stage": "clean-hub-charon-target",
+          "timed_out": false,
+          "timeout_seconds": 120
+        },
+        {
+          "elapsed_ms": 57085,
+          "exit": 0,
+          "log_bytes": 4820,
+          "log_sha256": "88cd931112c784f78802b9eaebb14ecff4a90ac2f4d55bd6e571b51b62e51ae1",
+          "stage": "charon-catalog-pages-roots",
+          "timed_out": false,
+          "timeout_seconds": 600
+        }
+      ],
+      "summary": {
+        "bytes": 205873,
+        "sha256": "80646b1863811702fc42c84a644818e71f4b11f3adfd51fd4e51233e7282f609"
+      }
+    },
+    {
+      "attempt": 2,
+      "declaration_counts": {
+        "fun_decls": 742,
+        "global_decls": 214,
+        "trait_decls": 81,
+        "trait_impls": 285,
+        "type_decls": 237
+      },
+      "inventory": {
+        "bytes": 5379836,
+        "sha256": "4ce9ec98ee13155bb8105b30e3f73e05740e88021e66a5c8b9b939ca3dfc65bc"
+      },
+      "llbc": {
+        "bytes": 6868401,
+        "sha256": "c8751cbf3f4e145efa1e8caf686c18584aa07bf08e3cbd8e0a13c33595cfc93d"
+      },
+      "llbc_has_errors": false,
+      "outcome": "All required bodies passed inventory. Aeneas exited 2 before producing any Lean modules. Lean compilation and semantic proofs did not run.",
+      "own_functions": 258,
+      "own_functions_transparent_body_errorfree": 258,
+      "roots": 10,
+      "selector_counts": {
+        "expected_resolved_root_functions": 10,
+        "include_selectors": 10,
+        "opaques": 0,
+        "start_selectors": 7
+      },
+      "source_final_map_verified": true,
+      "stages": [
+        {
+          "elapsed_ms": 565,
+          "exit": 0,
+          "log_bytes": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "verify-source-pin-metadata",
+          "timed_out": false,
+          "timeout_seconds": 180
+        },
+        {
+          "elapsed_ms": 164,
+          "exit": 0,
+          "log_bytes": 21,
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+          "stage": "clean-hub-charon-target",
+          "timed_out": false,
+          "timeout_seconds": 120
+        },
+        {
+          "elapsed_ms": 31169,
+          "exit": 0,
+          "log_bytes": 4820,
+          "log_sha256": "2774def6e52639561d07d3d3b92c722507bd6a6dc775f3c177841f870acadb70",
+          "stage": "charon-catalog-pages-roots",
+          "timed_out": false,
+          "timeout_seconds": 600
+        },
+        {
+          "elapsed_ms": 865,
+          "exit": 2,
+          "log_bytes": 11492,
+          "log_sha256": "90f9f1fe3a00e139ea17afa8a16d9e9c23c75cec2247a64766155465c47dbffe",
+          "stage": "aeneas-catalog-pages-translation",
+          "timed_out": false,
+          "timeout_seconds": 600
+        }
+      ],
+      "summary": {
+        "bytes": 206883,
+        "sha256": "283ac8de9e3e5a8ac7f06f1b6a027160e95e9432fecda27c32c12f6a38396459"
+      }
+    }
+  ],
+  "commands": {
+    "aeneas_attempt2": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+      "-namespace",
+      "HubCatalogPagesModel",
+      "-subdir",
+      "HubCatalogPages",
+      "-backend",
+      "lean",
+      "-filter-trait-methods",
+      "-split-files",
+      "-dest",
+      "/home/rozgo/.cache/lean-pilot/hub-catalog-pages-20261031/extraction2/probe/outputs",
+      "/home/rozgo/.cache/lean-pilot/hub-catalog-pages-20261031/extraction2/probe/outputs/catalog_pages.llbc"
+    ],
+    "charon_attempt2": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+      "cargo",
+      "--sysroot",
+      "default",
+      "--preset=aeneas",
+      "--start-from",
+      "veoveo_hub::mcp::catalog_pages::page",
+      "--start-from",
+      "veoveo_hub::mcp::catalog_pages::_::new",
+      "--start-from",
+      "veoveo_hub::mcp::catalog_pages::decode",
+      "--start-from",
+      "{impl veoveo_types::cursor::CursorCodec for veoveo_hub::mcp::catalog_pages::CatalogCursorCodec<_>}::check",
+      "--start-from",
+      "{impl veoveo_types::cursor::CursorCodec for veoveo_hub::mcp::catalog_pages::CatalogCursorCodec<_>}::encode",
+      "--start-from",
+      "{impl veoveo_types::cursor::CursorCodec for veoveo_hub::mcp::catalog_pages::CatalogCursorCodec<_>}::decode",
+      "--start-from",
+      "{impl veoveo_hub::mcp::catalog_pages::CatalogItem for _}::key",
+      "--include",
+      "veoveo_hub::mcp::catalog_pages",
+      "--include",
+      "veoveo_hub::mcp::HUB_PAGE_SIZE",
+      "--include",
+      "veoveo_hub::mcp::catalog_pages::MAX_CURSOR_BYTES",
+      "--include",
+      "veoveo_hub::mcp_support::mcp_internal",
+      "--include",
+      "veoveo_hub::mcp_support::mcp_invalid_params",
+      "--include",
+      "veoveo_hub_sdk::identity",
+      "--include",
+      "veoveo_hub_sdk::execution",
+      "--include",
+      "veoveo_hub_sdk::hub::tool_name",
+      "--include",
+      "veoveo_types",
+      "--include",
+      "veoveo_hub_sdk::pagination",
+      "--dest-file",
+      "/home/rozgo/.cache/lean-pilot/hub-catalog-pages-20261031/extraction2/probe/outputs/catalog_pages.llbc",
+      "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+      "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+      "--",
+      "--manifest-path",
+      "crates/veoveo-hub/Cargo.toml",
+      "--lib",
+      "--locked"
+    ]
+  },
+  "date": "2026-10-31",
+  "diagnostic_counts": {
+    "aeneas_error_tags": 11,
+    "ignored_body_cascade_included": true,
+    "lean_files_emitted": 0
+  },
+  "execution_roles": {
+    "execution": "GPT-6 Luna: Linux unattended runs and artifact mirroring",
+    "implementation": "GPT-6.1 Sol: bounded extraction packet and selector refinement",
+    "review": "GPT-6 Astra: source/pin correspondence, diagnostics, scope and evidence review"
+  },
+  "next": "Keep native pagination unchanged and this obligation open. Reconcile newer runtime source and its proof applicability; unsupported constructs require a separately reviewed translation/refinement approach.",
+  "not_run": [
+    "Lean model compilation",
+    "semantic pagination proofs",
+    "semantic pagination mutation controls",
+    "native tests for this diagnostic",
+    "deployment",
+    "model-driven acceptance"
+  ],
+  "property": "HUB-CATALOG-01",
+  "refinement_between_attempts": "Only add veoveo_hub_sdk::pagination include (9 to10), with fresh attempt paths. No opaque exceptions, runtime source changes, handwritten generated output or new translator patches.",
+  "scope": "Unmodified full catalog pagination, codec and concrete key implementations; actual serde/equality derives and constants included. Extraction feasibility, not a discovered runtime bug or failed semantic theorem.",
+  "selectors": {
+    "includes": [
+      "veoveo_hub::mcp::catalog_pages",
+      "veoveo_hub::mcp::HUB_PAGE_SIZE",
+      "veoveo_hub::mcp::catalog_pages::MAX_CURSOR_BYTES",
+      "veoveo_hub::mcp_support::mcp_internal",
+      "veoveo_hub::mcp_support::mcp_invalid_params",
+      "veoveo_hub_sdk::identity",
+      "veoveo_hub_sdk::execution",
+      "veoveo_hub_sdk::hub::tool_name",
+      "veoveo_types",
+      "veoveo_hub_sdk::pagination"
+    ],
+    "opaque": [],
+    "scope_notes": [
+      "Actual full generic page, codec new/check/encode/decode, free decode and four concrete key implementations.",
+      "Scoped catalog_pages include covers own Surface/Version/Cursor serde/equality derives, associated surface constants and all actual closures. No copied executor/factoring or opaque own code.",
+      "SDK key/composition and Core typed-identifier dependencies are included transparently; record all actually resolved own component functions and stop if opaque.",
+      "External std/alloc/core iterator/sort, serde/serde_json, base64, RMCP and underlying standard dependencies are measured boundaries, not assumed own-operation successes."
+    ],
+    "starts": [
+      "veoveo_hub::mcp::catalog_pages::page",
+      "veoveo_hub::mcp::catalog_pages::_::new",
+      "veoveo_hub::mcp::catalog_pages::decode",
+      "{impl veoveo_types::cursor::CursorCodec for veoveo_hub::mcp::catalog_pages::CatalogCursorCodec<_>}::check",
+      "{impl veoveo_types::cursor::CursorCodec for veoveo_hub::mcp::catalog_pages::CatalogCursorCodec<_>}::encode",
+      "{impl veoveo_types::cursor::CursorCodec for veoveo_hub::mcp::catalog_pages::CatalogCursorCodec<_>}::decode",
+      "{impl veoveo_hub::mcp::catalog_pages::CatalogItem for _}::key"
+    ]
+  },
+  "source": {
+    "applicability": "Eleven pager/source/caller/config files matched local305aeb2. Not a whole-current-tree or newer-origin equivalence claim. Subsequent linked-runner integration changes callers, keys and dependencies.",
+    "archive_file_count": 1083,
+    "archive_overlay": "Previously qualified lazy discovery-cache state operations; pager-relevant files unchanged from local main305aeb2.",
+    "cargo_lock_sha256": "b2e96062f36e9755403b39585723d55056bd3c03ef8613b617de8a81ab21e1da",
+    "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "correspondence": {
+      "current_full_map_sha256": "3edd70ec7d2794cce7063dbf8819585075c5a21c996460beee71279d89f57b2b",
+      "current_main": "305aeb2540ea30c2a6b88b2670f2585224ccac88",
+      "path": "/tmp/hub-catalog-pages-20261031/extraction-plan1/source-correspondence.json",
+      "required_files": {
+        ".cargo/config.toml": {
+          "archive_sha256": "342a7342d21b15f37b2155f1fc067852a93956695d1b1ddc01353bc0aefaa22e",
+          "byte_identical_to_archive": true,
+          "bytes": 186,
+          "sha256": "342a7342d21b15f37b2155f1fc067852a93956695d1b1ddc01353bc0aefaa22e"
+        },
+        "Cargo.lock": {
+          "archive_sha256": "b2e96062f36e9755403b39585723d55056bd3c03ef8613b617de8a81ab21e1da",
+          "byte_identical_to_archive": true,
+          "bytes": 150691,
+          "sha256": "b2e96062f36e9755403b39585723d55056bd3c03ef8613b617de8a81ab21e1da"
+        },
+        "Cargo.toml": {
+          "archive_sha256": "281b32bd0a32fcf8cbcde2f3434f75232c8c0d0c676a3932e97d62c70865d6e3",
+          "byte_identical_to_archive": true,
+          "bytes": 4563,
+          "sha256": "281b32bd0a32fcf8cbcde2f3434f75232c8c0d0c676a3932e97d62c70865d6e3"
+        },
+        "crates/veoveo-hub/Cargo.toml": {
+          "archive_sha256": "35f5d9fa6f4f8f24a462082f1e97a26ec781f6afff86ce2716ba10fb4b3daf9d",
+          "byte_identical_to_archive": true,
+          "bytes": 2875,
+          "sha256": "35f5d9fa6f4f8f24a462082f1e97a26ec781f6afff86ce2716ba10fb4b3daf9d"
+        },
+        "crates/veoveo-hub/src/mcp.rs": {
+          "archive_sha256": "860f7597fe65eba9067cb5700cd9c8ae7e8fdc0e25694f5b16bcd36f77175d3a",
+          "byte_identical_to_archive": true,
+          "bytes": 20770,
+          "sha256": "860f7597fe65eba9067cb5700cd9c8ae7e8fdc0e25694f5b16bcd36f77175d3a"
+        },
+        "crates/veoveo-hub/src/mcp/catalog_pages.rs": {
+          "archive_sha256": "87043d606682c6658e1d39624630d6744df3606ebba86c3ed7c9b05ed734af40",
+          "byte_identical_to_archive": true,
+          "bytes": 6344,
+          "sha256": "87043d606682c6658e1d39624630d6744df3606ebba86c3ed7c9b05ed734af40"
+        },
+        "crates/veoveo-hub/src/mcp/catalog_pages/tests.rs": {
+          "archive_sha256": "877fbeae7fad3fa9f89ed2d0eaf658750b1b7012ee5eb51fa1763108c7c1403a",
+          "byte_identical_to_archive": true,
+          "bytes": 7243,
+          "sha256": "877fbeae7fad3fa9f89ed2d0eaf658750b1b7012ee5eb51fa1763108c7c1403a"
+        },
+        "crates/veoveo-hub/src/mcp/prompts.rs": {
+          "archive_sha256": "732ac66fa2ebc69f27d6119a1cbe64a31d5e4cda7e76e1a71a9798b9bcebb7e8",
+          "byte_identical_to_archive": true,
+          "bytes": 7831,
+          "sha256": "732ac66fa2ebc69f27d6119a1cbe64a31d5e4cda7e76e1a71a9798b9bcebb7e8"
+        },
+        "crates/veoveo-hub/src/mcp/resources.rs": {
+          "archive_sha256": "e6596ba56fd83f3437ac2e60d1650d679ab7cb875a1a1e828107232c4200d4ba",
+          "byte_identical_to_archive": true,
+          "bytes": 18929,
+          "sha256": "e6596ba56fd83f3437ac2e60d1650d679ab7cb875a1a1e828107232c4200d4ba"
+        },
+        "crates/veoveo-hub/src/mcp/tools.rs": {
+          "archive_sha256": "83cd9d31ef65f22e1a77e15588fe04a7de66eb9d2be692f1c76b240c280173bf",
+          "byte_identical_to_archive": true,
+          "bytes": 29980,
+          "sha256": "83cd9d31ef65f22e1a77e15588fe04a7de66eb9d2be692f1c76b240c280173bf"
+        },
+        "crates/veoveo-hub/src/mcp_support.rs": {
+          "archive_sha256": "199a01572131eb5ddde28ca037fbabfca48528d3ec8926ec13efb31816e57454",
+          "byte_identical_to_archive": true,
+          "bytes": 9031,
+          "sha256": "199a01572131eb5ddde28ca037fbabfca48528d3ec8926ec13efb31816e57454"
+        }
+      },
+      "sha256": "2b15216c07b51b1ea908646c4f842f3f322a20b26a35ea8cf01ca095190f3b39"
+    },
+    "hub_archive_revision": "f81159fbb9f049422682df41e7c1eff420d80968",
+    "hub_archive_sha256": "a95b39097c776b032df258b45329b51a883e11fabea41225de7c5441be4af55f",
+    "hub_manifest_sha256": "e0e278abd301df6d1956a15de4c36233e12c2f75ad5d225607bd6ffa01de78db",
+    "sdk_manifest_file_count": 178,
+    "sdk_pin": "154a473f2c2c2d0fbc974bc04b6c7159bd397829"
+  },
+  "status": "translation-boundary; no new formal coverage",
+  "tools": {
+    "aeneas": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+    "aeneas_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "charon": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+    "charon_sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+    "charon_target": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target",
+    "rust_toolchain": "nightly-2026-09-17-x86_64-unknown-linux-gnu"
+  },
+  "translation_diagnostics": [
+    {
+      "category": "Continue to outer loops unsupported",
+      "function": "validate_prefix_lengths",
+      "source": "veoveo-core/platform/types/src/resource_template.rs:96"
+    },
+    {
+      "category": "Arrow types unsupported",
+      "source": "veoveo-core/platform/types/src/id_profile.rs:30,89,163",
+      "types": [
+        "IdProfileSpec",
+        "IdGrammar",
+        "IdSchema"
+      ]
+    },
+    {
+      "category": "Arrow types with locally quantified regions unsupported",
+      "functions": [
+        "text",
+        "hex",
+        "owner_schema"
+      ],
+      "source": "veoveo-core/platform/types/src/id_profile.rs:40,66,57-61"
+    },
+    {
+      "category": "Unimplemented function signatures",
+      "sources": [
+        "Rust core::str::ends_with at str/mod.rs:1445-1447",
+        "serde_core::de::Error::call_once at de/mod.rs:195-197 (macro304)",
+        "Rust core::str::pattern at pattern.rs:99"
+      ]
+    }
+  ],
+  "warnings": "Charon compilation reports unreachable code at apps/mcp.rs:162 and async list_tools MaybeSendFuture recursion-depth warning at mcp.rs:345. Charon exits0 and all selected-body inventory entries are error-free; no whole-crate or async wrapper proof follows. Dependency future-incompatibility warnings also remain in the log."
+}

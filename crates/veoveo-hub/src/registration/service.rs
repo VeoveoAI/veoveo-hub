@@ -143,6 +143,28 @@ pub async fn create_instance(
     database: &DatabaseName,
     branch: &crate::execution::BranchName,
 ) -> anyhow::Result<NewInstance> {
+    create(store, repository, database, branch, None).await
+}
+
+/// [`create_instance`] for the runner of a link at the top level of `branch`'s revision,
+/// which serves the branch of the linked repository that the link tracks.
+pub async fn create_runner(
+    store: &veoveo_store::PlatformStore,
+    repository: &str,
+    database: &DatabaseName,
+    branch: &crate::execution::BranchName,
+    link: &crate::factory::Link,
+) -> anyhow::Result<NewInstance> {
+    create(store, repository, database, branch, Some(link)).await
+}
+
+async fn create(
+    store: &veoveo_store::PlatformStore,
+    repository: &str,
+    database: &DatabaseName,
+    branch: &crate::execution::BranchName,
+    runner: Option<&crate::factory::Link>,
+) -> anyhow::Result<NewInstance> {
     let deployment = DeploymentId::new();
     let registration_token = random_token()?;
     RegistrationStore::new(store.clone())
@@ -153,6 +175,7 @@ pub async fn create_instance(
             database,
             branch,
             Utc::now(),
+            runner,
         )
         .await?;
     Ok(NewInstance {

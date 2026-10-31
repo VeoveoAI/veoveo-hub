@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The link's runner was applied, or the link left the branch, which clears its failure.\nDELETE FROM hub.lore_runner_failure\nWHERE deployment = $1 AND repository = $2 AND branch = $3 AND link = $4\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0896de5d8d827df96800fec7acdc132b4661c1e223636c9b0553e48a42dc1daa"
+}

@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- veoveo: unbounded (the failed links of one branch, at most one per link at the top level of its revision)\nSELECT link\nFROM hub.lore_runner_failure\nWHERE deployment = $1 AND repository = $2 AND branch = $3\nORDER BY link\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "link",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_runner_failure",
+            "name": "link"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3a0dcc7e579feecc64ee8bb7ca4a159861f3bd8288fc1ebcbf5fe3c851fb6c35"
+}

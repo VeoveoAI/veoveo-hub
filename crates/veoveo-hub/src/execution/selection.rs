@@ -1,7 +1,7 @@
 //! Capture one authenticated request's routing. Headers never carry authority.
 use std::collections::BTreeMap;
 
-use veoveo_hub_sdk::{DeploymentId, ResolvedComponent, ResolvedComposition, ServerSlug};
+use veoveo_hub_sdk::{ResolvedComponent, ResolvedComposition, ServerSlug};
 
 use super::BranchName;
 use crate::{AuthenticatedSubject, HubCatalog, HubState, registration::RegistrationSnapshot};
@@ -98,22 +98,46 @@ pub(super) fn route(
 }
 
 /// Route each server that has registered instances, or that `selection` names, to the
-/// instance of its selected branch, or else of the base branch. A server without that
-/// instance is unavailable, never served by another branch or by a deployment that is
-/// not an instance. Other servers keep their deployment in `routed`.
+/// instance of its selected branch, or else of the base branch, and a server whose branch
+/// is linked to that branch's runners, one per link. A server without that instance is
+/// unavailable, never served by another branch or by a deployment that is not an
+/// instance; so is a branch with both an instance and runners, as one with two
+/// instances is. Other servers keep their deployment in `routed`.
 pub(super) fn select_instances(
     routed: BTreeMap<ServerSlug, ResolvedComponent>,
     registrations: &RegistrationSnapshot,
     base: Option<&BranchName>,
     selection: &BTreeMap<ServerSlug, BranchName>,
 ) -> Admitted {
+    // Each candidate is a component one branch of a server may route to: one per
+    // instance, and one for all the runners of a branch.
+    let mut candidates = Vec::<ResolvedComponent>::new();
     let mut instances = BTreeMap::<&ServerSlug, Vec<_>>::new();
+    let mut runners = BTreeMap::<(&ServerSlug, &BranchName), usize>::new();
     for server in registrations.iter() {
-        if let Some(branch) = &server.branch {
-            instances
-                .entry(&server.slug)
-                .or_default()
-                .push((branch, server.deployment));
+        let Some(branch) = &server.branch else {
+            continue;
+        };
+        let served = instances.entry(&server.slug).or_default();
+        match server.link() {
+            None => {
+                served.push((branch, candidates.len()));
+                candidates.push(ResolvedComponent::Deployment {
+                    deployment: server.deployment,
+                });
+            }
+            Some(link) => {
+                let index = *runners.entry((&server.slug, branch)).or_insert_with(|| {
+                    served.push((branch, candidates.len()));
+                    candidates.push(ResolvedComponent::Runners {
+                        runners: BTreeMap::new(),
+                    });
+                    candidates.len() - 1
+                });
+                if let ResolvedComponent::Runners { runners } = &mut candidates[index] {
+                    runners.insert(link.clone(), server.deployment);
+                }
+            }
         }
     }
     for server in selection.keys() {
@@ -123,7 +147,7 @@ pub(super) fn select_instances(
     let mut unavailable = BTreeMap::new();
     for (server, served) in instances {
         let component = match instance(&served, selection.get(server), base) {
-            Ok(deployment) => ResolvedComponent::Deployment { deployment },
+            Ok(candidate) => candidates[candidate].clone(),
             Err(cause) => {
                 unavailable.insert(server.clone(), cause);
                 ResolvedComponent::Unavailable {}
@@ -137,12 +161,12 @@ pub(super) fn select_instances(
     }
 }
 
-/// The one instance among `served` of the selected branch, or else of the base branch.
+/// The one candidate among `served` of the selected branch, or else of the base branch.
 fn instance(
-    served: &[(&BranchName, DeploymentId)],
+    served: &[(&BranchName, usize)],
     selected: Option<&BranchName>,
     base: Option<&BranchName>,
-) -> Result<DeploymentId, Unavailable> {
+) -> Result<usize, Unavailable> {
     kernel::resolve(served, selected, base).map_err(|cause| match cause {
         kernel::Failure::SelectedMissing(branch) => Unavailable::Selected(branch.clone()),
         kernel::Failure::BaseMissing(branch) => Unavailable::Base(branch.clone()),

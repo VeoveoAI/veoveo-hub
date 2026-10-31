@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- A push names the runner's tracked branch's name and latest pusher, whose token its client\n-- issues for the linked repository, before the Hub restarts or creates its sandbox.\nUPDATE hub.instance\nSET tracked_branch_name = $2, linked_pusher = $3\nWHERE deployment = $1 AND link IS NOT NULL\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b8bee5a45e7f6755bedc2dff99785887b0e3332766da92c91a7b93d184e273bd"
+}

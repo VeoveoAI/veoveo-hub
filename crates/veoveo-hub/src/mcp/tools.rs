@@ -38,19 +38,6 @@ use super::{
     invocation_authorization_fingerprint,
 };
 
-// Select before any watch, cache or upstream work, using the same catalog epoch.
-fn tool_servers(
-    catalog: &crate::HubCatalog,
-    profile: &veoveo_hub_sdk::HubProfileId,
-) -> Vec<veoveo_hub_sdk::ServerSlug> {
-    catalog
-        .profile_servers(profile)
-        .into_iter()
-        .filter(|server| server.capabilities.tools)
-        .map(|server| server.slug.clone())
-        .collect()
-}
-
 impl HubMcp {
     pub(super) async fn handle_list_tools(
         &self,
@@ -90,52 +77,55 @@ impl HubMcp {
                 meta: degradation.into_meta(),
             });
         }
-        let results = stream::iter(tool_servers(&catalog, &self.profile_id).into_iter().map(
-            |server_slug| {
-                let catalog = catalog.clone();
-                let context = &context;
-                let subject = &subject;
-                async move {
-                    let key = DiscoveryCacheKey {
-                        catalog_generation,
-                        principal: subject.actor.id.clone(),
-                        authorization_fingerprint,
-                        server: server_slug.clone(),
-                    };
-                    if let Err(error) = self
-                        .ensure_discovery_watch(&key, context.peer.clone(), subject)
-                        .await
-                    {
-                        return (server_slug, Err(error));
-                    }
-                    if let Some(tools) = self.discovery.tools(&key).await {
-                        return (server_slug, Ok::<_, McpError>(tools));
-                    }
-                    let fetch = self.discovery.start_tools(key.clone()).await;
-                    let result = async {
-                        let tools = self
-                            .discover_tools_for_server(&catalog, &server_slug, context, subject)
-                            .await?;
-                        self.discovery
-                            .store_tools(
-                                fetch.clone().map(|fetch| fetch.with_denied(tools.denied)),
-                                tools.items.clone(),
-                            )
-                            .await;
-                        Ok(tools)
-                    }
-                    .await;
-                    if result.is_err()
-                        && let Some(fetch) = fetch
-                    {
-                        self.discovery
-                            .finish_failure(HubDiscoverySurface::Tools, fetch)
-                            .await;
-                    }
-                    (server_slug, result)
+        // Select before any watch, cache or upstream work, using the same catalog epoch.
+        let servers = self.reachable(&subject, |capabilities| capabilities.tools);
+        let results = stream::iter(servers.into_iter().map(|server| {
+            let context = &context;
+            let subject = &subject;
+            let hub = self.at(&server);
+            let server_slug = server.slug.clone();
+            async move {
+                let catalog = hub.catalog.current();
+                let key = DiscoveryCacheKey {
+                    catalog_generation,
+                    principal: subject.actor.id.clone(),
+                    authorization_fingerprint,
+                    server: server_slug.clone(),
+                    link: server.link().cloned(),
+                };
+                if let Err(error) = hub
+                    .ensure_discovery_watch(&key, context.peer.clone(), subject)
+                    .await
+                {
+                    return (server_slug, Err(error));
                 }
-            },
-        ))
+                if let Some(tools) = self.discovery.tools(&key).await {
+                    return (server_slug, Ok::<_, McpError>(tools));
+                }
+                let fetch = self.discovery.start_tools(key.clone()).await;
+                let result = async {
+                    let tools = hub
+                        .discover_tools_for_server(&catalog, &server_slug, context, subject)
+                        .await?;
+                    self.discovery
+                        .store_tools(
+                            fetch.clone().map(|fetch| fetch.with_denied(tools.denied)),
+                            tools.items.clone(),
+                        )
+                        .await;
+                    Ok(tools)
+                }
+                .await;
+                if result.is_err()
+                    && let Some(fetch) = fetch
+                {
+                    self.discovery
+                        .finish_failure(HubDiscoverySurface::Tools, fetch)
+                        .await;
+                }
+                (server_slug, result)
+            }
+        }))
         .buffer_unordered(MAX_CONCURRENT_DISCOVERY)
         .collect::<Vec<_>>()
         .await;
@@ -184,17 +174,18 @@ impl HubMcp {
         subject: crate::AuthenticatedSubject,
     ) -> Result<(Vec<rmcp::model::Tool>, HubDiscovery, u32), McpError> {
         let snapshot = self.catalog.snapshot();
-        let catalog = snapshot.catalog().clone();
         let catalog_generation = snapshot.generation();
         let authorization_fingerprint = super::discovery_authorization_fingerprint(&subject)?;
         let mut keys = Vec::new();
         let mut cached_at_start = std::collections::BTreeMap::new();
-        for server_slug in tool_servers(&catalog, &self.profile_id) {
+        for server in self.reachable(&subject, |capabilities| capabilities.tools) {
+            let server_slug = server.slug.clone();
             let key = DiscoveryCacheKey {
                 catalog_generation,
                 principal: subject.actor.id.clone(),
                 authorization_fingerprint,
                 server: server_slug.clone(),
+                link: server.link().cloned(),
             };
             keys.push(key.clone());
             if self.discovery_watch_active(&key).await
@@ -210,8 +201,8 @@ impl HubMcp {
             else {
                 continue;
             };
-            let hub = self.clone();
-            let catalog = catalog.clone();
+            let hub = self.at(&server);
+            let catalog = hub.catalog.current();
             let context = context.clone();
             let subject = subject.clone();
             tokio::spawn(async move {
@@ -304,7 +295,7 @@ impl HubMcp {
             });
             project_tool_resource_metadata(manifest, &mut tool)?;
             let hub_name = catalog
-                .project_tool_name(server_slug, &local_tool)
+                .project_tool_name(manifest, &local_tool)
                 .map_err(|err| mcp_internal(format!("failed to project tool name: {err}")))?;
             tool.name = Cow::Owned(hub_name.to_string());
             tools.push(tool);
@@ -354,13 +345,60 @@ impl HubMcp {
         }
     }
 
+    /// Call the tool `request` names on the server, or the runner of the link, it names.
+    /// A link the caller holds no grant on, or that the selected branch lacks, names a
+    /// tool its server did not declare.
     pub(super) async fn handle_call_tool(
         &self,
-        mut request: CallToolRequestParams,
+        request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, RequestError> {
         let catalog = self.catalog.current();
         let projection = self.tool_projection(&catalog, &request.name)?;
+        let subject = self.authenticated(&context)?;
+        let Some(server) = catalog
+            .routed_server(
+                &subject.principal,
+                &projection.server,
+                projection.link.as_ref(),
+            )
+            .cloned()
+        else {
+            // Named as the caller wrote it.
+            let written = match projection.link {
+                Some(link) => super::authorization::Written::LinkedTool {
+                    server: projection.server,
+                    link,
+                    tool: projection.tool,
+                },
+                None => super::authorization::Written::Target(
+                    crate::control_plane::PolicyTarget::Tool {
+                        server: projection.server,
+                        tool: projection.tool,
+                    },
+                ),
+            };
+            return Err(self
+                .refuse_undeclared(&subject, HubAction::ToolsCall, written)
+                .await
+                .into());
+        };
+        // Boxed: the routed call's future is large, and nesting it would overflow a
+        // worker's stack in a debug build.
+        Box::pin(
+            self.at(&server)
+                .call_routed_tool(request, context, projection),
+        )
+        .await
+    }
+
+    async fn call_routed_tool(
+        &self,
+        mut request: CallToolRequestParams,
+        context: RequestContext<RoleServer>,
+        projection: crate::HubToolProjection,
+    ) -> Result<CallToolResponse, RequestError> {
+        let catalog = self.catalog.current();
         let (subject, _) = self
             .authorize_tool(
                 &context,
@@ -489,29 +527,38 @@ impl HubMcp {
             error_code: mcp_error_code,
             invocation: Some(subject.audit_invocation()),
         };
-        let draft = veoveo_hub_sdk::audit::McpTarget::Tool {
-            server: projection.server,
-            tool: projection.tool,
-        }
-        .audit_target()
-        .map_err(anyhow::Error::from)
-        .and_then(|target| Ok((target, audit.detail(&completion)?)))
-        .and_then(|(target, detail)| {
-            let draft = subject.audit_draft(
-                detail,
-                if failed {
-                    AuditOutcome::Failure
+        // A runner's tool is recorded as the caller named it, with its link.
+        let target = match projection.link {
+            Some(link) => veoveo_hub_sdk::audit::McpTarget::LinkedTool {
+                server: projection.server,
+                link,
+                tool: projection.tool,
+            },
+            None => veoveo_hub_sdk::audit::McpTarget::Tool {
+                server: projection.server,
+                tool: projection.tool,
+            },
+        };
+        let draft = target
+            .audit_target()
+            .map_err(anyhow::Error::from)
+            .and_then(|target| Ok((target, audit.detail(&completion)?)))
+            .and_then(|(target, detail)| {
+                let draft = subject.audit_draft(
+                    detail,
+                    if failed {
+                        AuditOutcome::Failure
+                    } else {
+                        AuditOutcome::Success
+                    },
+                );
+                let draft = if failed {
+                    draft.reason(crate::audit::HubReason::UpstreamFailure.into())
                 } else {
-                    AuditOutcome::Success
-                },
-            );
-            let draft = if failed {
-                draft.reason(crate::audit::HubReason::UpstreamFailure.into())
-            } else {
-                draft
-            };
-            Ok(draft.target(target).build()?)
-        });
+                    draft
+                };
+                Ok(draft.target(target).build()?)
+            });
         match draft {
             Ok(draft) => {
                 self.state

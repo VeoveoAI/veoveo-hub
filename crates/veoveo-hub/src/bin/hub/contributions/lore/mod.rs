@@ -20,7 +20,7 @@ use veoveo_hub::{
     contract::{
         AuthorizationServerId, CatalogFacts, CatalogObjectDescriptor, CatalogSection,
         GroupMembershipDescriptor, OAuthGrantType, ProtectedResourceDescriptor,
-        ProtectedResourceName, SectionKey,
+        ProtectedResourceName, RepositoryGrantDescriptor, RepositoryGrantee, SectionKey,
     },
     token_profile::{ProfileRequest, TokenContext, TokenLifetime, TokenProfile, TokenPurpose},
 };
@@ -122,15 +122,20 @@ impl RepositoryTemplate {
     }
 }
 
-/// Native named privileges. An empty set remains ordinary native access, including
-/// unprotected writes; it is not a read-only role. No service-account inference.
+/// Lore's explicit actions, named as Lore names them. Any grant on a repository reads it;
+/// every other operation needs its action: `write` to write, `push-protected` to push to
+/// a protected branch, and `owner` or `admin` to protect branches and delete the
+/// repository. An empty set is read-only. No action implies another, and none is inferred
+/// from a service account.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
 )]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "kebab-case")]
 pub enum NativeAction {
+    Write,
     Owner,
     Admin,
+    PushProtected,
     Obliterate,
     Migrate,
 }
@@ -380,6 +385,41 @@ impl CatalogSection for Lore {
         }
         Ok(memberships)
     }
+    /// Every assignment, with its actions as Lore names them: the grant a Lore token for
+    /// the repository carries, and that a runner serving the repository is reached by.
+    fn repository_grants(
+        &self,
+    ) -> std::result::Result<Vec<RepositoryGrantDescriptor>, ExtensionError> {
+        let invalid = |_| ExtensionError::new("native assignment is no repository grant");
+        self.assignments
+            .iter()
+            .map(|a| {
+                Ok(RepositoryGrantDescriptor {
+                    tenant: a.tenant.clone(),
+                    repository: veoveo_hub_sdk::registration::RepositoryId::parse(
+                        a.repository.as_str(),
+                    )
+                    .map_err(invalid)?,
+                    grantee: match &a.subject {
+                        Subject::Principal(principal) => {
+                            RepositoryGrantee::Principal(principal.clone())
+                        }
+                        Subject::Group(group) => RepositoryGrantee::Group(
+                            veoveo_types::GroupId::parse(group.as_str()).map_err(invalid)?,
+                        ),
+                    },
+                    actions: a
+                        .actions
+                        .iter()
+                        .map(|action| {
+                            veoveo_hub_sdk::registration::RepositoryAction::parse(action.as_str())
+                                .map_err(invalid)
+                        })
+                        .collect::<std::result::Result<_, _>>()?,
+                })
+            })
+            .collect()
+    }
 }
 impl Lore {
     /// The section of the installation's current configuration.
@@ -405,7 +445,8 @@ impl Lore {
         }
     }
 
-    /// Register a repository its creator owns, with the creator's owner assignment.
+    /// Register a repository its creator owns, with the creator's owner assignment, which
+    /// holds `write` and `owner`.
     /// An already registered repository changes nothing and is admitted only while its
     /// creator still holds that assignment in its tenant: a creator never restores an
     /// assignment an administrator removed. Answers whether the section changed.
@@ -444,7 +485,7 @@ impl Lore {
             repository: owned.repository.clone(),
             tenant: owned.tenant.clone(),
             subject: Subject::Principal(owned.principal.clone()),
-            actions: BTreeSet::from([NativeAction::Owner]),
+            actions: sharing::Level::Owner.actions(),
         });
         Ok(true)
     }
@@ -485,7 +526,7 @@ impl Lore {
 
     /// The person's native actions on the deployment's repository: the union of those of
     /// every assignment they hold on it, or none when they hold none, which is no grant.
-    /// An assignment without actions is a grant with no named privilege.
+    /// An assignment without actions is a grant that only reads.
     pub(crate) fn actions(
         &self,
         deployment: &DeploymentId,

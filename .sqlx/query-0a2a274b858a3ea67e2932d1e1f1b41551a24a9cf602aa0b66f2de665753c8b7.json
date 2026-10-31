@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- A single statement snapshot. Ciphertext is compared in memory, never Debug-printed.\n-- veoveo: scan (a unit test reads every refresh row of its own fixture database to compare snapshots)\nSELECT jsonb_build_object(\n    'families', COALESCE((SELECT jsonb_agg(to_jsonb(f) ORDER BY f.id) FROM hub.refresh_family f), '[]'::jsonb),\n    'tokens', COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY t.generation, t.id) FROM hub.refresh_token t), '[]'::jsonb),\n    'audit', COALESCE((SELECT jsonb_agg(to_jsonb(a) ORDER BY a.sequence) FROM audit.record a), '[]'::jsonb)\n) AS \"snapshot!\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "snapshot!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0a2a274b858a3ea67e2932d1e1f1b41551a24a9cf602aa0b66f2de665753c8b7"
+}

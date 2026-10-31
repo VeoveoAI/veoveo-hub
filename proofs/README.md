@@ -81,6 +81,19 @@ both snapshots. At that qualification, Hub's SDK pin was
 claimed to be present in that dependency or deployed. Subsequent dependency adoption
 has its own source-correspondence boundary.
 
+The linked-runner integration combines local `305aeb2` with upstream `000f74e`.
+It preserves the local cache/authority and live-watch corrections while adopting
+upstream's linked routing, Core `422dcf2`, SDK `7360c0f` and Lore `c33e017`.
+The frozen proof files remain unchanged, but this is **not** current-source formal
+qualification. `DiscoveryCacheKey` now includes an optional link; registration and
+selection include runner metadata; request construction contributes a repository
+grant and calls `issue_with_repository`. Cache key/order correspondence and the
+complete policy-to-issuer composition therefore need fresh extraction and review.
+The unchanged generic selection and Task-decision kernels retain their recorded
+proofs; new runner candidate assembly and deployment lookup are outside them.
+Registration's new runner persistence path is also outside the old transaction
+models. Native integration checks, when recorded, do not close these formal gaps.
+
 Keep two independent fields for each result:
 
 - **Formal status:** `unproved`, `partial`, or `proved-within-stated-boundary`.
@@ -992,6 +1005,18 @@ Prevents cross-context disclosure and stale routing represented as current disco
   recorded separately. This is a production defect found through source review
   and native execution during proof work, not a newly checked Lean theorem.
   The synchronous cache source and existing generated/proof files are unchanged.
+- **Pagination translation boundary:** the
+  [extraction receipt](discovery_cache/evidence/catalog-pagination-boundary-20261031.json)
+  records an unmodified full-pager attempt on the pre-integration source and its
+  exact SDK/Core pins. Adding the omitted SDK pagination include makes all ten
+  selected roots, required derives/constants and 258 own-component functions
+  transparent and error-free in Charon's output. Aeneas then exits 2 on unsupported
+  outer-loop continuation, identifier function-pointer/region types and external
+  string/serde signatures, before producing any Lean files. This is a translator
+  feasibility limit, not a runtime defect or a semantic counterexample. No native
+  algorithm, generated model or translator was patched to obtain a passing result;
+  pagination remains unproved. The newer linked-runner dependency context has not
+  been extracted by this attempt.
 - **Boundary/effort:** substantial for the cache/listener state machine. Native
   collection/identifier/clone/equality/time and mutex/observation refinement remain
   explicit. Any hash-based identity correspondence is conditional on no collisions

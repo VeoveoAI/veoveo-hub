@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- veoveo: unbounded (the links that wait for one linked repository, at most one per link that names it)\nSELECT repository, branch, revision\nFROM hub.lore_runner_failure\nWHERE deployment = $1 AND linked_repository = $2\nORDER BY repository, branch, link\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_runner_failure",
+            "name": "repository"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "branch",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_runner_failure",
+            "name": "branch"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_runner_failure",
+            "name": "revision"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2098a4ff55d089bcdfcca1dee295116fe480b42f5b63b131a9004833b27cd21d"
+}

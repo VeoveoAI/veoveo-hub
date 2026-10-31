@@ -55,18 +55,18 @@ mod tests {
 
     #[test]
     fn only_a_plain_path_is_matched_against_a_prefix() {
-        for path in ["/n8n/hooks/a", "/n8n/hooks/", "/n8n/hooks/a/b"] {
+        for path in ["/ledger/hooks/a", "/ledger/hooks/", "/ledger/hooks/a/b"] {
             assert!(plain_path(path), "{path}");
         }
         for path in [
-            "n8n/hooks/a",
-            "/n8n/hooks/../mcp",
-            "/n8n/hooks/./a",
-            "/n8n//hooks/a",
-            "/n8n/hooks/%2e%2e/mcp",
-            "/n8n/hooks%2Fa",
-            "/n8n/hooks/%5c",
-            "/n8n/hooks\\a",
+            "ledger/hooks/a",
+            "/ledger/hooks/../mcp",
+            "/ledger/hooks/./a",
+            "/ledger//hooks/a",
+            "/ledger/hooks/%2e%2e/mcp",
+            "/ledger/hooks%2Fa",
+            "/ledger/hooks/%5c",
+            "/ledger/hooks\\a",
         ] {
             assert!(!plain_path(path), "{path}");
         }

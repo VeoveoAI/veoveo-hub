@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "-- Every replica routes every registered server, so a reconciliation reads them all.\n-- veoveo: unbounded (one row per registration of a running server process, which the installation's grace period bounds)\nSELECT\n    registration.client_id,\n    registration.server,\n    registration.metadata AS \"metadata: Json<ClientMetadata>\",\n    registration.software_statement,\n    registration.access_token_digest,\n    registration.issued_at,\n    registration.orphaned_at,\n    instance.branch AS \"branch?\"\nFROM hub.registration\nLEFT JOIN hub.instance ON instance.deployment = registration.deployment\nORDER BY registration.client_id\n",
+  "query": "-- Every replica routes every registered server, so a reconciliation reads them all.\n-- veoveo: unbounded (one row per registration of a running server process, which the installation's grace period bounds)\nSELECT\n    registration.client_id,\n    registration.server,\n    registration.metadata AS \"metadata: Json<ClientMetadata>\",\n    registration.software_statement,\n    registration.access_token_digest,\n    registration.issued_at,\n    registration.orphaned_at,\n    instance.branch AS \"branch?\",\n    instance.link AS \"link?\",\n    instance.linked_repository AS \"linked_repository?\"\nFROM hub.registration\nLEFT JOIN hub.instance ON instance.deployment = registration.deployment\nORDER BY registration.client_id\n",
   "describe": {
     "columns": [
       {
@@ -90,6 +90,28 @@
             "name": "branch"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "link?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "link"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "linked_repository?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "linked_repository"
+          }
+        }
       }
     ],
     "parameters": {
@@ -103,8 +125,10 @@
       false,
       false,
       true,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "01b6c421e96629c5a0d4edc71fae6690f2efbde48aeaad5639fe1583b3ee1861"
+  "hash": "988294047f94d2b70ac205bc37d407ff44310b9dc2618a8c34f7c9c8bb8cbe2b"
 }

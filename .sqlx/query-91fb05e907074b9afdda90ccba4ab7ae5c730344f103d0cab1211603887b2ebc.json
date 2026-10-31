@@ -1,0 +1,137 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- veoveo: unbounded (the runners of one branch, one per link at the top level of its revision)\nSELECT repository, branch, link AS \"link!\", linked_repository AS \"linked_repository!\",\n    tracked_branch AS \"tracked_branch!\", tracked_branch_name AS \"tracked_branch_name!\", revision,\n    pusher, linked_revision, linked_pusher\nFROM hub.instance\nWHERE repository = $1 AND branch = $2 AND link IS NOT NULL\nORDER BY link\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "repository"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "branch",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "branch"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "link!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "link"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "linked_repository!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "linked_repository"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "tracked_branch!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "tracked_branch"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "tracked_branch_name!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "tracked_branch_name"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "revision"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "pusher",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "pusher"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "linked_revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "linked_revision"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "linked_pusher",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "linked_pusher"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "91fb05e907074b9afdda90ccba4ab7ae5c730344f103d0cab1211603887b2ebc"
+}

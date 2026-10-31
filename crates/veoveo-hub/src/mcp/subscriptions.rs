@@ -60,7 +60,11 @@ impl HubMcp {
             .resource_subscriptions
             .iter()
             .flatten()
-            .filter(|uri| self.project_resource_for_upstream(uri).is_ok())
+            .filter(|uri| {
+                self.catalog
+                    .current()
+                    .owns_resource_uri(&self.profile_id, uri)
+            })
             .cloned()
             .collect::<Vec<_>>();
         if !resources.is_empty() {
@@ -114,7 +118,7 @@ impl HubMcp {
             || accepted.prompts_list_changed == Some(true)
             || accepted.resources_list_changed == Some(true)
         {
-            for manifest in snapshot.catalog().profile_servers(&self.profile_id) {
+            for manifest in self.reachable(&subject, |_| true) {
                 let mut filter =
                     super::discovery_watch::catalog_change_filter(&manifest.capabilities);
                 if accepted.tools_list_changed != Some(true)
@@ -131,34 +135,40 @@ impl HubMcp {
                     filter.prompts_list_changed = None;
                 }
                 if !subscription_filter_is_empty(&filter) {
-                    routes
+                    let route = routes
                         .entry((
                             manifest.slug.clone(),
                             manifest.deployment,
                             composition.clone(),
                         ))
-                        .or_default()
-                        .filter = filter;
+                        .or_default();
+                    route.filter = filter;
+                    // A runner's listen reaches that runner alone.
+                    if manifest.runner.is_some() {
+                        route.hub = Some(self.at(&manifest));
+                    }
                 }
             }
         }
 
         for uri in accepted.resource_subscriptions.iter().flatten() {
-            let projection = self.project_resource_for_upstream(uri)?;
-            self.authorize_projected_resource(
+            let (server, projection) = self
+                .project_resource_for_upstream(&subject, HubAction::SubscriptionsListen, uri)
+                .await?;
+            let hub = self.at(&server);
+            hub.authorize_projected_resource(
                 request_context,
                 HubAction::SubscriptionsListen,
                 &projection,
             )
             .await?;
-            let deployment = snapshot
-                .catalog()
-                .server(&projection.server)
-                .ok_or_else(|| mcp_internal("resource deployment is unavailable"))?
-                .deployment;
-            routes
-                .entry((projection.server, deployment, composition.clone()))
-                .or_default()
+            let route = routes
+                .entry((projection.server, server.deployment, composition.clone()))
+                .or_default();
+            if server.runner.is_some() {
+                route.hub = Some(hub);
+            }
+            route
                 .filter
                 .resource_subscriptions
                 .get_or_insert_default()

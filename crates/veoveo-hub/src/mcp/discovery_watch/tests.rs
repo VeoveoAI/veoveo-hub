@@ -153,6 +153,7 @@ impl Fixture {
             authorization_fingerprint: crate::mcp::discovery_authorization_fingerprint(&subject)
                 .unwrap(),
             server: self.server.slug.clone(),
+            link: None,
         };
         (view, subject, key)
     }

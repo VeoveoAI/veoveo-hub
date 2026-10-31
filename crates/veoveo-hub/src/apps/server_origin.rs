@@ -605,7 +605,13 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
         };
     let catalog = snapshot.catalog();
     let selected = snapshot.selected(&admitted.composition).current();
-    let Some(registered) = selected.server(&server).cloned().filter(|registered| {
+    // A linked server's app origin is one for the server, which the runner the caller
+    // reaches first serves.
+    let serving = selected
+        .server(&server)
+        .filter(|registered| registered.runner.is_none())
+        .or_else(|| selected.shared_runner(&subject.principal, &server));
+    let Some(registered) = serving.cloned().filter(|registered| {
         registered
             .surfaces
             .as_ref()
@@ -651,12 +657,19 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
         &registered.authorization,
         &subject.principal,
     );
+    // A runner's app origin reads the caller's grant on its linked repository, as its MCP
+    // endpoint does.
+    let repository = registered
+        .runner
+        .as_ref()
+        .and_then(|runner| catalog.repository_grant(&subject.principal, &runner.repository));
     let bearer = match crate::mcp::forwarded_bearer(
         &origins.issuer,
         profile,
         &registered,
         &subject,
         permissions,
+        repository,
         i64::from(BEARER_SECONDS),
     ) {
         Ok(bearer) => bearer,
@@ -781,19 +794,30 @@ mod tests {
     #[test]
     fn an_entry_respells_canonically_and_refuses_anything_else() {
         let state = digest("state");
-        let entry = entry_url("", &ServerSlug::parse("n8n").unwrap(), "/home?x=1", &state);
+        let entry = entry_url(
+            "",
+            &ServerSlug::parse("ledger").unwrap(),
+            "/home?x=1",
+            &state,
+        );
         assert_eq!(entry_from_path(&entry).as_deref(), Some(entry.as_str()));
-        assert!(entry.starts_with("/app-origins/n8n?path=%2Fhome%3Fx%3D1&state=sha256%3A"));
+        assert!(entry.starts_with("/app-origins/ledger?path=%2Fhome%3Fx%3D1&state=sha256%3A"));
         for path in [
-            "/app-origins/n8n?path=%2F".to_owned(),
-            format!("/app-origins/n8n?path=%2F%2Fevil&state={}", state.as_str()),
+            "/app-origins/ledger?path=%2F".to_owned(),
             format!(
-                "/app-origins/n8n?path=%2F&state={}&state={}",
+                "/app-origins/ledger?path=%2F%2Fevil&state={}",
+                state.as_str()
+            ),
+            format!(
+                "/app-origins/ledger?path=%2F&state={}&state={}",
                 state.as_str(),
                 state.as_str()
             ),
-            format!("/app-origins/n8n?path=%2F&state={}&other=1", state.as_str()),
-            format!("/app-origins/N8N!?path=%2F&state={}", state.as_str()),
+            format!(
+                "/app-origins/ledger?path=%2F&state={}&other=1",
+                state.as_str()
+            ),
+            format!("/app-origins/LEDGER!?path=%2F&state={}", state.as_str()),
             "/apps/time/now".to_owned(),
         ] {
             assert_eq!(entry_from_path(&path), None, "{path}");
@@ -805,18 +829,18 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert(
             header::COOKIE,
-            HeaderValue::from_static("n8n-auth=a; __Host-veoveo-app=b; theme=dark"),
+            HeaderValue::from_static("ledger-auth=a; __Host-veoveo-app=b; theme=dark"),
         );
         headers.append(
             header::COOKIE,
             HeaderValue::from_static("__Host-veoveo-app-state=c"),
         );
         strip_hub_cookies(&mut headers);
-        assert_eq!(headers[header::COOKIE], "n8n-auth=a; theme=dark");
+        assert_eq!(headers[header::COOKIE], "ledger-auth=a; theme=dark");
         let mut headers = HeaderMap::new();
         headers.append(
             header::SET_COOKIE,
-            HeaderValue::from_static("n8n-auth=x; Path=/"),
+            HeaderValue::from_static("ledger-auth=x; Path=/"),
         );
         headers.append(
             header::SET_COOKIE,
@@ -824,6 +848,6 @@ mod tests {
         );
         strip_hub_set_cookies(&mut headers);
         let set: Vec<_> = headers.get_all(header::SET_COOKIE).iter().collect();
-        assert_eq!(set, ["n8n-auth=x; Path=/"]);
+        assert_eq!(set, ["ledger-auth=x; Path=/"]);
     }
 }

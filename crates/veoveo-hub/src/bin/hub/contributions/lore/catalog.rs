@@ -238,8 +238,10 @@ impl NativeAction {
     /// The action's name, as a token's `permission` carries it.
     pub(super) fn as_str(self) -> &'static str {
         match self {
+            Self::Write => "write",
             Self::Owner => "owner",
             Self::Admin => "admin",
+            Self::PushProtected => "push-protected",
             Self::Obliterate => "obliterate",
             Self::Migrate => "migrate",
         }

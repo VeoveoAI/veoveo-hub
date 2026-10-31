@@ -18,20 +18,55 @@ pub(crate) fn hub_resource_uri(uri: &str) -> Result<ResourceUri, McpError> {
 }
 
 /// Registered servers keep their own URIs: each server's URI scheme equals its slug, and
-/// its Apps live under `ui://<slug>/`, so the Hub routes them unchanged.
+/// its Apps live under `ui://<slug>/`, so the Hub routes them unchanged. A runner's URIs
+/// under its scheme carry its link after the scheme, `{slug}://{rest}` on the runner being
+/// `{slug}://{link}/{rest}` in the Hub, so the program never knows its link's name; its
+/// Apps are one set for the server and stay unchanged.
 pub(crate) fn project_upstream_resource_uri_for_hub(
-    _server: &RegisteredServer,
+    server: &RegisteredServer,
     upstream_uri: &str,
 ) -> Result<ResourceUri, McpError> {
-    hub_resource_uri(upstream_uri)
+    hub_resource_uri(&linked_uri(server, upstream_uri))
 }
 
+/// `uri`, a URI or a URI template of `server`, as the Hub names it.
+pub(crate) fn linked_uri<'a>(server: &RegisteredServer, uri: &'a str) -> std::borrow::Cow<'a, str> {
+    let scheme = format!("{}://", server.uri_scheme);
+    match (server.link(), uri.strip_prefix(&scheme)) {
+        (Some(link), Some(rest)) if server.uri_scheme.as_str() != "ui" => {
+            std::borrow::Cow::Owned(format!("{scheme}{link}/{rest}"))
+        }
+        _ => std::borrow::Cow::Borrowed(uri),
+    }
+}
+
+/// The runner's own URI for a Hub URI of a runner, or none when it names another link.
 pub(crate) fn project_hub_resource_uri_for_upstream(
-    _server: &RegisteredServer,
+    server: &RegisteredServer,
     hub_uri: &str,
     _upstream_resources: &[Resource],
 ) -> Result<Option<ResourceUri>, McpError> {
-    Ok(Some(hub_resource_uri(hub_uri)?))
+    unlinked_uri(server, hub_uri)
+        .map(|uri| hub_resource_uri(&uri))
+        .transpose()
+}
+
+/// `uri`, a URI or a URI template as the Hub names one of `server`, as `server` names
+/// it: without the link of a runner, or none when it names another link.
+pub(crate) fn unlinked_uri<'a>(
+    server: &RegisteredServer,
+    uri: &'a str,
+) -> Option<std::borrow::Cow<'a, str>> {
+    let Some(link) = server.link() else {
+        return Some(std::borrow::Cow::Borrowed(uri));
+    };
+    if uri.starts_with("ui://") {
+        return Some(std::borrow::Cow::Borrowed(uri));
+    }
+    let scheme = format!("{}://", server.uri_scheme);
+    uri.strip_prefix(&scheme)
+        .and_then(|rest| rest.strip_prefix(&format!("{link}/")))
+        .map(|rest| std::borrow::Cow::Owned(format!("{scheme}{rest}")))
 }
 
 pub(crate) fn project_listed_resource_uri(
@@ -49,6 +84,7 @@ pub(crate) fn project_resource_template_uri(
     server: &RegisteredServer,
     template: &mut ResourceTemplate,
 ) -> Result<(), McpError> {
+    template.uri_template = linked_uri(server, &template.uri_template).into_owned();
     if let Some(meta) = &mut template.meta {
         project_app_resource_metadata(server, meta)?;
     }

@@ -48,6 +48,8 @@ pub struct RegisteredServer {
     pub capabilities: ServerCapabilities,
     /// The branch this deployment serves, when it is an instance.
     pub branch: Option<crate::execution::BranchName>,
+    /// The link of that branch it serves, when it is the runner of one.
+    pub runner: Option<RunnerOf>,
     /// The HTTP it serves besides MCP: its public routes and whether it has an app origin.
     pub surfaces: Option<veoveo_hub_sdk::registration::SurfacesDeclaration>,
     /// When its newest registration was issued.
@@ -57,9 +59,22 @@ pub struct RegisteredServer {
     pub orphaned: bool,
 }
 
+/// What the runner of one link of a linked branch serves: the link, by its name, and the
+/// linked repository, whose grant decides who reaches the runner.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunnerOf {
+    pub link: veoveo_hub_sdk::hub::LinkName,
+    pub repository: veoveo_hub_sdk::registration::RepositoryId,
+}
+
 impl RegisteredServer {
     pub fn endpoint_url(&self) -> &str {
         self.endpoint.url().as_str()
+    }
+
+    /// The link this deployment's runner serves, if it is a runner.
+    pub fn link(&self) -> Option<&veoveo_hub_sdk::hub::LinkName> {
+        self.runner.as_ref().map(|runner| &runner.link)
     }
 }
 
@@ -155,16 +170,46 @@ impl RegistrationSnapshot {
             composition
                 .components()
                 .iter()
-                .filter_map(|(slug, selection)| {
-                    let veoveo_hub_sdk::ResolvedComponent::Deployment { deployment } = selection
-                    else {
-                        return None;
-                    };
-                    let server = self.servers.get(deployment)?;
-                    (&server.slug == slug).then(|| (*deployment, server.clone()))
+                .flat_map(|(slug, selection)| {
+                    let selected: Vec<(DeploymentId, Option<&veoveo_hub_sdk::hub::LinkName>)> =
+                        match selection {
+                            veoveo_hub_sdk::ResolvedComponent::Deployment { deployment } => {
+                                vec![(*deployment, None)]
+                            }
+                            veoveo_hub_sdk::ResolvedComponent::Runners { runners } => runners
+                                .iter()
+                                .map(|(link, deployment)| (*deployment, Some(link)))
+                                .collect(),
+                            veoveo_hub_sdk::ResolvedComponent::Unavailable {} => Vec::new(),
+                        };
+                    selected.into_iter().filter_map(move |(deployment, link)| {
+                        let server = self.servers.get(&deployment)?;
+                        (&server.slug == slug && server.link() == link)
+                            .then(|| (deployment, server.clone()))
+                    })
                 })
                 .collect(),
         )
+    }
+
+    /// The same registrations with `slug` served by `deployment` alone, as a request that
+    /// reaches one runner of a linked server, or a Task one created, sees them.
+    pub fn narrowed(&self, slug: &ServerSlug, deployment: DeploymentId) -> Self {
+        Self::of(
+            self.servers
+                .iter()
+                .filter(|(id, server)| &server.slug != slug || **id == deployment)
+                .map(|(id, server)| (*id, server.clone()))
+                .collect(),
+        )
+    }
+
+    /// The runners of `slug`, by link.
+    pub fn runners(&self, slug: &ServerSlug) -> impl Iterator<Item = &RegisteredServer> {
+        self.servers
+            .values()
+            .filter(move |server| &server.slug == slug && server.runner.is_some())
+            .map(|server| server.as_ref())
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &RegisteredServer> {

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT deployment, database\nFROM hub.instance\nWHERE repository = $1 AND branch = $2\n",
+  "query": "-- The runner of one link of a branch.\nSELECT deployment, database\nFROM hub.instance\nWHERE repository = $1 AND branch = $2 AND link = $3\n",
   "describe": {
     "columns": [
       {
@@ -29,6 +29,7 @@
     "parameters": {
       "Left": [
         "Text",
+        "Text",
         "Text"
       ]
     },
@@ -37,5 +38,5 @@
       false
     ]
   },
-  "hash": "50bdfed0add8460b301af6de4d763901c6ab8388fdb8350788fad0c9cbf801c3"
+  "hash": "910cd4331ce9834482469f7697f6c181ed6cf55311e569539de537620203dc09"
 }

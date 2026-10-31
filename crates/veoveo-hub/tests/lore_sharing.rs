@@ -46,7 +46,7 @@ fn configure(config: &mut Value) {
     "deployments":[{"id":"source","resourceName":"native-source","audience":RESOURCE,"endpoint":"grpcs://10.0.0.8:41337","authorizationServer":"local","policyVersion":"local","loginScopes":["native:login","offline_access"],"scopeTemplate":"source-{id}","resourceIdTemplate":"urc-{id}","tokenLifetimeSeconds":120}],
     "repositories":[repository(OWNED), repository(FACTORY)],
     "assignments":[
-        assignment(OWNED, format!("{issuer}#acceptance-member"), json!(["owner"])),
+        assignment(OWNED, format!("{issuer}#acceptance-member"), json!(["write", "owner"])),
         assignment(FACTORY, format!("{issuer}#native-factory"), json!([])),
     ]});
     config["identityProviders"][0]["authorizationEndpoint"] =
@@ -244,7 +244,7 @@ async fn qualify() {
     assert_eq!(
         access,
         json!({"repository": OWNED, "access": [
-            {"person": member, "access": "owner", "actions": ["owner"]}
+            {"person": member, "access": "owner", "actions": ["write", "owner"]}
         ]})
     );
     let (status, refused) = calls.access("admin", OWNED).await;
@@ -269,14 +269,41 @@ async fn qualify() {
     assert_eq!(
         shared,
         json!({"repository": OWNED, "access": [
-            {"person": admin, "access": "member", "actions": []},
-            {"person": member, "access": "owner", "actions": ["owner"]}
+            {"person": admin, "access": "member", "actions": ["write"]},
+            {"person": member, "access": "owner", "actions": ["write", "owner"]}
         ]})
     );
     assert_eq!(
         calls.access("admin", OWNED).await,
         (reqwest::StatusCode::OK, shared.clone())
     );
+
+    // A reader holds the repository without actions: they clone it and read its access,
+    // and push nothing. The owner sets the levels in turn.
+    let (status, read_only) = calls
+        .share(
+            "member",
+            OWNED,
+            json!({"person": ADMIN, "access": "reader"}),
+        )
+        .await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{read_only}");
+    assert_eq!(
+        read_only["access"][0],
+        json!({"person": admin, "access": "reader", "actions": []})
+    );
+    assert_eq!(
+        calls.access("admin", OWNED).await,
+        (reqwest::StatusCode::OK, read_only)
+    );
+    let (_, shared_again) = calls
+        .share(
+            "member",
+            OWNED,
+            json!({"person": ADMIN, "access": "member"}),
+        )
+        .await;
+    assert_eq!(shared_again, shared);
     let (status, refused) = calls
         .share("admin", OWNED, json!({"person": ADMIN, "access": "owner"}))
         .await;
@@ -299,7 +326,7 @@ async fn qualify() {
     );
 
     // The owner cannot leave themselves without ownership.
-    for access in ["member", "none"] {
+    for access in ["reader", "member", "none"] {
         let (status, refused) = calls
             .share("member", OWNED, json!({"person": MEMBER, "access": access}))
             .await;
@@ -311,7 +338,7 @@ async fn qualify() {
     for body in [
         json!({"person": ADMIN, "group": "builders", "access": "member"}),
         json!({"access": "member"}),
-        json!({"person": ADMIN, "access": "reader"}),
+        json!({"person": ADMIN, "access": "admin"}),
         json!({"person": ADMIN, "access": "member", "actions": ["admin"]}),
         json!({"person": "not an address", "access": "member"}),
     ] {
@@ -391,11 +418,13 @@ async fn qualify() {
     assert_eq!(status, reqwest::StatusCode::OK, "{shared}");
     assert_eq!(
         shared["access"][2],
-        json!({"group": {"name": "builders"}, "access": "owner", "actions": ["owner"]})
+        json!({"group": {"name": "builders"}, "access": "owner", "actions": ["write", "owner"]})
     );
 
     // Lore's listing and tokens follow the group's membership: the factory client's
-    // principal holds the repository while it belongs to the group.
+    // principal holds the repository while it belongs to the group. It reads FACTORY,
+    // whose assignment names no action, and the listing names that repository without
+    // actions.
     let mut lore = UrcAuthApiClient::connect(hub.base.clone()).await.unwrap();
     let token = calls.factory_token(FACTORY).await.unwrap();
     assert_eq!(listed(&mut lore, &token).await, [entry(FACTORY, &[])]);
@@ -429,7 +458,7 @@ async fn qualify() {
     );
     assert_eq!(
         listed(&mut lore, &token).await,
-        [entry(OWNED, &["owner"]), entry(FACTORY, &[])]
+        [entry(OWNED, &["write", "owner"]), entry(FACTORY, &[])]
     );
     assert!(
         calls.factory_token(OWNED).await.is_ok(),
@@ -491,9 +520,9 @@ async fn qualify() {
         Err("invalid_scope".to_owned())
     );
 
-    // An administrator's assignment with other actions is listed with them, and one of a
-    // person who never signed in names no email or name, after the people who did; the
-    // level an owner sets replaces those actions.
+    // An administrator's assignment with other actions is listed with them, at the level
+    // its actions show, and one of a person who never signed in names no email or name,
+    // after the people who did; the level an owner sets replaces those actions.
     let mut plane = hub.control_plane().await;
     let assignments = plane["lore"]["assignments"].as_array_mut().unwrap();
     for (principal, actions) in [
@@ -510,11 +539,11 @@ async fn qualify() {
     assert_eq!(
         access["access"],
         json!([
-            {"person": admin, "access": "member", "actions": []},
-            {"person": builder, "access": "member", "actions": ["admin", "migrate"]},
-            {"person": member, "access": "owner", "actions": ["owner"]},
-            {"person": {"email": null, "name": null}, "access": "member", "actions": []},
-            {"group": {"name": "builders"}, "access": "owner", "actions": ["owner"]}
+            {"person": admin, "access": "member", "actions": ["write"]},
+            {"person": builder, "access": "reader", "actions": ["admin", "migrate"]},
+            {"person": member, "access": "owner", "actions": ["write", "owner"]},
+            {"person": {"email": null, "name": null}, "access": "reader", "actions": []},
+            {"group": {"name": "builders"}, "access": "owner", "actions": ["write", "owner"]}
         ])
     );
     let (_, access) = calls
@@ -526,7 +555,7 @@ async fn qualify() {
         .await;
     assert_eq!(
         access["access"][1],
-        json!({"person": builder, "access": "owner", "actions": ["owner"]})
+        json!({"person": builder, "access": "owner", "actions": ["write", "owner"]})
     );
     let (_, access) = calls
         .share(

@@ -1,38 +1,59 @@
 use std::fmt;
 
 use anyhow::Result;
-use veoveo_hub_sdk::hub::HubToolName;
+use veoveo_hub_sdk::hub::{HubToolName, HubToolParts, LinkName};
 use veoveo_hub_sdk::{LocalToolName, ServerSlug};
 
 use crate::HubCatalog;
+use crate::registration::RegisteredServer;
 
+/// A tool as the Hub names it: its server, the link whose runner serves it when the
+/// server is linked, and its name on the server.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HubToolProjection {
     pub server: ServerSlug,
+    pub link: Option<LinkName>,
     pub tool: LocalToolName,
 }
 
 impl HubToolProjection {
     pub fn new(server: ServerSlug, tool: LocalToolName) -> Self {
-        Self { server, tool }
+        Self {
+            server,
+            link: None,
+            tool,
+        }
     }
 
+    /// `tool` as the deployment `server` serves it: under its link when it is a runner.
+    pub fn of(server: &RegisteredServer, tool: LocalToolName) -> Self {
+        Self {
+            server: server.slug.clone(),
+            link: server.link().cloned(),
+            tool,
+        }
+    }
+
+    /// `{slug}__{tool}`, or `{slug}__{link}__{tool}` for a runner's tool.
     pub fn hub_name(&self) -> Result<HubToolName, HubNameError> {
-        HubToolName::from_parts(&self.server, &self.tool)
-            .map_err(HubNameError::InvalidProjectedToolName)
+        match &self.link {
+            None => HubToolName::from_parts(&self.server, &self.tool),
+            Some(link) => HubToolName::from_linked_parts(&self.server, link, &self.tool),
+        }
+        .map_err(HubNameError::InvalidProjectedToolName)
     }
 
     pub fn parse(name: &HubToolName) -> Result<Self, HubNameError> {
-        let Some((server, tool)) = name.as_str().split_once("__") else {
-            return Err(HubNameError::MissingNamespace(name.clone()));
-        };
-        if tool.contains("__") {
-            return Err(HubNameError::InvalidNamespaceShape(name.clone()));
-        }
-        Ok(Self {
-            server: ServerSlug::parse(server).map_err(HubNameError::InvalidServerSlug)?,
-            tool: LocalToolName::parse(tool).map_err(HubNameError::InvalidLocalToolName)?,
-        })
+        let HubToolParts { server, link, tool } = name.projection().map_err(|error| {
+            use veoveo_hub_sdk::hub::HubToolNamespaceError as Namespace;
+            match error {
+                Namespace::Missing => HubNameError::MissingNamespace(name.clone()),
+                Namespace::Server(error) => HubNameError::InvalidServerSlug(error),
+                Namespace::Tool(error) => HubNameError::InvalidLocalToolName(error),
+                _ => HubNameError::InvalidNamespaceShape(name.clone()),
+            }
+        })?;
+        Ok(Self { server, link, tool })
     }
 }
 
@@ -65,20 +86,27 @@ impl fmt::Display for HubNameError {
 impl std::error::Error for HubNameError {}
 
 impl HubCatalog {
+    /// The name of `tool` as `server` serves it: under its link when it is a runner.
     pub fn project_tool_name(
         &self,
-        server: &ServerSlug,
+        server: &RegisteredServer,
         tool: &LocalToolName,
     ) -> Result<HubToolName, HubNameError> {
-        if self.server(server).is_none() {
-            return Err(HubNameError::UnknownServer(server.clone()));
-        }
-        HubToolProjection::new(server.clone(), tool.clone()).hub_name()
+        HubToolProjection::of(server, tool.clone()).hub_name()
     }
 
+    /// The server, link and tool `name` names. A server that is not registered is
+    /// unknown; whether the name, with its link or without, reaches a runner the caller
+    /// may use is decided where the call routes.
     pub fn parse_tool_name(&self, name: &HubToolName) -> Result<HubToolProjection, HubNameError> {
         let projection = HubToolProjection::parse(name)?;
-        if self.server(&projection.server).is_none() {
+        let registered = self.server(&projection.server).is_some()
+            || self
+                .registrations()
+                .runners(&projection.server)
+                .next()
+                .is_some();
+        if !registered {
             return Err(HubNameError::UnknownServer(projection.server));
         }
         Ok(projection)

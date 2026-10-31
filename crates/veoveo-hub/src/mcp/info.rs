@@ -1,20 +1,10 @@
 use rmcp::model::{
     ExtensionCapabilities, Implementation, JsonObject, ServerCapabilities, ServerConfig,
 };
-use veoveo_hub_sdk::ServerSlug;
 
 use super::HubMcp;
 
 impl HubMcp {
-    pub(super) fn profile_servers(&self) -> Vec<ServerSlug> {
-        self.catalog
-            .current()
-            .profile_servers(&self.profile_id)
-            .into_iter()
-            .map(|server| server.slug.clone())
-            .collect()
-    }
-
     fn auth_extension_capabilities(&self) -> Option<ExtensionCapabilities> {
         let catalog = self.catalog.current();
         let profile = catalog.profile(&self.profile_id)?;

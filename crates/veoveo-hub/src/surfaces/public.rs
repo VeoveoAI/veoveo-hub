@@ -218,9 +218,9 @@ mod tests {
     #[test]
     fn a_request_path_names_a_deployment_and_the_servers_own_path() {
         let deployment = DeploymentId::new();
-        let path = format!("/instances/{deployment}/n8n/hooks/a");
-        assert_eq!(split(&path), Some((deployment, "/n8n/hooks/a")));
-        assert_eq!(split("/instances/not-a-deployment/n8n/hooks/a"), None);
+        let path = format!("/instances/{deployment}/ledger/hooks/a");
+        assert_eq!(split(&path), Some((deployment, "/ledger/hooks/a")));
+        assert_eq!(split("/instances/not-a-deployment/ledger/hooks/a"), None);
         assert_eq!(split(&format!("/instances/{deployment}")), None);
         assert_eq!(split("/apps/time/now"), None);
     }

@@ -130,6 +130,60 @@ async fn instances_of_one_slug_register_side_by_side_under_different_keys() {
     .expect("the test exceeded its bound");
 }
 
+/// The runners of one parent's linked branch are instances of one repository, so each
+/// registers the parent's slug beside the others.
+#[tokio::test]
+async fn the_runners_of_one_branch_register_its_slug_side_by_side() {
+    tokio::time::timeout(BOUND, async {
+        let fixture = Fixture::start(Duration::from_secs(60)).await;
+        let runner = |link: &str, linked: &str| veoveo_hub::factory::Link {
+            name: veoveo_hub_sdk::hub::LinkName::parse(link).unwrap(),
+            repository: linked.into(),
+            tracked: veoveo_hub::factory::TrackedBranch {
+                id: "11111111111111111111111111111111".into(),
+                name: "a".into(),
+            },
+        };
+        let mut registered = Vec::new();
+        for (link, linked) in [
+            ("team-a", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+            ("team-b", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        ] {
+            let instance = veoveo_hub::registration::create_runner(
+                &fixture.db.a,
+                REPOSITORY,
+                &fixture.installation(),
+                &branch("a"),
+                &runner(link, linked),
+            )
+            .await
+            .unwrap();
+            let registration = fixture
+                .instance(&instance, instance.deployment, Revision::First)
+                .register()
+                .await
+                .unwrap();
+            assert_eq!(deployment(&registration), instance.deployment);
+            registered.push(instance.deployment);
+        }
+        assert_ne!(registered[0], registered[1]);
+        // A link is one runner: a second runner of the same link is refused.
+        assert!(
+            veoveo_hub::registration::create_runner(
+                &fixture.db.a,
+                REPOSITORY,
+                &fixture.installation(),
+                &branch("a"),
+                &runner("team-a", "cccccccccccccccccccccccccccccccc"),
+            )
+            .await
+            .is_err()
+        );
+    })
+    .await
+    .expect("the test exceeded its bound");
+}
+
 #[tokio::test]
 async fn an_instance_registration_replaces_the_previous_one_under_the_same_deployment() {
     tokio::time::timeout(BOUND, async {

@@ -19,7 +19,11 @@ use std::{
 
 use anyhow::Result;
 use futures::future::BoxFuture as Building;
-use lore_proto::lore::notification::{BranchPushed, Event, event::Event as Notification};
+use lore_proto::lore::{
+    model::v1::Address,
+    notification::{BranchPushed, Event, event::Event as Notification},
+    thin_client::v1::{NodeType, TreeNode},
+};
 use sha2::{Digest, Sha256};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -36,11 +40,13 @@ use veoveo_hub::{
 use veoveo_types::{PrincipalId, TenantId};
 
 use super::{
-    BoxFuture, Branch, Events, Lore, Refused, Watched,
+    BoxFuture, Branch, Events, LinkNode, Lore, Refused, Watched,
     store::{PrepareFailure, WatchStatus},
     watch::Watches,
 };
 use crate::contributions::lore::{BranchId, DeploymentId, RepositoryId};
+use veoveo_hub::factory::LinkedPrepared;
+use veoveo_hub_sdk::hub::LinkName;
 
 const REPOSITORY: &str = "0123456789abcdef0123456789abcdef";
 const BOUND: Duration = Duration::from_secs(60);
@@ -76,6 +82,7 @@ enum Call {
     Branch(PrincipalId, BranchId),
     Committer(PrincipalId, Revision),
     Read(PrincipalId, Revision),
+    RevisionBranch(PrincipalId, Revision),
 }
 
 #[derive(Default)]
@@ -91,6 +98,44 @@ struct LoreState {
     unreadable: HashSet<Revision>,
     /// One sender per subscription, in order.
     subscriptions: Vec<mpsc::UnboundedSender<Result<Event, tonic::Status>>>,
+    /// The links at the top level of each revision of the repository.
+    links: HashMap<Revision, Vec<LinkNode>>,
+    /// The rest of each revision's own tree, as Lore lists it, which its links are read
+    /// from.
+    trees: HashMap<Revision, Vec<TreeNode>>,
+    /// Who read a revision's top-level links, apart from `calls`.
+    link_reads: Vec<(PrincipalId, Revision)>,
+    /// The linked repositories, each with state of its own.
+    linked: HashMap<RepositoryId, Linked>,
+}
+
+/// A linked repository of the fake Lore.
+#[derive(Default)]
+struct Linked {
+    granted: HashSet<PrincipalId>,
+    branches: Vec<Branch>,
+    committers: HashMap<Revision, PrincipalId>,
+    /// The branch each revision lives on.
+    revision_branches: HashMap<Revision, BranchId>,
+    /// Each revision's `openshell/policy.yaml` and `openshell/providers.yaml`.
+    openshell: HashMap<Revision, LinkedPrepared>,
+    /// Who read what, in order.
+    calls: Vec<Call>,
+    subscriptions: Vec<mpsc::UnboundedSender<Result<Event, tonic::Status>>>,
+}
+
+/// The tree node Lore lists for a link at the top level.
+fn link_node(link: &LinkNode) -> TreeNode {
+    TreeNode {
+        path: link.name.to_string(),
+        node_type: NodeType::Link as i32,
+        address: Some(Address {
+            context: hex::decode(link.repository.as_str()).unwrap().into(),
+            hash: hex::decode(link.pinned.as_str()).unwrap().into(),
+        }),
+        tracking: link.follows,
+        ..Default::default()
+    }
 }
 
 #[derive(Default, Clone)]
@@ -130,6 +175,41 @@ impl FakeLore {
             Err(Refused(format!("Lore refused {person}: PermissionDenied")).into())
         }
     }
+
+    /// Answer a call on a linked repository from its own state, when `watched` is one.
+    fn linked<T>(
+        &self,
+        watched: &Watched,
+        call: Call,
+        person: &PrincipalId,
+        answer: impl FnOnce(&mut Linked) -> Result<T>,
+    ) -> Option<Result<T>> {
+        let mut state = self.0.lock().unwrap();
+        let linked = state.linked.get_mut(&watched.repository)?;
+        linked.calls.push(call);
+        if !linked.granted.contains(person) {
+            return Some(Err(Refused(format!(
+                "Lore refused {person}: PermissionDenied"
+            ))
+            .into()));
+        }
+        Some(answer(linked))
+    }
+
+    fn linked_calls(&self, repository: &RepositoryId) -> Vec<Call> {
+        self.0.lock().unwrap().linked[repository].calls.clone()
+    }
+
+    /// Send `event` on the latest subscription to the linked repository.
+    fn send_linked(&self, repository: &RepositoryId, event: Result<Event, tonic::Status>) {
+        let state = self.0.lock().unwrap();
+        state.linked[repository]
+            .subscriptions
+            .last()
+            .unwrap()
+            .send(event)
+            .unwrap();
+    }
 }
 
 impl Lore for FakeLore {
@@ -140,12 +220,20 @@ impl Lore for FakeLore {
     fn subscribe<'a>(
         &'a self,
         person: &'a PrincipalId,
-        _: &'a Watched,
+        watched: &'a Watched,
     ) -> BoxFuture<'a, Result<Events>> {
         Box::pin(async move {
-            self.admit(Call::Subscribe(person.clone()), person)?;
             let (sender, receiver) = mpsc::unbounded_channel();
-            self.0.lock().unwrap().subscriptions.push(sender);
+            match self.linked(watched, Call::Subscribe(person.clone()), person, |linked| {
+                linked.subscriptions.push(sender.clone());
+                Ok(())
+            }) {
+                Some(subscribed) => subscribed?,
+                None => {
+                    self.admit(Call::Subscribe(person.clone()), person)?;
+                    self.0.lock().unwrap().subscriptions.push(sender);
+                }
+            }
             let events: Events = Box::pin(tokio_stream::wrappers::UnboundedReceiverStream::new(
                 receiver,
             ));
@@ -156,9 +244,16 @@ impl Lore for FakeLore {
     fn branches<'a>(
         &'a self,
         person: &'a PrincipalId,
-        _: &'a Watched,
+        watched: &'a Watched,
     ) -> BoxFuture<'a, Result<Vec<Branch>>> {
         Box::pin(async move {
+            if let Some(answer) =
+                self.linked(watched, Call::Branches(person.clone()), person, |linked| {
+                    Ok(linked.branches.clone())
+                })
+            {
+                return answer;
+            }
             self.admit(Call::Branches(person.clone()), person)?;
             Ok(self.0.lock().unwrap().branches.clone())
         })
@@ -167,10 +262,25 @@ impl Lore for FakeLore {
     fn branch<'a>(
         &'a self,
         person: &'a PrincipalId,
-        _: &'a Watched,
+        watched: &'a Watched,
         id: &'a BranchId,
     ) -> BoxFuture<'a, Result<Branch>> {
         Box::pin(async move {
+            if let Some(answer) = self.linked(
+                watched,
+                Call::Branch(person.clone(), id.clone()),
+                person,
+                |linked| {
+                    linked
+                        .branches
+                        .iter()
+                        .find(|branch| &branch.id == id)
+                        .cloned()
+                        .ok_or_else(|| anyhow::anyhow!("Lore refused to read the branch: NotFound"))
+                },
+            ) {
+                return answer;
+            }
             self.admit(Call::Branch(person.clone(), id.clone()), person)?;
             let state = self.0.lock().unwrap();
             Ok(state
@@ -185,10 +295,18 @@ impl Lore for FakeLore {
     fn committer<'a>(
         &'a self,
         person: &'a PrincipalId,
-        _: &'a Watched,
+        watched: &'a Watched,
         revision: &'a Revision,
     ) -> BoxFuture<'a, Result<PrincipalId>> {
         Box::pin(async move {
+            if let Some(answer) = self.linked(
+                watched,
+                Call::Committer(person.clone(), revision.clone()),
+                person,
+                |linked| Ok(linked.committers[revision].clone()),
+            ) {
+                return answer;
+            }
             self.admit(Call::Committer(person.clone(), revision.clone()), person)?;
             Ok(self.0.lock().unwrap().committers[revision].clone())
         })
@@ -197,11 +315,20 @@ impl Lore for FakeLore {
     fn read<'a>(
         &'a self,
         person: &'a PrincipalId,
-        _: &'a Watched,
+        watched: &'a Watched,
         revision: &'a Revision,
         directory: &'a Path,
     ) -> BoxFuture<'a, Result<Option<Prepared>>> {
         Box::pin(async move {
+            // A linked repository holds no openshell/run of its own here.
+            if let Some(answer) = self.linked(
+                watched,
+                Call::Read(person.clone(), revision.clone()),
+                person,
+                |_| Ok(None),
+            ) {
+                return answer;
+            }
             self.admit(Call::Read(person.clone(), revision.clone()), person)?;
             let (unreadable, run) = {
                 let state = self.0.lock().unwrap();
@@ -227,6 +354,78 @@ impl Lore for FakeLore {
                 std::fs::write(directory.join("openshell/policy.yaml"), policy)?;
             }
             Ok(Some(super::read::prepared(directory)?))
+        })
+    }
+
+    fn links<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        _: &'a Watched,
+        revision: &'a Revision,
+    ) -> BoxFuture<'a, Result<Vec<LinkNode>>> {
+        Box::pin(async move {
+            let mut state = self.0.lock().unwrap();
+            state.link_reads.push((person.clone(), revision.clone()));
+            anyhow::ensure!(
+                state.granted.contains(person),
+                Refused(format!("Lore refused {person}: PermissionDenied"))
+            );
+            let mut nodes = state
+                .links
+                .get(revision)
+                .into_iter()
+                .flatten()
+                .map(link_node)
+                .collect::<Vec<_>>();
+            nodes.extend(state.trees.get(revision).into_iter().flatten().cloned());
+            super::read::links(&nodes)
+        })
+    }
+
+    fn revision_branch<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        watched: &'a Watched,
+        revision: &'a Revision,
+    ) -> BoxFuture<'a, Result<BranchId>> {
+        Box::pin(async move {
+            if let Some(answer) = self.linked(
+                watched,
+                Call::RevisionBranch(person.clone(), revision.clone()),
+                person,
+                |linked| Ok(linked.revision_branches[revision].clone()),
+            ) {
+                return answer;
+            }
+            self.admit(
+                Call::RevisionBranch(person.clone(), revision.clone()),
+                person,
+            )?;
+            let state = self.0.lock().unwrap();
+            state
+                .branches
+                .iter()
+                .find(|branch| &branch.latest == revision)
+                .map(|branch| branch.id.clone())
+                .ok_or_else(|| anyhow::anyhow!("Lore refused to read the revision: NotFound"))
+        })
+    }
+
+    fn read_linked<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        watched: &'a Watched,
+        revision: &'a Revision,
+        _: &'a Path,
+    ) -> BoxFuture<'a, Result<LinkedPrepared>> {
+        Box::pin(async move {
+            self.linked(
+                watched,
+                Call::Read(person.clone(), revision.clone()),
+                person,
+                |linked| Ok(linked.openshell.get(revision).cloned().unwrap_or_default()),
+            )
+            .expect("a linked repository's revision")
         })
     }
 }
@@ -303,8 +502,35 @@ fn configuration(directory: &Path) -> veoveo_hub::control_plane::FactoryConfigur
     .unwrap()
 }
 
+/// The fixture's database, dropped on a blocking thread. Its drop waits for PostgreSQL's
+/// `DROP DATABASE`, which waits until every backend of the shared cluster takes its
+/// barrier, and a backend this test's runtime is still connecting, for an apply that is
+/// still running, takes it only once the runtime answers it. Dropped on the runtime's
+/// thread, the drop would wait for the runtime and stall every test's databases until
+/// PostgreSQL's authentication timeout; the runtime waits for the blocking drop instead.
+struct Database(Option<veoveo_fixtures::store::TestDb>);
+
+impl std::ops::Deref for Database {
+    type Target = veoveo_fixtures::store::TestDb;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref().expect("the fixture's database")
+    }
+}
+
+impl Drop for Database {
+    fn drop(&mut self) {
+        if let Some(db) = self.0.take() {
+            match tokio::runtime::Handle::try_current() {
+                Ok(runtime) => drop(runtime.spawn_blocking(move || drop(db))),
+                Err(_) => drop(db),
+            }
+        }
+    }
+}
+
 struct Fixture {
-    db: veoveo_fixtures::store::TestDb,
+    db: Database,
     lore: FakeLore,
     gateway: gateway::Gateway,
     builder: Arc<Builder>,
@@ -316,7 +542,7 @@ struct Fixture {
 
 impl Fixture {
     async fn start() -> Self {
-        let db = veoveo_fixtures::store::TestDb::new().await;
+        let db = Database(Some(veoveo_fixtures::store::TestDb::new().await));
         HubStore::new(db.a.clone()).migrate().await.unwrap();
         let directory = tempfile::tempdir().unwrap();
         let (gateway, client) = gateway::Gateway::start().await;
@@ -893,6 +1119,673 @@ async fn watching_again_replaces_the_watcher_and_its_follower() {
         .await;
         tokio::time::sleep(Duration::from_millis(200)).await;
         assert_eq!(fixture.built('b'), 1);
+    })
+    .await;
+}
+
+const LINKED_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const LINKED_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const TEAM_POLICY: &str = "version: 1\nnetwork_policies:\n  team-api:\n    endpoints:\n      - {host: api.team.example, port: 443}\n    binaries:\n      - path: /sandbox/src/**\n";
+
+fn linked_watched(repository: &str) -> Watched {
+    Watched {
+        deployment: DeploymentId::parse("primary").unwrap(),
+        repository: RepositoryId::parse(repository).unwrap(),
+    }
+}
+
+fn link(name: &str, repository: &str, pinned: char, follows: bool) -> LinkNode {
+    LinkNode {
+        name: LinkName::parse(name).unwrap(),
+        repository: RepositoryId::parse(repository).unwrap(),
+        pinned: revision(pinned),
+        follows,
+    }
+}
+
+impl Fixture {
+    /// The runners of the branch, by link.
+    async fn runners(&self, branch: &str) -> Vec<veoveo_hub::factory::Runner> {
+        self.factory
+            .runners(REPOSITORY, &name(branch))
+            .await
+            .unwrap()
+    }
+
+    /// The runner's sandbox, as OpenShell holds it.
+    async fn runner_sandbox(&self, branch: &str, link: &str) -> openshell_sdk::raw::proto::Sandbox {
+        let deployment = self
+            .factory
+            .runner_status(
+                REPOSITORY,
+                &name(branch),
+                &LinkName::parse(link).unwrap(),
+                Duration::ZERO,
+            )
+            .await
+            .unwrap()
+            .unwrap()
+            .deployment;
+        self.gateway
+            .sandbox(WORKSPACE, &sandbox_name(deployment))
+            .unwrap()
+    }
+}
+
+/// A linked branch, whose links follow the parent's branch and pin one of their own: Alice
+/// watches the parent, Bob the repository of `team-a`, and Dave that of `team-b`.
+fn linked_branch(
+    fixture: &Fixture,
+    branch: &str,
+) -> (PrincipalId, PrincipalId, PrincipalId, PrincipalId) {
+    let (alice, bob, carol, dave) = (
+        person("alice"),
+        person("bob"),
+        person("carol"),
+        person("dave"),
+    );
+    fixture.lore.with(|state| {
+        state.granted.insert(alice.clone());
+        state.branches = vec![live('1', branch, '1')];
+        state.committers.insert(revision('1'), alice.clone());
+        state.runs.insert(revision('1'), None);
+        state.links.insert(
+            revision('1'),
+            vec![
+                link("team-a", LINKED_A, 'a', true),
+                link("team-b", LINKED_B, 'b', false),
+            ],
+        );
+        let a = state
+            .linked
+            .entry(RepositoryId::parse(LINKED_A).unwrap())
+            .or_default();
+        a.granted.extend([bob.clone(), carol.clone()]);
+        // A following link tracks the linked repository's branch of the parent branch's
+        // ID, which Lore named with the ID appended because the name was taken.
+        a.branches = vec![Branch {
+            name: format!("{branch}-{}", branch_id('1')),
+            ..live('1', "", 'c')
+        }];
+        a.committers.insert(revision('c'), carol.clone());
+        a.openshell.insert(
+            revision('c'),
+            LinkedPrepared {
+                policy: Some(TEAM_POLICY.into()),
+                providers: None,
+            },
+        );
+        let b = state
+            .linked
+            .entry(RepositoryId::parse(LINKED_B).unwrap())
+            .or_default();
+        b.granted.insert(dave.clone());
+        // A pinned link tracks the branch its pinned revision lives on.
+        b.revision_branches.insert(revision('b'), branch_id('2'));
+        b.branches = vec![live('2', "release", 'd')];
+        b.committers.insert(revision('d'), dave.clone());
+    });
+    (alice, bob, carol, dave)
+}
+
+#[tokio::test]
+async fn a_linked_branch_runs_one_runner_per_link_serving_the_branch_each_link_tracks() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let (alice, bob, carol, dave) = linked_branch(&fixture, "links/main");
+        fixture
+            .watches
+            .store()
+            .watch(&linked_watched(LINKED_A), &bob)
+            .await
+            .unwrap();
+        fixture
+            .watches
+            .store()
+            .watch(&linked_watched(LINKED_B), &dave)
+            .await
+            .unwrap();
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        until("both runners", || async {
+            let runners = fixture.runners("links/main").await;
+            runners.len() == 2
+                && runners
+                    .iter()
+                    .all(|runner| runner.linked_revision.is_some())
+        })
+        .await;
+
+        // The branch has no ordinary instance; each link has a runner.
+        assert!(!fixture.serves("links/main").await);
+        let runners = fixture.runners("links/main").await;
+        let [a, b] = [&runners[0], &runners[1]];
+        assert_eq!(
+            (a.link.name.as_str(), a.link.repository.as_str()),
+            ("team-a", LINKED_A)
+        );
+        assert_eq!(a.link.tracked.id, branch_id('1').as_str());
+        assert_eq!(
+            a.link.tracked.name,
+            format!("links/main-{}", branch_id('1'))
+        );
+        assert_eq!(
+            (a.linked_revision.clone(), a.linked_pusher.clone()),
+            (Some(revision('c')), Some(carol.clone()))
+        );
+        assert_eq!(
+            (
+                b.link.name.as_str(),
+                b.link.tracked.id.as_str(),
+                b.link.tracked.name.as_str()
+            ),
+            ("team-b", branch_id('2').as_str(), "release")
+        );
+        assert_eq!(
+            (b.linked_revision.clone(), b.linked_pusher.clone()),
+            (Some(revision('d')), Some(dave.clone()))
+        );
+        for runner in &runners {
+            assert_eq!(
+                (runner.revision.clone(), runner.pusher.clone()),
+                (Some(revision('1')), Some(alice.clone()))
+            );
+        }
+        // The linked repositories were read as their watchers, and each tracked head's
+        // openshell/ as its committer.
+        assert_eq!(
+            fixture
+                .lore
+                .linked_calls(&RepositoryId::parse(LINKED_A).unwrap()),
+            [
+                Call::Branch(bob.clone(), branch_id('1')),
+                Call::Committer(bob.clone(), revision('c')),
+                Call::Read(carol.clone(), revision('c')),
+            ]
+        );
+        assert_eq!(
+            fixture
+                .lore
+                .linked_calls(&RepositoryId::parse(LINKED_B).unwrap()),
+            [
+                Call::RevisionBranch(dave.clone(), revision('b')),
+                Call::Branch(dave.clone(), branch_id('2')),
+                Call::Committer(dave.clone(), revision('d')),
+                Call::Read(dave.clone(), revision('d')),
+            ]
+        );
+
+        // Each runner checks the parent out without its links and its linked repository
+        // at the tracked branch, under the linked repository's own network rules.
+        let sandbox = fixture.runner_sandbox("links/main", "team-a").await;
+        let spec = sandbox.spec.unwrap();
+        assert_eq!(
+            spec.command[3..],
+            [
+                "runner",
+                &format!("grpcs://lore.internal:41337/{REPOSITORY}"),
+                "links/main",
+                &format!("grpcs://lore.internal:41337/{LINKED_A}"),
+                branch_id('1').as_str(),
+                "team-a",
+                "team-b",
+            ]
+        );
+        assert!(
+            spec.policy
+                .unwrap()
+                .network_policies
+                .contains_key("team-api")
+        );
+        let other = fixture.runner_sandbox("links/main", "team-b").await;
+        assert!(
+            !other
+                .spec
+                .unwrap()
+                .policy
+                .unwrap()
+                .network_policies
+                .contains_key("team-api")
+        );
+        // The image is the parent's, built once for the branch's revision.
+        assert_eq!(fixture.built('1'), 2);
+        let status = fixture
+            .factory
+            .runner_status(
+                REPOSITORY,
+                &name("links/main"),
+                &LinkName::parse("team-b").unwrap(),
+                Duration::ZERO,
+            )
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(&status.runner).unwrap(),
+            serde_json::json!({
+                "link": "team-b",
+                "linkedRepository": LINKED_B,
+                "trackedBranch": {"id": branch_id('2').as_str(), "name": "release"},
+                "linkedRevision": revision('d').as_str(),
+            })
+        );
+
+        // A push to the tracked branch of team-a's repository applies to its runner alone,
+        // as its pusher.
+        let erin = person("erin");
+        fixture.lore.with(|state| {
+            let a = state
+                .linked
+                .get_mut(&RepositoryId::parse(LINKED_A).unwrap())
+                .unwrap();
+            a.granted.insert(erin.clone());
+            a.branches[0].latest = revision('e');
+            a.committers.insert(revision('e'), erin.clone());
+        });
+        fixture
+            .watches
+            .watch(linked_watched(LINKED_A), bob.clone())
+            .await
+            .unwrap();
+        fixture.lore.send_linked(
+            &RepositoryId::parse(LINKED_A).unwrap(),
+            Ok(pushed('1', 'e', &erin)),
+        );
+        until("the tracked push", || async {
+            fixture.runners("links/main").await[0].linked_revision == Some(revision('e'))
+        })
+        .await;
+        let runners = fixture.runners("links/main").await;
+        assert_eq!(runners[0].linked_pusher, Some(erin));
+        assert_eq!(runners[1].linked_revision, Some(revision('d')));
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_link_runs_once_its_linked_repository_is_watched_and_goes_with_the_link() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let (alice, bob, _, dave) = linked_branch(&fixture, "links/second");
+        fixture
+            .watches
+            .store()
+            .watch(&linked_watched(LINKED_A), &bob)
+            .await
+            .unwrap();
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        let caller = veoveo_hub_sdk::Principal {
+            id: alice.clone(),
+            kind: veoveo_hub_sdk::PrincipalKind::User,
+            issuer: veoveo_hub_sdk::TokenIssuer::parse("https://identity.example").unwrap(),
+            subject: veoveo_hub_sdk::TokenSubject::parse("alice").unwrap(),
+            tenant: Some(TenantId::parse("tenant").unwrap()),
+            groups: Default::default(),
+            group_roles: Default::default(),
+            roles: Default::default(),
+            scopes: Default::default(),
+            data_labels: Default::default(),
+            assurances: Default::default(),
+            authenticated_at: None,
+        };
+        let team_b = LinkName::parse("team-b").unwrap();
+        let failure = || async {
+            fixture
+                .watches
+                .report(
+                    &caller,
+                    &RepositoryId::parse(REPOSITORY).unwrap(),
+                    &name("links/second"),
+                    Some(&team_b),
+                )
+                .await
+                .unwrap()
+                .runner_failure
+        };
+        until("team-a's runner and team-b's failure", || async {
+            let runners = fixture.runners("links/second").await;
+            runners.len() == 1 && runners[0].linked_revision.is_some() && failure().await.is_some()
+        })
+        .await;
+        // Nobody watches team-b's repository: its runner waits, and says why.
+        let report = fixture
+            .watches
+            .report(
+                &caller,
+                &RepositoryId::parse(REPOSITORY).unwrap(),
+                &name("links/second"),
+                Some(&team_b),
+            )
+            .await
+            .unwrap();
+        let failed = report.runner_failure.unwrap();
+        assert_eq!(failed.linked_repository.as_str(), LINKED_B);
+        assert!(
+            failed
+                .message
+                .contains("nobody watches the linked repository"),
+            "{}",
+            failed.message
+        );
+
+        // Once Dave watches it, the link runs.
+        fixture
+            .watches
+            .watch(linked_watched(LINKED_B), dave.clone())
+            .await
+            .unwrap();
+        until("team-b's runner", || async {
+            let runners = fixture.runners("links/second").await;
+            runners.len() == 2
+                && runners
+                    .iter()
+                    .all(|runner| runner.linked_revision.is_some())
+                && failure().await.is_none()
+        })
+        .await;
+
+        // A push that drops team-b's link removes its runner; one without links serves the
+        // branch from an ordinary instance again.
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('2');
+            state.committers.insert(revision('2'), alice.clone());
+            state.runs.insert(revision('2'), None);
+            state
+                .links
+                .insert(revision('2'), vec![link("team-a", LINKED_A, 'a', true)]);
+        });
+        fixture.lore.send(Ok(pushed('1', '2', &alice)));
+        until("team-b's runner removed", || async {
+            let runners = fixture.runners("links/second").await;
+            runners.len() == 1 && runners[0].revision == Some(revision('2'))
+        })
+        .await;
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('3');
+            state.committers.insert(revision('3'), alice.clone());
+            state.runs.insert(revision('3'), None);
+        });
+        fixture.lore.send(Ok(pushed('1', '3', &alice)));
+        until("the ordinary instance", || async {
+            fixture.applied("links/second").await == Some(revision('3'))
+        })
+        .await;
+        assert!(fixture.runners("links/second").await.is_empty());
+    })
+    .await;
+}
+
+/// A node of a revision's own tree: a directory, or a link to `LINKED_A`.
+fn tree_node(path: &str, node_type: NodeType) -> TreeNode {
+    let address = (node_type == NodeType::Link).then(|| Address {
+        context: hex::decode(LINKED_A).unwrap().into(),
+        hash: hex::decode(revision('a').as_str()).unwrap().into(),
+    });
+    TreeNode {
+        path: path.into(),
+        node_type: node_type as i32,
+        address,
+        ..Default::default()
+    }
+}
+
+#[tokio::test]
+async fn a_revision_with_a_link_its_checkout_cannot_leave_out_is_refused_at_prepare() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let alice = person("alice");
+        fixture.lore.with(|state| {
+            state.granted.insert(alice.clone());
+            state.branches = vec![live('1', "links/deep", '1')];
+            state.committers.insert(revision('1'), alice.clone());
+            state.runs.insert(revision('1'), None);
+        });
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        until("the instance", || async {
+            fixture.applied("links/deep").await == Some(revision('1'))
+        })
+        .await;
+        let store = fixture.watches.store().clone();
+        let refused = |digit: char| {
+            let store = store.clone();
+            async move {
+                store
+                    .prepare_failure(&watched(), &name("links/deep"))
+                    .await
+                    .unwrap()
+                    .filter(|failure| failure.revision == revision(digit))
+            }
+        };
+        let push = |digit: char, links: Vec<LinkNode>, tree: Vec<TreeNode>| {
+            fixture.lore.with(|state| {
+                state.branches[0].latest = revision(digit);
+                state.committers.insert(revision(digit), alice.clone());
+                state.runs.insert(revision(digit), None);
+                state.links.insert(revision(digit), links);
+                state.trees.insert(revision(digit), tree);
+            });
+            fixture.lore.send(Ok(pushed('1', digit, &alice)));
+        };
+
+        // A link below the top level of a branch without top-level links: its clone would
+        // reach the linked repository, so the push is refused and the instance keeps
+        // serving.
+        push(
+            '2',
+            Vec::new(),
+            vec![
+                tree_node("assets", NodeType::Directory),
+                tree_node("assets/lib", NodeType::Link),
+            ],
+        );
+        until("the refusal", || async { refused('2').await.is_some() }).await;
+        let message = refused('2').await.unwrap().message;
+        assert!(
+            message
+                .contains("reading the revision's links as https://identity.example#alice failed")
+                && message.contains("the revision holds the link assets/lib below its top level"),
+            "{message}"
+        );
+        assert_eq!(fixture.applied("links/deep").await, Some(revision('1')));
+
+        // The same for a linked branch: none of its links runs.
+        push(
+            '3',
+            vec![link("team-a", LINKED_A, 'a', true)],
+            vec![
+                tree_node("docs", NodeType::Directory),
+                tree_node("docs/lib", NodeType::Link),
+            ],
+        );
+        until("the linked refusal", || async {
+            refused('3').await.is_some()
+        })
+        .await;
+        assert!(
+            refused('3')
+                .await
+                .unwrap()
+                .message
+                .contains("the revision holds the link docs/lib below its top level")
+        );
+        assert_eq!(fixture.applied("links/deep").await, Some(revision('1')));
+        assert!(fixture.runners("links/deep").await.is_empty());
+
+        // A top-level link whose name is no DNS label is not left out either.
+        push('4', Vec::new(), vec![tree_node("Team_A", NodeType::Link)]);
+        until("the name's refusal", || async {
+            refused('4').await.is_some()
+        })
+        .await;
+        assert!(
+            refused('4')
+                .await
+                .unwrap()
+                .message
+                .contains("the revision's link Team_A is not named by a lowercase DNS label")
+        );
+
+        // A push without such links is prepared and clears the refusal.
+        push(
+            '5',
+            Vec::new(),
+            vec![tree_node("assets", NodeType::Directory)],
+        );
+        until("the next push", || async {
+            fixture.applied("links/deep").await == Some(revision('5'))
+        })
+        .await;
+        assert_eq!(
+            store
+                .prepare_failure(&watched(), &name("links/deep"))
+                .await
+                .unwrap(),
+            None
+        );
+
+        // A revision without `openshell/` is still refused for a deep link.
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('6');
+            state.committers.insert(revision('6'), alice.clone());
+            state.trees.insert(
+                revision('6'),
+                vec![
+                    tree_node("docs", NodeType::Directory),
+                    tree_node("docs/lib", NodeType::Link),
+                ],
+            );
+        });
+        fixture.lore.send(Ok(pushed('1', '6', &alice)));
+        until("the refusal without openshell/", || async {
+            refused('6').await.is_some()
+        })
+        .await;
+        assert_eq!(fixture.applied("links/deep").await, Some(revision('5')));
+
+        // Without `openshell/` and without such links, nothing serves the branch and
+        // nothing failed.
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('7');
+            state.committers.insert(revision('7'), alice.clone());
+        });
+        fixture.lore.send(Ok(pushed('1', '7', &alice)));
+        until("the instance's removal", || async {
+            !fixture.serves("links/deep").await
+        })
+        .await;
+        assert_eq!(
+            store
+                .prepare_failure(&watched(), &name("links/deep"))
+                .await
+                .unwrap(),
+            None
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_linked_repositorys_rule_for_a_program_of_its_own_is_refused() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let (alice, bob, _, dave) = linked_branch(&fixture, "links/content");
+        let content_rule = |binary: &str| LinkedPrepared {
+            policy: Some(format!(
+                "version: 1\nnetwork_policies:\n  team-api:\n    endpoints:\n      - {{host: api.team.example, port: 443}}\n    binaries:\n      - path: \"{binary}\"\n"
+            )),
+            providers: None,
+        };
+        let team_b = || RepositoryId::parse(LINKED_B).unwrap();
+        fixture.lore.with(|state| {
+            state
+                .linked
+                .get_mut(&team_b())
+                .unwrap()
+                .openshell
+                .insert(revision('d'), content_rule("/sandbox/link/bin/sync"));
+        });
+        for (linked, watcher) in [(LINKED_A, &bob), (LINKED_B, &dave)] {
+            fixture
+                .watches
+                .watch(linked_watched(linked), watcher.clone())
+                .await
+                .unwrap();
+        }
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        let caller = veoveo_hub_sdk::Principal {
+            tenant: Some(TenantId::parse("tenant").unwrap()),
+            ..caller(&alice)
+        };
+        let link = LinkName::parse("team-b").unwrap();
+        let failure = || async {
+            fixture
+                .watches
+                .report(
+                    &caller,
+                    &RepositoryId::parse(REPOSITORY).unwrap(),
+                    &name("links/content"),
+                    Some(&link),
+                )
+                .await
+                .unwrap()
+                .runner_failure
+        };
+        // Team-b's rule names a program in its own checkout: its link gets no runner.
+        until("team-a's runner and team-b's refusal", || async {
+            let runners = fixture.runners("links/content").await;
+            runners.len() == 1 && runners[0].linked_revision.is_some() && failure().await.is_some()
+        })
+        .await;
+        let refused = failure().await.unwrap().message;
+        assert!(
+            refused.contains("names the program `/sandbox/link/bin/sync`, which can lie under /sandbox/link"),
+            "{refused}"
+        );
+
+        // A push that names the parent's program instead runs the link.
+        let push = |digit: char, binary: &str| {
+            fixture.lore.with(|state| {
+                let b = state.linked.get_mut(&team_b()).unwrap();
+                b.branches[0].latest = revision(digit);
+                b.committers.insert(revision(digit), dave.clone());
+                b.openshell.insert(revision(digit), content_rule(binary));
+            });
+            fixture
+                .lore
+                .send_linked(&team_b(), Ok(pushed('2', digit, &dave)));
+        };
+        push('f', "/sandbox/src/**");
+        until("team-b's runner", || async {
+            let runners = fixture.runners("links/content").await;
+            runners.len() == 2
+                && runners[1].linked_revision == Some(revision('f'))
+                && failure().await.is_none()
+        })
+        .await;
+
+        // A later push that names one again leaves the runner as it serves, and says why.
+        push('9', "/**");
+        until("the tracked push's refusal", || async { failure().await.is_some() }).await;
+        assert!(failure().await.unwrap().message.contains("names the program `/**`"));
+        assert_eq!(
+            fixture.runners("links/content").await[1].linked_revision,
+            Some(revision('f'))
+        );
     })
     .await;
 }

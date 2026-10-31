@@ -447,24 +447,31 @@ fn a_listing_names_each_repository_the_caller_holds_on_the_deployment_in_pages()
 
 #[test]
 fn a_listed_action_is_named_as_the_token_names_it() {
-    for action in [
-        NativeAction::Owner,
-        NativeAction::Admin,
-        NativeAction::Obliterate,
-        NativeAction::Migrate,
+    for (action, name) in [
+        (NativeAction::Write, "write"),
+        (NativeAction::Owner, "owner"),
+        (NativeAction::Admin, "admin"),
+        (NativeAction::PushProtected, "push-protected"),
+        (NativeAction::Obliterate, "obliterate"),
+        (NativeAction::Migrate, "migrate"),
     ] {
+        assert_eq!(action.as_str(), name, "Lore's name of the action");
+        assert_eq!(serde_json::json!(action), serde_json::json!(name));
         assert_eq!(
-            serde_json::json!(action.as_str()),
-            serde_json::json!(action)
+            serde_json::from_value::<NativeAction>(serde_json::json!(name)).unwrap(),
+            action
         );
     }
+    assert!(serde_json::from_value::<NativeAction>(serde_json::json!("push_protected")).is_err());
+    assert!(serde_json::from_value::<NativeAction>(serde_json::json!("read")).is_err());
 }
 
 const GROUP: &str = "44444444444444444444444444444444";
 
 /// [`plane`] with the group `bioma` of tenant-a, whose owner is bob and whose member is
-/// alice, assigned `owner` on FIRST, where alice's own assignment names no action, and
-/// `admin` on SECOND, which alice holds only through it.
+/// alice, assigned the owner level, `write` and `owner`, on FIRST, where alice's own
+/// assignment is a reader's, without actions, and `admin` on SECOND, which alice holds
+/// only through it.
 fn grouped() -> HubControlPlane {
     let mut plane = plane();
     let lore = plane.extensions.get_mut("lore").unwrap();
@@ -476,7 +483,7 @@ fn grouped() -> HubControlPlane {
         ]
     }]);
     lore["assignments"].as_array_mut().unwrap().extend([
-        serde_json::json!({"deployment":"source","repository":FIRST,"tenant":"tenant-a","group":GROUP,"actions":["owner"]}),
+        serde_json::json!({"deployment":"source","repository":FIRST,"tenant":"tenant-a","group":GROUP,"actions":["write","owner"]}),
         serde_json::json!({"deployment":"source","repository":SECOND,"tenant":"tenant-a","group":GROUP,"actions":["admin"]}),
     ]);
     plane
@@ -502,11 +509,11 @@ fn actions(
 fn a_persons_actions_unite_their_own_assignment_and_their_groups() {
     let current = catalog(grouped());
     let section = Lore::of(&current).unwrap();
-    use NativeAction::{Admin, Owner};
+    use NativeAction::{Admin, Owner, Write};
     // Their own assignment and their group's on one repository: the union.
     assert_eq!(
         actions(&section, "native-alice", "tenant-a", FIRST),
-        Some(vec![Owner])
+        Some(vec![Write, Owner])
     );
     // Only through the group, whatever their role in it.
     assert_eq!(
@@ -539,7 +546,7 @@ fn a_persons_actions_unite_their_own_assignment_and_their_groups() {
     );
     assert_eq!(
         exchange(&current, FIRST).unwrap()["resources"],
-        serde_json::json!([{"resource_id":format!("partition-{FIRST}"),"permission":["owner"]}])
+        serde_json::json!([{"resource_id":format!("partition-{FIRST}"),"permission":["write","owner"]}])
     );
     let listed = super::catalog::listing(
         &section,
@@ -551,10 +558,10 @@ fn a_persons_actions_unite_their_own_assignment_and_their_groups() {
     .unwrap();
     assert_eq!(
         listed.resource_permission,
-        [(FIRST, "owner"), (SECOND, "admin")]
-            .map(|(id, action)| lore_proto::auth::ResourcePermission {
+        [(FIRST, &["write", "owner"][..]), (SECOND, &["admin"][..])]
+            .map(|(id, actions)| lore_proto::auth::ResourcePermission {
                 resource_id: format!("partition-{id}"),
-                permission: vec![action.to_owned()],
+                permission: actions.iter().map(|action| (*action).to_owned()).collect(),
             })
             .to_vec(),
         "one entry per repository, with the union of its actions"
@@ -564,6 +571,31 @@ fn a_persons_actions_unite_their_own_assignment_and_their_groups() {
     let mut elsewhere = alice.clone();
     elsewhere.tenant = Some(TenantId::parse("tenant-b").unwrap());
     assert!(!section.grants(&elsewhere, &second));
+    // The grant a runner's forwarded token carries, which the catalog reads from the
+    // section's assignments.
+    let grant = |current: &HubCatalog, principal: &veoveo_hub_sdk::Principal, id: &str| {
+        current
+            .repository_grant(
+                principal,
+                &veoveo_hub_sdk::registration::RepositoryId::parse(id).unwrap(),
+            )
+            .map(|grant| {
+                grant
+                    .actions
+                    .iter()
+                    .map(|action| action.to_string())
+                    .collect::<Vec<_>>()
+            })
+    };
+    assert_eq!(
+        grant(&current, &alice, FIRST),
+        Some(vec!["owner".to_owned(), "write".to_owned()])
+    );
+    assert_eq!(
+        grant(&current, &alice, SECOND),
+        Some(vec!["admin".to_owned()])
+    );
+    assert_eq!(grant(&current, &elsewhere, SECOND), None);
 
     // A removed membership takes the group's assignments with it at the next revision.
     let mut removed = grouped();
@@ -580,6 +612,8 @@ fn a_persons_actions_unite_their_own_assignment_and_their_groups() {
     assert_eq!(actions(&section, "native-alice", "tenant-a", SECOND), None);
     assert!(exchange(&current, SECOND).is_err());
     assert!(!section.grants(&alice, &second));
+    assert_eq!(grant(&current, &alice, FIRST), Some(vec![]));
+    assert_eq!(grant(&current, &alice, SECOND), None);
     assert_eq!(
         actions(&section, "native-bob", "tenant-a", SECOND),
         Some(vec![Admin])
@@ -745,7 +779,10 @@ fn a_computers_client_asks_for_its_owners_login_or_one_repositorys_token() {
 
     // A repository's scope: that repository's token, with the owner's actions on it, own
     // and through their group.
-    for (id, permission) in [(FIRST, ["owner"]), (SECOND, ["admin"])] {
+    for (id, permission) in [
+        (FIRST, serde_json::json!(["write", "owner"])),
+        (SECOND, serde_json::json!(["admin"])),
+    ] {
         let scope = format!("repo/{id}/access");
         let grant = authorize(&current, &alice, requested(Some(&scope)).unwrap()).unwrap();
         assert_eq!(
@@ -819,7 +856,7 @@ fn caller<'a>(tenant: &'a TenantId, principal: &'a PrincipalId) -> super::sharin
 
 #[test]
 fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
-    use super::sharing::{Named, Refusal, Setting};
+    use super::sharing::{Access, Named, Refusal};
     let tenant = TenantId::parse("tenant-a").unwrap();
     let [alice, bob, carol] = ["native-alice", "native-bob", "native-carol"]
         .map(|principal| PrincipalId::parse(principal).unwrap());
@@ -835,7 +872,7 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&tenant, &carol),
             &Named::Person(alice.clone()),
-            Setting::Owner
+            Access::Owner
         ),
         Err(Refusal::NotRepositoryOwner)
     );
@@ -850,7 +887,7 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &second,
             caller(&tenant, &alice),
             &Named::Person(carol.clone()),
-            Setting::Member
+            Access::Member
         ),
         Err(Refusal::NotRepositoryOwner)
     );
@@ -868,18 +905,18 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&tenant, &bob),
             &Named::Person(carol.clone()),
-            Setting::Member
+            Access::Member
         ),
         Ok(true)
     );
-    assert_eq!(carol_level(&section), Some(vec![]));
+    assert_eq!(carol_level(&section), Some(vec![NativeAction::Write]));
     assert_eq!(
         section.set_access(
             &source,
             &first,
             caller(&tenant, &bob),
             &Named::Person(carol.clone()),
-            Setting::Member
+            Access::Member
         ),
         Ok(false)
     );
@@ -889,18 +926,21 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&tenant, &bob),
             &Named::Person(carol.clone()),
-            Setting::Owner
+            Access::Owner
         ),
         Ok(true)
     );
-    assert_eq!(carol_level(&section), Some(vec![NativeAction::Owner]));
+    assert_eq!(
+        carol_level(&section),
+        Some(vec![NativeAction::Write, NativeAction::Owner])
+    );
     assert_eq!(
         section.set_access(
             &source,
             &first,
             caller(&tenant, &bob),
             &Named::Person(carol.clone()),
-            Setting::None
+            Access::None
         ),
         Ok(true)
     );
@@ -911,7 +951,7 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&tenant, &bob),
             &Named::Person(carol.clone()),
-            Setting::None
+            Access::None
         ),
         Ok(false)
     );
@@ -924,7 +964,7 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&tenant, &bob),
             &bioma,
-            Setting::Member
+            Access::Member
         ),
         Err(Refusal::KeepRepositoryOwner)
     );
@@ -939,7 +979,7 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&tenant, &bob),
             &Named::Person(bob.clone()),
-            Setting::Owner
+            Access::Owner
         ),
         Ok(true)
     );
@@ -949,7 +989,7 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&tenant, &bob),
             &bioma,
-            Setting::Member
+            Access::Member
         ),
         Ok(true)
     );
@@ -959,7 +999,7 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&tenant, &bob),
             &Named::Person(bob.clone()),
-            Setting::None
+            Access::None
         ),
         Err(Refusal::KeepRepositoryOwner)
     );
@@ -975,14 +1015,15 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&tenant, &bob),
             &Named::Person(alice.clone()),
-            Setting::Member
+            Access::Member
         ),
         Ok(true)
     );
     assert!(
         section
             .access(&source, &first)
-            .any(|a| a.subject == Subject::Principal(alice.clone()) && a.actions.is_empty())
+            .any(|a| a.subject == Subject::Principal(alice.clone())
+                && a.actions == BTreeSet::from([NativeAction::Write]))
     );
 
     // Unknown repositories and groups, and repositories of another tenant.
@@ -994,7 +1035,7 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &third,
             caller(&tenant, &bob),
             &bioma,
-            Setting::Member
+            Access::Member
         ),
         Err(Refusal::UnknownRepository)
     );
@@ -1004,7 +1045,7 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&elsewhere, &bob),
             &bioma,
-            Setting::Member
+            Access::Member
         ),
         Err(Refusal::UnknownRepository)
     );
@@ -1015,7 +1056,7 @@ fn an_owner_shares_a_repository_and_never_loses_its_ownership_by_it() {
             &first,
             caller(&tenant, &bob),
             &unknown,
-            Setting::Member
+            Access::Member
         ),
         Err(Refusal::UnknownGroup)
     );
@@ -1131,7 +1172,7 @@ fn a_group_is_created_by_its_owner_whose_owners_set_its_memberships() {
 
 #[test]
 fn an_owner_deletes_a_group_with_its_assignments_leaving_each_repository_an_owner() {
-    use super::sharing::{Named, Refusal, Setting};
+    use super::sharing::{Access, Named, Refusal};
     let [tenant, elsewhere] = ["tenant-a", "tenant-b"].map(|t| TenantId::parse(t).unwrap());
     let [alice, bob] =
         ["native-alice", "native-bob"].map(|principal| PrincipalId::parse(principal).unwrap());
@@ -1165,7 +1206,7 @@ fn an_owner_deletes_a_group_with_its_assignments_leaving_each_repository_an_owne
             &first,
             caller(&tenant, &bob),
             &Named::Person(alice.clone()),
-            Setting::Owner
+            Access::Owner
         ),
         Ok(true)
     );
@@ -1177,10 +1218,10 @@ fn an_owner_deletes_a_group_with_its_assignments_leaving_each_repository_an_owne
             .iter()
             .all(|a| !matches!(a.subject, Subject::Group(_)))
     );
-    use NativeAction::Owner;
+    use NativeAction::{Owner, Write};
     assert_eq!(
         actions(&section, "native-alice", "tenant-a", FIRST),
-        Some(vec![Owner])
+        Some(vec![Write, Owner])
     );
     assert_eq!(actions(&section, "native-alice", "tenant-a", SECOND), None);
     assert_eq!(actions(&section, "native-bob", "tenant-a", FIRST), None);
@@ -1236,4 +1277,281 @@ fn an_owner_deletes_a_repository_with_every_assignment_on_it() {
         before.assignments.len() - 2,
         "SECOND keeps its assignment"
     );
+}
+
+/// The catalog of [`grouped`] with `section` as its Lore section.
+fn catalog_of(section: &Lore) -> HubCatalog {
+    let mut plane = grouped();
+    plane
+        .extensions
+        .insert("lore".into(), serde_json::to_value(section).unwrap());
+    catalog(plane)
+}
+
+/// `person`'s repository token for `id` in `current`: its one entry's permission.
+fn permission(current: &HubCatalog, person: &str, id: &str) -> Result<serde_json::Value> {
+    let mut principal = principal();
+    principal.id = PrincipalId::parse(person).unwrap();
+    let token = authorize(
+        current,
+        &principal,
+        Request::Exchange {
+            resource: None,
+            scope: Some(format!("repo/{id}/access")),
+        },
+    )?;
+    Ok(token["resources"][0]["permission"].clone())
+}
+
+#[test]
+fn each_access_level_is_its_lore_actions_in_the_token() {
+    use super::sharing::{Access, Level, Named};
+    let tenant = TenantId::parse("tenant-a").unwrap();
+    let [bob, carol] =
+        ["native-bob", "native-carol"].map(|principal| PrincipalId::parse(principal).unwrap());
+    let source = DeploymentId::parse("source").unwrap();
+    let first = RepositoryId::parse(FIRST).unwrap();
+    let mut section = shared();
+    for (access, level, token) in [
+        (Access::Reader, Level::Reader, serde_json::json!([])),
+        (Access::Member, Level::Member, serde_json::json!(["write"])),
+        (
+            Access::Owner,
+            Level::Owner,
+            serde_json::json!(["write", "owner"]),
+        ),
+    ] {
+        section
+            .set_access(
+                &source,
+                &first,
+                caller(&tenant, &bob),
+                &Named::Person(carol.clone()),
+                access,
+            )
+            .unwrap();
+        let assignment = section
+            .access(&source, &first)
+            .find(|a| a.subject == Subject::Principal(carol.clone()))
+            .unwrap();
+        assert_eq!(assignment.actions, level.actions(), "{access:?}");
+        assert_eq!(Level::of(&assignment.actions), level, "{access:?}");
+        assert_eq!(
+            permission(&catalog_of(&section), "native-carol", FIRST).unwrap(),
+            token,
+            "{access:?}"
+        );
+    }
+    section
+        .set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(carol.clone()),
+            Access::None,
+        )
+        .unwrap();
+    assert!(permission(&catalog_of(&section), "native-carol", FIRST).is_err());
+
+    // A level shows the actions that decide it; other published actions stay beside it.
+    use NativeAction::{Admin, Owner, PushProtected, Write};
+    for (actions, level) in [
+        (vec![PushProtected], Level::Reader),
+        (vec![Write, PushProtected], Level::Member),
+        (vec![Owner], Level::Owner),
+        (vec![Write, Owner, Admin], Level::Owner),
+    ] {
+        assert_eq!(Level::of(&actions.into_iter().collect()), level);
+    }
+}
+
+#[test]
+fn a_reader_lists_the_repository_and_its_token_carries_no_action() {
+    use super::sharing::{Access, Named};
+    let tenant = TenantId::parse("tenant-a").unwrap();
+    let [bob, carol] =
+        ["native-bob", "native-carol"].map(|principal| PrincipalId::parse(principal).unwrap());
+    let source = DeploymentId::parse("source").unwrap();
+    let first = RepositoryId::parse(FIRST).unwrap();
+    let mut section = shared();
+    let listed = |section: &Lore| {
+        super::catalog::listing(
+            section,
+            &section.deployments[0],
+            &tenant,
+            &carol,
+            &lookup("", None, None),
+        )
+        .unwrap()
+        .resource_permission
+    };
+    assert!(listed(&section).is_empty(), "no grant, no entry");
+    section
+        .set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(carol.clone()),
+            Access::Reader,
+        )
+        .unwrap();
+    assert_eq!(
+        listed(&section),
+        [lore_proto::auth::ResourcePermission {
+            resource_id: format!("partition-{FIRST}"),
+            permission: vec![],
+        }]
+    );
+    assert_eq!(
+        permission(&catalog_of(&section), "native-carol", FIRST).unwrap(),
+        serde_json::json!([])
+    );
+    // A reader reads the access list and may not change it.
+    assert_eq!(
+        section.readable(&source, &first, caller(&tenant, &carol)),
+        Ok(())
+    );
+    assert_eq!(
+        section.set_access(
+            &source,
+            &first,
+            caller(&tenant, &carol),
+            &Named::Person(carol.clone()),
+            Access::Member,
+        ),
+        Err(super::sharing::Refusal::NotRepositoryOwner)
+    );
+}
+
+#[test]
+fn group_assignments_take_the_same_levels_and_unite_with_a_persons_own() {
+    use super::sharing::{Access, Named};
+    use NativeAction::{Owner, Write};
+    let tenant = TenantId::parse("tenant-a").unwrap();
+    let [alice, bob] =
+        ["native-alice", "native-bob"].map(|principal| PrincipalId::parse(principal).unwrap());
+    let source = DeploymentId::parse("source").unwrap();
+    let first = RepositoryId::parse(FIRST).unwrap();
+    let bioma = Named::Group(GroupName::parse("bioma").unwrap());
+    let mut section = shared();
+    // Bob owns FIRST himself, so the group's level may change.
+    section
+        .set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(bob.clone()),
+            Access::Owner,
+        )
+        .unwrap();
+    for (group, own, united) in [
+        (Access::Reader, Access::Reader, vec![]),
+        (Access::Reader, Access::Member, vec![Write]),
+        (Access::Member, Access::Reader, vec![Write]),
+        (Access::Owner, Access::Reader, vec![Write, Owner]),
+        (Access::Member, Access::Owner, vec![Write, Owner]),
+    ] {
+        for (subject, access) in [(&bioma, group), (&Named::Person(alice.clone()), own)] {
+            section
+                .set_access(&source, &first, caller(&tenant, &bob), subject, access)
+                .unwrap();
+        }
+        assert_eq!(
+            actions(&section, "native-alice", "tenant-a", FIRST),
+            Some(united.clone()),
+            "{group:?} and {own:?}"
+        );
+        assert_eq!(
+            permission(&catalog_of(&section), "native-alice", FIRST).unwrap(),
+            serde_json::json!(united.iter().map(|a| a.as_str()).collect::<Vec<_>>()),
+            "{group:?} and {own:?}"
+        );
+    }
+    // Removing her own assignment leaves what the group holds.
+    section
+        .set_access(
+            &source,
+            &first,
+            caller(&tenant, &bob),
+            &Named::Person(alice.clone()),
+            Access::None,
+        )
+        .unwrap();
+    assert_eq!(
+        actions(&section, "native-alice", "tenant-a", FIRST),
+        Some(vec![Write])
+    );
+}
+
+#[test]
+fn a_registered_creator_owns_with_write_and_owner() {
+    let mut section = Lore::of(&catalog(plane())).unwrap();
+    let deployment = DeploymentId::parse("source").unwrap();
+    let repository = RepositoryId::parse(SECOND).unwrap();
+    let tenant = TenantId::parse("tenant-a").unwrap();
+    let creator = PrincipalId::parse("native-carol").unwrap();
+    section.repositories.retain(|r| r.id != repository);
+    section.assignments.retain(|a| a.repository != repository);
+    let registered = section.register_owned(&Owned {
+        deployment: &deployment,
+        repository: &repository,
+        tenant: &tenant,
+        principal: &creator,
+        title: "made",
+    });
+    assert!(matches!(registered, Ok(true)));
+    assert_eq!(
+        actions(&section, "native-carol", "tenant-a", SECOND),
+        Some(vec![NativeAction::Write, NativeAction::Owner])
+    );
+}
+
+#[test]
+fn an_instances_client_asks_for_its_own_repository_and_a_runner_also_for_its_linked_one() {
+    use veoveo_hub::factory::{InstanceClient, LinkedClient};
+    let section = Lore::of(&catalog(plane())).unwrap();
+    let deployment = &section.deployments[0];
+    let own = RepositoryId::parse(FIRST).unwrap();
+    let linked = RepositoryId::parse(SECOND).unwrap();
+    let [pusher, linked_pusher] =
+        ["native-alice", "native-bob"].map(|id| PrincipalId::parse(id).unwrap());
+    let instance = InstanceClient {
+        deployment: veoveo_types::DeploymentId::new(),
+        pusher: Some(pusher.clone()),
+        repository: FIRST.into(),
+        linked: None,
+    };
+    let scope = |id: &str| format!("repo/{id}/access");
+    let requested = |instance: &InstanceClient, scope: Option<&str>| {
+        super::instance_client::requested(deployment, scope, &own, instance)
+    };
+    // Without a scope, or with its own repository's, the pusher's token for it.
+    for asked in [None, Some(scope(FIRST))] {
+        assert_eq!(
+            requested(&instance, asked.as_deref()),
+            Ok((Some(pusher.clone()), own.clone()))
+        );
+    }
+    // An ordinary instance gets no other repository's.
+    assert!(requested(&instance, Some(&scope(SECOND))).is_err());
+    // A runner gets its linked repository's, as the tracked branch's latest pusher.
+    let runner = InstanceClient {
+        linked: Some(LinkedClient {
+            repository: SECOND.into(),
+            pusher: Some(linked_pusher.clone()),
+        }),
+        ..instance.clone()
+    };
+    assert_eq!(
+        requested(&runner, Some(&scope(SECOND))),
+        Ok((Some(linked_pusher), linked))
+    );
+    assert_eq!(requested(&runner, None), Ok((Some(pusher), own.clone())));
+    for refused in [
+        scope("22222222222222222222222222222222"),
+        "native:login".to_owned(),
+        format!("{} {}", scope(FIRST), scope(SECOND)),
+    ] {
+        assert!(requested(&runner, Some(&refused)).is_err(), "{refused}");
+    }
 }

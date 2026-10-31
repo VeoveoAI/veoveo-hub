@@ -32,8 +32,9 @@ use serde::Serialize;
 use veoveo_store::PlatformStore;
 use veoveo_types::{DeploymentId, PrincipalId};
 
-pub use sandbox::{LORE, sandbox_name};
-pub use status::{Condition, Failure, InstanceStatus, Phase, SandboxStatus, Stage};
+pub use sandbox::{LINKED_CHECKOUT, LORE, check_linked_policy, sandbox_name};
+pub use status::{Condition, Failure, InstanceStatus, Phase, RunnerStatus, SandboxStatus, Stage};
+use veoveo_hub_sdk::hub::LinkName;
 
 use crate::{
     HubCatalogHandle,
@@ -124,8 +125,9 @@ pub struct Prepared {
 }
 
 /// An instance's own OAuth client. The gateway refreshes the sandbox's Lore token with
-/// it; the Hub issues each token for the instance's latest pusher and its repository.
-/// Its identifier is the instance's deployment ID.
+/// it; the Hub issues each token for the instance's latest pusher and its repository, and
+/// a runner's for its linked repository as its tracked branch's latest pusher. Its
+/// identifier is the instance's deployment ID.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstanceClient {
     pub deployment: DeploymentId,
@@ -133,6 +135,73 @@ pub struct InstanceClient {
     pub pusher: Option<PrincipalId>,
     /// The Lore repository ID whose branch the instance serves.
     pub repository: String,
+    /// For a runner, the linked repository and its tracked branch's latest pusher.
+    pub linked: Option<LinkedClient>,
+}
+
+/// A runner's linked repository, as its client issues tokens for it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LinkedClient {
+    /// The linked repository's Lore ID.
+    pub repository: String,
+    /// The tracked branch's latest pusher; none before the Hub applied a revision of it.
+    pub pusher: Option<PrincipalId>,
+}
+
+/// A link at the top level of a branch's revision, which one runner serves: its name, the
+/// Lore repository it names and the branch of that repository it tracks.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Link {
+    pub name: LinkName,
+    /// The linked repository's Lore ID.
+    pub repository: String,
+    pub tracked: TrackedBranch,
+}
+
+/// The branch of a linked repository that a link tracks: the parent branch's ID for a
+/// link that follows the parent's branch, else the branch of its pinned revision. People
+/// push to it to change what the runner serves.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackedBranch {
+    /// The branch's Lore ID, 32 lowercase hexadecimal digits.
+    pub id: String,
+    /// Its name, as the Hub last read it.
+    pub name: String,
+}
+
+/// What the tracked branch's head holds in `openshell/`, read as its pusher: the network
+/// rules its `policy.yaml` adds and the providers its `providers.yaml` requests.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct LinkedPrepared {
+    pub policy: Option<String>,
+    pub providers: Option<String>,
+}
+
+/// What a runner serves beside its branch's push: its link, the head of the tracked branch
+/// with its pusher and what it holds, and every link at the top level of the branch's
+/// revision, which the runner's checkout of the branch leaves out.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunnerPush {
+    pub link: Link,
+    pub linked: Push,
+    pub prepared: LinkedPrepared,
+    pub links: Vec<LinkName>,
+}
+
+/// A runner as the Hub records it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Runner {
+    /// The parent repository's Lore ID.
+    pub repository: String,
+    pub branch: BranchName,
+    pub link: Link,
+    /// The parent branch's revision the Hub last applied, and its pusher.
+    pub revision: Option<Revision>,
+    pub pusher: Option<PrincipalId>,
+    /// The tracked branch's revision the Hub last applied, and its pusher.
+    pub linked_revision: Option<Revision>,
+    pub linked_pusher: Option<PrincipalId>,
 }
 
 /// The instance whose client is `client` with this secret, or none when no instance's
@@ -162,8 +231,37 @@ struct Source {
     /// The size and driver configuration of the installation's factory template.
     shape: sandbox::Shape,
     /// The installation's providers the revision requested that are granted to its
-    /// repository, sorted.
+    /// repository, sorted; for a runner, those its linked repository's tracked branch
+    /// requested that are granted to the linked repository.
     providers: Vec<String>,
+    /// For a runner, what its start command checks out beside the branch.
+    runner: Option<RunnerSource>,
+}
+
+/// What a runner's start command checks out beside its branch.
+struct RunnerSource {
+    /// The linked repository's Lore URL.
+    linked: url::Url,
+    /// The tracked branch's ID.
+    tracked: String,
+    /// Every link at the top level of the branch's revision.
+    links: Vec<LinkName>,
+}
+
+impl Source {
+    /// The sandbox's fixed start command for `branch`.
+    fn command(&self, branch: &BranchName) -> Vec<String> {
+        match &self.runner {
+            None => sandbox::start_command(&self.remote, branch),
+            Some(runner) => sandbox::runner_start_command(
+                &self.remote,
+                branch,
+                &runner.linked,
+                &runner.tracked,
+                &runner.links,
+            ),
+        }
+    }
 }
 
 /// The factory sandboxes of one installation, in its factory workspace.
@@ -269,15 +367,69 @@ impl Factory {
         push: Push,
         prepared: Prepared,
     ) -> Result<()> {
+        self.apply_to(repository, branch, push, prepared, None)
+            .await
+    }
+
+    /// [`Self::apply`] to the runner of one link of `branch`: the image and run of the
+    /// branch's `openshell/`, with the network rules of the parent's and then the linked
+    /// repository's `policy.yaml`, the providers the tracked branch's `providers.yaml`
+    /// requests that are granted to the linked repository, and a database of its own. Its
+    /// start command checks the branch out without its links and the linked repository at
+    /// the tracked branch. Records the tracked branch's name, its revision and its pusher,
+    /// whose token the runner's client issues for the linked repository.
+    pub async fn apply_runner(
+        &self,
+        repository: &str,
+        branch: &BranchName,
+        push: Push,
+        prepared: Prepared,
+        runner: RunnerPush,
+    ) -> Result<()> {
+        self.apply_to(repository, branch, push, prepared, Some(runner))
+            .await
+    }
+
+    async fn apply_to(
+        &self,
+        repository: &str,
+        branch: &BranchName,
+        push: Push,
+        prepared: Prepared,
+        runner: Option<RunnerPush>,
+    ) -> Result<()> {
         repository_id(repository)?;
-        let (deployment, database) = match record::instance(&self.store, repository, branch).await?
-        {
+        let found = match &runner {
+            None => record::instance(&self.store, repository, branch).await?,
+            Some(runner) => {
+                repository_id(&runner.link.repository)?;
+                repository_id(&runner.link.tracked.id)?;
+                record::runner(&self.store, repository, branch, &runner.link.name).await?
+            }
+        };
+        let (deployment, database) = match found {
             Some(instance) => instance,
             None => {
-                let database = self.database(branch)?;
-                let instance =
-                    registration::create_instance(&self.store, repository, &database, branch)
-                        .await?;
+                let database = match &runner {
+                    None => self.database(branch)?,
+                    Some(runner) => runner_database(branch, &runner.link.name)?,
+                };
+                let instance = match &runner {
+                    None => {
+                        registration::create_instance(&self.store, repository, &database, branch)
+                            .await?
+                    }
+                    Some(runner) => {
+                        registration::create_runner(
+                            &self.store,
+                            repository,
+                            &database,
+                            branch,
+                            &runner.link,
+                        )
+                        .await?
+                    }
+                };
                 (instance.deployment, database)
             }
         };
@@ -303,37 +455,76 @@ impl Factory {
             .await?;
         let policy = self
             .recorded(deployment, Stage::Create, async {
-                sandbox::policy(&self.policy, prepared.policy.as_deref())
+                sandbox::policies(
+                    &self.policy,
+                    &[
+                        ("repository", prepared.policy.as_deref()),
+                        (
+                            "linked repository",
+                            runner
+                                .as_ref()
+                                .and_then(|runner| runner.prepared.policy.as_deref()),
+                        ),
+                    ],
+                )
             })
             .await?;
         let shape = self
             .recorded(deployment, Stage::Create, self.shape())
             .await?;
+        // A runner's providers are its linked repository's; the branch's own requests
+        // apply to no runner.
+        let (providers_file, granted_to) = match &runner {
+            None => (prepared.providers.as_deref(), repository),
+            Some(runner) => (
+                runner.prepared.providers.as_deref(),
+                runner.link.repository.as_str(),
+            ),
+        };
         let requested = self
             .recorded(deployment, Stage::Create, async {
-                sandbox::requested_providers(prepared.providers.as_deref())
+                sandbox::requested_providers(providers_file)
             })
             .await?;
-        let (providers, ungranted) = self.config.granted_providers(repository, &requested);
+        let (providers, ungranted) = self.config.granted_providers(granted_to, &requested);
         if !ungranted.is_empty() {
             tracing::warn!(%deployment, ?ungranted, "the revision requests providers its repository is not granted");
         }
         record::ungranted(&self.store, deployment, &ungranted).await?;
         let mut remote = self.config.lore_server.clone();
         remote.set_path(&format!("/{repository}"));
+        let runner_source = runner.as_ref().map(|runner| {
+            let mut linked = self.config.lore_server.clone();
+            linked.set_path(&format!("/{}", runner.link.repository));
+            RunnerSource {
+                linked,
+                tracked: runner.link.tracked.id.clone(),
+                links: runner.links.clone(),
+            }
+        });
         let source = Source {
             remote,
             image,
             policy,
             shape,
             providers,
+            runner: runner_source,
         };
         let branch = record::push(&self.store, deployment, &push.pusher).await?;
+        if let Some(runner) = &runner {
+            record::linked(
+                &self.store,
+                deployment,
+                &runner.link.tracked.name,
+                &runner.linked.pusher,
+            )
+            .await?;
+        }
         let current = self
             .recorded(deployment, Stage::Create, self.sandbox(&name))
             .await?;
         match current {
-            Some(sandbox) if sandbox::runs(&name, &sandbox, &source) => {
+            Some(sandbox) if sandbox::runs(&name, &sandbox, &source, &branch) => {
                 self.recorded(deployment, Stage::Restart, self.restart(&name, &sandbox))
                     .await?;
             }
@@ -354,6 +545,9 @@ impl Factory {
                 .await?;
             }
         }
+        if let Some(runner) = &runner {
+            record::linked_applied(&self.store, deployment, &runner.linked.revision).await?;
+        }
         record::applied(&self.store, deployment, &push.revision).await
     }
 
@@ -366,6 +560,34 @@ impl Factory {
             Some((deployment, _)) => self.delete(deployment).await,
             None => Ok(()),
         }
+    }
+
+    /// Stop serving the link `link` of `branch` of `repository`: delete its runner, as
+    /// [`Self::remove`] deletes an instance. Nothing happens without a runner.
+    pub async fn remove_runner(
+        &self,
+        repository: &str,
+        branch: &BranchName,
+        link: &LinkName,
+    ) -> Result<()> {
+        repository_id(repository)?;
+        match record::runner(&self.store, repository, branch, link).await? {
+            Some((deployment, _)) => self.delete(deployment).await,
+            None => Ok(()),
+        }
+    }
+
+    /// The runners of `branch` of `repository`, by link name.
+    pub async fn runners(&self, repository: &str, branch: &BranchName) -> Result<Vec<Runner>> {
+        repository_id(repository)?;
+        record::runners(&self.store, repository, branch).await
+    }
+
+    /// The runners whose links name the Lore repository `linked`, of every repository and
+    /// branch.
+    pub async fn tracking(&self, linked: &str) -> Result<Vec<Runner>> {
+        repository_id(linked)?;
+        record::tracking(&self.store, linked).await
     }
 
     /// The status of the instance of `branch` of `repository`, or none without one.
@@ -381,6 +603,31 @@ impl Factory {
         let Some((deployment, _)) = record::instance(&self.store, repository, branch).await? else {
             return Ok(None);
         };
+        self.settled(deployment, wait).await
+    }
+
+    /// [`Self::status`] of the runner of `link` of `branch` of `repository`.
+    pub async fn runner_status(
+        &self,
+        repository: &str,
+        branch: &BranchName,
+        link: &LinkName,
+        wait: Duration,
+    ) -> Result<Option<InstanceStatus>> {
+        repository_id(repository)?;
+        let Some((deployment, _)) = record::runner(&self.store, repository, branch, link).await?
+        else {
+            return Ok(None);
+        };
+        self.settled(deployment, wait).await
+    }
+
+    /// The instance's status once it settles, or at the end of `wait`.
+    async fn settled(
+        &self,
+        deployment: DeploymentId,
+        wait: Duration,
+    ) -> Result<Option<InstanceStatus>> {
         let deadline = Instant::now() + wait.min(MAX_WAIT);
         loop {
             let Some(status) = self.instance_status(deployment).await? else {
@@ -439,6 +686,7 @@ impl Factory {
             failed,
             warning: record.warning,
             ungranted_providers: record.ungranted_providers,
+            runner: record.runner,
         }))
     }
 
@@ -728,6 +976,15 @@ impl Factory {
         }
         result
     }
+}
+
+/// The database of a runner's data environment: that of a branch named by the branch's
+/// name and the link's joined by a hyphen, on the base branch too, so runners of one
+/// program never share a schema.
+fn runner_database(branch: &BranchName, link: &LinkName) -> Result<DatabaseName> {
+    let joined = BranchName::parse(format!("{branch}-{link}"))
+        .context("the branch and link names do not name a data environment")?;
+    Ok(DatabaseName::of_branch(&joined))
 }
 
 /// Delete the sandbox and wait until it is gone, for at most [`TRANSITION_TIMEOUT`];

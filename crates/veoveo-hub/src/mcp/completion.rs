@@ -14,16 +14,45 @@ use crate::mcp_support::{
 use super::HubMcp;
 
 impl HubMcp {
+    /// Complete on the server, or the runner, the reference names. A runner completes
+    /// its own resource template, named without its link.
     pub(super) async fn handle_complete(
+        &self,
+        mut request: CompleteRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<CompleteResult, RequestError> {
+        let subject = self.authenticated(&context)?;
+        let routed = match &mut request.r#ref {
+            Reference::Resource(reference) => {
+                let routed = self
+                    .resource_server(&subject, HubAction::CompletionComplete, &reference.uri)
+                    .await?;
+                reference.uri = crate::mcp_support::unlinked_uri(&routed, &reference.uri)
+                    .ok_or_else(|| {
+                        mcp_invalid_params(format!(
+                            "resource template is not exposed: {}",
+                            reference.uri
+                        ))
+                    })?
+                    .into_owned();
+                routed
+            }
+            Reference::Prompt(reference) => self.server_for_prompt(&subject, &reference.name)?,
+            _ => return Err(mcp_invalid_params("unsupported completion reference kind").into()),
+        };
+        Box::pin(
+            self.at(&routed)
+                .complete_routed(request, context, routed.slug),
+        )
+        .await
+    }
+
+    async fn complete_routed(
         &self,
         request: CompleteRequestParams,
         context: RequestContext<RoleServer>,
+        server: veoveo_hub_sdk::ServerSlug,
     ) -> Result<CompleteResult, RequestError> {
-        let server = match &request.r#ref {
-            Reference::Resource(reference) => self.server_for_resource(&reference.uri)?,
-            Reference::Prompt(reference) => self.server_for_prompt(&reference.name)?,
-            _ => return Err(mcp_invalid_params("unsupported completion reference kind").into()),
-        };
         let catalog = self.catalog.current();
         let (_profile, manifest) = catalog
             .profile_server(&self.profile_id, &server)

@@ -31,18 +31,60 @@ pub(super) struct File {
     pub executable: bool,
 }
 
-/// The tree under `openshell/` at the revision, which Lore proves by its signature.
+/// The tree under `openshell/` at the revision, which Lore proves by its signature; none
+/// when the revision has no `openshell/` directory.
 pub(super) async fn tree(
+    client: ThinClientServiceClient<Channel>,
+    request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
+    revision: &Revision,
+) -> Result<Vec<TreeNode>> {
+    walk(client, request, revision, Some(ROOT), None).await
+}
+
+/// The entries at the top level of the revision, links included, which Lore lists without
+/// entering them.
+pub(super) async fn top_level(
+    client: ThinClientServiceClient<Channel>,
+    request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
+    revision: &Revision,
+) -> Result<Vec<TreeNode>> {
+    walk(client, request, revision, None, Some(1)).await
+}
+
+/// Everything at or under the top-level `directory` of the revision. A link under it is
+/// listed and, when its person may read the linked repository, entered.
+pub(super) async fn under(
+    client: ThinClientServiceClient<Channel>,
+    request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
+    revision: &Revision,
+    directory: &str,
+) -> Result<Vec<TreeNode>> {
+    walk(client, request, revision, Some(directory), None).await
+}
+
+/// Whether Lore's answer to a walk under a prefix says the revision holds no directory
+/// there: `NotFound` for a missing node, `InvalidArgument` for a path that is no
+/// directory.
+fn absent(status: &tonic::Status) -> bool {
+    matches!(
+        status.code(),
+        tonic::Code::NotFound | tonic::Code::InvalidArgument
+    )
+}
+
+async fn walk(
     mut client: ThinClientServiceClient<Channel>,
     request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
     revision: &Revision,
+    prefix: Option<&str>,
+    max_depth: Option<u32>,
 ) -> Result<Vec<TreeNode>> {
     let message = RevisionTreeRequest {
         query: Some(revision_tree_request::Query::Signature(
             hex::decode(revision.as_str())?.into(),
         )),
-        path_prefix: Some(ROOT.into()),
-        max_depth: None,
+        path_prefix: prefix.map(str::to_owned),
+        max_depth,
     };
     tokio::time::timeout(COMMAND_TIMEOUT, async {
         let mut stream = client
@@ -52,11 +94,21 @@ pub(super) async fn tree(
             .into_inner();
         let mut signed = false;
         let mut nodes = Vec::new();
-        while let Some(response) = stream
-            .message()
-            .await
-            .map_err(|status| super::native::failed("read the revision's tree", &status))?
-        {
+        loop {
+            let response = match stream.message().await {
+                Ok(Some(response)) => response,
+                Ok(None) => break,
+                // Lore names the revision, then reports the prefix missing, or no directory:
+                // the revision has nothing there.
+                Err(status)
+                    if signed && prefix.is_some() && nodes.is_empty() && absent(&status) =>
+                {
+                    return Ok(Vec::new());
+                }
+                Err(status) => {
+                    return Err(super::native::failed("read the revision's tree", &status));
+                }
+            };
             match response.payload {
                 Some(revision_tree_response::Payload::Header(header)) => {
                     ensure!(
@@ -74,6 +126,70 @@ pub(super) async fn tree(
     })
     .await
     .context("Lore did not answer with the revision's tree in time")?
+}
+
+/// The links of a revision whose own tree `nodes` lists: its top level and everything under
+/// its top-level directories. Each link names its linked repository in its address's
+/// context and the revision it pins in its address's hash, and says whether it follows the
+/// parent's branch. A factory sandbox's checkout leaves out exactly the links at the top
+/// level whose names are lowercase DNS labels, so any other link would end its clone: a
+/// revision that holds one is refused.
+pub(super) fn links(nodes: &[TreeNode]) -> Result<Vec<super::LinkNode>> {
+    let mut links = Vec::new();
+    for node in nodes {
+        if node.node_type != NodeType::Link as i32 {
+            continue;
+        }
+        anyhow::ensure!(
+            !node.path.contains('/'),
+            "the revision holds the link {} below its top level, which a factory sandbox's \
+             checkout cannot leave out: a factory serves only links at the top level of a \
+             branch's revision, so move the link there or remove it",
+            node.path
+        );
+        let name = veoveo_hub_sdk::hub::LinkName::parse(&node.path).map_err(|_| {
+            anyhow::anyhow!(
+                "the revision's link {} is not named by a lowercase DNS label, which a \
+                 factory serves a link by: rename the link",
+                node.path
+            )
+        })?;
+        let address = node
+            .address
+            .as_ref()
+            .with_context(|| format!("the link {name} has no address"))?;
+        links.push(super::LinkNode {
+            name,
+            repository: crate::contributions::lore::RepositoryId::parse(hex::encode(
+                &address.context,
+            ))
+            .with_context(|| format!("the link {} names no repository", node.path))?,
+            pinned: Revision::parse(hex::encode(&address.hash))
+                .with_context(|| format!("the link {} pins no revision", node.path))?,
+            follows: node.tracking,
+        });
+    }
+    links.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(links)
+}
+
+/// The files to read of a linked repository's revision: `openshell/policy.yaml` and
+/// `openshell/providers.yaml`, when present.
+pub(super) fn linked_plan(nodes: &[TreeNode]) -> Vec<File> {
+    let file = |node: &TreeNode| node.node_type == NodeType::File as i32;
+    nodes
+        .iter()
+        .filter(|node| {
+            file(node)
+                && (node.path == format!("{ROOT}/policy.yaml")
+                    || node.path == format!("{ROOT}/providers.yaml"))
+        })
+        .map(|node| File {
+            path: node.path.clone(),
+            size: node.size,
+            executable: false,
+        })
+        .collect()
 }
 
 /// The files to read for a revision whose `openshell/run` is an executable file: `run`,
@@ -164,6 +280,15 @@ pub(super) async fn write(
         std::fs::set_permissions(&output, std::os::unix::fs::PermissionsExt::from_mode(mode))?;
     }
     Ok(())
+}
+
+/// What a linked repository's revision written under `directory` adds to a runner.
+pub(super) fn linked(directory: &Path) -> Result<veoveo_hub::factory::LinkedPrepared> {
+    let prepared = prepared(directory)?;
+    Ok(veoveo_hub::factory::LinkedPrepared {
+        policy: prepared.policy,
+        providers: prepared.providers,
+    })
 }
 
 /// What a revision written under `directory` applies.
@@ -363,6 +488,224 @@ mod tests {
         assert_eq!(
             super::prepared(directory.path()).unwrap().policy.as_deref(),
             Some("version: 1\n")
+        );
+    }
+
+    #[test]
+    fn a_revision_serves_its_top_level_links_and_refuses_one_its_checkout_keeps() {
+        let linked = |path: &str, tracking: bool| TreeNode {
+            path: path.into(),
+            node_type: NodeType::Link as i32,
+            address: Some(lore_proto::lore::model::v1::Address {
+                hash: vec![0xab; 32].into(),
+                context: vec![0x0c; 16].into(),
+            }),
+            tracking,
+            ..Default::default()
+        };
+        let directory = node("assets", NodeType::Directory, FileMode::None, 0);
+        let found = links(&[
+            linked("team-b", false),
+            directory.clone(),
+            linked("team-a", true),
+        ])
+        .unwrap();
+        let names = found
+            .iter()
+            .map(|link| (link.name.as_str(), link.follows))
+            .collect::<Vec<_>>();
+        assert_eq!(names, [("team-a", true), ("team-b", false)]);
+        assert_eq!(found[0].repository.as_str(), "0c".repeat(16));
+        assert_eq!(found[0].pinned.as_str(), "ab".repeat(32));
+
+        let deep = links(&[directory, linked("assets/lib", true)]).unwrap_err();
+        assert!(
+            deep.to_string()
+                .contains("the revision holds the link assets/lib below its top level"),
+            "{deep:#}"
+        );
+        let named = links(&[linked("Team_A", true)]).unwrap_err();
+        assert!(
+            named
+                .to_string()
+                .contains("the revision's link Team_A is not named by a lowercase DNS label"),
+            "{named:#}"
+        );
+    }
+
+    /// A thin-client server that names the revision, then answers each walk of the
+    /// prefix `missing`, or of the whole tree, with `status`, and every other walk with
+    /// one node.
+    struct Answers {
+        status: Option<tonic::Status>,
+        before_header: bool,
+    }
+
+    #[tonic::async_trait]
+    impl lore_proto::lore::thin_client::v1::thin_client_service_server::ThinClientService for Answers {
+        type ContentDiffStream = futures::stream::Empty<
+            std::result::Result<
+                lore_proto::lore::thin_client::v1::ContentDiffResponse,
+                tonic::Status,
+            >,
+        >;
+        type RevisionDiffStream = futures::stream::Empty<
+            std::result::Result<
+                lore_proto::lore::thin_client::v1::RevisionDiffResponse,
+                tonic::Status,
+            >,
+        >;
+        type RevisionTreeStream = futures::stream::Iter<
+            std::vec::IntoIter<
+                std::result::Result<revision_tree_response_type::Response, tonic::Status>,
+            >,
+        >;
+
+        async fn content_diff(
+            &self,
+            _: tonic::Request<lore_proto::lore::thin_client::v1::ContentDiffRequest>,
+        ) -> std::result::Result<tonic::Response<Self::ContentDiffStream>, tonic::Status> {
+            Err(tonic::Status::unimplemented("content diff"))
+        }
+
+        async fn revision_info(
+            &self,
+            _: tonic::Request<lore_proto::lore::thin_client::v1::RevisionInfoRequest>,
+        ) -> std::result::Result<
+            tonic::Response<lore_proto::lore::thin_client::v1::RevisionInfoResponse>,
+            tonic::Status,
+        > {
+            Err(tonic::Status::unimplemented("revision info"))
+        }
+
+        async fn revision_diff(
+            &self,
+            _: tonic::Request<lore_proto::lore::thin_client::v1::RevisionDiffRequest>,
+        ) -> std::result::Result<tonic::Response<Self::RevisionDiffStream>, tonic::Status> {
+            Err(tonic::Status::unimplemented("revision diff"))
+        }
+
+        async fn revision_tree(
+            &self,
+            request: tonic::Request<RevisionTreeRequest>,
+        ) -> std::result::Result<tonic::Response<Self::RevisionTreeStream>, tonic::Status> {
+            let request = request.into_inner();
+            let Some(revision_tree_request::Query::Signature(signature)) = request.query else {
+                return Err(tonic::Status::invalid_argument("a signature"));
+            };
+            let missing = matches!(request.path_prefix.as_deref(), None | Some("missing"));
+            if missing
+                && self.before_header
+                && let Some(status) = &self.status
+            {
+                return Err(status.clone());
+            }
+            let header = Ok(revision_tree_response_type::Response {
+                payload: Some(revision_tree_response::Payload::Header(
+                    lore_proto::lore::thin_client::v1::RevisionTreeHeader {
+                        identifier: None,
+                        signature,
+                    },
+                )),
+            });
+            let rest = match (&self.status, missing) {
+                (Some(status), true) => Err(status.clone()),
+                _ => Ok(revision_tree_response_type::Response {
+                    payload: Some(revision_tree_response::Payload::Node(node(
+                        "openshell/run",
+                        NodeType::File,
+                        FileMode::Executable,
+                        3,
+                    ))),
+                }),
+            };
+            Ok(tonic::Response::new(futures::stream::iter(vec![
+                header, rest,
+            ])))
+        }
+    }
+
+    mod revision_tree_response_type {
+        pub(super) type Response = lore_proto::lore::thin_client::v1::RevisionTreeResponse;
+    }
+
+    async fn walk_answered(
+        status: Option<tonic::Status>,
+        before_header: bool,
+        prefix: Option<&str>,
+    ) -> Result<Vec<TreeNode>> {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        tokio::spawn(
+            tonic::transport::Server::builder()
+                .add_service(
+                    lore_proto::lore::thin_client::v1::thin_client_service_server::ThinClientServiceServer::new(
+                        Answers { status, before_header },
+                    ),
+                )
+                .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(listener)),
+        );
+        let channel = tonic::transport::Endpoint::from_shared(format!("http://{address}"))
+            .unwrap()
+            .connect()
+            .await
+            .unwrap();
+        walk(
+            ThinClientServiceClient::new(channel),
+            |message| Ok(Request::new(message)),
+            &Revision::parse("ab".repeat(32)).unwrap(),
+            prefix,
+            None,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn a_revision_without_the_prefix_has_nothing_under_it() {
+        // Lore names the revision, then finds no node at the prefix, or no directory.
+        for status in [
+            tonic::Status::not_found("A node in the tree could not be found"),
+            tonic::Status::invalid_argument(
+                "Cannot calculate tree for path that is not a directory",
+            ),
+        ] {
+            assert_eq!(
+                walk_answered(Some(status), false, Some("missing"))
+                    .await
+                    .unwrap(),
+                []
+            );
+        }
+        // A revision Lore cannot find at all, before it names one, still fails, and so
+        // does any other refusal.
+        for (status, before_header) in [
+            (tonic::Status::not_found("no such revision"), true),
+            (tonic::Status::permission_denied("no grant"), false),
+        ] {
+            let error = walk_answered(Some(status), before_header, Some("missing"))
+                .await
+                .unwrap_err();
+            assert!(
+                error
+                    .to_string()
+                    .contains("Lore refused to read the revision's tree"),
+                "{error:#}"
+            );
+        }
+        // A walk of the whole tree is never taken for an empty one, and a present prefix
+        // lists what it holds.
+        let missing = || {
+            Some(tonic::Status::not_found(
+                "A node in the tree could not be found",
+            ))
+        };
+        assert!(walk_answered(missing(), false, None).await.is_err());
+        assert_eq!(
+            walk_answered(missing(), false, Some("openshell"))
+                .await
+                .unwrap()
+                .len(),
+            1
         );
     }
 

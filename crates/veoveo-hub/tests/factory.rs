@@ -491,6 +491,7 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
                 deployment,
                 pusher: Some(PrincipalId::parse("alice").unwrap()),
                 repository: REPOSITORY.into(),
+                linked: None,
             })
         );
         for (client, secret) in [
@@ -2224,7 +2225,7 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
         assert_eq!(
             claims(issued["access_token"].as_str().unwrap())["resources"],
-            json!([{"resource_id": format!("urc-{id}"), "permission": ["owner"]}])
+            json!([{"resource_id": format!("urc-{id}"), "permission": ["write", "owner"]}])
         );
         let owners = |plane: &serde_json::Value, id: &str| {
             plane["lore"]["assignments"]
@@ -2241,7 +2242,10 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
                 .collect::<Vec<_>>()
         };
         let plane = hub.control_plane().await;
-        assert_eq!(owners(&plane, &id), [(member.clone(), json!(["owner"]))]);
+        assert_eq!(
+            owners(&plane, &id),
+            [(member.clone(), json!(["write", "owner"]))]
+        );
 
         // Another person cannot claim it through its ID, and owns nothing of it.
         let (status, refused) =
@@ -2253,7 +2257,7 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         );
         assert_eq!(
             owners(&hub.control_plane().await, &id),
-            [(member.clone(), json!(["owner"]))]
+            [(member.clone(), json!(["write", "owner"]))]
         );
 
         // Its creator calling again changes nothing.
@@ -2287,7 +2291,7 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         assert_eq!(status, reqwest::StatusCode::CREATED, "{registered}");
         assert_eq!(
             owners(&hub.control_plane().await, unregistered),
-            [(member.clone(), json!(["owner"]))]
+            [(member.clone(), json!(["write", "owner"]))]
         );
 
         // Lore refuses a name another repository holds.
@@ -2326,7 +2330,7 @@ async fn an_instance_gets_only_the_requested_providers_granted_to_its_repository
         let request = "providers: [vv-factory-model, vv-factory-mail, vv-factory-search]\n";
         factory
             .apply(
-                &REPOSITORY,
+                REPOSITORY,
                 &branch_name(BASE),
                 push('1', "alice"),
                 requesting(Some(request)),
@@ -2362,7 +2366,7 @@ async fn an_instance_gets_only_the_requested_providers_granted_to_its_repository
         // as a changed policy does, and clears the status.
         factory
             .apply(
-                &REPOSITORY,
+                REPOSITORY,
                 &branch_name(BASE),
                 push('2', "alice"),
                 requesting(Some(request)),
@@ -2379,7 +2383,7 @@ async fn an_instance_gets_only_the_requested_providers_granted_to_its_repository
         ready().await;
         factory
             .apply(
-                &REPOSITORY,
+                REPOSITORY,
                 &branch_name(BASE),
                 push('3', "alice"),
                 requesting(None),
@@ -2409,7 +2413,7 @@ async fn an_instance_gets_only_the_requested_providers_granted_to_its_repository
         // A request that is not the file's form fails the push and leaves the sandbox.
         let failed = factory
             .apply(
-                &REPOSITORY,
+                REPOSITORY,
                 &branch_name(BASE),
                 push('4', "alice"),
                 requesting(Some("providers: [Not-A-Label]\n")),
