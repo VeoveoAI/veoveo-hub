@@ -93,6 +93,8 @@ routes to the instance of the selected branch, or else of the configured
 missing, when several instances serve that branch, or when no base branch is
 configured, the component is `unavailable`, never another branch or the server's
 other deployment, and a tool call to that server answers with the cause.
+A server whose selected branch is [linked](#linked-repositories) routes to the
+runners of that branch instead, one per link, as the catalog lists them.
 `PUT /selection/{profile}/{server}` with `{"branch": "…"}` and `DELETE` of the same
 path change the caller's own selection and nothing else, so authentication is their
 only check; a delegated caller changes the selection of the principal it carries.
@@ -542,6 +544,52 @@ workspace, at the port of the endpoint it registered, instead of to a control-pl
 binding of its endpoint. When the registrations no longer name an instance's
 deployment, every replica closes its forwarding listener and forgets its clients.
 
+### Linked Repositories
+
+A server repository may compose other repositories with Lore's links. A link at the top
+level of a branch's revision, whose name is a lowercase DNS label, makes that branch
+linked: the Hub runs one runner for each such link instead of the branch's instance.
+A link deeper in the tree is part of the program's content and changes nothing. The
+parent repository decides which repositories are composed and the program that serves
+them; each linked repository decides its own content and, through its own grants, who
+reaches it. A person never needs a grant on the parent to reach a runner, and a grant on
+the parent reaches no linked repository, as Lore itself refuses a link its person may
+not read.
+
+A runner is an instance keyed by the parent repository, the branch and the link name.
+Its sandbox is built as an instance's is, from the parent's revision: the image, `run`
+and policy of the parent's `openshell/`, read as the parent branch's latest pusher.
+Added to the parent's are the network rules of the linked repository's
+`openshell/policy.yaml`, under the same limits as a branch's, and the providers that the
+linked repository's `openshell/providers.yaml` requests and `factory.providers` grants
+to the linked repository; the parent's own provider requests apply to no runner. The
+start command also clones the linked repository into `/sandbox/link` and runs
+`lore sync --reset <tracked>@LATEST` there before `exec ./openshell/run`, where
+`<tracked>` is the branch of the linked repository that the link tracks, as Lore
+records it in the link. A runner therefore serves the head of that branch, not the
+revision the parent pins: a linked repository releases by pushing to its tracked branch,
+and the parent changes only to add, retarget or remove a link. The runner's Lore
+provider issues the token of the tracked branch's latest pusher, for the linked
+repository, as an instance's issues its pusher's for its own repository; its checkout
+of the parent is read through the same Lore provider's token for the parent, issued for
+the parent branch's latest pusher.
+
+The Hub follows both repositories. A push to the parent's branch reads its links again:
+it creates the runner of a new link, removes the runner of a link that is gone, and
+applies the new program to every runner of the branch. A push to a linked repository's
+tracked branch applies to each runner whose link tracks it, as that push's pusher, and
+restarts only those runners. A linked repository needs its own watch by someone with a
+grant on it; a runner whose linked repository nobody watches says so in its status, and
+serves the tracked branch as it last read it.
+
+Each runner has its own data environment, a database named by the branch and the link,
+`DatabaseName::of_branch` of the branch name and the link name joined by a hyphen, on
+the base branch too, so runners of one program never share a schema. A runner registers
+as an instance of the parent's slug with its link: several instances of one slug
+coexist when they are the runners of one parent repository, and an instance of another
+repository is still refused that slug. A runner's status names its link, its linked
+repository and tracked branch, and the revision of each that it applied.
+
 ## Routing And Catalog
 
 The catalog combines the installation configuration with the registration snapshot.
@@ -549,7 +597,18 @@ A server's MCP surfaces follow its authorization declaration: tools when it decl
 tool requirements, resources and completions when it declares resources or templates,
 prompts when it declares prompts. A server's URI scheme equals its slug, so resource
 URIs pass through unchanged and the Hub routes them by scheme or `ui://{slug}/`.
-Tools are listed as `{slug}__{tool}`.
+Tools are listed as `{slug}__{tool}`. A slug holds no two consecutive underscores, so a
+name splits at its first `__`.
+
+A server served by [runners](#linked-repositories) is listed once for each link of the
+caller's selected branch whose linked repository the caller holds a
+[grant](#groups-and-sharing) on, from that link's runner: its tools as
+`{slug}__{link}__{tool}`, and its resources and templates as `{slug}://{link}/{rest}`,
+which reach the runner as `{slug}://{rest}`, so the program never knows its link's name.
+Its `ui://{slug}/` resources are one set for the server, served by any of those runners.
+A name or URI that names a link the caller holds no grant on, or no link of the selected
+branch, is refused as a target the server did not declare. Tasks keep the runner that
+created them, as they keep an instance.
 
 Discovery caches the admitted descriptors per catalog generation, caller authority and
 OAuth client. A registered server's tools, resources, templates and prompts change
@@ -586,7 +645,12 @@ provider's, and their Lore groups by ID ([groups and sharing](#groups-and-sharin
 `mcp/upstream_authorized_http.rs` issues a fresh RFC 9068 token for each upstream
 HTTP request. Its `aud` is the server's registered MCP endpoint, `client_id` the
 caller's OAuth client, `act` the Hub's issuer, and `authorization_details` the
-permissions granted in the server's namespace. Ordinary tokens live at most 60
+permissions granted in the server's namespace. A token for a
+[runner](#linked-repositories) adds a second RFC 9396 detail, of type
+`https://veoveo.ai/oauth/repository`, whose `identifier` is the linked repository's ID
+and whose `actions` are the caller's Lore actions on it, the same set a Lore token for
+that repository would carry, so the server decides by the grant Lore decides by; the
+SDK's verifier reads it. Ordinary tokens live at most 60
 seconds and a `subscriptions/listen` token at most 15 minutes, never longer than the
 caller's own token. The server verifies them with the keys its registration response
 names in `veoveo_access_tokens`.
@@ -936,8 +1000,11 @@ A frame nested in the App's frame inherits that frame's `sandbox="allow-scripts"
 its opaque origin, so the origin's session cookie is not sent and the application has
 no storage: measured in Chrome, such a nested frame got the Hub's 401 where a plain
 same-site frame of the origin reached the application. The host page carries the App's
-server's app origin when the server declares one, and its `ui/open-link` navigates the
-page to a URL of exactly that origin and refuses every other target.
+server's app origin when the server declares one, and the path of the person's own
+Computer on the issuer's origin when they have one. Its `ui/open-link` navigates the
+page to a URL of exactly that app origin, or to a URL on the issuer's origin under that
+Computer's path, which the Computer's own sign-in then admits for its owner alone, and
+refuses every other target.
 
 `hub.app_origin_code` and `hub.app_origin_session` hold the codes and sessions; a family's
 or Computer's deletion removes them, and an expired or revoked family admits none.
@@ -1675,6 +1742,12 @@ its model through OpenShell's proxy whatever its client, so the second covers wo
 without a browser. A long job with no traffic is collected; that is the accepted cost.
 Without the setting nothing is collected. It is not part of the Computer version.
 
+An owner may keep their Computer on, so its own automations run while they are away: a
+Computer kept on (`keep_on`) is never collected, and it stays kept on across restarts and
+updates until its owner turns it off. The owner stops it themselves with
+`POST /computer/stop`, through the same lifecycle path as a collection, keeping its
+home and recording it as collected; their next entry starts it again.
+
 The proxy records, in memory, the time of each browser request it forwards to a
 Computer. OpenShell records the sandbox's traffic as `SandboxStatus.last_activity_time`
 (pin `c80bda201`): the latest 10-second activity summary from the supervisor that held
@@ -1817,7 +1890,11 @@ off. No alternate token store, provisioning controller or reconciliation daemon 
 introduced.
 
 Mounted requests admit the exact Computer owner before opening authenticated
-native ForwardTcp to its fixed loopback port. HTTP entities remain encoded streams;
+native ForwardTcp to its fixed loopback port. The installation may name further
+programs of the Computer version in `computers.apps`, each a name, a lowercase DNS
+label, and a loopback port: `/computer/c/{computer}/apps/{name}/{*path}` reaches that
+port with the same admission, headers and limits, and the program serves under that
+path. The Computer's own program keeps every other path. HTTP entities remain encoded streams;
 hop-by-hop and Connection-nominated headers, incoming credentials/cookies/forwarded
 identity, backend cookies and CORS headers do not cross this boundary. Unsafe HTTP
 and WebSocket requests require exactly the public origin; Origin is then removed
@@ -1850,6 +1927,7 @@ The Computer's routes:
 | `GET /computer` | The way in: sign-in, creation of a missing sandbox, the start page while the sandbox is created or started, then the Computer; the status page when a failure or a sandbox the Hub can no longer serve needs the owner |
 | `GET /computer/status` | The owner's status page, or the status as JSON for a bearer |
 | `POST /computer/restart`, `POST /computer/previous` | A replacement at the current version, or of the recorded version after a failure: for the owner's session, from this origin only, then `/computer`; for a bearer, `202` with the status, `409` while one runs, `503` when no Computer can start |
+| `POST /computer/keep-on`, `POST /computer/stop` | The owner keeps their Computer on, with `{"keepOn": true}` or `false`, or stops it now, keeping its home: for the owner's session, from this origin only, then `/computer`; for a bearer, `204`, and `409` while an operation runs |
 | `GET /computer/version` | Public: the current version and its release note's first line only, for a server that names it in a tool description |
 | `GET /computer/callback` | The sign-in's code exchange and custody, then `/computer`, or the App whose sign-in it was ([Apps host](#apps-host)) |
 
