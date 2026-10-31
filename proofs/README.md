@@ -102,6 +102,14 @@ all six watch/subscription regressions. SQL metadata, formatting, strict Clippy,
 dependency policy and feature checks also passed. These are component checks of
 Linux containers on each host architecture, not new Lean coverage or deployment.
 
+The [fresh cache extraction](discovery_cache/evidence/current-key-extraction-20261031.json)
+now translates the five supported synchronous operations from that exact current
+source, with the optional link and actual Core principal/server identifier derives.
+All 37 discovered own-component function bodies are transparent and error-free.
+This reduces the old identifier-model boundary, but Lean adaptation and qualification
+of the new graph are still pending; the committed generated model remains the older
+qualified graph until that work passes.
+
 Keep two independent fields for each result:
 
 - **Formal status:** `unproved`, `partial`, or `proved-within-stated-boundary`.

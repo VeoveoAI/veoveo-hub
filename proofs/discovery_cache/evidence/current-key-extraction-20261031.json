@@ -1,0 +1,548 @@
+{
+  "agents": {
+    "execution": "GPT-6 Luna",
+    "preparation": "GPT-6.1 Sol",
+    "review": "GPT-6 Astra"
+  },
+  "all_own_function_bodies": {
+    "body_present": true,
+    "count": 37,
+    "no_errors": true,
+    "transparent": true
+  },
+  "boundaries": [
+    "No Lean build, new theorem or generated-model adoption completed at this checkpoint. Prior committed Lean results remain qualified only for their recorded source graph.",
+    "No source, dependency pin, translator or backend change; all four raw generated files retained byte-for-byte.",
+    "Standard library/time/UUID/map/string correspondence and native async wrapper observations remain explicit external boundaries.",
+    "Server-wide discard_server remains unsupported; pager, key construction/fingerprinting, admission and asynchronous watches are outside this graph.",
+    "No native checks or deployment were repeated for this extraction; the independent full component qualification remains integrated-native-checks-20261031.json."
+  ],
+  "dependency_preparation": {
+    "argv": [
+      "/home/rozgo/.cargo/bin/rustup",
+      "run",
+      "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+      "cargo",
+      "fetch",
+      "--locked",
+      "--manifest-path",
+      "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction1/extraction1/source/crates/veoveo-hub/Cargo.toml"
+    ],
+    "cargo_home": "/home/rozgo/.cargo",
+    "cargo_lock_after_sha256": "ae4364822a7c5f8c9847df4b1d5681fe2a68c2b1ecc56ab13df6c7037f6f1d41",
+    "cargo_lock_before_sha256": "ae4364822a7c5f8c9847df4b1d5681fe2a68c2b1ecc56ab13df6c7037f6f1d41",
+    "cargo_lock_unchanged": true,
+    "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction1/extraction1/source",
+    "elapsed_ms": 3971,
+    "exit": 0,
+    "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction1/extraction1/logs/cargo-fetch-locked.log",
+    "log_bytes": 206,
+    "log_sha256": "17adb295015bac9552600135ffcf9f58e9ded44c6e90ec957319c6cc6659438a",
+    "offline_for_fetch": false,
+    "rustup_home": "/home/rozgo/.rustup",
+    "source_map_post": {
+      "bad": [],
+      "count": 1144,
+      "ok": true
+    },
+    "source_map_pre": {
+      "bad": [],
+      "count": 1144,
+      "ok": true
+    },
+    "sqlx_offline": true,
+    "timed_out": false,
+    "timeout_seconds": 300,
+    "toolchain": "nightly-2026-09-17-x86_64-unknown-linux-gnu"
+  },
+  "dependency_preparation_summary_sha256": "b07271449be3622722ee1e6a5c3370b17991f44970eb704f68c20efac073c5f1",
+  "evidence_class": "source extraction and translation; no Lean qualification",
+  "explicit_selectors": {
+    "includes": [
+      "veoveo_hub::mcp::discovery::_::cached",
+      "veoveo_hub::mcp::discovery::_::start",
+      "veoveo_hub::mcp::discovery::_::complete",
+      "veoveo_hub::mcp::discovery::_::remove_cached",
+      "veoveo_hub::mcp::discovery::_::discard_key",
+      "veoveo_hub::mcp::discovery::DiscoveryCacheKey",
+      "veoveo_hub::mcp::discovery::DiscoveryFetch",
+      "veoveo_hub::mcp::discovery::AdmittedCatalog",
+      "veoveo_hub::mcp::discovery::CachedItems",
+      "veoveo_hub::mcp::discovery::SurfaceState",
+      "veoveo_hub::mcp::discovery::MAX_CACHE_ENTRIES_PER_SURFACE",
+      "veoveo_hub::mcp::discovery::_::start::_::call_once",
+      "veoveo_hub::mcp::discovery::_::complete::_::call_once",
+      "{impl core::clone::Clone for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::clone",
+      "{impl core::cmp::PartialEq<_> for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::eq",
+      "{impl core::cmp::PartialOrd<_> for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::partial_cmp",
+      "{impl core::cmp::Ord for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::cmp",
+      "veoveo_hub_sdk::protocol::PRIVATE_CATALOG_TTL_MS",
+      "veoveo_hub_sdk::hub::tool_name::LinkName",
+      "{impl core::clone::Clone for veoveo_hub_sdk::hub::tool_name::LinkName}::clone",
+      "{impl core::cmp::PartialEq<_> for veoveo_hub_sdk::hub::tool_name::LinkName}::eq",
+      "{impl core::cmp::PartialOrd<_> for veoveo_hub_sdk::hub::tool_name::LinkName}::partial_cmp",
+      "{impl core::cmp::Ord for veoveo_hub_sdk::hub::tool_name::LinkName}::cmp",
+      "{impl core::cmp::Eq for veoveo_hub_sdk::hub::tool_name::LinkName}::assert_fields_are_eq",
+      "veoveo_types::identity::PrincipalId",
+      "{impl core::clone::Clone for veoveo_types::identity::PrincipalId}::clone",
+      "{impl core::cmp::PartialEq<_> for veoveo_types::identity::PrincipalId}::eq",
+      "{impl core::cmp::PartialOrd<_> for veoveo_types::identity::PrincipalId}::partial_cmp",
+      "{impl core::cmp::Ord for veoveo_types::identity::PrincipalId}::cmp",
+      "{impl core::cmp::Eq for veoveo_types::identity::PrincipalId}::assert_fields_are_eq",
+      "veoveo_types::platform_names::ServerSlug",
+      "{impl core::clone::Clone for veoveo_types::platform_names::ServerSlug}::clone",
+      "{impl core::cmp::PartialEq<_> for veoveo_types::platform_names::ServerSlug}::eq",
+      "{impl core::cmp::PartialOrd<_> for veoveo_types::platform_names::ServerSlug}::partial_cmp",
+      "{impl core::cmp::Ord for veoveo_types::platform_names::ServerSlug}::cmp",
+      "{impl core::cmp::Eq for veoveo_types::platform_names::ServerSlug}::assert_fields_are_eq"
+    ],
+    "opaque": [],
+    "scope_notes": [
+      "The five starts are the unique synchronous SurfaceState methods; no SurfaceCache async wrappers are roots.",
+      "No cache-state operation, state transition, or retain predicate is opaque.",
+      "The start/complete clock and UUID arguments are FnOnce inputs; actual Instant::now/Uuid::now_v7 sampling stays at unchanged async wrappers and is outside this extraction.",
+      "No old current_roles, policy, registration, SDK issuer, or other graph roots are included.",
+      "Type/constant includes are only the direct local state/signature dependencies; actual resolved function inventory must be recorded from LLBC, including any compiler-generated closure helpers.",
+      "Explicitly include DiscoveryCacheKey derived Clone, PartialEq, PartialOrd, and Ord method bodies needed by state cloning and ordered-map operations; Eq is a marker impl with no method body.",
+      "Optional LinkName is part of complete key equality/order/clone. Explicitly include its newtype plus four actual derive methods, never substitute opaque key comparison.",
+      "All additional actual own functions are inventoried and gated, not assumed external primitives. Standard dependencies remain explicit external interfaces.",
+      "Intentional reduced primitive assumptions: prior5root inventory had12Foreign CoreID functions (2 IDs times Clone/Eq/PartialOrd/Ord/Eq-marker/builtinDropGlue). Explicit CoreID representations/derives now replace those boundaries; strictall-own gate retained."
+    ],
+    "starts": [
+      "veoveo_hub::mcp::discovery::_::cached",
+      "veoveo_hub::mcp::discovery::_::start",
+      "veoveo_hub::mcp::discovery::_::complete",
+      "veoveo_hub::mcp::discovery::_::remove_cached",
+      "veoveo_hub::mcp::discovery::_::discard_key"
+    ]
+  },
+  "inventory_sha256": "e9468ac9aeb1c7a4bf75f3574dbceaa73d8fd7fc436507830d770e3be74f34f9",
+  "packet": {
+    "plan_path": "/tmp/hub-discovery-cache-current-20261031/attempt2/extraction-plan.json",
+    "plan_sha256": "679fb5c2431a79e9ffec727e71c434b4a668c2d7a38db8bbdacd8aef9a82b885",
+    "runner_path": "/tmp/hub-discovery-cache-current-20261031/attempt2/run-extraction.py",
+    "runner_sha256": "5934778e603e6b385be7b4a6eb98e2cc1f8914c50e64cfbed37998053e3b9771"
+  },
+  "prior_attempt": {
+    "case": "current-cache-full-key-five-operations-feasibility1",
+    "complete": false,
+    "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "hub_revision": "c23d9ae0f9a50a2a7f2d53e8840279dcfc37090e",
+    "input_sha256": {
+      "hub_archive": "6f5b7071e582ddf9c15316b6639469e9e604557c57c28e3c8938c28df824a9e6",
+      "hub_manifest": "7d655f5765e13827024f85ea21e9df4bb747a2fb448f8a26708db56c408f0b5f",
+      "plan": "b041d9668fe3ed033f54e059f71455df1c73fd27460ef27b66c6ccd3d51a373a",
+      "sdk_archive": "f60c20c32d8a80d78a3ffb3d0066d9228012e7a5c8bdae19e45cd80cdeb93877",
+      "sdk_manifest": "88f673efc8c7c7397cab96d76797583065ba8e1303b43f0960a92eb8fec09f5d"
+    },
+    "not_covered": {
+      "operation": "veoveo_hub::mcp::discovery::_::discard_server",
+      "reason": "Unchanged six-root generated FnOnce/FnMut dictionaries fail Lean elaboration when retain passes mutable values; diagnostic2 reports six type mismatches. No tool patch or opaque own transition accepted.",
+      "status": "explicitly unsupported/open; excluded only from this intermediate graph, not from the full six-operation/history goal"
+    },
+    "sdk_pin": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+    "selector_counts": {
+      "expected_generated_local_helpers": "not a gate; inventory all actual helpers",
+      "include_selectors": 23,
+      "opaques": 0,
+      "starts": 5,
+      "transparent_root_methods": 5
+    },
+    "stages": [
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "metadata",
+          "--locked",
+          "--offline",
+          "--format-version",
+          "1",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction1/extraction1/source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction1/extraction1/source",
+        "elapsed_ms": 116,
+        "exit": 101,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction1/extraction1/logs/verify-source-pin-metadata.log",
+        "log_bytes": 491,
+        "log_sha256": "7888c3f1ca7a7d884ddb76440683d60a8a25adbf33707edc6fc5b1ca8e77dce2",
+        "stage": "verify-source-pin-metadata",
+        "stdout_bytes": 0,
+        "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction1/extraction1/cargo-metadata.json",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timed_out": false,
+        "timeout_seconds": 180
+      }
+    ],
+    "stopped_at": "verify-source-pin-metadata"
+  },
+  "prior_inventory_basis": {
+    "foreign_core_id_def_ids": [
+      75,
+      77,
+      99,
+      101,
+      105,
+      106,
+      117,
+      119,
+      129,
+      130,
+      149,
+      150
+    ],
+    "path": "/tmp/hub-discovery-cache-control-20261031/state-operations-plan2/evidence-extraction1-review/llbc-inventory.json",
+    "sha256": "42e6c8207e7d2602fb89f51a771c1723e36291f3875c3b3b2f7a5e1065e207d5",
+    "status": "Old recorded-source observation; predicts gate issue, not a measured current translation result."
+  },
+  "prior_summary_sha256": "d0991e8ddc4b6555184d0a75a4391c04b66fdfc9500178af815a591a2a1afd59",
+  "qualified_source": {
+    "core": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "hub": "c23d9ae0f9a50a2a7f2d53e8840279dcfc37090e",
+    "sdk": "7360c0f96cb616c519d27256df214ff4f2e6e831"
+  },
+  "scope": [
+    "The five actual synchronous SurfaceState cached/start/complete/remove_cached/discard_key operations, their complete five-field key, both callbacks and actual SDK TTL initializer.",
+    "Actual LinkName, PrincipalId and ServerSlug representations and Clone/PartialEq/PartialOrd/Ord/Eq-marker bodies are transparent. The older nominal Core primitive substitutes are not assumed for this extraction.",
+    "5 roots, 36 explicit includes, 0 explicit opaques; all discovered own Hub/SDK/Core function bodies checked, including generated helpers."
+  ],
+  "successful_run": {
+    "case": "current-cache-full-key-five-operations-feasibility1",
+    "complete": true,
+    "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "hub_revision": "c23d9ae0f9a50a2a7f2d53e8840279dcfc37090e",
+    "input_sha256": {
+      "hub_archive": "6f5b7071e582ddf9c15316b6639469e9e604557c57c28e3c8938c28df824a9e6",
+      "hub_manifest": "7d655f5765e13827024f85ea21e9df4bb747a2fb448f8a26708db56c408f0b5f",
+      "plan": "679fb5c2431a79e9ffec727e71c434b4a668c2d7a38db8bbdacd8aef9a82b885",
+      "sdk_archive": "f60c20c32d8a80d78a3ffb3d0066d9228012e7a5c8bdae19e45cd80cdeb93877",
+      "sdk_manifest": "88f673efc8c7c7397cab96d76797583065ba8e1303b43f0960a92eb8fec09f5d"
+    },
+    "inventory": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/llbc-inventory.json",
+      "sha256": "e9468ac9aeb1c7a4bf75f3574dbceaa73d8fd7fc436507830d770e3be74f34f9"
+    },
+    "llbc": {
+      "bytes": 1388012,
+      "charon_version": "0.1.293",
+      "decl_counts": {
+        "fun_decls": 174,
+        "global_decls": 51,
+        "trait_decls": 17,
+        "trait_impls": 93,
+        "type_decls": 38
+      },
+      "has_errors": false,
+      "inventory_gate_pass": true,
+      "path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/outputs/surface_state.llbc",
+      "sha256": "e8a70973f988a3b1ca09fb153bdf43c16422cbf5b6248c7c6b556ee8419871aa"
+    },
+    "not_covered": {
+      "operation": "veoveo_hub::mcp::discovery::_::discard_server",
+      "reason": "Unchanged six-root generated FnOnce/FnMut dictionaries fail Lean elaboration when retain passes mutable values; diagnostic2 reports six type mismatches. No tool patch or opaque own transition accepted.",
+      "status": "explicitly unsupported/open; excluded only from this intermediate graph, not from the full six-operation/history goal"
+    },
+    "outputs": [
+      {
+        "bytes": 46691,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/outputs/HubDiscoveryCacheState/Funs.lean",
+        "relative_path": "HubDiscoveryCacheState/Funs.lean",
+        "sha256": "1195e6aefd0393a29dbf36baeaefa69c209f7e3c20af5ea46f3c455e7d07d599"
+      },
+      {
+        "bytes": 14462,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/outputs/HubDiscoveryCacheState/FunsExternal_Template.lean",
+        "relative_path": "HubDiscoveryCacheState/FunsExternal_Template.lean",
+        "sha256": "0621bf0af51ce4e447340abe9d3ee0202373173bb46903ea43057659862287e9"
+      },
+      {
+        "bytes": 4912,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/outputs/HubDiscoveryCacheState/Types.lean",
+        "relative_path": "HubDiscoveryCacheState/Types.lean",
+        "sha256": "415ffe7521bc4d17be4465ca28d3d99f987d26c252a2fabf97cdc9d9f5a1e55f"
+      },
+      {
+        "bytes": 1911,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/outputs/HubDiscoveryCacheState/TypesExternal_Template.lean",
+        "relative_path": "HubDiscoveryCacheState/TypesExternal_Template.lean",
+        "sha256": "a99c04974ae9c7f974e8773ee3e93d8b9a421123bbbd83929650abf38464a2a7"
+      },
+      {
+        "bytes": 1388012,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/outputs/surface_state.llbc",
+        "relative_path": "surface_state.llbc",
+        "sha256": "e8a70973f988a3b1ca09fb153bdf43c16422cbf5b6248c7c6b556ee8419871aa"
+      }
+    ],
+    "sdk_pin": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+    "selector_counts": {
+      "expected_generated_local_helpers": "not a gate; inventory all actual helpers",
+      "include_selectors": 36,
+      "opaques": 0,
+      "starts": 5,
+      "transparent_root_methods": 5
+    },
+    "source": {
+      "cargo_lock_sha256": "ae4364822a7c5f8c9847df4b1d5681fe2a68c2b1ecc56ab13df6c7037f6f1d41",
+      "cargo_toml_sha256": "61044a1397e6042c4d1fd8216ead08d063ebe62919f189bf7b72054656703588",
+      "core_metadata_packages": [
+        {
+          "name": "veoveo-audit",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-audit-contract",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-fixtures",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-http",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-macros",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-oauth",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-store",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-task",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-task-contract",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-types",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-usage",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        },
+        {
+          "name": "veoveo-usage-contract",
+          "source": "git+https://github.com/VeoveoAI/veoveo-core?rev=422dcf268d690fcbc3fee435cf9b81e7f36ffeac#422dcf268d690fcbc3fee435cf9b81e7f36ffeac"
+        }
+      ],
+      "final_map_verified": true,
+      "hub_archive_sha256": "6f5b7071e582ddf9c15316b6639469e9e604557c57c28e3c8938c28df824a9e6",
+      "hub_file_count": 1144,
+      "hub_manifest_sha256": "7d655f5765e13827024f85ea21e9df4bb747a2fb448f8a26708db56c408f0b5f",
+      "hub_source_map_verified": true,
+      "metadata_stage_elapsed_ms": 574,
+      "root": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/source",
+      "sdk_checkout_root": "/home/rozgo/.cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f",
+      "sdk_manifest_file_count": 178,
+      "sdk_package_paths": {
+        "veoveo-hub-sdk": "/home/rozgo/.cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/Cargo.toml",
+        "veoveo-hub-sdk-fixture": "/home/rozgo/.cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk-fixture/Cargo.toml",
+        "veoveo-hub-sdk-macros": "/home/rozgo/.cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk-macros/Cargo.toml"
+      },
+      "sdk_tracked_map_verified": true
+    },
+    "stages": [
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "metadata",
+          "--locked",
+          "--offline",
+          "--format-version",
+          "1",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/source",
+        "elapsed_ms": 315,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/logs/verify-source-pin-metadata.log",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "verify-source-pin-metadata",
+        "stdout_bytes": 3042788,
+        "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/cargo-metadata.json",
+        "stdout_sha256": "0e5ce2c99caecb7ff2f2a221c814d3ceb90c11bf97bf20450963186d1ebb2fc5",
+        "timed_out": false,
+        "timeout_seconds": 180
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "clean",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/source",
+        "elapsed_ms": 164,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/logs/clean-hub-charon-target.log",
+        "log_bytes": 21,
+        "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+        "stage": "clean-hub-charon-target",
+        "timed_out": false,
+        "timeout_seconds": 120
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+          "cargo",
+          "--sysroot",
+          "default",
+          "--preset=aeneas",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::cached",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::start",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::complete",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::remove_cached",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::discard_key",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::cached",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::start",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::complete",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::remove_cached",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::discard_key",
+          "--include",
+          "veoveo_hub::mcp::discovery::DiscoveryCacheKey",
+          "--include",
+          "veoveo_hub::mcp::discovery::DiscoveryFetch",
+          "--include",
+          "veoveo_hub::mcp::discovery::AdmittedCatalog",
+          "--include",
+          "veoveo_hub::mcp::discovery::CachedItems",
+          "--include",
+          "veoveo_hub::mcp::discovery::SurfaceState",
+          "--include",
+          "veoveo_hub::mcp::discovery::MAX_CACHE_ENTRIES_PER_SURFACE",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::start::_::call_once",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::complete::_::call_once",
+          "--include",
+          "{impl core::clone::Clone for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::cmp",
+          "--include",
+          "veoveo_hub_sdk::protocol::PRIVATE_CATALOG_TTL_MS",
+          "--include",
+          "veoveo_hub_sdk::hub::tool_name::LinkName",
+          "--include",
+          "{impl core::clone::Clone for veoveo_hub_sdk::hub::tool_name::LinkName}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_hub_sdk::hub::tool_name::LinkName}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_hub_sdk::hub::tool_name::LinkName}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_hub_sdk::hub::tool_name::LinkName}::cmp",
+          "--include",
+          "{impl core::cmp::Eq for veoveo_hub_sdk::hub::tool_name::LinkName}::assert_fields_are_eq",
+          "--include",
+          "veoveo_types::identity::PrincipalId",
+          "--include",
+          "{impl core::clone::Clone for veoveo_types::identity::PrincipalId}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_types::identity::PrincipalId}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_types::identity::PrincipalId}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_types::identity::PrincipalId}::cmp",
+          "--include",
+          "{impl core::cmp::Eq for veoveo_types::identity::PrincipalId}::assert_fields_are_eq",
+          "--include",
+          "veoveo_types::platform_names::ServerSlug",
+          "--include",
+          "{impl core::clone::Clone for veoveo_types::platform_names::ServerSlug}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_types::platform_names::ServerSlug}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_types::platform_names::ServerSlug}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_types::platform_names::ServerSlug}::cmp",
+          "--include",
+          "{impl core::cmp::Eq for veoveo_types::platform_names::ServerSlug}::assert_fields_are_eq",
+          "--dest-file",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/outputs/surface_state.llbc",
+          "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+          "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+          "--",
+          "--manifest-path",
+          "crates/veoveo-hub/Cargo.toml",
+          "--lib",
+          "--locked"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/source",
+        "elapsed_ms": 47303,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/logs/charon-five-state-roots.log",
+        "log_bytes": 6704,
+        "log_sha256": "801dfde1e3f06c7f70c2b5b43279b11b764aaed8173de02927994ec7c5ef8efa",
+        "stage": "charon-five-state-roots",
+        "timed_out": false,
+        "timeout_seconds": 600
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+          "-namespace",
+          "HubDiscoveryCacheModel",
+          "-subdir",
+          "HubDiscoveryCacheState",
+          "-backend",
+          "lean",
+          "-filter-trait-methods",
+          "-split-files",
+          "-dest",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/outputs",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/outputs/surface_state.llbc"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/source",
+        "elapsed_ms": 1169,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/extraction2/extraction1/logs/aeneas-five-state-translation.log",
+        "log_bytes": 3515,
+        "log_sha256": "f75d76f17ad0a8c208832761bc1bfd6aa2a80c7034e05a970acc82f641fec4a1",
+        "stage": "aeneas-five-state-translation",
+        "timed_out": false,
+        "timeout_seconds": 600
+      }
+    ]
+  },
+  "successful_summary_sha256": "ca19a690fbf58b0c75da2a93b48a3ee1e4d92e5b16a05bf2639976c59940a7eb",
+  "warnings": [
+    "Pinned extraction nightly reported an unrelated async MaybeSendFuture recursion-depth warning and an unreachable call in apps/mcp.rs; these are outside the five synchronous roots.",
+    "Dependency future-incompatibility notices for the OpenShell fork were retained."
+  ]
+}
