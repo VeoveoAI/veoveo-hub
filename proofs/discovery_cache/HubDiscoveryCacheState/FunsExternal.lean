@@ -300,78 +300,38 @@ def uuid.Uuid.Insts.CoreCmpPartialEqUuid.eq
   : uuid.Uuid → uuid.Uuid → Result Bool
   := fun left right => .ok (decide (left = right))
 
-/-- [veoveo_types::identity::{impl core::clone::Clone for veoveo_types::identity::PrincipalId}::clone]:
-    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 9:0-9:69
-    Name pattern: [veoveo_types::identity::{core::clone::Clone<veoveo_types::identity::PrincipalId>}::clone]
-    Visibility: public -/
-@[rust_fun
-  "veoveo_types::identity::{core::clone::Clone<veoveo_types::identity::PrincipalId>}::clone"]
-def veoveo_types.identity.PrincipalId.Insts.CoreCloneClone.clone
-  :
-  veoveo_types.identity.PrincipalId → Result
-    veoveo_types.identity.PrincipalId
-  := fun value => .ok value
+/- Standard owned-string primitives. Complete strings are preserved; native
+UTF-8 allocation/comparison refinement remains a standard-library boundary.
+The three own identifier types and their derives are now generated definitions. -/
+@[rust_fun "alloc::string::{core::clone::Clone<alloc::string::String>}::clone"]
+def alloc.string.String.Insts.CoreCloneClone.clone : String → Result String :=
+  fun value => .ok value
 
-/-- [veoveo_types::identity::{impl core::cmp::Ord for veoveo_types::identity::PrincipalId}::cmp]:
-    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 9:0-9:69
-    Name pattern: [veoveo_types::identity::{core::cmp::Ord<veoveo_types::identity::PrincipalId>}::cmp]
-    Visibility: public -/
-@[rust_fun
-  "veoveo_types::identity::{core::cmp::Ord<veoveo_types::identity::PrincipalId>}::cmp"]
-def veoveo_types.identity.PrincipalId.Insts.CoreCmpOrd.cmp
-  :
-  veoveo_types.identity.PrincipalId → veoveo_types.identity.PrincipalId →
-    Result Ordering
-  := fun left right => .ok (compare left.value right.value)
+@[rust_fun "alloc::string::{core::cmp::PartialEq<alloc::string::String, alloc::string::String>}::eq"]
+def alloc.string.String.Insts.CoreCmpPartialEqString.eq
+    (left right : String) : Result Bool := .ok (decide (left = right))
 
-/-- [veoveo_types::identity::{impl core::cmp::PartialEq<veoveo_types::identity::PrincipalId> for veoveo_types::identity::PrincipalId}::eq]:
-    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 9:0-9:69
-    Name pattern: [veoveo_types::identity::{core::cmp::PartialEq<veoveo_types::identity::PrincipalId, veoveo_types::identity::PrincipalId>}::eq]
-    Visibility: public -/
-@[rust_fun
-  "veoveo_types::identity::{core::cmp::PartialEq<veoveo_types::identity::PrincipalId, veoveo_types::identity::PrincipalId>}::eq"]
-def veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId.eq
-  :
-  veoveo_types.identity.PrincipalId → veoveo_types.identity.PrincipalId →
-    Result Bool
-  := fun left right => .ok (decide (left = right))
+@[rust_fun "alloc::string::{core::cmp::Ord<alloc::string::String>}::cmp"]
+def alloc.string.String.Insts.CoreCmpOrd.cmp
+    (left right : String) : Result Ordering := .ok (compare left right)
 
-/-- [veoveo_types::platform_names::{impl core::clone::Clone for veoveo_types::platform_names::ServerSlug}::clone]:
-    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 5:0-5:38
-    Name pattern: [veoveo_types::platform_names::{core::clone::Clone<veoveo_types::platform_names::ServerSlug>}::clone]
-    Visibility: public -/
-@[rust_fun
-  "veoveo_types::platform_names::{core::clone::Clone<veoveo_types::platform_names::ServerSlug>}::clone"]
-def veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
-  :
-  veoveo_types.platform_names.ServerSlug → Result
-    veoveo_types.platform_names.ServerSlug
-  := fun value => .ok value
+/-- Standard Option clone retains the constructor and preserves element effects. -/
+@[rust_fun "core::option::{core::clone::Clone<core::option::Option<@T>>}::clone"]
+def core.option.Option.Insts.CoreCloneClone.clone
+    {T : Type _} (clone : core.clone.Clone T) : Option T → Result (Option T)
+  | none => .ok none
+  | some value => do
+    let value' ← clone.clone value
+    .ok (some value')
 
-/-- [veoveo_types::platform_names::{impl core::cmp::Ord for veoveo_types::platform_names::ServerSlug}::cmp]:
-    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 5:0-5:38
-    Name pattern: [veoveo_types::platform_names::{core::cmp::Ord<veoveo_types::platform_names::ServerSlug>}::cmp]
-    Visibility: public -/
-@[rust_fun
-  "veoveo_types::platform_names::{core::cmp::Ord<veoveo_types::platform_names::ServerSlug>}::cmp"]
-def veoveo_types.platform_names.ServerSlug.Insts.CoreCmpOrd.cmp
-  :
-  veoveo_types.platform_names.ServerSlug →
-    veoveo_types.platform_names.ServerSlug → Result Ordering
-  := fun left right => .ok (compare left.value right.value)
-
-/-- [veoveo_types::platform_names::{impl core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug> for veoveo_types::platform_names::ServerSlug}::eq]:
-    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 5:0-5:38
-    Name pattern: [veoveo_types::platform_names::{core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug, veoveo_types::platform_names::ServerSlug>}::eq]
-    Visibility: public -/
-@[rust_fun
-  "veoveo_types::platform_names::{core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug, veoveo_types::platform_names::ServerSlug>}::eq"]
-def
-  veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq
-  :
-  veoveo_types.platform_names.ServerSlug →
-    veoveo_types.platform_names.ServerSlug → Result Bool
-  := fun left right => .ok (decide (left = right))
-
+/-- Standard Option order: None first, then the complete element comparator.
+No absent value is collapsed into a default String. -/
+@[rust_fun "core::option::{core::cmp::Ord<core::option::Option<@T>>}::cmp"]
+def core.option.Option.Insts.CoreCmpOrd.cmp
+    {T : Type _} (order : core.cmp.Ord T) : Option T → Option T → Result Ordering
+  | none, none => .ok .eq
+  | none, some _ => .ok .lt
+  | some _, none => .ok .gt
+  | some left, some right => order.cmp left right
 
 end HubDiscoveryCacheModel

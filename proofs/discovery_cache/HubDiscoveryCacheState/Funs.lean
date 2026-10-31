@@ -94,13 +94,221 @@ impl_def uuid.Uuid.Insts.CoreCmpPartialEqUuid : core.cmp.PartialEq uuid.Uuid
     uuid.Uuid.Insts.CoreCmpPartialEqUuid
 }
 
+/-- [veoveo_hub_sdk::hub::tool_name::{impl core::clone::Clone for veoveo_hub_sdk::hub::tool_name::LinkName}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 82:0-82:36
+    Name pattern: [veoveo_hub_sdk::hub::tool_name::{core::clone::Clone<veoveo_hub_sdk::hub::tool_name::LinkName>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::hub::tool_name::{core::clone::Clone<veoveo_hub_sdk::hub::tool_name::LinkName>}::clone"]
+def veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCloneClone.clone
+  (self : veoveo_hub_sdk.hub.tool_name.LinkName) :
+  Result veoveo_hub_sdk.hub.tool_name.LinkName
+  := do
+  let s ← alloc.string.String.Insts.CoreCloneClone.clone self
+  ok s
+
+/-- Trait implementation: [veoveo_hub_sdk::hub::tool_name::{impl core::clone::Clone for veoveo_hub_sdk::hub::tool_name::LinkName}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 82:0-82:36
+    Name pattern: [core::clone::Clone<veoveo_hub_sdk::hub::tool_name::LinkName>] -/
+@[reducible, rust_trait_impl
+  "core::clone::Clone<veoveo_hub_sdk::hub::tool_name::LinkName>"]
+def veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCloneClone :
+  core.clone.Clone veoveo_hub_sdk.hub.tool_name.LinkName := {
+  clone := veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCloneClone.clone
+}
+
+/-- [veoveo_hub_sdk::hub::tool_name::{impl core::cmp::Ord for veoveo_hub_sdk::hub::tool_name::LinkName}::cmp]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 82:0-82:36
+    Name pattern: [veoveo_hub_sdk::hub::tool_name::{core::cmp::Ord<veoveo_hub_sdk::hub::tool_name::LinkName>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::hub::tool_name::{core::cmp::Ord<veoveo_hub_sdk::hub::tool_name::LinkName>}::cmp"]
+def veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpOrd.cmp
+  (self : veoveo_hub_sdk.hub.tool_name.LinkName)
+  (other : veoveo_hub_sdk.hub.tool_name.LinkName) :
+  Result Ordering
+  := do
+  alloc.string.String.Insts.CoreCmpOrd.cmp self other
+
+/-- [veoveo_hub_sdk::hub::tool_name::{impl core::cmp::PartialOrd<veoveo_hub_sdk::hub::tool_name::LinkName> for veoveo_hub_sdk::hub::tool_name::LinkName}::partial_cmp]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 82:0-82:36
+    Name pattern: [veoveo_hub_sdk::hub::tool_name::{core::cmp::PartialOrd<veoveo_hub_sdk::hub::tool_name::LinkName, veoveo_hub_sdk::hub::tool_name::LinkName>}::partial_cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::hub::tool_name::{core::cmp::PartialOrd<veoveo_hub_sdk::hub::tool_name::LinkName, veoveo_hub_sdk::hub::tool_name::LinkName>}::partial_cmp"]
+def
+  veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialOrdLinkName.partial_cmp
+  (self : veoveo_hub_sdk.hub.tool_name.LinkName)
+  (other : veoveo_hub_sdk.hub.tool_name.LinkName) :
+  Result (Option Ordering)
+  := do
+  let o ←
+    veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpOrd.cmp self other
+  ok (some o)
+
+/-- [veoveo_hub_sdk::hub::tool_name::{impl core::cmp::PartialEq<veoveo_hub_sdk::hub::tool_name::LinkName> for veoveo_hub_sdk::hub::tool_name::LinkName}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 82:0-82:36
+    Name pattern: [veoveo_hub_sdk::hub::tool_name::{core::cmp::PartialEq<veoveo_hub_sdk::hub::tool_name::LinkName, veoveo_hub_sdk::hub::tool_name::LinkName>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::hub::tool_name::{core::cmp::PartialEq<veoveo_hub_sdk::hub::tool_name::LinkName, veoveo_hub_sdk::hub::tool_name::LinkName>}::eq"]
+def veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialEqLinkName.eq
+  (self : veoveo_hub_sdk.hub.tool_name.LinkName)
+  (other : veoveo_hub_sdk.hub.tool_name.LinkName) :
+  Result Bool
+  := do
+  alloc.string.String.Insts.CoreCmpPartialEqString.eq self other
+
+/-- Trait implementation: [veoveo_hub_sdk::hub::tool_name::{impl core::cmp::PartialEq<veoveo_hub_sdk::hub::tool_name::LinkName> for veoveo_hub_sdk::hub::tool_name::LinkName}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 82:0-82:36
+    Name pattern: [core::cmp::PartialEq<veoveo_hub_sdk::hub::tool_name::LinkName, veoveo_hub_sdk::hub::tool_name::LinkName>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialEq<veoveo_hub_sdk::hub::tool_name::LinkName, veoveo_hub_sdk::hub::tool_name::LinkName>"]
+impl_def veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialEqLinkName :
+  core.cmp.PartialEq veoveo_hub_sdk.hub.tool_name.LinkName
+  veoveo_hub_sdk.hub.tool_name.LinkName := {
+  eq := veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialEqLinkName.eq
+  ne := core.cmp.PartialEq.ne.trait_default
+    veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialEqLinkName
+}
+
+/-- Trait implementation: [veoveo_hub_sdk::hub::tool_name::{impl core::cmp::PartialOrd<veoveo_hub_sdk::hub::tool_name::LinkName> for veoveo_hub_sdk::hub::tool_name::LinkName}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 82:0-82:36
+    Name pattern: [core::cmp::PartialOrd<veoveo_hub_sdk::hub::tool_name::LinkName, veoveo_hub_sdk::hub::tool_name::LinkName>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialOrd<veoveo_hub_sdk::hub::tool_name::LinkName, veoveo_hub_sdk::hub::tool_name::LinkName>"]
+impl_def veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialOrdLinkName
+  : core.cmp.PartialOrd veoveo_hub_sdk.hub.tool_name.LinkName
+  veoveo_hub_sdk.hub.tool_name.LinkName := {
+  partialEqInst :=
+    veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialEqLinkName
+  partial_cmp :=
+    veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialOrdLinkName.partial_cmp
+  gt := core.cmp.PartialOrd.gt.trait_default
+    veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialOrdLinkName
+}
+
+/-- [veoveo_hub_sdk::hub::tool_name::{impl core::cmp::Eq for veoveo_hub_sdk::hub::tool_name::LinkName}::assert_fields_are_eq]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 82:0-82:36
+    Name pattern: [veoveo_hub_sdk::hub::tool_name::{core::cmp::Eq<veoveo_hub_sdk::hub::tool_name::LinkName>}::assert_fields_are_eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::hub::tool_name::{core::cmp::Eq<veoveo_hub_sdk::hub::tool_name::LinkName>}::assert_fields_are_eq"]
+def veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpEq.assert_fields_are_eq
+  (self : veoveo_hub_sdk.hub.tool_name.LinkName) : Result Unit := do
+  ok ()
+
+/-- Trait implementation: [veoveo_hub_sdk::hub::tool_name::{impl core::cmp::Eq for veoveo_hub_sdk::hub::tool_name::LinkName}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 82:0-82:36
+    Name pattern: [core::cmp::Eq<veoveo_hub_sdk::hub::tool_name::LinkName>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Eq<veoveo_hub_sdk::hub::tool_name::LinkName>"]
+def veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpEq : core.cmp.Eq
+  veoveo_hub_sdk.hub.tool_name.LinkName := {
+  partialEqInst :=
+    veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialEqLinkName
+  assert_fields_are_eq :=
+    veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpEq.assert_fields_are_eq
+}
+
+/-- Trait implementation: [veoveo_hub_sdk::hub::tool_name::{impl core::cmp::Ord for veoveo_hub_sdk::hub::tool_name::LinkName}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 82:0-82:36
+    Name pattern: [core::cmp::Ord<veoveo_hub_sdk::hub::tool_name::LinkName>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Ord<veoveo_hub_sdk::hub::tool_name::LinkName>"]
+def veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpOrd : core.cmp.Ord
+  veoveo_hub_sdk.hub.tool_name.LinkName := {
+  eqInst := veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpEq
+  partialOrdInst :=
+    veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialOrdLinkName
+  cmp := veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpOrd.cmp
+}
+
 /-- [veoveo_hub_sdk::protocol::PRIVATE_CATALOG_TTL_MS]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/protocol.rs', lines 10:0-10:37
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/protocol.rs', lines 10:0-10:37
     Name pattern: [veoveo_hub_sdk::protocol::PRIVATE_CATALOG_TTL_MS]
     Visibility: public -/
 @[global_simps, irreducible, rust_const
   "veoveo_hub_sdk::protocol::PRIVATE_CATALOG_TTL_MS"]
 def veoveo_hub_sdk.protocol.PRIVATE_CATALOG_TTL_MS : Std.U64 := 5000#u64
+
+/-- [veoveo_types::identity::{impl core::clone::Clone for veoveo_types::identity::PrincipalId}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/identity.rs', lines 9:0-9:69
+    Name pattern: [veoveo_types::identity::{core::clone::Clone<veoveo_types::identity::PrincipalId>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::identity::{core::clone::Clone<veoveo_types::identity::PrincipalId>}::clone"]
+def veoveo_types.identity.PrincipalId.Insts.CoreCloneClone.clone
+  (self : veoveo_types.identity.PrincipalId) :
+  Result veoveo_types.identity.PrincipalId
+  := do
+  let s ← alloc.string.String.Insts.CoreCloneClone.clone self
+  ok s
+
+/-- [veoveo_types::identity::{impl core::cmp::Ord for veoveo_types::identity::PrincipalId}::cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/identity.rs', lines 9:0-9:69
+    Name pattern: [veoveo_types::identity::{core::cmp::Ord<veoveo_types::identity::PrincipalId>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::identity::{core::cmp::Ord<veoveo_types::identity::PrincipalId>}::cmp"]
+def veoveo_types.identity.PrincipalId.Insts.CoreCmpOrd.cmp
+  (self : veoveo_types.identity.PrincipalId)
+  (other : veoveo_types.identity.PrincipalId) :
+  Result Ordering
+  := do
+  alloc.string.String.Insts.CoreCmpOrd.cmp self other
+
+/-- [veoveo_types::identity::{impl core::cmp::PartialEq<veoveo_types::identity::PrincipalId> for veoveo_types::identity::PrincipalId}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/identity.rs', lines 9:0-9:69
+    Name pattern: [veoveo_types::identity::{core::cmp::PartialEq<veoveo_types::identity::PrincipalId, veoveo_types::identity::PrincipalId>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::identity::{core::cmp::PartialEq<veoveo_types::identity::PrincipalId, veoveo_types::identity::PrincipalId>}::eq"]
+def veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId.eq
+  (self : veoveo_types.identity.PrincipalId)
+  (other : veoveo_types.identity.PrincipalId) :
+  Result Bool
+  := do
+  alloc.string.String.Insts.CoreCmpPartialEqString.eq self other
+
+/-- [veoveo_types::platform_names::{impl core::clone::Clone for veoveo_types::platform_names::ServerSlug}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/platform_names.rs', lines 5:0-5:38
+    Name pattern: [veoveo_types::platform_names::{core::clone::Clone<veoveo_types::platform_names::ServerSlug>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::platform_names::{core::clone::Clone<veoveo_types::platform_names::ServerSlug>}::clone"]
+def veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+  (self : veoveo_types.platform_names.ServerSlug) :
+  Result veoveo_types.platform_names.ServerSlug
+  := do
+  let s ← alloc.string.String.Insts.CoreCloneClone.clone self
+  ok s
+
+/-- [veoveo_types::platform_names::{impl core::cmp::Ord for veoveo_types::platform_names::ServerSlug}::cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/platform_names.rs', lines 5:0-5:38
+    Name pattern: [veoveo_types::platform_names::{core::cmp::Ord<veoveo_types::platform_names::ServerSlug>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::platform_names::{core::cmp::Ord<veoveo_types::platform_names::ServerSlug>}::cmp"]
+def veoveo_types.platform_names.ServerSlug.Insts.CoreCmpOrd.cmp
+  (self : veoveo_types.platform_names.ServerSlug)
+  (other : veoveo_types.platform_names.ServerSlug) :
+  Result Ordering
+  := do
+  alloc.string.String.Insts.CoreCmpOrd.cmp self other
+
+/-- [veoveo_types::platform_names::{impl core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug> for veoveo_types::platform_names::ServerSlug}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/platform_names.rs', lines 5:0-5:38
+    Name pattern: [veoveo_types::platform_names::{core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug, veoveo_types::platform_names::ServerSlug>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::platform_names::{core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug, veoveo_types::platform_names::ServerSlug>}::eq"]
+def veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq
+  (self : veoveo_types.platform_names.ServerSlug)
+  (other : veoveo_types.platform_names.ServerSlug) :
+  Result Bool
+  := do
+  alloc.string.String.Insts.CoreCmpPartialEqString.eq self other
 
 /-- [veoveo_hub::mcp::discovery::MAX_CACHE_ENTRIES_PER_SURFACE]
     Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 17:0-17:51 -/
@@ -123,12 +331,16 @@ def mcp.discovery.DiscoveryCacheKey.Insts.CoreCloneClone.clone
   let ss ←
     veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
       self.server
+  let o ←
+    core.option.Option.Insts.CoreCloneClone.clone
+      veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCloneClone self.link
   ok
     {
       catalog_generation := i,
       principal := pi,
       authorization_fingerprint := a,
-      server := ss
+      server := ss,
+      link := o
     }
 
 /-- [veoveo_hub::mcp::discovery::{impl core::cmp::PartialEq<veoveo_hub::mcp::discovery::DiscoveryCacheKey> for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::eq]:
@@ -151,8 +363,15 @@ def mcp.discovery.DiscoveryCacheKey.Insts.CoreCmpPartialEqDiscoveryCacheKey.eq
           self.authorization_fingerprint other.authorization_fingerprint
       if b1
       then
-        veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq
-          self.server other.server
+        let b2 ←
+          veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq
+            self.server other.server
+        if b2
+        then
+          core.option.Option.Insts.CoreCmpPartialEqOption.eq
+            veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpPartialEqLinkName
+            self.link other.link
+        else ok false
       else ok false
     else ok false
   else ok false
@@ -214,8 +433,16 @@ def mcp.discovery.DiscoveryCacheKey.Insts.CoreCmpOrd.cmp
       match o2 with
       | Ordering.lt => ok Ordering.lt
       | Ordering.eq =>
-        veoveo_types.platform_names.ServerSlug.Insts.CoreCmpOrd.cmp self.server
-          other.server
+        let o3 ←
+          veoveo_types.platform_names.ServerSlug.Insts.CoreCmpOrd.cmp
+            self.server other.server
+        match o3 with
+        | Ordering.lt => ok Ordering.lt
+        | Ordering.eq =>
+          core.option.Option.Insts.CoreCmpOrd.cmp
+            veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpOrd self.link
+            other.link
+        | Ordering.gt => ok Ordering.gt
       | Ordering.gt => ok Ordering.gt
     | Ordering.gt => ok Ordering.gt
   | Ordering.gt => ok Ordering.gt
@@ -259,7 +486,7 @@ def mcp.discovery.DiscoveryCacheKey.Insts.CoreCmpOrd : core.cmp.Ord
 }
 
 /-- [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::cached]:
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 91:4-97:5 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 94:4-100:5 -/
 def mcp.discovery.SurfaceState.cached
   {T : Type _} (corecloneCloneInst : core.clone.Clone T) (corecmpPartialEqInst
   : core.cmp.PartialEq T T) (self : mcp.discovery.SurfaceState T)
@@ -282,7 +509,7 @@ def mcp.discovery.SurfaceState.cached
       (mcp.discovery.AdmittedCatalog T) residual
 
 /-- [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::start::{impl core::ops::function::FnOnce<(&'_0 tokio::time::instant::Instant,), bool> for veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::start::{closure}<T, N, R>}::call_once]:
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 123:29-123:57 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 126:29-126:57 -/
 def
   mcp.discovery.SurfaceState.start.closure.Insts.CoreOpsFunctionFnOnceTupleShared0InstantBool.call_once
   {T : Type _} {N : Type _} {R : Type _} (corecloneCloneInst : core.clone.Clone
@@ -299,7 +526,7 @@ def
     tokio.time.instant.Instant.Insts.CoreCmpPartialOrdInstant tupled_args i
 
 /-- Trait implementation: [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::start::{impl core::ops::function::FnOnce<(&'_0 tokio::time::instant::Instant,), bool> for veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::start::{closure}<T, N, R>}]
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 123:29-123:57 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 126:29-126:57 -/
 @[reducible]
 def
   mcp.discovery.SurfaceState.start.closure.Insts.CoreOpsFunctionFnOnceTupleShared0InstantBool
@@ -317,7 +544,7 @@ def
 }
 
 /-- [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::start]:
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 99:4-139:5 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 102:4-142:5 -/
 def mcp.discovery.SurfaceState.start
   {T : Type _} {N : Type _} {R : Type _} (corecloneCloneInst : core.clone.Clone
   T) (corecmpPartialEqInst : core.cmp.PartialEq T T)
@@ -487,7 +714,7 @@ def mcp.discovery.SurfaceState.start
             { generation := i, entries := bm, in_flight := bm3, failed := bm2 })
 
 /-- [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::complete::{impl core::ops::function::FnOnce<(&'_2 veoveo_hub::mcp::discovery::CachedItems<T>,), bool> for veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::complete::{closure}<'_0, '_1, T, N>}::call_once]:
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 154:28-154:97 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 157:28-157:97 -/
 def
   mcp.discovery.SurfaceState.complete.closure.Insts.CoreOpsFunctionFnOnceTupleShared2CachedItemsBool.call_once
   {T : Type _} {N : Type _} (corecloneCloneInst : core.clone.Clone T)
@@ -507,7 +734,7 @@ def
   else ok (tupled_args.denied != df.denied)
 
 /-- Trait implementation: [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::complete::{impl core::ops::function::FnOnce<(&'_2 veoveo_hub::mcp::discovery::CachedItems<T>,), bool> for veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::complete::{closure}<'_0, '_1, T, N>}]
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 154:28-154:97 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 157:28-157:97 -/
 @[reducible]
 def
   mcp.discovery.SurfaceState.complete.closure.Insts.CoreOpsFunctionFnOnceTupleShared2CachedItemsBool
@@ -524,7 +751,7 @@ def
 }
 
 /-- [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::complete]:
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 141:4-180:5 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 144:4-183:5 -/
 def mcp.discovery.SurfaceState.complete
   {T : Type _} {N : Type _} (corecloneCloneInst : core.clone.Clone T)
   (corecmpPartialEqInst : core.cmp.PartialEq T T)
@@ -656,7 +883,7 @@ def mcp.discovery.SurfaceState.complete
         { self with entries := bm5, in_flight := bm3, failed := bm4 })
 
 /-- [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::remove_cached]:
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 182:4-184:5 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 185:4-187:5 -/
 def mcp.discovery.SurfaceState.remove_cached
   {T : Type _} (corecloneCloneInst : core.clone.Clone T) (corecmpPartialEqInst
   : core.cmp.PartialEq T T) (self : mcp.discovery.SurfaceState T)
@@ -672,7 +899,7 @@ def mcp.discovery.SurfaceState.remove_cached
   ok { self with entries := bm }
 
 /-- [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::discard_key]:
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 186:4-190:5 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 189:4-193:5 -/
 def mcp.discovery.SurfaceState.discard_key
   {T : Type _} (corecloneCloneInst : core.clone.Clone T) (corecmpPartialEqInst
   : core.cmp.PartialEq T T) (self : mcp.discovery.SurfaceState T)

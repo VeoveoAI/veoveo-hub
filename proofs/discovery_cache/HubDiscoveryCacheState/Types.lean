@@ -38,35 +38,57 @@ structure core.alloc.AllocatorClone (Self : Type _) where
 structure core.borrow.Borrow (Self : Type _) (Borrowed : Type _) where
   borrow : Self → Result Borrowed
 
+/-- [veoveo_hub_sdk::hub::tool_name::LinkName]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/hub/tool_name.rs', lines 83:0-83:19
+    Name pattern: [veoveo_hub_sdk::hub::tool_name::LinkName]
+    Visibility: public -/
+@[reducible, rust_type "veoveo_hub_sdk::hub::tool_name::LinkName"]
+def veoveo_hub_sdk.hub.tool_name.LinkName := String
+
+/-- [veoveo_types::identity::PrincipalId]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/identity.rs', lines 10:0-10:22
+    Name pattern: [veoveo_types::identity::PrincipalId]
+    Visibility: public -/
+@[reducible, rust_type "veoveo_types::identity::PrincipalId"]
+def veoveo_types.identity.PrincipalId := String
+
+/-- [veoveo_types::platform_names::ServerSlug]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/platform_names.rs', lines 6:0-6:21
+    Name pattern: [veoveo_types::platform_names::ServerSlug]
+    Visibility: public -/
+@[reducible, rust_type "veoveo_types::platform_names::ServerSlug"]
+def veoveo_types.platform_names.ServerSlug := String
+
 /-- [veoveo_hub::mcp::discovery::DiscoveryCacheKey]
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 22:0-27:1 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 22:0-30:1 -/
 structure mcp.discovery.DiscoveryCacheKey where
   catalog_generation : Std.U64
   principal : veoveo_types.identity.PrincipalId
   authorization_fingerprint : Array Std.U8 32#usize
   server : veoveo_types.platform_names.ServerSlug
+  link : Option veoveo_hub_sdk.hub.tool_name.LinkName
 
 /-- [veoveo_hub::mcp::discovery::DiscoveryFetch]
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 59:0-63:1 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 62:0-66:1 -/
 structure mcp.discovery.DiscoveryFetch where
   key : mcp.discovery.DiscoveryCacheKey
   request : uuid.Uuid
   denied : Std.U32
 
 /-- [veoveo_hub::mcp::discovery::AdmittedCatalog]
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 71:0-74:1 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 74:0-77:1 -/
 structure mcp.discovery.AdmittedCatalog (T : Type _) where
   items : alloc.vec.Vec T
   denied : Std.U32
 
 /-- [veoveo_hub::mcp::discovery::CachedItems]
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 77:0-80:1 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 80:0-83:1 -/
 structure mcp.discovery.CachedItems (T : Type _) where
   items : alloc.vec.Vec T
   denied : Std.U32
 
 /-- [veoveo_hub::mcp::discovery::SurfaceState]
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 83:0-88:1 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 86:0-91:1 -/
 structure mcp.discovery.SurfaceState (T : Type _) where
   generation : Std.U64
   entries : alloc.collections.btree.map.BTreeMap
@@ -78,14 +100,14 @@ structure mcp.discovery.SurfaceState (T : Type _) where
     tokio.time.instant.Instant alloc.alloc.Global
 
 /-- [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::start::{closure}]
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 123:29-123:57 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 126:29-126:57 -/
 @[reducible]
 def mcp.discovery.SurfaceState.start.closure (T : Type _) (N : Type _) (R :
   Type _) :=
   N
 
 /-- [veoveo_hub::mcp::discovery::{veoveo_hub::mcp::discovery::SurfaceState<T>}::complete::{closure}]
-    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 154:28-154:97 -/
+    Source: 'crates/veoveo-hub/src/mcp/discovery.rs', lines 157:28-157:97 -/
 def mcp.discovery.SurfaceState.complete.closure (T : Type _) (N : Type _) :=
   alloc.vec.Vec T × mcp.discovery.DiscoveryFetch
 

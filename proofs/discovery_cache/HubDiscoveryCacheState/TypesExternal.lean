@@ -20,12 +20,6 @@ set_option maxRecDepth 2048
 
 namespace HubDiscoveryCacheModel
 
-/-- Nominal source values. Decoding/UTF-8 and native ordering correspondence
-are separate refinement obligations; tags prevent mixing ID domains. -/
-structure NativeId (tag : Nat) where
-  value : _root_.String
-  deriving DecidableEq
-
 /-- [core::time::Duration]
     Source: '/rustc/library/core/src/time.rs', lines 81:0-81:19
     Name pattern: [core::time::Duration]
@@ -61,20 +55,5 @@ structure uuid.Uuid where
   high : Std.U64
   low : Std.U64
   deriving DecidableEq
-
-/-- [veoveo_types::identity::PrincipalId]
-    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 10:0-10:22
-    Name pattern: [veoveo_types::identity::PrincipalId]
-    Visibility: public -/
-@[rust_type "veoveo_types::identity::PrincipalId"]
-abbrev veoveo_types.identity.PrincipalId := NativeId 0
-
-/-- [veoveo_types::platform_names::ServerSlug]
-    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 6:0-6:21
-    Name pattern: [veoveo_types::platform_names::ServerSlug]
-    Visibility: public -/
-@[rust_type "veoveo_types::platform_names::ServerSlug"]
-abbrev veoveo_types.platform_names.ServerSlug := NativeId 1
-
 
 end HubDiscoveryCacheModel

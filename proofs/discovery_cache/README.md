@@ -1,9 +1,13 @@
 # Discovery cache state proofs
 
 This package models the actual five synchronous `SurfaceState` operations extracted
-from Hub `688b91a` (the same source bytes as the qualified `f81159f` archive plus its
-reviewed lazy-input/name overlay), with SDK `154a473` and Core `120306e`.
+from Hub `c23d9ae`, with SDK `7360c0f` and Core `422dcf2`.
 `HubDiscoveryCacheState/Types.lean` and `Funs.lean` are unchanged generated files.
+The [current qualification](evidence/current-linked-cache-proofs-20261031.json)
+checks four model modules, all nine proof modules and 103 executable axiom guards.
+It extends the earlier `688b91a` graph with the optional link and actual identifier
+wrapper derives. Earlier receipts and timings below remain evidence for their named
+source; current-source link fault controls are a separate pending check.
 
 The first proof leaf covers complete cached reads, cached-only removal, and full key
 invalidation. Its independent observations retain entire payloads and denied counts.
@@ -13,13 +17,21 @@ records and therefore does not fence an in-flight completion. Full key invalidat
 removes all three records at that key while preserving generation and unrelated keys.
 The frame lemma describes the independent erased maps; combining it with
 `discard_key_exact` connects those observations to the actual extracted operation.
+The actual-operation `discard_key_link_isolation` derives key inequality from
+different link fields and preserves every other link's complete cached value,
+ticket and retry record. `discard_key_none_some_isolation` also covers an absent
+link versus every present link, including a represented empty string. No parse-validity
+or successful-operation premise is assumed. Writes at capacity may still evict
+another key; the link theorem concerns full-key invalidation.
 
 The handwritten external model uses ordered, unique-key association lists for native
 `BTreeMap` values. Native refinement requires coherent borrowing/equality/order and
 representable lengths. `pop_first` corresponds to minimum-key eviction only on an
-appropriately ordered list. Scalar, nominal identifier, UUID, UTF-8 ordering,
+appropriately ordered list. Scalar, UUID, UTF-8 ordering,
 allocation, and destructor correspondence are explicit native boundaries. UUIDs have
-128 bits; principals and server names have distinct nominal string domains. No hash
+128 bits. PrincipalId, ServerSlug and LinkName use their actual generated String-backed
+representations and derives, with concrete external String/Option operations.
+No hash
 injectivity assumption or clock/request-ticket freshness axiom is introduced.
 
 Time has nanosecond resolution. Duration construction multiplies milliseconds by

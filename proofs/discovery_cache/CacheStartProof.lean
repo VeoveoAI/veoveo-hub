@@ -14,7 +14,7 @@ private theorem exact_of_total {T : Type} (operation : Result T) (value : T)
   | vis effect continuation => exact False.elim ((WP.spec_vis effect continuation).mp total)
   | div => exact False.elim (WP.spec_div.mp total)
 
-/-- The generated key clone preserves all four fields, including all 32 hash
+/-- The generated key clone preserves all five fields, including all 32 hash
 bytes. No assumed own clone outcome or whole-key primitive is substituted. -/
 theorem key_clone_exact (key : Key) :
     mcp.discovery.DiscoveryCacheKey.Insts.CoreCloneClone.clone key = .ok key := by
@@ -24,12 +24,21 @@ theorem key_clone_exact (key : Key) :
     (WP.spec_mono arrayTotal (by intro output same; exact same.symm))
   have generation : lift (core.clone.impls.CloneU64.clone key.catalog_generation) =
       (Result.ok key.catalog_generation : Result U64) := by rfl
+  have optional : core.option.Option.Insts.CoreCloneClone.clone
+      veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCloneClone key.link = .ok key.link := by
+    cases key.link <;>
+      simp only [core.option.Option.Insts.CoreCloneClone.clone,
+        veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCloneClone,
+        veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCloneClone.clone,
+        alloc.string.String.Insts.CoreCloneClone.clone, bind_tc_eq, bind_ok]
   unfold mcp.discovery.DiscoveryCacheKey.Insts.CoreCloneClone.clone
   rw [generation]
   simp only [veoveo_types.identity.PrincipalId.Insts.CoreCloneClone.clone,
     veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone,
-    bind_tc_eq, bind_ok]
+    alloc.string.String.Insts.CoreCloneClone.clone, bind_tc_eq, bind_ok]
   rw [arrayExact]
+  simp only [bind_tc_eq, bind_ok]
+  rw [optional]
   simp only [bind_tc_eq, bind_ok]
 
 /-- Exact whole-map update, including the prior insertion result. The prior value

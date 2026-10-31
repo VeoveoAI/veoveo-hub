@@ -11,20 +11,22 @@ local instance (p : Prop) : Decidable p := Classical.propDecidable p
 
 /-- Full-field, lossless lexical code in the same order as the actual generated
 Ord implementation. This is lexicographic Product order, not pointwise order. -/
-abbrev KeyCode := Nat ×ₗ _root_.String ×ₗ List Nat ×ₗ _root_.String
+abbrev KeyCode := Nat ×ₗ _root_.String ×ₗ List Nat ×ₗ _root_.String ×ₗ Option _root_.String
 
 def code (key : Key) : KeyCode :=
   toLex (key.catalog_generation.val,
-    toLex (key.principal.value,
-      toLex (key.authorization_fingerprint.val.map (fun byte => byte.val), key.server.value)))
+    toLex (key.principal,
+      toLex (key.authorization_fingerprint.val.map (fun byte => byte.val),
+        toLex (key.server, key.link))))
 
 theorem code_fields (key : Key) :
     (ofLex (code key)).1 = key.catalog_generation.val ∧
-    (ofLex (ofLex (code key)).2).1 = key.principal.value ∧
+    (ofLex (ofLex (code key)).2).1 = key.principal ∧
     (ofLex (ofLex (ofLex (code key)).2).2).1 =
       key.authorization_fingerprint.val.map (fun byte => byte.val) ∧
-    (ofLex (ofLex (ofLex (code key)).2).2).2 = key.server.value :=
-  ⟨rfl, rfl, rfl, rfl⟩
+    (ofLex (ofLex (ofLex (ofLex (code key)).2).2).2).1 = key.server ∧
+    (ofLex (ofLex (ofLex (ofLex (code key)).2).2).2).2 = key.link :=
+  ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 private theorem then_eq_then (first next : Ordering) :
     thenOrder first next = first.then next := by
@@ -48,10 +50,10 @@ theorem keyOrder_code (left right : Key) :
     keyOrder left right = compare (code left) (code right) := by
   change keyOrder left right =
     (compare left.catalog_generation.val right.catalog_generation.val).then
-      ((compare left.principal.value right.principal.value).then
+      ((compare left.principal right.principal).then
         ((compare (left.authorization_fingerprint.val.map (fun byte => byte.val))
           (right.authorization_fingerprint.val.map (fun byte => byte.val))).then
-          (compare left.server.value right.server.value)))
+          ((compare left.server right.server).then (compare left.link right.link))))
   rw [← bytes_compare_code]
   simp only [keyOrder, then_eq_then]
 

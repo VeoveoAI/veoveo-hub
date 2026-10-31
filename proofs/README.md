@@ -84,11 +84,11 @@ has its own source-correspondence boundary.
 The linked-runner integration combines local `305aeb2` with upstream `000f74e`.
 It preserves the local cache/authority and live-watch corrections while adopting
 upstream's linked routing, Core `422dcf2`, SDK `7360c0f` and Lore `c33e017`.
-The frozen proof files remain unchanged, but this is **not** current-source formal
+That merge left the frozen proof files unchanged and was **not** current-source formal
 qualification. `DiscoveryCacheKey` now includes an optional link; registration and
 selection include runner metadata; request construction contributes a repository
-grant and calls `issue_with_repository`. Cache key/order correspondence and the
-complete policy-to-issuer composition therefore need fresh extraction and review.
+grant and calls `issue_with_repository`. The complete policy-to-issuer composition
+still needs fresh extraction and review; cache key/order qualification is recorded below.
 The unchanged generic selection and Task-decision kernels retain their recorded
 proofs; new runner candidate assembly and deployment lookup are outside them.
 Registration's new runner persistence path is also outside the old transaction
@@ -106,9 +106,14 @@ The [fresh cache extraction](discovery_cache/evidence/current-key-extraction-202
 now translates the five supported synchronous operations from that exact current
 source, with the optional link and actual Core principal/server identifier derives.
 All 37 discovered own-component function bodies are transparent and error-free.
-This reduces the old identifier-model boundary, but Lean adaptation and qualification
-of the new graph are still pending; the committed generated model remains the older
-qualified graph until that work passes.
+The [current cache proof qualification](discovery_cache/evidence/current-linked-cache-proofs-20261031.json)
+checks and adopts that unchanged generated model, its four model modules and all nine
+proof modules, with 103 executable axiom guards. Full-key invalidation preserves
+another link's complete cached value, ticket and retry state, including absent versus
+present links. Existing operation/state/history guarantees pass for the extended key
+domain. The actual identifier wrappers replace their old handwritten primitive
+substitutes; standard-library and native-wrapper correspondence remain boundaries.
+The new link-comparison source fault control is pending, separate from this baseline.
 
 Keep two independent fields for each result:
 
@@ -1045,7 +1050,19 @@ Prevents cross-context disclosure and stale routing represented as current disco
   tests pass (5/5), as does the subscription regression (1/1). Final formatting
   passes after a whitespace-only adjustment. This is native qualification, not
   an extension of the frozen Lean graph; full integrated Mac/Linux checks and
-  current-source formal correspondence are separate obligations.
+  current-source formal correspondence are separate obligations. The integrated
+  component checks subsequently passed in the receipt linked above.
+- **Current linked-key qualification:** the
+  [current graph receipt](discovery_cache/evidence/current-linked-cache-proofs-20261031.json)
+  adopts fresh `c23d9ae`/SDK `7360c0f`/Core `422dcf2` extraction. All nine proof
+  modules pass, including full five-field clone/comparison, lossless key order,
+  exact operations and finite supported histories. Actual `discard_key` preserves
+  another link's complete cached payload, pending ticket and retry state; absent
+  and present links are distinct without a parsing premise. This is not a general
+  write-frame guarantee across capacity eviction. An initial optional-clone tactic
+  failure was corrected without changing claims or guards; all 103 axiom guards
+  pass. Source controls from the older graph retain their historical boundary;
+  a current link-comparison source fault is being qualified separately.
 - **Boundary/effort:** substantial for the cache/listener state machine. Native
   collection/identifier/clone/equality/time and mutex/observation refinement remain
   explicit. Any hash-based identity correspondence is conditional on no collisions

@@ -1,0 +1,537 @@
+{
+  "agents": {
+    "execution": "GPT-6 Luna",
+    "proof_author": "GPT-6.1 Sol",
+    "review": "GPT-6 Astra"
+  },
+  "authoring_failure": {
+    "cause": "rfl did not reduce the generated Option<LinkName> clone through Result bind; downstream sorryAx entries were rejected by the existing audit.",
+    "correction": "Explicit unfold/simplify of Option, LinkName and String clone plus bind. No theorem statement, generated model, external primitive contract or audit guard weakened.",
+    "failed_target_olean_absent": true,
+    "stage": {
+      "argv": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "CacheStartProof.lean",
+        "-o",
+        ".lake/build/lib/lean/CacheStartProof.olean"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check1/run1/source",
+      "elapsed_ms": 2886,
+      "exit": 1,
+      "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check1/run1/evidence/CacheStartProof.log",
+      "log_bytes": 8979,
+      "log_sha256": "4595cc028df59da857fe7386ce5320850c857fde6b7f38efc75fc185182ed14d",
+      "stage": "CacheStartProof",
+      "timed_out": false
+    }
+  },
+  "axiom_guard_total": 103,
+  "axiom_guards": {
+    "CacheCompleteProof": {
+      "count": 13,
+      "declarations": [
+        "CacheCompleteProof.ticket_guard_exact",
+        "CacheCompleteProof.ttl_delay_exact",
+        "CacheCompleteProof.pop_first_exact",
+        "CacheCompleteProof.changed_option_exact",
+        "CacheCompleteProof.room_frames",
+        "CacheCompleteProof.success_frames",
+        "CacheCompleteProof.complete_exact",
+        "CacheCompleteProof.stale_complete",
+        "CacheCompleteProof.successful_complete",
+        "CacheCompleteProof.new_payload_accepted",
+        "CacheCompleteProof.failed_complete",
+        "CacheCompleteProof.false_flag_consumes_ticket",
+        "CacheCompleteProof.discard_key_then_stale_complete"
+      ]
+    },
+    "CacheCompleteSpecification": {
+      "count": 0,
+      "declarations": []
+    },
+    "CacheHistoryProof": {
+      "count": 12,
+      "declarations": [
+        "CacheHistoryProof.start_excludes",
+        "CacheHistoryProof.history_append",
+        "CacheHistoryProof.accepted_start_history",
+        "CacheHistoryProof.accepted_advance_history",
+        "CacheHistoryProof.step_preserves",
+        "CacheHistoryProof.history_preserves",
+        "CacheHistoryProof.reachable_ok",
+        "CacheHistoryProof.generation_fence",
+        "CacheHistoryProof.complete_excludes",
+        "CacheHistoryProof.step_excludes",
+        "CacheHistoryProof.history_excludes",
+        "CacheHistoryProof.discard_suffix_fence"
+      ]
+    },
+    "CacheKeyFrameProof": {
+      "count": 13,
+      "declarations": [
+        "CacheKeyFrameProof.keyOrder_eq",
+        "CacheKeyFrameProof.key_comparison_exact",
+        "CacheKeyFrameProof.map_get_exact",
+        "CacheKeyFrameProof.map_remove_exact",
+        "CacheKeyFrameProof.erase_other",
+        "CacheKeyFrameProof.erase_removed",
+        "CacheKeyFrameProof.cached_exact",
+        "CacheKeyFrameProof.remove_cached_exact",
+        "CacheKeyFrameProof.discard_key_exact",
+        "CacheKeyFrameProof.discard_key_frames",
+        "CacheKeyFrameProof.different_links_distinct",
+        "CacheKeyFrameProof.discard_key_link_isolation",
+        "CacheKeyFrameProof.discard_key_none_some_isolation"
+      ]
+    },
+    "CacheKeyOrderProof": {
+      "count": 11,
+      "declarations": [
+        "CacheKeyOrderProof.code_fields",
+        "CacheKeyOrderProof.keyOrder_code",
+        "CacheKeyOrderProof.code_injective",
+        "CacheKeyOrderProof.actual_comparison_code",
+        "CacheKeyOrderProof.less_iff_code",
+        "CacheKeyOrderProof.less_irrefl",
+        "CacheKeyOrderProof.less_trans",
+        "CacheKeyOrderProof.less_asymm",
+        "CacheKeyOrderProof.less_ne",
+        "CacheKeyOrderProof.greater_iff_reverse",
+        "CacheKeyOrderProof.key_trichotomy"
+      ]
+    },
+    "CacheMapInvariantProof": {
+      "count": 21,
+      "declarations": [
+        "CacheMapInvariantProof.ordered_unique",
+        "CacheMapInvariantProof.erase_members",
+        "CacheMapInvariantProof.erase_ordered",
+        "CacheMapInvariantProof.erase_size_le",
+        "CacheMapInvariantProof.put_members",
+        "CacheMapInvariantProof.put_ordered",
+        "CacheMapInvariantProof.insertion_old_lookup",
+        "CacheMapInvariantProof.put_length_at_insertion",
+        "CacheMapInvariantProof.put_length",
+        "CacheMapInvariantProof.put_existing_size",
+        "CacheMapInvariantProof.tail_ordered",
+        "CacheMapInvariantProof.room_ordered",
+        "CacheMapInvariantProof.room_length",
+        "CacheMapInvariantProof.put_room_capacity",
+        "CacheMapInvariantProof.victim_minimum",
+        "CacheMapInvariantProof.erase_keys",
+        "CacheMapInvariantProof.put_keys",
+        "CacheMapInvariantProof.room_keys",
+        "CacheMapInvariantProof.actual_insert_contract",
+        "CacheMapInvariantProof.actual_remove_contract",
+        "CacheMapInvariantProof.actual_pop_contract"
+      ]
+    },
+    "CacheStartProof": {
+      "count": 16,
+      "declarations": [
+        "CacheStartProof.key_clone_exact",
+        "CacheStartProof.map_insert_exact",
+        "CacheStartProof.put_reads_inserted",
+        "CacheStartProof.put_frames",
+        "CacheStartProof.put_size_bound",
+        "CacheStartProof.put_absent_size",
+        "CacheStartProof.start_exact",
+        "CacheStartProof.old_generation",
+        "CacheStartProof.newer_generation",
+        "CacheStartProof.uncoalesced_capacity",
+        "CacheStartProof.pending_refused",
+        "CacheStartProof.cooling_ready",
+        "CacheStartProof.cooldown_refused",
+        "CacheStartProof.ready_start",
+        "CacheStartProof.ready_accepted",
+        "CacheStartProof.uncoalesced_accepted"
+      ]
+    },
+    "CacheStartSpecification": {
+      "count": 0,
+      "declarations": []
+    },
+    "CacheStateInvariantProof": {
+      "count": 17,
+      "declarations": [
+        "CacheStateInvariantProof.empty_ok",
+        "CacheStateInvariantProof.map_unique",
+        "CacheStateInvariantProof.map_physical",
+        "CacheStateInvariantProof.lookup_member",
+        "CacheStateInvariantProof.lookup_generation",
+        "CacheStateInvariantProof.erase_ok",
+        "CacheStateInvariantProof.insert_below_ok",
+        "CacheStateInvariantProof.insert_room_ok",
+        "CacheStateInvariantProof.prepared_ok",
+        "CacheStateInvariantProof.prepared_generation",
+        "CacheStateInvariantProof.start_outcome_ok",
+        "CacheStateInvariantProof.start_preserves",
+        "CacheStateInvariantProof.remove_cached_preserves",
+        "CacheStateInvariantProof.discard_key_preserves",
+        "CacheStateInvariantProof.complete_outcome_ok",
+        "CacheStateInvariantProof.complete_preserves",
+        "CacheStateInvariantProof.generation_stale_complete"
+      ]
+    }
+  },
+  "boundaries": [
+    "Actual identifier wrappers and their derives now come from Rust extraction; standard String/Option/map/borrow/allocation/destructor/native representation correspondence remains external.",
+    "Instant.add retains the existing Result-valued axiom; clock and ticket callbacks retain arbitrary Results. No total clock addition or global ticket freshness is assumed.",
+    "Only standard Lean axioms are permitted for key/read/invalidation and start leaves. Specified completion/state/history contracts additionally permit the named Instant.add axiom. No sorryAx accepted.",
+    "No server-wide discard_server/retain, pagination, native fingerprint/key construction, async lock linearization or listener/SQL refinement proved.",
+    "Cross-link isolation is for full-key invalidation; arbitrary writes can legitimately evict another key at capacity.",
+    "The previous source controls remain evidence for their recorded older graph; a new current-source link-comparison control is pending, not a result here.",
+    "No Rust change or new native/deployed/model-driven check in this milestone."
+  ],
+  "compiled_source_files": {
+    "CacheCompleteProof.lean": {
+      "bytes": 17119,
+      "sha256": "2126c263a05b3c456a50b9f4a4e110782972d989065145194dda0e695b6052c5"
+    },
+    "CacheCompleteSpecification.lean": {
+      "bytes": 3631,
+      "sha256": "99e9e73c3c5228556671f2f5754d096c640aa30ac902af955be2bd94bcb9bcd9"
+    },
+    "CacheHistoryProof.lean": {
+      "bytes": 20772,
+      "sha256": "03ed390d3d60baa1589409c4cf0b5d0d3b6403a09445ca2ee5c14f0071858e33"
+    },
+    "CacheKeyFrameProof.lean": {
+      "bytes": 16402,
+      "sha256": "cf145afd6cdb8be425d48ce866dd904152e50acc612314bc45987ab76421bdde"
+    },
+    "CacheKeyOrderProof.lean": {
+      "bytes": 5878,
+      "sha256": "1d231c2549e91f1589f88088c9b3e7166bf964b9eb736af213e9129a24a25086"
+    },
+    "CacheMapInvariantProof.lean": {
+      "bytes": 15910,
+      "sha256": "082936af2a4d5c639275a2a1360bb1913dd727b712cdd9cf45b0558029082f40"
+    },
+    "CacheStartProof.lean": {
+      "bytes": 22284,
+      "sha256": "3c539cf2d3e52e2c70df01da4a4bf2f54d871f87e70659185ed2bd4d7d955f18"
+    },
+    "CacheStartSpecification.lean": {
+      "bytes": 3548,
+      "sha256": "ed3e26cbbec913d9709b27ac29d03df6598b5b2606a64a125eeba14295eb887a"
+    },
+    "CacheStateInvariantProof.lean": {
+      "bytes": 14095,
+      "sha256": "d6033c750c81723d08676a195545710c89cc5e681408f242c75ab8e867e8bde5"
+    },
+    "HubDiscoveryCacheState/Funs.lean": {
+      "bytes": 46691,
+      "sha256": "1195e6aefd0393a29dbf36baeaefa69c209f7e3c20af5ea46f3c455e7d07d599"
+    },
+    "HubDiscoveryCacheState/FunsExternal.lean": {
+      "bytes": 17819,
+      "sha256": "05592d30a1aa64db287e21f95698075fdc3fce3965a3b3434767d3c767e08dcf"
+    },
+    "HubDiscoveryCacheState/Types.lean": {
+      "bytes": 4912,
+      "sha256": "415ffe7521bc4d17be4465ca28d3d99f987d26c252a2fabf97cdc9d9f5a1e55f"
+    },
+    "HubDiscoveryCacheState/TypesExternal.lean": {
+      "bytes": 2119,
+      "sha256": "b6856f534c9a16cb72af016f6cfcc88732310e21e15ce15b38feee36426b2124"
+    }
+  },
+  "evidence_class": "implementation-linked model-relative Lean contracts, not whole-Hub or native/deployed equivalence",
+  "inputs": {
+    "manifest_sha256": "4153608e8b2b4fa059aa82592122dab2544cc38a41cd1306fbcf2f8612449cda",
+    "primitive_sources": {
+      "core_cmp_sha256": "56fcfd5ddade64d9205096fb1b830a5356772a4a0f52fee761cf4239ba1e4eb7",
+      "ops_sha256": "c2f45dde6c27c1dec53c067a4f6fdcd2981ae8e3a6c4e3a40e6e4f102df368c5",
+      "private_lakefile_sha256": "ec24f002e4aa4e1c4c6986b8443f4566752f2855d8cae27fa2e07115181c071b",
+      "private_manifest_sha256": "2bbd5afa9c8e51f8033f5715cc74818997fd2640f1cff10b2dc85d165228ed23",
+      "qualified_aeneas_root": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/aeneas/backends/lean",
+      "scalar_eqord_sha256": "6a9f3bd0e4d6346067f0fe4cd16f27d027e10d5c72ccd246d7fea1d4fc545a50"
+    },
+    "runner_sha256": "dd799e1189f4bcb09cd8a16a895df06e9fd1c3f6b239af9ce86b17d293852d13"
+  },
+  "new_claims": [
+    "Full generated key clone and comparison preserve all five fields, with a lossless optional-link component in the lexicographic encoding.",
+    "Actual discard_key terminates normally and retains generation plus every other link's whole cached value, ticket and retry record. Key inequality is derived from unequal links, not assumed as an unrelated key premise.",
+    "Absent and every present link remain distinct, including a represented empty string; no parsing-validity premise.",
+    "All existing exact read/start/complete/invalidation contracts, ordered-map/capacity/state invariants and finite-history generation/ticket fences pass for this extended key domain."
+  ],
+  "primary_olean_outputs": {
+    "CacheCompleteProof.olean": {
+      "bytes": 662280,
+      "sha256": "6c464fa5adb5c10fab046ede0dab0be8fb36b7351aaaf1a950fdac1328775ebc"
+    },
+    "CacheCompleteSpecification.olean": {
+      "bytes": 58264,
+      "sha256": "4d7df8b6d293d04fcd7599eec11f6c848ae191865388e19bacb5935969c2c530"
+    },
+    "CacheHistoryProof.olean": {
+      "bytes": 589072,
+      "sha256": "174e90daf949c70e1794899ea3d3f5dce882e0c1149acc5ae4e0ac947556b45e"
+    },
+    "CacheKeyFrameProof.olean": {
+      "bytes": 857984,
+      "sha256": "1406dd854cbbeec3eb16eecc2ce21acda59818101190bba5710a704b9532d596"
+    },
+    "CacheKeyOrderProof.olean": {
+      "bytes": 103632,
+      "sha256": "16ef785b102f259b05fa8b3ad9cb278b73a67012fc09f252e3633bde983d76fd"
+    },
+    "CacheMapInvariantProof.olean": {
+      "bytes": 364144,
+      "sha256": "04d441d950a8c35fc2e5e3c51579611863a5bdd332fb0cc2d30de02f99e294c2"
+    },
+    "CacheStartProof.olean": {
+      "bytes": 924912,
+      "sha256": "dfbffee827099afd060e098e485e87c29284d51e8b754b88cfbd9db02ab5919d"
+    },
+    "CacheStartSpecification.olean": {
+      "bytes": 88416,
+      "sha256": "eafce0146ca58fd1bbcd0a9e7c64c7d565fb73289ae816f4e10720a2889d479a"
+    },
+    "CacheStateInvariantProof.olean": {
+      "bytes": 367544,
+      "sha256": "6d08d94c6468d5186026264ca120947c9acf9e2f2d0cfad9685075e72d0fcc13"
+    },
+    "HubDiscoveryCacheState/Funs.olean": {
+      "bytes": 176160,
+      "sha256": "f1b306afcd8f80c349fc93b902c11b7a344af215fd4b3e48d470b98cdbebc802"
+    },
+    "HubDiscoveryCacheState/FunsExternal.olean": {
+      "bytes": 209744,
+      "sha256": "dca1f4781b43180730b14f99108dbe801a2437923dc134298aa540b27873d139"
+    },
+    "HubDiscoveryCacheState/Types.olean": {
+      "bytes": 169616,
+      "sha256": "a811ccfb2d3391ccf339a09bf9b22cc658473758f32ce6cb154e3bcc020dbf0d"
+    },
+    "HubDiscoveryCacheState/TypesExternal.olean": {
+      "bytes": 82888,
+      "sha256": "e622aeda5ad41f2cfe39c13f988cd9a7cee597d20078ababd2ffe4d2f11a8174"
+    }
+  },
+  "raw4": {
+    "Funs.lean": {
+      "bytes": 46691,
+      "sha256": "1195e6aefd0393a29dbf36baeaefa69c209f7e3c20af5ea46f3c455e7d07d599"
+    },
+    "FunsExternal_Template.lean": {
+      "bytes": 14462,
+      "sha256": "0621bf0af51ce4e447340abe9d3ee0202373173bb46903ea43057659862287e9"
+    },
+    "Types.lean": {
+      "bytes": 4912,
+      "sha256": "415ffe7521bc4d17be4465ca28d3d99f987d26c252a2fabf97cdc9d9f5a1e55f"
+    },
+    "TypesExternal_Template.lean": {
+      "bytes": 1911,
+      "sha256": "a99c04974ae9c7f974e8773ee3e93d8b9a421123bbbd83929650abf38464a2a7"
+    }
+  },
+  "rust_source": {
+    "core": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "extraction_receipt": "current-key-extraction-20261031.json",
+    "extraction_summary_sha256": "ca19a690fbf58b0c75da2a93b48a3ee1e4d92e5b16a05bf2639976c59940a7eb",
+    "hub": "c23d9ae0f9a50a2a7f2d53e8840279dcfc37090e",
+    "sdk": "7360c0f96cb616c519d27256df214ff4f2e6e831"
+  },
+  "validation": {
+    "corrected_and_downstream_passed_stages": [
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheStartProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheStartProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/source",
+        "elapsed_ms": 3991,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/evidence/CacheStartProof.log",
+        "log_bytes": 8799,
+        "log_sha256": "d5583889f289caa32a7a0b24980d0c90c462c43dd2313d82fddbe33132f96742",
+        "stage": "CacheStartProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheCompleteSpecification.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheCompleteSpecification.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/source",
+        "elapsed_ms": 2381,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/evidence/CacheCompleteSpecification.log",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "CacheCompleteSpecification",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheCompleteProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheCompleteProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/source",
+        "elapsed_ms": 2939,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/evidence/CacheCompleteProof.log",
+        "log_bytes": 7411,
+        "log_sha256": "7711c9cf70a63ff97819042e89782f7281d5f5dce0411393aa78eab257abbb03",
+        "stage": "CacheCompleteProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheKeyOrderProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheKeyOrderProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/source",
+        "elapsed_ms": 2484,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/evidence/CacheKeyOrderProof.log",
+        "log_bytes": 384,
+        "log_sha256": "12b2d6f1f6680bc3708216448cf0502fb07315f4270f189921bc1f1e0e690ae5",
+        "stage": "CacheKeyOrderProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheMapInvariantProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheMapInvariantProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/source",
+        "elapsed_ms": 2640,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/evidence/CacheMapInvariantProof.log",
+        "log_bytes": 2661,
+        "log_sha256": "28b127e6022737b3fab862072cde1d9b758f6224e6085978d6a5ef33c9bd7a2f",
+        "stage": "CacheMapInvariantProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheStateInvariantProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheStateInvariantProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/source",
+        "elapsed_ms": 2640,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/evidence/CacheStateInvariantProof.log",
+        "log_bytes": 1610,
+        "log_sha256": "b6ce5e8a324bb9fe9f9a916633a0ebea3542224aea74ead039740639ae59c138",
+        "stage": "CacheStateInvariantProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheHistoryProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheHistoryProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/source",
+        "elapsed_ms": 2839,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check2/run1/evidence/CacheHistoryProof.log",
+        "log_bytes": 1436,
+        "log_sha256": "8e12d74b50b88472044f3b86925690f7ee120da4fc182845e30e3c0a340be25a",
+        "stage": "CacheHistoryProof",
+        "timed_out": false
+      }
+    ],
+    "first_summary": {
+      "path": "/tmp/hub-discovery-cache-current-20261031/adaptation-check1-mirror/summary.json",
+      "sha256": "3058fd40b3c2c30dbc0860a127297a714d6726b948d4cc502327a717d440b7e8"
+    },
+    "initial_passed_stages": [
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build",
+          "HubDiscoveryCacheState"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check1/run1/source",
+        "elapsed_ms": 16712,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check1/run1/evidence/model-build.log",
+        "log_bytes": 288,
+        "log_sha256": "c5bcd32a79ab35d815ca3b0253eba65dd33b1d256607a5ca48b845ce39f581e6",
+        "stage": "model-build",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheKeyFrameProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheKeyFrameProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check1/run1/source",
+        "elapsed_ms": 6742,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check1/run1/evidence/CacheKeyFrameProof.log",
+        "log_bytes": 6428,
+        "log_sha256": "6bb0b07461a7a15e469f4fc3b66420e34050594d4c4a09ddb98ea9e05dd40f3d",
+        "stage": "CacheKeyFrameProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheStartSpecification.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheStartSpecification.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check1/run1/source",
+        "elapsed_ms": 2530,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/adaptation-check1/run1/evidence/CacheStartSpecification.log",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "CacheStartSpecification",
+        "timed_out": false
+      }
+    ],
+    "model_modules": 4,
+    "passed": true,
+    "proof_modules": 9,
+    "reuse_basis": "Model, CacheKeyFrameProof and CacheStartSpecification artifacts reused only after exact prior summary/source/artifact hash checks. Corrected CacheStartProof and every downstream leaf checked freshly. No changed-source artifact reused.",
+    "reused_prerequisite_artifact_count": 54,
+    "second_summary": {
+      "path": "/tmp/hub-discovery-cache-current-20261031/adaptation-check2-mirror/summary.json",
+      "sha256": "9d63a2a20c48183e4461f7c0e0b62a178fe97b28f744ef4c0b5eaf08fdfb991d"
+    },
+    "successful_stage_total_ms": 45898
+  }
+}

@@ -15,7 +15,7 @@ deriving instance DecidableEq for Key
 
 /-- Full source field order, independently named rather than an assumed result
 of the extracted derive. Native string/UUID representations remain refinement
-boundaries; this is the exact nominal-value model. -/
+boundaries; this is the complete generated String-value model. -/
 def thenOrder (first next : Ordering) : Ordering :=
   match first with | .eq => next | other => other
 
@@ -27,10 +27,10 @@ def lexOrder {T : Type} (order : T → T → Ordering) : List T → List T → O
 
 def keyOrder (left right : Key) : Ordering :=
   thenOrder (compare left.catalog_generation.val right.catalog_generation.val)
-    (thenOrder (compare left.principal.value right.principal.value)
+    (thenOrder (compare left.principal right.principal)
       (thenOrder (lexOrder (fun a b : U8 => compare a.val b.val)
           left.authorization_fingerprint.val right.authorization_fingerprint.val)
-        (compare left.server.value right.server.value)))
+        (thenOrder (compare left.server right.server) (compare left.link right.link))))
 
 theorem thenOrder_eq (first next : Ordering) :
     thenOrder first next = .eq ↔ first = .eq ∧ next = .eq := by
@@ -46,9 +46,16 @@ theorem lexOrder_eq {T : Type} (order : T → T → Ordering)
     | nil => simp [lexOrder]
     | cons other tail => simp [lexOrder, thenOrder_eq, law, recursive]
 
-private theorem id_eq (tag : Nat) (left right : NativeId tag) :
-    left.value = right.value ↔ left = right := by
-  cases left; cases right; simp
+private theorem option_compare_eq (left right : Option _root_.String) :
+    compare left right = .eq ↔ left = right := by
+  cases left with
+  | none => cases right <;> simp [compare]
+  | some left =>
+    cases right with
+    | none => simp [compare]
+    | some right =>
+      change compare left right = .eq ↔ some left = some right
+      simp only [_root_.compare_eq_iff_eq, Option.some.injEq]
 
 theorem keyOrder_eq (left right : Key) :
     keyOrder left right = .eq ↔ left = right := by
@@ -56,7 +63,7 @@ theorem keyOrder_eq (left right : Key) :
     rw [_root_.compare_eq_iff_eq]
     exact (UScalar.eq_equiv left right).symm
   simp only [keyOrder, thenOrder_eq, _root_.compare_eq_iff_eq,
-    lexOrder_eq _ scalar, ← Array.eq_iff, id_eq]
+    lexOrder_eq _ scalar, ← Array.eq_iff, option_compare_eq]
   rw [← UScalar.eq_equiv]
   cases left; cases right; simp
 
@@ -86,20 +93,26 @@ theorem key_comparison_exact (left right : Key) :
     (liftFun2 core.cmp.impls.OrdU8.cmp)
     (fun a b : U8 => compare a.val b.val) bytes
     left.authorization_fingerprint.val right.authorization_fingerprint.val
+  have link : core.option.Option.Insts.CoreCmpOrd.cmp
+      veoveo_hub_sdk.hub.tool_name.LinkName.Insts.CoreCmpOrd left.link right.link =
+      .ok (compare left.link right.link) := by
+    cases left.link <;> cases right.link <;> rfl
   unfold keyCmp mcp.discovery.DiscoveryCacheKey.Insts.CoreCmpOrd.cmp
+  rw [link]
   simp only [veoveo_types.identity.PrincipalId.Insts.CoreCmpOrd.cmp,
     veoveo_types.platform_names.ServerSlug.Insts.CoreCmpOrd.cmp,
-    Array.Insts.CoreCmpOrd.cmp]
+    alloc.string.String.Insts.CoreCmpOrd.cmp, Array.Insts.CoreCmpOrd.cmp]
   rw [fingerprint]
   have generation : (lift (core.cmp.impls.OrdU64.cmp left.catalog_generation right.catalog_generation) : Result Ordering) =
       .ok (compare left.catalog_generation.val right.catalog_generation.val) := by rfl
   rw [generation]
   simp only [bind_tc_eq, bind_ok]
   cases first : compare left.catalog_generation.val right.catalog_generation.val <;>
-    cases second : compare left.principal.value right.principal.value <;>
+    cases second : compare left.principal right.principal <;>
     cases third : lexOrder (fun a b : U8 => compare a.val b.val)
       left.authorization_fingerprint.val right.authorization_fingerprint.val <;>
-    simp [keyOrder, thenOrder, first, second, third, bind_ok]
+    cases fourth : compare left.server right.server <;>
+    simp [keyOrder, thenOrder, first, second, third, fourth, bind_ok]
 
 /-- Independent finite-map observations. Whole values, including every payload
 field, are returned; there is no projection to descriptor counts. -/
@@ -265,6 +278,48 @@ theorem discard_key_frames {T : Type} (state : State T) (removed query : Key)
     lookup query (erase removed state.failed) = lookup query state.failed :=
   ⟨erase_other _ _ _ different, erase_other _ _ _ different, erase_other _ _ _ different⟩
 
+/-- A different optional link makes the complete source keys distinct. -/
+theorem different_links_distinct (removed query : Key)
+    (different : query.link ≠ removed.link) : query ≠ removed := by
+  intro same
+  exact different (congrArg (fun key : Key => key.link) same)
+
+/-- Actual key invalidation preserves the other link's complete cache entry,
+ticket and retry record, not just an independently defined erase operation. -/
+theorem discard_key_link_isolation {T : Type} (clone : core.clone.Clone T)
+    (eq : core.cmp.PartialEq T T) (state : State T) (removed query : Key)
+    (different : query.link ≠ removed.link) :
+    ∃ final : State T,
+      mcp.discovery.SurfaceState.discard_key clone eq state removed = .ok final ∧
+      final.generation = state.generation ∧
+      lookup query final.entries = lookup query state.entries ∧
+      lookup query final.in_flight = lookup query state.in_flight ∧
+      lookup query final.failed = lookup query state.failed := by
+  refine ⟨{ state with
+    entries := erase removed state.entries
+    in_flight := erase removed state.in_flight
+    failed := erase removed state.failed },
+    discard_key_exact clone eq state removed, rfl, ?_⟩
+  exact discard_key_frames state removed query (different_links_distinct removed query different)
+
+/-- Absence and every present link are different, including represented empty
+strings: no parsing-validity premise or default-empty encoding is used. -/
+theorem discard_key_none_some_isolation {T : Type} (clone : core.clone.Clone T)
+    (eq : core.cmp.PartialEq T T) (state : State T) (key : Key)
+    (link : veoveo_hub_sdk.hub.tool_name.LinkName) :
+    ∃ final : State T,
+      mcp.discovery.SurfaceState.discard_key clone eq state { key with link := none } =
+        .ok final ∧
+      final.generation = state.generation ∧
+      lookup { key with link := some link } final.entries =
+        lookup { key with link := some link } state.entries ∧
+      lookup { key with link := some link } final.in_flight =
+        lookup { key with link := some link } state.in_flight ∧
+      lookup { key with link := some link } final.failed =
+        lookup { key with link := some link } state.failed := by
+  exact discard_key_link_isolation clone eq state
+    { key with link := none } { key with link := some link } (by simp)
+
 end
 end CacheKeyFrameProof
 
@@ -273,6 +328,8 @@ end CacheKeyFrameProof
 #print axioms CacheKeyFrameProof.remove_cached_exact
 #print axioms CacheKeyFrameProof.discard_key_exact
 #print axioms CacheKeyFrameProof.discard_key_frames
+#print axioms CacheKeyFrameProof.discard_key_link_isolation
+#print axioms CacheKeyFrameProof.discard_key_none_some_isolation
 
 run_cmd do
   let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
@@ -280,7 +337,9 @@ run_cmd do
       ``CacheKeyFrameProof.map_get_exact, ``CacheKeyFrameProof.map_remove_exact,
       ``CacheKeyFrameProof.erase_other, ``CacheKeyFrameProof.erase_removed,
       ``CacheKeyFrameProof.cached_exact, ``CacheKeyFrameProof.remove_cached_exact,
-      ``CacheKeyFrameProof.discard_key_exact, ``CacheKeyFrameProof.discard_key_frames] do
+      ``CacheKeyFrameProof.discard_key_exact, ``CacheKeyFrameProof.discard_key_frames,
+      ``CacheKeyFrameProof.different_links_distinct, ``CacheKeyFrameProof.discard_key_link_isolation,
+      ``CacheKeyFrameProof.discard_key_none_some_isolation] do
     let dependencies ← Lean.collectAxioms declaration
     unless dependencies.all (fun dependency => allowed.contains dependency) do
       throwError "unexpected cache read/key-frame axiom in {declaration}: {dependencies}"
