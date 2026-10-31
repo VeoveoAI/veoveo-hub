@@ -7,7 +7,7 @@ use axum::{
     http::StatusCode,
     middleware,
     response::IntoResponse,
-    routing::{any, get, post},
+    routing::{any, delete, get, post},
 };
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use parking_lot::RwLock;
@@ -28,8 +28,8 @@ use veoveo_hub_sdk::{
 
 use super::{
     admin::{
-        cancel_task, prune_jwt_revocations, read_control_plane, read_server_health, revoke_jwt,
-        update_control_plane, validate_control_plane,
+        cancel_task, end_person_sessions, prune_jwt_revocations, read_control_plane,
+        read_server_health, revoke_jwt, update_control_plane, validate_control_plane,
     },
     auth::{
         authenticate_mcp, authorization_server_jwks, authorization_server_metadata,
@@ -371,6 +371,10 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             get(super::admin::console_audit::export_audit),
         )
         .route("/admin/{profile}/jwt-revocations", post(revoke_jwt))
+        .route(
+            "/admin/{profile}/people/{email}/sessions",
+            delete(end_person_sessions),
+        )
         .route(
             "/admin/{profile}/jwt-revocations/prune",
             post(prune_jwt_revocations),

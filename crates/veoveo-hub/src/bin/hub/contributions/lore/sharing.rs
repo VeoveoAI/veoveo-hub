@@ -2,12 +2,13 @@
 //! /lore/{profile}/repositories/{id}/access` read and set who may reach a repository of
 //! the installation's one Lore deployment; `GET` and `POST /lore/{profile}/groups` list the
 //! caller's groups and create one; `PUT /lore/{profile}/groups/{name}/members` sets a
-//! membership. They take any authenticated caller with a tenant, directly or through a
-//! server that calls the Hub for them, as the creation route does; what a caller may do is
-//! decided by the section's assignments and memberships (`changes.rs`). People are named
-//! by the email they signed in with (`hub.person`) and groups by name; IDs stay inside the
-//! Hub. Each change publishes one control-plane revision and answers once it is active in
-//! this process.
+//! membership, and `DELETE /lore/{profile}/groups/{name}` deletes the group. They take any
+//! authenticated caller with a tenant, directly or through a server that calls the Hub for
+//! them, as the creation route does; what a caller may do is decided by the section's
+//! assignments and memberships (`changes.rs`). People are named by the email they signed
+//! in with (`hub.person`) and groups by name; a group's answer also shows its ID, which
+//! grants outside Lore name it by. Each change publishes one control-plane revision and
+//! answers once it is active in this process.
 mod changes;
 
 use std::collections::BTreeSet;
@@ -19,7 +20,7 @@ use axum::{
     extract::{Path, State},
     http::{HeaderValue, StatusCode, header::CACHE_CONTROL},
     response::{IntoResponse, Response},
-    routing::{get, put},
+    routing::{delete, get, put},
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use veoveo_hub::{
@@ -52,6 +53,7 @@ pub(crate) fn router(state: AdminState, auth: ProfileAuthState) -> Router {
             "/lore/{profile}/groups",
             get(read_groups).post(create_group),
         )
+        .route("/lore/{profile}/groups/{name}", delete(delete_group))
         .route("/lore/{profile}/groups/{name}/members", put(set_membership))
         .with_state(state)
         .layer(axum::middleware::from_fn_with_state(
@@ -196,20 +198,7 @@ async fn read_groups(
     Extension(subject): Extension<AuthenticatedSubject>,
 ) -> Result<Response, Problem> {
     let (tenant, _, section) = context(&state, &subject)?;
-    let mut groups = section
-        .memberships(&tenant, &subject.principal.id)
-        .collect::<Vec<_>>();
-    groups.sort_by(|a, b| a.name.cmp(&b.name));
-    let principals = groups
-        .iter()
-        .flat_map(|group| group.members.iter().map(|m| m.principal.clone()))
-        .collect();
-    let people = people(&state, &tenant, principals).await?;
-    let groups = groups
-        .into_iter()
-        .map(|group| group_view(group, &people))
-        .collect();
-    Ok(answer(StatusCode::OK, &GroupList { groups }))
+    group_list(&state, &tenant, &subject.principal.id, &section).await
 }
 
 async fn create_group(
@@ -261,6 +250,25 @@ async fn set_membership(
     })
     .await?;
     group_answer(&state, &tenant, &section, &name, StatusCode::OK).await
+}
+
+async fn delete_group(
+    State(state): State<AdminState>,
+    Extension(subject): Extension<AuthenticatedSubject>,
+    Path((_, name)): Path<(String, String)>,
+) -> Result<Response, Problem> {
+    let (tenant, _, _) = context(&state, &subject)?;
+    let name = GroupName::parse(&name).map_err(|_| refused(Refusal::UnknownGroup))?;
+    let caller = Caller {
+        tenant: &tenant,
+        principal: &subject.principal.id,
+    };
+    let section = publish(&state, &subject, &tenant, |section| {
+        section.delete_group(caller, &name)?;
+        Ok(true)
+    })
+    .await?;
+    group_list(&state, &tenant, &subject.principal.id, &section).await
 }
 
 /// The caller's tenant, the installation's one Lore deployment and the active Lore
@@ -474,6 +482,27 @@ fn group_view(group: &Group, people: &[Person]) -> GroupView {
     }
 }
 
+/// The groups `principal` belongs to, by name.
+async fn group_list(
+    state: &AdminState,
+    tenant: &TenantId,
+    principal: &PrincipalId,
+    section: &Lore,
+) -> Result<Response, Problem> {
+    let mut groups = section.memberships(tenant, principal).collect::<Vec<_>>();
+    groups.sort_by(|a, b| a.name.cmp(&b.name));
+    let principals = groups
+        .iter()
+        .flat_map(|group| group.members.iter().map(|m| m.principal.clone()))
+        .collect();
+    let people = people(state, tenant, principals).await?;
+    let groups = groups
+        .into_iter()
+        .map(|group| group_view(group, &people))
+        .collect();
+    Ok(answer(StatusCode::OK, &GroupList { groups }))
+}
+
 async fn group_answer(
     state: &AdminState,
     tenant: &TenantId,
@@ -552,7 +581,7 @@ fn refused(refusal: Refusal) -> Problem {
             StatusCode::FORBIDDEN,
             "group-owner-required",
             "Only an owner changes the group",
-            "You are not an owner of this group. Ask one of its owners to change its members.",
+            "You are not an owner of this group. Ask one of its owners to make the change.",
         ),
         Refusal::GroupTaken => (
             StatusCode::CONFLICT,
@@ -575,6 +604,14 @@ fn refused(refusal: Refusal) -> Problem {
             "This change would leave you without the owner role in the group, so it was not \
              made. To give up ownership, make another member an owner and ask them to change \
              your role.",
+        ),
+        Refusal::GroupOwnsRepository => (
+            StatusCode::CONFLICT,
+            "group-owns-repository",
+            "The group is a repository's one owner",
+            "Deleting this group would leave a repository it owns without an owner, so it was \
+             not deleted. Make a person or another group an owner of each repository the group \
+             owns, then delete it.",
         ),
     };
     Problem::new(status, code, title).detail(detail)

@@ -25,9 +25,10 @@ use uuid::Uuid;
 use super::{
     ComputerId,
     lifecycle::{OPERATION_DEADLINE, OPERATION_STALE, running},
-    provisioning::{Installation, phase},
+    provisioning::{Installation, Provisioner, phase},
 };
 use crate::{HubCatalogHandle, HubState, store::Computer};
+use veoveo_types::{PrincipalId, TenantId};
 
 /// How often the Hub looks for idle Computers. Collection waits hours.
 const SWEEP_INTERVAL: Duration = Duration::from_secs(300);
@@ -201,15 +202,7 @@ impl Collection {
         // A browser request since the decision keeps the Computer.
         let collected = if self.browser.last(&computer.id) == browser {
             let started = std::time::Instant::now();
-            let removed =
-                tokio::time::timeout(OPERATION_DEADLINE, provisioner.remove(computer, operation))
-                    .await
-                    .unwrap_or_else(|_| {
-                        Err(anyhow::anyhow!(
-                            "the sandbox was not gone within {} s",
-                            OPERATION_DEADLINE.as_secs()
-                        ))
-                    });
+            let removed = remove(&provisioner, computer, operation).await;
             let seconds = started.elapsed().as_secs_f64();
             match removed {
                 Ok(()) => {
@@ -236,6 +229,81 @@ impl Collection {
             .await?;
         Ok(())
     }
+}
+
+/// What stopping a person's Computer did.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Stop {
+    /// Its sandbox was deleted and its home kept; its next entry creates it again.
+    Stopped,
+    /// No sandbox of it ran.
+    NotRunning,
+    /// A replacement holds it, so its sandbox runs on.
+    Busy,
+    /// The person has no Computer, or the installation runs none.
+    None,
+}
+
+/// Stop the Computer `principal` owns in `tenant` now, as a collection does whatever its
+/// idle times: delete its sandbox and keep its home.
+pub async fn stop_owned(
+    hub: &HubState,
+    catalog: &crate::HubCatalog,
+    tenant: &TenantId,
+    principal: &PrincipalId,
+) -> Result<Stop> {
+    let Some(computers) = catalog
+        .runtime
+        .as_ref()
+        .and_then(|runtime| runtime.computers.as_ref())
+    else {
+        return Ok(Stop::None);
+    };
+    let Some(computer) = hub.hub_store().owned_computer(tenant, principal).await? else {
+        return Ok(Stop::None);
+    };
+    let provisioner = computers.installation.for_computer(&computer)?;
+    if provisioner
+        .sandbox(&computer.native_name())
+        .await?
+        .is_none()
+    {
+        return Ok(Stop::NotRunning);
+    }
+    let store = hub.hub_store();
+    let operation = Uuid::now_v7();
+    let claimed = Utc::now();
+    if !store
+        .claim_computer_operation(
+            &computer,
+            operation,
+            &computer.provisioning,
+            claimed,
+            claimed - OPERATION_STALE,
+        )
+        .await?
+    {
+        return Ok(Stop::Busy);
+    }
+    let removed = remove(&provisioner, &computer, operation).await;
+    store
+        .end_computer_collection(&computer, operation, removed.is_ok().then(Utc::now))
+        .await?;
+    removed.map(|()| Stop::Stopped)
+}
+
+/// Delete `computer`'s sandbox under its claimed `operation`, within
+/// [`OPERATION_DEADLINE`].
+async fn remove(provisioner: &Provisioner, computer: &Computer, operation: Uuid) -> Result<()> {
+    tokio::time::timeout(OPERATION_DEADLINE, provisioner.remove(computer, operation))
+        .await
+        .unwrap_or_else(|_| {
+            Err(anyhow::anyhow!(
+                "the sandbox was not gone within {} s",
+                OPERATION_DEADLINE.as_secs()
+            ))
+        })
 }
 
 #[cfg(test)]

@@ -194,7 +194,9 @@ level the cause deserves.
 - **Registered servers.** A server's connection that closes, as when its sandbox is
   replaced, is a reconnect: discovery and idempotent requests retry once on new
   connections ([Upstream Transport](#upstream-transport)), each logging one WARN that
-  names the server and the transport error.
+  names the server and the transport error. A transport error names each of its causes
+  after the request, such as a refused, reset or closed connection, in the log and in
+  the refusal alike.
 
 ## Configuration
 
@@ -990,12 +992,12 @@ and receives no `ui/notifications/resource-updated` wake.
 | `/.well-known/oauth-authorization-server/oauth`, `/oauth/.well-known/openid-configuration`, `/.well-known/oauth-protected-resource/mcp/{profile}` | Hosted authorization server metadata at its RFC 8414 and OpenID discovery locations, and protected resource metadata |
 | `/mcp/{profile}` | The profile's MCP endpoint |
 | `/console-api/{profile}/session` | Console session bootstrap |
-| `/admin/{profile}/...` | Configuration, audit, JWT revocation, Task cancellation, server health and usage |
+| `/admin/{profile}/...` | Configuration, audit, JWT revocation, ending a person's sessions, Task cancellation, server health and usage |
 | `PUT`/`DELETE /selection/{profile}/{server}` | The caller's branch for a server, or back to the base branch; 204 |
 | `PUT /factory/{profile}/watch?repository=<id>` | The Hub watches a Lore repository as the caller; 204, or 403 without the caller's grant |
 | `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
 | `GET`/`PUT /lore/{profile}/repositories/{id}/access` | Who may reach a repository; an owner shares it with a person or a group ([groups and sharing](#groups-and-sharing)) |
-| `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members` | The caller's groups; creating one; an owner sets a membership |
+| `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members`, `DELETE /lore/{profile}/groups/{name}` | The caller's groups; creating one; an owner sets a membership or deletes the group |
 | `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person holds a grant on, own or through a group, for Lore's repository listing |
 | `POST /ucs.auth.RebacApi/CreateResource` | gRPC: registers the repository Lore is about to create, its creator its owner |
 | `POST /ucs.auth.RebacApi/DeleteResource` | gRPC: removes the repository Lore is about to delete, when an owner deletes it |
@@ -1246,7 +1248,9 @@ level that replaces an administrator's actions and removes it, and is refused, w
 nothing changed, a change that would leave them without `owner`; someone without
 `owner`, an unknown repository or group and another tenant's repository are refused; a
 group's creator is its one member and owner, a name is taken once in a tenant, only an
-owner sets memberships and no owner lowers or removes themselves; only an owner, own or
+owner sets memberships and no owner lowers or removes themselves; only an owner deletes
+a group, which takes every assignment naming it, and not while it is a repository's one
+owner; only an owner, own or
 through a group and of the repository's tenant, deletes a repository, which takes every
 assignment on it, and an unregistered one leaves nothing to remove; and what the changes
 leave is admitted. They also check the listing's caller, tenant and deployment bounds,
@@ -1275,7 +1279,9 @@ lets that principal's repository token be issued and Lore's listing name the rep
 with `owner`; removing the membership takes both away. An administrator's assignment
 with other actions is listed with them and replaced by the level an owner sets, and a
 principal without a `hub.person` row is listed with a null email and name after the
-people. No identity provider or Lore server is involved.
+people. Deleting the group, refused to a member who is not its owner, answers the
+caller's remaining groups and takes its assignment off the repository, and a second
+deletion answers `group-not-found`. No identity provider or Lore server is involved.
 
 `tests/oauth.rs` starts the binary the same way and checks over HTTP the token
 endpoint's error code for a wrongly signed, expired, replayed or misaddressed
@@ -1398,29 +1404,39 @@ router.
 #### Computer versions
 
 A Computer version is everything a new sandbox gets from the installation: the
-template, the policy and the Hub's Computer settings, which a typed provision snapshot
-holds (workload settings, native policy/template protobufs, selected persistence
-backend and model secret locator, never access/refresh tokens or actual model
-credentials). Its name is the first twelve hexadecimal digits of the SHA-256, under
-the domain `https://veoveo.ai/formats/computer-version` and a NUL byte, of a canonical
-document: the template's spec with its environment as a sorted map, OpenShell's
-canonical policy JSON, and the settings without the handbook, the forwarding capacity,
-the collection setting, the gateway connection and the template's and policy file's
-names. Protobuf maps encode
-in no fixed order, so neither protobuf enters the digest as stored. The same inputs
-name the same version whatever their names or object identity.
+template, the policy, the Hub's Computer settings, and the supervisor and sandbox
+runtime images the gateway's driver gives every sandbox, which a typed provision
+snapshot holds (workload settings, native policy/template protobufs, selected
+persistence backend, the driver's images, and model secret locator, never
+access/refresh tokens or actual model credentials). Only the gateway's configuration
+sets those images, and OpenShell refuses them in a template, so the Hub reads them from
+the driver's capabilities in `GetGatewayInfo`, where it reads the backend.
+
+Its name is the first twelve hexadecimal digits of the SHA-256, under the domain
+`https://veoveo.ai/formats/computer-version` and a NUL byte, of a canonical document:
+the template's spec with its environment as a sorted map, OpenShell's canonical policy
+JSON, the settings without the handbook, the forwarding capacity, the collection
+setting, the gateway connection and the template's and policy file's names, and the
+driver's images when it reports any. A supervisor or runtime change therefore names a
+new version, which every running Computer is offered; a driver that reports none
+leaves the version as it was. Protobuf maps encode in no fixed order, so neither
+protobuf enters the digest as stored. The same inputs name the same version whatever
+their names or object identity.
 
 The template's annotation `veoveo.ai/release-note` is the version's release note,
 written by whoever publishes the template; its first line is the version's summary.
 OpenShell keeps a template's annotations through creation. What a version brings over
 the one the Computer runs is what differs between them: its note, when that differs
 from the note of the version the Computer runs or that one's is unknown, and, with or
-without a note, the mechanical differences: a changed image, and each network rule's
-endpoints (`host:port` and any path) added or removed. A version that changes only
-through the policy or the Hub's Computer settings keeps the template's note, which is
-then not new and is not listed again.
+without a note, the mechanical differences: a changed image, a changed supervisor or
+sandbox runtime image (from none for a version recorded before the driver reported
+them), and each network rule's endpoints (`host:port` and any path) added or
+removed. A version that changes only through the policy, the Hub's Computer settings or
+the driver's images keeps the template's note, which is then not new and is not listed
+again.
 The JSON status carries those differences as they are; the start and status pages say
-them for people: "The Computer's software was updated" for a new image, and where the
+them for people: "The Computer's software was updated" for a new image, "The platform
+that runs your Computer was updated" for a new supervisor or runtime, and where the
 Computer can now, or can no longer, connect, without image references or rule names.
 The status page says what the Computer is doing in plain words (running, starting,
 stopping, asleep after collection, or failed with its cause) and what the person can
@@ -1491,7 +1507,7 @@ Without the setting nothing is collected. It is not part of the Computer version
 
 The proxy records, in memory, the time of each browser request it forwards to a
 Computer. OpenShell records the sandbox's traffic as `SandboxStatus.last_activity_time`
-(pin `c28524bdd`): the latest 10-second activity summary from the supervisor that held
+(pin `c80bda201`): the latest 10-second activity summary from the supervisor that held
 an allowed proxied connection or L7 request, written at most once a minute and kept
 across gateway restarts. A long-lived connection counts once, when it opens. A sandbox
 with no recorded traffic counts from its creation. Both times count from no earlier
@@ -1648,7 +1664,12 @@ most 32 concurrent streams on one connection to the gateway: a stream beyond the
 unannounced, until another ends. Forwards therefore ride gateway connections of their
 own, apart from the native RPCs, at most 32 forwards on each, each opened at its first
 forward and kept. Computers have `computers.forwardingConnectionLimit` forwards and
-servers 64, so that limit, never a connection's streams, is what refuses a forward.
+servers 64, so that limit, never a connection's streams, is what refuses a forward. A
+Computer request beyond its limit is refused at once. A connection to a server holds its
+forward only while it carries a request or a stream, because the Hub keeps no idle
+connection to a server; one beyond the 64 waits up to ten seconds for another to end,
+then is refused with a WARN. A forward the gateway refuses logs WARN with the gateway's
+status.
 The online-only native app must be used; mounted UI caches are convenience, not a
 same-origin browser security boundary or a guarantee about previously loaded data.
 
@@ -1699,6 +1720,27 @@ revokes using ClientRevocation, clears successor delivery envelopes, and commits
 native `hub.authentication` Revoke record with BrowserSession method. A newer
 handoff cannot be revoked by the old cookie. The cookie is cleared only after that
 operation succeeds (or when there is no current admitted session).
+
+An administrator ends every session of a person with
+`DELETE /admin/{profile}/people/{email}/sessions`, as when the person's access changes in
+the identity provider, whose roles, groups and data labels a session keeps from its
+sign-in. It names the person of the caller's tenant who signed in with that email, needs
+`admin_write` and is audited as the `sessions_end` operation on
+`veoveo://people/{tenant}/{principal}`. One transaction locks the person's Computer first,
+as custody does, and clears its Lore client, so no secret mints a Lore token for it; it
+revokes each of the person's unexpired families with `administrator_revocation` and clears
+their successor deliveries. The Hub then stops the person's Computer as collection does:
+its sandbox is deleted, its home kept, and its next entry, after a sign-in, creates it
+again with a new Lore client. Every request of those families is refused from then on;
+the Computer's Lore tokens go with its sandbox, since they never leave it; and the next
+sign-in brings what the identity provider names then. The answer names the person, the
+sessions ended and the Computer: `stopped`, `notRunning`, `busy` while a replacement holds
+it, which then starts without a session or a Lore client, or `none`. It is 404
+`person-not-found` when no one of the tenant signed in with that email, and 502
+`computer-not-stopped` when the sandbox could not be removed, after the sessions ended;
+ending them again is harmless. A Lore token issued outside a Computer keeps its rights
+until it expires under the deployment's token lifetime, a forwarded token for at most 60
+seconds, and a Task the authority of the call that created it.
 
 The native audit declaration flow updates a changed class's documenting schema
 in place before startup records are written. The added `browser_session` method
@@ -1803,12 +1845,19 @@ membership. From there the existing contracts carry them, and nothing else chang
 
 | Contract | Carries | Decides |
 |---|---|---|
-| The installation's roles, grants and policy rules, in `policy::decide` | the subject's `groups` | a role granted to `{"group": "<id>"}` is held through the group, so the caller's `tools/list`, admission and forwarded permissions follow it |
-| Work Context memberships | the subject's `groups` | a membership naming the group |
+| The installation's roles, grants and policy rules, in `policy::decide` | the subject's `groups` | a role granted to one of them is held through it, so the caller's `tools/list`, admission and forwarded permissions follow it |
+| Work Context memberships | the subject's `groups` | a membership naming one of them |
 | The forwarded token, RFC 9068 | `groups`, which the SDK requires to equal the embedded actor's | each server's own decisions over groups |
 | The invocation claim `https://veoveo.ai/claims/invocation` | the actor's `group_roles` | the SDK's `Principal::group_memberships`, by which Artifact caps a group grant |
 | Token exchange, RFC 8693 | the caller as the forwarded token or the Task's route retains it, groups included | the roles evaluated again at each exchange |
 | A server's call for a caller | no groups: its actor is the server, and the SDK refuses a server actor with groups | nothing through groups, as before |
+
+The installation names only what exists before it is published: people and its identity
+provider's groups. Its roles, rules and Work Context memberships therefore never name a
+Lore group, which people make and delete at runtime. A Lore group is named by the grants
+people make at runtime: Lore's assignments, and each server's own, such as Artifact's.
+Whether a person may call a billed or other risky tool is their role's to decide, never a
+Lore group's.
 
 What is granted to a group is therefore held by whomever its owners add. A group granted
 `write` on an artifact lets every member write, and one granted `admin` lets its owners
@@ -1851,6 +1900,7 @@ the section alone (`sharing/changes.rs`). Fields that need two words are camelCa
 | `POST /lore/{profile}/groups` | anyone | `{"name": "<name>"}`: creates the group with the caller as its one member, its owner; 201 with the group |
 | `GET /lore/{profile}/groups` | anyone | `{"groups": [<group>]}`: the groups the caller belongs to, by name |
 | `PUT /lore/{profile}/groups/{name}/members` | an owner of the group | `{"person": "<email>", "role": "member", "owner" or "none"}`: sets or removes that membership, and answers the group |
+| `DELETE /lore/{profile}/groups/{name}` | an owner of the group | Deletes the group and every assignment naming it, and answers the caller's groups as `GET` does. A grant outside Lore naming its `id` holds nothing afterwards: no group is given that ID again |
 
 The access list is `{"repository": "<id>", "access": [<entry>]}`, each entry an
 assignment on the repository: `{"person": {"email", "name"}, "access", "actions"}` or
@@ -1876,7 +1926,8 @@ a grant on it 403 `repository-access-forbidden`, and changing it without `owner`
 `group-owner-required`, and a taken group name 409 `group-exists`. A change that would
 leave the caller without `owner` on the repository, own or through a group, answers 409
 `repository-owner-kept`, and one that would lower or remove the caller's own owner role
-in a group 409 `group-owner-kept`, so neither is ever left without an owner by these
+in a group 409 `group-owner-kept`, and deleting a group that is the one owner of a
+repository 409 `group-owns-repository`, so neither is ever left without an owner by these
 routes. A body of another shape answers 400 `invalid-request`, an invalid group name 400
 `invalid-group-name`, and a failed read or publication 503 `sharing-unavailable`.
 

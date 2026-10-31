@@ -99,6 +99,9 @@ fn whats_new(changes: &WhatsNew) -> String {
     if changes.image.is_some() {
         items.push_str("<li>The Computer's software was updated.</li>");
     }
+    if changes.supervisor.is_some() || changes.sandbox_runtime.is_some() {
+        items.push_str("<li>The platform that runs your Computer was updated.</li>");
+    }
     for (rules, sentence) in [
         (
             &changes.network_rules_added,
@@ -413,6 +416,11 @@ mod tests {
                 from: "registry.veoveo-system.svc/computer@sha256:0a1b".into(),
                 to: "registry.veoveo-system.svc/computer@sha256:2c3d".into(),
             }),
+            supervisor: Some(ImageChange {
+                from: "registry.veoveo-system.svc/openshell/supervisor@sha256:4e5f".into(),
+                to: "registry.veoveo-system.svc/openshell/supervisor@sha256:6a7b".into(),
+            }),
+            sandbox_runtime: None,
             network_rules_added: vec![
                 NetworkRule {
                     name: "model".into(),
@@ -435,6 +443,10 @@ mod tests {
         assert!(text.contains("<li>Faster builds</li>"), "{text}");
         assert!(
             text.contains("<li>The Computer's software was updated.</li>"),
+            "{text}"
+        );
+        assert!(
+            text.contains("<li>The platform that runs your Computer was updated.</li>"),
             "{text}"
         );
         assert!(

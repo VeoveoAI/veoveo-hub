@@ -187,8 +187,24 @@ impl HubAuthorizedHttpClient {
 pub(super) enum HubAuthorizedHttpError {
     #[error("failed to issue hub internal request token: {0}")]
     InternalToken(InternalTokenError),
-    #[error("upstream HTTP request failed: {0}")]
+    #[error("upstream HTTP request failed: {}", WithCauses(.0))]
     Http(reqwest::Error),
+}
+
+/// reqwest's message names the request but not its cause, such as a refused, reset or
+/// closed connection, so each source follows it.
+struct WithCauses<'a>(&'a reqwest::Error);
+
+impl std::fmt::Display for WithCauses<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}", self.0)?;
+        let mut source = std::error::Error::source(self.0);
+        while let Some(cause) = source {
+            write!(formatter, ": {cause}")?;
+            source = cause.source();
+        }
+        Ok(())
+    }
 }
 
 impl StreamableHttpClient for HubAuthorizedHttpClient {

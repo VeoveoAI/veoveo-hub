@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Revoke one bounded batch of the person's unexpired families that are not revoked yet.\n-- The caller repeats until a batch comes back short.\nUPDATE hub.refresh_family\nSET revoked_at = $3, revocation_reason = $4\nWHERE id IN (\n    SELECT id FROM hub.refresh_family\n    WHERE tenant = $1 AND principal_id = $2 AND revoked_at IS NULL AND expires_at > $3\n    ORDER BY id\n    LIMIT 1000\n    FOR UPDATE\n)\nRETURNING id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.refresh_family",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "308328b90308b24690b2c8ec4048d1b90375c6519cf986a16d7da429cca804e9"
+}

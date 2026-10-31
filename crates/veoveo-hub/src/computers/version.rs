@@ -1,6 +1,6 @@
 //! A Computer version: everything a new sandbox gets from the installation, the
-//! template, the policy and the Hub's Computer settings, named by a short digest; and
-//! what changed between two versions.
+//! template, the policy, the Hub's Computer settings and the gateway's supervisor and
+//! runtime images, named by a short digest; and what changed between two versions.
 use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{Context, Result};
@@ -21,9 +21,10 @@ const DOMAIN: &[u8] = b"https://veoveo.ai/formats/computer-version\0";
 const LENGTH: usize = 12;
 
 /// The first twelve hexadecimal digits of the SHA-256 of a version's canonical
-/// document: the template's spec, the canonical policy and the Hub's Computer settings
-/// that reach a sandbox. The same inputs name the same version whatever the template's
-/// name, its object identity or the policy file's path.
+/// document: the template's spec, the canonical policy, the Hub's Computer settings
+/// that reach a sandbox and the supervisor and runtime images the gateway reports.
+/// The same inputs name the same version whatever the template's name, its object
+/// identity or the policy file's path.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ComputerVersion(String);
@@ -56,6 +57,12 @@ pub struct WhatsNew {
     pub note: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub image: Option<ImageChange>,
+    /// The supervisor image every new sandbox runs, when the gateway reports another.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supervisor: Option<ImageChange>,
+    /// The sandbox runtime image every new sandbox runs, when the gateway reports another.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sandbox_runtime: Option<ImageChange>,
     /// Endpoints the newer version's network rules allow and the older one's do not.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub network_rules_added: Vec<NetworkRule>,
@@ -160,11 +167,25 @@ pub fn whats_new(from: &ComputerProvisionSpec, to: &ComputerProvisionSpec) -> Re
         (Some(from), Some(to)) if from != to => Some(ImageChange { from, to }),
         _ => None,
     };
+    // An older version recorded before the gateway reported its images names none.
+    let changed = |from: &str, to: &str| {
+        (!to.is_empty() && from != to).then(|| ImageChange {
+            from: from.to_owned(),
+            to: to.to_owned(),
+        })
+    };
+    let supervisor = changed(&from.runtime.supervisor_image, &to.runtime.supervisor_image);
+    let sandbox_runtime = changed(
+        &from.runtime.sandbox_runtime_image,
+        &to.runtime.sandbox_runtime_image,
+    );
     let before = endpoints(&from.policy()?);
     let after = endpoints(&to.policy()?);
     Ok(WhatsNew {
         note,
         image,
+        supervisor,
+        sandbox_runtime,
         network_rules_added: rules(after.difference(&before)),
         network_rules_removed: rules(before.difference(&after)),
     })
@@ -216,7 +237,9 @@ fn rules<'a>(pairs: impl Iterator<Item = &'a (String, String)>) -> Vec<NetworkRu
 /// so the policy enters in OpenShell's canonical JSON and the template's environment
 /// as a sorted map beside the rest of its spec, whose encoding has no map left. The
 /// handbook, the forwarding capacity, the gateway connection and the names of the
-/// template and the policy file are left out: none reaches the sandbox itself.
+/// template and the policy file are left out: none reaches the sandbox itself. The
+/// supervisor and sandbox runtime images the gateway's driver reports are in: every new
+/// sandbox runs them.
 fn canonical(spec: &ComputerProvisionSpec) -> Result<serde_json::Value> {
     let mut settings = serde_json::to_value(&spec.config)?;
     let object = settings
@@ -244,7 +267,7 @@ fn canonical(spec: &ComputerProvisionSpec) -> Result<serde_json::Value> {
         .unwrap_or_default();
     let policy = openshell_policy::sandbox_policy_to_json_value(&spec.policy()?)
         .map_err(|error| anyhow::anyhow!("Computer policy has no canonical form: {error}"))?;
-    Ok(sorted(serde_json::json!({
+    let mut document = serde_json::json!({
         "settings": settings,
         "modelSecret": spec.model_secret,
         "hubUrl": spec.hub_url,
@@ -254,7 +277,12 @@ fn canonical(spec: &ComputerProvisionSpec) -> Result<serde_json::Value> {
             "spec": hex::encode(template.encode_to_vec()),
             "environment": environment,
         },
-    })))
+    });
+    // A gateway that reports no images leaves the document as it was before it could.
+    if !spec.runtime.is_empty() {
+        document["runtime"] = serde_json::to_value(&spec.runtime)?;
+    }
+    Ok(sorted(document))
 }
 
 /// `value` with every object's members in key order, whatever order its map keeps.

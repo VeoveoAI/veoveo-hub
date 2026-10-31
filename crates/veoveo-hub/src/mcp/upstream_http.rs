@@ -163,9 +163,12 @@ impl HubUpstreamHttpClientPool {
                 } else {
                     native.socket(endpoint).map(ToOwned::to_owned)
                 };
+                // Each connection is a forward, which every server shares, so none is
+                // kept idle once its request ends.
                 builder = builder
                     .unix_socket(socket.map_err(|error| mcp_internal(error.to_string()))?)
-                    .no_proxy();
+                    .no_proxy()
+                    .pool_max_idle_per_host(0);
             }
             let client = builder.build().map_err(|err| {
                 mcp_internal(format!("failed to build upstream HTTP client: {err}"))

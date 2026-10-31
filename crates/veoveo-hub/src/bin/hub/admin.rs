@@ -5,6 +5,8 @@ pub(crate) use console::{ConsoleStreamLimits, audit as console_audit};
 mod control_plane;
 #[path = "admin/jwt_revocations.rs"]
 mod jwt_revocations;
+#[path = "admin/people.rs"]
+mod people;
 #[path = "admin/server_health.rs"]
 mod server_health;
 #[path = "admin/tasks.rs"]
@@ -16,6 +18,7 @@ use veoveo_hub_sdk::HubProfileId;
 
 pub(super) use control_plane::{read_control_plane, update_control_plane, validate_control_plane};
 pub(super) use jwt_revocations::{prune_jwt_revocations, revoke_jwt};
+pub(super) use people::end_person_sessions;
 pub(super) use server_health::read_server_health;
 pub(super) use tasks::cancel_task;
 pub(super) use usage::daily_usage;

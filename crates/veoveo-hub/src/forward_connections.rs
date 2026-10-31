@@ -4,7 +4,7 @@
 //! stream beyond them waits, unannounced, until another ends. Forwards therefore ride
 //! connections of their own, at most that many on each, each opened at its first
 //! forward and kept.
-use std::{num::NonZeroUsize, sync::Arc};
+use std::{num::NonZeroUsize, sync::Arc, time::Duration};
 
 use openshell_sdk::{ClientConfig, OpenShellClient, SdkError};
 use tokio::sync::{OnceCell, OwnedSemaphorePermit, Semaphore};
@@ -19,6 +19,9 @@ pub(crate) struct ForwardConnections {
     /// What each connection opens with; none when every connection is a given client.
     config: Option<ClientConfig>,
     connections: Arc<[Connection]>,
+    /// One place per forward, taken before a connection's stream, so forwards waiting
+    /// for one are served in turn.
+    places: Arc<Semaphore>,
 }
 
 struct Connection {
@@ -30,7 +33,10 @@ struct Connection {
 pub(crate) struct Forward {
     connections: ForwardConnections,
     index: usize,
+    // Fields drop in order: the stream before the place, so whoever takes the freed
+    // place finds a free stream.
     _stream: OwnedSemaphorePermit,
+    _place: OwnedSemaphorePermit,
 }
 
 impl ForwardConnections {
@@ -70,22 +76,40 @@ impl ForwardConnections {
         Self {
             config,
             connections,
+            places: Arc::new(Semaphore::new(forwards)),
         }
     }
 
     /// A free stream on one of the connections, or none while every forward is in use.
     pub(crate) fn reserve(&self) -> Option<Forward> {
-        self.connections
-            .iter()
-            .enumerate()
-            .find_map(|(index, connection)| {
-                let stream = connection.streams.clone().try_acquire_owned().ok()?;
-                Some(Forward {
-                    connections: self.clone(),
-                    index,
-                    _stream: stream,
-                })
-            })
+        let place = self.places.clone().try_acquire_owned().ok()?;
+        self.stream(place)
+    }
+
+    /// A free stream, waiting up to `wait` for a forward to end while every one is in
+    /// use.
+    pub(crate) async fn reserve_within(&self, wait: Duration) -> Option<Forward> {
+        let place = tokio::time::timeout(wait, self.places.clone().acquire_owned())
+            .await
+            .ok()?
+            .ok()?;
+        self.stream(place)
+    }
+
+    fn stream(&self, place: OwnedSemaphorePermit) -> Option<Forward> {
+        let (index, stream) =
+            self.connections
+                .iter()
+                .enumerate()
+                .find_map(|(index, connection)| {
+                    Some((index, connection.streams.clone().try_acquire_owned().ok()?))
+                })?;
+        Some(Forward {
+            connections: self.clone(),
+            index,
+            _stream: stream,
+            _place: place,
+        })
     }
 }
 
@@ -137,5 +161,35 @@ mod tests {
             1,
             "a freed stream is reused"
         );
+    }
+
+    #[tokio::test]
+    async fn a_waiting_forward_takes_the_next_one_that_ends() {
+        let connections = ForwardConnections::new(
+            ClientConfig::new("https://gateway.invalid".to_owned()),
+            NonZeroUsize::new(2).unwrap(),
+        );
+        let first = connections.reserve().unwrap();
+        let _second = connections.reserve().unwrap();
+        assert!(
+            connections
+                .reserve_within(Duration::from_millis(10))
+                .await
+                .is_none(),
+            "no forward ended within the wait"
+        );
+        let waiting = tokio::spawn({
+            let connections = connections.clone();
+            async move {
+                connections
+                    .reserve_within(Duration::from_secs(5))
+                    .await
+                    .map(|forward| forward.index)
+            }
+        });
+        tokio::task::yield_now().await;
+        let index = first.index;
+        drop(first);
+        assert_eq!(waiting.await.unwrap(), Some(index));
     }
 }

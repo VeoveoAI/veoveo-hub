@@ -536,4 +536,28 @@ async fn qualify() {
         )
         .await;
     assert_eq!(access["access"].as_array().unwrap().len(), 4, "{access}");
+
+    // An owner deletes the group, which takes its assignment with it; the admin, a member
+    // who is no owner, may not.
+    let (_, access) = calls
+        .share(
+            "member",
+            OWNED,
+            json!({"group": "builders", "access": "member"}),
+        )
+        .await;
+    assert_eq!(access["access"].as_array().unwrap().len(), 5, "{access}");
+    let delete = |caller| calls.call(caller, reqwest::Method::DELETE, "/groups/builders", None);
+    let (status, refused) = delete("admin").await;
+    assert_eq!(status, reqwest::StatusCode::FORBIDDEN, "{refused}");
+    assert_eq!(problem(&refused), "group-owner-required");
+    let (status, remaining) = delete("member").await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{remaining}");
+    assert_eq!(remaining, json!({"groups": []}));
+    assert_eq!(groups("admin").await.1, json!({"groups": []}));
+    let (_, access) = calls.access("member", OWNED).await;
+    assert_eq!(access["access"].as_array().unwrap().len(), 4, "{access}");
+    let (status, refused) = delete("member").await;
+    assert_eq!(status, reqwest::StatusCode::NOT_FOUND);
+    assert_eq!(problem(&refused), "group-not-found");
 }

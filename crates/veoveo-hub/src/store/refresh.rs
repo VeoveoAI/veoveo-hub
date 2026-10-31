@@ -27,6 +27,9 @@ pub enum RefreshRevocation {
     /// A consumed token was presented after its successor's delivery window.
     #[vocabulary(rename = "token_replay")]
     TokenReplay,
+    /// An administrator ended every session of the family's person.
+    #[vocabulary(rename = "administrator_revocation")]
+    AdministratorRevocation,
 }
 
 /// The client a family belongs to. A token presented by another client, protected_resource or

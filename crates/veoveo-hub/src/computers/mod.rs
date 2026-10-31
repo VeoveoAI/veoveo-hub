@@ -16,6 +16,7 @@ pub use version::{
 
 mod api;
 mod collection;
+pub use collection::{Stop, stop_owned};
 mod gateway;
 pub(crate) use gateway::connect as connect_gateway;
 mod lifecycle;

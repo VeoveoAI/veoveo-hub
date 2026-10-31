@@ -17,6 +17,7 @@ mod refresh;
 mod replay;
 mod revocations;
 mod selection;
+mod sessions;
 mod task_routes;
 
 pub use control::{ControlObject, ControlPublication};

@@ -343,7 +343,8 @@ impl Installation {
             backend,
             &self.policy,
             &template,
-        );
+        )
+        .with_runtime(super::spec::ComputerRuntime::of(&info.compute_drivers[0]));
         spec.version()?;
         let provisioner = self.for_spec(spec)?;
         provisioner.validate_profiles().await?;
