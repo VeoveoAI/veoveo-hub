@@ -4,6 +4,7 @@ module
 public import Aeneas
 public import HubCurrentRoles.Types
 public import SdkAuthorizationProof
+public import SdkInternalAuthBridgeOperations
 @[expose] public section
 open Aeneas Aeneas.Std Result ControlFlow Error
 set_option linter.dupNamespace false
@@ -2041,19 +2042,22 @@ def veoveo_hub_sdk.internal_auth.ActingServer.Insts.CoreCloneClone.clone
     veoveo_hub_sdk.internal_auth.ActingServer
   := fun value => .ok value
 
--- OPEN NATIVE OBSERVATION: no success/output contract is asserted here.
+-- PREPARED-STACK COMPOSITION: calls the checked SDK implementation through the
+-- complete representation bridge. The source annotation below records the old
+-- extraction boundary; native SDK239 equivalence is not established here.
 /-- [veoveo_hub_sdk::internal_auth::{veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer}::issue]:
     Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 336:4-339:59
     Name pattern: [veoveo_hub_sdk::internal_auth::{veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer}::issue]
     Visibility: public -/
 @[rust_fun
   "veoveo_hub_sdk::internal_auth::{veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer}::issue"]
-axiom veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer.issue
+def veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer.issue
   :
   veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer →
     veoveo_hub_sdk.internal_auth.ForwardedRequest → Result
     (core.result.Result veoveo_hub_sdk.internal_auth.IssuedHubInternalToken
     veoveo_hub_sdk.internal_auth.InternalTokenError)
+  := SdkInternalAuthBridge.issue
 
 -- OPEN NATIVE OBSERVATION: no success/output contract is asserted here.
 /-- [veoveo_hub_sdk::internal_auth::{impl core::fmt::Display for veoveo_hub_sdk::internal_auth::InternalTokenError}::fmt]:

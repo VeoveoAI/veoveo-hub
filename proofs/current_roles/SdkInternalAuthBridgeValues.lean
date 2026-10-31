@@ -1,9 +1,11 @@
-import HubCurrentRoles.Types
-import RequestCompositionSdk.Types
-import Mathlib.Data.String.Basic
-import Mathlib.Data.Finset.Sort
-import Mathlib.Order.Basic
-import Lean.Util.CollectAxioms
+module
+public import HubCurrentRoles.Types
+public import RequestCompositionSdk.Types
+public import Mathlib.Data.String.Basic
+public import Mathlib.Data.Finset.Sort
+public import Mathlib.Order.Basic
+public import Lean.Util.CollectAxioms
+@[expose] public section
 
 open Aeneas Aeneas.Std
 

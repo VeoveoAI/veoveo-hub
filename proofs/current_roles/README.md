@@ -809,8 +809,8 @@ evidence; this is not qualification of the full refresh transaction lifecycle.
 
 [SdkInternalAuthBridgeValues](SdkInternalAuthBridgeValues.lean) is a checked
 foundation for connecting this Hub graph to SDK `6afa18a`'s extracted issuer.
-It does not replace the opaque issuer operation or establish the complete
-forwarding contract yet. The native Hub dependency remains `239622d`; the new
+The operational connection below now uses it; the complete caller forwarding
+contract remains separate. The native Hub dependency remains `239622d`; the new
 dependency here is a proof package for the explicitly composed prepared stack.
 
 Identifier and opaque payload equivalences preserve their carried String values.
@@ -841,8 +841,8 @@ is recorded. These checks do not qualify a fresh remote checkout of the new Git
 dependency.
 
 The complete record checkpoint below now supplies named field semantics and
-physical-domain sufficiency. Timestamp comparison/minimum laws, actual issuer
-linkage and the composed caller theorem remain the next obligations. No conclusion
+physical-domain sufficiency. Actual issuer linkage is supplied below; timestamp
+comparison/minimum laws and the composed caller theorem remain pending. No conclusion
 about the older pinned issuer's native behavior follows from these representation
 proofs.
 
@@ -886,7 +886,57 @@ Lean axioms, with no `sorryAx`. The
 [compact receipt](evidence/sdk-issuer-bridge-records.json) records source/configuration
 maps, timings, artifact bytes/digests, intended semantic rejection and separate
 proof-authoring/cache-companion/target-configuration failures. No runtime, Cargo
-pin, generated body, primitive model or translator changed. The Hub's opaque SDK
-issuer operation remains unchanged: calling the checked SDK implementation and
-proving the full forwarding outcome is the next step, for an explicitly composed
-prepared stack rather than an unproved claim about the older pinned native body.
+pin, generated body, primitive model or translator changed in that checkpoint.
+The following increment connects the checked SDK implementation for an explicitly
+composed prepared stack; the older pinned native body is not thereby verified.
+
+## Concrete prepared SDK issuer connection
+
+[Operations](SdkInternalAuthBridgeOperations.lean) replaces the Hub model's own
+opaque `HubInternalTokenIssuer.issue` with a concrete call to the checked SDK
+issuer. It converts the complete request and issuer/key, invokes the actual
+extracted implementation, and maps the complete issued identity/bearer or exact
+error payload back. Generated Hub and SDK function bodies remain unchanged.
+
+[OperationsProof](SdkInternalAuthBridgeOperationsProof.lean) derives the actual
+converted request, full field correspondence, canonical set properties and SDK
+text domain from independent Hub bounds. `HubIssueTextDomain` bounds the original
+strings and permissions; its rendered-scope condition bounds every duplicate-free
+enumeration of the original finite scope set. The proof applies that condition
+to the chosen canonical traversal, without claiming arbitrary enumeration is
+native BTreeSet order. No conversion-success, validator-success, issuer-result
+or signer-success premise is used.
+
+The complete `issue_exact` outcome retains first-foreign permission priority,
+delegation/context/deadline/ID outcomes and the exact complete claims passed to
+`sign_forwarded`. Rust Ok/Err payloads and Aeneas failures, divergence and visible
+effects retain the checked result mapping. Out-of-native-range mathematical Hub
+timestamps cause an explicit Aeneas `integerOverflow` in the formal adapter;
+`RequestPhysical` proves that conversion branch unreachable in the qualified
+domain. This introduces no native runtime check or Rust token refusal.
+
+The operational import uses Lean's module format. Values and Records received
+only module/public-import/exposed-section headers; their conversion definitions
+are unchanged. The correctness theorem remains separate from the module imported
+by the generated model. The manual targets are:
+
+```sh
+lake build SdkInternalAuthBridgeOperations SdkInternalAuthBridgeOperationsProof HubCurrentRoles
+```
+
+The affected-target build compiled the model in 34.559 s before a final proof
+normalization failed. The corrected named check passed in 3.168 s with those
+prerequisites replayed. The text-domain theorem is standard-only; the outcome
+theorem and global issuer closure add only the six existing SDK provider, clock,
+UUID, UUID-text, ID-parser and signer observations, with no `sorryAx` or old Hub
+issuer axiom. Existing policy model audits also pass.
+
+The [receipt](evidence/sdk-issuer-operational-connection.json) records the focused
+proof/model checks, exact source/configuration/artifact identities and separate
+proof-authoring/import-format failures. This composes unchanged extracted Hub
+`3bc2923` caller semantics with SDK `6afa18a`'s prepared e268+String/binder issuer.
+It does not establish native equivalence to Hub's older SDK `239622d` dependency.
+Core namespace-helper, native collection/order/UTF-8/allocation/date refinement,
+crypto/signing/serialization/verifier and deployed-stack correspondence remain
+explicit. Full timestamp minimum and actual caller composition are the next proof
+obligations; there is no instrumented native call-count/effect-trace claim.

@@ -1,5 +1,7 @@
-import SdkInternalAuthBridgeValues
-import Mathlib.Order.Prod.Lex.Basic
+module
+public import SdkInternalAuthBridgeValues
+public import Mathlib.Order.Prod.Lex.Basic
+@[expose] public section
 
 open Aeneas Aeneas.Std
 

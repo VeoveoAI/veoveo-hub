@@ -735,9 +735,18 @@ preserves every named field and canonical set invariant, and establishes the
 SDK-to-Hub output/error direction. Ordered grants and actor chains retain their
 positions; returned Rust errors and modeled effects, failures and divergence are
 preserved. Its [qualification](current_roles/evidence/sdk-issuer-bridge-records.json)
-distinguishes field meaning from invertibility. The actual issuer connection and
-timestamp comparison/minimum correspondence remain pending; Hub's opaque issuer
-is unchanged, and these are proof adapters rather than runtime conversions.
+distinguishes field meaning from invertibility. The
+[operational connection](current_roles/SdkInternalAuthBridgeOperations.lean)
+replaces the Hub graph's opaque issuer with the SDK-owned extracted implementation.
+Its separate [contract](current_roles/SdkInternalAuthBridgeOperationsProof.lean)
+derives conversion and the SDK text domain from independent Hub representation
+bounds, then connects the complete request to the independently specified SDK
+outcome. No successful issuance or desired-output premise is introduced. This is
+an explicitly composed prepared stack, not native equivalence to Hub's older
+SDK dependency. The [receipt](current_roles/evidence/sdk-issuer-operational-connection.json)
+records the qualification and the proof-module import adjustment. Timestamp
+comparison/minimum and the actual caller's complete outcome remain next; these
+are proof adapters rather than runtime conversions.
 Core's private permission-namespace helper is still represented by a handwritten
 adapter; extracted ownership wrappers alone do not close its refinement gap.
 A [bounded unchanged-helper probe](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-permission-namespace-extraction-boundary.md)
