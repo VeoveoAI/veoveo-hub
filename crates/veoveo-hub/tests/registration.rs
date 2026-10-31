@@ -203,19 +203,23 @@ async fn qualify() {
         ),
         other => panic!("expected a pinned-namespace rejection, got {other:?}"),
     }
-    // No server may take the Hub's own schema as its slug.
-    let hub_slug = hub_slug_client(
-        &http,
-        &registration_endpoint,
-        registration_secret,
-        &server_endpoint,
-    );
-    match hub_slug.register().await {
-        Err(ClientError::Rejected {
-            status: reqwest::StatusCode::BAD_REQUEST,
-            error: Some(error),
-        }) => assert_eq!(error.error, RegistrationErrorCode::InvalidClientMetadata),
-        other => panic!("expected the hub slug to be refused, got {other:?}"),
+    // No server may take the Hub's own schema, or the name of the Apps sandbox proxy's
+    // origin, as its slug.
+    for slug in ["hub", "sandbox"] {
+        let reserved = reserved_slug_client(
+            &http,
+            &registration_endpoint,
+            registration_secret,
+            &server_endpoint,
+            slug,
+        );
+        match reserved.register().await {
+            Err(ClientError::Rejected {
+                status: reqwest::StatusCode::BAD_REQUEST,
+                error: Some(error),
+            }) => assert_eq!(error.error, RegistrationErrorCode::InvalidClientMetadata),
+            other => panic!("expected the slug {slug} to be refused, got {other:?}"),
+        }
     }
     // The installation's registration secret is the initial access token.
     let unauthorized = registration_client(
@@ -462,12 +466,13 @@ fn registration_client(
     .unwrap()
 }
 
-/// A registration that claims the slug `hub`, with no permissions of its own.
-fn hub_slug_client(
+/// A registration that claims the reserved `slug`, with no permissions of its own.
+fn reserved_slug_client(
     http: &reqwest::Client,
     endpoint: &url::Url,
     secret: &str,
     server_endpoint: &str,
+    slug: &str,
 ) -> RegistrationClient {
     let key = ServerKeyPair::generate().unwrap();
     let authorization: AuthorizationDeclaration =
@@ -477,8 +482,8 @@ fn hub_slug_client(
         *key.public_key(),
         RegistrationDeclaration {
             deployment: veoveo_hub_sdk::DeploymentId::new(),
-            slug: ServerSlug::parse("hub").unwrap(),
-            uri_scheme: ResourceScheme::parse("hub").unwrap(),
+            slug: ServerSlug::parse(slug).unwrap(),
+            uri_scheme: ResourceScheme::parse(slug).unwrap(),
             version: ServerVersion::new("0.1.0").unwrap(),
             endpoint: ServerEndpoint::new(url::Url::parse(server_endpoint).unwrap()).unwrap(),
         },

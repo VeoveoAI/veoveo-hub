@@ -284,6 +284,12 @@ impl RegistrationService {
                 "software_id `hub` names the Hub's own schema; choose another slug",
             ));
         }
+        if slug.as_str() == crate::apps::SANDBOX_SLUG {
+            return Err(RegistrationError::rejected(
+                RegistrationErrorCode::InvalidClientMetadata,
+                "software_id `sandbox` names the origin of the Hub's Apps sandbox proxy; choose another slug",
+            ));
+        }
         let schema = ServerSchema::new(&slug).map_err(|error| {
             RegistrationError::rejected(
                 RegistrationErrorCode::InvalidClientMetadata,
