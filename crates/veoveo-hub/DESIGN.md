@@ -949,10 +949,33 @@ the person sees now:
 | `ping` | Always | Answered by the bridge |
 
 Another method answers `-32601`; a refused tool or resource answers `-32602` naming
-the reason, logged at INFO, and reaches no server. The host page records the Tasks
-each view's `tools/call` created and forwards a view's Task requests only for those.
-Whether a Task-based tool answers with a Task follows the session's OAuth client, the
-Computers' client, as for every client of the profile.
+the reason, logged at INFO, and reaches no server.
+
+- **Names.** A view calls a tool by its own server's name for it, such as `resolve`;
+  the Hub calls it by its catalog name, `{slug}__resolve`. A name that already holds
+  `__` names no tool of the App.
+- **Addresses.** A view's resource address travels unchanged, its query included, such
+  as `{slug}://events?cursor=…`.
+- **Tasks.** Every request of an App declares the Tasks extension
+  `io.modelcontextprotocol/tasks` among its client capabilities, so a Task-based tool
+  answers with its Task (`resultType` `task`) where the session's OAuth client
+  projects Tasks, as a `full_mcp` client does. Task results and `tasks/get`,
+  `tasks/update` and `tasks/cancel` results and errors pass unchanged. The host page
+  records the Tasks each view's `tools/call` created and forwards that view's Task
+  requests only for those.
+- **Numbers.** The bridge answers the MCP endpoint's JSON as the endpoint wrote it,
+  integers through 2^64−1 exact. MCP Apps' `postMessage` transport carries JavaScript
+  values, not JSON text, so the host page parses each answer once and posts the
+  values: an integer beyond 2^53 reaches the view as JavaScript's nearest number, as
+  it would if the view parsed the same JSON itself. A view that needs such an integer
+  exactly receives it as a string from its server.
+- **Policy.** A self-contained view runs its own inline script and style under the
+  App's policy, whose `script-src` and `style-src` allow `'unsafe-inline'`. Its frame
+  is `allow-scripts` only, so its forms do not submit.
+
+Known limit: the host serves no reactive adapter. A view's `subscriptions/listen`
+answers `-32601`, so a reactive view reads current state through ordinary requests
+and receives no `ui/notifications/resource-updated` wake.
 
 ## HTTP Surface
 
