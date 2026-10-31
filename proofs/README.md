@@ -752,8 +752,17 @@ deadline with full seconds/nanoseconds comparison, and returns the exact bearer
 or wrapped error while retaining modeled effects/failures. Independent physical
 and text bounds supply conversion; no successful admission or issuance is assumed.
 The [caller receipt](current_roles/evidence/sdk-issuer-caller.json) records the
-passing generic theorem. Populated acceptance and the actual-source deadline
-control remain pending. This covers a supplied client and deadline, not their
+passing generic theorem. The
+[populated caller witnesses](current_roles/SdkInternalAuthCallerWitnesses.lean)
+now derive actual acceptance with complete signer claims, two permissions and two scopes,
+an acting server and a nonempty inherited chain with its originating Task. A
+separate admitted-input case whose caller cap equals the sampled clock returns
+`ExpiredDelegation`, even when the requested deadline is one nanosecond later.
+Only typed external observations are premises; fixture ownership/context/chain
+conditions and conversion are independently proved. Their
+[receipt](current_roles/evidence/sdk-issuer-caller-examples.json) records passing
+fixture/outcome targets. The actual-source deadline fault and restored baseline
+remain pending. These results cover a supplied client and deadline, not their
 asynchronous/current-policy provenance, the 60/900-second TTL/clock wrappers,
 HTTP attachment, transport or native signature verification. The prepared-source
 applicability boundary remains; no runtime conversion is added.

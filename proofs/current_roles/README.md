@@ -979,5 +979,50 @@ primitive boundaries. The direct check passed in 2.735 s and the named target in
 3.903 s with qualified prerequisites replayed. The [receipt](evidence/sdk-issuer-caller.json) separates the
 initial proof-authoring diagnostics from the passing direct and named checks,
 including exact input/output identities. Populated valid caller acceptance and
-the actual-source deadline control remain the next qualification steps; no
-complete caller-slice qualification is claimed yet.
+refusal are now supplied below; the actual-source deadline control remains
+pending, so no complete caller-slice qualification is claimed yet.
+
+## Populated issuer caller outcomes
+
+[CallerExamples](SdkInternalAuthCallerExamples.lean) supplies independently
+constructed acting-server inputs: inherited alpha actor with matching originating
+Task, current gamma actor, populated delegated authority/context/audit, two owned
+permissions and two scopes. It proves canonical lossless re-encoding, complete
+context and chain/Task admission, ownership and effective deadlines without an
+own-function-success premise. The original source expiry is before the sampled
+clock; this actual acting-server path preserves its existing source-cap exemption.
+The synthetic transport payload is carried only; no network runs in these proofs.
+
+[CallerWitnesses](SdkInternalAuthCallerWitnesses.lean) proves actual
+`issue_bearer_token_until` returns the supplied signed bearer under precisely
+typed provider, clock, UUID/text/parser and signer observations. The clock is
+`(1788220800, 0)`, the caller's requested deadline is
+`(1788220820, 987654321)`, and its shorter delegation cap is
+`(1788220810, 123456789)`. The complete computed signer claims preserve that full
+identity expiry, explicitly project NumericDate seconds, join both ordered scopes,
+retain both permission actions and preserve gamma→alpha prior-actor nesting.
+The inherited deadline remains future; no Task liveness/authenticity is asserted.
+
+The same independently admitted shape with a cap exactly equal to the clock and
+a requested deadline one nanosecond later returns `InternalToken ExpiredDelegation`.
+Only provider and clock observations are premises for this refusal. This boundary
+will support the deadline fault: both NumericDate seconds may be equal, so a later
+modeled acceptance would mean returning the supplied signed bearer, without
+asserting positive whole-second JWT lifetime or verifier usability.
+
+The fixture module imports no caller-correctness theorem and is reusable by an
+independent fault witness. These are prepared-stack model outcomes, not native
+SDK239 equivalence, current-policy provenance or deployed transport/signature
+qualification. The six fixture audits and complete-fields audit are standard-only;
+the two actual-outcome audits retain the six established SDK primitive boundaries,
+without `sorryAx`.
+
+```sh
+lake build SdkInternalAuthCallerExamples SdkInternalAuthCallerWitnesses SdkInternalAuthCallerProof
+```
+
+The [receipt](evidence/sdk-issuer-caller-examples.json) records focused direct and
+named validation (2.952 s fixture, 2.612 s witness, 6.092 s named targets), exact
+inputs/artifacts, and separate authoring failures. The
+generic caller theorem is unchanged. Actual-source deadline mutation/restoration
+remains the next qualification step.
