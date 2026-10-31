@@ -14,6 +14,10 @@
   const bridged = new Set(["tools/call", "resources/read", ...taskMethods]);
   // The Tasks this view's calls created: the only Tasks it may ask about.
   const tasks = new Set();
+  // The view's open listens, by request id: aborting one ends its stream at the Hub.
+  const listens = new Map();
+  // What reached the view's listens before it sent ui/notifications/initialized.
+  const held = [];
   const scheme = window.matchMedia("(prefers-color-scheme: dark)");
   let initialized = false;
   let loading = false;
@@ -104,10 +108,83 @@
     });
   };
 
+  // What the view's listens deliver: unchanged, and only after the view initialized.
+  const deliver = (message) => {
+    if (initialized) send(message);
+    else held.push(message);
+  };
+  const failure = (id, message) => ({ jsonrpc: "2.0", id, error: { code: INTERNAL_ERROR, message } });
+
+  // A view's subscriptions/listen, on the bridge's event stream: each message of the
+  // stream reaches the view as the server sent it, the listen's final response last.
+  // Aborting the fetch ends the listen at the Hub and at the App's server.
+  const listen = async (id, params) => {
+    if (listens.has(id)) return fail(id, INVALID_PARAMS, "That listen is already open.");
+    const control = new AbortController();
+    listens.set(id, control);
+    let answered = false;
+    const finish = (message) => {
+      if (answered) return;
+      answered = true;
+      deliver(message);
+    };
+    try {
+      const response = await fetch(bridgePath, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "text/event-stream, application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id, method: "subscriptions/listen", params }),
+        credentials: "same-origin",
+        cache: "no-store",
+        redirect: "error",
+        signal: control.signal,
+      });
+      if (response.status === 401) {
+        show("You are signed out. Reload the page to sign in again.");
+        return finish(failure(id, "The person is signed out."));
+      }
+      if (response.status === 429) return finish(failure(id, "Too many live listens are open in this session."));
+      if (!response.ok) return finish(failure(id, "The Hub could not complete this request."));
+      if (!(response.headers.get("content-type") ?? "").startsWith("text/event-stream")) {
+        const message = await response.json();
+        return finish(isRecord(message) && message.id === id ? message : failure(id, "The Hub answered malformed JSON-RPC."));
+      }
+      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+      let buffer = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer = (buffer + value).replace(/\r\n?/g, "\n");
+        let end;
+        while ((end = buffer.indexOf("\n\n")) >= 0) {
+          const data = buffer.slice(0, end).split("\n")
+            .filter((line) => line.startsWith("data:"))
+            .map((line) => line.slice(line.startsWith("data: ") ? 6 : 5))
+            .join("\n");
+          buffer = buffer.slice(end + 2);
+          if (data === "") continue;
+          const message = JSON.parse(data);
+          if (!isRecord(message) || message.jsonrpc !== "2.0") continue;
+          if ("id" in message && ("result" in message || "error" in message)) finish(message);
+          else deliver(message);
+        }
+      }
+      finish(failure(id, "The listen ended without an answer; listen again to resume."));
+    } catch {
+      if (!control.signal.aborted) finish(failure(id, "The Hub could not be reached."));
+    } finally {
+      listens.delete(id);
+    }
+  };
+  const endListens = () => {
+    for (const control of listens.values()) control.abort();
+  };
+
   const request = async (message) => {
     const { id, method } = message;
     const params = isRecord(message.params) ? message.params : {};
     switch (method) {
+      case "subscriptions/listen":
+        return listen(id, params);
       case "ui/initialize":
         return reply(id, {
           protocolVersion: APPS_VERSION,
@@ -141,7 +218,13 @@
     if (!isRecord(message) || message.jsonrpc !== "2.0" || typeof message.method !== "string") return;
     if (!("id" in message)) {
       if (message.method === "ui/notifications/sandbox-proxy-ready") void load();
-      else if (message.method === "ui/notifications/initialized") initialized = true;
+      else if (message.method === "ui/notifications/initialized") {
+        initialized = true;
+        for (const message of held.splice(0)) send(message);
+      } else if (message.method === "notifications/cancelled" && isRecord(message.params)) {
+        // The view ends its listen; a cancelled request is answered no more.
+        listens.get(message.params.requestId)?.abort();
+      }
       return;
     }
     if (typeof message.id !== "string" && typeof message.id !== "number") return;
@@ -152,5 +235,6 @@
     notify("ui/notifications/host-context-changed", { containerDimensions: context().containerDimensions }));
   window.addEventListener("pagehide", () => {
     if (initialized) send({ jsonrpc: "2.0", id: "teardown", method: "ui/resource-teardown", params: {} });
+    endListens();
   });
 })();
