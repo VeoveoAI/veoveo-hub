@@ -691,8 +691,13 @@ conditional source-token expiry cap. Populated Direct and inherited-chain acting
 examples pass with the final named targets and all nine audits; five explicit
 native provider/time/ID boundaries remain. See the
 [constructor record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-full-identity-construction.md).
-Constructor deadline controls, public issue permission ownership, complete signed
-claims, verification wrapper and integration with Hub's pinned SDK remain open.
+SDK `4655e9d` qualifies both constructor deadline controls: the frozen contract rejects
+actual-source cap removal and an extra cap on acting calls, while independent
+witnesses prove the wrong complete output and wrong refusal. Same-tree source and
+raw-model restoration plus fresh nine-audit baseline builds pass; see the
+[deadline-control record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-identity-deadline-controls.md).
+Public issue permission ownership, complete signed claims, verification wrapper
+and integration with Hub's pinned SDK remain open.
 Core's private permission-namespace helper is still represented by a handwritten
 adapter; extracted ownership wrappers alone do not close its refinement gap.
 The [composition review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-issuer-composition-boundaries.md)
