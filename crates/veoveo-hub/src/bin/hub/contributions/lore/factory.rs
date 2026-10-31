@@ -107,7 +107,9 @@ pub(crate) trait Lore: Send + Sync + 'static {
         revision: &'a Revision,
         directory: &'a Path,
     ) -> BoxFuture<'a, Result<Option<Prepared>>>;
-    /// The links at the top level of the revision whose names are lowercase DNS labels.
+    /// The links at the top level of the revision, read from its own tree without entering
+    /// them; a revision that holds a link the factory's checkout cannot leave out, below its
+    /// top level or not named by a lowercase DNS label, is refused.
     fn links<'a>(
         &'a self,
         person: &'a PrincipalId,

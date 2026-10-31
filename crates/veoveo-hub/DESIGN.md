@@ -553,8 +553,14 @@ deployment, every replica closes its forwarding listener and forgets its clients
 
 A server repository may compose other repositories with Lore's links. A link at the top
 level of a branch's revision, whose name is a lowercase DNS label, makes that branch
-linked: the Hub runs one runner for each such link instead of the branch's instance.
-A link deeper in the tree is part of the program's content and changes nothing. The
+linked: the Hub runs one runner for each such link instead of the branch's instance. Any
+other link would end the clone of a factory sandbox's checkout, which leaves out only
+those links, so preparing refuses a revision that holds a link below its top level, or
+one at its top level not named by a lowercase DNS label, whether or not the branch also
+has top-level links: the refusal is recorded in `hub.lore_prepare_failure` and the
+branch's instance or runners keep serving as they do. Preparing reads the links from the
+revision's own tree, its top level and then each top-level directory, without entering a
+top-level link, so every push of a branch with `openshell/run` lists that tree once. The
 parent repository decides which repositories are composed and the program that serves
 them; each linked repository decides its own content and, through its own grants, who
 reaches it. A person never needs a grant on the parent to reach a runner, and a grant on
@@ -604,13 +610,19 @@ instance's start does, before `exec ./openshell/run`. A runner therefore serves 
 of that branch, not the revision the parent pins: a linked repository releases by
 pushing to its tracked branch, and the parent changes only to add, retarget or remove a
 link. The command names the links it leaves out, so a parent push that changes them
-recreates the runners' sandboxes. The runner's Lore provider issues the token of the
-tracked branch's latest pusher, for the linked repository, as an instance's issues its
-pusher's for its own repository; its checkout of the parent is read through the same Lore
-provider's token for the parent, issued for the parent branch's latest pusher. Lore's
-per-request scope picks between them, which the instance's client answers
-([above](#factory-sandboxes)): the installation's factory Lore profile names the
-repository of each request by `lore-partition-bin`, as a Computer's does.
+recreates the runners' sandboxes. The runner's program is the parent's, built and run
+under `/sandbox/src`; the linked repository is content, its workflows and files, which
+that program reads and never code that reaches the Hub or the database. Only the
+parent's program under `/sandbox/src` reaches the Hub's metadata and token endpoints and
+the database, whose rules in the installation's base policy admit programs under
+`/sandbox/src` alone; nothing under `/sandbox/link` reaches either through them. The
+runner's Lore provider issues the token of the tracked branch's latest pusher, for the
+linked repository, as an instance's issues its pusher's for its own repository; its
+checkout of the parent is read through the same Lore provider's token for the parent,
+issued for the parent branch's latest pusher. Lore's per-request scope picks between
+them, which the instance's client answers ([above](#factory-sandboxes)): the
+installation's factory Lore profile names the repository of each request by
+`lore-partition-bin`, as a Computer's does.
 
 The Hub follows both repositories. A push to the parent's branch reads its links again:
 it removes the branch's ordinary instance, creates the runner of a new link, removes the
@@ -1474,19 +1486,19 @@ Images and revisions are synthetic values; no OpenShell, Lore server, BuildKit o
 is involved.
 
 `src/bin/hub/contributions/lore/factory/tests.rs` runs watching against an in-process
-fake of Lore and the factory itself on the same fake gateway, a fake image builder and
-a disposable database. The fake Lore admits only the people it holds a grant for and
+fake of Lore and the factory itself on the same fake gateway, a fake image builder and a
+disposable database. The fake Lore admits only the people it holds a grant for and
 serves each subscription from a channel the test feeds. Watching subscribes as the
 watcher and re-checks every branch, applying the unapplied one as its committer,
 building nothing for the applied one and removing the instances of a branch without
 `openshell/run` and of a deleted branch; a push is read as its pusher and applied with
 its image context and policy, or removes the instance; after `ABORTED` the next
-subscription re-checks and applies the branch's new revision and nothing else; a
-watcher who lost access is recorded as failed at the resubscription and the follower
-stops, and the route answers 403, 400 and 204; a failed read is recorded for the branch
-until a push is prepared; another process resumes every recorded watch as its watcher;
-and a later watch replaces the follower. A revision with a following link and a pinned
-one gets a runner for each and no instance: the following link tracks its linked
+subscription re-checks and applies the branch's new revision and nothing else; a watcher
+who lost access is recorded as failed at the resubscription and the follower stops, and
+the route answers 403, 400 and 204; a failed read is recorded for the branch until a
+push is prepared; another process resumes every recorded watch as its watcher; and a
+later watch replaces the follower. A revision with a following link and a pinned one
+gets a runner for each and no instance: the following link tracks its linked
 repository's branch of the parent branch's ID under its suffixed name, the pinned one
 the branch of its pinned revision, each linked repository is read as its watcher and its
 tracked head as its committer, each runner's command leaves both links out of the
@@ -1495,10 +1507,13 @@ linked repository's network rules, and its status names the tracked branch; a pu
 tracked branch applies to its runner alone, as its pusher. A link whose linked
 repository nobody watches gets no runner and its failure says so, until a watch of the
 linked repository runs it; a push that drops a link removes its runner, and one without
-links serves the branch from an instance again. The real Lore adapter is exercised only
-against a deployed Lore; Lore's view keeping a clone and a reset sync of the parent from
-every excluded link, and its clone and sync of a branch by ID, were probed against a
-local Lore server.
+links serves the branch from an instance again. A revision holding a link below its top
+level, of a branch with or without top-level links, or a top-level link whose name is no
+DNS label, is refused at prepare with a recorded failure that names the link, while the
+branch's instance keeps serving and no runner starts. The real Lore adapter is exercised
+only against a deployed Lore; Lore's view keeping a clone and a reset sync of the parent
+from every excluded link, and its clone and sync of a branch by ID, were probed against
+a local Lore server.
 
 `tests/lore_catalog.rs` starts the binary with one Lore deployment whose resource IDs
 are `urc-{id}` and asks `UrcAuthApi.LookupUserPermissions` over cleartext HTTP/2 on the

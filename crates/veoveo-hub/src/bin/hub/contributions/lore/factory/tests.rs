@@ -19,7 +19,11 @@ use std::{
 
 use anyhow::Result;
 use futures::future::BoxFuture as Building;
-use lore_proto::lore::notification::{BranchPushed, Event, event::Event as Notification};
+use lore_proto::lore::{
+    model::v1::Address,
+    notification::{BranchPushed, Event, event::Event as Notification},
+    thin_client::v1::{NodeType, TreeNode},
+};
 use sha2::{Digest, Sha256};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -96,6 +100,9 @@ struct LoreState {
     subscriptions: Vec<mpsc::UnboundedSender<Result<Event, tonic::Status>>>,
     /// The links at the top level of each revision of the repository.
     links: HashMap<Revision, Vec<LinkNode>>,
+    /// The rest of each revision's own tree, as Lore lists it, which its links are read
+    /// from.
+    trees: HashMap<Revision, Vec<TreeNode>>,
     /// Who read a revision's top-level links, apart from `calls`.
     link_reads: Vec<(PrincipalId, Revision)>,
     /// The linked repositories, each with state of its own.
@@ -115,6 +122,20 @@ struct Linked {
     /// Who read what, in order.
     calls: Vec<Call>,
     subscriptions: Vec<mpsc::UnboundedSender<Result<Event, tonic::Status>>>,
+}
+
+/// The tree node Lore lists for a link at the top level.
+fn link_node(link: &LinkNode) -> TreeNode {
+    TreeNode {
+        path: link.name.to_string(),
+        node_type: NodeType::Link as i32,
+        address: Some(Address {
+            context: hex::decode(link.repository.as_str()).unwrap().into(),
+            hash: hex::decode(link.pinned.as_str()).unwrap().into(),
+        }),
+        tracking: link.follows,
+        ..Default::default()
+    }
 }
 
 #[derive(Default, Clone)]
@@ -349,7 +370,15 @@ impl Lore for FakeLore {
                 state.granted.contains(person),
                 Refused(format!("Lore refused {person}: PermissionDenied"))
             );
-            Ok(state.links.get(revision).cloned().unwrap_or_default())
+            let mut nodes = state
+                .links
+                .get(revision)
+                .into_iter()
+                .flatten()
+                .map(link_node)
+                .collect::<Vec<_>>();
+            nodes.extend(state.trees.get(revision).into_iter().flatten().cloned());
+            super::read::links(&nodes)
         })
     }
 
@@ -473,8 +502,35 @@ fn configuration(directory: &Path) -> veoveo_hub::control_plane::FactoryConfigur
     .unwrap()
 }
 
+/// The fixture's database, dropped on a blocking thread. Its drop waits for PostgreSQL's
+/// `DROP DATABASE`, which waits until every backend of the shared cluster takes its
+/// barrier, and a backend this test's runtime is still connecting, for an apply that is
+/// still running, takes it only once the runtime answers it. Dropped on the runtime's
+/// thread, the drop would wait for the runtime and stall every test's databases until
+/// PostgreSQL's authentication timeout; the runtime waits for the blocking drop instead.
+struct Database(Option<veoveo_fixtures::store::TestDb>);
+
+impl std::ops::Deref for Database {
+    type Target = veoveo_fixtures::store::TestDb;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref().expect("the fixture's database")
+    }
+}
+
+impl Drop for Database {
+    fn drop(&mut self) {
+        if let Some(db) = self.0.take() {
+            match tokio::runtime::Handle::try_current() {
+                Ok(runtime) => drop(runtime.spawn_blocking(move || drop(db))),
+                Err(_) => drop(db),
+            }
+        }
+    }
+}
+
 struct Fixture {
-    db: veoveo_fixtures::store::TestDb,
+    db: Database,
     lore: FakeLore,
     gateway: gateway::Gateway,
     builder: Arc<Builder>,
@@ -486,7 +542,7 @@ struct Fixture {
 
 impl Fixture {
     async fn start() -> Self {
-        let db = veoveo_fixtures::store::TestDb::new().await;
+        let db = Database(Some(veoveo_fixtures::store::TestDb::new().await));
         HubStore::new(db.a.clone()).migrate().await.unwrap();
         let directory = tempfile::tempdir().unwrap();
         let (gateway, client) = gateway::Gateway::start().await;
@@ -1462,6 +1518,141 @@ async fn a_link_runs_once_its_linked_repository_is_watched_and_goes_with_the_lin
         })
         .await;
         assert!(fixture.runners("links/second").await.is_empty());
+    })
+    .await;
+}
+
+/// A node of a revision's own tree: a directory, or a link to `LINKED_A`.
+fn tree_node(path: &str, node_type: NodeType) -> TreeNode {
+    let address = (node_type == NodeType::Link).then(|| Address {
+        context: hex::decode(LINKED_A).unwrap().into(),
+        hash: hex::decode(revision('a').as_str()).unwrap().into(),
+    });
+    TreeNode {
+        path: path.into(),
+        node_type: node_type as i32,
+        address,
+        ..Default::default()
+    }
+}
+
+#[tokio::test]
+async fn a_revision_with_a_link_its_checkout_cannot_leave_out_is_refused_at_prepare() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let alice = person("alice");
+        fixture.lore.with(|state| {
+            state.granted.insert(alice.clone());
+            state.branches = vec![live('1', "links/deep", '1')];
+            state.committers.insert(revision('1'), alice.clone());
+            state.runs.insert(revision('1'), None);
+        });
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        until("the instance", || async {
+            fixture.applied("links/deep").await == Some(revision('1'))
+        })
+        .await;
+        let store = fixture.watches.store().clone();
+        let refused = |digit: char| {
+            let store = store.clone();
+            async move {
+                store
+                    .prepare_failure(&watched(), &name("links/deep"))
+                    .await
+                    .unwrap()
+                    .filter(|failure| failure.revision == revision(digit))
+            }
+        };
+        let push = |digit: char, links: Vec<LinkNode>, tree: Vec<TreeNode>| {
+            fixture.lore.with(|state| {
+                state.branches[0].latest = revision(digit);
+                state.committers.insert(revision(digit), alice.clone());
+                state.runs.insert(revision(digit), None);
+                state.links.insert(revision(digit), links);
+                state.trees.insert(revision(digit), tree);
+            });
+            fixture.lore.send(Ok(pushed('1', digit, &alice)));
+        };
+
+        // A link below the top level of a branch without top-level links: its clone would
+        // reach the linked repository, so the push is refused and the instance keeps
+        // serving.
+        push(
+            '2',
+            Vec::new(),
+            vec![
+                tree_node("assets", NodeType::Directory),
+                tree_node("assets/lib", NodeType::Link),
+            ],
+        );
+        until("the refusal", || async { refused('2').await.is_some() }).await;
+        let message = refused('2').await.unwrap().message;
+        assert!(
+            message
+                .contains("reading the revision's links as https://identity.example#alice failed")
+                && message.contains("the revision holds the link assets/lib below its top level"),
+            "{message}"
+        );
+        assert_eq!(fixture.applied("links/deep").await, Some(revision('1')));
+
+        // The same for a linked branch: none of its links runs.
+        push(
+            '3',
+            vec![link("team-a", LINKED_A, 'a', true)],
+            vec![
+                tree_node("docs", NodeType::Directory),
+                tree_node("docs/lib", NodeType::Link),
+            ],
+        );
+        until("the linked refusal", || async {
+            refused('3').await.is_some()
+        })
+        .await;
+        assert!(
+            refused('3')
+                .await
+                .unwrap()
+                .message
+                .contains("the revision holds the link docs/lib below its top level")
+        );
+        assert_eq!(fixture.applied("links/deep").await, Some(revision('1')));
+        assert!(fixture.runners("links/deep").await.is_empty());
+
+        // A top-level link whose name is no DNS label is not left out either.
+        push('4', Vec::new(), vec![tree_node("Team_A", NodeType::Link)]);
+        until("the name's refusal", || async {
+            refused('4').await.is_some()
+        })
+        .await;
+        assert!(
+            refused('4')
+                .await
+                .unwrap()
+                .message
+                .contains("the revision's link Team_A is not named by a lowercase DNS label")
+        );
+
+        // A push without such links is prepared and clears the refusal.
+        push(
+            '5',
+            Vec::new(),
+            vec![tree_node("assets", NodeType::Directory)],
+        );
+        until("the next push", || async {
+            fixture.applied("links/deep").await == Some(revision('5'))
+        })
+        .await;
+        assert_eq!(
+            store
+                .prepare_failure(&watched(), &name("links/deep"))
+                .await
+                .unwrap(),
+            None
+        );
     })
     .await;
 }

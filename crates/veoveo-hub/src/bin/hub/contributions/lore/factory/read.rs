@@ -50,6 +50,17 @@ pub(super) async fn top_level(
     walk(client, request, revision, None, Some(1)).await
 }
 
+/// Everything at or under the top-level `directory` of the revision. A link under it is
+/// listed and, when its person may read the linked repository, entered.
+pub(super) async fn under(
+    client: ThinClientServiceClient<Channel>,
+    request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
+    revision: &Revision,
+    directory: &str,
+) -> Result<Vec<TreeNode>> {
+    walk(client, request, revision, Some(directory), None).await
+}
+
 async fn walk(
     mut client: ThinClientServiceClient<Channel>,
     request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
@@ -96,18 +107,32 @@ async fn walk(
     .context("Lore did not answer with the revision's tree in time")?
 }
 
-/// The links at the top level of a revision's tree whose names are lowercase DNS labels:
-/// each names its linked repository in its address's context and the revision it pins in
-/// its address's hash, and says whether it follows the parent's branch.
+/// The links of a revision whose own tree `nodes` lists: its top level and everything under
+/// its top-level directories. Each link names its linked repository in its address's
+/// context and the revision it pins in its address's hash, and says whether it follows the
+/// parent's branch. A factory sandbox's checkout leaves out exactly the links at the top
+/// level whose names are lowercase DNS labels, so any other link would end its clone: a
+/// revision that holds one is refused.
 pub(super) fn links(nodes: &[TreeNode]) -> Result<Vec<super::LinkNode>> {
     let mut links = Vec::new();
     for node in nodes {
-        if node.node_type != NodeType::Link as i32 || node.path.contains('/') {
+        if node.node_type != NodeType::Link as i32 {
             continue;
         }
-        let Ok(name) = veoveo_hub_sdk::hub::LinkName::parse(&node.path) else {
-            continue;
-        };
+        anyhow::ensure!(
+            !node.path.contains('/'),
+            "the revision holds the link {} below its top level, which a factory sandbox's \
+             checkout cannot leave out: a factory serves only links at the top level of a \
+             branch's revision, so move the link there or remove it",
+            node.path
+        );
+        let name = veoveo_hub_sdk::hub::LinkName::parse(&node.path).map_err(|_| {
+            anyhow::anyhow!(
+                "the revision's link {} is not named by a lowercase DNS label, which a \
+                 factory serves a link by: rename the link",
+                node.path
+            )
+        })?;
         let address = node
             .address
             .as_ref()
@@ -442,6 +467,48 @@ mod tests {
         assert_eq!(
             super::prepared(directory.path()).unwrap().policy.as_deref(),
             Some("version: 1\n")
+        );
+    }
+
+    #[test]
+    fn a_revision_serves_its_top_level_links_and_refuses_one_its_checkout_keeps() {
+        let linked = |path: &str, tracking: bool| TreeNode {
+            path: path.into(),
+            node_type: NodeType::Link as i32,
+            address: Some(lore_proto::lore::model::v1::Address {
+                hash: vec![0xab; 32].into(),
+                context: vec![0x0c; 16].into(),
+            }),
+            tracking,
+            ..Default::default()
+        };
+        let directory = node("assets", NodeType::Directory, FileMode::None, 0);
+        let found = links(&[
+            linked("team-b", false),
+            directory.clone(),
+            linked("team-a", true),
+        ])
+        .unwrap();
+        let names = found
+            .iter()
+            .map(|link| (link.name.as_str(), link.follows))
+            .collect::<Vec<_>>();
+        assert_eq!(names, [("team-a", true), ("team-b", false)]);
+        assert_eq!(found[0].repository.as_str(), "0c".repeat(16));
+        assert_eq!(found[0].pinned.as_str(), "ab".repeat(32));
+
+        let deep = links(&[directory, linked("assets/lib", true)]).unwrap_err();
+        assert!(
+            deep.to_string()
+                .contains("the revision holds the link assets/lib below its top level"),
+            "{deep:#}"
+        );
+        let named = links(&[linked("Team_A", true)]).unwrap_err();
+        assert!(
+            named
+                .to_string()
+                .contains("the revision's link Team_A is not named by a lowercase DNS label"),
+            "{named:#}"
         );
     }
 

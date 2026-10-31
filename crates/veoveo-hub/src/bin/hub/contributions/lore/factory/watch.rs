@@ -673,21 +673,28 @@ impl Inner {
             let directory = tempfile::Builder::new()
                 .prefix("veoveo-factory-")
                 .tempdir()
-                .context("failed to create the push's directory")?;
+                .context("failed to create the push's directory")
+                .map_err(|error| format!("{error:#}"))?;
             let prepared = self
                 .lore
                 .read(&pusher, watched, &revision, directory.path())
-                .await?;
+                .await
+                .map_err(|error| format!("reading openshell/ as {pusher} failed: {error:#}"))?;
             let links = match prepared {
-                Some(_) => self.lore.links(&pusher, watched, &revision).await?,
+                Some(_) => self
+                    .lore
+                    .links(&pusher, watched, &revision)
+                    .await
+                    .map_err(|error| {
+                        format!("reading the revision's links as {pusher} failed: {error:#}")
+                    })?,
                 None => Vec::new(),
             };
-            anyhow::Ok((directory, prepared, links))
+            Ok::<_, String>((directory, prepared, links))
         };
         let (directory, prepared, links) = match read.await {
             Ok(read) => read,
-            Err(error) => {
-                let message = format!("reading openshell/ as {pusher} failed: {error:#}");
+            Err(message) => {
                 self.unprepared(watched, branch, &revision, &pusher, &message)
                     .await;
                 return;

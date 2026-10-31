@@ -13,7 +13,7 @@ use lore_proto::lore::{
         revision_service_client::RevisionServiceClient,
     },
     thin_client::v1::{
-        RevisionInfoRequest, revision_info_request,
+        NodeType, RevisionInfoRequest, revision_info_request,
         thin_client_service_client::ThinClientServiceClient,
     },
 };
@@ -301,12 +301,30 @@ impl LoreProtocol for NativeLore {
     ) -> BoxFuture<'a, Result<Vec<LinkNode>>> {
         Box::pin(async move {
             let (deployment, token) = self.token(person, watched).await?;
-            let nodes = super::read::top_level(
-                ThinClientServiceClient::new(connect(&deployment).await?),
+            let client = ThinClientServiceClient::new(connect(&deployment).await?);
+            let mut nodes = super::read::top_level(
+                client.clone(),
                 |message| request(message, &token, &watched.repository),
                 revision,
             )
             .await?;
+            // The revision's own tree, without entering its top-level links.
+            let directories = nodes
+                .iter()
+                .filter(|node| node.node_type == NodeType::Directory as i32)
+                .map(|node| node.path.clone())
+                .collect::<Vec<_>>();
+            for directory in directories {
+                nodes.extend(
+                    super::read::under(
+                        client.clone(),
+                        |message| request(message, &token, &watched.repository),
+                        revision,
+                        &directory,
+                    )
+                    .await?,
+                );
+            }
             super::read::links(&nodes)
         })
     }
