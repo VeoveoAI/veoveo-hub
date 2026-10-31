@@ -1,0 +1,341 @@
+{
+  "case": "discovery-cache-exact-start-20261031",
+  "evidence_class": "Implementation-linked model-relative Lean contract; manual Linux proof compilation; no native or deployed qualification in this checkpoint",
+  "team": {
+    "implementation": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source": {
+    "runtime_revision": "688b91a",
+    "proof_parent_revision": "4500e6d",
+    "discovery_rs": {
+      "sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+      "bytes": 36053
+    },
+    "sdk_revision": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+    "core_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "checked_file_map": {
+      "CacheKeyFrameProof.lean": {
+        "sha256": "c8cbac62e63c314fb9921fa6a9aa5cdae3fa4f777445a781936e891ac9d54bdd",
+        "bytes": 13150
+      },
+      "CacheStartProof.lean": {
+        "sha256": "6ab63db1ed4012d862dd784379cfd816bdcac5b7daca719cceaec5dd1c20035b",
+        "bytes": 21721
+      },
+      "CacheStartSpecification.lean": {
+        "sha256": "ed3e26cbbec913d9709b27ac29d03df6598b5b2606a64a125eeba14295eb887a",
+        "bytes": 3548
+      },
+      "HubDiscoveryCacheState/Funs.lean": {
+        "sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+        "bytes": 33054
+      },
+      "HubDiscoveryCacheState/FunsExternal.lean": {
+        "sha256": "d11eeee90fbb5dee664f68046f70ff4ac2a206e38b082ef350be25093682f4ac",
+        "bytes": 20504
+      },
+      "HubDiscoveryCacheState/Types.lean": {
+        "sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+        "bytes": 3732
+      },
+      "HubDiscoveryCacheState/TypesExternal.lean": {
+        "sha256": "3f4e6930a1658bcb2d259f4a51eedd6d81fe920c19bf76ae94749866291e9bb2",
+        "bytes": 3082
+      },
+      "README.md": {
+        "sha256": "66ab1d954cf7153e80dabab1c54a5ca118bcc1a6fdd5253687e9491eb5e99530",
+        "bytes": 4164
+      },
+      "lake-manifest.json": {
+        "sha256": "dd9ef3178940943c40d1aa5df7aff9582832d10525e4c7376aab967432f19da4",
+        "bytes": 3915
+      },
+      "lakefile.lean": {
+        "sha256": "7421a908d9ea93626e03061a6cd0cb6d9b5556621d7d6d86b8a48ba599a27098",
+        "bytes": 385
+      },
+      "lean-toolchain": {
+        "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "bytes": 25
+      }
+    },
+    "postcheck_readme": {
+      "sha256": "7b0876eba584ab9c7e61ba1065b55c80d0be763176e1ba409f8b1b346e8f8e6b",
+      "bytes": 6269
+    },
+    "postcheck_change": "README prose only; Lean, model, generated output and config unchanged"
+  },
+  "prerequisite_receipts": [
+    "five-operation-extraction-20261031.json",
+    "read-key-invalidation-20261031.json"
+  ],
+  "toolchain": {
+    "lean": "4.35.0",
+    "aeneas_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "qualification_configuration": "Reused same five-operation model package and private Lake override from read/key-invalidation receipt. No extraction or model rebuild in this checkpoint. Existing qualified discriminant instance-name patch remains present; clean upstream reproduction unmeasured.",
+    "effective_lakefile_sha256": "ec24f002e4aa4e1c4c6986b8443f4566752f2855d8cae27fa2e07115181c071b",
+    "effective_manifest_sha256": "2bbd5afa9c8e51f8033f5715cc74818997fd2640f1cff10b2dc85d165228ed23"
+  },
+  "contracts": [
+    "Exact equality of actual extracted start with independent full-state startOutcome for arbitrary clock and ticket Results, including failure/divergence.",
+    "Old generation is a complete no-op; newer generation clears entries, tickets and retries before observing the new ticket.",
+    "Equal generation observes cooldown before pending work and capacity; unused callbacks do not affect the result.",
+    "Capacity refusal includes non-coalesced replacement. Accepted work returns original complete key, observed ticket and denied=0, preserving cached/retry maps and unrelated tickets, with at most 4096 in-flight entries.",
+    "Explicit non-coalesced acceptance requires no clock observation or condition on retry/pending records."
+  ],
+  "setup_failures": [
+    {
+      "error": "Missing ops_sha256 metadata required by reused runner",
+      "stage": "Before Lean; no artifact/source mutation",
+      "record": {
+        "sha256": "6e66255283fc45157df5eba8e347e9d5d90de179a036bc7c12569fcbe7ed033b",
+        "bytes": 337
+      }
+    },
+    {
+      "error": "Prerequisite CacheKeyFrameProof.olean path incorrectly assumed model subdirectory",
+      "stage": "Before Lean; corrected to root proof output directory; no artifact/source mutation",
+      "record": {
+        "sha256": "21f95539b966d4b9b21abb622a4fe84fd26065fcc66a0d76d1d3a495a7e26ce5",
+        "bytes": 321
+      }
+    }
+  ],
+  "checks": [
+    {
+      "attempt": 1,
+      "source_proof": {
+        "sha256": "9ac68c2cef6fc9fe6da34bddb6efd73fa38ac7669752551982b3596536ed7f35",
+        "bytes": 20311
+      },
+      "packet": {
+        "sha256": "07913725ed097183e7573589ea0b9a5e5184995476b6df2f13dbea87f515ab89",
+        "bytes": 3328
+      },
+      "runner": {
+        "sha256": "f247cfcca58fcb0978ff0f11f24b53d66b57b9c215919e21fafe3daaed2258ad",
+        "bytes": 4845
+      },
+      "command": "LAKE_NO_UPDATE=1 lake env lean CacheStartProof.lean -o .lake/build/lib/lean/CacheStartProof.olean",
+      "exit_status": 1,
+      "elapsed_ms": 3640,
+      "proof_log": {
+        "sha256": "cdc22cdda0358cd1021db9cb263c0e72f047392c1eb93e5bf83ccb778594e040",
+        "bytes": 10875
+      },
+      "input_map_before_and_after": {
+        "sha256": "1b94e8fc896e3b3ca3959dab4dfe394163729c2af84a2cd25d9eace719fb05f9",
+        "bytes": 1994
+      },
+      "source_config_and_prerequisite_identity_checks": "passed; before and after identical",
+      "specification": {
+        "command": "LAKE_NO_UPDATE=1 lake env lean CacheStartSpecification.lean -o .lake/build/lib/lean/CacheStartSpecification.olean",
+        "exit_status": 0,
+        "elapsed_ms": 12227,
+        "log": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "olean": {
+          "sha256": "aa169ffbaf86796dae3fb8f02d1bcb06513f3b2f98a309c36cf5280f749e75fa",
+          "bytes": 88264
+        }
+      },
+      "errors": "Redundant proof tactics, remaining full-state definitional equality, and a precedence error in the notPending assumption of ready_start/ready_accepted. Earlier incomplete proof declarations were rejected by executable axiom guards."
+    },
+    {
+      "attempt": 2,
+      "source_proof": {
+        "sha256": "029953c3f706c46f931a5ce0888118a35b268088c55eac17426e2d3369f2b79d",
+        "bytes": 20304
+      },
+      "packet": {
+        "sha256": "eebef1e8d203714db46cd520b4dd948b200e91a5ef93ccc4cccf1037e7803fa8",
+        "bytes": 3261
+      },
+      "runner": {
+        "sha256": "cf6c4bd601a074c951e91f60db48db2ee4b2d9b0ef7aac2edfb26211a71b50a3",
+        "bytes": 4469
+      },
+      "command": "LAKE_NO_UPDATE=1 lake env lean CacheStartProof.lean -o .lake/build/lib/lean/CacheStartProof.olean",
+      "exit_status": 0,
+      "elapsed_ms": 6467,
+      "proof_log": {
+        "sha256": "9c03b651819ab1773573ba48d0750db767790f2a3cdfe37509d2beae50ee9e85",
+        "bytes": 7480
+      },
+      "input_map_before_and_after": {
+        "sha256": "2b75a2ecbddbd413c0c7dc99fac9d8cb327520caa247b8838f13aeb0a4312bcd",
+        "bytes": 2101
+      },
+      "source_config_and_prerequisite_identity_checks": "passed; before and after identical",
+      "olean": {
+        "sha256": "32bbdef842aeef830e18d67d8cf9d9edef8e53795d4ce2f50b4d4bda2387ee96",
+        "bytes": 895448
+      },
+      "printed_axiom_closures": [
+        [
+          "CacheStartProof.key_clone_exact",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.map_insert_exact",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.start_exact",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.old_generation",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.newer_generation",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.uncoalesced_capacity",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.pending_refused",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.ready_start",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.cooldown_refused",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.ready_accepted",
+          "propext, Classical.choice, Quot.sound"
+        ]
+      ]
+    },
+    {
+      "attempt": 3,
+      "source_proof": {
+        "sha256": "6ab63db1ed4012d862dd784379cfd816bdcac5b7daca719cceaec5dd1c20035b",
+        "bytes": 21721
+      },
+      "packet": {
+        "sha256": "73f39263b13d5b09bbb774fc10af9fa4a58a7c51f45cfe5f232bd239c7f334e4",
+        "bytes": 3269
+      },
+      "runner": {
+        "sha256": "6282a64cf16bb178a8a5eacdc2567c191cdeb986c57017fe084fdc9dc8e5d421",
+        "bytes": 4469
+      },
+      "command": "LAKE_NO_UPDATE=1 lake env lean CacheStartProof.lean -o .lake/build/lib/lean/CacheStartProof.olean",
+      "exit_status": 0,
+      "elapsed_ms": 7398,
+      "proof_log": {
+        "sha256": "3dadac163feadf60968abfc79c68c2796c40b0d73cfaa80912064180388cd8e0",
+        "bytes": 7578
+      },
+      "input_map_before_and_after": {
+        "sha256": "19bde53cb2fac524fc104764cb646fb6a0b5d504cb6a86d29b832856ddb1488d",
+        "bytes": 2101
+      },
+      "source_config_and_prerequisite_identity_checks": "passed; before and after identical",
+      "olean": {
+        "sha256": "62b5c9716d4897b657caf894cbfd598d2d77b9b26b64f9b7f8ca76f532a25054",
+        "bytes": 901152
+      },
+      "printed_axiom_closures": [
+        [
+          "CacheStartProof.key_clone_exact",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.map_insert_exact",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.start_exact",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.old_generation",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.newer_generation",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.uncoalesced_capacity",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.pending_refused",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.ready_start",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.cooldown_refused",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.ready_accepted",
+          "propext, Classical.choice, Quot.sound"
+        ],
+        [
+          "CacheStartProof.uncoalesced_accepted",
+          "propext, Classical.choice, Quot.sound"
+        ]
+      ]
+    }
+  ],
+  "proof_statement_correction": {
+    "before": "coalesce && (lookup key state.in_flight).isSome = false",
+    "after": "(coalesce && (lookup key state.in_flight).isSome) = false",
+    "effect": "Original Lean precedence accidentally required coalesce=true. Corrected both acceptance premises; added uncoalesced_accepted derived with false to guard the intended acceptance domain. No runtime defect or runtime change; independent start specification unchanged."
+  },
+  "final_axiom_guards": {
+    "count": 16,
+    "permitted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "printed_closures": 11,
+    "result": "passed; no sorryAx or custom primitive axioms in audited declarations"
+  },
+  "root_review": [
+    "Reviewed full-state independent contract, actual start connection and explicit non-coalesced successful specialization.",
+    "Verified final source and packet hashes against local files, identical pre/post input lists, stage statuses and artifact-hash records.",
+    "Read final log; only unused tactic/simplifier/variable warnings. OLean identities/sizes come from remote runner records, not local binary recompilation."
+  ],
+  "boundaries": [
+    "Primitive map-to-native BTreeMap correspondence requires coherent order/borrowing/equality and unique sorted keys; native identifier/clone/allocation/destructor correspondence remains external.",
+    "Physical list/usize bound only; previous-map bound waived when newer generation clears it. Sorted/unique invariant preservation not yet proved.",
+    "Callback Results encode dependency order and branch independence, not native effect traces, exact invocation counts, async mutex linearization or post-panic state.",
+    "No global fresh finite UUID axiom or hash injectivity axiom. Finite-history ticket uniqueness must be explicit when composing operations."
+  ],
+  "remaining": [
+    "complete full-state contract",
+    "sorted/unique invariant maintenance",
+    "finite overlapping-request histories",
+    "actual-source semantic controls for this state machine",
+    "server-wide retain translation limitation",
+    "cursor/listener and native wrapper refinement"
+  ],
+  "not_run": [
+    "native tests (unchanged runtime; prior 22-test receipt retained)",
+    "full Mac/Linux Docker suites",
+    "deployment",
+    "remote push",
+    "OpenCode or other paid model acceptance"
+  ],
+  "scratch_evidence": "/tmp/hub-discovery-cache-control-20261031/state-operations-plan2/cache-start-check3/remote-run1"
+}

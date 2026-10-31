@@ -104,7 +104,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
-| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Exact reads and key invalidation checked; prove start/completion, histories, server invalidation and listener freshness |
+| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Exact reads, key invalidation and fetch start checked; prove completion, histories, server invalidation and listener freshness |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
@@ -892,9 +892,20 @@ Prevents cross-context disclosure and stale routing represented as current disco
   read/removal proofs have only standard Lean logical axioms. See the
   [qualification receipt](discovery_cache/evidence/read-key-invalidation-20261031.json).
   Native collection/identifier/clone correspondence and async mutex refinement
-  remain explicit boundaries. Start/completion contracts, finite histories,
+  remain explicit boundaries. Completion contracts, finite histories,
   semantic controls and server-wide invalidation remain pending. This checkpoint
   does not yet establish stale-response fencing or listener freshness.
+- **Checked fetch-start contract:** [the start receipt](discovery_cache/evidence/start-contract-20261031.json)
+  connects the actual generated operation to an independent complete-state
+  specification. It proves old-generation no-op, newer-generation reset, cooldown
+  before pending/capacity checks, and valid acceptance with the exact key, ticket,
+  zero denied count and updated state. Other tickets and the cached/retry maps
+  are preserved on equal-generation acceptance. Non-coalesced acceptance requires
+  no clock, retry or pending-record premise; capacity still refuses replacements.
+  Callback Results retain failure/divergence rather than assuming success.
+  The final leaf passed in 7.398 s with sixteen executable standard-only axiom
+  guards. This establishes neither native invocation counts nor sorted/unique-map
+  invariant preservation, which is still needed for history refinement.
 - **Boundary/effort:** moderate for key/cursor comparisons; substantial for the
   cache/listener state machine. Assume collision-resistant identity hashing, correct
   authenticated inputs and mutex/watch-channel semantics where effects are modeled.

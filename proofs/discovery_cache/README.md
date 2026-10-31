@@ -28,10 +28,30 @@ possible overflow/failure. Async mutex acquisition and the connection from nativ
 clock/UUID function items to operation-specific callback observations remain outside
 the extracted synchronous operations.
 
-Start/complete full-state contracts and finite histories over the actual method
-results are the next proof step. Payload equality must follow the supplied
-`PartialEq` dictionary or an explicit full-value law. A completion returning `false`
-can still remove current ticket/retry records; it does not mean state was unchanged.
+The actual `start` operation also has an independent full-state contract in
+`CacheStartSpecification` and `CacheStartProof`. Old-generation work returns without
+changing any state, independently of both callback results. Strictly newer
+generation clears all three maps and then retains the ticket callback's exact
+Result. Equal-generation coalesced work checks a stored retry deadline before
+pending work and capacity. Capacity refuses even a non-coalesced replacement of an
+existing key. Accepted work returns the complete original key, observed ticket and
+`denied = 0`, preserves cached/retry maps and unrelated tickets, and has at most
+4096 in-flight entries. The non-coalesced acceptance specialization requires no
+clock observation or condition on stored retry/pending records.
+
+Clock and ticket Results are operation-specific inputs, including failure and
+divergence. The equation establishes dependency ordering and branch independence;
+native invocation counts, effects and mutex linearization remain source-reviewed
+boundaries. No post-panic native state or globally fresh no-argument UUID is assumed.
+The only start input bound is physical list/usize correspondence, waived for the
+old map when newer generation first clears it.
+
+Sorted/unique-map invariant maintenance, `complete` full-state contracts and finite
+histories over actual method results remain the next proof step. The inserted-ticket
+read/frame/size lemmas do not require sortedness, and no new sorted/unique invariant
+claim is made. Payload equality for completion must follow the supplied `PartialEq`
+dictionary or an explicit full-value law. A completion returning `false` can still
+remove current ticket/retry records; it does not mean state was unchanged.
 
 Server-wide `discard_server` invalidation remains unsupported and unproved. The
 six-root extraction translated, but unchanged generated retain-closure dictionaries
@@ -46,14 +66,22 @@ explicitly after that model target:
 ```sh
 LAKE_NO_UPDATE=1 lake build HubDiscoveryCacheState
 LAKE_NO_UPDATE=1 lake env lean CacheKeyFrameProof.lean -o .lake/build/lib/lean/CacheKeyFrameProof.olean
+LAKE_NO_UPDATE=1 lake env lean CacheStartSpecification.lean -o .lake/build/lib/lean/CacheStartSpecification.olean
+LAKE_NO_UPDATE=1 lake env lean CacheStartProof.lean -o .lake/build/lib/lean/CacheStartProof.olean
 ```
 
 The primitive model build passed in 10.685s. The final read/key-invalidation leaf
 passed in 4.230s, including ten executable axiom guards and five printed theorem
 closures containing only `propext`, `Classical.choice`, and `Quot.sound`. Earlier
 proof-authoring failures are retained separately. These results qualify the stated
-model-relative read/key-invalidation contracts, not start/complete histories or
-native collection/time refinement.
+model-relative read/key-invalidation contracts. The independent start specification
+compiled in 12.227s; the final start leaf passed in 7.398s, with sixteen executable
+axiom guards and eleven printed closures containing only the same three standard
+axioms. One proof-statement parenthesization correction restored the intended
+non-coalesced acceptance domain; it changed no runtime behavior. Initial script
+precheck errors and proof-authoring failures are recorded separately from successful
+checks. These results do not qualify completion/history invariants or native
+collection/time refinement.
 
 Validation used Lean 4.35.0 and the pinned Aeneas revision with the existing
 [qualified discriminant instance-name patch](../request_composition/tooling/qualified-discriminant-instance.patch)
