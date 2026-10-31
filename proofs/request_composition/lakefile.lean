@@ -15,3 +15,6 @@ lean_lib SelectedCollectionProof
 lean_lib SelectedMapInsertionProof
 
 lean_lib SelectedMapCollectionProof
+
+lean_lib SelectedRouteContextProof
+lean_lib SnapshotConstructorProof
