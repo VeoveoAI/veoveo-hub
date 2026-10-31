@@ -267,7 +267,9 @@ async fn open(State(apps): State<AppsService>, request: Request) -> Response {
         }
     };
     let title = app.title.as_deref().unwrap_or(&app.name);
-    pages::host_page(&view, title, &policy, &apps.origins)
+    let app_origin = super::server_origin::declares_origin(&catalog, view.server())
+        .then(|| apps.origins.app_origin(view.server()));
+    pages::host_page(&view, title, &policy, &apps.origins, app_origin)
 }
 
 fn response(id: &RequestId, answer: Answer) -> Response {

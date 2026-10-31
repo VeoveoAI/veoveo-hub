@@ -39,6 +39,10 @@ struct HostConfig<'a> {
     sandbox: &'a str,
     csp: UiCsp,
     host: HostInfo,
+    /// The App's server's app origin, when the server declares one: the one target of
+    /// `ui/open-link` the host opens.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    app_origin: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -104,6 +108,7 @@ pub(super) fn host_page(
     title: &str,
     policy: &AppPolicy,
     origins: &AppOrigins,
+    app_origin: Option<String>,
 ) -> Response {
     let query = policy.query();
     let config = HostConfig {
@@ -120,6 +125,7 @@ pub(super) fn host_page(
             name: "veoveo-hub",
             version: env!("CARGO_PKG_VERSION"),
         },
+        app_origin,
     };
     let body = format!(
         "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\

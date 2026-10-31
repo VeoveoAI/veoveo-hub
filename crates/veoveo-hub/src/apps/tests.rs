@@ -504,6 +504,10 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
             "https://sandbox.apps.veoveo.example/?connect=https%3A%2F%2Fapi.example.net&frame=https%3A%2F%2Ffixture.apps.veoveo.example"
         );
         assert_eq!(data["csp"]["connectDomains"], json!(["https://api.example.net"]));
+        assert!(
+            data.get("appOrigin").is_none(),
+            "a server that declares no app origin is no target of ui/open-link"
+        );
         assert!(page.contains("<title>Board &lt;/script&gt;</title>"));
         let script = page
             .split_once("<script src=\"")

@@ -194,6 +194,8 @@
         });
       case "ui/request-display-mode":
         return reply(id, { mode: "fullscreen" });
+      case "ui/open-link":
+        return openLink(id, params);
       case "ping":
         return reply(id, {});
       default:
@@ -210,6 +212,24 @@
       tasks.add(result.taskId);
     }
     return reply(id, result);
+  };
+
+  // A view never frames a full web application: a frame nested in the view inherits its
+  // sandbox and opaque origin, so it holds no session. The view opens its server's app
+  // origin top-level instead, the one target this host opens; other targets fail.
+  const openLink = (id, params) => {
+    let url;
+    try {
+      url = new URL(typeof params.url === "string" ? params.url : "");
+    } catch {
+      return fail(id, INVALID_PARAMS, "ui/open-link needs a URL.");
+    }
+    if (!config.appOrigin || url.origin !== config.appOrigin) {
+      return fail(id, INVALID_PARAMS, "This host opens only the App's own server's app origin.");
+    }
+    // The page itself goes there: no pop-up to block and no opener to reach back.
+    reply(id, {});
+    window.location.assign(url.href);
   };
 
   window.addEventListener("message", (event) => {

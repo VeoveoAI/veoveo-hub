@@ -177,7 +177,7 @@ fn unavailable(error: &dyn std::fmt::Display) -> Response {
 }
 
 /// Whether any registration of `server` declares an app origin.
-fn declares_origin(catalog: &crate::HubCatalog, server: &ServerSlug) -> bool {
+pub(super) fn declares_origin(catalog: &crate::HubCatalog, server: &ServerSlug) -> bool {
     catalog.registrations().iter().any(|registered| {
         &registered.slug == server
             && registered

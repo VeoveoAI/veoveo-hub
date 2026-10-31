@@ -859,7 +859,7 @@ first label is `sandbox`, and the rest is the apps domain, whose wildcard
 |---|---|---|
 | The issuer's | The Hub's | Each App's host page and bridge |
 | `sandbox.{apps domain}` | The Apps listener | The sandbox proxy, and nothing else |
-| `{slug}.{apps domain}` | The Apps listener | The app origin of a server whose registration declares one: its authenticated routes for a signed-in person ([server app origins](#server-app-origins)); it is also the one `frameDomains` source that server's Apps may name |
+| `{slug}.{apps domain}` | The Apps listener | The app origin of a server whose registration declares one: its authenticated routes for a signed-in person ([server app origins](#server-app-origins)), which that server's Apps open top-level with `ui/open-link` |
 
 The Hub's own listener never serves the proxy page or an app origin, and the Apps
 listener reaches no route of the Hub's own. OpenShell's native ingress selects the Hub
@@ -929,6 +929,14 @@ in through the issuer, as identity-aware proxies do, and holds the session itsel
    names the server's endpoint as its audience. The answer streams back minus hop-by-hop
    fields and any `Set-Cookie` of the Hub's own cookie names; the application's own
    cookies, on its own origin, pass both ways. A protocol upgrade answers 501.
+
+An App opens its server's app origin with MCP Apps' `ui/open-link`; it cannot frame it.
+A frame nested in the App's frame inherits that frame's `sandbox="allow-scripts"` and
+its opaque origin, so the origin's session cookie is not sent and the application has
+no storage: measured in Chrome, such a nested frame got the Hub's 401 where a plain
+same-site frame of the origin reached the application. The host page carries the App's
+server's app origin when the server declares one, and its `ui/open-link` navigates the
+page to a URL of exactly that origin and refuses every other target.
 
 `hub.app_origin_code` and `hub.app_origin_session` hold the codes and sessions; a family's
 or Computer's deletion removes them, and an expired or revoked family admits none.
