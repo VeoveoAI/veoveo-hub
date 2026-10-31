@@ -18,5 +18,6 @@ pub use bridge::AppsService;
 pub use csp::{AppPolicy, PolicyError};
 pub use listen::ListenLimits;
 pub use origins::{AppOrigins, SandboxOrigin};
+pub use pages::host_script_path;
 pub use route::{AppView, SANDBOX_SLUG};
 pub use sandbox::SandboxProxy;

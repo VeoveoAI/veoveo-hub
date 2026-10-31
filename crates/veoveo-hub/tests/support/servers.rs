@@ -165,6 +165,7 @@ async fn serve_as(
                 url::Url::parse(&format!("http://{address}/{slug}/mcp")).unwrap(),
             )
             .unwrap(),
+            surfaces: None,
         },
         declaration,
     )

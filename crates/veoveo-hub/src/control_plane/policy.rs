@@ -259,6 +259,10 @@ pub enum PolicyTarget {
         server: ServerSlug,
         task_id: veoveo_types::TaskId,
     },
+    /// A request on the server's app origin, behind its `app_origin` requirement.
+    AppOrigin {
+        server: ServerSlug,
+    },
     #[serde(untagged, skip_deserializing)]
     #[schemars(skip)]
     Owner(crate::contract::AdmittedPolicyTarget),
@@ -323,6 +327,7 @@ impl PolicyTarget {
             Self::Prompt { .. } => "prompt",
             Self::Task { .. } => "task",
             Self::PlatformTask { .. } => "platform_task",
+            Self::AppOrigin { .. } => "app_origin",
             Self::Owner(target) => target.kind().as_str(),
             Self::Unadmitted(_) => "unadmitted",
         }
@@ -335,7 +340,8 @@ impl PolicyTarget {
             | Self::ResourceTemplate { server, .. }
             | Self::Prompt { server, .. }
             | Self::Task { server, .. }
-            | Self::PlatformTask { server, .. } => Some(server),
+            | Self::PlatformTask { server, .. }
+            | Self::AppOrigin { server } => Some(server),
             _ => None,
         }
     }

@@ -178,6 +178,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         },
         server_database,
         registration_grace,
+        app_origins.clone(),
     )?;
     registrations.refresh().await?;
     let delegation = veoveo_hub::delegation::DelegationService::new(
@@ -236,7 +237,15 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         .route("/oauth/jwks.json", get(authorization_server_jwks))
         .with_state(state.clone())
         .merge(registration::router(registrations.clone()))
-        .merge(crate::contributions::lore::catalog::router(state.clone()));
+        .merge(crate::contributions::lore::catalog::router(state.clone()))
+        .merge(
+            veoveo_hub::surfaces::PublicRoutes::new(
+                catalog.clone(),
+                upstream_http.clone(),
+                deployment.host_authority(),
+            )?
+            .router(),
+        );
 
     let auth_state = ProfileAuthState {
         catalog: catalog.clone(),

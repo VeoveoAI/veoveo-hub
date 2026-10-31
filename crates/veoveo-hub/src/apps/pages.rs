@@ -25,7 +25,7 @@ static HOST_SCRIPT: LazyLock<String> = LazyLock::new(|| {
     format!("/apps/host-{}.js", hex::encode(&digest[..16]))
 });
 
-pub(super) fn host_script_path() -> &'static str {
+pub fn host_script_path() -> &'static str {
     &HOST_SCRIPT
 }
 

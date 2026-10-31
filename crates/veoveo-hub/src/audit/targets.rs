@@ -116,6 +116,7 @@ pub fn policy_target(target: &PolicyTarget) -> Result<AuditTarget> {
             route: task_id.clone(),
         }),
         PolicyTarget::PlatformTask { task_id, .. } => Ok(task_target(*task_id)),
+        PolicyTarget::AppOrigin { server } => server_target(server),
         PolicyTarget::Owner(_) => anyhow::bail!("owner target audit requires its catalog registry"),
         PolicyTarget::Unadmitted(_) => {
             anyhow::bail!("unadmitted owner policy target cannot produce an audit target")

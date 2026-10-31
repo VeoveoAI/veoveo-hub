@@ -196,6 +196,20 @@ impl HubUpstreamHttpClientPool {
         })
     }
 
+    /// The current HTTP client of a deployment's server, for a request the Hub forwards
+    /// as it arrived, such as a public route's, rather than as MCP.
+    pub fn http_client(
+        &self,
+        deployment: DeploymentId,
+        endpoint: &veoveo_hub_sdk::registration::ServerEndpoint,
+        instance: bool,
+    ) -> anyhow::Result<reqwest::Client> {
+        let transport = self
+            .transport(deployment, endpoint, instance)
+            .map_err(|error| anyhow::anyhow!(error.message.to_string()))?;
+        Ok(transport.client().clone())
+    }
+
     /// Discard `server`'s client if it is still `generation`, so concurrent failures on
     /// one generation discard it once and never a newer one.
     fn discard(&self, key: &PoolKey, generation: u64) {

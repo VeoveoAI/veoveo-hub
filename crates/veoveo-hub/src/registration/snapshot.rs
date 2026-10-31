@@ -48,6 +48,8 @@ pub struct RegisteredServer {
     pub capabilities: ServerCapabilities,
     /// The branch this deployment serves, when it is an instance.
     pub branch: Option<crate::execution::BranchName>,
+    /// The HTTP it serves besides MCP: its public routes and whether it has an app origin.
+    pub surfaces: Option<veoveo_hub_sdk::registration::SurfacesDeclaration>,
     /// When its newest registration was issued.
     pub registered_at: DateTime<Utc>,
     /// Whether housekeeping found that registration's login without a live kernel

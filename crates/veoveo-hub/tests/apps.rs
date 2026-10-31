@@ -12,6 +12,11 @@ use std::time::Duration;
 use hub::Hub;
 use reqwest::{StatusCode, header};
 use veoveo_fixtures::store::TestDb;
+use veoveo_hub_sdk::registration::{
+    AuthorizationDeclaration, ClientMetadata, RegistrationDeclaration, ServerEndpoint,
+    ServerVersion, client::RegistrationClient, statement::ServerKeyPair,
+};
+use veoveo_types::{ResourceScheme, ServerSlug};
 
 const DEADLINE: Duration = Duration::from_secs(120);
 const SANDBOX: &str = "https://sandbox.apps.veoveo.example";
@@ -135,16 +140,25 @@ async fn qualify() {
     let response = http.get(format!("{}/", hub.base)).send().await.unwrap();
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     let response = http
-        .get(format!("{}/apps/host.js", hub.base))
+        .get(format!(
+            "{}{}",
+            hub.base,
+            veoveo_hub::apps::host_script_path()
+        ))
         .header(header::HOST, "sandbox.apps.veoveo.example")
         .send()
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::MISDIRECTED_REQUEST);
 
-    // The host script is public; without Computers, whose sign-in Apps use, no App opens.
+    // The host script is public at its digest's path; without Computers, whose sign-in
+    // Apps use, no App opens.
     let response = http
-        .get(format!("{}/apps/host.js", hub.base))
+        .get(format!(
+            "{}{}",
+            hub.base,
+            veoveo_hub::apps::host_script_path()
+        ))
         .send()
         .await
         .unwrap();
@@ -152,6 +166,10 @@ async fn qualify() {
     assert_eq!(
         response.headers()[header::CONTENT_TYPE],
         "text/javascript; charset=utf-8"
+    );
+    assert_eq!(
+        response.headers()[header::CACHE_CONTROL],
+        "public, max-age=31536000, immutable"
     );
     let response = http
         .get(format!("{}/apps/fixture/board.html", hub.base))
@@ -167,4 +185,45 @@ async fn qualify() {
             .unwrap()
             .contains("signs no one in to Apps")
     );
+
+    // A server that declares an app origin is told its origin under the apps domain.
+    let key = ServerKeyPair::generate().unwrap();
+    let authorization: AuthorizationDeclaration = serde_json::from_value(serde_json::json!({
+        "permissions": [], "requirements": {"appOrigin": {"kind": "authenticated"}}
+    }))
+    .unwrap();
+    let metadata = ClientMetadata::new(
+        *key.public_key(),
+        RegistrationDeclaration {
+            deployment: veoveo_hub_sdk::DeploymentId::new(),
+            slug: ServerSlug::parse("beacon").unwrap(),
+            uri_scheme: ResourceScheme::parse("beacon").unwrap(),
+            version: ServerVersion::new("0.1.0").unwrap(),
+            endpoint: ServerEndpoint::new(
+                url::Url::parse("http://127.0.0.1:9/beacon/mcp").unwrap(),
+            )
+            .unwrap(),
+            surfaces: Some(serde_json::from_value(serde_json::json!({"appOrigin": true})).unwrap()),
+        },
+        authorization,
+    )
+    .unwrap();
+    let issuer = url::Url::parse(&hub.base).unwrap();
+    let endpoint = RegistrationClient::discover(&http, &issuer).await.unwrap();
+    let registered = RegistrationClient::new(
+        http.clone(),
+        endpoint,
+        secrecy::SecretString::from(hub.secret("VEOVEO_REGISTRATION_SECRET").to_owned()),
+        key,
+        metadata,
+    )
+    .unwrap()
+    .register()
+    .await
+    .unwrap();
+    assert_eq!(
+        registered.app_origin().map(|origin| origin.as_str()),
+        Some("https://beacon.apps.veoveo.example")
+    );
+    assert!(registered.public_base().is_none());
 }

@@ -248,6 +248,17 @@ identifier, and its password is 256 random bits. The response grants the login a
 `veoveo_database`: `VEOVEO_SERVER_DATABASE_URL`, or the Hub's own URL without its
 user, with the login and its password. The Hub keeps only the login's name.
 
+A registration whose metadata declares surfaces, the SDK's `veoveo_surfaces`, is told
+where the Hub serves them. A server that declares a public route gets
+`veoveo_public_base`, `{issuer origin}/instances/{deployment}/{slug}`: the deployment
+names the instance, so two branches of one server have different bases, and a branch
+keeps its base across pushes because its instance keeps its deployment
+([public routes](#public-routes)). A server that declares an app origin gets
+`veoveo_app_origin`, `{slug}.{apps domain}` with the sandbox origin's scheme and port
+([app origins](#app-origins)); a registration or update that declares one is refused
+with `invalid_client_metadata` when the installation hosts no Apps or the slug is not a
+DNS label. The response is checked before anything is stored.
+
 An instance is one branch of a server repository, served from its own sandbox.
 `registration::create_instance` gives it a new deployment ID and a random 256-bit
 registration token, of which the Hub stores only the digest; the token stays valid
@@ -552,7 +563,9 @@ access kind and every one of its risks. An explicitly declared `Authenticated`
 route needs current principal/profile admission and no additional permission; a target
 the server did not declare is denied. Server-wide and Task targets retain their
 requirement for at least one granted permission in that server's namespace.
-The Hub's own administrative actions are decided by the configuration's policy
+A request on a server's app origin is the action `app_origin` on the target
+`app_origin`, decided by the server's `app_origin` requirement as a tool's requirement
+is. The Hub's own administrative actions are decided by the configuration's policy
 rules. A grant or rule that names a group matches the caller's groups: their identity
 provider's, and their Lore groups by ID ([groups and sharing](#groups-and-sharing)).
 
@@ -783,6 +796,36 @@ Computer login state. It clears only Computer authentication/readiness pointers,
 retaining owner mappings, native workspace IDs and working storage. Tasks,
 Artifacts, trusted configuration and unrelated storage are untouched. A fresh
 ordinary login establishes new custody; there is no legacy binding or backfill.
+
+## Public Routes
+
+A server's public routes carry no Hub authentication and serve only callers that verify
+themselves, such as a signed webhook. Each is a prefix its registration declares under
+its mount, with the largest body it admits and its request rate. `src/surfaces` serves
+every deployment's at `{issuer origin}/instances/{deployment}/{slug}/...`, the
+deployment's `veoveo_public_base` followed by the rest of the prefix, so an instance's
+routes need no tunnel route or Hub service of their own, and a branch keeps its URLs
+across pushes. The path after the deployment is the server's own, `/{slug}/...`, and the
+request reaches that deployment, live or orphaned, as long as it is registered:
+
+1. The path must be one of nonempty segments with no dot segment and no encoded slash,
+   dot or backslash, and it must lie within a declared prefix; anything else, an unknown
+   deployment included, answers 404, so a server's own router reads the path as the Hub
+   matched it and nothing outside its prefixes is reached.
+2. Each prefix of each deployment has a token bucket in each replica that holds as many
+   requests as its rate and refills at its rate; an empty bucket answers 429 with
+   `Retry-After`.
+3. A body declared or read beyond the prefix's limit answers 413; the Hub reads the body,
+   at most 16 MiB, before it forwards.
+4. The request goes over the deployment's upstream transport, its factory sandbox's
+   forward for an instance, with its method, path, query and headers, minus hop-by-hop
+   fields and `Cookie`, since the issuer's cookies are the Hub's sessions, and with
+   `Host` set to the issuer's host, the public base's, which the server admits for its
+   public routes. The answer comes back streamed, minus hop-by-hop fields and
+   `Set-Cookie`, since no server sets a cookie on the issuer's origin.
+
+The Hub records no audit of a public route request: no person makes it, and the server
+verifies its caller.
 
 ## Apps Host
 
@@ -1049,6 +1092,7 @@ host page reads the stream with `fetch`, since `EventSource` cannot POST.
 | `GET /apps/{slug}/{page}` | The host page of the App `ui://{slug}/{page}` for the browser session ([Apps host](#apps-host)) |
 | `POST /apps/{slug}/{page}` | That App's bridge: one JSON-RPC request of its view, run as the person; a `subscriptions/listen` answers with its event stream |
 | `GET /apps/host-{digest}.js` | The host page's script, immutable ([host page](#host-page-and-sandbox-proxy)) |
+| Any method, `/instances/{deployment}/{slug}/...` | A deployment's public route, within a prefix its registration declares ([public routes](#public-routes)) |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 

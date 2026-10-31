@@ -607,6 +607,7 @@ impl Fixture {
                     .unwrap(),
                 )
                 .unwrap(),
+                surfaces: None,
             },
             revision.authorization(),
         )

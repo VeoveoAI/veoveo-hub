@@ -77,6 +77,7 @@ async fn database() -> fixture::TestDb {
                 )
                 .unwrap(),
                 version: ServerVersion::new("0.1.0").unwrap(),
+                surfaces: None,
             },
             AuthorizationDeclaration {
                 permissions: Vec::new(),

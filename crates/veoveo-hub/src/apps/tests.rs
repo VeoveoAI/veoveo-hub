@@ -165,6 +165,7 @@ fn profile_authentication(
             .unwrap(),
         },
         std::time::Duration::from_secs(60),
+        Some(AppOrigins::new(HOST, SANDBOX.parse().unwrap()).unwrap()),
     )
     .unwrap();
     let delegation = crate::delegation::DelegationService::new(

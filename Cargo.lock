@@ -5586,7 +5586,7 @@ dependencies = [
 [[package]]
 name = "veoveo-hub-sdk"
 version = "0.1.0"
-source = "git+https://github.com/VeoveoAI/veoveo-hub-sdk?rev=239622d12c08b771cc5e813fe3e846385d8d04ad#239622d12c08b771cc5e813fe3e846385d8d04ad"
+source = "git+https://github.com/VeoveoAI/veoveo-hub-sdk?rev=154a473f2c2c2d0fbc974bc04b6c7159bd397829#154a473f2c2c2d0fbc974bc04b6c7159bd397829"
 dependencies = [
  "anyhow",
  "aws-lc-rs",
@@ -5635,7 +5635,7 @@ dependencies = [
 [[package]]
 name = "veoveo-hub-sdk-fixture"
 version = "0.1.0"
-source = "git+https://github.com/VeoveoAI/veoveo-hub-sdk?rev=239622d12c08b771cc5e813fe3e846385d8d04ad#239622d12c08b771cc5e813fe3e846385d8d04ad"
+source = "git+https://github.com/VeoveoAI/veoveo-hub-sdk?rev=154a473f2c2c2d0fbc974bc04b6c7159bd397829#154a473f2c2c2d0fbc974bc04b6c7159bd397829"
 dependencies = [
  "anyhow",
  "aws-lc-rs",
@@ -5663,7 +5663,7 @@ dependencies = [
 [[package]]
 name = "veoveo-hub-sdk-macros"
 version = "0.1.0"
-source = "git+https://github.com/VeoveoAI/veoveo-hub-sdk?rev=239622d12c08b771cc5e813fe3e846385d8d04ad#239622d12c08b771cc5e813fe3e846385d8d04ad"
+source = "git+https://github.com/VeoveoAI/veoveo-hub-sdk?rev=154a473f2c2c2d0fbc974bc04b6c7159bd397829#154a473f2c2c2d0fbc974bc04b6c7159bd397829"
 dependencies = [
  "proc-macro2",
  "quote",

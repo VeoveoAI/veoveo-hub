@@ -380,6 +380,7 @@ mod tests {
             ),
             capabilities: Default::default(),
             branch: None,
+            surfaces: None,
             registered_at: chrono::Utc::now(),
             orphaned: false,
         }
