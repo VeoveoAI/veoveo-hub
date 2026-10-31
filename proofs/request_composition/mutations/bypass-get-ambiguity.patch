@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/registration/snapshot.rs
++++ b/crates/veoveo-hub/src/registration/snapshot.rs
+@@ -136,7 +136,7 @@
+     pub fn get(&self, slug: &ServerSlug) -> Option<&RegisteredServer> {
+         let mut matching = self.servers.values().filter(|server| &server.slug == slug);
+         let server = matching.next()?;
+-        matching.next().is_none().then_some(server.as_ref())
++        true.then_some(server.as_ref())
+     }
+ 
+     pub fn deployment(&self, deployment: &DeploymentId) -> Option<&RegisteredServer> {

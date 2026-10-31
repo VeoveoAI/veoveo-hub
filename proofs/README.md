@@ -637,8 +637,11 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   standard-only audits and exact nondefault target pass
   ([receipt](request_composition/evidence/registration-lookup-checkpoint.json)).
   The companion keyed-lookup lemma covers the handwritten map model. Full selection
-  collection and actual-source semantic controls remain open; this does not prove
-  the composed request path.
+  collection remains open. An actual-Rust ambiguity bypass now fails the unchanged
+  getter proof, with an independent semantic counterexample and a fresh passing
+  restoration ([control receipt](request_composition/evidence/registration-lookup-control.json)).
+  This qualifies the getter contract, not the composed request path or the separate
+  assembly contracts' pending semantic controls.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

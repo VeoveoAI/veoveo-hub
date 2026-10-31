@@ -1,0 +1,583 @@
+{
+  "kind": "actual-Rust registration getter semantic control and restoration",
+  "status": "qualified; full request composition remains open",
+  "source": {
+    "hub_runtime_revision": "3bc2923ca1d2e0c559e532286c16ec3d6a5ceb7a",
+    "getter_proof_commit": "9d064b6",
+    "sdk_pin": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "extraction_receipt": "extraction-checkpoint.json",
+    "tooling_receipt": "discriminant-tooling-checkpoint.json",
+    "lookup_receipt": "registration-lookup-checkpoint.json"
+  },
+  "control": {
+    "rust_path": "crates/veoveo-hub/src/registration/snapshot.rs",
+    "original": "matching.next().is_none().then_some(server.as_ref())",
+    "mutant": "true.then_some(server.as_ref())",
+    "original_and_restored_sha256": "aff6a2c0793c73219e1ed27f4664d6141ccc876f4407e459c8ac531bd6e2519c",
+    "mutant_sha256": "94426bcd90acd988e79723f2bad42042b8cf029f7334aeb3dc52ce2039be13db",
+    "patch_path": "mutations/bypass-get-ambiguity.patch",
+    "patch_sha256": "daea93f1e3349c4c36c10ff47b36e4473f065009bd3c31eada5c23ba6ad3584e",
+    "frozen_proof_sha256": "8dd2e35b7e6ac6443547737148f33b95f2597ad7921b59231573b7be1542f128",
+    "scope": "Only the private getter body was mutated. The same scratch Rust source was then restored. The pre-existing extraction-only catalog annotation remained reversible."
+  },
+  "witness": {
+    "path": "mutations/GetterAmbiguityWitness.lean",
+    "sha256": "3546d8ff89e4d052ea8c6400016e35d523b278a9b60f3519f1effde856f9ea0d",
+    "declarations": [
+      "valid_row_shape",
+      "mutant_returns_first",
+      "singleton_spec_refuses",
+      "both_orders_violate_singleton_contract"
+    ],
+    "allowed_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "independent_spec_fragment_sha256": "090d4fba80726deaf1aaed2d05aabfa724215a70e1e7541d25377b79ba722766",
+    "contract": "Two complete same-slug registrations with distinct coherent deployment keys return Some under the mutant but None under the independent singleton specification, in both enumeration orders. Successful outer Aeneas Result is proved. The failed theorem module/artifact is neither imported nor used."
+  },
+  "phases": {
+    "mutant_extraction": {
+      "summary_sha256": "09544458ab75be0e525cc45a05c991cd3ba701ece1d3d4abd105ea9df929ccdb",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-get-ambiguity-extract1/summary.json",
+      "case": "actual-source-get-ambiguity-bypass-extraction1",
+      "complete": true,
+      "input_sha256": {
+        "hub_archive": "b602fd5d6cbeb658aa7fc9a606c45b437f823a61cdd6bdc470df9775adad34f9",
+        "hub_manifest": "e91c79ca49849e3c3b060ad40cdccfebd4a47d228df7999d6d4394a4434e6675",
+        "plan": "bb3a8f36f08550d0baeca112b1b4c01fa8866ccc0179cffe21c679ea15c4350d",
+        "sdk_archive": "d503de9b88b34172eee6e3299c53417f737abe68ebbf2e724d3c26dd1edd4f77",
+        "sdk_manifest": "a1a6575c81f7b16e21ef12e98ea9c6388f03afdda6880979ea7dd89d12e3ebe7"
+      },
+      "selector_counts": {
+        "includes": 50,
+        "opaques": 15,
+        "starts": 15
+      },
+      "stages": [
+        {
+          "elapsed_ms": 315,
+          "exit": 0,
+          "log_bytes": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "verify-source-pin-metadata",
+          "timed_out": false,
+          "timeout_seconds": 180,
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+            "cargo",
+            "metadata",
+            "--locked",
+            "--offline",
+            "--format-version",
+            "1",
+            "--manifest-path",
+            "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-extract1/source/crates/veoveo-hub/Cargo.toml"
+          ]
+        },
+        {
+          "elapsed_ms": 2,
+          "exit": 0,
+          "log_bytes": 61,
+          "log_sha256": "5a07c09f30bfd29ce66fd610b3cd9c45befd0ad83ff2213b6928fbe803c7b970",
+          "stage": "apply-get-ambiguity-control",
+          "timed_out": false,
+          "timeout_seconds": 30,
+          "command": [
+            "patch",
+            "--batch",
+            "--forward",
+            "--fuzz=0",
+            "-p1",
+            "-i",
+            "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/get-ambiguity-control/bypass-ambiguity.patch"
+          ]
+        },
+        {
+          "elapsed_ms": 2,
+          "exit": 0,
+          "log_bytes": 47,
+          "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9",
+          "stage": "apply-catalog-annotation",
+          "timed_out": false,
+          "timeout_seconds": 30,
+          "command": [
+            "patch",
+            "--batch",
+            "--forward",
+            "--fuzz=0",
+            "-p1"
+          ]
+        },
+        {
+          "elapsed_ms": 164,
+          "exit": 0,
+          "log_bytes": 21,
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+          "stage": "clean-hub-charon-target",
+          "timed_out": false,
+          "timeout_seconds": 120,
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+            "cargo",
+            "clean",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-extract1/source/crates/veoveo-hub/Cargo.toml"
+          ]
+        },
+        {
+          "elapsed_ms": 24506,
+          "exit": 0,
+          "log_bytes": 4339,
+          "log_sha256": "7d082a39497c71fc86d5abf7159a79c1e44f9ffa5b685c36c845a874c029a454",
+          "stage": "charon-composition-probe",
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "command_reference": "Exact selectors/flags from canonical extraction receipt, with private scratch output/source paths. Control plan identity retained above.",
+          "argv_sha256": "fd896bb3b72790061052dd51f0092f37260b7068222507d7c91152c99d4b7017"
+        },
+        {
+          "elapsed_ms": 2024,
+          "exit": 0,
+          "log_bytes": 6611,
+          "log_sha256": "8a260044a60334bff3094ba6fd2bacef86bad29fad969fac540e6ef2f97f53aa",
+          "stage": "aeneas-composition-probe",
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-namespace",
+            "RequestCompositionHub",
+            "-subdir",
+            "RequestCompositionHub",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-extract1/outputs",
+            "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-extract1/outputs/hub_current_roles.llbc"
+          ]
+        }
+      ],
+      "source_verification": {
+        "catalog_annotation_reversible": true,
+        "final_expected_overrides": {
+          "crates/veoveo-hub/src/catalog.rs": "5d7f03636a81b49549ca9645df7c55f44b2b685fc9964c33e382a5df7942bc57",
+          "crates/veoveo-hub/src/registration/snapshot.rs": "94426bcd90acd988e79723f2bad42042b8cf029f7334aeb3dc52ce2039be13db"
+        },
+        "final_map_verified": true,
+        "hub_source_map_verified": true,
+        "scratch_control": {
+          "after_sha256": "94426bcd90acd988e79723f2bad42042b8cf029f7334aeb3dc52ce2039be13db",
+          "before_sha256": "aff6a2c0793c73219e1ed27f4664d6141ccc876f4407e459c8ac531bd6e2519c",
+          "patch_sha256": "daea93f1e3349c4c36c10ff47b36e4473f065009bd3c31eada5c23ba6ad3584e",
+          "path": "crates/veoveo-hub/src/registration/snapshot.rs"
+        },
+        "sdk_tracked_map_verified": true
+      },
+      "llbc": {
+        "bytes": 6100762,
+        "sha256": "43e2387aa90c5ae6f263addaee3c168b4ee15c026fc36046f5af71226ada5404",
+        "has_errors": false,
+        "error_decl_count": 0,
+        "requested_start_count": 15,
+        "resolved_start_options_exact": true,
+        "expected_transparent_function_count": 15
+      },
+      "outputs": [
+        {
+          "bytes": 223361,
+          "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-extract1/outputs/RequestCompositionHub/Funs.lean",
+          "relative_path": "RequestCompositionHub/Funs.lean",
+          "sha256": "4c43df9871826e043047ba3fa6e428b1d743a3c750610a6ad7e110f9ee03939e"
+        },
+        {
+          "bytes": 107382,
+          "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-extract1/outputs/RequestCompositionHub/FunsExternal_Template.lean",
+          "relative_path": "RequestCompositionHub/FunsExternal_Template.lean",
+          "sha256": "956d35ccc4fdee3962675ebe695374902027411bb376c546ce71b9be0a33b491"
+        },
+        {
+          "bytes": 115359,
+          "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-extract1/outputs/RequestCompositionHub/Types.lean",
+          "relative_path": "RequestCompositionHub/Types.lean",
+          "sha256": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2"
+        },
+        {
+          "bytes": 29625,
+          "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-extract1/outputs/RequestCompositionHub/TypesExternal_Template.lean",
+          "relative_path": "RequestCompositionHub/TypesExternal_Template.lean",
+          "sha256": "7b647eedf4eaafe03528a078f63b590fed4bdf950241555f0188c6bd6da1bcf6"
+        },
+        {
+          "bytes": 6100762,
+          "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-extract1/outputs/hub_current_roles.llbc",
+          "relative_path": "hub_current_roles.llbc",
+          "sha256": "43e2387aa90c5ae6f263addaee3c168b4ee15c026fc36046f5af71226ada5404"
+        }
+      ]
+    },
+    "mutant_package": {
+      "summary_sha256": "d48d469987e7949ba1ff565a7d66f28b474846627eaadf4fce405c26f0b7e45c",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-get-ambiguity-mutant-package1/get-ambiguity-mutant-package1/summary.json",
+      "case": "Actual Rust getter ambiguity bypass with semantic witness and canonical restoration",
+      "stage": "fresh mutant model/proof/witness",
+      "control_plan_sha256": "4a73fbaf7edaea0c8de73dcdb4f9509a2f9cea7b1e70e8a022d8b0e786b12c18",
+      "fresh_build": true,
+      "witness_does_not_import_failed_theorem": true,
+      "spec_source_verified": true,
+      "source_map": {
+        "RequestCompositionHub.lean": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9",
+        "RequestCompositionHub/Funs.lean": "4c43df9871826e043047ba3fa6e428b1d743a3c750610a6ad7e110f9ee03939e",
+        "RequestCompositionHub/FunsExternal.lean": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2",
+        "RequestCompositionHub/Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2",
+        "RequestCompositionHub/TypesExternal.lean": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd",
+        "SelectedRegistrationProof.lean": "8dd2e35b7e6ac6443547737148f33b95f2597ad7921b59231573b7be1542f128",
+        "SnapshotAssemblyProof.lean": "52d30db8e5e58b83d15d2388ef832377e91fb6bbfaa8035d82c604fcbe224fc8",
+        "lake-manifest.json": "22c7b4a238d63b8bd5bdf30c30a04c4589f0794a3e9763b311a1736299171138",
+        "lakefile.lean": "b05788f3150aa4112cedb19d3cad8f2a658e20be0f1000964fb8c63e610ef1be",
+        "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "GetterAmbiguityWitness.lean": "6ee5c660db45282c9f157a9986575f742f22bd46ec3b5d0ed0d3bb9eed583824"
+      },
+      "stages": [
+        {
+          "stage": "collection-dependency",
+          "exit": 0,
+          "timed_out": false,
+          "timeout_seconds": 300,
+          "elapsed_s": 1.166,
+          "log_sha256": "e6c70ccc75967f8616621b1b5c34f948132ba69739f98431b6749b911984332d",
+          "log_bytes": 9477,
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "CollectionProof"
+          ]
+        },
+        {
+          "stage": "mutant-models",
+          "exit": 0,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "elapsed_s": 13.786,
+          "log_sha256": "a308a33f184f538ef6bcd1e64f95eba7380197501d108ca59834bba81344de5a",
+          "log_bytes": 37762,
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "RequestCompositionHub",
+            "SnapshotAssemblyProof"
+          ]
+        },
+        {
+          "stage": "frozen-getter-proof",
+          "exit": 1,
+          "timed_out": false,
+          "timeout_seconds": 300,
+          "elapsed_s": 2.819,
+          "log_sha256": "ff0d81223882a656149040e9d46a8613fa1e234402ffbb082af8e94995595943",
+          "log_bytes": 5263,
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "SelectedRegistrationProof.lean"
+          ]
+        },
+        {
+          "stage": "semantic-witness",
+          "exit": 1,
+          "timed_out": false,
+          "timeout_seconds": 300,
+          "elapsed_s": 2.718,
+          "log_sha256": "0d8ea23171e30886b549cb47d5ae325a9fe9a3bb126eab7e9a17942c3f13dcfb",
+          "log_bytes": 2849,
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "GetterAmbiguityWitness.lean"
+          ]
+        }
+      ]
+    },
+    "independent_witness": {
+      "summary_sha256": "96425104bd4c62a96a52a05ab726b021fc22a8edb1d8a5b11de958707827422b",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-get-ambiguity-mutant-witness2/get-ambiguity-mutant-witness2/summary.json",
+      "case": "Unchanged semantic witness statements; bounded proof-normalization repair",
+      "complete": true,
+      "source_map_unchanged": true,
+      "semantic_statements_unchanged": true,
+      "theorem_headers_sha256": "cca7f02861805418758d38f3efc9ad7f2e7197871621fe5b43da3081d4ec991e",
+      "semantic_counterexample_checked": true,
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "GetterAmbiguityWitness.lean"
+      ],
+      "exit": 0,
+      "timed_out": false,
+      "timeout_seconds": 300,
+      "elapsed_s": 2.469,
+      "log_sha256": "45bdd84bfa8dca55f96922e7da7050772dd404e52093da393794de60ea016404",
+      "log_bytes": 2495,
+      "source_map": {
+        "RequestCompositionHub.lean": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9",
+        "RequestCompositionHub/Funs.lean": "4c43df9871826e043047ba3fa6e428b1d743a3c750610a6ad7e110f9ee03939e",
+        "RequestCompositionHub/FunsExternal.lean": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2",
+        "RequestCompositionHub/Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2",
+        "RequestCompositionHub/TypesExternal.lean": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd",
+        "SelectedRegistrationProof.lean": "8dd2e35b7e6ac6443547737148f33b95f2597ad7921b59231573b7be1542f128",
+        "SnapshotAssemblyProof.lean": "52d30db8e5e58b83d15d2388ef832377e91fb6bbfaa8035d82c604fcbe224fc8",
+        "lake-manifest.json": "22c7b4a238d63b8bd5bdf30c30a04c4589f0794a3e9763b311a1736299171138",
+        "lakefile.lean": "b05788f3150aa4112cedb19d3cad8f2a658e20be0f1000964fb8c63e610ef1be",
+        "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "GetterAmbiguityWitness.lean": "3546d8ff89e4d052ea8c6400016e35d523b278a9b60f3519f1effde856f9ea0d"
+      }
+    },
+    "restored_extraction": {
+      "summary_sha256": "533348168ff77ef251403b29c0857eb5d2eecdeb7dc7086fe03c53ebcf348f2d",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-get-ambiguity-restoration1/selected-get-ambiguity-restoration1/summary.json",
+      "case": "Canonical Rust getter restoration and exact re-extraction",
+      "complete": true,
+      "control_plan_sha256": "4a73fbaf7edaea0c8de73dcdb4f9509a2f9cea7b1e70e8a022d8b0e786b12c18",
+      "canonical_raw_output_hashes_match": true,
+      "raw_output_hashes": {
+        "Funs.lean": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1",
+        "FunsExternal_Template.lean": "956d35ccc4fdee3962675ebe695374902027411bb376c546ce71b9be0a33b491",
+        "Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2",
+        "TypesExternal_Template.lean": "7b647eedf4eaafe03528a078f63b590fed4bdf950241555f0188c6bd6da1bcf6"
+      },
+      "stages": [
+        {
+          "elapsed_ms": 2,
+          "exit": 0,
+          "log_bytes": 61,
+          "log_sha256": "5a07c09f30bfd29ce66fd610b3cd9c45befd0ad83ff2213b6928fbe803c7b970",
+          "stage": "reverse-get-ambiguity-control",
+          "timed_out": false,
+          "timeout_seconds": 30,
+          "command": [
+            "patch",
+            "--batch",
+            "--reverse",
+            "--fuzz=0",
+            "-p1",
+            "-i",
+            "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/get-ambiguity-control/bypass-ambiguity.patch"
+          ]
+        },
+        {
+          "elapsed_ms": 164,
+          "exit": 0,
+          "log_bytes": 21,
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+          "stage": "clean-restored-hub-charon-target",
+          "timed_out": false,
+          "timeout_seconds": 120,
+          "command": [
+            "/home/rozgo/.cargo/bin/rustup",
+            "run",
+            "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+            "cargo",
+            "clean",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-extract1/source/crates/veoveo-hub/Cargo.toml"
+          ]
+        },
+        {
+          "elapsed_ms": 24306,
+          "exit": 0,
+          "log_bytes": 4339,
+          "log_sha256": "8a56f149f547154c18eb61b7cd327c0d9823a30d19ff44859b329bb2d261dc87",
+          "stage": "charon-restored-getter",
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "command_reference": "Exact selectors/flags from canonical extraction receipt, with private scratch output/source paths. Control plan identity retained above.",
+          "argv_sha256": "d5866dfd16ad6feecbf9a3d1cd54f7caf3628026d2aff514d86b4d8e7c2d882a"
+        },
+        {
+          "elapsed_ms": 2023,
+          "exit": 0,
+          "log_bytes": 6383,
+          "log_sha256": "0bc82d59b52565de0ee67fe7cd30d9a252429a79db4155e2ae3a91a546f224d0",
+          "stage": "aeneas-restored-getter",
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+            "-namespace",
+            "RequestCompositionHub",
+            "-subdir",
+            "RequestCompositionHub",
+            "-backend",
+            "lean",
+            "-filter-trait-methods",
+            "-split-files",
+            "-dest",
+            "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-restoration1/outputs",
+            "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-get-ambiguity-restoration1/outputs/hub_current_roles.llbc"
+          ]
+        }
+      ],
+      "source_verification": {
+        "final_expected_overrides": {
+          "crates/veoveo-hub/src/catalog.rs": "5d7f03636a81b49549ca9645df7c55f44b2b685fc9964c33e382a5df7942bc57"
+        },
+        "final_map_verified": true,
+        "restored_native_map_verified": true,
+        "sdk_reference_map_verified": true,
+        "snapshot_restored_sha256": "aff6a2c0793c73219e1ed27f4664d6141ccc876f4407e459c8ac531bd6e2519c"
+      },
+      "llbc": {
+        "bytes": 6106817,
+        "sha256": "7f623baafb7c4884456e20f3cf2e7590d7a3301afb43ea78501a4e0fa8592cb1",
+        "has_errors": false,
+        "error_decl_count": 0,
+        "requested_start_count": 15,
+        "resolved_start_options_exact": true,
+        "expected_transparent_function_count": 15
+      },
+      "outputs": [
+        {
+          "bytes": 223858,
+          "relative_path": "RequestCompositionHub/Funs.lean",
+          "sha256": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1"
+        },
+        {
+          "bytes": 107382,
+          "relative_path": "RequestCompositionHub/FunsExternal_Template.lean",
+          "sha256": "956d35ccc4fdee3962675ebe695374902027411bb376c546ce71b9be0a33b491"
+        },
+        {
+          "bytes": 115359,
+          "relative_path": "RequestCompositionHub/Types.lean",
+          "sha256": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2"
+        },
+        {
+          "bytes": 29625,
+          "relative_path": "RequestCompositionHub/TypesExternal_Template.lean",
+          "sha256": "7b647eedf4eaafe03528a078f63b590fed4bdf950241555f0188c6bd6da1bcf6"
+        },
+        {
+          "bytes": 6106817,
+          "relative_path": "hub_current_roles.llbc",
+          "sha256": "7f623baafb7c4884456e20f3cf2e7590d7a3301afb43ea78501a4e0fa8592cb1"
+        }
+      ]
+    },
+    "restored_package": {
+      "summary_sha256": "d5e7c74069521081999cbf9ca75657f8a8c4b228164a1527b6a4676759693414",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-get-ambiguity-restored-package1/get-ambiguity-restored-package1/summary.json",
+      "case": "Actual Rust getter ambiguity bypass with semantic witness and canonical restoration",
+      "stage": "fresh restored model and unchanged getter proof",
+      "complete": true,
+      "control_plan_sha256": "4a73fbaf7edaea0c8de73dcdb4f9509a2f9cea7b1e70e8a022d8b0e786b12c18",
+      "fresh_build": true,
+      "canonical_raw_output_hashes_match": true,
+      "frozen_getter_sha256": "8dd2e35b7e6ac6443547737148f33b95f2597ad7921b59231573b7be1542f128",
+      "proof_artifact": {
+        "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition_get_restored1/.lake/build/lib/lean/SelectedRegistrationProof.olean",
+        "sha256": "0581875bf4ee022769080da62255f6a84d66d04a3b47966e16b0572e0dec5bd8"
+      },
+      "source_map_unchanged": true,
+      "unchanged_getter_checked": true,
+      "source_map": {
+        "RequestCompositionHub.lean": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9",
+        "RequestCompositionHub/Funs.lean": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1",
+        "RequestCompositionHub/FunsExternal.lean": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2",
+        "RequestCompositionHub/Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2",
+        "RequestCompositionHub/TypesExternal.lean": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd",
+        "SelectedRegistrationProof.lean": "8dd2e35b7e6ac6443547737148f33b95f2597ad7921b59231573b7be1542f128",
+        "SnapshotAssemblyProof.lean": "52d30db8e5e58b83d15d2388ef832377e91fb6bbfaa8035d82c604fcbe224fc8",
+        "lake-manifest.json": "22c7b4a238d63b8bd5bdf30c30a04c4589f0794a3e9763b311a1736299171138",
+        "lakefile.lean": "b05788f3150aa4112cedb19d3cad8f2a658e20be0f1000964fb8c63e610ef1be",
+        "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+      },
+      "stages": [
+        {
+          "stage": "collection-dependency",
+          "exit": 0,
+          "timed_out": false,
+          "timeout_seconds": 300,
+          "elapsed_s": 1.065,
+          "log_sha256": "e6c70ccc75967f8616621b1b5c34f948132ba69739f98431b6749b911984332d",
+          "log_bytes": 9477,
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "CollectionProof"
+          ]
+        },
+        {
+          "stage": "restored-models",
+          "exit": 0,
+          "timed_out": false,
+          "timeout_seconds": 600,
+          "elapsed_s": 13.586,
+          "log_sha256": "90fe79e7f94c56dc5276f32083b76db968470a2eb8b51a19a394e1835be2f43c",
+          "log_bytes": 37762,
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "RequestCompositionHub",
+            "SnapshotAssemblyProof"
+          ]
+        },
+        {
+          "stage": "frozen-getter-direct",
+          "exit": 0,
+          "timed_out": false,
+          "timeout_seconds": 300,
+          "elapsed_s": 2.768,
+          "log_sha256": "54c3351815d14f79acdbe642c65ba397408ceb8e3db6de08ec3d1a28f6bcce10",
+          "log_bytes": 6256,
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "SelectedRegistrationProof.lean"
+          ]
+        },
+        {
+          "stage": "frozen-getter-target",
+          "exit": 0,
+          "timed_out": false,
+          "timeout_seconds": 300,
+          "elapsed_s": 3.269,
+          "log_sha256": "b7a6e8bf45014712ad62c8b7417c06dc0686e0a07e3ab6aa3561757fd5949b48",
+          "log_bytes": 53492,
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "SelectedRegistrationProof"
+          ]
+        }
+      ]
+    }
+  },
+  "limits": [
+    "This qualifies the actual extracted getter and its independent specification, not the complete selected-route or forwarded-request contract.",
+    "Native collection, equality, clone and compiler/translator correspondence remain explicit boundaries. The witness covers both two-key enumeration orders without claiming native BTreeMap refinement.",
+    "The private patched Aeneas dependency workflow remains necessary for combined imports. No raw generated Lean or frozen getter proof was edited to pass.",
+    "Namespace construction, current-permission provenance, actual SDK issuer/recipient composition and assembly-specific semantic controls remain open.",
+    "No tracked production/Cargo change, SDK repin, native component run, Docker gate, deployment or model call occurred."
+  ],
+  "development_failures": [
+    "Initial upload failed because the task directory did not yet exist; it was created before extraction. This supplies no semantic evidence.",
+    "The first independent witness failed on incomplete nil-membership simplification and recursive simp expansion. Only proof tactics changed: bounded unfolding replaced recursive simplification. Statements and independent specification remained unchanged.",
+    "The unchanged getter proof failed as intended on the mutant body; its axiom audit rejected the recovered sorryAx. This rejection is supported by the separately proved semantic counterexample."
+  ]
+}

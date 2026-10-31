@@ -86,8 +86,32 @@ LAKE_NO_UPDATE=1 lake build SelectedRegistrationProof
 
 Full selection filtering/collection, uniqueness of selected routes, current-policy
 provenance and issuer/recipient composition remain open. The unfinished selection
-entry proof is excluded. Actual-source semantic controls for this lookup theorem
-are also pending; failed tactic-development attempts do not supply those controls.
+entry proof is excluded.
+
+The [lookup semantic-control receipt](evidence/registration-lookup-control.json)
+now qualifies a deliberate actual-Rust ambiguity bypass. In a private source copy,
+the [patch](mutations/bypass-get-ambiguity.patch) replaces the second-match check
+with `true`. Charon/Aeneas re-extraction changes only the generated getter body;
+the unchanged proof fails. An independent
+[witness](mutations/GetterAmbiguityWitness.lean) proves that two complete same-slug
+registrations with distinct coherent deployment keys return `Some`, while the
+unchanged singleton specification returns `None`, in both enumeration orders.
+All four witness audits permit only standard axioms. The witness imports the
+mutant model alone, not the failed theorem module or an old proof artifact.
+
+Reversing the patch in the same scratch Rust tree reproduced all four canonical
+generated Lean files byte-for-byte. A fresh restored package passed model/assembly
+compilation in 13.586 s, the unchanged getter directly in 2.768 s and its exact
+target in 3.269 s. The independent witness passed in 2.469 s. These are extracted
+model checks; native collection/compiler correspondence remains an assumption.
+
+The witness is deliberately outside every default target. To reproduce it, use
+the documented private tooling workflow and canonical extraction selectors on a
+private Rust copy with the patch applied, retain the unchanged external models,
+and run `lake env lean GetterAmbiguityWitness.lean` against that mutant model.
+It is expected to fail against the correct canonical getter. Restore the Rust,
+re-extract and verify canonical hashes before rechecking the ordinary proof.
+Do not apply the mutation to the running installation or edit generated Lean.
 
 ## Intended contract
 
