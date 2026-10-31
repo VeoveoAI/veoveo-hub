@@ -34,6 +34,15 @@ the remote SDK's newer Core Task-wake fix also require deliberate source integra
 The audit adds no proof, native test or deployment result. Function-text identity
 does not establish callee, type or compilation-context equivalence.
 
+The SDK portion is now reconciled in merge `dbfd2a0` and qualified by SDK `e82ceb8`:
+35 focused native tests pass, and fresh extraction with Core `4ebcf89` reproduces
+the issuer/recipient model except for 95 generated source-location comment lines.
+The declarations, bodies, types and external interfaces are unchanged; the existing
+proofs retain their scope and assumptions. See the
+[merged-source receipt](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/proofs/internal_auth/evidence/merged-source-20261031.json).
+This does not update Hub's dependency pin or qualify its newer App-origin path,
+changed registration record, or the unfinished caller control.
+
 The Task-continuity qualification is a separate source boundary: changed Hub files
 based on `651390dbbb8b4e65b5b8bcd3f8714a981fac2371` and the exact sibling SDK files
 based on `7e2489dccbee6d00b377b174f68f9d5de692a68b`. Its shared-source package records
