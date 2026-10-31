@@ -337,6 +337,8 @@ async fn mcp(State(endpoint): State<Endpoint>, request: Request) -> Response {
 
 struct Fixture {
     router: Router,
+    catalog: HubCatalogHandle,
+    hub: HubState,
     cookie: String,
     received: Arc<Mutex<Vec<Received>>>,
     sent: Arc<Mutex<Vec<String>>>,
@@ -371,7 +373,7 @@ impl Fixture {
                 crate::http::authenticate_profile,
             ));
         let router = AppsService::new(
-            catalog,
+            catalog.clone(),
             owner.hub.clone(),
             AppOrigins::new(HOST, SANDBOX.parse().unwrap()).unwrap(),
             "veoveo.example",
@@ -386,6 +388,8 @@ impl Fixture {
         (
             Self {
                 router,
+                catalog,
+                hub: owner.hub.clone(),
                 cookie: owner.cookie.clone(),
                 received: endpoint.received,
                 sent: endpoint.sent,
@@ -812,4 +816,278 @@ async fn a_session_holds_its_ceiling_of_listens_and_its_end_closes_them() {
     })
     .await
     .expect("App listen ceiling deadline");
+}
+
+/// What a server behind its app origin saw of each request.
+#[derive(Debug, Clone)]
+struct OriginSeen {
+    path: String,
+    host: String,
+    authorization: Option<String>,
+    cookie: Option<String>,
+}
+
+/// A server that records what reaches it and tries to set the Hub's cookie beside its own.
+async fn origin_server() -> (String, Arc<Mutex<Vec<OriginSeen>>>) {
+    let seen: Arc<Mutex<Vec<OriginSeen>>> = Arc::default();
+    let recorded = seen.clone();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let app = Router::new().fallback(move |request: Request| {
+        let recorded = recorded.clone();
+        async move {
+            let header = |name| {
+                request
+                    .headers()
+                    .get(name)
+                    .and_then(|value: &axum::http::HeaderValue| value.to_str().ok())
+                    .map(str::to_owned)
+            };
+            recorded.lock().unwrap().push(OriginSeen {
+                path: request.uri().to_string(),
+                host: header(header::HOST).unwrap_or_default(),
+                authorization: header(header::AUTHORIZATION),
+                cookie: header(header::COOKIE),
+            });
+            (
+                [
+                    (header::SET_COOKIE, "__Host-veoveo-app=stolen; Path=/"),
+                    (header::SET_COOKIE, "editor=own; Path=/"),
+                ],
+                "served by the app",
+            )
+        }
+    });
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    (format!("http://{address}/beacon/mcp"), seen)
+}
+
+/// The value of `name` among a response's `Set-Cookie` fields.
+fn set_cookie(headers: &HeaderMap, name: &str) -> Option<String> {
+    headers
+        .get_all(header::SET_COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .find_map(|value| {
+            value
+                .split(';')
+                .next()
+                .and_then(|pair| pair.split_once('='))
+                .filter(|(key, _)| *key == name)
+                .map(|(_, value)| value.to_owned())
+        })
+}
+
+#[tokio::test]
+async fn an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_them() {
+    tokio::time::timeout(std::time::Duration::from_secs(120), async {
+        use veoveo_hub_sdk::registration::{
+            AuthorizationDeclaration, Requirements, RouteAccess, SurfacesDeclaration,
+        };
+        let db = crate::test_store::TestDb::new().await;
+        let (fixture, _owner) = Fixture::start(&db).await;
+        let (endpoint, seen) = origin_server().await;
+        let register = |access: RouteAccess| {
+            let mut server = crate::test_catalog::registered_server("beacon", &endpoint);
+            server.surfaces = Some(SurfacesDeclaration {
+                public_routes: Vec::new(),
+                app_origin: true,
+            });
+            server.authorization = Arc::new(AuthorizationDeclaration {
+                permissions: Vec::new(),
+                requirements: Requirements {
+                    app_origin: Some(access),
+                    ..Default::default()
+                },
+                uses: Vec::new(),
+                calls_hub: false,
+            });
+            fixture
+                .catalog
+                .replace_registrations(crate::registration::RegistrationSnapshot::new([server]));
+        };
+        register(RouteAccess::Authenticated);
+        let origins = AppOrigins::new(HOST, SANDBOX.parse().unwrap()).unwrap();
+        let issuer = veoveo_hub_sdk::HubInternalTokenIssuer::new(
+            veoveo_hub_sdk::TokenIssuer::parse(HOST).unwrap(),
+            veoveo_hub_sdk::HubInternalSigningKey::new(
+                base64::Engine::decode(&base64::engine::general_purpose::STANDARD, SIGNING_KEY)
+                    .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let listener = super::SandboxProxy::new(
+            origins.clone(),
+            Some(super::ServerOrigins::new(
+                fixture.catalog.clone(),
+                fixture.hub.clone(),
+                origins,
+                profile_authentication(&fixture.hub, &fixture.catalog),
+                issuer,
+                crate::HubUpstreamHttpClientPool::new(),
+            )),
+        )
+        .router()
+        .layer(axum::middleware::from_fn(
+            crate::request_observation::observe_request,
+        ));
+        let on_origin = |path: &str, cookies: &[(&str, &str)], navigate: bool| {
+            let mut request = axum::http::Request::get(path)
+                .header("x-forwarded-host", "beacon.apps.veoveo.example");
+            if navigate {
+                request = request
+                    .header("sec-fetch-mode", "navigate")
+                    .header("sec-fetch-dest", "document");
+            }
+            if !cookies.is_empty() {
+                let cookie: Vec<String> = cookies.iter().map(|(k, v)| format!("{k}={v}")).collect();
+                request = request.header(header::COOKIE, cookie.join("; "));
+            }
+            request.body(Body::empty()).unwrap()
+        };
+        let send = |request: axum::http::Request<Body>| {
+            let listener = listener.clone();
+            async move {
+                let response = listener.oneshot(request).await.unwrap();
+                let status = response.status();
+                let headers = response.headers().clone();
+                let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+                    .await
+                    .unwrap();
+                (status, headers, String::from_utf8_lossy(&body).into_owned())
+            }
+        };
+
+        // Without a session, a page load goes to the issuer with new state; a fetch is
+        // refused; the sandbox origin and an origin no server declares stay the proxy's.
+        let (status, headers, _) = send(on_origin("/editor?id=7", &[], true)).await;
+        assert_eq!(status, StatusCode::SEE_OTHER);
+        let state = set_cookie(&headers, "__Host-veoveo-app-state").unwrap();
+        let entry = headers[header::LOCATION].to_str().unwrap().to_owned();
+        let expected = format!(
+            "{HOST}/app-origins/beacon?path=%2Feditor%3Fid%3D7&state={}",
+            urlencoding(&super::server_origin::tests_digest(&state))
+        );
+        assert_eq!(entry, expected);
+        let (status, _, _) = send(on_origin("/editor", &[], false)).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED);
+        for host in [
+            "sandbox.apps.veoveo.example",
+            "elsewhere.apps.veoveo.example",
+        ] {
+            let request = axum::http::Request::get("/editor")
+                .header("x-forwarded-host", host)
+                .body(Body::empty())
+                .unwrap();
+            assert_eq!(send(request).await.0, StatusCode::NOT_FOUND, "{host}");
+        }
+
+        // On the issuer, the signed-in person gets a code for that browser's state.
+        let entry_path = entry.trim_start_matches(HOST);
+        let (status, headers, _) = fixture.send(fixture.open(entry_path, true)).await;
+        assert_eq!(status, StatusCode::SEE_OTHER);
+        let redeem = headers[header::LOCATION].to_str().unwrap().to_owned();
+        let session_path = redeem
+            .strip_prefix("https://beacon.apps.veoveo.example")
+            .unwrap()
+            .to_owned();
+        assert!(session_path.starts_with("/_veoveo/session?code="));
+        // Signed out, the entry signs in first and comes back to itself.
+        let (status, headers, _) = fixture.send(fixture.open(entry_path, false)).await;
+        assert_eq!(status, StatusCode::SEE_OTHER);
+        assert_eq!(headers[header::LOCATION], "/computer");
+
+        // Another browser, without the state, cannot redeem the code; this one can, once.
+        let other = "0".repeat(64);
+        let (status, _, _) = send(on_origin(
+            &session_path,
+            &[("__Host-veoveo-app-state", &other)],
+            true,
+        ))
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        let (status, headers, _) = send(on_origin(
+            &session_path,
+            &[("__Host-veoveo-app-state", &state)],
+            true,
+        ))
+        .await;
+        assert_eq!(status, StatusCode::SEE_OTHER);
+        assert_eq!(headers[header::LOCATION], "/editor?id=7");
+        let session = set_cookie(&headers, "__Host-veoveo-app").unwrap();
+        assert_eq!(
+            set_cookie(&headers, "__Host-veoveo-app-state").as_deref(),
+            Some("")
+        );
+        let (status, _, _) = send(on_origin(
+            &session_path,
+            &[("__Host-veoveo-app-state", &state)],
+            true,
+        ))
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "a code is redeemed once");
+
+        // With the session, requests reach the server as the person, with a forwarded
+        // token, the app origin's host and the application's own cookies only.
+        let (status, headers, body) = send(on_origin(
+            "/editor?id=7",
+            &[("__Host-veoveo-app", &session), ("editor", "own")],
+            false,
+        ))
+        .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(body, "served by the app");
+        let set: Vec<_> = headers.get_all(header::SET_COOKIE).iter().collect();
+        assert_eq!(set, ["editor=own; Path=/"], "the app sets no Hub cookie");
+        let request = seen.lock().unwrap().pop().unwrap();
+        assert_eq!(request.path, "/editor?id=7");
+        assert_eq!(request.host, "beacon.apps.veoveo.example");
+        assert_eq!(request.cookie.as_deref(), Some("editor=own"));
+        let bearer = request.authorization.unwrap();
+        let token = bearer.strip_prefix("Bearer ").unwrap();
+        let claims: Value = serde_json::from_slice(
+            &base64::Engine::decode(
+                &base64::engine::general_purpose::URL_SAFE_NO_PAD,
+                token.split('.').nth(1).unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(claims["aud"], endpoint.as_str());
+        assert!(claims["exp"].as_i64().unwrap() - claims["iat"].as_i64().unwrap() <= 60);
+
+        // A session for one app origin opens no other.
+        let request = axum::http::Request::get("/editor")
+            .header("x-forwarded-host", "neighbor.apps.veoveo.example")
+            .header(header::COOKIE, format!("__Host-veoveo-app={session}"))
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(send(request).await.0, StatusCode::NOT_FOUND);
+
+        // Once the server's requirement is a permission the person lacks, both the entry
+        // and every request are refused.
+        register(RouteAccess::Permission(
+            veoveo_types::PermissionName::parse("beacon.editor.use").unwrap(),
+        ));
+        let (status, _, _) = fixture.send(fixture.open(entry_path, true)).await;
+        assert_eq!(status, StatusCode::FORBIDDEN);
+        let (status, _, _) = send(on_origin(
+            "/editor",
+            &[("__Host-veoveo-app", &session)],
+            false,
+        ))
+        .await;
+        assert_eq!(status, StatusCode::FORBIDDEN);
+        assert!(
+            seen.lock().unwrap().is_empty(),
+            "nothing refused reaches the server"
+        );
+    })
+    .await
+    .expect("app origin deadline");
+}
+
+fn urlencoding(value: &str) -> String {
+    url::form_urlencoded::byte_serialize(value.as_bytes()).collect()
 }

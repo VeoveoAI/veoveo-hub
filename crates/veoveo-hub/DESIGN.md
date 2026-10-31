@@ -848,19 +848,22 @@ first label is `sandbox`, and the rest is the apps domain, whose wildcard
 |---|---|---|
 | The issuer's | The Hub's | Each App's host page and bridge |
 | `sandbox.{apps domain}` | The Apps listener | The sandbox proxy, and nothing else |
-| `{slug}.{apps domain}` | None | A server's own app origin, which a full web application's App frames; the Hub serves none, and admits it only as the one `frameDomains` source of that server's Apps |
+| `{slug}.{apps domain}` | The Apps listener | The app origin of a server whose registration declares one: its authenticated routes for a signed-in person ([server app origins](#server-app-origins)); it is also the one `frameDomains` source that server's Apps may name |
 
-The listener a request arrives on decides what serves it, never its `Host` or
-`X-Forwarded-Host`: OpenShell's native ingress selects the Hub sandbox's service by
-the service hostname and rewrites the upstream `Host`, so the Hub never sees the public
-name. The Apps listener, on `VEOVEO_APPS_LISTEN_ADDRESS` and loopback-only by default
-like the Hub's, is exposed as the Hub sandbox's OpenShell service `apps`, beside its
-`http` service, and the route for `*.{apps domain}` names that service. It serves
-`GET /`, the proxy page, and answers 404 for every other path, whatever the request's
-`Host`; the Hub's own listener never serves the proxy page, and the Apps listener
-reaches no other route. The issuer's origin and the sandbox origin come from
-configuration, and the host page uses the latter as the proxy frame's source and as
-its `postMessage` target origin.
+The Hub's own listener never serves the proxy page or an app origin, and the Apps
+listener reaches no route of the Hub's own. OpenShell's native ingress selects the Hub
+sandbox's service by the service hostname and rewrites the upstream `Host`, so the Apps
+listener reads the public name from `X-Forwarded-Host`, which the installation's tunnel
+sets on the wildcard route from the name the browser asked for, replacing any value a
+client sent, and which the ingress passes on. A request whose one `X-Forwarded-Host` is
+`{slug}.{apps domain}`, with the sandbox origin's port, of a server whose registration
+declares an app origin goes to that origin. Every other request is the proxy's: `GET /`
+answers the proxy page and any other path 404, whatever the request's `Host`. The Apps
+listener, on `VEOVEO_APPS_LISTEN_ADDRESS` and loopback-only by default like the Hub's, is
+exposed as the Hub sandbox's OpenShell service `apps`, beside its `http` service, and the
+route for `*.{apps domain}` names that service. The issuer's origin and the sandbox origin
+come from configuration, and the host page uses the latter as the proxy frame's source
+and as its `postMessage` target origin.
 
 Startup refuses a sandbox origin that is not an `https` or `http` origin, whose host's
 first label is not `sandbox` or whose apps domain is not a lowercase DNS name of at
@@ -869,8 +872,54 @@ slug equal to the issuer's first label would then share the host page's origin. 
 origins take the sandbox origin's scheme and port. The slug `sandbox` names the
 proxy's origin, so registration refuses it, and no App path names it.
 
-Serving a server's app origin needs the request's public hostname, which this ingress
-does not convey, so the Hub serves no app origin.
+### Server App Origins
+
+A server whose application needs its own cookies, storage and routes, such as an
+existing web editor, declares an app origin in its registration's surfaces and the
+permission that admits a person to it as its `app_origin` requirement. Its origin is
+`{slug}.{apps domain}`; the origin is the server's alone, so its script reaches neither
+the issuer, nor the sandbox origin, nor another server's origin. The Hub signs the person
+in through the issuer, as identity-aware proxies do, and holds the session itself:
+
+1. A page load on the app origin without an admitted session is sent with 303 to the
+   issuer's `/app-origins/{slug}?path={path}&state={digest}`, carrying a new random
+   state in the host-only cookie `__Host-veoveo-app-state` of the app origin, valid ten
+   minutes, and its SHA-256 in `state`. `path` is the path and query to return to,
+   absolute, without a scheme-relative start, backslash or control character, at most
+   2 KiB. Any other request without a session answers 401.
+2. On the issuer, the person's Computer session admits them as it admits an App's host
+   page: without one, a page load signs in at `/computer`, and the sign-in returns to the
+   same entry. A server that no registration declares an app origin for answers 404.
+   The server's `app_origin` requirement must allow the person, as policy decides it,
+   or the entry answers 403. The Hub then stores a code, 256 random bits of which it
+   keeps the SHA-256, bound to the state's digest, the server, the person's Computer and
+   session family and the return path, valid 60 seconds, and sends the browser with 303
+   to `https://{slug}.{apps domain}/_veoveo/session?code={code}`.
+3. `/_veoveo/session` is the one path of every app origin that the Hub answers itself:
+   a code is consumed once, only on its server's origin and only with the state cookie
+   whose digest it is bound to, so a code that leaks opens nothing in another browser,
+   and a code another browser started cannot be planted. It opens a session, 256 random
+   bits whose SHA-256 the Hub keeps with the server, the Computer and the family, sets it
+   in the host-only cookie `__Host-veoveo-app` until the family expires, clears the state
+   cookie and returns to the path. Every redirect answers `private, no-store` and
+   `Referrer-Policy: no-referrer`.
+4. Each request with a session cookie is admitted again: the session must belong to
+   this server, and its family is admitted as the Computer's own session admits it,
+   unrevoked, unexpired and still the Computer's. The Hub issues the family a bearer that
+   lives 60 seconds, as the bridge does, and admits it through the Hub's own profile
+   authentication in process. Admitted to the person's execution, the request routes to
+   the instance they selected for the server, which must declare the app origin; the
+   server's `app_origin` requirement must allow them, or the request answers 403. It
+   goes over that deployment's upstream transport with its method, path, query, headers
+   and streamed body, minus hop-by-hop fields and the Hub's own cookies, with `Host` set
+   to the app origin's host and the person's forwarded token, which lives 60 seconds and
+   names the server's endpoint as its audience. The answer streams back minus hop-by-hop
+   fields and any `Set-Cookie` of the Hub's own cookie names; the application's own
+   cookies, on its own origin, pass both ways. A protocol upgrade answers 501.
+
+`hub.app_origin_code` and `hub.app_origin_session` hold the codes and sessions; a family's
+or Computer's deletion removes them, and an expired or revoked family admits none.
+Ending a person's sessions therefore ends their app origin sessions with them.
 
 ### Direct URL
 
@@ -1093,14 +1142,18 @@ host page reads the stream with `fetch`, since `EventSource` cannot POST.
 | `POST /apps/{slug}/{page}` | That App's bridge: one JSON-RPC request of its view, run as the person; a `subscriptions/listen` answers with its event stream |
 | `GET /apps/host-{digest}.js` | The host page's script, immutable ([host page](#host-page-and-sandbox-proxy)) |
 | Any method, `/instances/{deployment}/{slug}/...` | A deployment's public route, within a prefix its registration declares ([public routes](#public-routes)) |
+| `GET /app-origins/{slug}?path=…&state=…` | The entry of a server's app origin: a code for the browser holding the state ([server app origins](#server-app-origins)) |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
-The Apps listener serves one route, whatever the request's `Host`:
+The Apps listener serves the sandbox proxy and the servers' app origins, which
+`X-Forwarded-Host` tells apart:
 
 | Route | Purpose |
 |---|---|
-| `GET /` | The sandbox proxy, at `sandbox.{apps domain}`, under the App's policy its query names ([Apps host](#apps-host)) |
+| `GET /` | The sandbox proxy, at `sandbox.{apps domain}` or any other name that is not a declared app origin, under the App's policy its query names ([Apps host](#apps-host)) |
+| `GET /_veoveo/session?code=…` on `{slug}.{apps domain}` | A code's redemption for a session on the app origin |
+| Any other request on `{slug}.{apps domain}` | The server's authenticated routes, for the signed-in person |
 
 `GET /admin/{profile}/control-plane` answers the active control plane with its
 revision ID, in the body as `revisionId` and as the strong entity tag

@@ -9,7 +9,7 @@ pub use public::PublicRoutes;
 
 /// Remove the hop-by-hop fields, those `Connection` nominates included. Content
 /// encoding and length stay: the entity's bytes pass unchanged and hyper frames them.
-fn strip_hop(headers: &mut HeaderMap) {
+pub(crate) fn strip_hop(headers: &mut HeaderMap) {
     let nominated = headers
         .get_all(header::CONNECTION)
         .iter()

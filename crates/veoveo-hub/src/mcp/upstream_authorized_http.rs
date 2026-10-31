@@ -183,6 +183,47 @@ impl HubAuthorizedHttpClient {
     }
 }
 
+/// A forwarded token for one request of `subject` to `server` outside MCP, such as one on
+/// the server's app origin, living `lifetime` seconds at most: the claims every MCP
+/// request of the subject carries.
+pub(crate) fn forwarded_bearer(
+    issuer: &HubInternalTokenIssuer,
+    profile: HubProfileId,
+    server: &crate::registration::RegisteredServer,
+    subject: &crate::AuthenticatedSubject,
+    permissions: BTreeSet<PermissionName>,
+    lifetime: i64,
+) -> anyhow::Result<String> {
+    let expires_at = Utc::now() + TimeDelta::seconds(lifetime);
+    let issued = issuer.issue(ForwardedRequest {
+        profile,
+        server: server.slug.clone(),
+        deployment: server.deployment,
+        audience: ResourceIndicator::from(&server.endpoint),
+        client: subject.access_token.oauth_client_id.clone(),
+        actor: subject.actor.clone(),
+        authority: subject.authority.clone(),
+        permissions,
+        request_context: Some(subject.request_context()?),
+        acting_server: subject
+            .delegation
+            .as_ref()
+            .map(|delegation| delegation.acting_server.clone()),
+        acting_task: subject.acting_task().cloned(),
+        delegation_context: subject
+            .delegation
+            .as_ref()
+            .and_then(|delegation| delegation.context.clone()),
+        expires_at: subject
+            .delegation
+            .as_ref()
+            .map_or(expires_at, |delegation| {
+                delegation.expires_at.min(expires_at)
+            }),
+    })?;
+    Ok(issued.bearer_token)
+}
+
 #[derive(Debug, Error)]
 pub(super) enum HubAuthorizedHttpError {
     #[error("failed to issue hub internal request token: {0}")]

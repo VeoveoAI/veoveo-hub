@@ -404,11 +404,9 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             "/admin/{profile}/usage/daily",
             get(super::admin::daily_usage),
         );
-    router = router.merge(
-        admin_router
-            .with_state(admin_state)
-            .layer(middleware::from_fn_with_state(auth_state, authenticate_mcp)),
-    );
+    router = router.merge(admin_router.with_state(admin_state).layer(
+        middleware::from_fn_with_state(auth_state.clone(), authenticate_mcp),
+    ));
     if let Some(apps) = apps {
         router = router.merge(apps.router());
     }
@@ -436,8 +434,8 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             .await
             .with_context(|| format!("listen on {listen_address}"))?,
     };
-    // The Apps listener serves the sandbox proxy and nothing else: the listener, not a
-    // Host header, decides what answers.
+    // The Apps listener serves the sandbox proxy and the servers' app origins, which
+    // `X-Forwarded-Host` tells apart; the Hub's own listener serves neither.
     let apps_serving = match (app_origins, apps_listen_address) {
         (Some(origins), Some(address)) => {
             let apps_listener = tokio::net::TcpListener::bind(address)
@@ -449,10 +447,23 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
                 sandbox = origins.sandbox(),
                 "apps listening"
             );
-            let apps_router = veoveo_hub::apps::SandboxProxy::new(origins).router().layer(
-                TraceLayer::new_for_http()
-                    .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
+            let servers = veoveo_hub::apps::ServerOrigins::new(
+                catalog.clone(),
+                hub_state.clone(),
+                origins.clone(),
+                auth_state.clone(),
+                internal_token_issuer.clone(),
+                upstream_http.clone(),
             );
+            let apps_router = veoveo_hub::apps::SandboxProxy::new(origins, Some(servers))
+                .router()
+                .layer(axum::middleware::from_fn(
+                    veoveo_hub::request_observation::observe_request,
+                ))
+                .layer(
+                    TraceLayer::new_for_http()
+                        .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
+                );
             let stop = ct.clone();
             Some(tokio::spawn(std::future::IntoFuture::into_future(
                 axum::serve(apps_listener, apps_router)

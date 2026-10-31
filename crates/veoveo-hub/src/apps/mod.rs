@@ -11,6 +11,7 @@ mod origins;
 mod pages;
 mod route;
 mod sandbox;
+mod server_origin;
 #[cfg(test)]
 mod tests;
 
@@ -21,3 +22,4 @@ pub use origins::{AppOrigins, SandboxOrigin};
 pub use pages::host_script_path;
 pub use route::{AppView, SANDBOX_SLUG};
 pub use sandbox::SandboxProxy;
+pub use server_origin::{ServerOrigins, entry_from_path};

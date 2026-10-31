@@ -5,7 +5,7 @@ use anyhow::Context as _;
 use axum::{
     Json, Router,
     extract::{Request, State},
-    http::{HeaderMap, HeaderValue, StatusCode, header},
+    http::{HeaderMap, HeaderValue, StatusCode, Uri, header},
     response::{IntoResponse, Response},
     routing::get,
 };
@@ -72,12 +72,28 @@ impl AppsService {
         &self.origins
     }
 
-    /// `GET /apps/host-{digest}.js`, and `GET` and `POST /apps/{slug}/{page}`.
+    /// `GET /apps/host-{digest}.js`, `GET` and `POST /apps/{slug}/{page}`, and
+    /// `GET /app-origins/{slug}`, where a person enters a server's app origin.
     pub fn router(self) -> Router {
         Router::new()
             .route(
                 pages::host_script_path(),
                 get(|| async { pages::host_script() }),
+            )
+            .route(
+                &format!("{}/{{slug}}", super::server_origin::ENTRY_PATH),
+                get(
+                    |State(apps): State<AppsService>, uri: Uri, headers: HeaderMap| async move {
+                        super::server_origin::enter(
+                            &apps.hub,
+                            &apps.catalog,
+                            &apps.origins,
+                            &uri,
+                            &headers,
+                        )
+                        .await
+                    },
+                ),
             )
             .route("/apps/{slug}/{*page}", get(open).post(bridge))
             .with_state(self)
@@ -93,46 +109,7 @@ impl AppsService {
         observation: crate::request_observation::RequestObservation,
         lifetime: u32,
     ) -> anyhow::Result<PersonMcp> {
-        let family = self
-            .hub
-            .hub_store()
-            .refresh_family(session.family())
-            .await?
-            .context("the session's refresh family is gone")?;
-        let profile = catalog
-            .profile(&config.profile)
-            .context("the Computers profile is unavailable")?;
-        let server = catalog
-            .authorization_server(&profile.authorization_server)
-            .context("the Computers authorization server is unavailable")?;
-        let principal = &family.principal.principal;
-        let token = crate::issuance::issue_access_token(
-            catalog,
-            server,
-            &family.protected_resource,
-            &principal.subject,
-            &family.oauth_client_id,
-            PrincipalKind::User,
-            Some(principal),
-            Some(&family.principal.display_name),
-            None,
-            crate::issuance::AccessTokenInvocation {
-                lifetime: Some(crate::token_profile::TokenLifetime::from_seconds(
-                    std::num::NonZeroU32::new(lifetime).context("a bearer lives a while")?,
-                )),
-                not_after: Some(family.expires_at),
-                purpose: None,
-                extensions: Default::default(),
-                session_family: Some(family.id.clone()),
-                work_context: family.work_context.clone(),
-                provenance: InvocationProvenance::Direct {
-                    initiator: principal.id.clone(),
-                },
-            },
-            principal.id.clone(),
-            &family.scopes,
-        )
-        .await?;
+        let token = family_bearer(&self.hub, catalog, config, session, lifetime).await?;
         Ok(PersonMcp {
             router: self.mcp.clone(),
             host: self.host.clone(),
@@ -144,9 +121,59 @@ impl AppsService {
     }
 }
 
+/// An access token of `session`'s refresh family under the Computers profile that lives
+/// at most `lifetime` seconds and never past the family.
+pub(super) async fn family_bearer(
+    hub: &crate::HubState,
+    catalog: &HubCatalog,
+    config: &crate::control_plane::Computers,
+    session: &crate::computers::BrowserSession,
+    lifetime: u32,
+) -> anyhow::Result<crate::issuance::IssuedAccessToken> {
+    let family = hub
+        .hub_store()
+        .refresh_family(session.family())
+        .await?
+        .context("the session's refresh family is gone")?;
+    let profile = catalog
+        .profile(&config.profile)
+        .context("the Computers profile is unavailable")?;
+    let server = catalog
+        .authorization_server(&profile.authorization_server)
+        .context("the Computers authorization server is unavailable")?;
+    let principal = &family.principal.principal;
+    crate::issuance::issue_access_token(
+        catalog,
+        server,
+        &family.protected_resource,
+        &principal.subject,
+        &family.oauth_client_id,
+        PrincipalKind::User,
+        Some(principal),
+        Some(&family.principal.display_name),
+        None,
+        crate::issuance::AccessTokenInvocation {
+            lifetime: Some(crate::token_profile::TokenLifetime::from_seconds(
+                std::num::NonZeroU32::new(lifetime).context("a bearer lives a while")?,
+            )),
+            not_after: Some(family.expires_at),
+            purpose: None,
+            extensions: Default::default(),
+            session_family: Some(family.id.clone()),
+            work_context: family.work_context.clone(),
+            provenance: InvocationProvenance::Direct {
+                initiator: principal.id.clone(),
+            },
+        },
+        principal.id.clone(),
+        &family.scopes,
+    )
+    .await
+}
+
 /// A browser's page load: a GET the browser marks as a navigation, of a document when it
 /// names the destination.
-fn document_navigation(headers: &HeaderMap) -> bool {
+pub(super) fn document_navigation(headers: &HeaderMap) -> bool {
     headers
         .get("sec-fetch-mode")
         .is_some_and(|value| value == "navigate")
