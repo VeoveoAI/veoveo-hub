@@ -1,0 +1,649 @@
+{
+  "scope": "Native regression qualification of discovery watches using the live catalog publication source. No new Lean extraction or theorem is claimed.",
+  "hub_base_revision": "2f5feef6389ac87ff2e47d596691ef431e8f122c",
+  "sdk_revision": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+  "core_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+  "actors": {
+    "implementation": "GPT-6.1 Sol",
+    "native_execution": "GPT-6 Luna",
+    "source_log_evidence_review": "GPT-6 Astra"
+  },
+  "toolchain": "1.99.0-aarch64-apple-darwin",
+  "runtime_source_basis": "Qualified 1083-file f81159f source archive with the reviewed 688b91a lazy-input/name overlay; relevant current runtime/build inputs match this baseline plus the recorded watch/test/DESIGN overlay.",
+  "files": {
+    "crates/veoveo-hub/DESIGN.md": {
+      "sha256": "dbd00ff5037c1b68fe26afb53ba8d3e5cdcc9ea5f8899b4af6c40055bd41578b",
+      "bytes": 159809
+    },
+    "crates/veoveo-hub/src/mcp/discovery_watch.rs": {
+      "sha256": "1844fe871b9401637036e1368286441b9f003a09a689d268bff2be5f4bca1884",
+      "bytes": 10805
+    },
+    "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": {
+      "sha256": "12c02671c52258f923ea2b5a214a03213c3821ee7f37d725204fd486a37a13a8",
+      "bytes": 12314
+    },
+    "crates/veoveo-hub/src/mcp/discovery.rs": {
+      "sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+      "bytes": 36053
+    },
+    "Cargo.lock": {
+      "sha256": "b2e96062f36e9755403b39585723d55056bd3c03ef8613b617de8a81ab21e1da",
+      "bytes": 150691
+    }
+  },
+  "original_watch_sha256": "5e45809ea7bc8e35cfd90f970db71f7733ff11fff6656a53cad2593782842c7f",
+  "original_watch_plus_test_module_sha256": "1308c6ba3dff3c9c8a36bafbc949dfad5e6c0abd52b18f942869d933358d2aa2",
+  "tests_unchanged_between_measured_baseline_and_fix": true,
+  "scenario": {
+    "server": "Declared watch-fixture server with synthetic sample Tool descriptors, native RMCP streamable HTTP and exact subscription acknowledgement",
+    "request": "Actual HubMcp.for_admission selected view; synthetic authenticated subject and captured deployment composition",
+    "publication": "Original live HubCatalogHandle.replace_registrations, keeping the same registration but advancing generation",
+    "sequencing": "Opened/ended channels, actual Watch cancellation token, and a polled pending future under the existing watch-map mutex. No sleeps for event ordering.",
+    "bounds": "Three seconds per observation/open and thirty seconds per whole scenario; runner has a 300-second command/stage limit.",
+    "healthy_path": "A second ensure reuses the exact OnceCell, remains active and emits no second opened event.",
+    "publication_observations": {
+      "original": {
+        "watch_ended": false,
+        "upstream_listen_future_disposed": false,
+        "active": true,
+        "cache_before_late": {
+          "description": "before publication",
+          "denied": 7
+        },
+        "cache_after_late": {
+          "description": "late old response",
+          "denied": 11
+        }
+      },
+      "fixed": {
+        "watch_ended": true,
+        "upstream_listen_future_disposed": true,
+        "active": false,
+        "cache_before_late": null,
+        "cache_after_late": null
+      }
+    },
+    "stale_admission_observations": {
+      "original": {
+        "error": null,
+        "newer_cell_retained": false,
+        "newer_watch_active": false,
+        "newer_cache": null
+      },
+      "fixed": {
+        "error": "catalog changed during discovery; retry",
+        "newer_cell_retained": true,
+        "newer_watch_active": true,
+        "newer_cache": {
+          "description": "current complete descriptor",
+          "denied": 13
+        }
+      }
+    },
+    "mutex_wait_observations": {
+      "original": {
+        "error": null,
+        "watch_ended": false,
+        "active": true
+      },
+      "fixed": {
+        "error": "catalog changed during discovery; retry",
+        "watch_ended": true,
+        "active": false
+      }
+    }
+  },
+  "setup_attempt": {
+    "path": "/tmp/hub-discovery-watch-20261031/baseline-regressions1/native-evidence/summary.json",
+    "sha256": "1776d7fed171ecf37b6368e19649d3d3ff8ddd3fb9d122a4acb9861b70c812af",
+    "result": {
+      "phase": "test-only",
+      "base_revision": "2f5feef6389ac87ff2e47d596691ef431e8f122c",
+      "source_root": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions1/source",
+      "source_count": 1084,
+      "source_map_sha256": "bb20dacc171625cec2a8321eb164bae9e3c304af6b0ae18dfc1c21aaf11e6df8",
+      "source_map": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions1/native-evidence/source-map.before.json",
+      "qualified_runtime_source": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source",
+      "qualified_baseline_source_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee",
+      "build_input_count": 813,
+      "build_input_map_sha256": "5b0be223a6869dee7227d19a305eaf7ff094ef598110e7e4ab4bfc3b8e469b73",
+      "build_input_map": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions1/native-evidence/build-input-map.before.json",
+      "overlay_manifest": "/private/tmp/hub-discovery-watch-freshness-20261031/baseline-regressions1-overlay.json",
+      "overlay_manifest_sha256": "049894fec54dda1f5234a410605c19d082f14360115a7eab4ae95e7ee190123c",
+      "overlay_sha256": {
+        "crates/veoveo-hub/src/mcp/discovery_watch.rs": "1308c6ba3dff3c9c8a36bafbc949dfad5e6c0abd52b18f942869d933358d2aa2",
+        "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": "a7df587c1fa2482f4c8ac62eb9329d4aa49628e9dd4fd880f07191b5d00701d5"
+      },
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/private/tmp/hub-discovery-watch-20261031/baseline-regressions1/source/Cargo.toml",
+        "--lib",
+        "mcp::discovery_watch::tests::",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions1/source",
+      "toolchain": "1.99.0-aarch64-apple-darwin",
+      "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target",
+      "sqlx_offline": true,
+      "postgres_bin": "/opt/homebrew/opt/postgresql@18/bin",
+      "timeout_seconds": 300,
+      "log_path": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions1/native-evidence/focused-test.log",
+      "stages": [
+        {
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 13622,
+          "test_run_counts": [],
+          "test_result_lines": [],
+          "named_tests": [],
+          "test_binary": null,
+          "log_sha256": "b7347a40b4db1229f2cc956dcf8c8714001b02d21c243ed45ce104d52c29896c",
+          "log_bytes": 1107,
+          "source_unchanged": true,
+          "source_after_sha256": "bb20dacc171625cec2a8321eb164bae9e3c304af6b0ae18dfc1c21aaf11e6df8",
+          "build_inputs_unchanged": true,
+          "build_inputs_after_sha256": "5b0be223a6869dee7227d19a305eaf7ff094ef598110e7e4ab4bfc3b8e469b73"
+        }
+      ],
+      "source_unchanged": true,
+      "build_inputs_unchanged": true,
+      "complete": false
+    }
+  },
+  "setup_attempt_classification": "Compile-only fixture error: enable_tools_list_changed does not exist; corrected to enable_tool_list_changed and formatted the test file. Zero tests ran, so this is not bug reproduction.",
+  "original_runtime_regression": {
+    "path": "/tmp/hub-discovery-watch-20261031/baseline-regressions2/native-evidence/summary.json",
+    "sha256": "6800b76f2e178f744d113ebbf4b609927d9c012d149bbcfc3fdea47abd7cd327",
+    "result": {
+      "phase": "test-only",
+      "base_revision": "2f5feef6389ac87ff2e47d596691ef431e8f122c",
+      "source_root": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions2/source",
+      "source_count": 1084,
+      "source_map_sha256": "0062dc27957339d28861d0ebce6a4f2a8b98dff37419582d58980e9d7fcb9dd0",
+      "source_map": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions2/native-evidence/source-map.before.json",
+      "qualified_runtime_source": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source",
+      "qualified_baseline_source_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee",
+      "build_input_count": 813,
+      "build_input_map_sha256": "c379c23473551e3bb268d4b930ffdfa9151f8f0e24f5bc91dc3d5dbfe5b61eb8",
+      "build_input_map": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions2/native-evidence/build-input-map.before.json",
+      "overlay_manifest": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions2-overlay.json",
+      "overlay_manifest_sha256": "117499e480598a4c7f716bec864f9ae8ca4308866c186d441d7b50d76373bf01",
+      "overlay_sha256": {
+        "crates/veoveo-hub/src/mcp/discovery_watch.rs": "1308c6ba3dff3c9c8a36bafbc949dfad5e6c0abd52b18f942869d933358d2aa2",
+        "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": "12c02671c52258f923ea2b5a214a03213c3821ee7f37d725204fd486a37a13a8"
+      },
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/private/tmp/hub-discovery-watch-20261031/baseline-regressions2/source/Cargo.toml",
+        "--lib",
+        "mcp::discovery_watch::tests::",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions2/source",
+      "toolchain": "1.99.0-aarch64-apple-darwin",
+      "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target",
+      "sqlx_offline": true,
+      "postgres_bin": "/opt/homebrew/opt/postgresql@18/bin",
+      "timeout_seconds": 300,
+      "log_path": "/private/tmp/hub-discovery-watch-20261031/baseline-regressions2/native-evidence/focused-test.log",
+      "stages": [
+        {
+          "exit": 101,
+          "timed_out": false,
+          "elapsed_ms": 38749,
+          "test_run_counts": [
+            3
+          ],
+          "test_result_lines": [
+            [
+              "FAILED",
+              "0",
+              "3",
+              "0",
+              "0",
+              "320",
+              "6.92"
+            ]
+          ],
+          "named_tests": [
+            [
+              "mcp::discovery_watch::tests::stale_admission_cannot_remove_a_newer_discovery_watch",
+              "FAILED"
+            ],
+            [
+              "mcp::discovery_watch::tests::publication_while_ensure_waits_for_watch_lock_is_rechecked",
+              "FAILED"
+            ],
+            [
+              "mcp::discovery_watch::tests::live_publication_fences_a_selected_discovery_watch",
+              "FAILED"
+            ]
+          ],
+          "test_binary": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+            "sha256": "0b977ab4227133a5956666382982fcbb3558610b4eddfd1fdc46a00eb890b6d1",
+            "bytes": 175840168,
+            "mtime_ns": 1793483366680269666
+          },
+          "log_sha256": "7213a900d2ca2e8bd54e9327860586499747e7bd7af31c71f57130642152e8df",
+          "log_bytes": 2702,
+          "source_unchanged": true,
+          "source_after_sha256": "0062dc27957339d28861d0ebce6a4f2a8b98dff37419582d58980e9d7fcb9dd0",
+          "build_inputs_unchanged": true,
+          "build_inputs_after_sha256": "c379c23473551e3bb268d4b930ffdfa9151f8f0e24f5bc91dc3d5dbfe5b61eb8"
+        }
+      ],
+      "source_unchanged": true,
+      "build_inputs_unchanged": true,
+      "complete": false
+    }
+  },
+  "fixed_runtime_validation": {
+    "path": "/tmp/hub-discovery-watch-20261031/fixed-validation1/native-evidence/summary.json",
+    "sha256": "9a96cd9c8669259212b786dd1bbde5e523c93ef1b759a5dc1fa181b3561d140d",
+    "result": {
+      "base_revision": "2f5feef6389ac87ff2e47d596691ef431e8f122c",
+      "source_root": "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/source",
+      "source_count": 1084,
+      "source_map_sha256": "7d34961a52d0ca489c608041a927813c3811b0af277e0bc56e02eb88268219e6",
+      "source_map": "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/native-evidence/source-map.before.json",
+      "qualified_runtime_source": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source",
+      "qualified_baseline_source_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee",
+      "build_input_count": 813,
+      "build_input_map_sha256": "cab11c59b1d674335a6f40f4d38807c0a6c59e8882a8af6f435f6af5c518aec2",
+      "build_input_map": "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/native-evidence/build-input-map.before.json",
+      "overlay_manifest": "/private/tmp/hub-discovery-watch-20261031/fixed-validation1-overlay.json",
+      "overlay_manifest_sha256": "d6edf0a1ab75fd4e5751ea2dc7dd20da48058f6d306d81bbafc7d8c1013fe21a",
+      "overlay_sha256": {
+        "crates/veoveo-hub/DESIGN.md": "dbd00ff5037c1b68fe26afb53ba8d3e5cdcc9ea5f8899b4af6c40055bd41578b",
+        "crates/veoveo-hub/src/mcp/discovery_watch.rs": "1844fe871b9401637036e1368286441b9f003a09a689d268bff2be5f4bca1884",
+        "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": "12c02671c52258f923ea2b5a214a03213c3821ee7f37d725204fd486a37a13a8"
+      },
+      "toolchain": "1.99.0-aarch64-apple-darwin",
+      "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target",
+      "sqlx_offline": true,
+      "postgres_bin": "/opt/homebrew/opt/postgresql@18/bin",
+      "timeout_seconds_per_stage": 300,
+      "stages": [
+        {
+          "stage": "fmt-check",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 656,
+          "test_run_counts": [],
+          "test_result_lines": [],
+          "named_tests": [],
+          "test_binary": null,
+          "log_path": "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/native-evidence/fmt-check.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "log_bytes": 0
+        },
+        {
+          "stage": "watch-tests",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/source/Cargo.toml",
+            "--lib",
+            "mcp::discovery_watch::tests::",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 32360,
+          "test_run_counts": [
+            3
+          ],
+          "test_result_lines": [
+            [
+              "ok",
+              "3",
+              "0",
+              "0",
+              "0",
+              "320",
+              "1.01"
+            ]
+          ],
+          "named_tests": [
+            [
+              "mcp::discovery_watch::tests::publication_while_ensure_waits_for_watch_lock_is_rechecked",
+              "ok"
+            ],
+            [
+              "mcp::discovery_watch::tests::stale_admission_cannot_remove_a_newer_discovery_watch",
+              "ok"
+            ],
+            [
+              "mcp::discovery_watch::tests::live_publication_fences_a_selected_discovery_watch",
+              "ok"
+            ]
+          ],
+          "test_binary": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+            "sha256": "eae8185b2d9a34e3db11381141975d8f20a06324c448569d65e4450bf8b508c9",
+            "bytes": 175838728
+          },
+          "log_path": "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/native-evidence/watch-tests.log",
+          "log_sha256": "6e0f6ff7fdd6b1a20d364a3ef7417fac948cad624e1d121136e5328866863fd6",
+          "log_bytes": 730
+        },
+        {
+          "stage": "discovery-tests",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/source/Cargo.toml",
+            "--lib",
+            "mcp::discovery::tests::",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 2685,
+          "test_run_counts": [
+            13
+          ],
+          "test_result_lines": [
+            [
+              "ok",
+              "13",
+              "0",
+              "0",
+              "0",
+              "310",
+              "2.02"
+            ]
+          ],
+          "named_tests": [
+            [
+              "mcp::discovery::tests::one_failed_server_does_not_discard_healthy_discovery",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::fail_closed_profiles_reject_incomplete_tool_and_prompt_catalogs",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::isolated_prompt_failures_name_the_missing_server",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::synchronous_tool_discovery_is_fenced_against_notification_races",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::invalidated_in_flight_response_cannot_replace_new_contents_or_finish_new_request",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::discovery_is_coalesced_and_catalog_generation_is_monotonic",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::unavailable_sources_retry_without_delaying_healthy_catalogs",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::one_server_completes_while_another_remains_in_flight",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::disconnected_watch_requires_fresh_discovery_after_missed_notifications",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::read_routes_reuse_discovery_without_crossing_authority_or_invalidation",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::unchanged_refresh_does_not_feed_back_but_recovery_and_invalidation_notify",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::cold_and_invalidated_catalogs_settle_before_the_first_snapshot",
+              "ok"
+            ],
+            [
+              "mcp::discovery::tests::settlement_shares_one_deadline_and_failed_sources_release_waiters",
+              "ok"
+            ]
+          ],
+          "test_binary": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+            "sha256": "eae8185b2d9a34e3db11381141975d8f20a06324c448569d65e4450bf8b508c9",
+            "bytes": 175838728
+          },
+          "log_path": "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/native-evidence/discovery-tests.log",
+          "log_sha256": "974298f1b8ce9e3c1c607f753db7dfa9ee5c8a1180efbe8461555ed79faffdd4",
+          "log_bytes": 1609
+        },
+        {
+          "stage": "subscription-tests",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/source/Cargo.toml",
+            "--lib",
+            "mcp::subscriptions::tests::",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 350,
+          "test_run_counts": [
+            1
+          ],
+          "test_result_lines": [
+            [
+              "ok",
+              "1",
+              "0",
+              "0",
+              "0",
+              "322",
+              "0.00"
+            ]
+          ],
+          "named_tests": [
+            [
+              "mcp::subscriptions::tests::an_ended_catalog_source_reaches_the_downstream_reconnect_path",
+              "ok"
+            ]
+          ],
+          "test_binary": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+            "sha256": "eae8185b2d9a34e3db11381141975d8f20a06324c448569d65e4450bf8b508c9",
+            "bytes": 175838728
+          },
+          "log_path": "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/native-evidence/subscription-tests.log",
+          "log_sha256": "ae816b6998e476ebe62c3d530e2d61c9d2f6ad0c694448233abbb6675fbbc421",
+          "log_bytes": 424
+        },
+        {
+          "stage": "catalog-page-tests",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/source/Cargo.toml",
+            "--lib",
+            "mcp::catalog_pages::tests::",
+            "--",
+            "--nocapture"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 293,
+          "test_run_counts": [
+            6
+          ],
+          "test_result_lines": [
+            [
+              "ok",
+              "6",
+              "0",
+              "0",
+              "0",
+              "317",
+              "0.00"
+            ]
+          ],
+          "named_tests": [
+            [
+              "mcp::catalog_pages::tests::duplicate_upstream_identities_are_rejected_instead_of_hidden_by_pagination",
+              "ok"
+            ],
+            [
+              "mcp::catalog_pages::tests::malformed_versions_keys_and_excessive_cursors_fail_without_echoing_input",
+              "ok"
+            ],
+            [
+              "mcp::catalog_pages::tests::each_surface_keeps_its_typed_identity_in_the_cursor",
+              "ok"
+            ],
+            [
+              "mcp::catalog_pages::tests::disappearing_servers_and_revoked_members_do_not_skip_remaining_entries",
+              "ok"
+            ],
+            [
+              "mcp::catalog_pages::tests::a_catalog_cursor_cannot_continue_in_another_composition",
+              "ok"
+            ],
+            [
+              "mcp::catalog_pages::tests::new_servers_before_the_boundary_do_not_repeat_a_declared_collection",
+              "ok"
+            ]
+          ],
+          "test_binary": {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+            "sha256": "eae8185b2d9a34e3db11381141975d8f20a06324c448569d65e4450bf8b508c9",
+            "bytes": 175838728
+          },
+          "log_path": "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/native-evidence/catalog-page-tests.log",
+          "log_sha256": "4b9a779a5df4ad584100df328e3725a408b18b3e530dad17f4615d1d07530e77",
+          "log_bytes": 953
+        },
+        {
+          "stage": "strict-lib-clippy",
+          "command": [
+            "/Users/rozgo/.cargo/bin/rustup",
+            "run",
+            "1.99.0-aarch64-apple-darwin",
+            "cargo",
+            "clippy",
+            "--locked",
+            "-p",
+            "veoveo-hub",
+            "--manifest-path",
+            "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/source/Cargo.toml",
+            "--lib",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 10100,
+          "test_run_counts": [],
+          "test_result_lines": [],
+          "named_tests": [],
+          "test_binary": null,
+          "log_path": "/private/tmp/hub-discovery-watch-20261031/fixed-validation1/native-evidence/strict-lib-clippy.log",
+          "log_sha256": "a382a6a15532f0422a1461db07d04bcd4a8c832499a13492adc3d04b9b452fe5",
+          "log_bytes": 191
+        }
+      ],
+      "source_unchanged": true,
+      "source_after_sha256": "7d34961a52d0ca489c608041a927813c3811b0af277e0bc56e02eb88268219e6",
+      "build_inputs_unchanged": true,
+      "build_inputs_after_sha256": "cab11c59b1d674335a6f40f4d38807c0a6c59e8882a8af6f435f6af5c518aec2",
+      "complete": true
+    }
+  },
+  "fixed_runner": {
+    "path": "/tmp/hub-discovery-watch-freshness-20261031/run-fixed-checks.py",
+    "sha256": "33bf6b3dcdc09eae2ceb1f64e9287ba27ec999b5517955a9138911b03aafff64"
+  },
+  "review": {
+    "complete_logs_read": true,
+    "log_hashes_verified": true,
+    "three_original_failures_are_final_semantic_assertions": true,
+    "fixed_focused_tests_passed": 23,
+    "format_and_strict_library_clippy_passed": true,
+    "fixed_test_binary_sha256": "eae8185b2d9a34e3db11381141975d8f20a06324c448569d65e4450bf8b508c9",
+    "current_checkout_nonproof_inputs_byte_match_compiled_snapshot": {
+      "input_count": 813,
+      "differences": []
+    }
+  },
+  "boundaries": [
+    "Whole command elapsed times include compilation and fixture setup. Harness times are recorded separately; neither is an operation-latency benchmark.",
+    "The native scheduling cases are specific, bounded executions. They do not prove arbitrary scheduling, channel fairness, reconnect delivery, replica adoption, or server-wide cache invalidation.",
+    "The fixture uses a constructed authenticated subject. It does not qualify HTTP bearer admission, token endpoints, Entra, a production upstream or a deployed installation.",
+    "No new Lean model or theorem was checked here. The already-qualified synchronous cache source is byte-identical; async wrapper correspondence and cursor/listener proofs remain open.",
+    "No full Mac/Linux Docker checks, push, deployment or model inference was run. No dependency pins, authorization rules, runtime infrastructure or CI jobs changed.",
+    "Temporary runners, full source maps, logs and binaries remain outside Git. This receipt records their identities and execution results."
+  ],
+  "qualified_native_regression_fix": true,
+  "hub_catalog_status": "partial"
+}

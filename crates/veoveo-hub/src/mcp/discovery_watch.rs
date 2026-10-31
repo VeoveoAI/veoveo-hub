@@ -73,7 +73,9 @@ pub(super) fn catalog_change_filter(
 impl HubMcp {
     pub(super) async fn discovery_watch_active(&self, key: &DiscoveryCacheKey) -> bool {
         let snapshot = self.catalog.snapshot();
-        if snapshot.generation() != key.catalog_generation {
+        if snapshot.generation() != key.catalog_generation
+            || self.live_catalog.snapshot().generation() != key.catalog_generation
+        {
             return false;
         }
         let Some((_, manifest)) = snapshot
@@ -110,7 +112,9 @@ impl HubMcp {
         subject: &AuthenticatedSubject,
     ) -> Result<(), McpError> {
         let snapshot = self.catalog.snapshot();
-        if snapshot.generation() != key.catalog_generation {
+        if snapshot.generation() != key.catalog_generation
+            || self.live_catalog.snapshot().generation() != key.catalog_generation
+        {
             return Err(mcp_internal("catalog changed during discovery; retry"));
         }
         let (_, manifest) = snapshot
@@ -132,6 +136,10 @@ impl HubMcp {
         }
         let cell = {
             let mut watches = self.discovery_watches.watches.lock().await;
+            // Publication may have advanced while this admitted request waited.
+            if self.live_catalog.snapshot().generation() != key.catalog_generation {
+                return Err(mcp_internal("catalog changed during discovery; retry"));
+            }
             watches.retain(|watch_key, cell| {
                 watch_key.catalog_generation == key.catalog_generation
                     && cell
@@ -153,7 +161,7 @@ impl HubMcp {
             let remaining = (subject.access_token.expires_at - chrono::Utc::now()).to_std()
                 .map_err(|_| mcp_internal("catalog authority expired"))?;
             let deadline = tokio::time::Instant::now() + remaining;
-            let mut generation = self.catalog.subscribe();
+            let mut generation = self.live_catalog.subscribe();
             let (connection, subscription) = tokio::time::timeout(OPEN_DEADLINE, async {
                 let connection = self.upstream(&key.server, downstream, subject).await.map_err(super::http_response::RequestError::into_protocol)?;
                 // Ask only for the changes the server advertises.
@@ -168,10 +176,10 @@ impl HubMcp {
                 let subscription = open_catalog_subscription(&connection.peer, &effective).await?;
                 Ok((connection, Some(subscription)))
             }).await.map_err(|_| mcp_internal("catalog subscription open deadline exceeded"))??;
+            if *generation.borrow_and_update() != key.catalog_generation { return Err(mcp_internal("catalog changed while opening subscription")); }
             let Some(mut subscription) = subscription else {
                 return Ok(Watch { cancelled: CancellationToken::new(), unchanging: true });
             };
-            if *generation.borrow_and_update() != key.catalog_generation { return Err(mcp_internal("catalog changed while opening subscription")); }
             // A new stream cannot recover notifications from before registration.
             // Rebuild this key after the stream is listening, closing that gap.
             self.discovery.invalidate_cached_key(key).await;
@@ -244,3 +252,6 @@ pub(super) async fn open_catalog_subscription(
     }
     Ok(subscription)
 }
+
+#[cfg(test)]
+mod tests;

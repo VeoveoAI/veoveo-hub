@@ -104,7 +104,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
-| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and two source controls checked; server invalidation, cursor/listener and native refinement open |
+| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and source controls checked; native watch publication defect fixed; formal listener/cursor and native refinement open |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
@@ -975,6 +975,23 @@ Prevents cross-context disclosure and stale routing represented as current disco
   retained as an interface diagnostic, not a qualified formal control. These are
   deliberate test faults, not newly discovered production defects. Native ticket
   setup uses server invalidation; the formal history fence uses key invalidation.
+- **Native watch publication finding:** the
+  [watch receipt](discovery_cache/evidence/native-watch-publication-20261031.json)
+  records three unchanged regressions against an actual admitted/selected handler
+  and a loopback MCP source. The original watch used the immutable selected
+  catalog's private signal: live publication left its stream and cache active,
+  late work repopulated that cache, and an old admission removed a newer watch.
+  All three intended aggregate assertions fail on the original runtime
+  (38.749 s command, 6.92 s harness). The correction retains selected manifests
+  and routing but uses the live generation/signal, rechecks the epoch after the
+  map-lock wait, and checks it after upstream opening. The byte-identical tests
+  pass (32.360 s command, 1.01 s harness), including real source-listen disposal,
+  whole descriptor/denied-count preservation, late completion fencing, and
+  healthy reuse. All 23 focused native tests, formatting and strict library
+  Clippy pass. A prior fixture API-name compilation error ran zero tests and is
+  recorded separately. This is a production defect found through source review
+  and native execution during proof work, not a newly checked Lean theorem.
+  The synchronous cache source and existing generated/proof files are unchanged.
 - **Boundary/effort:** substantial for the cache/listener state machine. Native
   collection/identifier/clone/equality/time and mutex/observation refinement remain
   explicit. Any hash-based identity correspondence is conditional on no collisions

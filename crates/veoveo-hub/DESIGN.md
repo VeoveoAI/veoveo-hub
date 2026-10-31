@@ -576,7 +576,14 @@ with its declarations, which start a new generation, and its tool descriptions a
 while it runs when it advertises `tools.listChanged`. For such a server the Hub keeps a
 `subscriptions/listen` for tool-list changes open beside each cached tool list, empties
 the server's cached tools on a change, and opens one for every client listen that asks
-for tool-list changes, passing the notification on. A server whose discovered
+for tool-list changes, passing the notification on. A watch retains the admitted
+snapshot for manifests and routing, while its validity and publication receiver use
+the live catalog generation. Opening or reusing a watch rejects a stale generation
+before changing the watch map, including after waiting for its mutex, and checks
+the live generation again after upstream discovery before remembering an unchanging
+server or keeping a stream. A live publication makes an old watch inactive; the
+watch invalidates its key's cached descriptors, in-flight tickets and retry records
+and ends its stream even when the upstream is quiet. A server whose discovered
 capabilities do not advertise the change is remembered for the generation and never
 watched. Known limit: the watch beside a cached tool list is per catalog generation,
 caller and authority, so a server that advertises the change, such as console, holds

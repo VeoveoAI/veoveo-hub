@@ -247,3 +247,16 @@ patch was introduced.
 
 Extraction and unchanged-raw interface diagnostics are separate evidence. Passing
 raw-interface elaboration alone is not a semantic proof.
+
+The subsequent [native watch qualification](evidence/native-watch-publication-20261031.json)
+corrects a real caller defect outside these synchronous methods. An admitted
+handler's selected catalog is immutable; discovery watches had also used its
+private publication channel. Three regressions reproduce stale streams/cache,
+late completion after publication, and an old admission removing a newer watch.
+The fix uses the original live catalog for epoch checks and subscription, including
+a check after waiting for the watch-map mutex, while keeping selected routing.
+The same tests then pass, together with 20 nearby tests, formatting and strict
+library Clippy. The tests observe actual upstream listen-future disposal and retain
+complete descriptor/denied-count assertions. The cached state source is unchanged.
+This adds native adapter evidence; it does not prove arbitrary scheduling, channel
+delivery, reconnect behavior, or the full asynchronous watch operation in Lean.
