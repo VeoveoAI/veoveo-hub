@@ -668,6 +668,18 @@ to the qualified native narrowing and selected-client contract. Existing
 native probes do not replace those missing implementation proofs. All claims remain
 partial; no whole-request or whole-Hub verification is implied.
 
+The separately extracted SDK now has an exact all-mode context-admission theorem
+in SDK `f72f91f`: the actual validator accepts iff its independent field predicate
+holds, and otherwise returns the existing context error. Direct and named manual
+checks pass with only standard Lean axioms under explicit text representation bounds.
+See the [SDK contract and receipt](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/proofs/internal_auth/README.md#exact-context-admission)
+and [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-context-admission-proof.md).
+This does not yet establish full issuance, complete signed claims, admitted
+constructions, actual-source semantic controls or integration with Hub's pinned SDK.
+The [composition review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-issuer-composition-boundaries.md)
+states the exact set/traversal, timestamp and complete-field correspondence still
+needed between the two proof representations; it proposes no runtime adapter.
+
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 
 **Invariant/failure prevented.** Descriptors and continuations belong to the admitted
