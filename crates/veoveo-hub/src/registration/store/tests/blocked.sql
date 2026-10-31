@@ -1,3 +1,4 @@
+-- veoveo: unbounded (a unit test lists the sessions of its own fixture database waiting on one backend)
 SELECT waiter.pid AS "pid!", waiter.query AS "query!", waiter.wait_event AS "event!"
 FROM pg_stat_activity AS waiter
 WHERE waiter.datname = current_database()
