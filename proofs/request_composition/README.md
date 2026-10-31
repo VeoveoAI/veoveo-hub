@@ -78,8 +78,35 @@ axioms; the complete client adds the existing two error-formatting symbols; the
 constructed route also names the existing namespace helper. Model defaults and
 audit, both request targets, and the focused native set regression pass. See the
 [receipt](evidence/delegated-policy-client.json) for inputs, exact commands,
-iterations and source applicability. Actual-source narrowing fault controls,
-restored baseline checks and SDK issuer/recipient composition remain next.
+iterations and source applicability.
+
+The [source-control receipt](evidence/delegation-narrowing-controls.json) qualifies
+two one-line actual Rust faults. The wrapper bypasses its carried set in
+[one patch](mutations/bypass-delegation-carried-set.patch); the concrete adapter
+drops valid permissions in [the other](mutations/drop-valid-delegation-permissions.patch).
+Both re-extract successfully and fail the unchanged delegated theorem for the
+intended semantic reason. Independent witnesses prove an accepted
+[extra permission](mutations/NarrowingOvergrantWitness.lean) and an accepted
+[loss of a common permission](mutations/NarrowingOverdenialWitness.lean), including
+inequality to the independent intersection specification. Each witness has four
+standard-axiom-only audits and imports no failed theorem or its artifact.
+
+Both scratch Rust sources were restored; a fresh extraction reproduced all four
+canonical Lean files byte-for-byte. The direct/delegated targets and model audit
+then passed in a fresh package build. No maintained model, theorem statement,
+runtime rule or production source changed. SDK issuer/recipient composition remains
+the next connected contribution.
+
+These witnesses are outside default targets. Apply each patch separately to a
+private copy of the recorded source, re-extract with the same selectors and use the
+private tooling workflow below. Build `DirectPolicyClientProof` and
+`RegistrationIteratorProof`, then run the frozen delegated leaf directly (expected
+failure) and the corresponding `mutations/NarrowingOvergrantWitness.lean` or
+`mutations/NarrowingOverdenialWitness.lean` with `lake env lean` (expected success).
+The direct check emits no `.olean`; the witness imports only the raw model and
+unaffected helper proofs. The witness is expected to fail against correct source.
+Restore the Rust, re-extract and compare canonical outputs before checking the
+ordinary targets again. Do not edit generated Lean to enact or undo a fault.
 
 Using the qualified private dependency workflow in [tooling](tooling/README.md):
 

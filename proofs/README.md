@@ -641,8 +641,13 @@ passes. Receipts: [getter](request_composition/evidence/registration-lookup-cont
 [constructed route](request_composition/evidence/constructed-route-context-checkpoint.json),
 [direct policy composition](request_composition/evidence/direct-policy-route.json),
 [native narrowing and connected client](request_composition/evidence/delegated-policy-client.json).
-The new narrowing checkpoint includes a passing focused Rust set-adapter test;
-actual-source fault controls for this new edge remain pending.
+The narrowing checkpoint includes a passing focused Rust set-adapter test.
+Its [actual-source controls](request_composition/evidence/delegation-narrowing-controls.json)
+now reject a carried-set bypass and loss of a valid common permission. Independent
+witnesses prove the incorrect successful outputs with standard-only audits. Both
+scratch sources were restored, all four generated Lean files reproduce the canonical
+bytes, and fresh direct/delegated targets plus model audit pass. These deliberate
+faults establish proof sensitivity; they are not newly found production defects.
 The [native routing receipt](task_continuity/evidence/request-routing-native-receipt.json)
 separately records actual Hub/PostgreSQL and SDK-verified recipient/context checks,
 a retained Task's current-policy narrowing/revocation, and a policy-bypass control.
@@ -658,9 +663,8 @@ properties. The captured catalog is a supplied immutable generation, not a theor
 of globally latest database state. Snapshot acquisition, actual transport/caller
 wiring, broader selection storage and dispatch remain separate obligations.
 
-**Next connected contribution.** Qualify the native narrowing edge with actual Rust
-faults for excess permissions and loss of valid permissions, followed by restored
-baseline checks. Then connect actual SDK issuance and recipient checks. Existing
+**Next connected contribution.** Connect actual SDK issuance and recipient checks
+to the qualified native narrowing and selected-client contract. Existing
 native probes do not replace those missing implementation proofs. All claims remain
 partial; no whole-request or whole-Hub verification is implied.
 

@@ -1,0 +1,7 @@
+--- a/crates/veoveo-hub/src/delegation.rs
++++ b/crates/veoveo-hub/src/delegation.rs
+@@ -60,3 +60,3 @@
+     pub fn narrow(&self, granted: BTreeSet<PermissionName>) -> BTreeSet<PermissionName> {
+-        authority::Permissions::narrow(granted, &self.permissions)
++        authority::Permissions::narrow(granted.clone(), &granted)
+     }
