@@ -23,3 +23,5 @@ lean_lib DirectPolicyClientProof
 lean_lib DelegatedPolicyClientProof
 
 lean_lib RegisteredSurfacesProof
+
+lean_lib PolicyIssuerCompositionProof

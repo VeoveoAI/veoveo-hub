@@ -63,6 +63,16 @@ caller targets pass with the refreshed types. This does not qualify the separate
 HTTP forwarder, declaration validation, native SQL or deployed behavior. The
 prepared SDK issuer bridge retains its own native-source equivalence boundary.
 
+The [policy-to-issuer composition](request_composition/evidence/policy-issuer-composition-20261031.json)
+connects the constructed and selected row, the same supplied generation's current
+policy, optional carried permission ceiling, complete HTTP client and SDK request,
+and exact issuer outcome. It derives client/grant provenance and representation
+bounds from raw inputs. Missing-route and context-refusal branches are included;
+context acceptance, a prepared client and a desired token are not premises of the
+final theorem. This is composition of extracted subcalls with source-reviewed
+wiring, not a proof of async acquisition/transport, TTL wrappers, recipient
+verification or the prepared SDK's equivalence to Hub's native dependency.
+
 The Task-continuity qualification is a separate source boundary: changed Hub files
 based on `651390dbbb8b4e65b5b8bcd3f8714a981fac2371` and the exact sibling SDK files
 based on `7e2489dccbee6d00b377b174f68f9d5de692a68b`. Its shared-source package records
@@ -90,10 +100,10 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | --- | --- | --- | --- |
 | HUB-CONTRACT-01 | Shared MCP extension contracts preserve meaning from declaration to enforcement | partial | Extend the qualified SDK-to-policy connection to declaration generation/validation and dispatch |
 | HUB-TASK-01 | Captured Task routing and retry integrity | partial | SQL and asynchronous adapter refinement remain |
-| HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Session/issuer continuity after the qualified SDK-to-policy connection |
+| HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Current policy through issuer outcome is composed; recipient continuity and native SDK equivalence remain |
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
-| HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Exact retained lookup and HTTP context are connected; qualify combined source controls and current-policy/issuer provenance |
+| HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |

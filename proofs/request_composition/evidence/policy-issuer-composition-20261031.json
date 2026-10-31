@@ -1,0 +1,179 @@
+{
+  "scope": "PolicyIssuerCompositionProof direct compile and one named-target build in the existing qualified private graph. No model/native/dependency source was rebuilt or changed; no deployment was performed.",
+  "basis": {
+    "hub_commit": "6d69258ab85963d414db8bc73514c8ee48cf63ea",
+    "leaf_path": "proofs/request_composition/PolicyIssuerCompositionProof.lean",
+    "semantic_inputs_unchanged": true,
+    "private_graph": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261031/current-domain-validation1/proofs/request_composition",
+    "current_roles_source_count": 85,
+    "request_source_count_before_leaf": 51,
+    "request_source_count_after_leaf": 52,
+    "generated_funs_sha256": "713cabbb67cd4adb975837f4ebef8570c8c3be043a5ec9cb953fa6d22e47f27e",
+    "generated_types_sha256": "82db5ad8ab47b67e743d7d653ce811f455ecf4fcbc6bf4d145cd8eaeb1f35bcf",
+    "toolchain": {
+      "lean_version": "Lean 4.35.0, commit eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+      "lean_executable_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+      "lake_version": "Lake 5.0.0-src+eb6cafb",
+      "lake_executable_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1"
+    },
+    "direct_import_oleans_gated_unchanged": {
+      "current_roles/SdkInternalAuthCallerProof": "91fbe3696d134dc05e0ce7213633ca8a533d066f7cbaf74e7176ee9fa2bed4c8",
+      "request_composition/DelegatedPolicyClientProof": "650f5f8bf35a078175063d40bc2a4df9e92ce3470145207e65359f93acc56037",
+      "request_composition/RegisteredSurfacesProof": "9dd2743b4ea9536720a62d03304cd037258d67fe72c9fd41c16fc41d40db2ded"
+    },
+    "qualified_dependency_receipt": "current-domains-20261031.json",
+    "extraction_hub": "1ccb8681de067184bdf2fb38a95f6625182af9fe",
+    "sdk_pin": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+    "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492"
+  },
+  "direct_attempts": [
+    {
+      "leaf_sha256": "048ea41f352142d6a35204177a79a5118d1d9e92f2de3056b427f15ff1b507cb",
+      "command": "LAKE_NO_UPDATE=1 lake env lean -o .lake/build/lib/lean/PolicyIssuerCompositionProof.olean PolicyIssuerCompositionProof.lean",
+      "exit": 1,
+      "elapsed_seconds": 2.966,
+      "log_sha256": "45dca3ddbc1c5f030cb6e95d10b2eaa5a5e9591feb5726ddd25f58ca5b027037",
+      "result": "Failed elaboration: context record/match syntax, shadowed ServerBounds, missing generated names, and do/match rewrite-shape mismatches; executable audit rejected sorryAx. No OLean emitted.",
+      "evidence": "/tmp/hub-request-composition-20261031/evidence-policy-issuer-composition-direct1/policy-issuer-composition-direct1"
+    },
+    {
+      "leaf_sha256": "887d2872e28838c45486477cad73a8f2c39b744bf716f4c1e212bba68fbe34dd",
+      "command": "LAKE_NO_UPDATE=1 lake env lean -o .lake/build/lib/lean/PolicyIssuerCompositionProof.olean PolicyIssuerCompositionProof.lean",
+      "exit": 1,
+      "elapsed_seconds": 2.738,
+      "log_sha256": "f7e270304cbbc5a62124cebd7f73fdf1c84e7814e646c9a777c79e9db905165c",
+      "result": "Two residuals: Cow string conversion equality at line 235 and issuer-call rewrite shape at line 313; audit rejected sorryAx. No OLean emitted.",
+      "evidence": "/tmp/hub-request-composition-20261031/evidence-policy-issuer-composition-direct2/policy-issuer-composition-direct2"
+    },
+    {
+      "leaf_sha256": "897c4032e7a74ee64bf366a3f09dcf9de5a99d311b4dcf9a006676986af81bd0",
+      "command": "LAKE_NO_UPDATE=1 lake env lean -o .lake/build/lib/lean/PolicyIssuerCompositionProof.olean PolicyIssuerCompositionProof.lean",
+      "exit": 1,
+      "elapsed_seconds": 2.821,
+      "log_sha256": "04726d3452c9dae77f689e6d487fb9716ee3c1f38ce994f25c3341e50d7e451b",
+      "result": "Issuer projection residuals in both optional-delegation branches of row_accepted; audit rejected sorryAx. No OLean emitted.",
+      "evidence": "/tmp/hub-request-composition-20261031/evidence-policy-issuer-composition-direct3/policy-issuer-composition-direct3"
+    },
+    {
+      "leaf_sha256": "9bbf97399ecc8ff17d63bdb2f92fb209d886ff4a45b8b1668706d3dbf3b1a30a",
+      "command": "LAKE_NO_UPDATE=1 lake env lean -o .lake/build/lib/lean/PolicyIssuerCompositionProof.olean PolicyIssuerCompositionProof.lean",
+      "exit": 0,
+      "elapsed_seconds": 2.818,
+      "log_sha256": "774c2a772dcc709c21cbd9c356be85098f29d8d8fd9a576c0fcf96e1a0231745",
+      "source_maps_unchanged": true,
+      "configs_unchanged": true,
+      "imports_unchanged": true,
+      "artifact": {
+        "sha256": "9e560a384f50080efb71cc06f34bd817210fe5d7f2d98657ffe2a9aa3d6c123f",
+        "bytes": 575728
+      },
+      "audited_declarations": {
+        "request_text": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "row_refused": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound",
+          "RequestCompositionSdk.internal_auth.ensure_jwt_crypto_provider",
+          "RequestCompositionSdk.identity.JwtId.parse",
+          "RequestCompositionSdk.internal_auth.HubInternalTokenIssuer.sign_forwarded",
+          "RequestCompositionSdk.uuid.v7.Uuid.now_v7",
+          "alloc.string.ToString.Blanket.to_string",
+          "RequestCompositionSdk.alloc.string.ToString.Blanket.to_string",
+          "RequestCompositionSdk.chrono.offset.utc.Utc.now",
+          "veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay.fmt"
+        ],
+        "row_accepted": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound",
+          "RequestCompositionSdk.internal_auth.ensure_jwt_crypto_provider",
+          "RequestCompositionSdk.identity.JwtId.parse",
+          "RequestCompositionSdk.internal_auth.HubInternalTokenIssuer.sign_forwarded",
+          "RequestCompositionSdk.uuid.v7.Uuid.now_v7",
+          "alloc.string.ToString.Blanket.to_string",
+          "RequestCompositionSdk.alloc.string.ToString.Blanket.to_string",
+          "RequestCompositionSdk.chrono.offset.utc.Utc.now",
+          "veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay.fmt"
+        ],
+        "constructed_policy_issue_exact": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound",
+          "RequestCompositionSdk.internal_auth.ensure_jwt_crypto_provider",
+          "RequestCompositionSdk.identity.JwtId.parse",
+          "RequestCompositionSdk.internal_auth.HubInternalTokenIssuer.sign_forwarded",
+          "registration.snapshot.RegistrationSnapshot.build_namespaces",
+          "RequestCompositionSdk.uuid.v7.Uuid.now_v7",
+          "alloc.string.ToString.Blanket.to_string",
+          "RequestCompositionSdk.alloc.string.ToString.Blanket.to_string",
+          "RequestCompositionSdk.chrono.offset.utc.Utc.now",
+          "veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay.fmt"
+        ]
+      },
+      "evidence": "/tmp/hub-request-composition-20261031/evidence-policy-issuer-composition-direct4/policy-issuer-composition-direct4"
+    }
+  ],
+  "setup_history": [
+    {
+      "result": "Setup-only runner failure before Lean: the initial runner asserted the already-copied leaf must be absent. Corrected guard to assert the exact frozen hash. No compiler ran and no output artifact was produced.",
+      "evidence": "Initial command tool output; no separate log file was created."
+    }
+  ],
+  "named_target": {
+    "canonical_lakefile_sha256": "3c801482aa58c90dd3b0eefdae365ac04c5b646e70eb8a355eba80be4b06a7d4",
+    "private_request_lakefile_before_sha256": "fa560defbb7dcba4e15d061d3c2b68352e40010baed9629aa277e70100ff63f5",
+    "private_request_lakefile_after_sha256": "9c0bbaa61a9bf2e1c36dc7fc937d88c520e8bb7b1b586c6167f639fe4b15f86a",
+    "private_current_roles_lakefile_sha256": "8a796ae82374d42a26ea3383c14d935c74671055f0b150e5c675518f4219e56c",
+    "manifests_unchanged": {
+      "current_roles": "08ee7acef40ba3c54f94c928e62c4750f52414d5516daf2c8d87919f82aa90d6",
+      "request_composition": "1735211700ea246f51521a6755451930f1db61b01e4634b33f39739c3041e7c1"
+    },
+    "target_line_added_privately": "lean_lib PolicyIssuerCompositionProof",
+    "command": "LAKE_NO_UPDATE=1 lake build PolicyIssuerCompositionProof",
+    "exit": 0,
+    "elapsed_seconds": 3.6,
+    "source_counts_unchanged": {
+      "current_roles": 85,
+      "request_composition": 52
+    },
+    "import_oleans_unchanged": true,
+    "log_sha256": "8bda6822b5a73274d20436cf5c29f7029892d41b629973543a0e2b2bbb8d89c2",
+    "artifact": {
+      "sha256": "0de3bec614317a39cbb80b7999f907830cc0757c60eef05cddaee24c76c6b017",
+      "bytes": 575952
+    },
+    "runner_sha256": "6041e45d5dd6607b7c3bbbb1ff194b1c4b6b817e5ed4f458aded5e7163c818e8",
+    "evidence": "/tmp/hub-request-composition-20261031/evidence-policy-issuer-composition-target1/policy-issuer-composition-target1"
+  },
+  "boundary": "This qualifies the frozen Lean proof and its named Lake target in the selected generated model. It does not add new native tests or deployment evidence; listed SDK/runtime operations remain explicit audited boundaries.",
+  "case": "Constructed registration, current permissions and delegation through exact prepared SDK issuance",
+  "contract": [
+    "Actual constructed/selected lookup yields no route or the exact complete input registration, including ordered surfaces.",
+    "Permissions are exactly current principal grants from that generation and declaration, intersected with any carried delegation ceiling.",
+    "Physical/text bounds are derived from raw subject and declaration bounds, not assumed for a desired client or computed permission result.",
+    "The final theorem assumes no context-constructor success. Refusal preserves exact MCP internal-error fields and formatter failure/divergence.",
+    "Accepted context preserves complete converted SDK request fields, canonicality, roundtrip and independent issuer/caller outcome without assuming successful issuance."
+  ],
+  "boundaries": [
+    "Composition of extracted subcalls with source-reviewed wiring, not extraction of async connect_upstream or HTTP transport. Missing route is Option.none here; native wrapper maps it to MCP invalid-params.",
+    "Actual constructor and selection success, finite cursor/native collection correspondence, unique composition keys and namespace-helper completion.",
+    "Raw text/scalar/allocation/timestamp bounds, supplied catalog generation and requested deadline; no global freshness or TTL-wrapper proof.",
+    "Existing native provider, clock, UUID/text/parser, formatter and signer operations retain their recorded models. Equations do not establish effect traces, serialization or cryptographic validity.",
+    "Prepared SDK issuer bridge has not established native equivalence to Hub SDK154a473; recipient verification and physical SQL remain separate.",
+    "No new semantic mutant or native/deployed test in this proof-only slice. Existing controls retain their own exact source basis; unfinished caller-deadline control remains unfinished."
+  ],
+  "execution": {
+    "coder": "GPT-6.1 Sol",
+    "builder": "GPT-6 Luna",
+    "reviewer": "GPT-6 Astra",
+    "mode": "manual; no CI, runtime, policy, generated model, dependency pin, deployment or paid model calls"
+  },
+  "coordinator_review": {
+    "summary_sha256": "74d4f3b8b3f1324d39d628960ec051726eaae9035b85746be26a0775a335ffba",
+    "verified": "All five compiler log hashes, final leaf and canonical Lakefile hashes, direct successful audit closures and successful logs without errors/sorryAx."
+  }
+}

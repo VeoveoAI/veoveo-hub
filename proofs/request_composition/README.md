@@ -36,6 +36,42 @@ finite-cursor/native-collection correspondence and snapshot acquisition remain
 explicit assumptions. Run `lake build RegisteredSurfacesProof` manually in the
 qualified private dependency configuration; this adds no default or CI gate.
 
+## Selected registration and current policy through issuance
+
+[PolicyIssuerCompositionProof](PolicyIssuerCompositionProof.lean) composes the
+extracted constructor/selection/getter, current grant computation, optional native
+delegation narrowing, HTTP client constructor and supplied-deadline issuer caller.
+`constructed_policy_issue_exact` derives the complete source registration and its
+ordered surfaces, permission membership in both directions against independent
+`Eligible`, and the complete converted SDK request and issuer outcome. It takes
+neither an arbitrary client, a computed grant result, context-construction success
+nor a desired token result as a premise.
+
+Representation bounds come from the raw subject and registration declaration
+entries; bounds on computed permissions and constructed context are derived.
+The absent-route branch returns `none` in this subcall composition. Context refusal
+preserves the existing MCP internal-error code, message and data, including native
+formatter failure/divergence. The accepted-context branch preserves complete
+request fields and exact SDK validation/signing outcomes. The common result type
+and definition retain issuer symbols in the refusal theorem's axiom closure;
+this is not an instrumented effect trace or a claim that the refused branch signs.
+
+The [receipt](evidence/policy-issuer-composition-20261031.json) records the focused
+manual check, proof repairs and exact assumptions. Run
+`lake build PolicyIssuerCompositionProof` in the qualified private dependency
+configuration; the target is nondefault. Existing runtime, generated models and
+dependencies are unchanged.
+
+This remains source-reviewed composition of extracted subcalls, not extraction of
+the async catalog-acquisition/transport wrapper. In particular, `connect_upstream`
+maps a missing server to MCP invalid-params; this theorem stops at the optional
+lookup result. Actual snapshot/selection success, finite cursor/native collection
+correspondence, unique composition keys, namespace-helper completion, text/scalar/
+timestamp representation, supplied catalog generation and deadline, native issuer
+primitives and prepared-SDK/native-pin equivalence remain explicit boundaries.
+Caller TTL selection, recipient verification, cryptography, SQL and deployed
+behavior are not established by this composition.
+
 Historical mutation witnesses and receipts are frozen recipes for their recorded
 generated namespaces and hashes. They do not import the consolidated graph and
 are not active package targets; replay them against their pinned model rather
@@ -102,8 +138,8 @@ standard-axiom-only audits and imports no failed theorem or its artifact.
 Both scratch Rust sources were restored; a fresh extraction reproduced all four
 canonical Lean files byte-for-byte. The direct/delegated targets and model audit
 then passed in a fresh package build. No maintained model, theorem statement,
-runtime rule or production source changed. SDK issuer/recipient composition remains
-the next connected contribution.
+runtime rule or production source changed. The composed issuer step is recorded
+above; recipient verification and native SDK equivalence remain open.
 
 These witnesses are outside default targets. Apply each patch separately to a
 private copy of the recorded source, re-extract with the same selectors and use the
