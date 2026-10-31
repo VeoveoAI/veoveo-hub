@@ -678,8 +678,15 @@ SDK `b645f07` additionally proves populated Direct, Automated and Delegated
 acceptance witnesses, including a closed no-premise three-mode example. Both
 manual targets and all eight new axiom audits pass; see the
 [valid-context record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-context-valid-witnesses.md).
-This does not yet establish full issuance, complete signed claims, admitted
-issuance examples, actual-source context controls or integration with Hub's pinned SDK.
+SDK `4fb723e` qualifies two actual-source context controls. Removing Direct actor
+equality admits an independently refused altered Principal; changing Automated's
+required kind refuses an independently admitted Service. Frozen contracts reject
+both faults and standalone witnesses prove the wrong results. Exact source and
+generated-output restoration plus fresh nine-audit baseline builds pass; see the
+[control record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-context-semantic-controls.md).
+These deliberate faults are not new production defects. This does not yet establish
+full issuance, complete signed claims, admitted issuance examples or integration
+with Hub's pinned SDK.
 The [composition review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-issuer-composition-boundaries.md)
 states the exact set/traversal, timestamp and complete-field correspondence still
 needed between the two proof representations; it proposes no runtime adapter.
