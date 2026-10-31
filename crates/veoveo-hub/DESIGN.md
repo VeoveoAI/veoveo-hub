@@ -615,8 +615,10 @@ there, then resets the parent's checkout as an instance's start does, before `ex
 ./openshell/run`. A runner therefore serves the head of that branch, not the revision
 the parent pins: a linked repository releases by pushing to its tracked branch, and the
 parent changes only to add, retarget or remove a link. The command names the links it
-leaves out, so a parent push that changes them recreates the runners' sandboxes. The
-runner's program is the parent's, built and run under `/sandbox/src`; the linked
+leaves out, so a parent push that changes them recreates the runners' sandboxes. It gives
+the parent's program the tracked branch's Lore ID as `VEOVEO_TRACKED_BRANCH`, so the
+program can name where a change to the linked repository is pushed; the program never
+learns its link's name. The runner's program is the parent's, built and run under `/sandbox/src`; the linked
 repository is content, its workflows and files, which that program reads and never code
 of its own. No rule of a runner's policy names a program under `/sandbox/link`: the
 installation's base policy admits programs under `/sandbox/src` alone to the Hub's

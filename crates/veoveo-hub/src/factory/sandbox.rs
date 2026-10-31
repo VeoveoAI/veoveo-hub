@@ -130,7 +130,8 @@ exec ./openshell/run"#
 /// at the branch the runner's link tracks into `/sandbox/link`; every start then resets that
 /// checkout to the tracked branch's latest revision and the parent's to its branch's, and
 /// replaces itself with the parent's program, which reads the linked repository from
-/// `/sandbox/link`. `$1` is the parent repository, `$2` the branch, `$3` the linked
+/// `/sandbox/link` and finds the tracked branch's ID in `VEOVEO_TRACKED_BRANCH`, where a
+/// person pushes a change. `$1` is the parent repository, `$2` the branch, `$3` the linked
 /// repository, `$4` the tracked branch's ID, and the rest the links to leave out.
 pub(super) fn runner_start_command(
     repository: &url::Url,
@@ -155,6 +156,7 @@ cd /sandbox/link
 {LORE} sync --reset "$tracked@LATEST"
 cd /sandbox/src
 {LORE} sync --reset "$branch@LATEST"
+export VEOVEO_TRACKED_BRANCH="$tracked"
 exec ./openshell/run"#
     );
     let mut command = vec![
@@ -520,6 +522,7 @@ mod tests {
              /opt/veoveo/lore/usr/local/bin/lore sync --reset \"$tracked@LATEST\"\n\
              cd /sandbox/src\n\
              /opt/veoveo/lore/usr/local/bin/lore sync --reset \"$branch@LATEST\"\n\
+             export VEOVEO_TRACKED_BRANCH=\"$tracked\"\n\
              exec ./openshell/run"
         );
         assert_eq!(
