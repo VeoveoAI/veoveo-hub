@@ -625,7 +625,9 @@ repository's rule whose binary path or glob can match a path under `/sandbox/lin
 (`/**`, `/sandbox/**` or `/sandbox/link/…` among them), when it reads the tracked
 branch: the link gets no runner, or its runner keeps serving what it applied, and
 `hub.lore_runner_failure` says why until a push of the tracked branch, or of the parent,
-runs it. So nothing under `/sandbox/link` reaches the Hub, the database or a linked
+runs it. A linked repository's rules therefore name programs of the image, such as
+`/usr/local/bin/node`, or the parent's under `/sandbox/src`, and the refusal says so.
+So nothing under `/sandbox/link` reaches the Hub, the database or a linked
 repository's endpoints as a program of its own. Two limits remain the parent's:
 OpenShell matches a rule against a program and the programs that started it, so a
 program the parent's program starts from `/sandbox/link` runs with the parent's rules;

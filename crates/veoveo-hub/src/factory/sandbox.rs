@@ -275,8 +275,9 @@ pub fn check_linked_policy(policy: &str) -> Result<()> {
                 !names_linked_program(&binary.path),
                 "the linked repository's openshell/policy.yaml network policy `{name}` names \
                  the program `{}`, which can lie under {LINKED_CHECKOUT}: a linked \
-                 repository is content, so its rules name the parent's program under \
-                 /sandbox/src",
+                 repository is content, so its rules name programs of the image, such as \
+                 /usr/local/bin/node, or the parent's under /sandbox/src, and nothing that \
+                 could match {LINKED_CHECKOUT}",
                 binary.path
             );
         }
@@ -690,8 +691,9 @@ mod tests {
                 "version: 1\nnetwork_policies:\n  team-api:\n    endpoints:\n      - {{host: api.example, port: 443}}\n    binaries:\n      - path: \"{binary}\"\n"
             )
         };
-        // The parent's program, or a system binary, may be named.
+        // The parent's program, or a program of the image, may be named.
         for allowed in [
+            "/usr/local/bin/node",
             "/sandbox/src/**",
             "/sandbox/src/target/release/server",
             "/usr/bin/curl",
@@ -719,7 +721,12 @@ mod tests {
         ] {
             let error = check_linked_policy(&rule(refused)).unwrap_err().to_string();
             assert!(
-                error.contains("which can lie under /sandbox/link"),
+                error.contains("which can lie under /sandbox/link")
+                    && error.contains(
+                        "its rules name programs of the image, such as /usr/local/bin/node, \
+                         or the parent's under /sandbox/src, and nothing that could match \
+                         /sandbox/link"
+                    ),
                 "{refused}: {error}"
             );
         }
