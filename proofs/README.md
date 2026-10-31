@@ -696,8 +696,14 @@ actual-source cap removal and an extra cap on acting calls, while independent
 witnesses prove the wrong complete output and wrong refusal. Same-tree source and
 raw-model restoration plus fresh nine-audit baseline builds pass; see the
 [deadline-control record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-identity-deadline-controls.md).
-Public issue permission ownership, complete signed claims, verification wrapper
-and integration with Hub's pinned SDK remain open.
+SDK `ed21505` proves complete actual claims assembly against the unchanged
+independent specification: all identity/invocation fields, scope text, actor-chain
+order and empty-or-complete permission details. Populated delegated and empty
+Direct examples pass, and all fourteen new audits in the final manual targets are
+standard-only. See the [claims-assembly record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-claims-assembly.md).
+The permission-detail source control, public issue permission ownership, concrete
+signer-argument composition, verification wrapper and integration with Hub's pinned
+SDK remain open. Claims preservation is not JSON/cryptographic verification.
 Core's private permission-namespace helper is still represented by a handwritten
 adapter; extracted ownership wrappers alone do not close its refinement gap.
 The [composition review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-issuer-composition-boundaries.md)
