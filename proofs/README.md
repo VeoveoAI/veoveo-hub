@@ -709,7 +709,12 @@ SDK `6665e9c` adds a generic public-issuer proof composing exact first-foreign r
 complete identity and claims construction, exact signer arguments and preserved
 signing errors/results. Its two manual targets and all four audits pass; see the
 [public-composition record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-public-issuer-composition.md).
-Populated public-issuer examples and source controls remain next. Native
+SDK `e9e6d41` adds passing populated public-issuer examples: a complete two-permission Direct result,
+exact signing claims and source-capped expiry, plus the first foreign permission
+before an independently invalid client context. Their two manual targets pass all
+seven new audits; see the
+[issuer-examples record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-public-issuer-examples.md).
+Public-issuer source-fault qualification remains next. Native
 permission ownership, cryptographic signing, the verification wrapper and
 integration with Hub's pinned SDK remain open. Claims preservation is not
 JSON/cryptographic verification.
