@@ -550,8 +550,13 @@ prompts when it declares prompts. A server's URI scheme equals its slug, so reso
 URIs pass through unchanged and the Hub routes them by scheme or `ui://{slug}/`.
 Tools are listed as `{slug}__{tool}`.
 
-Discovery caches the admitted descriptors per catalog generation, caller authority and
-OAuth client. A registered server's tools, resources, templates and prompts change
+Each profile's discovery cache keys admitted descriptors by catalog generation,
+server, complete current policy principal, invocation actor and authority, OAuth client,
+retained execution composition, and the optional exchanged permission ceiling. No
+delegation and a delegation carrying no permissions are distinct. The principal's and
+actor's `authenticated_at` timestamps record HTTP re-verification and do not change
+cache identity; fresh request audit observations do not change it either.
+A registered server's tools, resources, templates and prompts change
 with its declarations, which start a new generation, and its tool descriptions also
 while it runs when it advertises `tools.listChanged`. For such a server the Hub keeps a
 `subscriptions/listen` for tool-list changes open beside each cached tool list, empties

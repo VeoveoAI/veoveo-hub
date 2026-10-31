@@ -311,12 +311,16 @@ fn discovery_authorization_fingerprint(
     subject: &AuthenticatedSubject,
 ) -> Result<[u8; 32], McpError> {
     let authority = invocation_authorization_fingerprint(&subject.actor, &subject.authority)?;
+    let mut principal = subject.principal.clone();
+    principal.authenticated_at = None;
     Ok(Sha256::digest(
         // Composition is part of cache identity, not business/data authority.
         serde_json::to_vec(&(
             authority,
+            principal,
             &subject.access_token.oauth_client_id,
             execution_composition(subject)?,
+            subject.delegation.as_ref().map(|info| &info.permissions),
         ))
         .map_err(|_| mcp_internal("failed to fingerprint discovery authority"))?,
     )

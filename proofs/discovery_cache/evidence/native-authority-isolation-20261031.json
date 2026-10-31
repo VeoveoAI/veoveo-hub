@@ -1,0 +1,342 @@
+{
+  "case": "Discovery cache separates current policy principal and delegated permission ceiling",
+  "evidence_class": "native component regression and source review; no new Lean theorem or deployment",
+  "source_base": "131499483f1ade247ca47f284572c30fd291a191",
+  "source_tree": "b5d231dfda658a286e1b885288912a5725bf502b",
+  "sdk_pin": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+  "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+  "frozen_files": {
+    "crates/veoveo-hub/DESIGN.md": "31660b4acb7d839942f685ef401cd411ef517c9061464cd30e5ca4fc710d6d59",
+    "crates/veoveo-hub/src/mcp.rs": "860f7597fe65eba9067cb5700cd9c8ae7e8fdc0e25694f5b16bcd36f77175d3a",
+    "crates/veoveo-hub/src/mcp/authorization.rs": "58f9393d0d18d14efa4f99a2367e2e30c13c591ca9f719e9f8b842de30ca41f9"
+  },
+  "observed_defect": {
+    "variants": [
+      "same caller with different exchanged permission ceilings",
+      "same delegated service actor/authority with different current principal groups"
+    ],
+    "fresh_broad": {
+      "descriptors": [
+        "cache-fixture__common",
+        "cache-fixture__extra"
+      ],
+      "denied": 0
+    },
+    "fresh_narrow": {
+      "descriptors": [
+        "cache-fixture__common"
+      ],
+      "denied": 1
+    },
+    "original_second_context_results": [
+      "broad catalog after broad populated cache",
+      "narrow catalog after narrow populated cache"
+    ],
+    "expected_second_context_results": [
+      "narrow catalog after broad populated cache",
+      "broad catalog after narrow populated cache"
+    ],
+    "scope": "Each test executes both fill orders before aggregate complete Tool payload/denied comparison. Fixtures, context validation, native admission and positive timestamp/audit reuse pass before the intended original assertion failure.",
+    "fixed": "The identical regression file passes both variants and both fill orders; common admitted descriptor and positive cache reuse remain."
+  },
+  "runtime_change": "Four added lines in discovery_authorization_fingerprint: normalize current principal.authenticated_at to None and hash that principal plus optional delegated permission set with the existing inputs. No authorization, TTL, rejection, schema or dependency change.",
+  "runs": [
+    {
+      "summary_path": "/tmp/hub-discovery-cache-control-20261031/regressions1/summary.json",
+      "summary_sha256": "e0bd3a1e208cf6522318e81e52c54d7c217b41e3aacac6e8f9e77924150da25f",
+      "result": {
+        "repo_head": "131499483f1ade247ca47f284572c30fd291a191",
+        "tree": "b5d231dfda658a286e1b885288912a5725bf502b",
+        "source_root": "/tmp/hub-discovery-cache-control-20261031/source",
+        "source_files": 1082,
+        "source_map_sha256": "ed26e93ecfa0111f3aba972c07b2f9fbbd5752158044238eeea31f355a45886a",
+        "source_map_unchanged": true,
+        "overlay_file": "crates/veoveo-hub/src/mcp/authorization.rs",
+        "overlay_file_sha256": "58f9393d0d18d14efa4f99a2367e2e30c13c591ca9f719e9f8b842de30ca41f9",
+        "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target",
+        "toolchain": "1.99.0-aarch64-apple-darwin",
+        "sqlx_offline": true,
+        "database_env_removed": true,
+        "stages": [
+          {
+            "stage": "delegation-ceiling-fill-orders",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/source/Cargo.toml",
+              "--lib",
+              "mcp::authorization::tests::discovery_cache_separates_delegation_ceilings_in_both_fill_orders",
+              "--",
+              "--exact",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/source",
+            "exit": 101,
+            "timed_out": false,
+            "elapsed_ms": 33384,
+            "log_path": "/tmp/hub-discovery-cache-control-20261031/regressions1/logs/delegation-ceiling-fill-orders.log",
+            "log_sha256": "1127efd5f80d2243e8a9119eb7e09415fbb82a4a289506f992066041e06e68c5",
+            "log_bytes": 2366
+          },
+          {
+            "stage": "principal-group-fill-orders",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/source/Cargo.toml",
+              "--lib",
+              "mcp::authorization::tests::discovery_cache_separates_current_principal_groups_in_both_fill_orders",
+              "--",
+              "--exact",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/source",
+            "exit": 101,
+            "timed_out": false,
+            "elapsed_ms": 693,
+            "log_path": "/tmp/hub-discovery-cache-control-20261031/regressions1/logs/principal-group-fill-orders.log",
+            "log_sha256": "8b45f24ed8c7f441acc8762ab9716ad49f059968b0b0cfed6b9bf9bd875dd343",
+            "log_bytes": 2280
+          }
+        ],
+        "test_binaries": [
+          {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+            "sha256": "41bd1b679b8d67f15eaa1d341b853773e03e02127a16bae3ee20c2a2e1fe5a41",
+            "bytes": 168106936
+          },
+          {
+            "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+            "sha256": "41bd1b679b8d67f15eaa1d341b853773e03e02127a16bae3ee20c2a2e1fe5a41",
+            "bytes": 168106936
+          }
+        ],
+        "complete": true
+      }
+    },
+    {
+      "summary_path": "/tmp/hub-discovery-cache-control-20261031/fixed-validation1/summary.json",
+      "summary_sha256": "b774404f06eb3b524c9552cbb220512c863f79e627e84bf1cc0ad6b06c2142db",
+      "result": {
+        "source_root": "/tmp/hub-discovery-cache-control-20261031/source",
+        "source_files": 1082,
+        "source_map_sha256": "6226dfecf7dff0ee7d1266de0e262bb220892c32e11a21c665f903a92e586add",
+        "overlay_hashes": {
+          "crates/veoveo-hub/DESIGN.md": "31660b4acb7d839942f685ef401cd411ef517c9061464cd30e5ca4fc710d6d59",
+          "crates/veoveo-hub/src/mcp.rs": "860f7597fe65eba9067cb5700cd9c8ae7e8fdc0e25694f5b16bcd36f77175d3a",
+          "crates/veoveo-hub/src/mcp/authorization.rs": "58f9393d0d18d14efa4f99a2367e2e30c13c591ca9f719e9f8b842de30ca41f9"
+        },
+        "hub_head": "131499483f1ade247ca47f284572c30fd291a191",
+        "hub_tree": "b5d231dfda658a286e1b885288912a5725bf502b",
+        "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target",
+        "toolchain": "1.99.0-aarch64-apple-darwin",
+        "stages": [
+          {
+            "stage": "fmt-check",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/source",
+            "exit": 0,
+            "timed_out": false,
+            "elapsed_ms": 649,
+            "log_path": "/tmp/hub-discovery-cache-control-20261031/fixed-validation1/logs/fmt-check.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "log_bytes": 0
+          },
+          {
+            "stage": "authorization-tests",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/source/Cargo.toml",
+              "--lib",
+              "mcp::authorization::tests::",
+              "--",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/source",
+            "exit": 0,
+            "timed_out": false,
+            "elapsed_ms": 13826,
+            "log_path": "/tmp/hub-discovery-cache-control-20261031/fixed-validation1/logs/authorization-tests.log",
+            "log_sha256": "64463e26343a2c65f40b89f8a99cb0f196b44fea040b68d2c8c6bde2d2c61d29",
+            "log_bytes": 1219
+          },
+          {
+            "stage": "discovery-tests",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/source/Cargo.toml",
+              "--lib",
+              "mcp::discovery::tests::",
+              "--",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/source",
+            "exit": 0,
+            "timed_out": false,
+            "elapsed_ms": 2354,
+            "log_path": "/tmp/hub-discovery-cache-control-20261031/fixed-validation1/logs/discovery-tests.log",
+            "log_sha256": "487179d4a7da3dc7f1d44144338996b9c802d825c60991096d0a5a7aab26f0e3",
+            "log_bytes": 1609
+          },
+          {
+            "stage": "fingerprint-test",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/source/Cargo.toml",
+              "--lib",
+              "mcp::tests::upstream_fingerprint_covers_actor_and_authority",
+              "--exact",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/source",
+            "exit": 1,
+            "timed_out": false,
+            "elapsed_ms": 19,
+            "log_path": "/tmp/hub-discovery-cache-control-20261031/fixed-validation1/logs/fingerprint-test.log",
+            "log_sha256": "a06ac15b50685f71b6bcc5b840d62c2e40bdac5dc986d08abe1cef95b6fa78b4",
+            "log_bytes": 237
+          }
+        ],
+        "stopped_at": "fingerprint-test",
+        "source_map_unchanged": true
+      }
+    },
+    {
+      "summary_path": "/tmp/hub-discovery-cache-control-20261031/fixed-validation2/summary.json",
+      "summary_sha256": "6889fa864450347557393dd2be424c5160c63e6152ce428eb9775017244d64d3",
+      "result": {
+        "source_root": "/tmp/hub-discovery-cache-control-20261031/source",
+        "source_count": 1082,
+        "source_map_sha256": "6226dfecf7dff0ee7d1266de0e262bb220892c32e11a21c665f903a92e586add",
+        "source_map_unchanged": true,
+        "initial_setup_error": "fingerprint invocation had --exact before Cargo --; no compiler/test ran",
+        "stages": [
+          {
+            "stage": "fingerprint-test",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "test",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/source/Cargo.toml",
+              "--lib",
+              "mcp::tests::upstream_fingerprint_covers_actor_and_authority",
+              "--",
+              "--exact",
+              "--nocapture"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/source",
+            "exit": 0,
+            "elapsed_ms": 331,
+            "log_path": "/tmp/hub-discovery-cache-control-20261031/fixed-validation2/logs/fingerprint-test.log",
+            "log_sha256": "437ec79ea38a9c609eb043a30fac5c3b537572d48b749a12d87d44e9411f302b",
+            "log_bytes": 395
+          },
+          {
+            "stage": "strict-lib-clippy",
+            "argv": [
+              "/Users/rozgo/.cargo/bin/rustup",
+              "run",
+              "1.99.0-aarch64-apple-darwin",
+              "cargo",
+              "clippy",
+              "--locked",
+              "-p",
+              "veoveo-hub",
+              "--manifest-path",
+              "/tmp/hub-discovery-cache-control-20261031/source/Cargo.toml",
+              "--lib",
+              "--",
+              "-D",
+              "warnings"
+            ],
+            "cwd": "/tmp/hub-discovery-cache-control-20261031/source",
+            "exit": 0,
+            "elapsed_ms": 10116,
+            "log_path": "/tmp/hub-discovery-cache-control-20261031/fixed-validation2/logs/strict-lib-clippy.log",
+            "log_sha256": "4905501083c60e165e323bf9255bb60b8228c9656c88a5b2a3c5d5a89b8b3439",
+            "log_bytes": 172
+          }
+        ]
+      }
+    }
+  ],
+  "fixed_test_binary": {
+    "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+    "bytes": 168110856,
+    "sha256": "400e9ca175952ce2e0be4241715979e9db77aac0510003c98ba7b81ae11f00f2"
+  },
+  "source_review": [
+    "Hub delegation.rs CurrentPermissions/exchange/admit/subject_of and SDK154 internal_auth/exchange.rs issue_exchanged/verify preserve caller fields and carry a separately signed ceiling; two requested subsets are possible without consuming the forwarded subject token.",
+    "Hub catalog.rs native Delegated resolution retains the user principal but clears the service actor groups; actual policy_decision evaluates subject.principal and separately narrows with delegation.permissions.",
+    "Each HubMcp cache is profile-local. Existing key includes catalog generation, server, actor+authority, original OAuth client and retained execution composition.",
+    "Cache-hit paths return previously admitted descriptors before fresh filtering. Tool execution reauthorizes separately; this evidence establishes discovery visibility/omission, not a tool-execution privilege bypass."
+  ],
+  "boundaries": [
+    "Synthetic admitted-subject and Tool fixtures. Native tests execute catalog resolution, policy::decide, delegated_route/narrow_policy_decision and actual CatalogDiscoveryCache operations; cache hit/fresh-admission wiring is exercised by the fixture, not the HTTP handler.",
+    "Verified token input and current installed-client OAuth admission are supplied. Signatures, public exchange endpoints, dynamic managed-owner DB callbacks, upstream responses, HTTP transport and watches are source-reviewed or out of scope.",
+    "No formal cache state/history, hash/serialization, concurrency or freshness proof follows. SurfaceCache transitions remain a subsequent production-linked proof obligation.",
+    "Existing Lean models/proofs were not rerun or broadened. No SQL, deployment, broad Docker gate or paid model call ran."
+  ],
+  "execution": {
+    "coder": "GPT-6.1 Sol",
+    "builder": "GPT-6 Luna",
+    "reviewer": "GPT-6 Astra",
+    "host": "macOS aarch64",
+    "checks": "22 focused unit tests, formatting, strict library Clippy",
+    "setup_error": "First fingerprint invocation misplaced --exact before Cargo separator; Cargo rejected it before any test. Corrected exact invocation passed; earlier successful stages were not repeated."
+  },
+  "coordinator_review": "Verified all eight log hashes, exact unchanged regression file, all three frozen file hashes, accepted test counts/names, original complete mismatch, four-line runtime diff and fixed test-binary identity."
+}

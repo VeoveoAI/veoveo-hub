@@ -104,7 +104,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
-| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
+| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Native authority-key collision corrected; prove cache transitions and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
@@ -845,11 +845,25 @@ Prevents cross-context disclosure and stale routing represented as current disco
   `invalidated_in_flight_response_cannot_replace_new_contents_or_finish_new_request`;
   [cursor tests](../crates/veoveo-hub/src/mcp/catalog_pages/tests.rs#L175) and
   [ended-listener test](../crates/veoveo-hub/src/mcp/subscriptions/tests.rs#L28).
+- **Native finding and fix:** the [authority-isolation receipt](discovery_cache/evidence/native-authority-isolation-20261031.json)
+  records two unchanged regressions failing against the original key and passing
+  after a four-line correction. Different delegated permission ceilings, or
+  different current principal groups behind the same delegated actor, reused the
+  first caller's admitted descriptors and denied count. Both broad-first extra
+  visibility and narrow-first omission were reproduced. The key now includes the
+  stable current principal and optional ceiling; timestamp/audit-only reuse is
+  preserved. Twenty-two focused unit tests, formatting and strict library Clippy
+  pass. These tests execute native catalog/policy/narrowing/cache operations, not
+  token endpoints, HTTP dispatch, upstream responses or watches. Tool execution
+  still reauthorizes. This establishes no new Lean theorem or deployed result.
 - **Boundary/effort:** moderate for key/cursor comparisons; substantial for the
   cache/listener state machine. Assume collision-resistant identity hashing, correct
   authenticated inputs and mutex/watch-channel semantics where effects are modeled.
-- **Residual/next:** trace invalidation tokens and publication ordering before choosing
-  a shared predicate. A key-equality proof does not establish freshness, reconnect
+- **Residual/next:** establish the actual critical-section transitions and composed
+  histories: stale finish is a complete no-op, invalidation and generation changes
+  fence earlier work, and valid completions preserve exact payloads and unrelated
+  entries subject to explicit capacity eviction. A key-equality proof does not
+  establish freshness, reconnect
   delivery, actual client caching behavior or cross-replica notification reliability.
 
 ## HUB-FACTORY-01 — Reconciliation and native lifecycle recovery

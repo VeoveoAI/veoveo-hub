@@ -1468,4 +1468,315 @@ mod tests {
             );
         }
     }
+
+    // These synthetic admitted-subject fixtures exercise native catalog admission,
+    // actual policy/narrowing and the real discovery cache. Token signatures,
+    // RFC 8693 endpoint authentication, HTTP dispatch and watches are not executed.
+    // The source exchange/admission path preserves caller fields and carries its
+    // separately signed permission ceiling in SubjectDelegation.
+    fn discovery_catalog() -> (crate::HubCatalog, ServerSlug) {
+        use crate::control_plane::{
+            GrantSubject, InstallationAuthorization, InstallationRole, RoleGrant,
+        };
+        use std::{collections::BTreeSet, sync::Arc};
+        use veoveo_hub_sdk::registration::{
+            Access, AuthorizationDeclaration, PermissionDeclaration, Requirements, RouteAccess,
+        };
+        use veoveo_types::{GroupId, PermissionName, ResourceTypeName, RoleId};
+
+        let mut plane: crate::control_plane::HubControlPlane =
+            serde_json::from_str(include_str!("../../testdata/hub.json")).unwrap();
+        plane.authorization = InstallationAuthorization {
+            roles: vec![
+                InstallationRole {
+                    name: RoleId::parse("cache-reader").unwrap(),
+                    access: BTreeSet::from([Access::Read]),
+                    risks: BTreeSet::new(),
+                },
+                InstallationRole {
+                    name: RoleId::parse("cache-writer").unwrap(),
+                    access: BTreeSet::from([Access::Write]),
+                    risks: BTreeSet::new(),
+                },
+            ],
+            grants: vec![
+                RoleGrant {
+                    role: RoleId::parse("cache-reader").unwrap(),
+                    subject: GrantSubject::Principal(super::super::tests::principal().id),
+                    tenant: None,
+                },
+                RoleGrant {
+                    role: RoleId::parse("cache-writer").unwrap(),
+                    subject: GrantSubject::Group(GroupId::parse("cache-writers").unwrap()),
+                    tenant: None,
+                },
+            ],
+            overrides: Vec::new(),
+        };
+        let permission = |name: &str, access| PermissionDeclaration {
+            permission: PermissionName::parse(name).unwrap(),
+            resource: ResourceTypeName::parse("cache-fixture.records").unwrap(),
+            access,
+            risks: BTreeSet::new(),
+        };
+        let mut requirements = Requirements::default();
+        requirements.tools.insert(
+            LocalToolName::parse("common").unwrap(),
+            RouteAccess::Permission(PermissionName::parse("cache-fixture.records.read").unwrap()),
+        );
+        requirements.tools.insert(
+            LocalToolName::parse("extra").unwrap(),
+            RouteAccess::Permission(PermissionName::parse("cache-fixture.records.write").unwrap()),
+        );
+        let mut server = crate::test_catalog::registered_server(
+            "cache-fixture",
+            "https://cache-fixture.test/mcp",
+        );
+        server.authorization = Arc::new(AuthorizationDeclaration {
+            permissions: vec![
+                permission("cache-fixture.records.read", Access::Read),
+                permission("cache-fixture.records.write", Access::Write),
+            ],
+            requirements,
+            uses: Vec::new(),
+            calls_hub: false,
+        });
+        server.capabilities =
+            crate::registration::ServerCapabilities::from_declaration(&server.authorization);
+        let slug = server.slug.clone();
+        let catalog = crate::HubCatalog::from_control_plane(plane, crate::test_catalog::binding())
+            .unwrap()
+            .with_registrations(crate::registration::RegistrationSnapshot::new([server]));
+        (catalog, slug)
+    }
+
+    fn discovery_subject(catalog: &crate::HubCatalog, writer: bool) -> crate::AuthenticatedSubject {
+        use chrono::{TimeDelta, Utc};
+        use std::collections::BTreeSet;
+        use veoveo_hub_sdk::{AccessTokenSubject, OAuthClientId, ProtectedResourceId};
+        use veoveo_types::{
+            DelegationId, GroupId, InvocationMode, ScopeName, TenantId, WorkContextId,
+        };
+
+        let mut principal = super::super::tests::principal();
+        principal.tenant = Some(TenantId::parse("tenant-a").unwrap());
+        principal.scopes = BTreeSet::from([ScopeName::parse("operator:use").unwrap()]);
+        if writer {
+            principal
+                .groups
+                .insert(GroupId::parse("cache-writers").unwrap());
+        }
+        let access_token = AccessTokenSubject {
+            issuer: principal.issuer.clone(),
+            subject: principal.subject.clone(),
+            oauth_client_id: OAuthClientId::parse("operator-delegated").unwrap(),
+            session_family: None,
+            audience: ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap(),
+            work_context: WorkContextId::parse("operations").unwrap(),
+            invocation_mode: InvocationMode::Delegated,
+            initiator: Some(principal.id.clone()),
+            delegation_id: Some(DelegationId::parse("cache-delegation").unwrap()),
+            scopes: principal.scopes.clone(),
+            jwt_id: None,
+            issued_at: Utc::now(),
+            not_before: None,
+            expires_at: Utc::now() + TimeDelta::minutes(5),
+        };
+        let mut subject = catalog
+            .resolve_authenticated_subject(crate::VerifiedAccessToken {
+                purpose: None,
+                extensions: Default::default(),
+                access_token,
+                principal,
+                principal_display_name: None,
+            })
+            .unwrap();
+        subject.execution = Some(veoveo_hub_sdk::hosting::testing::execution_context());
+        subject
+            .request_context()
+            .unwrap()
+            .validate_for(&subject.actor, &subject.authority)
+            .unwrap();
+        subject
+    }
+
+    fn discovered_for(
+        catalog: &crate::HubCatalog,
+        server: &ServerSlug,
+        subject: &crate::AuthenticatedSubject,
+    ) -> super::super::discovery::AdmittedCatalog<rmcp::model::Tool> {
+        use crate::control_plane::PolicyEffect;
+        let mut items = Vec::new();
+        let mut denied = 0;
+        for name in ["common", "extra"] {
+            let target = PolicyTarget::Tool {
+                server: server.clone(),
+                tool: LocalToolName::parse(name).unwrap(),
+            };
+            let mut decision = catalog.decide(crate::PolicyRequest {
+                principal: &subject.principal,
+                profile: &HubProfileId::parse("operator").unwrap(),
+                action: HubAction::ToolsList.into(),
+                target: &target,
+                trace_id: &TraceId::parse("cache-isolation-regression").unwrap(),
+            });
+            let route = if decision.effect == PolicyEffect::Allow && subject.delegation.is_some() {
+                super::delegated_route(
+                    crate::policy::declared_route_access(catalog, &target),
+                    &target,
+                )
+            } else {
+                crate::delegation::authority::Route::Undeclared
+            };
+            // This installed-client fixture has current OAuth admission. The
+            // separate dynamic OAuth-owner/DB check is outside this unit test.
+            decision = super::narrow_policy_decision(
+                decision,
+                true,
+                subject.delegation.as_ref().map(|info| &info.permissions),
+                route,
+            );
+            if decision.effect == PolicyEffect::Allow {
+                items.push(rmcp::model::Tool::new(
+                    format!("{server}__{name}"),
+                    format!("{name} synthetic descriptor"),
+                    std::sync::Arc::default(),
+                ));
+            } else {
+                denied += 1;
+            }
+        }
+        super::super::discovery::AdmittedCatalog { items, denied }
+    }
+
+    fn discovery_key(
+        subject: &crate::AuthenticatedSubject,
+        server: &ServerSlug,
+    ) -> super::super::discovery::DiscoveryCacheKey {
+        super::super::discovery::DiscoveryCacheKey {
+            catalog_generation: 7,
+            principal: subject.actor.id.clone(),
+            authorization_fingerprint: super::super::discovery_authorization_fingerprint(subject)
+                .unwrap(),
+            server: server.clone(),
+        }
+    }
+
+    async fn assert_cache_population_orders(
+        catalog: &crate::HubCatalog,
+        server: &ServerSlug,
+        broad: &crate::AuthenticatedSubject,
+        narrow: &crate::AuthenticatedSubject,
+    ) {
+        use super::super::discovery::CatalogDiscoveryCache;
+        let broad_expected = discovered_for(catalog, server, broad);
+        let narrow_expected = discovered_for(catalog, server, narrow);
+        assert_eq!((broad_expected.items.len(), broad_expected.denied), (2, 0));
+        assert_eq!(
+            (narrow_expected.items.len(), narrow_expected.denied),
+            (1, 1)
+        );
+        assert_eq!(narrow_expected.items, broad_expected.items[..1]);
+        let mut actual = Vec::new();
+        let mut expected = Vec::new();
+        for (first, second, first_expected, second_expected) in [
+            (broad, narrow, &broad_expected, &narrow_expected),
+            (narrow, broad, &narrow_expected, &broad_expected),
+        ] {
+            let cache = CatalogDiscoveryCache::default();
+            let first_key = discovery_key(first, server);
+            let fetch = cache
+                .start_tools(first_key.clone())
+                .await
+                .unwrap()
+                .with_denied(first_expected.denied);
+            cache
+                .store_tools(Some(fetch), first_expected.items.clone())
+                .await;
+            assert_eq!(cache.tools(&first_key).await.as_ref(), Some(first_expected));
+
+            // Fresh authentication timestamps and audit observations do not
+            // change effective authority and must retain positive cache reuse.
+            let mut reverified = first.clone();
+            reverified.actor.authenticated_at = Some(chrono::Utc::now());
+            reverified.principal.authenticated_at = reverified.actor.authenticated_at;
+            reverified.audit = veoveo_audit_contract::AuditRequest::background();
+            let reverified_key = discovery_key(&reverified, server);
+            assert_eq!(reverified_key, first_key);
+            assert_eq!(
+                cache.tools(&reverified_key).await.as_ref(),
+                Some(first_expected)
+            );
+
+            // This is the production cache-hit/fresh-admission decision. Compare
+            // the entire descriptor payload and denied count, not merely names.
+            let second_key = discovery_key(second, server);
+            let observed = match cache.tools(&second_key).await {
+                Some(cached) => cached,
+                None => {
+                    let admitted = discovered_for(catalog, server, second);
+                    let fetch = cache
+                        .start_tools(second_key)
+                        .await
+                        .unwrap()
+                        .with_denied(admitted.denied);
+                    cache.store_tools(Some(fetch), admitted.items.clone()).await;
+                    admitted
+                }
+            };
+            actual.push(observed);
+            expected.push(second_expected.clone());
+        }
+        assert_eq!(
+            actual, expected,
+            "both broad-first and narrow-first discovery must retain current admission"
+        );
+    }
+
+    #[tokio::test]
+    async fn discovery_cache_separates_delegation_ceilings_in_both_fill_orders() {
+        use std::collections::BTreeSet;
+        use veoveo_hub_sdk::ActingServer;
+        use veoveo_types::PermissionName;
+        let (catalog, server) = discovery_catalog();
+        let mut broad = discovery_subject(&catalog, true);
+        let context = broad.request_context().unwrap();
+        broad.delegation = Some(crate::delegation::SubjectDelegation {
+            acting_server: ActingServer {
+                deployment: veoveo_hub_sdk::hosting::testing::deployment_id(),
+                server: ServerSlug::parse("cache-forwarder").unwrap(),
+                client: veoveo_hub_sdk::OAuthClientId::parse("cache-forwarder-0001").unwrap(),
+            },
+            permissions: BTreeSet::from([
+                PermissionName::parse("cache-fixture.records.read").unwrap(),
+                PermissionName::parse("cache-fixture.records.write").unwrap(),
+            ]),
+            task: None,
+            request_context: context,
+            context: None,
+            expires_at: broad.access_token.expires_at,
+        });
+        let mut narrow = broad.clone();
+        narrow
+            .delegation
+            .as_mut()
+            .unwrap()
+            .permissions
+            .remove(&PermissionName::parse("cache-fixture.records.write").unwrap());
+        assert_cache_population_orders(&catalog, &server, &broad, &narrow).await;
+    }
+
+    #[tokio::test]
+    async fn discovery_cache_separates_current_principal_groups_in_both_fill_orders() {
+        let (catalog, server) = discovery_catalog();
+        let broad = discovery_subject(&catalog, true);
+        let mut narrow = discovery_subject(&catalog, false);
+        // Bind both to the same retained routing context; native delegated
+        // admission preserves the user's differing groups but clears actor groups.
+        narrow.execution = broad.execution.clone();
+        assert_eq!(broad.actor, narrow.actor);
+        assert_eq!(broad.authority, narrow.authority);
+        assert_ne!(broad.principal.groups, narrow.principal.groups);
+        assert_cache_population_orders(&catalog, &server, &broad, &narrow).await;
+    }
 }
