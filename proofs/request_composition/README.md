@@ -84,9 +84,9 @@ LAKE_NO_UPDATE=1 lake env lean SelectedRegistrationProof.lean
 LAKE_NO_UPDATE=1 lake build SelectedRegistrationProof
 ```
 
-Full selection filtering/collection, uniqueness of selected routes, current-policy
-provenance and issuer/recipient composition remain open. The unfinished selection
-entry proof is excluded.
+The original five-declaration lookup checkpoint is followed by the checked
+selection-entry contract below. Full collection, uniqueness of selected routes,
+current-policy provenance and issuer/recipient composition remain open.
 
 The [lookup semantic-control receipt](evidence/registration-lookup-control.json)
 now qualifies a deliberate actual-Rust ambiguity bypass. In a private source copy,
@@ -112,6 +112,33 @@ and run `lake env lean GetterAmbiguityWitness.lean` against that mutant model.
 It is expected to fail against the correct canonical getter. Restore the Rust,
 re-extract and verify canonical hashes before rechecking the ordinary proof.
 Do not apply the mutation to the running installation or edit generated Lean.
+
+## Checked selection-entry contract
+
+The same [proof module](SelectedRegistrationProof.lean) now proves the actual
+extracted `selected` closure against `chooseOne`, an independent keyed-lookup
+specification. Unavailable selections, missing deployments and rows with a different
+server slug return none. A matching selection returns the requested deployment key
+and the complete registration. Every case preserves the entire snapshot state.
+No well-formedness, uniqueness or desired-route premise is required.
+
+The proof-local `selected_entry_body` exposes the exact generated pair destructuring
+and clone operation under an explicit tuple type. Lean kernel conversion checks
+that connection; no generated code, primitive model or trust assumption changes.
+The returned key is the requested deployment. Equality to the row's own deployment
+field is a separate constructor-coherence obligation, not an extra runtime check.
+
+The [entry receipt](evidence/selected-entry-checkpoint.json) records the direct
+check (**2.723 s**) and exact nondefault target (**3.273 s**). All ten named audits,
+including the five prior getter/lookup declarations, permit only standard axioms.
+The 61-entry effective source map differs from the lookup checkpoint only in this
+proof file and stayed unchanged during validation. The same manual commands and
+private patched-tool workflow above apply.
+
+This checks the entry closure, not the complete `selected` method. Collection,
+derived output uniqueness, namespace construction, current-policy provenance and
+actual SDK issuer/recipient composition remain open. Its actual-source semantic
+control is pending; the getter ambiguity control does not cover this new contract.
 
 ## Intended contract
 

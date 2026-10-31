@@ -161,6 +161,103 @@ theorem lookup_exact (servers : List (Deployment × Server)) (query : Deployment
     all_goals split <;> rfl
 
 
+/-- Complete original row is emitted only for the exact selected deployment and
+matching logical slug. Missing/unavailable/mismatched selections emit nothing. -/
+def chooseOne (snapshot : Snapshot) (entry : Slug × veoveo_hub_sdk.execution.ResolvedComponent) :
+    Option (Deployment × Server) :=
+  match entry.2 with
+  | .Unavailable => none
+  | .Deployment deployment =>
+    match lookupBy snapshot.servers deployment with
+    | none => none
+    | some server => if server.slug = entry.1 then some (deployment, server) else none
+
+abbrev selectOps := RequestCompositionHub.registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer
+
+/-- A proof-local normal form of the extracted closure. The generated capture
+is a semireducible tuple alias. Expose the exact FnOnce pair destructuring
+and Arc clone call under an explicit tuple type, so later rewrites need not infer
+the generated alias at implicit transparency. Kernel conversion checks this
+connection; no new model or result assumption is introduced. -/
+private theorem selected_entry_body (snapshot : Snapshot) (slug : Slug)
+    (deployment : Deployment) :
+    selectOps.call_mut snapshot (slug, .Deployment deployment) = (do
+      let candidate ← mapLookup snapshot.servers deployment
+      let branch ← RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitTry.branch candidate
+      match branch with
+      | .Continue server =>
+        let row ← RequestCompositionHub.alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref
+          alloc.alloc.Global server
+        let same ← RequestCompositionHub.veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq row.slug slug
+        let picked ← Aeneas.Std.core.bool.Bool.then
+          ({ call_once := fun pair (_ : Unit) => do
+              let (key, value) := pair
+              let cloned ← RequestCompositionHub.alloc.sync.Arc.Insts.CoreCloneClone.clone
+                RequestCompositionHub.alloc.alloc.Global.Insts.CoreAllocAllocatorClone value
+              .ok (key, cloned) } :
+            Aeneas.Std.core.ops.function.FnOnce (Deployment × Server) Unit (Deployment × Server))
+          same (deployment, server)
+        .ok (picked, snapshot)
+      | .Break residual =>
+        let picked ← RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
+          (Deployment × Server) residual
+        .ok (picked, snapshot)) := by
+  with_unfolding_all rfl
+
+/-- Exact single-entry acceptance/refusal, preserving the whole row and the
+unchanged closure state. No row/key coherence or uniqueness premise is needed. -/
+theorem selected_entry_exact (snapshot : Snapshot)
+    (entry : Slug × veoveo_hub_sdk.execution.ResolvedComponent) :
+    selectOps.call_mut snapshot entry = .ok (chooseOne snapshot entry, snapshot) := by
+  rcases entry with ⟨slug, component⟩
+  cases component with
+  | Unavailable => rfl
+  | Deployment deployment =>
+    rw [selected_entry_body, lookup_exact]
+    cases found : lookupBy snapshot.servers deployment with
+    | none =>
+      simp [found, chooseOne,
+        RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitTry.branch,
+        RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual,
+        bind_ok, bind_tc_ok]
+    | some server =>
+      by_cases same : server.slug = slug <;>
+        simp [found, chooseOne, same,
+          RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitTry.branch,
+          RequestCompositionHub.alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref,
+          RequestCompositionHub.veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq,
+          Aeneas.Std.core.bool.Bool.then,
+          RequestCompositionHub.alloc.sync.Arc.Insts.CoreCloneClone.clone, bind_ok, bind_tc_ok]
+
+theorem selected_unavailable (snapshot : Snapshot) (slug : Slug) :
+    selectOps.call_mut snapshot (slug, .Unavailable) = .ok (none, snapshot) := by
+  exact selected_entry_exact snapshot (slug, .Unavailable)
+
+theorem selected_missing (snapshot : Snapshot) (slug : Slug) (deployment : Deployment)
+    (missing : lookupBy snapshot.servers deployment = none) :
+    selectOps.call_mut snapshot (slug, .Deployment deployment) = .ok (none, snapshot) := by
+  rw [selected_entry_exact]
+  simp [chooseOne, missing]
+
+theorem selected_slug_mismatch (snapshot : Snapshot) (slug : Slug) (deployment : Deployment)
+    (server : Server) (found : lookupBy snapshot.servers deployment = some server)
+    (mismatch : server.slug ≠ slug) :
+    selectOps.call_mut snapshot (slug, .Deployment deployment) = .ok (none, snapshot) := by
+  rw [selected_entry_exact]
+  simp [chooseOne, found, mismatch]
+
+/-- A successful matching keyed lookup preserves every registration field.
+The emitted key is the requested deployment; equality to row.deployment is a
+separate constructor-coherence obligation, not an extra runtime check. -/
+theorem selected_present (snapshot : Snapshot) (slug : Slug) (deployment : Deployment)
+    (server : Server) (found : lookupBy snapshot.servers deployment = some server)
+    (same : server.slug = slug) :
+    selectOps.call_mut snapshot (slug, .Deployment deployment) =
+      .ok (some (deployment, server), snapshot) := by
+  rw [selected_entry_exact]
+  simp [chooseOne, found, same]
+
+
 end
 end SelectedRegistrationProof
 
@@ -170,11 +267,20 @@ end SelectedRegistrationProof
 #print axioms SelectedRegistrationProof.get_exact
 #print axioms SelectedRegistrationProof.lookup_exact
 
+#print axioms SelectedRegistrationProof.selected_entry_exact
+#print axioms SelectedRegistrationProof.selected_unavailable
+#print axioms SelectedRegistrationProof.selected_missing
+#print axioms SelectedRegistrationProof.selected_slug_mismatch
+#print axioms SelectedRegistrationProof.selected_present
+
 run_cmd do
   let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
   for declaration in #[``SelectedRegistrationProof.values_cursor_law,
       ``SelectedRegistrationProof.slug_predicate_law, ``SelectedRegistrationProof.filter_next_law,
-      ``SelectedRegistrationProof.get_exact, ``SelectedRegistrationProof.lookup_exact] do
+      ``SelectedRegistrationProof.get_exact, ``SelectedRegistrationProof.lookup_exact,
+      ``SelectedRegistrationProof.selected_entry_exact, ``SelectedRegistrationProof.selected_unavailable,
+      ``SelectedRegistrationProof.selected_missing, ``SelectedRegistrationProof.selected_slug_mismatch,
+      ``SelectedRegistrationProof.selected_present] do
     let found ← Lean.collectAxioms declaration
     unless (found.filter (fun axiomName => !allowed.contains axiomName)).isEmpty do
       throwError "unreviewed getter/lookup axiom in {declaration}: {found}"

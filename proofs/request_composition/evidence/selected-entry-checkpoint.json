@@ -1,0 +1,161 @@
+{
+  "kind": "actual-extracted selected-entry closure acceptance and refusal",
+  "status": "checked implementation-proof milestone; entry semantic control and full selection collection pending",
+  "source": {
+    "hub_runtime_revision": "3bc2923ca1d2e0c559e532286c16ec3d6a5ceb7a",
+    "hub_parent": "e06d209",
+    "sdk_pin": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "extraction_receipt": "extraction-checkpoint.json",
+    "tooling_receipt": "discriminant-tooling-checkpoint.json"
+  },
+  "proof": {
+    "path": "SelectedRegistrationProof.lean",
+    "sha256": "01751908a5a2ffcb5ee9756b938fe87478929a557d066361a69996aac3fee209",
+    "new_declarations": [
+      "selected_entry_exact",
+      "selected_unavailable",
+      "selected_missing",
+      "selected_slug_mismatch",
+      "selected_present"
+    ],
+    "prior_getter_and_lookup_declarations_byte_identical": true,
+    "private_normalization": "selected_entry_body connects the exact generated pair destructuring and clone callback to a typed normal form using with_unfolding_all rfl; kernel conversion, not an additional axiom.",
+    "allowed_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "audited_declaration_count": 10
+  },
+  "effective_sources": {
+    "baseline_receipt": "registration-lookup-checkpoint.json",
+    "baseline_receipt_sha256": "294ae4c99889158303c882e16ca9b14a4e3d8eda1b5fed3001d151175e7d71ca",
+    "baseline_json_pointer": "/validation/summary/private_source_map_before",
+    "overrides": {
+      "request_composition/SelectedRegistrationProof.lean": "01751908a5a2ffcb5ee9756b938fe87478929a557d066361a69996aac3fee209"
+    },
+    "entries": 61,
+    "unchanged_during_checks": true
+  },
+  "validation": {
+    "case": "Selected-entry closure proof against approved private patched package",
+    "baseline_summary_sha256": "4659115e67e836652c08f4139973b4c4562c7fa062778e404af63716135c98e8",
+    "package_baseline_summary_sha256": "75124f79170945669691b8c9115d4eaa8273fe0f6b6d41485ddd20ed67f8928d",
+    "aeneas_discriminant_macro_sha256": "467f244cc2103c050f38e732c153712c5c9fbbccc0ca0827d5c32990b174f411",
+    "tool_hashes": {
+      "lake": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+      "lean": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38"
+    },
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "stages": [
+      {
+        "stage": "direct",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "SelectedRegistrationProof.lean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+        "started_unix": 1793411998.9101098,
+        "elapsed_s": 2.723,
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-entry-private-direct3/direct.log",
+        "log_sha256": "2a15391a1644f8d937b12767effc0c0b7c9974ccbdc0994166a53ac914a97874",
+        "log_bytes": 7230,
+        "source_map_unchanged": true
+      },
+      {
+        "stage": "target",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build",
+          "SelectedRegistrationProof"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+        "started_unix": 1793412001.6331189,
+        "elapsed_s": 3.273,
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-entry-private-direct3/target.log",
+        "log_sha256": "1a9c2e3d13b4845524e680ba56eb3cf8476662c639d44bca53164a8ed5713171",
+        "log_bytes": 54686,
+        "source_map_unchanged": true
+      }
+    ],
+    "olean_sha256": "8a58467e827913ceb85d019095c060682e3e6858277d71992ac3d60ceabacf20",
+    "complete": true
+  },
+  "summary_sha256": "f1f84da46d22b44338467c48fae56719938bb147963301fdb7b92721862c4bdf",
+  "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-selected-entry-private-direct3/selected-entry-private-direct3/summary.json",
+  "failed_attempts": [
+    {
+      "summary_sha256": "3457069c6942fb31120f026ce3276eeb29354d4201ac37d59d689c59fc7ce2c2",
+      "proof_sha256": "b4a02d5ace490b39df6299b0935a386ff662f9774ad21eb813cea29408b03b2a",
+      "cause": "Wrong fully qualified allocator type; rejected at elaboration.",
+      "stages": [
+        {
+          "stage": "direct",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "SelectedRegistrationProof.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+          "started_unix": 1793411822.5653389,
+          "elapsed_s": 2.824,
+          "timeout_seconds": 300,
+          "timed_out": false,
+          "exit": 1,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-entry-private-direct1/direct.log",
+          "log_sha256": "1b42e0e2cec739740934f3d1486aad2398d38e90c9e99759544ce73021dcef16",
+          "log_bytes": 7658,
+          "source_map_unchanged": true
+        }
+      ],
+      "qualification_credit": false
+    },
+    {
+      "summary_sha256": "adc81e8b1031c232c0d418a72e78769623f17a3c5a481df16cc3909c332aa04e",
+      "proof_sha256": "1b93e6e29a3868219671c215a2ecd1c1e4ba5be31909e51e745f996bc3398665",
+      "cause": "The proposed identity callback was not definitionally equal to the exact generated pair-destructuring/clone callback. The proof now retains those operations before simplifying them.",
+      "stages": [
+        {
+          "stage": "direct",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "SelectedRegistrationProof.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+          "started_unix": 1793411893.323168,
+          "elapsed_s": 2.773,
+          "timeout_seconds": 300,
+          "timed_out": false,
+          "exit": 1,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-entry-private-direct2/direct.log",
+          "log_sha256": "bcc60253943e64d5a66df1d7b213d1cb71de27095cfc295a0efc7995fbc6bc35",
+          "log_bytes": 9673,
+          "source_map_unchanged": true
+        }
+      ],
+      "qualification_credit": false
+    }
+  ],
+  "limits": [
+    "For every snapshot and composition entry, the actual extracted FnMut returns exactly the independent chooseOne result and preserves the complete snapshot state; successful matching entries preserve all fields of the keyed registration.",
+    "No well-formed map, unique-key or desired-route premise is needed. The emitted key is the requested deployment; key equality to the stored row.deployment remains a separate constructor-coherence obligation, not a new runtime check.",
+    "Native collection/equality/clone/compiler correspondence remains explicit. The proof uses no namespace-helper or SDK-issuer result.",
+    "The full selected method, iterator collection, derived route uniqueness, namespace construction, current-policy provenance and actual SDK issuer/recipient composition are not established here.",
+    "Actual-source semantic control for this entry contract remains pending. The earlier getter ambiguity control covers the getter only.",
+    "No production, generated model, Lake configuration, dependency pin, runtime policy, deployment or model call changed. Checks were manual Lean checks, not native component or full Docker qualification."
+  ]
+}

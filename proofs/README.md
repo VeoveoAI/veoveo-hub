@@ -642,6 +642,13 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   restoration ([control receipt](request_composition/evidence/registration-lookup-control.json)).
   This qualifies the getter contract, not the composed request path or the separate
   assembly contracts' pending semantic controls.
+  The actual selection-entry closure now has an exact acceptance/refusal contract:
+  unavailable, missing and wrong-slug entries produce no route; a matching entry
+  preserves the complete keyed row and unchanged snapshot, with no desired-route
+  or well-formedness premise. All ten module audits and direct/target checks pass
+  ([entry receipt](request_composition/evidence/selected-entry-checkpoint.json)).
+  Full collection, derived route uniqueness and this entry contract's actual-source
+  semantic control remain open.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 
