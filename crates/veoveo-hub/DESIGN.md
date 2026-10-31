@@ -11,7 +11,8 @@ Neither its code nor its configuration names a server.
 | Standard | Profile |
 |---|---|
 | MCP `2026-07-28`, Streamable HTTP | One endpoint per profile at `/mcp/{profile}`, aggregating tools, resources, resource templates, prompts, completions, Tasks and resource subscriptions of registered servers. `server/discover` lists `2026-07-28` as the only version, and another version is refused with `-32022`. The `resources.subscribe` capability declares `resourceSubscriptions` on `subscriptions/listen`; `resources/subscribe` and `resources/unsubscribe` are no methods of that version and answer `-32601` |
-| MCP Apps, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value |
+| MCP Apps `2026-01-26`, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value. The Hub is the installation's web host of Apps, with the sandbox proxy on its own origin; see [Apps host](#apps-host) |
+| HTML iframe `sandbox` and Content Security Policy Level 3 | An App runs in an `allow-scripts` frame without `allow-same-origin`, under the policy the Hub builds from its declaration; see [Apps host](#apps-host) |
 | [Server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/523c7ace42660a20b213bef7acb31398813fec97/crates/veoveo-hub-sdk/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
 | JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `HubInternalTokenIssuer`; a call another server made names that server as the prior actor |
 | OAuth 2.0 Token Exchange, RFC 8693, with RFC 9396 token requests | `/oauth/token` with the `urn:ietf:params:oauth:grant-type:token-exchange` grant, for registered servers that declare uses; profile in [calls between servers](#calls-between-servers) |
@@ -164,6 +165,7 @@ each registration's login and creates each data environment's database. The othe
 | `VEOVEO_REFRESH_DELIVERY_KEY_B64` | 32-byte key for refresh successor envelopes |
 | `VEOVEO_AUDIT_SIGNING_KEY_B64`, `VEOVEO_AUDIT_RETENTION_DAYS`, `VEOVEO_AUDIT_EXPORT_CONFIG` | Audit sealing, retention and export |
 | `VEOVEO_ALLOW_LOOPBACK_HOSTS` | Accept loopback `Host` headers beside the issuer's host |
+| `VEOVEO_APPS_DOMAIN` | Optional: the DNS name under which App origins live, such as `apps.veoveo.example`; without it the Hub hosts no App ([Apps host](#apps-host)) |
 
 The configuration's `secrets` section names the remaining secrets, such as the
 registration secret and the hosted authorization server's signing key, by
@@ -213,7 +215,8 @@ protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/523c7ace42660a20b213be
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
 then the software statement against the pinned key and the endpoint URL. The slug
-`hub` names the Hub's own schema and is refused with `invalid_client_metadata`. An
+`hub` names the Hub's own schema and is refused with `invalid_client_metadata`, and so
+is `sandbox`, which names the origin of the [Apps sandbox proxy](#apps-host). An
 initial access token whose digest names an instance registers that instance; any
 other token must be the installation's registration secret.
 
@@ -776,6 +779,167 @@ retaining owner mappings, native workspace IDs and working storage. Tasks,
 Artifacts, trusted configuration and unrelated storage are untouched. A fresh
 ordinary login establishes new custody; there is no legacy binding or backfill.
 
+## Apps Host
+
+The Hub is the installation's MCP Apps host, a web host by MCP Apps `2026-01-26`. An
+App is a server's `ui://{slug}/{page}` resource with MIME `text/html;profile=mcp-app`.
+The Hub finds it in the catalog the person sees, as any MCP client of the profile finds
+it; nothing registers an App by hand, and the Hub names no App. `src/apps` holds the
+host; the SDK's [Apps contract](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/src/apps/DESIGN.md)
+fixes what any host does.
+
+### App Origins
+
+`VEOVEO_APPS_DOMAIN` names the DNS name under which App origins live, such as
+`apps.veoveo.example`, and the installation points the wildcard `*.{apps domain}` at
+the Hub. Without it the Hub hosts no App: `/apps/` answers 404 and no other host is
+admitted. Each origin takes the issuer's scheme and port:
+
+| Origin | What it serves |
+|---|---|
+| The issuer's | Each App's host page and bridge |
+| `sandbox.{apps domain}` | The sandbox proxy, and nothing else |
+| `{slug}.{apps domain}` | A server's own app origin, which a full web application's App frames; the Hub serves none yet, and admits it only as the one `frameDomains` source of that server's Apps |
+
+Startup refuses an apps domain that is not a lowercase DNS name, or that is the
+issuer's host or a parent of it, since a slug equal to the issuer's first label would
+then share the host page's origin. The slug `sandbox` names the proxy's origin, so
+registration refuses it, and no App path names it.
+
+A request whose `Host` names the sandbox origin reaches the proxy and nothing else,
+before the issuer's `Host` validation, which never admits that name: `GET /` answers
+the proxy page, and every other path 404. The issuer's host never serves the proxy
+page. Any other name under the apps domain is refused with 421, as every host the Hub
+does not serve is.
+
+### Direct URL
+
+`GET /apps/{slug}/{page}` opens `ui://{slug}/{page}`. The raw path parses into one
+canonical URI: `{slug}` is a server slug other than `sandbox`, and `{page}` is one or
+more segments of RFC 3986 unreserved characters, none empty, `.` or `..`, at most 512
+bytes in all. Any other spelling, a percent-encoded one included, answers 404, so one
+URL names one App. Browser code takes no authority from the path: the Hub renders the
+host page only when that exact resource, an App by its MIME type, is in the catalog the
+person sees now, under their own selection. Otherwise the page answers 404.
+
+The browser session is the person's Computer session: the host-only `__Host-computer`
+cookie that [browser ingress](#private-computer-browser-ingress) admits, which selects
+the person's live refresh family of the Computers' client and profile. Apps therefore
+need the installation's `computers`, whose sign-in they use, though not a running
+Computer sandbox. A document navigation without an admitted session goes to
+`/computer` to sign in, with the host-only `__Host-computer-return` cookie, valid ten
+minutes, naming the App's path. When that sign-in sets the session, the callback
+parses the cookie again as an App path, clears it and returns the browser there
+instead of to `/computer`. Any other request without a session answers 401.
+
+The host page renders the App with the display mode `fullscreen`, the only one it
+offers.
+
+### Host Page And Sandbox Proxy
+
+The host page and the proxy page are plain HTML, each with one small script, embedded in
+the Hub without a build step. The host page carries the App's URI, title, validated
+policy sources and proxy URL as JSON data in a `<script type="application/json">`
+element, never as markup. Its policy is `default-src 'none'; script-src 'self';
+connect-src 'self'; frame-src {sandbox origin}; img-src 'self' data:; base-uri 'none';
+form-action 'none'; frame-ancestors 'none'`, and it answers `Cache-Control: private,
+no-store` and `Referrer-Policy: no-referrer`.
+
+1. The host page creates the proxy frame from the sandbox origin with
+   `sandbox="allow-scripts allow-same-origin"`, as the specification asks of the
+   proxy, and accepts a message only when its source is that frame's window and its
+   origin the sandbox origin. One App cannot speak as another: each App has its own
+   proxy frame in its own host page.
+2. The proxy sends `ui/notifications/sandbox-proxy-ready`. The host reads the App's
+   HTML through the bridge with `resources/read` and sends it to the proxy in
+   `ui/notifications/sandbox-resource-ready`, with the App's `csp`.
+3. The proxy creates the App's inner frame with `sandbox="allow-scripts"` and the HTML as
+   its `srcdoc`. It never adds `allow-same-origin` and ignores a `sandbox` override, so
+   the App has an opaque origin, no cookies and no storage. The proxy forwards every
+   other message between the host page and the App, to the host only at the issuer's
+   origin, and sends nothing of its own.
+4. The host answers `ui/initialize` with protocol version `2026-01-26`, the
+   `hostCapabilities` `serverTools` and `serverResources`, and a `hostContext` of
+   `theme` from the browser's color scheme preference, `displayMode` `fullscreen`,
+   `availableDisplayModes` `["fullscreen"]`, `containerDimensions`, `locale`,
+   `timeZone` and `platform` `web`. After `ui/notifications/initialized` it sends
+   `ui/notifications/host-context-changed` when the theme or the frame's size changes,
+   and `ui/resource-teardown` when the page goes away. `ui/request-display-mode`
+   answers `fullscreen`, `ping` answers at once, and any other request outside the
+   bridge's answers `-32601`.
+
+The proxy holds no session or data, and its code is the same for every App. Its URL's
+query names the App's validated sources, one `connect`, `resource`, `frame` or `base`
+parameter per source. The Hub validates them again by the rules below, except that a
+`frame` source may be any server's app origin, and answers the page with the App's
+policy as its `Content-Security-Policy` header, beside `frame-ancestors {issuer
+origin}`. The App's `about:srcdoc` frame inherits that policy, so the App runs under it
+from its first byte and nothing rewrites the App's HTML. A query that does not
+validate answers 400.
+
+### App Content Security Policy
+
+The Hub builds an App's policy from the `_meta.ui.csp` of its listed resource, as the
+specification constructs it:
+
+```text
+default-src 'none'; script-src 'self' 'unsafe-inline' {resource};
+style-src 'self' 'unsafe-inline' {resource}; img-src 'self' data: {resource};
+font-src 'self' {resource}; media-src 'self' data: {resource};
+connect-src {connect, or 'none'}; frame-src {frame, or 'none'};
+base-uri {base, or 'self'}; object-src 'none'
+```
+
+`'self'` is the sandbox origin, which serves only the proxy page. Without
+`_meta.ui.csp` every list is empty, the specification's restrictive default. Each
+declared source is one exact origin: an `https` or `http` URL, or for `connectDomains`
+also `wss` or `ws`, with a host and without user information, path, query, fragment or
+wildcard, kept as `scheme://host[:port]`. `frameDomains` admits only the App's own
+server's app origin. No list names the issuer's origin, the sandbox origin or another
+name under the apps domain. An App whose `_meta.ui` does not parse, or whose
+declaration breaks a rule, is not rendered: its host page answers 502 naming the rule.
+The Hub honors neither `_meta.ui.permissions` nor `domain`: the App's frame has no
+`allow` attribute, and every App runs on the one sandbox origin.
+
+### Bridge
+
+`POST /apps/{slug}/{page}` carries one JSON-RPC request of the App's view, which the host
+page forwards after its own checks. It requires the admitted browser session, an
+`Origin` that is exactly the issuer's origin, as the Computer's unsafe requests do,
+and a JSON body of at most 256 KiB. It answers 401 without a session or once the
+session no longer authenticates, 403 for another origin, 400 for a malformed request
+and 413 for a larger one; otherwise 200 with the JSON-RPC response, the view's `id` in
+it.
+
+Each request runs through the Hub's ordinary MCP path as the person. The Hub signs an
+access token of the session's refresh family, as a refresh of that family would: its
+principal, client, Work Context, scopes and `session-family`, valid 60 seconds and
+never beyond the family. It sends the request with that token to its own
+`/mcp/{computers.profile}` in process, and the token never leaves the process.
+Authentication with its session-family check, selection, policy, routing and audit
+then apply unchanged, so a revoked session or a denied permission fails the call as it
+fails any client's, and every record names the browser request. The request names the
+client `veoveo-hub-apps` with the Hub's version, declares the extension
+`io.modelcontextprotocol/ui`, and keeps the view's own `_meta` and client
+capabilities, apart from the protocol version and client information the Hub sets.
+
+Before anything reaches a server, the bridge finds the view's App in the person's
+current catalog, as the host page does, and admits the request against the catalogs
+the person sees now:
+
+| View request | Admitted when | Sent as |
+|---|---|---|
+| `tools/call` | The SDK's `resolve_app_tool` finds the name for this App: a tool of the App's own server whose `_meta.ui` links it to this exact App with a visibility that includes `app` | `tools/call` of `{slug}__{name}` |
+| `resources/read` | The URI is the App's own server's: its scheme is the slug, or it starts with `ui://{slug}/` | `resources/read` |
+| `tasks/get`, `tasks/update`, `tasks/cancel` | Always; the Hub's Task routes admit only the person's own Tasks | The same request |
+| `ping` | Always | Answered by the bridge |
+
+Another method answers `-32601`; a refused tool or resource answers `-32602` naming
+the reason, logged at INFO, and reaches no server. The host page records the Tasks
+each view's `tools/call` created and forwards a view's Task requests only for those.
+Whether a Task-based tool answers with a Task follows the session's OAuth client, the
+Computers' client, as for every client of the profile.
+
 ## HTTP Surface
 
 | Route | Purpose |
@@ -798,8 +962,14 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 | `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person holds a grant on, own or through a group, for Lore's repository listing |
 | `POST /ucs.auth.RebacApi/CreateResource` | gRPC: registers the repository Lore is about to create, its creator its owner |
 | `POST /ucs.auth.RebacApi/DeleteResource` | gRPC: removes the repository Lore is about to delete, when an owner deletes it |
+| `GET /apps/{slug}/{page}` | The host page of the App `ui://{slug}/{page}` for the browser session ([Apps host](#apps-host)) |
+| `POST /apps/{slug}/{page}` | That App's bridge: one JSON-RPC request of its view, run as the person |
+| `GET /apps/host.js` | The host page's script |
+| `GET /` at `sandbox.{apps domain}` | The sandbox proxy, under the App's policy its query names |
 
-Every route except the probes requires a `Host` header naming the issuer's host.
+Every route except the probes and the sandbox proxy requires a `Host` header naming the
+issuer's host; the sandbox proxy requires the sandbox origin's, which reaches no other
+route.
 
 `GET /admin/{profile}/control-plane` answers the active control plane with its
 revision ID, in the body as `revisionId` and as the strong entity tag
@@ -1450,7 +1620,7 @@ The Computer's routes:
 | `GET /computer/status` | The owner's status page, or the status as JSON for a bearer |
 | `POST /computer/restart`, `POST /computer/previous` | A replacement at the current version, or of the recorded version after a failure: for the owner's session, from this origin only, then `/computer`; for a bearer, `202` with the status, `409` while one runs, `503` when no Computer can start |
 | `GET /computer/version` | Public: the current version and its release note's first line only, for a server that names it in a tool description |
-| `GET /computer/callback` | The sign-in's code exchange and custody, then `/computer` |
+| `GET /computer/callback` | The sign-in's code exchange and custody, then `/computer`, or the App whose sign-in it was ([Apps host](#apps-host)) |
 
 The start page, shown on every creation, names the version it starts and lists what
 it brings over the recorded one, and reloads itself every two seconds until the
