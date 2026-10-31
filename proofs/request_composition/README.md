@@ -47,6 +47,14 @@ LAKE_NO_UPDATE=1 lake build
 lake env lean SnapshotAssemblyProof.lean
 ```
 
+Combining this package's proofs with the current-role collection proofs exposes
+an instance-name collision in the pinned Aeneas support library. The
+[manual tooling checkpoint](tooling/README.md) records a two-line naming patch,
+stock/patched regression and successful checks of both unchanged packages and
+their combined imports. It uses explicit private dependency overrides; the
+baseline manifests above still select the unpatched tool. It adds no new routing
+or issuer theorem.
+
 ## Intended contract
 
 For an admitted request, the selected registration determines the recipient slug,

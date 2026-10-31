@@ -1,0 +1,19 @@
+--- a/backends/lean/Aeneas/Data/Discriminant.lean
++++ b/backends/lean/Aeneas/Data/Discriminant.lean
+@@ -123,6 +123,7 @@
+   -- Generate the syntax for function definition
+   let ty ← mkScalarTy ty
+   let auxFunName := Name.mkStr declName "read_discriminant"
++  let instName := Name.mkStr declName "instDiscriminant"
+   let binders := header.binders
+   let defStx ← `(@[expose] public def $(mkIdent auxFunName):ident
+     $binders:bracketedBinder* : $ty := $body:term)
+@@ -130,7 +131,7 @@
+   -- Generate the syntax for the instance
+   let binders := binders.extract 0 indVal.numParams
+   let args := header.argNames.map mkIdent
+-  let instStx ← `(@[expose] public instance $binders:bracketedBinder* :
++  let instStx ← `(@[expose] public instance $(mkIdent instName):ident $binders:bracketedBinder* :
+       Aeneas.Std.Discriminant ($header.targetType) ($ty) where
+       read_discriminant := @$(mkIdent auxFunName):ident $args*)
+ 
