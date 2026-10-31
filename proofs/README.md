@@ -674,8 +674,12 @@ holds, and otherwise returns the existing context error. Direct and named manual
 checks pass with only standard Lean axioms under explicit text representation bounds.
 See the [SDK contract and receipt](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/proofs/internal_auth/README.md#exact-context-admission)
 and [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-context-admission-proof.md).
+SDK `b645f07` additionally proves populated Direct, Automated and Delegated
+acceptance witnesses, including a closed no-premise three-mode example. Both
+manual targets and all eight new axiom audits pass; see the
+[valid-context record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-context-valid-witnesses.md).
 This does not yet establish full issuance, complete signed claims, admitted
-constructions, actual-source semantic controls or integration with Hub's pinned SDK.
+issuance examples, actual-source context controls or integration with Hub's pinned SDK.
 The [composition review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-issuer-composition-boundaries.md)
 states the exact set/traversal, timestamp and complete-field correspondence still
 needed between the two proof representations; it proposes no runtime adapter.
