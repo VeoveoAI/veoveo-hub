@@ -135,7 +135,8 @@ deployment-qualified ingress proof; MCP routing alone does not establish it.
    listeners, retention and housekeeping loops, then listen: on the socket the process
    that started the Hub passed it, by sd_listen_fds(3)'s protocol, or else on
    `VEOVEO_LISTEN_ADDRESS`. The listener speaks HTTP/1.1 and cleartext HTTP/2 (prior
-   knowledge), which gRPC needs.
+   knowledge), which gRPC needs. With Apps configured, the Hub also listens on
+   `VEOVEO_APPS_LISTEN_ADDRESS` for the [sandbox proxy](#apps-host).
    Active revisions emit kernel notifications only after commit; each replica also
    reconciles on initial subscription and reconnection.
 
@@ -165,7 +166,8 @@ each registration's login and creates each data environment's database. The othe
 | `VEOVEO_REFRESH_DELIVERY_KEY_B64` | 32-byte key for refresh successor envelopes |
 | `VEOVEO_AUDIT_SIGNING_KEY_B64`, `VEOVEO_AUDIT_RETENTION_DAYS`, `VEOVEO_AUDIT_EXPORT_CONFIG` | Audit sealing, retention and export |
 | `VEOVEO_ALLOW_LOOPBACK_HOSTS` | Accept loopback `Host` headers beside the issuer's host |
-| `VEOVEO_APPS_DOMAIN` | Optional: the DNS name under which App origins live, such as `apps.veoveo.example`; without it the Hub hosts no App ([Apps host](#apps-host)) |
+| `VEOVEO_APPS_SANDBOX_ORIGIN` | Optional: the public origin of the Apps sandbox proxy, such as `https://sandbox.apps.veoveo.example`; without it the Hub hosts no App ([Apps host](#apps-host)) |
+| `VEOVEO_APPS_LISTEN_ADDRESS` | The socket address of the Apps listener, which serves only the sandbox proxy, `127.0.0.1:8081` by default; bound only with `VEOVEO_APPS_SANDBOX_ORIGIN` |
 
 The configuration's `secrets` section names the remaining secrets, such as the
 registration secret and the hosted authorization server's signing key, by
@@ -790,27 +792,39 @@ fixes what any host does.
 
 ### App Origins
 
-`VEOVEO_APPS_DOMAIN` names the DNS name under which App origins live, such as
-`apps.veoveo.example`, and the installation points the wildcard `*.{apps domain}` at
-the Hub. Without it the Hub hosts no App: `/apps/` answers 404 and no other host is
-admitted. Each origin takes the issuer's scheme and port:
+`VEOVEO_APPS_SANDBOX_ORIGIN` names the sandbox proxy's public origin,
+`sandbox.{apps domain}`, such as `https://sandbox.apps.veoveo.example`; its host's
+first label is `sandbox`, and the rest is the apps domain, whose wildcard
+`*.{apps domain}` the installation routes to the Hub. Without it the Hub hosts no App:
+`/apps/` answers 404 and the Apps listener is not bound.
 
-| Origin | What it serves |
-|---|---|
-| The issuer's | Each App's host page and bridge |
-| `sandbox.{apps domain}` | The sandbox proxy, and nothing else |
-| `{slug}.{apps domain}` | A server's own app origin, which a full web application's App frames; the Hub serves none yet, and admits it only as the one `frameDomains` source of that server's Apps |
+| Origin | Listener | What it serves |
+|---|---|---|
+| The issuer's | The Hub's | Each App's host page and bridge |
+| `sandbox.{apps domain}` | The Apps listener | The sandbox proxy, and nothing else |
+| `{slug}.{apps domain}` | None | A server's own app origin, which a full web application's App frames; the Hub serves none, and admits it only as the one `frameDomains` source of that server's Apps |
 
-Startup refuses an apps domain that is not a lowercase DNS name, or that is the
-issuer's host or a parent of it, since a slug equal to the issuer's first label would
-then share the host page's origin. The slug `sandbox` names the proxy's origin, so
-registration refuses it, and no App path names it.
+The listener a request arrives on decides what serves it, never its `Host` or
+`X-Forwarded-Host`: OpenShell's native ingress selects the Hub sandbox's service by
+the service hostname and rewrites the upstream `Host`, so the Hub never sees the public
+name. The Apps listener, on `VEOVEO_APPS_LISTEN_ADDRESS` and loopback-only by default
+like the Hub's, is exposed as the Hub sandbox's OpenShell service `apps`, beside its
+`http` service, and the route for `*.{apps domain}` names that service. It serves
+`GET /`, the proxy page, and answers 404 for every other path, whatever the request's
+`Host`; the Hub's own listener never serves the proxy page, and the Apps listener
+reaches no other route. The issuer's origin and the sandbox origin come from
+configuration, and the host page uses the latter as the proxy frame's source and as
+its `postMessage` target origin.
 
-A request whose `Host` names the sandbox origin reaches the proxy and nothing else,
-before the issuer's `Host` validation, which never admits that name: `GET /` answers
-the proxy page, and every other path 404. The issuer's host never serves the proxy
-page. Any other name under the apps domain is refused with 421, as every host the Hub
-does not serve is.
+Startup refuses a sandbox origin that is not an `https` or `http` origin, whose host's
+first label is not `sandbox` or whose apps domain is not a lowercase DNS name of at
+least two labels, or whose apps domain is the issuer's host or a parent of it, since a
+slug equal to the issuer's first label would then share the host page's origin. App
+origins take the sandbox origin's scheme and port. The slug `sandbox` names the
+proxy's origin, so registration refuses it, and no App path names it.
+
+Serving a server's app origin needs the request's public hostname, which this ingress
+does not convey, so the Hub serves no app origin.
 
 ### Direct URL
 
@@ -965,11 +979,14 @@ Computers' client, as for every client of the profile.
 | `GET /apps/{slug}/{page}` | The host page of the App `ui://{slug}/{page}` for the browser session ([Apps host](#apps-host)) |
 | `POST /apps/{slug}/{page}` | That App's bridge: one JSON-RPC request of its view, run as the person |
 | `GET /apps/host.js` | The host page's script |
-| `GET /` at `sandbox.{apps domain}` | The sandbox proxy, under the App's policy its query names |
 
-Every route except the probes and the sandbox proxy requires a `Host` header naming the
-issuer's host; the sandbox proxy requires the sandbox origin's, which reaches no other
-route.
+Every route except the probes requires a `Host` header naming the issuer's host.
+
+The Apps listener serves one route, whatever the request's `Host`:
+
+| Route | Purpose |
+|---|---|
+| `GET /` | The sandbox proxy, at `sandbox.{apps domain}`, under the App's policy its query names ([Apps host](#apps-host)) |
 
 `GET /admin/{profile}/control-plane` answers the active control plane with its
 revision ID, in the body as `revisionId` and as the strong entity tag
