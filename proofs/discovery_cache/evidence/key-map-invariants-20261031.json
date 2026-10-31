@@ -1,0 +1,356 @@
+{
+  "case": "discovery-cache-key-order-and-map-invariants-20261031",
+  "evidence_class": "Checked extracted-key comparator and concrete external map-model contracts; support for state/history proofs, not native BTreeMap verification or deployed acceptance",
+  "team": {
+    "implementation": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source": {
+    "runtime_revision": "688b91a",
+    "proof_parent_revision": "9e6228c",
+    "sdk_revision": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+    "core_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "discovery_rs": {
+      "sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+      "bytes": 36053
+    },
+    "checked_file_map": {
+      "CacheCompleteProof.lean": {
+        "sha256": "2126c263a05b3c456a50b9f4a4e110782972d989065145194dda0e695b6052c5",
+        "bytes": 17119
+      },
+      "CacheCompleteSpecification.lean": {
+        "sha256": "99e9e73c3c5228556671f2f5754d096c640aa30ac902af955be2bd94bcb9bcd9",
+        "bytes": 3631
+      },
+      "CacheKeyFrameProof.lean": {
+        "sha256": "c8cbac62e63c314fb9921fa6a9aa5cdae3fa4f777445a781936e891ac9d54bdd",
+        "bytes": 13150
+      },
+      "CacheKeyOrderProof.lean": {
+        "sha256": "43f68e9aba82959d98c47def6e600130baa5db61601e5e9ac85184478717e546",
+        "bytes": 5750
+      },
+      "CacheMapInvariantProof.lean": {
+        "sha256": "082936af2a4d5c639275a2a1360bb1913dd727b712cdd9cf45b0558029082f40",
+        "bytes": 15910
+      },
+      "CacheStartProof.lean": {
+        "sha256": "6ab63db1ed4012d862dd784379cfd816bdcac5b7daca719cceaec5dd1c20035b",
+        "bytes": 21721
+      },
+      "CacheStartSpecification.lean": {
+        "sha256": "ed3e26cbbec913d9709b27ac29d03df6598b5b2606a64a125eeba14295eb887a",
+        "bytes": 3548
+      },
+      "HubDiscoveryCacheState/Funs.lean": {
+        "sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+        "bytes": 33054
+      },
+      "HubDiscoveryCacheState/FunsExternal.lean": {
+        "sha256": "d11eeee90fbb5dee664f68046f70ff4ac2a206e38b082ef350be25093682f4ac",
+        "bytes": 20504
+      },
+      "HubDiscoveryCacheState/Types.lean": {
+        "sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+        "bytes": 3732
+      },
+      "HubDiscoveryCacheState/TypesExternal.lean": {
+        "sha256": "3f4e6930a1658bcb2d259f4a51eedd6d81fe920c19bf76ae94749866291e9bb2",
+        "bytes": 3082
+      },
+      "README.md": {
+        "sha256": "44f5ecd889e6e03e6d29f07f4bdbe431d8a3f0da6bf80ec74875c6faf1a9d48f",
+        "bytes": 8769
+      },
+      "lake-manifest.json": {
+        "sha256": "dd9ef3178940943c40d1aa5df7aff9582832d10525e4c7376aab967432f19da4",
+        "bytes": 3915
+      },
+      "lakefile.lean": {
+        "sha256": "7421a908d9ea93626e03061a6cd0cb6d9b5556621d7d6d86b8a48ba599a27098",
+        "bytes": 385
+      },
+      "lean-toolchain": {
+        "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "bytes": 25
+      }
+    },
+    "postcheck_readme": {
+      "sha256": "546c1bde7a65462a165b410fe603b4b6ed1b04c9b7d7531439168fb5b02b056e",
+      "bytes": 10447
+    },
+    "postcheck_change": "Documentation only; both checked leaves and all prior proof/model/config files retain their accepted identities"
+  },
+  "prerequisite_receipts": [
+    "five-operation-extraction-20261031.json",
+    "read-key-invalidation-20261031.json",
+    "start-contract-20261031.json",
+    "complete-contract-20261031.json"
+  ],
+  "toolchain": {
+    "lean": "4.35.0",
+    "aeneas_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "qualification_configuration": "Same qualified private Lean/Aeneas setup and recorded existing discriminant instance-name patch. No tool edits, extraction, model rebuild or prior-proof rebuild. Clean unpatched upstream reproduction remains unmeasured.",
+    "effective_lakefile_sha256": "ec24f002e4aa4e1c4c6986b8443f4566752f2855d8cae27fa2e07115181c071b",
+    "effective_manifest_sha256": "2bbd5afa9c8e51f8033f5715cc74818997fd2640f1cff10b2dc85d165228ed23",
+    "added_mathlib_imports": [
+      {
+        "source": "Mathlib/Order/Prod/Lex/Basic.lean",
+        "sha256": "8efbd1fec38c7ad7e88a65bb58df44b1efd0e4cb4eb7f76a483514011fbc5902",
+        "olean": ".lake/build/lib/lean/Mathlib/Order/Prod/Lex/Basic.olean"
+      },
+      {
+        "source": "Mathlib/Data/List/Lex.lean",
+        "sha256": "ae6a72f02b565283625de08ec8e07e48d36271743b85e2089b05b69b59e0d9d5",
+        "olean": ".lake/build/lib/lean/Mathlib/Data/List/Lex.olean"
+      }
+    ]
+  },
+  "execution": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "packet": {
+          "sha256": "b9aa29aea532b718e86a9a74a246ea695a35f3976aafbcde10d81d3caddde97e",
+          "bytes": 4862
+        },
+        "runner": {
+          "sha256": "cb505acb531d35d02e8c324cfccbb7e69c4ae1081ceaa19fb8bee83a34fffc06",
+          "bytes": 6328
+        },
+        "stages": {
+          "key-order": {
+            "command": "LAKE_NO_UPDATE=1 lake env lean CacheKeyOrderProof.lean -o .lake/build/lib/lean/CacheKeyOrderProof.olean",
+            "exit_status": 1,
+            "elapsed_ms": 8088,
+            "input_postcheck_exit": 0,
+            "log": {
+              "sha256": "1206ea8242b6ebb345be5ec57cab1b27ae61e8d693bd99229b94eca4db3d4f79",
+              "bytes": 2143
+            }
+          }
+        },
+        "input_before": {
+          "sha256": "1f69d46e6f8559378c7de6c3e6caddc0ab8778eaf28b3681ca57bc1043d1ada3",
+          "bytes": 3027
+        },
+        "input_after": {
+          "input-after-key-order.sha256": {
+            "sha256": "1f69d46e6f8559378c7de6c3e6caddc0ab8778eaf28b3681ca57bc1043d1ada3",
+            "bytes": 3027
+          }
+        },
+        "interpretation": "Key check failed on competing LinearOrder.toOrd versus exact Prod.Lex Ord instances and inferred type metavariables. Map stage was skipped. Repair uses Std comparison laws for the already-matched exact comparator; no new axiom or changed map contract."
+      },
+      {
+        "attempt": 2,
+        "packet": {
+          "sha256": "5d7a441aba2718998912952bcb93d05cb9f9551728b2921019e840077c972d87",
+          "bytes": 4845
+        },
+        "runner": {
+          "sha256": "42a0be9a2715bbef23c683664b51533b02ad734d8b844a4a8ea650c2211b8616",
+          "bytes": 6328
+        },
+        "stages": {
+          "key-order": {
+            "command": "LAKE_NO_UPDATE=1 lake env lean CacheKeyOrderProof.lean -o .lake/build/lib/lean/CacheKeyOrderProof.olean",
+            "exit_status": 0,
+            "elapsed_ms": 12449,
+            "input_postcheck_exit": 0,
+            "log": {
+              "sha256": "12b2d6f1f6680bc3708216448cf0502fb07315f4270f189921bc1f1e0e690ae5",
+              "bytes": 384
+            }
+          },
+          "map-invariants": {
+            "command": "LAKE_NO_UPDATE=1 lake env lean CacheMapInvariantProof.lean -o .lake/build/lib/lean/CacheMapInvariantProof.olean",
+            "exit_status": 1,
+            "elapsed_ms": 2769,
+            "input_postcheck_exit": 0,
+            "log": {
+              "sha256": "ab7b8d3e8c91b07362fe840e7cac58b16dfa2157667e481df2f924ea9ab7abe2",
+              "bytes": 3054
+            }
+          }
+        },
+        "input_before": {
+          "sha256": "b323fec63d83042b9346a4f18bda7a6675e52063a7ef0beaf01bc824268c1b51",
+          "bytes": 3027
+        },
+        "input_after": {
+          "input-after-key-order.sha256": {
+            "sha256": "b323fec63d83042b9346a4f18bda7a6675e52063a7ef0beaf01bc824268c1b51",
+            "bytes": 3027
+          },
+          "input-after-map-invariants.sha256": {
+            "sha256": "b323fec63d83042b9346a4f18bda7a6675e52063a7ef0beaf01bc824268c1b51",
+            "bytes": 3027
+          }
+        },
+        "interpretation": "Key check passed. Map check failed solely because erase_ordered did not unfold its named Ordered predicate. One-line proof repair; all public contracts unchanged."
+      },
+      {
+        "attempt": 3,
+        "packet": {
+          "sha256": "f17cc2a9a715ec79d6e7cc40c2bfd9291c698082d83547d25185a38853ddd4d2",
+          "bytes": 4767
+        },
+        "runner": {
+          "sha256": "e6bdb2cfbacc78268b4bda575736af5681a6ea3a8ae7587fd4dccbb3ca867eb4",
+          "bytes": 5989
+        },
+        "stages": {
+          "map-invariants": {
+            "command": "LAKE_NO_UPDATE=1 lake env lean CacheMapInvariantProof.lean -o .lake/build/lib/lean/CacheMapInvariantProof.olean",
+            "exit_status": 0,
+            "elapsed_ms": 2533,
+            "input_postcheck_exit": 0,
+            "log": {
+              "sha256": "28b127e6022737b3fab862072cde1d9b758f6224e6085978d6a5ef33c9bd7a2f",
+              "bytes": 2661
+            }
+          }
+        },
+        "input_before": {
+          "sha256": "1884e139f6a83c9d56e64ced8a5dd55bf28222c3b8c5721b5e37e26d11dc7462",
+          "bytes": 3129
+        },
+        "input_after": {
+          "input-after-map-invariants.sha256": {
+            "sha256": "1884e139f6a83c9d56e64ced8a5dd55bf28222c3b8c5721b5e37e26d11dc7462",
+            "bytes": 3129
+          }
+        },
+        "interpretation": "Map-only check passed, reusing exact accepted key-order OLean as the tenth qualified prerequisite."
+      }
+    ],
+    "accepted_stages": {
+      "key_order": {
+        "attempt": 2,
+        "elapsed_ms": 12449,
+        "executable_guards": 11,
+        "log": {
+          "sha256": "12b2d6f1f6680bc3708216448cf0502fb07315f4270f189921bc1f1e0e690ae5",
+          "bytes": 384
+        },
+        "olean": {
+          "sha256": "99c1b330a28ab1e2c70c1d34a035970eaf2df67c3f011f250dbddc4c8bc15038",
+          "bytes": 97360
+        }
+      },
+      "map_invariants": {
+        "attempt": 3,
+        "elapsed_ms": 2533,
+        "executable_guards": 21,
+        "log": {
+          "sha256": "28b127e6022737b3fab862072cde1d9b758f6224e6085978d6a5ef33c9bd7a2f",
+          "bytes": 2661
+        },
+        "olean": {
+          "sha256": "04d441d950a8c35fc2e5e3c51579611863a5bdd332fb0cc2d30de02f99e294c2",
+          "bytes": 364144
+        }
+      }
+    },
+    "final_gates": "All 15 recorded source/config entries and effective private config checked; 10 prerequisite OLeans and pinned supporting source hashes match before/after map stage. Key-order artifact reused exactly. The two added Mathlib import artifacts were recorded and unchanged across accepted stages.",
+    "mathlib_import_identities": [
+      "48bd74b1fd93be0d197696016f4264faa4b732f90a18a76d9ba10d04e298e4f8  /home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/cache-key-frame-check1/source/.lake/packages/mathlib/.lake/build/lib/lean/Mathlib/Order/Prod/Lex/Basic.olean",
+      "2075f95cd2bdf5d3fe79545c73efd66e132e28fa1897862011c20c5b6eb0b678  /home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/cache-key-frame-check1/source/.lake/packages/mathlib/.lake/build/lib/lean/Mathlib/Data/List/Lex.olean"
+    ],
+    "setup_errors": [
+      "Attempt 1 remote task directory was absent before transfer; created before any compiler run.",
+      "Attempt 2 initial rsync destination typo was corrected and packet identities checked before compilation."
+    ],
+    "warnings": "Unused simp/tactic arguments and deprecated conditional lemma names; accepted runs have no compiler errors or sorryAx."
+  },
+  "contracts": {
+    "key_order": "Exact generated key comparator equals the full-field lexicographic code, retaining the generation, principal, all fingerprint bytes and server; code injectivity and strict-order/transitivity/asymmetry/trichotomy are proved without a hash injectivity assumption.",
+    "ordered_maps": "Strict pairwise key order implies uniqueness. Insertion, first matching removal and head removal preserve strict order and hence unique keys.",
+    "insert": "On an ordered input, actual concrete external insertion returns the full previous lookup value, writes the full supplied value and preserves every other key/value. Size grows by one exactly for an absent key and does not grow on replacement.",
+    "remove": "Actual concrete external removal returns the full previous value, removes the key, never grows the map and preserves every other full value.",
+    "capacity_and_victim": "Given ordered input and length at most 4096, room plus insertion preserves the bound. If an eviction victim is named, it belongs to the original map and is its minimum key under the checked comparator.",
+    "key_predicates": "Erase, room and insertion preserve arbitrary predicates on stored keys, with insertion additionally requiring that predicate of its new key. These lemmas support the forthcoming generation-coherence proof."
+  },
+  "axiom_audit": {
+    "executable_guards": 32,
+    "permitted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "printed_closures": {
+      "CacheKeyOrderProof.code_injective": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheKeyOrderProof.actual_comparison_code": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheKeyOrderProof.less_trans": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheKeyOrderProof.key_trichotomy": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheMapInvariantProof.ordered_unique": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheMapInvariantProof.put_ordered": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheMapInvariantProof.insertion_old_lookup": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheMapInvariantProof.put_room_capacity": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheMapInvariantProof.victim_minimum": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheMapInvariantProof.actual_insert_contract": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheMapInvariantProof.actual_remove_contract": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheMapInvariantProof.actual_pop_contract": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ]
+    },
+    "sorryAx_in_accepted_closures": false,
+    "new_axioms": false
+  },
+  "boundaries": [
+    "This proves the explicit external collection model used by extracted Hub, not the Rust standard-library BTreeMap implementation. Native order/borrowing/identifier/clone/collection correspondence remains explicit.",
+    "Ordered-input and capacity premises are preserved by model primitives. Reachable-state invariants from actual Hub operations and finite histories are not yet established.",
+    "Generation coherence, monotonic state generation, intervening replacement histories and actual-source semantic controls remain next.",
+    "Server-wide invalidation retains its recorded mutable-callback translation limitation; listeners, async mutex refinement and cross-replica delivery are not proved.",
+    "No native runtime, generated Types/Funs, primitive model, tool dependency, authorization rule or CI machinery changed. No native test, full Docker check, deployment, push or paid model call occurred in this checkpoint."
+  ]
+}

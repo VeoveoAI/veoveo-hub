@@ -68,12 +68,20 @@ for either a successful or failed late payload and arbitrary clock input. Its mi
 ticket is derived from key erasure, not assumed. This covers supported key invalidation,
 not the unsupported server-wide operation below.
 
-Sorted/unique-map invariant maintenance, minimum-eviction correspondence and finite
-histories over actual method results remain next. The insertion read/frame/size and
-room frame lemmas do not establish those invariants. The whole-list room update is
-exact; identifying its head victim with the native minimum requires justified sorted
-order. Capacity-invariant preservation and the invariant that all stored generations
-match the state's generation also remain pending.
+`CacheKeyOrderProof` now connects the actual extracted comparator to a lossless
+lexicographic code of every key field and fingerprint byte. Its strict-order laws
+use the library laws for that exact comparator. `CacheMapInvariantProof` derives
+unique keys from strict ordering and proves ordering preservation through insertion,
+removal and minimum removal. Insertion returns the previous full value, preserves
+unrelated values, and grows by exactly one only for an absent key. The combined
+room/insertion operation preserves the 4096 bound, and the named eviction victim is
+the minimum key. These are contracts of the concrete external collection model;
+they do not verify Rust's standard-library `BTreeMap` implementation.
+
+State-level preservation through actual Hub operations remains next: derive ordered,
+bounded maps and generation coherence from empty state, then compose finite
+histories. The map lemmas establish preservation from ordered inputs; this checkpoint
+does not yet derive those inputs for every reachable cache state.
 
 Server-wide `discard_server` invalidation remains unsupported and unproved. The
 six-root extraction translated, but unchanged generated retain-closure dictionaries
@@ -92,6 +100,8 @@ LAKE_NO_UPDATE=1 lake env lean CacheStartSpecification.lean -o .lake/build/lib/l
 LAKE_NO_UPDATE=1 lake env lean CacheStartProof.lean -o .lake/build/lib/lean/CacheStartProof.olean
 LAKE_NO_UPDATE=1 lake env lean CacheCompleteSpecification.lean -o .lake/build/lib/lean/CacheCompleteSpecification.olean
 LAKE_NO_UPDATE=1 lake env lean CacheCompleteProof.lean -o .lake/build/lib/lean/CacheCompleteProof.olean
+LAKE_NO_UPDATE=1 lake env lean CacheKeyOrderProof.lean -o .lake/build/lib/lean/CacheKeyOrderProof.olean
+LAKE_NO_UPDATE=1 lake env lean CacheMapInvariantProof.lean -o .lake/build/lib/lean/CacheMapInvariantProof.olean
 ```
 
 The primitive model build passed in 10.685s. The final read/key-invalidation leaf
@@ -113,8 +123,20 @@ axiom. Of nine printed closures, two are standard-only and seven include that ex
 addition boundary; none contain `sorryAx`. The dependency appears even in stale and
 success theorem closures because Lean traverses the whole referenced completion
 definition; it does not assert time addition occurs in those branches. Native addition
-is not assumed total, nonoverflowing or future-valued. These results do not qualify
-history/map invariants or native collection/time refinement.
+is not assumed total, nonoverflowing or future-valued. Those completion results alone
+do not qualify history/map invariants or native collection/time refinement.
+
+The key-order leaf subsequently passed in 12.449s, and the final map-invariant leaf
+passed in 2.533s while reusing that exact checked key-order artifact. Their eleven
+and twenty-one executable axiom guards accept only the three standard logical
+axioms; all twelve printed closures match, with no `sorryAx`. The first key check
+failed because two library order instances did not match; the repair uses laws for
+the exact comparator. The first map check then found one missing definition unfold
+in the removal proof. Both proof-authoring failures are retained in the
+[key/map receipt](evidence/key-map-invariants-20261031.json). Neither was a runtime
+defect or required a changed map contract. Source/configuration and imported artifacts
+were checked around each run. No native, generated, primitive-model or tool source
+changed, and no prior proof/model dependency was rebuilt.
 
 Validation used Lean 4.35.0 and the pinned Aeneas revision with the existing
 [qualified discriminant instance-name patch](../request_composition/tooling/qualified-discriminant-instance.patch)

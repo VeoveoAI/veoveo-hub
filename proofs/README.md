@@ -104,7 +104,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
-| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Exact reads, key invalidation, start/completion and direct key fence checked; prove invariant/history closure, server invalidation and listener freshness |
+| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Exact cache operations and key/map preservation checked; prove state/history closure, server invalidation and listener freshness |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
@@ -920,11 +920,22 @@ Prevents cross-context disclosure and stale routing represented as current disco
   This does not prove native addition or arbitrary payload structural equality.
   No comparison/clock success assumption is required for stale rejection. Longer
   histories and invariant preservation remain open.
+- **Checked key order and map preservation:** the
+  [key/map receipt](discovery_cache/evidence/key-map-invariants-20261031.json)
+  connects the actual extracted comparator to a lossless full-field lexicographic
+  code and proves its strict-order laws. The concrete external map model preserves
+  strict ordering and unique keys through insertion/removal. Insertion returns the
+  full previous value, replaces without growth, and frames other complete values.
+  Room followed by insertion preserves the 4096 bound; the named head victim is
+  the minimum key. The key leaf passed in 12.449 s and the final map leaf in 2.533 s,
+  with 32 executable standard-only axiom guards across the pair. This does not
+  verify Rust's `BTreeMap` implementation or establish reachable cache-state
+  invariants; those require composing the established operation contracts.
 - **Boundary/effort:** moderate for key/cursor comparisons; substantial for the
   cache/listener state machine. Assume collision-resistant identity hashing, correct
   authenticated inputs and mutex/watch-channel semantics where effects are modeled.
-- **Residual/next:** establish map ordering/uniqueness, capacity and generation
-  invariant preservation, then compose the checked operations into finite
+- **Residual/next:** derive map ordering/uniqueness, capacity and generation
+  invariants from empty state through actual cache operations, then compose finite
   histories covering replacement work and generation changes. Qualify actual-source
   semantic controls and close server-wide invalidation's translation boundary.
   The checked direct key fence does not establish reconnect
