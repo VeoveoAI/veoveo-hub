@@ -180,9 +180,12 @@ mod tests {
         assert!(case.allows(), "both sets may be empty");
     }
 
+    /// A named change to a fixture.
+    type Case = (&'static str, fn(&mut Fixture));
+
     #[test]
     fn session_rejects_every_compared_identity_or_scope_binding() {
-        let cases: [(&str, fn(&mut Fixture)); 13] = [
+        let cases: [Case; 13] = [
             ("family principal", |f| {
                 f.family.principal_id = PrincipalId::parse("session-fixture-other").unwrap()
             }),
