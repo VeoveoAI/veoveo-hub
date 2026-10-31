@@ -401,6 +401,7 @@ impl Fixture {
                 Prepared {
                     image_context: context,
                     policy: None,
+                    providers: None,
                 },
             )
             .await

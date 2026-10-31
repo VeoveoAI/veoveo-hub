@@ -382,7 +382,17 @@ secret only the gateway keeps; the Hub stores the secret's digest. The sandbox t
 the pushed image by digest, the factory template's size and driver configuration,
 restart policy `always`, both providers, and the installation's base policy with the
 network rules of the revision's `openshell/policy.yaml` added; a repository policy that
-sets anything else or reuses a base rule's name is refused. Its environment names
+sets anything else or reuses a base rule's name is refused. It also attaches the
+installation's providers that the revision requests in `openshell/providers.yaml`,
+`providers:` and a list of at most 16 provider names, each a lowercase DNS label, once,
+and that the control plane's `factory.providers` grants to the instance's repository:
+each grant names a provider the installation created in the factory workspace, such as
+`vv-factory-model`, and the Lore repository IDs it is granted to. A request never adds a
+policy rule, so a branch gains only what the provider's own endpoints allow. The
+instance's status names each requested provider its repository is not granted, as
+`ungrantedProviders`, and the sandbox runs without it; a file that is not that form fails
+the push at `create`, and a granted provider the workspace does not hold fails the
+sandbox's creation. Its environment names
 `VEOVEO_DEPLOYMENT_ID`, `LORE_IDENTITY`, `VEOVEO_PUBLIC_BASE_URL`
 (`http://<sandbox>.internal:<port>`), `VEOVEO_PORT` and `VEOVEO_HUB_ISSUER`. Its fixed
 start command clones `<loreServer>/<repository>` into `/sandbox/src` when no checkout
@@ -438,13 +448,14 @@ and holds no assignment of its own; a pusher without the grant is refused with
 `invalid_grant`. Before every sandbox creation and restart the Hub rotates the
 credential, so the sandbox starts as the latest pusher.
 
-A push applies to an existing instance by the image, the policy, the size and the
-driver configuration its sandbox runs, which OpenShell reports as the sandbox's spec:
-the policy in the canonical form OpenShell records at creation, which is the form the
-Hub composes, and the size and driver configuration as the Hub passed them. The Hub
-never updates a sandbox's configuration; OpenShell's `UpdateConfig` needs
-`config:write`, which the Hub's identity does not hold. With the same image, policy,
-size and driver configuration the Hub stops and starts the sandbox; the start command
+A push applies to an existing instance by the image, the policy, the size, the driver
+configuration and the providers its sandbox runs, which OpenShell reports as the
+sandbox's spec: the policy in the canonical form OpenShell records at creation, which is
+the form the Hub composes, the size and driver configuration as the Hub passed them, and
+the providers as a set. The Hub never updates a sandbox's configuration; OpenShell's
+`UpdateConfig` needs `config:write`, which the Hub's identity does not hold. With the
+same image, policy, size, driver configuration and providers the Hub stops and starts
+the sandbox; the start command
 fetches the branch's latest revision. OpenShell's stop answers once the sandbox
 stopped, from ready, from a failed program and from a crash loop's automatic restart,
 and resets the restart count; its start runs the program at once. A sandbox still

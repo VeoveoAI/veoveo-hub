@@ -65,6 +65,8 @@ schemars = "1.2.2"
 secrecy = "0.10.3"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
+# The YAML of a revision's openshell/providers.yaml, at the version openshell-policy already uses.
+serde_yaml = "=0.9.34"
 sha2 = "=0.11.0"
 # The 0.2 line, whose `Sse` type rmcp 3.5.0's transport exposes.
 sse-stream = "=0.2.6"

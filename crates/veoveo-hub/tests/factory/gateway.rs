@@ -192,6 +192,21 @@ impl Gateway {
             .remove(&(workspace.into(), name.into()));
     }
 
+    /// A provider the installation created in `workspace`, which sandboxes may attach.
+    pub fn add_provider(&self, workspace: &str, name: &str) {
+        self.state.lock().unwrap().providers.insert(
+            (workspace.into(), name.into()),
+            p::Provider {
+                metadata: Some(p::ObjectMeta {
+                    name: name.into(),
+                    workspace: workspace.into(),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        );
+    }
+
     pub fn providers(&self, workspace: &str) -> Vec<String> {
         self.state
             .lock()
