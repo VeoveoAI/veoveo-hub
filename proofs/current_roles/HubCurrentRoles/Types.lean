@@ -2032,6 +2032,14 @@ structure control_plane.policy.PolicyDecision where
     veoveo_types.permission_names.PermissionName alloc.alloc.Global
   trace_id : control_plane.ids.TraceId
 
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{closure}]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 78:20-78:61 -/
+@[reducible]
+def delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure
+  :=
+  alloc.collections.btree.set.BTreeSet
+  veoveo_types.permission_names.PermissionName alloc.alloc.Global
+
 /-- [veoveo_hub::delegation::CurrentPermissions]
     Source: 'crates/veoveo-hub/src/delegation.rs', lines 98:0-101:1 -/
 structure delegation.CurrentPermissions where

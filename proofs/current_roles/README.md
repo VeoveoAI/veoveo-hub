@@ -40,6 +40,16 @@ issuer behavior and formatting boundaries remain as stated by the individual
 theorem audits. The historical extraction and mutation receipts below retain
 their original source identities.
 
+The [native narrowing extension](../request_composition/evidence/delegated-policy-client.json)
+adds the unchanged concrete `BTreeSet` adapter and `SubjectDelegation::narrow` to
+this shared graph. Their existing library operations require no handwritten-model
+changes. The exact unrelated `delegation::authority::narrow` function is excluded
+from this extraction because the broad start selector also matched it and its
+generated parameter shadows a namespace. Neither required native method calls
+that generic function; no opaque replacement is introduced. Its separate authority
+proof package remains unchanged. Model defaults/audit and both connected client
+targets pass with the exact regenerated source.
+
 ## Current session-family authority
 
 This manual increment qualifies the pure `SessionFamilyAuthority::allows` sub-boundary

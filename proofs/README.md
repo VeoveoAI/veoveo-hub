@@ -597,120 +597,72 @@ global barrier is proposed.
 
 ## HUB-ROUTE-01 — Fresh routing and captured routing
 
-**Invariant/failure prevented.** Fresh requests choose deterministically from ordinary
-deployments and the principal's explicit branch/base selection. A missing explicit
-branch is unavailable, never silently replaced by base or an ordinary deployment.
-Already captured requests/Tasks retain their exact composition rather than rerouting.
+**Invariant/failure prevented.** Fresh requests choose from ordinary deployments and
+an explicit branch/base selection. A missing explicit branch is unavailable, never
+silently replaced. Captured requests and Tasks retain their exact composition.
 
-- **Current source:** [admit_execution/route/select_instances](../crates/veoveo-hub/src/execution/selection.rs)
-  and [RegistrationSnapshot::of](../crates/veoveo-hub/src/registration/snapshot.rs).
-  The original ordinary-routing review used
-  [5d3f43f](https://github.com/VeoveoAI/veoveo-hub/blob/5d3f43fb8fdc3b25436f9d7526ae7f9f48b662c5/crates/veoveo-hub/src/execution/selection.rs#L39).
-  Ordinary ordering prefers live, then newest registration, then deployment ID.
-  When all are orphaned, the newest may still route until grace collection removes it.
-- **Tests:** [selection scenario](../crates/veoveo-hub/src/execution/tests.rs)
-  and [routing test](../crates/veoveo-hub/tests/routing.rs),
-  `the_newest_registered_deployment_serves_and_captures_keep_their_routing`.
-  The [request-routing native receipt](task_continuity/evidence/request-routing-native-receipt.json)
-  records SDK-verified recipient/context assertions and a retained Task's current
-  grant narrowing and revocation, with a deliberate policy-bypass control and
-  restoration. This is component evidence; it adds no Lean coverage of the assembly.
-- **Formal boundary:** the [selection pilot](selection/README.md) is partial
-  evidence for this system invariant; its precise proved subproperties are below.
-- **Applicability:** the merge preserves exact proved kernel/model bytes and caller
-  linkage by read-only inspection. Proof runs remain tied to their recorded inputs;
-  the changed surrounding routing has no new formal or deployed qualification here.
-- **Residual/next:** trace the broader routing contract. Map assembly, ordinary
-  deployment ordering, retention, selection storage and request dispatch remain unproved.
-  Avoid more low-value corollaries of the already covered local branch scan.
-  The [request-composition package](request_composition/README.md) now checks exact
-  direct/delegated request-context construction and complete HTTP-client assembly
-  after successful context construction, plus conditional snapshot-map preservation.
-  Its [first proof record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-request-assembly-proof.md)
-  identifies the untouched extracted bodies, native-model and formatting boundaries,
-  successful package/audit checks and remaining semantic controls. This does not yet
-  establish selected-map correctness, namespace-helper completion/order, provenance
-  of supplied permissions or actual SDK issuer/recipient composition.
-  The [lookup checkpoint](request_composition/SelectedRegistrationProof.lean) now
-  proves the actual extracted slug getter accepts exactly one matching registration
-  and refuses zero or multiple matches, with the complete row preserved. Its five
-  standard-only audits and exact nondefault target pass
-  ([receipt](request_composition/evidence/registration-lookup-checkpoint.json)).
-  The companion keyed-lookup lemma covers the handwritten map model. Full selection
-  collection remains open. An actual-Rust ambiguity bypass now fails the unchanged
-  getter proof, with an independent semantic counterexample and a fresh passing
-  restoration ([control receipt](request_composition/evidence/registration-lookup-control.json)).
-  This qualifies the getter contract, not the composed request path or the separate
-  assembly contracts' pending semantic controls.
-  The actual selection-entry closure now has an exact acceptance/refusal contract:
-  unavailable, missing and wrong-slug entries produce no route; a matching entry
-  preserves the complete keyed row and unchanged snapshot, with no desired-route
-  or well-formedness premise. All ten module audits and direct/target checks pass
-  ([entry receipt](request_composition/evidence/selected-entry-checkpoint.json)).
-  The entry contract now has a qualified actual-Rust slug-check bypass, independent
-  semantic counterexample and exact canonical restoration
-  ([control receipt](request_composition/evidence/selected-entry-control.json)).
-  Full collection, derived route uniqueness and composed request routing remain open.
-  The [finite scan](request_composition/SelectedCollectionProof.lean) now establishes
-  total cursor steps in the explicit iterator model using the qualified extracted
-  entry predicate, exact eligible reference-sequence contents, and equal-key whole-row
-  consistency. Five standard-only audits and direct/nondefault target checks pass
-  ([receipt](request_composition/evidence/finite-selection-scan-checkpoint.json)).
-  That scan checkpoint alone does not prove map insertion, `collectMap`'s result or the full
-  `selected` body; native iterator/collection correspondence remains a boundary.
-  The subsequent [insertion proof](request_composition/SelectedMapInsertionProof.lean)
-  establishes total insertion, strict output ordering, derived key uniqueness and
-  exact whole-row union in the explicit map model. Equal-key compatibility is
-  derived from the checked emissions, not a desired-output premise
-  ([receipt](request_composition/evidence/ordered-map-insertion-checkpoint.json)).
-  The [complete collection proof](request_composition/SelectedMapCollectionProof.lean)
-  now derives a successful collector result with exact eligible whole-row contents,
-  ordering and unique keys. It connects that map to the actual extracted `selected`
-  body and proves preservation in every successful result
-  ([receipt](request_composition/evidence/complete-selection-collection-checkpoint.json)).
-  Collector audits are standard-only; caller audits also name the existing
-  uninterpreted namespace helper. Its completion, native representation refinement,
-  full constructor-input refinement, combined semantic qualification and broader
-  request/issuer composition remain open.
-  An [unchanged-helper probe](request_composition/evidence/namespace-helper-translation-probe.json)
-  confirms that Charon extracts the namespace algorithm but the pinned Aeneas
-  fails on its nested borrows and an indexed projection. Partial outputs are not
-  adopted; this adds no proof coverage and does not justify a runtime change.
-  The actual snapshot constructor now translates unchanged and compiles alongside
-  all six existing request-composition targets. The handwritten model adds only
-  `Arc.new` and a missing generic map-method adapter
-  ([checkpoint](request_composition/evidence/snapshot-constructor-model-checkpoint.json)).
-  This supporting checkpoint alone makes no additional operation-correctness claim.
-  The [constructed-route proof](request_composition/SnapshotConstructorProof.lean)
-  now derives key/row coherence through arbitrary overwriting insertion and the
-  actual constructor's finite cursor. It composes the actual selected getter with
-  independent captured-component resolution and the full HTTP constructor/context
-  contract ([receipt](request_composition/evidence/constructed-route-context-checkpoint.json)).
-  Present routes preserve the complete current row; unavailable, missing and
-  wrong-slug selections have no fallback. Both new targets pass all nine scoped
-  audits. Native composition-key uniqueness and collection correspondence,
-  successful namespace-helper completion, current-policy provenance, async wiring
-  and SDK issuer/recipient composition remain explicit boundaries. This is not a
-  full constructor-input presence/latest-row or unconditional completion theorem.
-  The [HTTP permission-loss source control](request_composition/evidence/http-permission-preservation-control.json)
-  now qualifies constructor preservation: an actual Rust mutation is rejected by
-  the unchanged proof, an independent accepted-input witness proves the lost grant,
-  and exact source restoration passes the connected targets. This covers that
-  constructor edge, not every composed edge or provenance of the supplied grants.
-  The [shared graph qualification](request_composition/evidence/shared-policy-request-graph.json)
-  removes the duplicate generated graph and passes all existing current-policy
-  defaults, model audit, request defaults and six routing targets. The new
-  [direct-policy/client theorem](request_composition/DirectPolicyClientProof.lean)
-  composes actual grant computation with the complete HTTP constructor: accepted
-  direct clients preserve the computed set, with membership exactly characterized
-  by the independent existing grant relation. It assumes no desired grant set.
-  Its checked `constructed_direct_policy_route_exact` corollary now derives the row
-  from computed retained-route resolution and installation policy from the same
-  supplied catalog, with exact absence/no-fallback and complete present-client
-  guarantees ([receipt](request_composition/evidence/direct-policy-route.json)).
-  Actual delegated narrowing and SDK issuance remain next. This
-  uses the recorded Hub `3bc2923` source baseline, not a fresh extraction of all
-  current main; see the shared graph README for intervening source/domain changes.
+**Checked implementation-linked coverage.** The shared extraction uses Hub
+`3bc2923`, SDK `239622d` and Core `120306e`; subsequent source/domain differences
+are documented in [request composition](request_composition/README.md).
+
+- Actual selection-entry processing omits unavailable, missing and wrong-slug
+  entries and preserves the complete matching row. The finite scan and ordered-map
+  collection derive exact eligible contents, ordering and unique keys.
+- The actual slug getter accepts exactly one matching registration and returns
+  no row for zero or multiple matches. With native composition-key uniqueness,
+  selected lookup equals the independently computed retained route, without fallback.
+- Successful actual snapshot construction derives deployment-key/row coherence,
+  including overwriting repeated keys. This discharges that premise for the
+  [constructed route/context proof](request_composition/SnapshotConstructorProof.lean).
+- Actual request-context construction covers direct and delegated cases, including
+  its existing refusal cases. Given accepted context, the actual HTTP constructor
+  preserves the entire independently specified client, including destination,
+  identity, authority, supplied permissions and delegation fields.
+- The [direct policy/client proof](request_composition/DirectPolicyClientProof.lean)
+  derives the row from computed retained-route resolution and policy from the same
+  supplied catalog generation. It proves complete direct-client construction and
+  permission membership exactly equal to the independent existing grant relation;
+  neither a desired row nor desired permissions are assumed.
+- The [delegated policy/client proof](request_composition/DelegatedPolicyClientProof.lean)
+  now connects the actual native set adapter and `SubjectDelegation::narrow` to
+  that route. Direct calls retain current grants; delegated calls retain exactly
+  their intersection with carried permissions. Both directions of membership and
+  valid empty results are proved, followed by complete client/context preservation.
+  The same current subject principal drives policy in both branches. Seven scoped
+  audits pass; no new handwritten primitive or opaque assumption was added.
+
+**Qualification evidence.** Actual Rust faults that bypass getter ambiguity,
+ignore the selected slug, or erase constructor permissions are rejected by frozen
+proofs. Independent witnesses establish the erroneous results and fresh restoration
+passes. Receipts: [getter](request_composition/evidence/registration-lookup-control.json),
+[entry](request_composition/evidence/selected-entry-control.json),
+[constructor](request_composition/evidence/http-permission-preservation-control.json),
+[complete collection](request_composition/evidence/complete-selection-collection-checkpoint.json),
+[constructed route](request_composition/evidence/constructed-route-context-checkpoint.json),
+[direct policy composition](request_composition/evidence/direct-policy-route.json),
+[native narrowing and connected client](request_composition/evidence/delegated-policy-client.json).
+The new narrowing checkpoint includes a passing focused Rust set-adapter test;
+actual-source fault controls for this new edge remain pending.
+The [native routing receipt](task_continuity/evidence/request-routing-native-receipt.json)
+separately records actual Hub/PostgreSQL and SDK-verified recipient/context checks,
+a retained Task's current-policy narrowing/revocation, and a policy-bypass control.
+Native probes do not formally refine the async caller or SQL.
+
+**Remaining boundaries.** Native set/map/iterator/Arc correspondence and finite
+cursor laws remain explicit. Constructor and selection results are conditional on
+successful namespace-helper completion; the unchanged helper currently exceeds
+pinned Aeneas support. Full constructor-input presence/latest-row behavior and
+ordinary deployment ordering are not established by key/row coherence. The
+[selection pilot](selection/README.md) covers only its recorded local decision
+properties. The captured catalog is a supplied immutable generation, not a theorem
+of globally latest database state. Snapshot acquisition, actual transport/caller
+wiring, broader selection storage and dispatch remain separate obligations.
+
+**Next connected contribution.** Qualify the native narrowing edge with actual Rust
+faults for excess permissions and loss of valid permissions, followed by restored
+baseline checks. Then connect actual SDK issuance and recipient checks. Existing
+native probes do not replace those missing implementation proofs. All claims remain
+partial; no whole-request or whole-Hub verification is implied.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

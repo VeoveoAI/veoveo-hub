@@ -25,9 +25,8 @@ and expanded `Ord.min` dictionaries. Current main's additional
 `RefreshRevocation::AdministratorRevocation` variant is outside the baseline enum
 domain even though `bound_to` and `deliverable` bodies are unchanged; a future
 source refresh must include it before claiming whole-current-main applicability.
-Namespace-helper completion and ordering,
-selected-row/current-permission composition, SDK issuer/recipient composition and async caller
-wiring remain separate obligations.
+Namespace-helper completion and ordering, SDK issuer/recipient composition and
+async caller wiring remain separate obligations.
 
 Historical mutation witnesses and receipts are frozen recipes for their recorded
 generated namespaces and hashes. They do not import the consolidated graph and
@@ -55,7 +54,38 @@ The direct theorem's audit permits only standard Lean
 axioms and the constructor's two existing error-formatting symbols. The check
 passes in 2.69 seconds with one unused-simp warning and no unreviewed axiom. The
 route theorem additionally names the existing namespace helper; both pass together
-in 2.64 seconds. Actual delegated narrowing and SDK issuance remain next.
+in 2.64 seconds.
+
+## Native narrowing and the complete selected client
+
+[DelegatedPolicyClientProof.lean](DelegatedPolicyClientProof.lean) now proves the
+actual native set adapter returns exactly the intersection of current and carried
+permissions. It reuses the existing owned cursor, comparison, filter and collection
+laws; no new primitive model is introduced. The actual `SubjectDelegation::narrow`
+wrapper and optional caller branch retain that exact result. Empty intersections
+remain successful and are accepted by the HTTP constructor whenever its existing
+context check accepts.
+
+`constructed_policy_route_exact` connects computed retained-route lookup, the same
+catalog generation's policy, the current subject principal, actual optional native
+narrowing and complete HTTP construction. It covers direct and delegated fields,
+exact missing-route behavior and independent permission membership in both directions.
+It assumes no desired row or grant set. This is source-reviewed composition of
+extracted subcalls; it does not extract the async caller or establish global freshness.
+
+All seven scoped audits pass. Native narrowing/membership use only standard Lean
+axioms; the complete client adds the existing two error-formatting symbols; the
+constructed route also names the existing namespace helper. Model defaults and
+audit, both request targets, and the focused native set regression pass. See the
+[receipt](evidence/delegated-policy-client.json) for inputs, exact commands,
+iterations and source applicability. Actual-source narrowing fault controls,
+restored baseline checks and SDK issuer/recipient composition remain next.
+
+Using the qualified private dependency workflow in [tooling](tooling/README.md):
+
+```sh
+LAKE_NO_UPDATE=1 lake build DirectPolicyClientProof DelegatedPolicyClientProof
+```
 
 ## First checked assembly checkpoint
 

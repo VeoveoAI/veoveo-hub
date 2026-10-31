@@ -1777,6 +1777,109 @@ def control_plane.policy.PolicyTarget.Insts.CoreCloneClone.clone
         __self_0
     ok (control_plane.policy.PolicyTarget.Unadmitted dpt)
 
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{impl core::ops::function::FnMut<(&'_1 veoveo_types::permission_names::PermissionName,), bool> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{closure}<'_0>}::call_mut]:
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 78:20-78:61 -/
+def
+  delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure.Insts.CoreOpsFunctionFnMutTupleShared1PermissionNameBool.call_mut
+  (c :
+  delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure)
+  (tupled_args : veoveo_types.permission_names.PermissionName) :
+  Result (Bool ×
+    delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure)
+  := do
+  let b ←
+    alloc.collections.btree.set.BTreeSet.contains
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+      (core.borrow.Borrow.Blanket veoveo_types.permission_names.PermissionName)
+      veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd
+      veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd c
+      tupled_args
+  ok (b, c)
+
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{impl core::ops::function::FnOnce<(&'_1 veoveo_types::permission_names::PermissionName,), bool> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{closure}<'_0>}::call_once]:
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 78:20-78:61 -/
+def
+  delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PermissionNameBool.call_once
+  (c :
+  delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure)
+  (pn : veoveo_types.permission_names.PermissionName) :
+  Result Bool
+  := do
+  let (b, _) ←
+    delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure.Insts.CoreOpsFunctionFnMutTupleShared1PermissionNameBool.call_mut
+      c pn
+  ok b
+
+/-- Trait implementation: [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{impl core::ops::function::FnOnce<(&'_1 veoveo_types::permission_names::PermissionName,), bool> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{closure}<'_0>}]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 78:20-78:61 -/
+@[reducible]
+def
+  delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PermissionNameBool
+  : core.ops.function.FnOnce
+  delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure
+  veoveo_types.permission_names.PermissionName Bool := {
+  call_once :=
+    delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PermissionNameBool.call_once
+}
+
+/-- Trait implementation: [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{impl core::ops::function::FnMut<(&'_1 veoveo_types::permission_names::PermissionName,), bool> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{closure}<'_0>}]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 78:20-78:61 -/
+@[reducible]
+def
+  delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure.Insts.CoreOpsFunctionFnMutTupleShared1PermissionNameBool
+  : core.ops.function.FnMut
+  delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure
+  veoveo_types.permission_names.PermissionName Bool := {
+  FnOnceInst :=
+    delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PermissionNameBool
+  call_mut :=
+    delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure.Insts.CoreOpsFunctionFnMutTupleShared1PermissionNameBool.call_mut
+}
+
+/-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow]:
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 76:4-80:5
+    Visibility: public -/
+def
+  alloc.collections.btree.set.BTreeSetPermissionNameGlobal.Insts.Veoveo_hubDelegationAuthorityPermissionsPermissionName.narrow
+  (self : alloc.collections.btree.set.BTreeSet
+  veoveo_types.permission_names.PermissionName alloc.alloc.Global)
+  (carried : alloc.collections.btree.set.BTreeSet
+  veoveo_types.permission_names.PermissionName alloc.alloc.Global) :
+  Result (alloc.collections.btree.set.BTreeSet
+    veoveo_types.permission_names.PermissionName alloc.alloc.Global)
+  := do
+  let ii ←
+    alloc.collections.btree.set.BTreeSet.Insts.CoreIterTraitsCollectIntoIteratorTIntoIter.into_iter
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone self
+  let f ←
+    core.iter.traits.iterator.Iterator.filter.default
+      (alloc.collections.btree.set.IntoIter.Insts.CoreIterTraitsIteratorIterator
+      veoveo_types.permission_names.PermissionName
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone)
+      delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure.Insts.CoreOpsFunctionFnMutTupleShared1PermissionNameBool
+      ii carried
+  core.iter.traits.iterator.Iterator.collect.default
+    (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+    (alloc.collections.btree.set.IntoIter.Insts.CoreIterTraitsIteratorIterator
+    veoveo_types.permission_names.PermissionName
+    alloc.alloc.Global.Insts.CoreAllocAllocatorClone)
+    delegation.PermissionsBTreeSetPermissionNameGlobalPermissionName.narrow.closure.Insts.CoreOpsFunctionFnMutTupleShared1PermissionNameBool)
+    (alloc.collections.btree.set.BTreeSetTGlobal.Insts.CoreIterTraitsCollectFromIterator
+    veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd) f
+
+/-- [veoveo_hub::delegation::{veoveo_hub::delegation::SubjectDelegation}::narrow]:
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 60:4-62:5
+    Visibility: public -/
+def delegation.SubjectDelegation.narrow
+  (self : delegation.SubjectDelegation)
+  (granted : alloc.collections.btree.set.BTreeSet
+  veoveo_types.permission_names.PermissionName alloc.alloc.Global) :
+  Result (alloc.collections.btree.set.BTreeSet
+    veoveo_types.permission_names.PermissionName alloc.alloc.Global)
+  := do
+  alloc.collections.btree.set.BTreeSetPermissionNameGlobal.Insts.Veoveo_hubDelegationAuthorityPermissionsPermissionName.narrow
+    granted self.permissions
+
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{impl core::ops::function::FnOnce<(&'_0 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), &'_ veoveo_hub::registration::snapshot::RegisteredServer> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}}::call_once]:
     Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 169:34-169:58 -/
 def

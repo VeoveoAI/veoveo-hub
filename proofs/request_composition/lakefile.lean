@@ -18,3 +18,6 @@ lean_lib SelectedMapCollectionProof
 
 lean_lib SelectedRouteContextProof
 lean_lib SnapshotConstructorProof
+
+lean_lib DirectPolicyClientProof
+lean_lib DelegatedPolicyClientProof
