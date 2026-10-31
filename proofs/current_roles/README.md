@@ -804,3 +804,44 @@ manually. The pure predicates are proved and qualified within the stated models.
 Refresh transaction ordering, SQL/lock semantics, maintenance interleavings,
 ciphertext recovery and HTTP response behavior require separate model/native
 evidence; this is not qualification of the full refresh transaction lifecycle.
+
+## SDK issuer value correspondence
+
+[SdkInternalAuthBridgeValues](SdkInternalAuthBridgeValues.lean) is a checked
+foundation for connecting this Hub graph to SDK `6afa18a`'s extracted issuer.
+It does not replace the opaque issuer operation or establish the complete
+forwarding contract yet. The native Hub dependency remains `239622d`; the new
+dependency here is a proof package for the explicitly composed prepared stack.
+
+Identifier and opaque payload equivalences preserve their carried String values.
+They establish no parser, key-encoding or cryptographic property. Set conversion
+uses the concrete SDK String order, with proved membership, uniqueness, ordering
+and roundtrips. The reverse roundtrip requires sorted, duplicate-free input;
+arbitrary SDK lists are not silently treated as canonical native sets. Native
+BTreeSet/String comparison correspondence remains a stated boundary.
+
+Timestamp conversion preserves both seconds and nanoseconds under explicit
+I64/U32 range bounds. Its checked form returns `none` for mathematical values
+outside those bounds, without truncation or a default timestamp. The existing
+non-leap proof domain is separate from physical representability. No runtime
+conversion or admission check is introduced.
+
+The manual target is `lake build SdkInternalAuthBridgeValues`. Fourteen executable
+axiom guards accept only `propext`, `Classical.choice` and `Quot.sound`; ten key
+declarations also print their axiom closures. The
+[receipt](evidence/sdk-issuer-bridge-values.json) records the checks and exact
+source, configuration, dependency and artifact identities.
+
+Both generated type graphs are checked with the existing qualified
+[Aeneas instance-naming patch](../request_composition/tooling/README.md).
+The SDK issuer targets were rebuilt from source under that tool before the joint
+import; no stock-tool SDK OLeans were copied. Private path overrides resolve the
+local SDK commit and existing pinned dependencies, and their effective configuration
+is recorded. These checks do not qualify a fresh remote checkout of the new Git
+dependency.
+
+Complete record field correspondence, preservation of error constructor meaning,
+timestamp comparison/minimum laws, actual issuer linkage and the composed caller
+theorem remain the next obligations. Invertibility alone would not rule out
+swapping two same-typed fields in both directions. No conclusion about the older
+pinned issuer's native behavior follows from this representation foundation.

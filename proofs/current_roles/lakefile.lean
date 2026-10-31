@@ -8,6 +8,10 @@ require sdkAuthorizationProof from git
   "https://github.com/VeoveoAI/veoveo-hub-sdk" @
   "239622d12c08b771cc5e813fe3e846385d8d04ad" / "proofs/authorization"
 
+require sdkInternalAuthProof from git
+  "https://github.com/VeoveoAI/veoveo-hub-sdk" @
+  "6afa18a0625265d2adae8916a22321a17e8e6418" / "proofs/internal_auth"
+
 package hubCurrentRolesProof
 @[default_target]
 lean_lib HubCurrentRoles
@@ -83,3 +87,5 @@ lean_lib RefreshModelAudit
 
 @[default_target]
 lean_lib RefreshPredicateProof
+
+lean_lib SdkInternalAuthBridgeValues
