@@ -870,9 +870,18 @@ Prevents cross-context disclosure and stale routing represented as current disco
   gives the six private state methods unique selector names and supplies lazy
   clock/UUID function inputs from the locked wrappers. Sampling stays in the same
   branches; the same 22 tests, formatting and strict Clippy pass. This prepares
-  generic per-operation observations without a global freshness axiom. Actual
-  extraction, complete transition/history proofs and native wrapper refinement
-  remain pending.
+  generic per-operation observations without a global freshness axiom.
+  [Fresh extraction and elaboration evidence](discovery_cache/evidence/retain-interface-boundary-20261031.json)
+  now records all six operations, five predicates and four key-derived methods
+  as transparent, error-free translated bodies. The unchanged generated Lean
+  nevertheless fails at six `discard_server` callback dictionary assignments:
+  mutable payload returns do not fit the pinned `FnOnce`/`FnMut` interfaces.
+  Its three import modules compile using uninterpreted external templates; the
+  function module does not. This is a translator/library limitation, not a
+  qualified cache model. No native algorithm or generated body was rewritten.
+  The five supported operations are the next intermediate proof target;
+  server-wide invalidation stays explicitly open. Complete transition/history
+  proofs and native wrapper refinement remain pending.
 - **Boundary/effort:** moderate for key/cursor comparisons; substantial for the
   cache/listener state machine. Assume collision-resistant identity hashing, correct
   authenticated inputs and mutex/watch-channel semantics where effects are modeled.
