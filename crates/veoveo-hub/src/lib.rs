@@ -1,3 +1,4 @@
+pub mod apps;
 pub mod auth;
 mod catalog;
 mod catalog_admission;
