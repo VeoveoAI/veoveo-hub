@@ -28,9 +28,10 @@ impl AuthenticatedSubject {
 
     /// The acting server's Task the call came from, when that server called from one.
     pub fn acting_task(&self) -> Option<&veoveo_hub_sdk::OpaqueTaskId> {
-        self.delegation
-            .as_ref()
-            .and_then(|delegation| delegation.task.as_ref())
+        match &self.delegation {
+            Some(delegation) => delegation.task.as_ref(),
+            None => None,
+        }
     }
 
     /// The actor a record names: the principal the request acts as, in its tenant and

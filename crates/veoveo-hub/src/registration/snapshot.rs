@@ -88,11 +88,21 @@ impl RegistrationSnapshot {
     }
 
     fn of(servers: BTreeMap<DeploymentId, Arc<RegisteredServer>>) -> Self {
+        let namespaces = Self::build_namespaces(&servers);
+        Self {
+            servers,
+            namespaces,
+        }
+    }
+
+    fn build_namespaces(
+        servers: &BTreeMap<DeploymentId, Arc<RegisteredServer>>,
+    ) -> BTreeMap<ServerSlug, Namespace> {
         let mut by_slug = BTreeMap::<&ServerSlug, Vec<&RegisteredServer>>::new();
         for server in servers.values().filter(|server| server.branch.is_none()) {
             by_slug.entry(&server.slug).or_default().push(server);
         }
-        let namespaces = by_slug
+        by_slug
             .into_iter()
             .map(|(slug, mut deployments)| {
                 // Live before orphaned, then newest first; equal times order by
@@ -114,11 +124,7 @@ impl RegistrationSnapshot {
                 };
                 (slug.clone(), namespace)
             })
-            .collect();
-        Self {
-            servers,
-            namespaces,
-        }
+            .collect()
     }
 
     /// Each slug's deployments that are not instances, by the deployment requests route
@@ -134,7 +140,10 @@ impl RegistrationSnapshot {
     }
 
     pub fn deployment(&self, deployment: &DeploymentId) -> Option<&RegisteredServer> {
-        self.servers.get(deployment).map(Arc::as_ref)
+        match self.servers.get(deployment) {
+            Some(server) => Some(server.as_ref()),
+            None => None,
+        }
     }
 
     /// Explicit unavailable selections produce no route and never inherit a base here.

@@ -160,26 +160,26 @@ impl HubAuthorizedHttpClient {
         expires_at: chrono::DateTime<Utc>,
     ) -> Result<String, HubAuthorizedHttpError> {
         // The issuer also caps this deadline at the signed source token expiry.
-        self.issuer
-            .issue(ForwardedRequest {
-                profile: self.profile.clone(),
-                server: self.server.clone(),
-                deployment: self.deployment,
-                audience: self.audience.clone(),
-                client: self.client.clone(),
-                actor: self.actor.clone(),
-                authority: self.authority.clone(),
-                permissions: self.permissions.clone(),
-                request_context: Some(self.request_context.clone()),
-                acting_server: self.acting_server.clone(),
-                acting_task: self.acting_task.clone(),
-                delegation_context: self.delegation_context.clone(),
-                expires_at: self
-                    .delegation_expires_at
-                    .map_or(expires_at, |deadline| deadline.min(expires_at)),
-            })
-            .map(|issued| issued.bearer_token)
-            .map_err(HubAuthorizedHttpError::InternalToken)
+        match self.issuer.issue(ForwardedRequest {
+            profile: self.profile.clone(),
+            server: self.server.clone(),
+            deployment: self.deployment,
+            audience: self.audience.clone(),
+            client: self.client.clone(),
+            actor: self.actor.clone(),
+            authority: self.authority.clone(),
+            permissions: self.permissions.clone(),
+            request_context: Some(self.request_context.clone()),
+            acting_server: self.acting_server.clone(),
+            acting_task: self.acting_task.clone(),
+            delegation_context: self.delegation_context.clone(),
+            expires_at: self
+                .delegation_expires_at
+                .map_or(expires_at, |deadline| deadline.min(expires_at)),
+        }) {
+            Ok(issued) => Ok(issued.bearer_token),
+            Err(error) => Err(HubAuthorizedHttpError::InternalToken(error)),
+        }
     }
 }
 
