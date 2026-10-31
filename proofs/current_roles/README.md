@@ -8,6 +8,38 @@ evaluator from Hub `b9b6cec1b9c36a2e84afb980e208d2d116a84185`, with SDK pin
 permissions, native collections and dependency pins were unchanged. The connected extension below includes one equivalent iterator closure spelling.
 Verification remains manual; there is no CI hook, runner or new authorization gate.
 
+## Shared extracted source graph
+
+This package now owns the generated Hub superset used by both current-policy and
+request-composition proofs. Request composition imports these exact types,
+functions and handwritten operational models; it does not maintain a second
+generated graph or convert between copies of policy types. All 25 existing default
+targets, the model audit, request defaults, six routing targets and the direct
+policy/client theorem pass in the qualified private tool configuration. The
+[receipt](../request_composition/evidence/shared-policy-request-graph.json) records
+commands, source identities and unchanged effective source maps.
+
+The superset was extracted from the qualified Hub `3bc2923` source with SDK
+`239622d` and Core `120306e`, then regenerated from the restored LLBC with the
+`veoveo_hub` namespace and `HubCurrentRoles` output path. This is not a fresh
+extraction of all current main: the intervening Apps changes advanced OpenShell
+and changed downstream HTTP `WithCauses` formatting outside the constructor.
+Current main also adds `RefreshRevocation::AdministratorRevocation`; the covered
+`bound_to` and `deliverable` bodies are unchanged, but the extracted enum domain
+remains the baseline domain. These runtime changes are preserved, and a future
+source refresh must account for that new variant. The covered source correspondence remains
+the recorded `3bc2923` baseline; no Cargo or runtime file changes accompany this
+proof-layout consolidation.
+
+Two source-model refinements are explicit: `ServerEndpoint` is now the actual
+extracted `url.Url` wrapper instead of the old opaque ID placeholder, and ten
+`Ord` dictionaries now include the reached default `min` implementation. The
+existing grant computations and other common generated declarations retain their
+source bodies. Ordinary native-library refinement, namespace-helper completion,
+issuer behavior and formatting boundaries remain as stated by the individual
+theorem audits. The historical extraction and mutation receipts below retain
+their original source identities.
+
 ## Current session-family authority
 
 This manual increment qualifies the pure `SessionFamilyAuthority::allows` sub-boundary

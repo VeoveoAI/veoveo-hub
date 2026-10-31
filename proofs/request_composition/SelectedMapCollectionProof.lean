@@ -1,6 +1,6 @@
 import SelectedMapInsertionProof
 
-open Aeneas Aeneas.Std RequestCompositionHub IteratorProof
+open Aeneas Aeneas.Std veoveo_hub IteratorProof
 
 namespace SelectedMapCollectionProof
 noncomputable section
@@ -43,9 +43,9 @@ theorem collect_map_correct (snapshot : Snapshot) (components : List Entry)
     (beforeMembers : ∀ row ∈ before, row ∈ emitted snapshot components)
     (remainingMembers : ∀ row ∈ (filteredEnumeration snapshot).remaining state,
       row ∈ emitted snapshot components) :
-    RequestCompositionHub.CurrentRolesNative.collectMap filteredIterator comparison state before
+    _root_.CurrentRolesNative.collectMap filteredIterator comparison state before
       ⦃ after => Collected before ((filteredEnumeration snapshot).remaining state) after ⦄ := by
-  unfold RequestCompositionHub.CurrentRolesNative.collectMap
+  unfold _root_.CurrentRolesNative.collectMap
   step with (SelectedCollectionProof.filtered_cursor_law snapshot state valid)
     as ⟨entry, next, taken⟩
   rcases taken with ⟨nextValid, entryEq, suffix⟩
@@ -109,7 +109,7 @@ abbrev initial (snapshot : Snapshot) (components : List Entry) : FilterState :=
 
 /-- A name for the actual operational call, not a separate selection reducer. -/
 abbrev collectEntries (snapshot : Snapshot) (components : List Entry) : Result (List Row) :=
-  RequestCompositionHub.CurrentRolesNative.collectMap filteredIterator comparison
+  _root_.CurrentRolesNative.collectMap filteredIterator comparison
     (initial snapshot components) []
 
 /-- Unconditional finite collection in this operational model: every and only
@@ -134,20 +134,20 @@ theorem collect_complete (snapshot : Snapshot) (components : List Entry) :
 filter_map, collect/from_iter, comparator and clone wrappers. The unresolved
 namespace helper remains inside the actual of call, never a map-result oracle. -/
 private theorem selected_collection_body (snapshot : Snapshot) (composition : Composition) :
-    RequestCompositionHub.registration.snapshot.RegistrationSnapshot.selected snapshot composition = (do
+    veoveo_hub.registration.snapshot.RegistrationSnapshot.selected snapshot composition = (do
       let rows ← collectEntries snapshot composition.components
-      RequestCompositionHub.registration.snapshot.RegistrationSnapshot.of rows) := by
-  unfold RequestCompositionHub.registration.snapshot.RegistrationSnapshot.selected
+      veoveo_hub.registration.snapshot.RegistrationSnapshot.of rows) := by
+  unfold veoveo_hub.registration.snapshot.RegistrationSnapshot.selected
   simp only [
-    RequestCompositionHub.veoveo_hub_sdk.execution.ResolvedComposition.impl.components,
-    RequestCompositionHub.alloc.collections.btree.map.BTreeMap.iter,
-    RequestCompositionHub.core.iter.traits.iterator.Iterator.filter_map.default,
+    veoveo_hub.veoveo_hub_sdk.execution.ResolvedComposition.impl.components,
+    _root_.alloc.collections.btree.map.BTreeMap.iter,
+    _root_.core.iter.traits.iterator.Iterator.filter_map.default,
     Aeneas.Std.core.iter.traits.iterator.Iterator.collect.default,
-    RequestCompositionHub.alloc.collections.btree.map.BTreeMapKVGlobal.Insts.CoreIterTraitsCollectFromIteratorPair,
-    RequestCompositionHub.alloc.collections.btree.map.BTreeMapKVGlobal.Insts.CoreIterTraitsCollectFromIteratorPair.from_iter,
+    veoveo_hub.alloc.collections.btree.map.BTreeMapKVGlobal.Insts.CoreIterTraitsCollectFromIteratorPair,
+    _root_.alloc.collections.btree.map.BTreeMapKVGlobal.Insts.CoreIterTraitsCollectFromIteratorPair.from_iter,
     Aeneas.Std.core.iter.traits.collect.IntoIterator.Blanket,
     Aeneas.Std.core.iter.traits.collect.IntoIterator.Blanket.into_iter,
-    RequestCompositionHub.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd,
+    veoveo_hub.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd,
     collectEntries, initial, filteredIterator, comparison,
     bind_ok, bind_tc_ok]
 
@@ -155,8 +155,8 @@ private theorem selected_collection_body (snapshot : Snapshot) (composition : Co
 namespace helper runs. This does not assert total selected success. -/
 theorem selected_factorization (snapshot : Snapshot) (composition : Composition) :
     ∃ rows, MapImage snapshot composition.components rows ∧
-      RequestCompositionHub.registration.snapshot.RegistrationSnapshot.selected snapshot composition =
-        RequestCompositionHub.registration.snapshot.RegistrationSnapshot.of rows := by
+      veoveo_hub.registration.snapshot.RegistrationSnapshot.selected snapshot composition =
+        veoveo_hub.registration.snapshot.RegistrationSnapshot.of rows := by
   rcases collect_complete snapshot composition.components with ⟨rows, collected, image⟩
   refine ⟨rows, image, ?_⟩
   rw [selected_collection_body, collected]
@@ -167,11 +167,11 @@ strict ordering and unique deployment keys. Namespace helper completion/order,
 per-slug route uniqueness and request/issuer composition remain unproved. -/
 theorem selected_success_complete (snapshot : Snapshot) (composition : Composition)
     (result : Snapshot)
-    (success : RequestCompositionHub.registration.snapshot.RegistrationSnapshot.selected
+    (success : veoveo_hub.registration.snapshot.RegistrationSnapshot.selected
       snapshot composition = .ok result) :
     MapImage snapshot composition.components result.servers := by
   rcases selected_factorization snapshot composition with ⟨rows, image, factorization⟩
-  have assembled : RequestCompositionHub.registration.snapshot.RegistrationSnapshot.of rows = .ok result := by
+  have assembled : veoveo_hub.registration.snapshot.RegistrationSnapshot.of rows = .ok result := by
     rw [← factorization]
     exact success
   have sameMap := (SnapshotAssemblyProof.extracted_of_success rows result assembled).1
@@ -193,7 +193,7 @@ run_cmd do
     unless (found.filter (fun axiomName => !standard.contains axiomName)).isEmpty do
       throwError "unreviewed collector axiom in {declaration}: {found}"
   let withNamespaceBoundary := standard.push
-    ``RequestCompositionHub.registration.snapshot.RegistrationSnapshot.build_namespaces
+    ``_root_.registration.snapshot.RegistrationSnapshot.build_namespaces
   for declaration in #[``SelectedMapCollectionProof.selected_factorization,
       ``SelectedMapCollectionProof.selected_success_complete] do
     let found ← Lean.collectAxioms declaration

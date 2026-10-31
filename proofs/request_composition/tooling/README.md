@@ -87,15 +87,18 @@ versioned patch together identify the tool used; the baseline manifest alone doe
 not identify the patched tool.
 
 Run `LAKE_NO_UPDATE=1 lake build` from current roles and then from request
-composition. From request composition, also run:
+composition, plus the maintained nondefault request-proof targets. From request
+composition, check direct use of the shared policy and route graph with:
 
 ```sh
-LAKE_NO_UPDATE=1 lake env lean tooling/ActualImports.lean
+LAKE_NO_UPDATE=1 lake env lean DirectPolicyClientProof.lean
 ```
 
-The latter imports the actual colliding generated modules together through their
-existing proof modules and resolves their distinct discriminant instances. It is
-an import regression, not a completed selected-registration theorem. Keep source
+The latter composes the actual grant computation and HTTP constructor through
+their existing proofs and the same generated types. `ActualImports.lean` is the
+frozen historical two-graph import regression; replay it at the original receipt's
+source revision. The separate-module fixture above remains the discriminant naming
+regression. No compatibility namespace is kept in the maintained single graph. Keep source
 hashes before and after the checks, with tool revision, patch hash, effective
 configuration, command, exit status and log hash. Build outputs and private
 dependency checkouts remain temporary.

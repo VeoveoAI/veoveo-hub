@@ -1,6 +1,6 @@
 import SelectedRegistrationProof
 
-open Aeneas Aeneas.Std RequestCompositionHub IteratorProof
+open Aeneas Aeneas.Std veoveo_hub IteratorProof
 
 namespace SelectedCollectionProof
 noncomputable section
@@ -29,7 +29,7 @@ def emitted (snapshot : Snapshot) (components : List Entry) : List Row :=
   components.filterMap (SelectedRegistrationProof.chooseOne snapshot)
 
 abbrev componentIterator :=
-  RequestCompositionHub.alloc.collections.btree.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
+  veoveo_hub.alloc.collections.btree.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
     Slug Component
 
 abbrev FilterState := core.iter.adapters.filter_map.FilterMap (List Entry) Snapshot
@@ -39,14 +39,14 @@ def filteredEnumeration (snapshot : Snapshot) : Enumeration FilterState Row wher
   valid state := state.f = snapshot
 
 abbrev filteredIterator :=
-  RequestCompositionHub.core.iter.adapters.filter_map.FilterMap.Insts.CoreIterTraitsIteratorIterator
+  veoveo_hub.core.iter.adapters.filter_map.FilterMap.Insts.CoreIterTraitsIteratorIterator
     componentIterator selectOps
 
 /-- The actual component iterator consumes its finite raw suffix. -/
 theorem component_cursor_law : CursorLaw componentIterator (listEnumeration Entry) := by
   intro state _
   cases state <;> simp [componentIterator,
-    RequestCompositionHub.alloc.collections.btree.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV.next,
+    _root_.alloc.collections.btree.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV.next,
     NextStep, listEnumeration]
 
 /-- Total finite-suffix proof for THIS filterMapNext implementation. A skipped
@@ -54,9 +54,9 @@ entry decreases the raw suffix; an emitted entry preserves the full snapshot
 closure. No equality of separate partial_fixpoint definitions is assumed. -/
 theorem filter_map_next_correct (snapshot : Snapshot) (state : FilterState)
     (valid : (filteredEnumeration snapshot).valid state) :
-    RequestCompositionHub.CurrentRolesNative.filterMapNext componentIterator selectOps state
+    _root_.CurrentRolesNative.filterMapNext componentIterator selectOps state
       ⦃ result => NextStep (filteredEnumeration snapshot) state result ⦄ := by
-  unfold RequestCompositionHub.CurrentRolesNative.filterMapNext
+  unfold _root_.CurrentRolesNative.filterMapNext
   step with (component_cursor_law state.iter trivial) as ⟨entry, next, taken⟩
   rcases taken with ⟨_, entryEq, suffix⟩
   change state.f = snapshot at valid
@@ -75,7 +75,7 @@ theorem filter_map_next_correct (snapshot : Snapshot) (state : FilterState)
     simp only [bind_ok, bind_tc_ok]
     rw [valid]
     have mapperStep :
-        RequestCompositionHub.registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer.call_mut
+        veoveo_hub.registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer.call_mut
           snapshot head =
           .ok (SelectedRegistrationProof.chooseOne snapshot head, snapshot) :=
       SelectedRegistrationProof.selected_entry_exact snapshot head
@@ -99,7 +99,7 @@ theorem filtered_cursor_law (snapshot : Snapshot) :
     CursorLaw filteredIterator (filteredEnumeration snapshot) := by
   intro state valid
   simpa only [filteredIterator,
-    RequestCompositionHub.core.iter.adapters.filter_map.FilterMap.Insts.CoreIterTraitsIteratorIterator.next] using
+    _root_.core.iter.adapters.filter_map.FilterMap.Insts.CoreIterTraitsIteratorIterator.next] using
     filter_map_next_correct snapshot state valid
 
 /-- Exact eligible contents in both directions, including complete row values.

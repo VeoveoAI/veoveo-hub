@@ -5,6 +5,47 @@ assembly code to the authorization and recipient contracts tracked in
 [Hub proof coverage](../README.md). It is an implementation-proof increment, not
 a new runtime component or authorization rule. Proofs run manually.
 
+## Shared model ownership
+
+The active proofs import the single generated `HubCurrentRoles` superset and its
+handwritten models from [current_roles](../current_roles/README.md). The existing
+`RequestCompositionHub` target is only a re-export/build group. Policy and route
+proofs therefore use the same actual types and operational functions, including
+the finite iterator models; no nominal converters or duplicate recursive models
+are introduced. The independent specifications and theorem contracts are retained
+modulo symbol relocation. The consolidation passes all 25 current-policy default
+targets, the model audit, request defaults, six routing targets and the new direct
+policy/client theorem; see the [receipt](evidence/shared-policy-request-graph.json).
+
+The source baseline remains Hub `3bc2923`, SDK `239622d` and Core `120306e`, not
+a re-extraction of current main or its newer OpenShell dependency. Current Apps
+runtime changes, including downstream `WithCauses` formatting outside the HTTP
+constructor, are preserved. The shared model records the real endpoint wrapper
+and expanded `Ord.min` dictionaries. Current main's additional
+`RefreshRevocation::AdministratorRevocation` variant is outside the baseline enum
+domain even though `bound_to` and `deliverable` bodies are unchanged; a future
+source refresh must include it before claiming whole-current-main applicability.
+Namespace-helper completion and ordering,
+selected-row/current-permission composition, SDK issuer/recipient composition and async caller
+wiring remain separate obligations.
+
+Historical mutation witnesses and receipts are frozen recipes for their recorded
+generated namespaces and hashes. They do not import the consolidated graph and
+are not active package targets; replay them against their pinned model rather
+than adding a compatibility namespace to the maintained proofs.
+
+[DirectPolicyClientProof.lean](DirectPolicyClientProof.lean) is the checked consolidation
+acceptance leaf. It directly reuses the existing grant theorem
+and the HTTP constructor theorem: on the source-reviewed nondelegated call path,
+the complete accepted client preserves the computed permission set, whose members
+are exactly the independent existing `Grants` relation for that installation,
+row declaration and current subject principal. No supplied desired-grant premise,
+new policy rule, delegated narrowing claim or async caller proof is introduced.
+The installation and row are supplied inputs here; connecting both to one computed
+selected route remains the next obligation. The audit permits only standard Lean
+axioms and the constructor's two existing error-formatting symbols. The check
+passes in 2.69 seconds with one unused-simp warning and no unreviewed axiom.
+
 ## First checked assembly checkpoint
 
 [SnapshotAssemblyProof.lean](SnapshotAssemblyProof.lean) checks six declarations:
@@ -364,8 +405,10 @@ collection models.
 
 ## Source and model ownership
 
-`RequestCompositionHub/Types.lean` and `Funs.lean` are untouched Charon/Aeneas
-outputs. The canonical extraction uses Hub
+The maintained [HubCurrentRoles/Types.lean](../current_roles/HubCurrentRoles/Types.lean)
+and [Funs.lean](../current_roles/HubCurrentRoles/Funs.lean) are untouched
+Charon/Aeneas outputs. The earlier receipts name the historical
+`RequestCompositionHub` layout. The canonical extraction uses Hub
 `3bc2923ca1d2e0c559e532286c16ec3d6a5ceb7a`, including runtime preparation
 `91ab4cc0b63f7cc1950627df59f5ae3f1cb633e7`, and its actual SDK dependency
 `239622d12c08b771cc5e813fe3e846385d8d04ad`. The existing catalog-field naming
@@ -374,9 +417,9 @@ The [extraction receipt](evidence/extraction-checkpoint.json) records exact tool
 arguments, input/output hashes and source-map checks. Its translation status is
 separate from any subsequent Lean proof qualification.
 
-`TypesExternal.lean` and `FunsExternal.lean` are handwritten operational models.
-They reuse the existing current-role package's primitive representations where
-appropriate. Their correspondence to native collections, identifiers, timestamps,
+The shared `current_roles/HubCurrentRoles/TypesExternal.lean` and
+`FunsExternal.lean` are handwritten operational models defined once for both
+proof packages. Their correspondence to native collections, identifiers, timestamps,
 cloning and memory behavior remains an explicit boundary; a standard-axiom audit
 does not establish that correspondence.
 

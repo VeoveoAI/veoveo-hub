@@ -74,6 +74,24 @@ impl_def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
     traitsiteratorIteratorInst opsfunctionFnMutPTupleSharedClause0_ItemBoolInst
 }
 
+/-- Trait implementation: [core::iter::adapters::filter_map::{impl core::iter::traits::iterator::Iterator<B> for core::iter::adapters::filter_map::FilterMap<I, F>}]
+    Source: '/rustc/library/core/src/iter/adapters/filter_map.rs', lines 56:0-58:35
+    Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::filter_map::FilterMap<@I, @F>, @B>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::iterator::Iterator<core::iter::adapters::filter_map::FilterMap<@I, @F>, @B>"]
+impl_def
+  core.iter.adapters.filter_map.FilterMap.Insts.CoreIterTraitsIteratorIterator
+  {B : Type _} {I : Type _} {F : Type _} {Clause0_Item : Type _}
+  (traitsiteratorIteratorInst : core.iter.traits.iterator.Iterator I
+  Clause0_Item) (opsfunctionFnMutFTupleClause0_ItemOptionInst :
+  core.ops.function.FnMut F Clause0_Item (Option B)) :
+  core.iter.traits.iterator.Iterator (core.iter.adapters.filter_map.FilterMap I
+  F) B := {
+  next :=
+    core.iter.adapters.filter_map.FilterMap.Insts.CoreIterTraitsIteratorIterator.next
+    traitsiteratorIteratorInst opsfunctionFnMutFTupleClause0_ItemOptionInst
+}
+
 /-- Trait implementation: [core::iter::adapters::flatten::{impl core::iter::traits::iterator::Iterator<Clause1_Item> for core::iter::adapters::flatten::FlatMap<I, U, F, Clause1_Item, Clause1_IntoIter>}]
     Source: '/rustc/library/core/src/iter/adapters/flatten.rs', lines 56:0-58:27
     Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>] -/
@@ -128,6 +146,19 @@ def alloc.alloc.Global.Insts.CoreAllocAllocatorClone :
   cloneCloneInst := core.clone.CloneGlobal
 }
 
+/-- Trait implementation: [alloc::collections::btree::map::{impl core::iter::traits::iterator::Iterator<(&'a K, &'a V)> for alloc::collections::btree::map::Iter<'a, K, V>}]
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 1734:0-1734:50
+    Name pattern: [core::iter::traits::iterator::Iterator<alloc::collections::btree::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::iterator::Iterator<alloc::collections::btree::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>"]
+impl_def
+  alloc.collections.btree.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
+  (K : Type _) (V : Type _) : core.iter.traits.iterator.Iterator
+  (alloc.collections.btree.map.Iter K V) (K × V) := {
+  next :=
+    alloc.collections.btree.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV.next
+}
+
 /-- Trait implementation: [alloc::collections::btree::map::{impl core::iter::traits::iterator::Iterator<&'a V> for alloc::collections::btree::map::Values<'a, K, V>}]
     Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 2077:0-2077:44
     Name pattern: [core::iter::traits::iterator::Iterator<alloc::collections::btree::map::Values<'a, @K, @V>, &'a @V>] -/
@@ -139,6 +170,23 @@ impl_def
   (alloc.collections.btree.map.Values K V) V := {
   next :=
     alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV.next
+}
+
+/-- Trait implementation: [alloc::collections::btree::map::{impl core::iter::traits::collect::FromIterator<(K, V)> for alloc::collections::btree::map::BTreeMap<K, V, alloc::alloc::Global>}]
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 2549:0-2549:55
+    Name pattern: [core::iter::traits::collect::FromIterator<alloc::collections::btree::map::BTreeMap<@K, @V, alloc::alloc::Global>, (@K, @V)>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::collect::FromIterator<alloc::collections::btree::map::BTreeMap<@K, @V, alloc::alloc::Global>, (@K, @V)>"]
+def
+  alloc.collections.btree.map.BTreeMapKVGlobal.Insts.CoreIterTraitsCollectFromIteratorPair
+  {K : Type _} (V : Type _) (corecmpOrdInst : core.cmp.Ord K) :
+  core.iter.traits.collect.FromIterator (alloc.collections.btree.map.BTreeMap K
+  V alloc.alloc.Global) (K × V) := {
+  from_iter := fun {I : Type} {Clause0_IntoIter : Type}
+    (coreitertraitscollectIntoIteratorPPairPInst :
+    core.iter.traits.collect.IntoIterator I (K × V) Clause0_IntoIter) =>
+    alloc.collections.btree.map.BTreeMapKVGlobal.Insts.CoreIterTraitsCollectFromIteratorPair.from_iter
+    corecmpOrdInst coreitertraitscollectIntoIteratorPPairPInst
 }
 
 /-- Trait implementation: [alloc::collections::btree::set::{impl core::iter::traits::collect::FromIterator<T> for alloc::collections::btree::set::BTreeSet<T, alloc::alloc::Global>}]
@@ -223,6 +271,16 @@ def SharedABTreeSet.Insts.CoreIterTraitsCollectIntoIteratorSharedATIter (T :
     coreallocAllocatorCloneInst
 }
 
+/-- Trait implementation: [alloc::string::{impl core::convert::From<alloc::string::String> for alloc::borrow::Cow<'a, str, alloc::string::String>}]
+    Source: '/rustc/library/alloc/src/string.rs', lines 3300:0-3300:38
+    Name pattern: [core::convert::From<alloc::borrow::Cow<'a, str, alloc::string::String>, alloc::string::String>] -/
+@[reducible, rust_trait_impl
+  "core::convert::From<alloc::borrow::Cow<'a, str, alloc::string::String>, alloc::string::String>"]
+def alloc.borrow.CowAStrString.Insts.CoreConvertFromString : core.convert.From
+  (alloc.borrow.Cow Str String) String := {
+  «from» := alloc.borrow.CowAStrString.Insts.CoreConvertFromString.from
+}
+
 /-- Trait implementation: [chrono::datetime::{impl core::cmp::PartialEq<chrono::datetime::DateTime<Tz2, Clause1_Offset>> for chrono::datetime::DateTime<Tz, Clause0_Offset>}]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/datetime/mod.rs', lines 1472:0-1472:75
     Name pattern: [core::cmp::PartialEq<chrono::datetime::DateTime<@Tz, @Clause0_Offset>, chrono::datetime::DateTime<@Tz2, @Clause1_Offset>>] -/
@@ -239,6 +297,18 @@ impl_def chrono.datetime.DateTime.Insts.CoreCmpPartialEqDateTime {Tz : Type _}
   ne := core.cmp.PartialEq.ne.trait_default
     (chrono.datetime.DateTime.Insts.CoreCmpPartialEqDateTime offsetTimeZoneInst
     offsetTimeZoneInst1)
+}
+
+/-- Trait implementation: [chrono::datetime::{impl core::cmp::Eq for chrono::datetime::DateTime<Tz, Clause0_Offset>}]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/datetime/mod.rs', lines 1478:0-1478:38
+    Name pattern: [core::cmp::Eq<chrono::datetime::DateTime<@Tz, @Clause0_Offset>>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Eq<chrono::datetime::DateTime<@Tz, @Clause0_Offset>>"]
+def chrono.datetime.DateTime.Insts.CoreCmpEq {Tz : Type _} {Clause0_Offset :
+  Type _} (offsetTimeZoneInst : chrono.offset.TimeZone Tz Clause0_Offset) :
+  core.cmp.Eq (chrono.datetime.DateTime Tz Clause0_Offset) := {
+  partialEqInst := chrono.datetime.DateTime.Insts.CoreCmpPartialEqDateTime
+    offsetTimeZoneInst offsetTimeZoneInst
 }
 
 /-- Trait implementation: [chrono::datetime::{impl core::cmp::PartialOrd<chrono::datetime::DateTime<Tz2, Clause1_Offset>> for chrono::datetime::DateTime<Tz, Clause0_Offset>}]
@@ -260,6 +330,23 @@ impl_def chrono.datetime.DateTime.Insts.CoreCmpPartialOrdDateTime {Tz : Type _}
   gt := core.cmp.PartialOrd.gt.trait_default
     (chrono.datetime.DateTime.Insts.CoreCmpPartialOrdDateTime
     offsetTimeZoneInst offsetTimeZoneInst1)
+}
+
+/-- Trait implementation: [chrono::datetime::{impl core::cmp::Ord for chrono::datetime::DateTime<Tz, Clause0_Offset>}]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/datetime/mod.rs', lines 1507:0-1507:39
+    Name pattern: [core::cmp::Ord<chrono::datetime::DateTime<@Tz, @Clause0_Offset>>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Ord<chrono::datetime::DateTime<@Tz, @Clause0_Offset>>"]
+impl_def chrono.datetime.DateTime.Insts.CoreCmpOrd {Tz : Type _}
+  {Clause0_Offset : Type _} (offsetTimeZoneInst : chrono.offset.TimeZone Tz
+  Clause0_Offset) : core.cmp.Ord (chrono.datetime.DateTime Tz Clause0_Offset)
+  := {
+  eqInst := chrono.datetime.DateTime.Insts.CoreCmpEq offsetTimeZoneInst
+  partialOrdInst := chrono.datetime.DateTime.Insts.CoreCmpPartialOrdDateTime
+    offsetTimeZoneInst offsetTimeZoneInst
+  cmp := chrono.datetime.DateTime.Insts.CoreCmpOrd.cmp offsetTimeZoneInst
+  min := core.cmp.Ord.min.trait_default
+    (chrono.datetime.DateTime.Insts.CoreCmpOrd offsetTimeZoneInst)
 }
 
 /-- Trait implementation: [chrono::offset::utc::{impl core::clone::Clone for chrono::offset::utc::Utc}]
@@ -312,6 +399,45 @@ def chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc :
   offset_from_utc_datetime :=
     chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc.offset_from_utc_datetime
 }
+
+/-- Trait implementation: [veoveo_hub_sdk::execution::{impl core::clone::Clone for veoveo_hub_sdk::execution::ExecutionContext}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 31:16-31:21
+    Name pattern: [core::clone::Clone<veoveo_hub_sdk::execution::ExecutionContext>] -/
+@[reducible, rust_trait_impl
+  "core::clone::Clone<veoveo_hub_sdk::execution::ExecutionContext>"]
+def veoveo_hub_sdk.execution.ExecutionContext.Insts.CoreCloneClone :
+  core.clone.Clone veoveo_hub_sdk.execution.ExecutionContext := {
+  clone := veoveo_hub_sdk.execution.ExecutionContext.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [veoveo_hub_sdk::execution::{impl core::cmp::PartialEq<veoveo_hub_sdk::execution::ExecutionContext> for veoveo_hub_sdk::execution::ExecutionContext}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 31:23-31:32
+    Name pattern: [core::cmp::PartialEq<veoveo_hub_sdk::execution::ExecutionContext, veoveo_hub_sdk::execution::ExecutionContext>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialEq<veoveo_hub_sdk::execution::ExecutionContext, veoveo_hub_sdk::execution::ExecutionContext>"]
+impl_def
+  veoveo_hub_sdk.execution.ExecutionContext.Insts.CoreCmpPartialEqExecutionContext
+  : core.cmp.PartialEq veoveo_hub_sdk.execution.ExecutionContext
+  veoveo_hub_sdk.execution.ExecutionContext := {
+  eq :=
+    veoveo_hub_sdk.execution.ExecutionContext.Insts.CoreCmpPartialEqExecutionContext.eq
+  ne := core.cmp.PartialEq.ne.trait_default
+    veoveo_hub_sdk.execution.ExecutionContext.Insts.CoreCmpPartialEqExecutionContext
+}
+
+/-- [veoveo_hub_sdk::execution::{veoveo_hub_sdk::execution::ResolvedComposition}::components]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 79:4-79:72
+    Name pattern: [veoveo_hub_sdk::execution::{veoveo_hub_sdk::execution::ResolvedComposition}::components]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::execution::{veoveo_hub_sdk::execution::ResolvedComposition}::components"]
+def veoveo_hub_sdk.execution.ResolvedComposition.impl.components
+  (self : veoveo_hub_sdk.execution.ResolvedComposition) :
+  Result (alloc.collections.btree.map.BTreeMap
+    veoveo_types.platform_names.ServerSlug
+    veoveo_hub_sdk.execution.ResolvedComponent alloc.alloc.Global)
+  := do
+  ok self.components
 
 /-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::PartialEq<veoveo_hub_sdk::identity::ProtectedResourceId> for veoveo_hub_sdk::identity::ProtectedResourceId}]
     Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 163:0-163:43
@@ -376,12 +502,14 @@ def veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpEq : core.cmp.Eq
     Name pattern: [core::cmp::Ord<veoveo_hub_sdk::identity::LocalToolName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_hub_sdk::identity::LocalToolName>"]
-def veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpOrd : core.cmp.Ord
+impl_def veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpOrd : core.cmp.Ord
   veoveo_hub_sdk.identity.LocalToolName := {
   eqInst := veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpEq
   partialOrdInst :=
     veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpPartialOrdLocalToolName
   cmp := veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_hub_sdk.identity.LocalToolName.Insts.CoreCmpOrd
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::cmp::PartialEq<veoveo_hub_sdk::identity::PromptName> for veoveo_hub_sdk::identity::PromptName}]
@@ -429,12 +557,58 @@ def veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpEq : core.cmp.Eq
     Name pattern: [core::cmp::Ord<veoveo_hub_sdk::identity::PromptName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_hub_sdk::identity::PromptName>"]
-def veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpOrd : core.cmp.Ord
+impl_def veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpOrd : core.cmp.Ord
   veoveo_hub_sdk.identity.PromptName := {
   eqInst := veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpEq
   partialOrdInst :=
     veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpPartialOrdPromptName
   cmp := veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_hub_sdk.identity.PromptName.Insts.CoreCmpOrd
+}
+
+/-- Trait implementation: [veoveo_hub_sdk::identity::{impl core::clone::Clone for veoveo_hub_sdk::identity::OpaqueTaskId}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 183:0-183:43
+    Name pattern: [core::clone::Clone<veoveo_hub_sdk::identity::OpaqueTaskId>] -/
+@[reducible, rust_trait_impl
+  "core::clone::Clone<veoveo_hub_sdk::identity::OpaqueTaskId>"]
+def veoveo_hub_sdk.identity.OpaqueTaskId.Insts.CoreCloneClone :
+  core.clone.Clone veoveo_hub_sdk.identity.OpaqueTaskId := {
+  clone := veoveo_hub_sdk.identity.OpaqueTaskId.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [veoveo_hub_sdk::internal_auth::exchange::{impl core::clone::Clone for veoveo_hub_sdk::internal_auth::exchange::DelegationContext}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 27:16-27:21
+    Name pattern: [core::clone::Clone<veoveo_hub_sdk::internal_auth::exchange::DelegationContext>] -/
+@[reducible, rust_trait_impl
+  "core::clone::Clone<veoveo_hub_sdk::internal_auth::exchange::DelegationContext>"]
+def
+  veoveo_hub_sdk.internal_auth.exchange.DelegationContext.Insts.CoreCloneClone
+  : core.clone.Clone veoveo_hub_sdk.internal_auth.exchange.DelegationContext
+  := {
+  clone :=
+    veoveo_hub_sdk.internal_auth.exchange.DelegationContext.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [veoveo_hub_sdk::internal_auth::{impl core::clone::Clone for veoveo_hub_sdk::internal_auth::ActingServer}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 290:16-290:21
+    Name pattern: [core::clone::Clone<veoveo_hub_sdk::internal_auth::ActingServer>] -/
+@[reducible, rust_trait_impl
+  "core::clone::Clone<veoveo_hub_sdk::internal_auth::ActingServer>"]
+def veoveo_hub_sdk.internal_auth.ActingServer.Insts.CoreCloneClone :
+  core.clone.Clone veoveo_hub_sdk.internal_auth.ActingServer := {
+  clone := veoveo_hub_sdk.internal_auth.ActingServer.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [veoveo_hub_sdk::internal_auth::{impl core::fmt::Display for veoveo_hub_sdk::internal_auth::InternalTokenError}]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 919:0-919:40
+    Name pattern: [core::fmt::Display<veoveo_hub_sdk::internal_auth::InternalTokenError>] -/
+@[reducible, rust_trait_impl
+  "core::fmt::Display<veoveo_hub_sdk::internal_auth::InternalTokenError>"]
+def veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay :
+  core.fmt.Display veoveo_hub_sdk.internal_auth.InternalTokenError := {
+  fmt :=
+    veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay.fmt
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::cmp::PartialEq<veoveo_hub_sdk::registration::access::Access> for veoveo_hub_sdk::registration::access::Access}]
@@ -484,12 +658,14 @@ impl_def
     Name pattern: [core::cmp::Ord<veoveo_hub_sdk::registration::access::Access>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_hub_sdk::registration::access::Access>"]
-def veoveo_hub_sdk.registration.access.Access.Insts.CoreCmpOrd : core.cmp.Ord
-  veoveo_hub_sdk.registration.access.Access := {
+impl_def veoveo_hub_sdk.registration.access.Access.Insts.CoreCmpOrd :
+  core.cmp.Ord veoveo_hub_sdk.registration.access.Access := {
   eqInst := veoveo_hub_sdk.registration.access.Access.Insts.CoreCmpEq
   partialOrdInst :=
     veoveo_hub_sdk.registration.access.Access.Insts.CoreCmpPartialOrdAccess
   cmp := veoveo_hub_sdk.registration.access.Access.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_hub_sdk.registration.access.Access.Insts.CoreCmpOrd
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::access::{impl core::clone::Clone for veoveo_hub_sdk::registration::access::Risk}]
@@ -557,12 +733,14 @@ impl_def veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpPartialOrdRisk :
     Name pattern: [core::cmp::Ord<veoveo_hub_sdk::registration::access::Risk>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_hub_sdk::registration::access::Risk>"]
-def veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpOrd : core.cmp.Ord
-  veoveo_hub_sdk.registration.access.Risk := {
+impl_def veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpOrd :
+  core.cmp.Ord veoveo_hub_sdk.registration.access.Risk := {
   eqInst := veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpEq
   partialOrdInst :=
     veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpPartialOrdRisk
   cmp := veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_hub_sdk.registration.access.Risk.Insts.CoreCmpOrd
 }
 
 /-- Trait implementation: [veoveo_hub_sdk::registration::authorization::{impl core::cmp::PartialEq<veoveo_hub_sdk::registration::authorization::RouteAccess> for veoveo_hub_sdk::registration::authorization::RouteAccess}]
@@ -628,13 +806,15 @@ def veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCmpEq :
     Name pattern: [core::cmp::Ord<veoveo_types::resource_template::ResourceTemplateUri>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_types::resource_template::ResourceTemplateUri>"]
-def veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCmpOrd :
+impl_def veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCmpOrd :
   core.cmp.Ord veoveo_types.resource_template.ResourceTemplateUri := {
   eqInst := veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCmpEq
   partialOrdInst :=
     veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCmpPartialOrdResourceTemplateUri
   cmp :=
     veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_types.resource_template.ResourceTemplateUri.Insts.CoreCmpOrd
 }
 
 /-- Trait implementation: [veoveo_types::resource::{impl core::cmp::PartialEq<veoveo_types::resource::ResourceUri> for veoveo_types::resource::ResourceUri}]
@@ -682,12 +862,14 @@ def veoveo_types.resource.ResourceUri.Insts.CoreCmpEq : core.cmp.Eq
     Name pattern: [core::cmp::Ord<veoveo_types::resource::ResourceUri>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_types::resource::ResourceUri>"]
-def veoveo_types.resource.ResourceUri.Insts.CoreCmpOrd : core.cmp.Ord
+impl_def veoveo_types.resource.ResourceUri.Insts.CoreCmpOrd : core.cmp.Ord
   veoveo_types.resource.ResourceUri := {
   eqInst := veoveo_types.resource.ResourceUri.Insts.CoreCmpEq
   partialOrdInst :=
     veoveo_types.resource.ResourceUri.Insts.CoreCmpPartialOrdResourceUri
   cmp := veoveo_types.resource.ResourceUri.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_types.resource.ResourceUri.Insts.CoreCmpOrd
 }
 
 /-- [veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}::matches::{impl core::ops::function::FnOnce<(veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'_3>,), bool> for veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}::matches::{closure}<'_0, '_1, '_2>}::call_once]:
@@ -839,6 +1021,89 @@ def veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access
     core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
       veoveo_hub_sdk.registration.authorization.RouteAccess residual
 
+/-- [veoveo_hub_sdk::registration::declaration::{veoveo_hub_sdk::registration::declaration::ServerEndpoint}::url]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/declaration.rs', lines 77:4-77:34
+    Name pattern: [veoveo_hub_sdk::registration::declaration::{veoveo_hub_sdk::registration::declaration::ServerEndpoint}::url]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::registration::declaration::{veoveo_hub_sdk::registration::declaration::ServerEndpoint}::url"]
+def veoveo_hub_sdk.registration.declaration.ServerEndpoint.url
+  (self : veoveo_hub_sdk.registration.declaration.ServerEndpoint) :
+  Result url.Url
+  := do
+  ok self
+
+/-- [veoveo_hub_sdk::registration::declaration::{impl core::convert::From<&'_0 veoveo_hub_sdk::registration::declaration::ServerEndpoint> for veoveo_hub_sdk::registration::declaration::ResourceIndicator}::from]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/declaration.rs', lines 161:4-161:46
+    Name pattern: [veoveo_hub_sdk::registration::declaration::{core::convert::From<veoveo_hub_sdk::registration::declaration::ResourceIndicator, &'0 veoveo_hub_sdk::registration::declaration::ServerEndpoint>}::from]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::registration::declaration::{core::convert::From<veoveo_hub_sdk::registration::declaration::ResourceIndicator, &'0 veoveo_hub_sdk::registration::declaration::ServerEndpoint>}::from"]
+def
+  veoveo_hub_sdk.registration.declaration.ResourceIndicator.Insts.CoreConvertFromShared0ServerEndpoint.from
+  (endpoint : veoveo_hub_sdk.registration.declaration.ServerEndpoint) :
+  Result veoveo_hub_sdk.registration.declaration.ResourceIndicator
+  := do
+  let u ← url.Url.Insts.CoreCloneClone.clone endpoint
+  ok u
+
+/-- Trait implementation: [veoveo_types::execution::{impl core::cmp::PartialEq<veoveo_types::execution::DeploymentId> for veoveo_types::execution::DeploymentId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/execution.rs', lines 18:0-18:46
+    Name pattern: [core::cmp::PartialEq<veoveo_types::execution::DeploymentId, veoveo_types::execution::DeploymentId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialEq<veoveo_types::execution::DeploymentId, veoveo_types::execution::DeploymentId>"]
+impl_def veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialEqDeploymentId
+  : core.cmp.PartialEq veoveo_types.execution.DeploymentId
+  veoveo_types.execution.DeploymentId := {
+  eq :=
+    veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialEqDeploymentId.eq
+  ne := core.cmp.PartialEq.ne.trait_default
+    veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialEqDeploymentId
+}
+
+/-- Trait implementation: [veoveo_types::execution::{impl core::cmp::PartialOrd<veoveo_types::execution::DeploymentId> for veoveo_types::execution::DeploymentId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/execution.rs', lines 18:0-18:46
+    Name pattern: [core::cmp::PartialOrd<veoveo_types::execution::DeploymentId, veoveo_types::execution::DeploymentId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialOrd<veoveo_types::execution::DeploymentId, veoveo_types::execution::DeploymentId>"]
+impl_def
+  veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialOrdDeploymentId :
+  core.cmp.PartialOrd veoveo_types.execution.DeploymentId
+  veoveo_types.execution.DeploymentId := {
+  partialEqInst :=
+    veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialEqDeploymentId
+  partial_cmp :=
+    veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialOrdDeploymentId.partial_cmp
+  gt := core.cmp.PartialOrd.gt.trait_default
+    veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialOrdDeploymentId
+}
+
+/-- Trait implementation: [veoveo_types::execution::{impl core::cmp::Eq for veoveo_types::execution::DeploymentId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/execution.rs', lines 18:0-18:46
+    Name pattern: [core::cmp::Eq<veoveo_types::execution::DeploymentId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Eq<veoveo_types::execution::DeploymentId>"]
+def veoveo_types.execution.DeploymentId.Insts.CoreCmpEq : core.cmp.Eq
+  veoveo_types.execution.DeploymentId := {
+  partialEqInst :=
+    veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialEqDeploymentId
+}
+
+/-- Trait implementation: [veoveo_types::execution::{impl core::cmp::Ord for veoveo_types::execution::DeploymentId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/execution.rs', lines 18:0-18:46
+    Name pattern: [core::cmp::Ord<veoveo_types::execution::DeploymentId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Ord<veoveo_types::execution::DeploymentId>"]
+impl_def veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd : core.cmp.Ord
+  veoveo_types.execution.DeploymentId := {
+  eqInst := veoveo_types.execution.DeploymentId.Insts.CoreCmpEq
+  partialOrdInst :=
+    veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialOrdDeploymentId
+  cmp := veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd
+}
+
 /-- Trait implementation: [veoveo_types::extensions::{impl core::fmt::Debug for veoveo_types::extensions::ExtensionError}]
     Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/extensions.rs', lines 29:9-29:14
     Name pattern: [core::fmt::Debug<veoveo_types::extensions::ExtensionError>] -/
@@ -926,12 +1191,14 @@ def veoveo_types.identity.GroupId.Insts.CoreCmpEq : core.cmp.Eq
     Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 25:0-25:69
     Name pattern: [core::cmp::Ord<veoveo_types::identity::GroupId>] -/
 @[reducible, rust_trait_impl "core::cmp::Ord<veoveo_types::identity::GroupId>"]
-def veoveo_types.identity.GroupId.Insts.CoreCmpOrd : core.cmp.Ord
+impl_def veoveo_types.identity.GroupId.Insts.CoreCmpOrd : core.cmp.Ord
   veoveo_types.identity.GroupId := {
   eqInst := veoveo_types.identity.GroupId.Insts.CoreCmpEq
   partialOrdInst :=
     veoveo_types.identity.GroupId.Insts.CoreCmpPartialOrdGroupId
   cmp := veoveo_types.identity.GroupId.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_types.identity.GroupId.Insts.CoreCmpOrd
 }
 
 /-- Trait implementation: [veoveo_types::identity::{impl core::cmp::PartialEq<veoveo_types::identity::RoleId> for veoveo_types::identity::RoleId}]
@@ -975,11 +1242,13 @@ def veoveo_types.identity.RoleId.Insts.CoreCmpEq : core.cmp.Eq
     Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 29:0-29:69
     Name pattern: [core::cmp::Ord<veoveo_types::identity::RoleId>] -/
 @[reducible, rust_trait_impl "core::cmp::Ord<veoveo_types::identity::RoleId>"]
-def veoveo_types.identity.RoleId.Insts.CoreCmpOrd : core.cmp.Ord
+impl_def veoveo_types.identity.RoleId.Insts.CoreCmpOrd : core.cmp.Ord
   veoveo_types.identity.RoleId := {
   eqInst := veoveo_types.identity.RoleId.Insts.CoreCmpEq
   partialOrdInst := veoveo_types.identity.RoleId.Insts.CoreCmpPartialOrdRoleId
   cmp := veoveo_types.identity.RoleId.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_types.identity.RoleId.Insts.CoreCmpOrd
 }
 
 /-- Trait implementation: [veoveo_types::names::{impl core::cmp::PartialEq<veoveo_types::names::ScopeName> for veoveo_types::names::ScopeName}]
@@ -1023,12 +1292,14 @@ def veoveo_types.names.ScopeName.Insts.CoreCmpEq : core.cmp.Eq
     Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/names.rs', lines 4:0-4:37
     Name pattern: [core::cmp::Ord<veoveo_types::names::ScopeName>] -/
 @[reducible, rust_trait_impl "core::cmp::Ord<veoveo_types::names::ScopeName>"]
-def veoveo_types.names.ScopeName.Insts.CoreCmpOrd : core.cmp.Ord
+impl_def veoveo_types.names.ScopeName.Insts.CoreCmpOrd : core.cmp.Ord
   veoveo_types.names.ScopeName := {
   eqInst := veoveo_types.names.ScopeName.Insts.CoreCmpEq
   partialOrdInst :=
     veoveo_types.names.ScopeName.Insts.CoreCmpPartialOrdScopeName
   cmp := veoveo_types.names.ScopeName.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_types.names.ScopeName.Insts.CoreCmpOrd
 }
 
 /-- Trait implementation: [veoveo_types::permission_names::{impl core::cmp::PartialEq<veoveo_types::permission_names::PermissionName> for veoveo_types::permission_names::PermissionName}]
@@ -1079,12 +1350,40 @@ def veoveo_types.permission_names.PermissionName.Insts.CoreCmpEq : core.cmp.Eq
     Name pattern: [core::cmp::Ord<veoveo_types::permission_names::PermissionName>] -/
 @[reducible, rust_trait_impl
   "core::cmp::Ord<veoveo_types::permission_names::PermissionName>"]
-def veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd :
+impl_def veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd :
   core.cmp.Ord veoveo_types.permission_names.PermissionName := {
   eqInst := veoveo_types.permission_names.PermissionName.Insts.CoreCmpEq
   partialOrdInst :=
     veoveo_types.permission_names.PermissionName.Insts.CoreCmpPartialOrdPermissionName
   cmp := veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd
+}
+
+/-- Trait implementation: [veoveo_types::permission_names::{impl core::clone::Clone for veoveo_types::permission_names::PermissionName}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/permission_names.rs', lines 6:0-6:42
+    Name pattern: [core::clone::Clone<veoveo_types::permission_names::PermissionName>] -/
+@[reducible, rust_trait_impl
+  "core::clone::Clone<veoveo_types::permission_names::PermissionName>"]
+def veoveo_types.permission_names.PermissionName.Insts.CoreCloneClone :
+  core.clone.Clone veoveo_types.permission_names.PermissionName := {
+  clone :=
+    veoveo_types.permission_names.PermissionName.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [veoveo_types::platform_names::{impl core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug> for veoveo_types::platform_names::ServerSlug}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 5:0-5:38
+    Name pattern: [core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug, veoveo_types::platform_names::ServerSlug>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug, veoveo_types::platform_names::ServerSlug>"]
+impl_def
+  veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug :
+  core.cmp.PartialEq veoveo_types.platform_names.ServerSlug
+  veoveo_types.platform_names.ServerSlug := {
+  eq :=
+    veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq
+  ne := core.cmp.PartialEq.ne.trait_default
+    veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug
 }
 
 /-- Trait implementation: [veoveo_types::platform_names::{impl core::cmp::PartialEq<veoveo_types::platform_names::OAuthClientId> for veoveo_types::platform_names::OAuthClientId}]
@@ -1101,6 +1400,94 @@ impl_def
   ne := core.cmp.PartialEq.ne.trait_default
     veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialEqOAuthClientId
 }
+
+/-- [veoveo_hub::audit::{veoveo_hub::auth::verified::AuthenticatedSubject}::acting_task]:
+    Source: 'crates/veoveo-hub/src/audit.rs', lines 30:4-35:5
+    Visibility: public -/
+def audit.AuthenticatedSubject.acting_task
+  (self : auth.verified.AuthenticatedSubject) :
+  Result (Option veoveo_hub_sdk.identity.OpaqueTaskId)
+  := do
+  match self.delegation with
+  | none => ok none
+  | some delegation => core.option.Option.as_ref delegation.task
+
+/-- [veoveo_hub::auth::verified::{veoveo_hub::auth::verified::AuthenticatedSubject}::request_context::{impl core::ops::function::FnOnce<(&'_1 veoveo_hub_sdk::execution::ExecutionContext,), bool> for veoveo_hub::auth::verified::{veoveo_hub::auth::verified::AuthenticatedSubject}::request_context::{closure}<'_0>}::call_once]:
+    Source: 'crates/veoveo-hub/src/auth/verified.rs', lines 42:29-42:91 -/
+def
+  auth.verified.AuthenticatedSubject.request_context.closure.Insts.CoreOpsFunctionFnOnceTupleShared1ExecutionContextBool.call_once
+  (c : auth.verified.AuthenticatedSubject.request_context.closure)
+  (tupled_args : veoveo_hub_sdk.execution.ExecutionContext) :
+  Result Bool
+  := do
+  core.cmp.impls.PartialEqShared.ne
+    veoveo_hub_sdk.execution.ExecutionContext.Insts.CoreCmpPartialEqExecutionContext
+    tupled_args c.request_context.execution
+
+/-- Trait implementation: [veoveo_hub::auth::verified::{veoveo_hub::auth::verified::AuthenticatedSubject}::request_context::{impl core::ops::function::FnOnce<(&'_1 veoveo_hub_sdk::execution::ExecutionContext,), bool> for veoveo_hub::auth::verified::{veoveo_hub::auth::verified::AuthenticatedSubject}::request_context::{closure}<'_0>}]
+    Source: 'crates/veoveo-hub/src/auth/verified.rs', lines 42:29-42:91 -/
+@[reducible]
+def
+  auth.verified.AuthenticatedSubject.request_context.closure.Insts.CoreOpsFunctionFnOnceTupleShared1ExecutionContextBool
+  : core.ops.function.FnOnce
+  auth.verified.AuthenticatedSubject.request_context.closure
+  veoveo_hub_sdk.execution.ExecutionContext Bool := {
+  call_once :=
+    auth.verified.AuthenticatedSubject.request_context.closure.Insts.CoreOpsFunctionFnOnceTupleShared1ExecutionContextBool.call_once
+}
+
+/-- [veoveo_hub::auth::verified::{veoveo_hub::auth::verified::AuthenticatedSubject}::request_context]:
+    Source: 'crates/veoveo-hub/src/auth/verified.rs', lines 35:4-57:5
+    Visibility: public -/
+def auth.verified.AuthenticatedSubject.request_context
+  (self : auth.verified.AuthenticatedSubject) :
+  Result (core.result.Result
+    veoveo_hub_sdk.internal_auth.request.HubRequestContext
+    veoveo_hub_sdk.internal_auth.InternalTokenError)
+  := do
+  match self.delegation with
+  | none =>
+    let o ←
+      core.option.Option.Insts.CoreCloneClone.clone
+        veoveo_hub_sdk.execution.ExecutionContext.Insts.CoreCloneClone
+        self.execution
+    let r ←
+      core.option.Option.ok_or o
+        veoveo_hub_sdk.internal_auth.InternalTokenError.InvalidRequestContext
+    let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+    match cf with
+    | core.ops.control_flow.ControlFlow.Continue val =>
+      let ar ←
+        veoveo_audit_contract.model.AuditRequest.Insts.CoreCloneClone.clone
+          self.audit
+      let ats ←
+        veoveo_hub_sdk.identity.AccessTokenSubject.Insts.CoreCloneClone.clone
+          self.access_token
+      let p ←
+        veoveo_hub_sdk.identity.Principal.Insts.CoreCloneClone.clone
+          self.principal
+      ok (core.result.Result.Ok
+        { execution := val, audit := ar, access_token := ats, principal := p })
+    | core.ops.control_flow.ControlFlow.Break residual =>
+      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+        veoveo_hub_sdk.internal_auth.request.HubRequestContext
+        (core.convert.FromSame veoveo_hub_sdk.internal_auth.InternalTokenError)
+        residual
+  | some delegation =>
+    let o ← core.option.Option.as_ref self.execution
+    let b ←
+      core.option.Option.is_some_and
+        auth.verified.AuthenticatedSubject.request_context.closure.Insts.CoreOpsFunctionFnOnceTupleShared1ExecutionContextBool
+        o delegation
+    if b
+    then
+      ok (core.result.Result.Err
+        veoveo_hub_sdk.internal_auth.InternalTokenError.InvalidRequestContext)
+    else
+      let hrc ←
+        veoveo_hub_sdk.internal_auth.request.HubRequestContext.Insts.CoreCloneClone.clone
+          delegation.request_context
+      ok (core.result.Result.Ok hrc)
 
 /-- [veoveo_hub::catalog::{veoveo_hub::catalog::HubCatalog}::control_plane]:
     Source: 'crates/veoveo-hub/src/catalog.rs', lines 383:4-385:5
@@ -1391,7 +1778,7 @@ def control_plane.policy.PolicyTarget.Insts.CoreCloneClone.clone
     ok (control_plane.policy.PolicyTarget.Unadmitted dpt)
 
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{impl core::ops::function::FnOnce<(&'_0 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), &'_ veoveo_hub::registration::snapshot::RegisteredServer> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}}::call_once]:
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 160:34-160:58 -/
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 169:34-169:58 -/
 def
   registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnOnceTupleShared0ArcRegisteredServerSharedRegisteredServer.call_once
   (c : registration.snapshot.RegistrationSnapshot.iter.closure)
@@ -1404,7 +1791,7 @@ def
   ok rs
 
 /-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{impl core::ops::function::FnOnce<(&'_0 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), &'_ veoveo_hub::registration::snapshot::RegisteredServer> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}}]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 160:34-160:58 -/
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 169:34-169:58 -/
 @[reducible]
 def
   registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnOnceTupleShared0ArcRegisteredServerSharedRegisteredServer
@@ -1417,7 +1804,7 @@ def
 }
 
 /-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{impl core::ops::function::FnMut<(&'_0 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), &'_ veoveo_hub::registration::snapshot::RegisteredServer> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}}]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 160:34-160:58 -/
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 169:34-169:58 -/
 @[reducible]
 def
   registration.snapshot.RegistrationSnapshot.iter.closure.Insts.CoreOpsFunctionFnMutTupleShared0ArcRegisteredServerSharedRegisteredServer
@@ -1432,7 +1819,7 @@ def
 }
 
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter]:
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 159:4-161:5
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 168:4-170:5
     Visibility: public -/
 def registration.snapshot.RegistrationSnapshot.iter
   (self : registration.snapshot.RegistrationSnapshot) :
@@ -2214,6 +2601,291 @@ def
     (alloc.collections.btree.set.BTreeSetTGlobal.Insts.CoreIterTraitsCollectFromIterator
     veoveo_types.permission_names.PermissionName.Insts.CoreCmpOrd) f
 
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::delegation::SubjectDelegation,), chrono::datetime::DateTime<chrono::offset::utc::Utc, chrono::offset::utc::Utc>> for veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure#3}}::call_once]:
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 101:21-101:55 -/
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_3.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationDateTimeUtcUtc.call_once
+  (c : mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_3)
+  (tupled_args : delegation.SubjectDelegation) :
+  Result (chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc)
+  := do
+  ok tupled_args.expires_at
+
+/-- Trait implementation: [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::delegation::SubjectDelegation,), chrono::datetime::DateTime<chrono::offset::utc::Utc, chrono::offset::utc::Utc>> for veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure#3}}]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 101:21-101:55 -/
+@[reducible]
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_3.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationDateTimeUtcUtc
+  : core.ops.function.FnOnce
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_3
+  delegation.SubjectDelegation (chrono.datetime.DateTime chrono.offset.utc.Utc
+  chrono.offset.utc.Utc) := {
+  call_once :=
+    mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_3.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationDateTimeUtcUtc.call_once
+}
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::delegation::SubjectDelegation,), core::option::Option<veoveo_hub_sdk::internal_auth::exchange::DelegationContext>> for veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure#2}}::call_once]:
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 97:26-97:65 -/
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationOptionDelegationContext.call_once
+  (c : mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_2)
+  (tupled_args : delegation.SubjectDelegation) :
+  Result (Option veoveo_hub_sdk.internal_auth.exchange.DelegationContext)
+  := do
+  core.option.Option.Insts.CoreCloneClone.clone
+    veoveo_hub_sdk.internal_auth.exchange.DelegationContext.Insts.CoreCloneClone
+    tupled_args.context
+
+/-- Trait implementation: [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::delegation::SubjectDelegation,), core::option::Option<veoveo_hub_sdk::internal_auth::exchange::DelegationContext>> for veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure#2}}]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 97:26-97:65 -/
+@[reducible]
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationOptionDelegationContext
+  : core.ops.function.FnOnce
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_2
+  delegation.SubjectDelegation (Option
+  veoveo_hub_sdk.internal_auth.exchange.DelegationContext) := {
+  call_once :=
+    mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationOptionDelegationContext.call_once
+}
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::delegation::SubjectDelegation,), veoveo_hub_sdk::internal_auth::ActingServer> for veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure#1}}::call_once]:
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 92:21-92:66 -/
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationActingServer.call_once
+  (c : mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_1)
+  (tupled_args : delegation.SubjectDelegation) :
+  Result veoveo_hub_sdk.internal_auth.ActingServer
+  := do
+  veoveo_hub_sdk.internal_auth.ActingServer.Insts.CoreCloneClone.clone
+    tupled_args.acting_server
+
+/-- Trait implementation: [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::delegation::SubjectDelegation,), veoveo_hub_sdk::internal_auth::ActingServer> for veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure#1}}]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 92:21-92:66 -/
+@[reducible]
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationActingServer
+  : core.ops.function.FnOnce
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_1
+  delegation.SubjectDelegation veoveo_hub_sdk.internal_auth.ActingServer := {
+  call_once :=
+    mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationActingServer.call_once
+}
+
+/-- [veoveo_hub::mcp_support::mcp_internal]:
+    Source: 'crates/veoveo-hub/src/mcp_support.rs', lines 246:0-248:1 -/
+def mcp_support.mcp_internal
+  {T0 : Type _} (coreconvertIntoT0StringInst : core.convert.Into T0 String)
+  (message : T0) :
+  Result rmcp.model.ErrorData
+  := do
+  let s ← coreconvertIntoT0StringInst.into message
+  rmcp.model.ErrorData.internal_error (core.convert.IntoFrom
+    alloc.borrow.CowAStrString.Insts.CoreConvertFromString) s none
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{impl core::ops::function::FnOnce<(veoveo_hub_sdk::internal_auth::InternalTokenError,), rmcp::model::ErrorData> for veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure}}::call_once]:
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 88:25-88:84 -/
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure.Insts.CoreOpsFunctionFnOnceTupleInternalTokenErrorErrorData.call_once
+  (c : mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure)
+  (tupled_args : veoveo_hub_sdk.internal_auth.InternalTokenError) :
+  Result rmcp.model.ErrorData
+  := do
+  let s ←
+    alloc.string.ToString.Blanket.to_string
+      veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay
+      tupled_args
+  mcp_support.mcp_internal (core.convert.IntoFrom (core.convert.FromSame
+    String)) s
+
+/-- Trait implementation: [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{impl core::ops::function::FnOnce<(veoveo_hub_sdk::internal_auth::InternalTokenError,), rmcp::model::ErrorData> for veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure}}]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 88:25-88:84 -/
+@[reducible]
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure.Insts.CoreOpsFunctionFnOnceTupleInternalTokenErrorErrorData
+  : core.ops.function.FnOnce
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure
+  veoveo_hub_sdk.internal_auth.InternalTokenError rmcp.model.ErrorData := {
+  call_once :=
+    mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure.Insts.CoreOpsFunctionFnOnceTupleInternalTokenErrorErrorData.call_once
+}
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new]:
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 67:4-103:5 -/
+def mcp.upstream_authorized_http.HubAuthorizedHttpClient.new
+  (http : mcp.upstream_http.UpstreamTransport)
+  (issuer : veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer)
+  (profile : veoveo_hub_sdk.identity.HubProfileId)
+  (server : registration.snapshot.RegisteredServer)
+  (subject : auth.verified.AuthenticatedSubject)
+  (permissions : alloc.collections.btree.set.BTreeSet
+  veoveo_types.permission_names.PermissionName alloc.alloc.Global) :
+  Result (core.result.Result
+    mcp.upstream_authorized_http.HubAuthorizedHttpClient rmcp.model.ErrorData)
+  := do
+  let ss ←
+    veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+      server.slug
+  let ri ←
+    veoveo_hub_sdk.registration.declaration.ResourceIndicator.Insts.CoreConvertFromShared0ServerEndpoint.from
+      server.endpoint
+  let oci ←
+    veoveo_types.platform_names.OAuthClientId.Insts.CoreCloneClone.clone
+      subject.access_token.oauth_client_id
+  let p ←
+    veoveo_hub_sdk.identity.Principal.Insts.CoreCloneClone.clone subject.actor
+  let ia ←
+    veoveo_types.authority.InvocationAuthority.Insts.CoreCloneClone.clone
+      subject.authority
+  let r ← auth.verified.AuthenticatedSubject.request_context subject
+  let r1 ←
+    core.result.Result.map_err
+      mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure.Insts.CoreOpsFunctionFnOnceTupleInternalTokenErrorErrorData
+      r ()
+  let cf ← core.result.Result.Insts.CoreOpsTry.branch r1
+  match cf with
+  | core.ops.control_flow.ControlFlow.Continue val =>
+    let o ← core.option.Option.as_ref subject.delegation
+    let o1 ←
+      core.option.Option.map
+        mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationActingServer
+        o ()
+    let o2 ← audit.AuthenticatedSubject.acting_task subject
+    let o3 ←
+      core.option.OptionShared0T.cloned
+        veoveo_hub_sdk.identity.OpaqueTaskId.Insts.CoreCloneClone o2
+    let o4 ←
+      core.option.Option.and_then
+        mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_2.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationOptionDelegationContext
+        o ()
+    let o5 ←
+      core.option.Option.map
+        mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_3.Insts.CoreOpsFunctionFnOnceTupleShared0SubjectDelegationDateTimeUtcUtc
+        o ()
+    ok (core.result.Result.Ok
+      {
+        http,
+        issuer,
+        profile,
+        server := ss,
+        deployment := server.deployment,
+        audience := ri,
+        client := oci,
+        actor := p,
+        authority := ia,
+        permissions,
+        request_context := val,
+        acting_server := o1,
+        acting_task := o3,
+        delegation_context := o4,
+        delegation_expires_at := o5
+      })
+  | core.ops.control_flow.ControlFlow.Break residual =>
+    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+      mcp.upstream_authorized_http.HubAuthorizedHttpClient
+      (core.convert.FromSame rmcp.model.ErrorData) residual
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::issue_bearer_token_until::{impl core::ops::function::FnOnce<(chrono::datetime::DateTime<chrono::offset::utc::Utc, chrono::offset::utc::Utc>,), chrono::datetime::DateTime<chrono::offset::utc::Utc, chrono::offset::utc::Utc>> for veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::issue_bearer_token_until::{closure}<'_0>}::call_once]:
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 178:36-178:71 -/
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.issue_bearer_token_until.closure.Insts.CoreOpsFunctionFnOnceTupleDateTimeUtcUtcDateTimeUtcUtc.call_once
+  (c :
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.issue_bearer_token_until.closure)
+  (tupled_args : chrono.datetime.DateTime chrono.offset.utc.Utc
+  chrono.offset.utc.Utc) :
+  Result (chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc)
+  := do
+  core.cmp.Ord.min.trait_default (chrono.datetime.DateTime.Insts.CoreCmpOrd
+    chrono.offset.utc.Utc.Insts.ChronoOffsetTimeZoneUtc) tupled_args c
+
+/-- Trait implementation: [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::issue_bearer_token_until::{impl core::ops::function::FnOnce<(chrono::datetime::DateTime<chrono::offset::utc::Utc, chrono::offset::utc::Utc>,), chrono::datetime::DateTime<chrono::offset::utc::Utc, chrono::offset::utc::Utc>> for veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::issue_bearer_token_until::{closure}<'_0>}]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 178:36-178:71 -/
+@[reducible]
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.issue_bearer_token_until.closure.Insts.CoreOpsFunctionFnOnceTupleDateTimeUtcUtcDateTimeUtcUtc
+  : core.ops.function.FnOnce
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.issue_bearer_token_until.closure
+  (chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc)
+  (chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc) := {
+  call_once :=
+    mcp.upstream_authorized_http.HubAuthorizedHttpClient.issue_bearer_token_until.closure.Insts.CoreOpsFunctionFnOnceTupleDateTimeUtcUtcDateTimeUtcUtc.call_once
+}
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::issue_bearer_token_until]:
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 158:4-183:5 -/
+def
+  mcp.upstream_authorized_http.HubAuthorizedHttpClient.issue_bearer_token_until
+  (self : mcp.upstream_authorized_http.HubAuthorizedHttpClient)
+  (expires_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+  chrono.offset.utc.Utc) :
+  Result (core.result.Result String
+    mcp.upstream_authorized_http.HubAuthorizedHttpError)
+  := do
+  let hpi ←
+    veoveo_hub_sdk.identity.HubProfileId.Insts.CoreCloneClone.clone
+      self.profile
+  let ss ←
+    veoveo_types.platform_names.ServerSlug.Insts.CoreCloneClone.clone
+      self.server
+  let ri ←
+    veoveo_hub_sdk.registration.declaration.ResourceIndicator.Insts.CoreCloneClone.clone
+      self.audience
+  let oci ←
+    veoveo_types.platform_names.OAuthClientId.Insts.CoreCloneClone.clone
+      self.client
+  let p ←
+    veoveo_hub_sdk.identity.Principal.Insts.CoreCloneClone.clone self.actor
+  let ia ←
+    veoveo_types.authority.InvocationAuthority.Insts.CoreCloneClone.clone
+      self.authority
+  let bs ←
+    alloc.collections.btree.set.BTreeSet.Insts.CoreCloneClone.clone
+      veoveo_types.permission_names.PermissionName.Insts.CoreCloneClone
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone self.permissions
+  let hrc ←
+    veoveo_hub_sdk.internal_auth.request.HubRequestContext.Insts.CoreCloneClone.clone
+      self.request_context
+  let o ←
+    core.option.Option.Insts.CoreCloneClone.clone
+      veoveo_hub_sdk.internal_auth.ActingServer.Insts.CoreCloneClone
+      self.acting_server
+  let o1 ←
+    core.option.Option.Insts.CoreCloneClone.clone
+      veoveo_hub_sdk.identity.OpaqueTaskId.Insts.CoreCloneClone
+      self.acting_task
+  let o2 ←
+    core.option.Option.Insts.CoreCloneClone.clone
+      veoveo_hub_sdk.internal_auth.exchange.DelegationContext.Insts.CoreCloneClone
+      self.delegation_context
+  let dt ←
+    core.option.Option.map_or
+      mcp.upstream_authorized_http.HubAuthorizedHttpClient.issue_bearer_token_until.closure.Insts.CoreOpsFunctionFnOnceTupleDateTimeUtcUtcDateTimeUtcUtc
+      self.delegation_expires_at expires_at expires_at
+  let r ←
+    veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer.issue self.issuer
+      {
+        profile := hpi,
+        server := ss,
+        deployment := self.deployment,
+        audience := ri,
+        client := oci,
+        actor := p,
+        authority := ia,
+        permissions := bs,
+        request_context := (some hrc),
+        acting_server := o,
+        acting_task := o1,
+        delegation_context := o2,
+        expires_at := dt
+      }
+  match r with
+  | core.result.Result.Ok issued =>
+    ok (core.result.Result.Ok issued.bearer_token)
+  | core.result.Result.Err error =>
+    ok (core.result.Result.Err
+      (mcp.upstream_authorized_http.HubAuthorizedHttpError.InternalToken
+      error))
+
 /-- [veoveo_hub::policy::evaluation::registered_target]:
     Source: 'crates/veoveo-hub/src/policy/evaluation.rs', lines 65:0-84:1 -/
 def policy.evaluation.registered_target
@@ -2609,6 +3281,400 @@ def policy.session.SessionFamilyAuthority.allows
       else ok false
     else ok false
   else ok false
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegisteredServer}::endpoint_url]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 59:4-61:5
+    Visibility: public -/
+def registration.snapshot.RegisteredServer.endpoint_url
+  (self : registration.snapshot.RegisteredServer) : Result Str := do
+  let u ←
+    veoveo_hub_sdk.registration.declaration.ServerEndpoint.url self.endpoint
+  url.Url.as_str u
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::of]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 90:4-96:5 -/
+def registration.snapshot.RegistrationSnapshot.of
+  (servers : alloc.collections.btree.map.BTreeMap
+  veoveo_types.execution.DeploymentId (alloc.sync.Arc
+  registration.snapshot.RegisteredServer) alloc.alloc.Global) :
+  Result registration.snapshot.RegistrationSnapshot
+  := do
+  let namespaces ←
+    registration.snapshot.RegistrationSnapshot.build_namespaces servers
+  ok { servers, namespaces }
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{impl core::ops::function::FnMut<(veoveo_hub::registration::snapshot::RegisteredServer,), (veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}<T0, Clause0_IntoIter>}::call_mut]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+def
+  registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer.call_mut
+  {T0 : Type _} {Clause0_IntoIter : Type _}
+  (coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T0
+  registration.snapshot.RegisteredServer Clause0_IntoIter)
+  (c : registration.snapshot.RegistrationSnapshot.new.closure T0
+  Clause0_IntoIter) (tupled_args : registration.snapshot.RegisteredServer) :
+  Result ((veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+    registration.snapshot.RegisteredServer)) ×
+    (registration.snapshot.RegistrationSnapshot.new.closure T0
+    Clause0_IntoIter))
+  := do
+  let a ← alloc.sync.Arc.new tupled_args
+  ok ((tupled_args.deployment, a), c)
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{impl core::ops::function::FnOnce<(veoveo_hub::registration::snapshot::RegisteredServer,), (veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}<T0, Clause0_IntoIter>}::call_once]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+def
+  registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnOnceTupleRegisteredServerPairDeploymentIdArcRegisteredServer.call_once
+  {T0 : Type _} {Clause0_IntoIter : Type _}
+  (coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T0
+  registration.snapshot.RegisteredServer Clause0_IntoIter)
+  (c : registration.snapshot.RegistrationSnapshot.new.closure T0
+  Clause0_IntoIter) (rs : registration.snapshot.RegisteredServer) :
+  Result (veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+    registration.snapshot.RegisteredServer))
+  := do
+  let (p, _) ←
+    registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer.call_mut
+      coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst c
+      rs
+  ok p
+
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{impl core::ops::function::FnOnce<(veoveo_hub::registration::snapshot::RegisteredServer,), (veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}<T0, Clause0_IntoIter>}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+@[reducible]
+def
+  registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnOnceTupleRegisteredServerPairDeploymentIdArcRegisteredServer
+  {T0 : Type _} {Clause0_IntoIter : Type _}
+  (coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T0
+  registration.snapshot.RegisteredServer Clause0_IntoIter) :
+  core.ops.function.FnOnce
+  (registration.snapshot.RegistrationSnapshot.new.closure T0 Clause0_IntoIter)
+  registration.snapshot.RegisteredServer (veoveo_types.execution.DeploymentId
+  × (alloc.sync.Arc registration.snapshot.RegisteredServer)) := {
+  call_once :=
+    registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnOnceTupleRegisteredServerPairDeploymentIdArcRegisteredServer.call_once
+    coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst
+}
+
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{impl core::ops::function::FnMut<(veoveo_hub::registration::snapshot::RegisteredServer,), (veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}<T0, Clause0_IntoIter>}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+@[reducible]
+def
+  registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer
+  {T0 : Type _} {Clause0_IntoIter : Type _}
+  (coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T0
+  registration.snapshot.RegisteredServer Clause0_IntoIter) :
+  core.ops.function.FnMut
+  (registration.snapshot.RegistrationSnapshot.new.closure T0 Clause0_IntoIter)
+  registration.snapshot.RegisteredServer (veoveo_types.execution.DeploymentId
+  × (alloc.sync.Arc registration.snapshot.RegisteredServer)) := {
+  FnOnceInst :=
+    registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnOnceTupleRegisteredServerPairDeploymentIdArcRegisteredServer
+    coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst
+  call_mut :=
+    registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer.call_mut
+    coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst
+}
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 81:4-88:5
+    Visibility: public -/
+def registration.snapshot.RegistrationSnapshot.new
+  {T0 : Type _} {Clause0_IntoIter : Type _}
+  (coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T0
+  registration.snapshot.RegisteredServer Clause0_IntoIter) (servers : T0) :
+  Result registration.snapshot.RegistrationSnapshot
+  := do
+  let t ←
+    coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst.into_iter
+      servers
+  let m ←
+    coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst.iteratorInst.map
+      (registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer
+      coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst)
+      t ()
+  let bm ←
+    core.iter.traits.iterator.Iterator.collect.default
+      (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+      coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst.iteratorInst
+      (registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer
+      coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst))
+      (alloc.collections.btree.map.BTreeMapKVGlobal.Insts.CoreIterTraitsCollectFromIteratorPair
+      (alloc.sync.Arc registration.snapshot.RegisteredServer)
+      veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd) m
+  registration.snapshot.RegistrationSnapshot.of bm
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{impl core::ops::function::FnMut<(&'_2 &'_3 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), bool> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{closure}<'_0, '_1>}::call_mut]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 137:56-137:85 -/
+def
+  registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool.call_mut
+  (c : registration.snapshot.RegistrationSnapshot.get.closure)
+  (tupled_args : alloc.sync.Arc registration.snapshot.RegisteredServer) :
+  Result (Bool × registration.snapshot.RegistrationSnapshot.get.closure)
+  := do
+  let rs ←
+    alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global tupled_args
+  let b ←
+    veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq
+      rs.slug c
+  ok (b, c)
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{impl core::ops::function::FnOnce<(&'_2 &'_3 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), bool> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{closure}<'_0, '_1>}::call_once]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 137:56-137:85 -/
+def
+  registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3ArcRegisteredServerBool.call_once
+  (c : registration.snapshot.RegistrationSnapshot.get.closure)
+  (a : alloc.sync.Arc registration.snapshot.RegisteredServer) :
+  Result Bool
+  := do
+  let (b, _) ←
+    registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool.call_mut
+      c a
+  ok b
+
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{impl core::ops::function::FnOnce<(&'_2 &'_3 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), bool> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{closure}<'_0, '_1>}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 137:56-137:85 -/
+@[reducible]
+def
+  registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3ArcRegisteredServerBool
+  : core.ops.function.FnOnce
+  registration.snapshot.RegistrationSnapshot.get.closure (alloc.sync.Arc
+  registration.snapshot.RegisteredServer) Bool := {
+  call_once :=
+    registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3ArcRegisteredServerBool.call_once
+}
+
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{impl core::ops::function::FnMut<(&'_2 &'_3 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), bool> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{closure}<'_0, '_1>}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 137:56-137:85 -/
+@[reducible]
+def
+  registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool
+  : core.ops.function.FnMut
+  registration.snapshot.RegistrationSnapshot.get.closure (alloc.sync.Arc
+  registration.snapshot.RegisteredServer) Bool := {
+  FnOnceInst :=
+    registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3ArcRegisteredServerBool
+  call_mut :=
+    registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool.call_mut
+}
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 136:4-140:5
+    Visibility: public -/
+def registration.snapshot.RegistrationSnapshot.get
+  (self : registration.snapshot.RegistrationSnapshot)
+  (slug : veoveo_types.platform_names.ServerSlug) :
+  Result (Option registration.snapshot.RegisteredServer)
+  := do
+  let v ←
+    alloc.collections.btree.map.BTreeMap.values
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone self.servers
+  let matching ←
+    core.iter.traits.iterator.Iterator.filter.default
+      (alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV
+      veoveo_types.execution.DeploymentId (alloc.sync.Arc
+      registration.snapshot.RegisteredServer))
+      registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool
+      v slug
+  let (o, matching1) ←
+    core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next
+      (alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV
+      veoveo_types.execution.DeploymentId (alloc.sync.Arc
+      registration.snapshot.RegisteredServer))
+      registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool
+      matching
+  let cf ← core.option.Option.Insts.CoreOpsTry_traitTry.branch o
+  match cf with
+  | core.ops.control_flow.ControlFlow.Continue val =>
+    let (o1, _) ←
+      core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next
+        (alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV
+        veoveo_types.execution.DeploymentId (alloc.sync.Arc
+        registration.snapshot.RegisteredServer))
+        registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool
+        matching1
+    let b := core.option.Option.is_none o1
+    let rs ←
+      alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref alloc.alloc.Global val
+    core.bool.Bool.then_some b rs
+  | core.ops.control_flow.ControlFlow.Break residual =>
+    core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
+      registration.snapshot.RegisteredServer residual
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::deployment]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 142:4-147:5
+    Visibility: public -/
+def registration.snapshot.RegistrationSnapshot.deployment
+  (self : registration.snapshot.RegistrationSnapshot)
+  (deployment : veoveo_types.execution.DeploymentId) :
+  Result (Option registration.snapshot.RegisteredServer)
+  := do
+  let o ←
+    alloc.collections.btree.map.BTreeMap.get
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+      (core.borrow.Borrow.Blanket veoveo_types.execution.DeploymentId)
+      veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd
+      veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd self.servers
+      deployment
+  match o with
+  | none => ok none
+  | some server =>
+    let rs ←
+      alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref alloc.alloc.Global server
+    ok (some rs)
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}::{impl core::ops::function::FnOnce<(), (veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}::{closure}<'_0, '_1>}::call_once]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 162:48-162:80 -/
+def
+  registration.snapshot.RegistrationSnapshot.selected.closure.closure.Insts.CoreOpsFunctionFnOnceTuplePairDeploymentIdArcRegisteredServer.call_once
+  (c : registration.snapshot.RegistrationSnapshot.selected.closure.closure)
+  (_ : Unit) :
+  Result (veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+    registration.snapshot.RegisteredServer))
+  := do
+  let (di, a) := c
+  let a1 ←
+    alloc.sync.Arc.Insts.CoreCloneClone.clone
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone a
+  ok (di, a1)
+
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}::{impl core::ops::function::FnOnce<(), (veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}::{closure}<'_0, '_1>}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 162:48-162:80 -/
+@[reducible]
+def
+  registration.snapshot.RegistrationSnapshot.selected.closure.closure.Insts.CoreOpsFunctionFnOnceTuplePairDeploymentIdArcRegisteredServer
+  : core.ops.function.FnOnce
+  registration.snapshot.RegistrationSnapshot.selected.closure.closure Unit
+  (veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+  registration.snapshot.RegisteredServer)) := {
+  call_once :=
+    registration.snapshot.RegistrationSnapshot.selected.closure.closure.Insts.CoreOpsFunctionFnOnceTuplePairDeploymentIdArcRegisteredServer.call_once
+}
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{impl core::ops::function::FnMut<((&'_1 veoveo_types::platform_names::ServerSlug, &'_2 veoveo_hub_sdk::execution::ResolvedComponent),), core::option::Option<(veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)>> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}<'_0>}::call_mut]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 156:28-163:17 -/
+def
+  registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer.call_mut
+  (c : registration.snapshot.RegistrationSnapshot.selected.closure)
+  (tupled_args : (veoveo_types.platform_names.ServerSlug ×
+  veoveo_hub_sdk.execution.ResolvedComponent)) :
+  Result ((Option (veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+    registration.snapshot.RegisteredServer))) ×
+    registration.snapshot.RegistrationSnapshot.selected.closure)
+  := do
+  let (slug, selection) := tupled_args
+  match selection with
+  | veoveo_hub_sdk.execution.ResolvedComponent.Deployment deployment =>
+    let o ←
+      alloc.collections.btree.map.BTreeMap.get
+        alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+        (core.borrow.Borrow.Blanket veoveo_types.execution.DeploymentId)
+        veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd
+        veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd c.servers
+        deployment
+    let cf ← core.option.Option.Insts.CoreOpsTry_traitTry.branch o
+    match cf with
+    | core.ops.control_flow.ControlFlow.Continue val =>
+      let rs ←
+        alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global val
+      let b ←
+        veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq
+          rs.slug slug
+      let o1 ←
+        core.bool.Bool.then
+          registration.snapshot.RegistrationSnapshot.selected.closure.closure.Insts.CoreOpsFunctionFnOnceTuplePairDeploymentIdArcRegisteredServer
+          b (deployment, val)
+      ok (o1, c)
+    | core.ops.control_flow.ControlFlow.Break residual =>
+      let o1 ←
+        core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
+          (veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+          registration.snapshot.RegisteredServer)) residual
+      ok (o1, c)
+  | veoveo_hub_sdk.execution.ResolvedComponent.Unavailable => ok (none, c)
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{impl core::ops::function::FnOnce<((&'_1 veoveo_types::platform_names::ServerSlug, &'_2 veoveo_hub_sdk::execution::ResolvedComponent),), core::option::Option<(veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)>> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}<'_0>}::call_once]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 156:28-163:17 -/
+def
+  registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnOnceTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer.call_once
+  (c : registration.snapshot.RegistrationSnapshot.selected.closure)
+  (p : (veoveo_types.platform_names.ServerSlug ×
+  veoveo_hub_sdk.execution.ResolvedComponent)) :
+  Result (Option (veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+    registration.snapshot.RegisteredServer)))
+  := do
+  let (o, _) ←
+    registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer.call_mut
+      c p
+  ok o
+
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{impl core::ops::function::FnOnce<((&'_1 veoveo_types::platform_names::ServerSlug, &'_2 veoveo_hub_sdk::execution::ResolvedComponent),), core::option::Option<(veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)>> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}<'_0>}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 156:28-163:17 -/
+@[reducible]
+def
+  registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnOnceTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer
+  : core.ops.function.FnOnce
+  registration.snapshot.RegistrationSnapshot.selected.closure
+  (veoveo_types.platform_names.ServerSlug ×
+  veoveo_hub_sdk.execution.ResolvedComponent) (Option
+  (veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+  registration.snapshot.RegisteredServer))) := {
+  call_once :=
+    registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnOnceTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer.call_once
+}
+
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{impl core::ops::function::FnMut<((&'_1 veoveo_types::platform_names::ServerSlug, &'_2 veoveo_hub_sdk::execution::ResolvedComponent),), core::option::Option<(veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)>> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}<'_0>}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 156:28-163:17 -/
+@[reducible]
+def
+  registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer
+  : core.ops.function.FnMut
+  registration.snapshot.RegistrationSnapshot.selected.closure
+  (veoveo_types.platform_names.ServerSlug ×
+  veoveo_hub_sdk.execution.ResolvedComponent) (Option
+  (veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+  registration.snapshot.RegisteredServer))) := {
+  FnOnceInst :=
+    registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnOnceTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer
+  call_mut :=
+    registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer.call_mut
+}
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 151:4-166:5
+    Visibility: public -/
+def registration.snapshot.RegistrationSnapshot.selected
+  (self : registration.snapshot.RegistrationSnapshot)
+  (composition : veoveo_hub_sdk.execution.ResolvedComposition) :
+  Result registration.snapshot.RegistrationSnapshot
+  := do
+  let bm ←
+    veoveo_hub_sdk.execution.ResolvedComposition.impl.components composition
+  let i ←
+    alloc.collections.btree.map.BTreeMap.iter
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone bm
+  let fm ←
+    core.iter.traits.iterator.Iterator.filter_map.default
+      (alloc.collections.btree.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
+      veoveo_types.platform_names.ServerSlug
+      veoveo_hub_sdk.execution.ResolvedComponent)
+      registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer
+      i self
+  let bm1 ←
+    core.iter.traits.iterator.Iterator.collect.default
+      (core.iter.adapters.filter_map.FilterMap.Insts.CoreIterTraitsIteratorIterator
+      (alloc.collections.btree.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
+      veoveo_types.platform_names.ServerSlug
+      veoveo_hub_sdk.execution.ResolvedComponent)
+      registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer)
+      (alloc.collections.btree.map.BTreeMapKVGlobal.Insts.CoreIterTraitsCollectFromIteratorPair
+      (alloc.sync.Arc registration.snapshot.RegisteredServer)
+      veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd) fm
+  registration.snapshot.RegistrationSnapshot.of bm1
 
 /-- [veoveo_hub::store::refresh::{veoveo_hub::store::refresh::RefreshFamily}::bound_to]:
     Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 60:4-64:5

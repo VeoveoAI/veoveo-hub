@@ -1690,3 +1690,491 @@ this extracted predicate proof. -/
 def veoveo_hub_sdk.identity.HubRefreshFamilyId.Insts.CoreCmpPartialEqHubRefreshFamilyId.eq
     (left right : veoveo_hub_sdk.identity.HubRefreshFamilyId) : Result Bool :=
   .ok (decide (left = right))
+
+
+-- Shared selection/HTTP assembly extension; old policy models above are retained.
+namespace CurrentRolesNative
+-- Comparator-driven map insertion retains last-write-wins and key ordering.
+def insertMap {K V : Type _} (cmp : K → K → Result Ordering)
+    (key : K) (value : V) (entries : List (K × V)) : Result (List (K × V)) := do
+  match entries with
+  | [] => .ok [(key, value)]
+  | (k, v) :: rest =>
+    let order ← cmp key k
+    match order with
+    | .lt => .ok ((key, value) :: (k, v) :: rest)
+    | .eq => .ok ((key, value) :: rest)
+    | .gt => do let tail ← insertMap cmp key value rest; .ok ((k, v) :: tail)
+
+def collectMap {I K V : Type _}
+    (iterator : core.iter.traits.iterator.Iterator I (K × V))
+    (cmp : K → K → Result Ordering) (state : I) (entries : List (K × V)) :
+    Result (List (K × V)) := do
+  let (entry, next) ← iterator.next state
+  match entry with
+  | none => .ok entries
+  | some (key, value) =>
+    let entries' ← insertMap cmp key value entries
+    collectMap iterator cmp next entries'
+partial_fixpoint
+end CurrentRolesNative
+
+namespace CurrentRolesNative
+def filterMapNext {I F A B : Type _}
+    (iterator : core.iter.traits.iterator.Iterator I A)
+    (mapper : core.ops.function.FnMut F A (Option B))
+    (state : core.iter.adapters.filter_map.FilterMap I F) :
+    Result (Option B × core.iter.adapters.filter_map.FilterMap I F) := do
+  let (entry, next) ← iterator.next state.iter
+  match entry with
+  | none => .ok (none, { state with iter := next })
+  | some value =>
+    let (mapped, f) ← mapper.call_mut state.f value
+    let state' := { iter := next, f : core.iter.adapters.filter_map.FilterMap I F }
+    match mapped with
+    | some value => .ok (some value, state')
+    | none => filterMapNext iterator mapper state'
+partial_fixpoint
+end CurrentRolesNative
+
+/-- [core::bool::{bool}::then_some]:
+    Source: '/rustc/library/core/src/bool.rs', lines 36:4-36:72
+    Name pattern: [core::bool::{bool}::then_some]
+    Visibility: public -/
+@[rust_fun "core::bool::{bool}::then_some"]
+def core.bool.Bool.then_some {T : Type _} : Bool → T → Result (Option T)
+  := fun condition value => .ok (if condition then some value else none)
+
+/-- [core::iter::traits::iterator::Iterator::filter_map]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 1011:4-1014:42
+    Name pattern: [core::iter::traits::iterator::Iterator::filter_map]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::filter_map"]
+def core.iter.traits.iterator.Iterator.filter_map.default
+  {Self : Type _} {B : Type _} {F : Type _} {Clause0_Item : Type _}
+  (IteratorInst : core.iter.traits.iterator.Iterator Self Clause0_Item)
+  (opsfunctionFnMutFTupleClause0_ItemOptionInst : core.ops.function.FnMut F
+  Clause0_Item (Option B)) :
+  Self → F → Result (core.iter.adapters.filter_map.FilterMap Self F)
+  := fun state f => .ok { iter := state, f }
+
+/-- [core::iter::adapters::filter_map::{impl core::iter::traits::iterator::Iterator<B> for core::iter::adapters::filter_map::FilterMap<I, F>}::next]:
+    Source: '/rustc/library/core/src/iter/adapters/filter_map.rs', lines 63:4-63:35
+    Name pattern: [core::iter::adapters::filter_map::{core::iter::traits::iterator::Iterator<core::iter::adapters::filter_map::FilterMap<@I, @F>, @B>}::next]
+    Visibility: public -/
+@[rust_fun
+  "core::iter::adapters::filter_map::{core::iter::traits::iterator::Iterator<core::iter::adapters::filter_map::FilterMap<@I, @F>, @B>}::next"]
+def core.iter.adapters.filter_map.FilterMap.Insts.CoreIterTraitsIteratorIterator.next
+  {B : Type _} {I : Type _} {F : Type _} {Clause0_Item : Type _}
+  (traitsiteratorIteratorInst : core.iter.traits.iterator.Iterator I
+  Clause0_Item) (opsfunctionFnMutFTupleClause0_ItemOptionInst :
+  core.ops.function.FnMut F Clause0_Item (Option B)) :
+  core.iter.adapters.filter_map.FilterMap I F → Result ((Option B) ×
+    (core.iter.adapters.filter_map.FilterMap I F))
+  := CurrentRolesNative.filterMapNext traitsiteratorIteratorInst opsfunctionFnMutFTupleClause0_ItemOptionInst
+
+/-- [core::option::{core::option::Option<T>}::map_or]:
+    Source: '/rustc/library/core/src/option.rs', lines 1224:4-1227:28
+    Name pattern: [core::option::{core::option::Option<@T>}::map_or]
+    Visibility: public -/
+@[rust_fun "core::option::{core::option::Option<@T>}::map_or"]
+def core.option.Option.map_or
+  {T : Type _} {U : Type _} {F : Type _} (opsfunctionFnOnceFTupleTUInst :
+  core.ops.function.FnOnce F T U) :
+  Option T → U → F → Result U
+  := fun option default f => match option with | none => .ok default | some value => opsfunctionFnOnceFTupleTUInst.call_once f value
+
+/-- [core::option::{core::option::Option<T>}::and_then]:
+    Source: '/rustc/library/core/src/option.rs', lines 1539:4-1541:61
+    Name pattern: [core::option::{core::option::Option<@T>}::and_then]
+    Visibility: public -/
+@[rust_fun "core::option::{core::option::Option<@T>}::and_then"]
+def core.option.Option.and_then
+  {T : Type _} {U : Type _} {F : Type _} (opsfunctionFnOnceFTupleTOptionInst :
+  core.ops.function.FnOnce F T (Option U)) :
+  Option T → F → Result (Option U)
+  := fun option f => match option with | none => .ok none | some value => opsfunctionFnOnceFTupleTOptionInst.call_once f value
+
+/-- [core::option::{core::option::Option<&'_0 T>}::cloned]:
+    Source: '/rustc/library/core/src/option.rs', lines 2162:4-2164:17
+    Name pattern: [core::option::{core::option::Option<&'0 @T>}::cloned]
+    Visibility: public -/
+@[rust_fun "core::option::{core::option::Option<&'0 @T>}::cloned"]
+def core.option.OptionShared0T.cloned
+  {T : Type _} (cloneCloneInst : core.clone.Clone T) :
+  Option T → Result (Option T)
+  := fun option => match option with | none => .ok none | some value => do let cloned ← cloneCloneInst.clone value; .ok (some cloned)
+
+/-- [alloc::collections::btree::map::{impl core::iter::traits::iterator::Iterator<(&'a K, &'a V)> for alloc::collections::btree::map::Iter<'a, K, V>}::next]:
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 1737:4-1737:48
+    Name pattern: [alloc::collections::btree::map::{core::iter::traits::iterator::Iterator<alloc::collections::btree::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>}::next]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::{core::iter::traits::iterator::Iterator<alloc::collections::btree::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>}::next"]
+def alloc.collections.btree.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV.next
+  {K : Type _} {V : Type _} :
+  alloc.collections.btree.map.Iter K V → Result ((Option (K × V)) ×
+    (alloc.collections.btree.map.Iter K V))
+  := fun entries => .ok (match entries with | [] => (none, []) | entry :: rest => (some entry, rest))
+
+/-- [alloc::collections::btree::map::{impl core::iter::traits::collect::FromIterator<(K, V)> for alloc::collections::btree::map::BTreeMap<K, V, alloc::alloc::Global>}::from_iter]:
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 2554:4-2554:75
+    Name pattern: [alloc::collections::btree::map::{core::iter::traits::collect::FromIterator<alloc::collections::btree::map::BTreeMap<@K, @V, alloc::alloc::Global>, (@K, @V)>}::from_iter]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::{core::iter::traits::collect::FromIterator<alloc::collections::btree::map::BTreeMap<@K, @V, alloc::alloc::Global>, (@K, @V)>}::from_iter"]
+def alloc.collections.btree.map.BTreeMapKVGlobal.Insts.CoreIterTraitsCollectFromIteratorPair.from_iter
+  {K : Type _} {V : Type _} {I : Type _} {Clause1_IntoIter : Type _}
+  (corecmpOrdInst : core.cmp.Ord K)
+  (coreitertraitscollectIntoIteratorIPairClause1_IntoIterInst :
+  core.iter.traits.collect.IntoIterator I (K × V) Clause1_IntoIter) :
+  I → Result (alloc.collections.btree.map.BTreeMap K V alloc.alloc.Global)
+  := fun source => do
+    let iterator ← coreitertraitscollectIntoIteratorIPairClause1_IntoIterInst.into_iter source
+    CurrentRolesNative.collectMap coreitertraitscollectIntoIteratorIPairClause1_IntoIterInst.iteratorInst corecmpOrdInst.cmp iterator []
+
+-- OPEN NATIVE OBSERVATION: no success/output contract is asserted here.
+/-- [alloc::string::{impl alloc::string::ToString for T}::to_string]:
+    Source: '/rustc/library/alloc/src/string.rs', lines 2965:4-2965:33
+    Name pattern: [alloc::string::{alloc::string::ToString<@T>}::to_string]
+    Visibility: public -/
+@[rust_fun "alloc::string::{alloc::string::ToString<@T>}::to_string"]
+axiom alloc.string.ToString.Blanket.to_string
+  {T : Type _} (corefmtDisplayInst : core.fmt.Display T) : T → Result String
+
+/-- [alloc::string::{impl core::convert::From<alloc::string::String> for alloc::borrow::Cow<'a, str, alloc::string::String>}::from]:
+    Source: '/rustc/library/alloc/src/string.rs', lines 3316:4-3316:38
+    Name pattern: [alloc::string::{core::convert::From<alloc::borrow::Cow<'a, str, alloc::string::String>, alloc::string::String>}::from]
+    Visibility: public -/
+@[rust_fun
+  "alloc::string::{core::convert::From<alloc::borrow::Cow<'a, str, alloc::string::String>, alloc::string::String>}::from"]
+def alloc.borrow.CowAStrString.Insts.CoreConvertFromString.from
+  : String → Result (alloc.borrow.Cow Str String)
+  := fun text => .ok (.Owned text)
+
+/-- [alloc::sync::{alloc::sync::Arc<T>}::new]:
+    Source: '/rustc/library/alloc/src/sync.rs', lines 444:4-444:33
+    Name pattern: [alloc::sync::{alloc::sync::Arc<@T>}::new]
+    Visibility: public -/
+-- Existing Arc representation erases allocation/refcounts to the whole value.
+-- Native allocation/failure/refinement remains outside this operational model.
+@[rust_fun "alloc::sync::{alloc::sync::Arc<@T>}::new"]
+def alloc.sync.Arc.new {T : Type _} : T → Result (alloc.sync.Arc T)
+  := fun value => .ok value
+
+/-- [alloc::sync::{impl core::clone::Clone for alloc::sync::Arc<T>}::clone]:
+    Source: '/rustc/library/alloc/src/sync.rs', lines 2521:4-2521:32
+    Name pattern: [alloc::sync::{core::clone::Clone<alloc::sync::Arc<@T>>}::clone]
+    Visibility: public -/
+@[rust_fun "alloc::sync::{core::clone::Clone<alloc::sync::Arc<@T>>}::clone"]
+def alloc.sync.Arc.Insts.CoreCloneClone.clone
+  {T : Type _} {A : Type _} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) :
+  alloc.sync.Arc T → Result (alloc.sync.Arc T)
+  := fun value => .ok value
+
+/-- [alloc::sync::{impl core::convert::AsRef<T> for alloc::sync::Arc<T>}::as_ref]:
+    Source: '/rustc/library/alloc/src/sync.rs', lines 4383:4-4383:26
+    Name pattern: [alloc::sync::{core::convert::AsRef<alloc::sync::Arc<@T>, @T>}::as_ref]
+    Visibility: public -/
+@[rust_fun
+  "alloc::sync::{core::convert::AsRef<alloc::sync::Arc<@T>, @T>}::as_ref"]
+def alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref
+  {T : Type _} (A : Type _) : alloc.sync.Arc T → Result T
+  := fun value => .ok value
+
+/-- [chrono::datetime::{impl core::cmp::Ord for chrono::datetime::DateTime<Tz, Clause0_Offset>}::cmp]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/datetime/mod.rs', lines 1508:4-1508:51
+    Name pattern: [chrono::datetime::{core::cmp::Ord<chrono::datetime::DateTime<@Tz, @Clause0_Offset>>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "chrono::datetime::{core::cmp::Ord<chrono::datetime::DateTime<@Tz, @Clause0_Offset>>}::cmp"]
+def chrono.datetime.DateTime.Insts.CoreCmpOrd.cmp
+  {Tz : Type _} {Clause0_Offset : Type _} (offsetTimeZoneInst :
+  chrono.offset.TimeZone Tz Clause0_Offset) :
+  chrono.datetime.DateTime Tz Clause0_Offset → chrono.datetime.DateTime Tz
+    Clause0_Offset → Result Ordering
+  := fun left right => .ok (SessionNative.timestampCompare left right)
+
+/-- [rmcp::model::{rmcp::model::ErrorData}::internal_error]:
+    Source: '/cargo/git/checkouts/rust-sdk-ed0400b05853d1c3/faa4e9d/crates/rmcp/src/model.rs', lines 714:4-714:93
+    Name pattern: [rmcp::model::{rmcp::model::ErrorData}::internal_error]
+    Visibility: public -/
+@[rust_fun "rmcp::model::{rmcp::model::ErrorData}::internal_error"]
+def rmcp.model.ErrorData.internal_error
+  {T0 : Type _} (coreconvertIntoT0CowStaticStrStringInst : core.convert.Into T0
+  (alloc.borrow.Cow Str String)) :
+  T0 → Option serde_json.value.Value → Result rmcp.model.ErrorData
+  := fun message data => do let text ← coreconvertIntoT0CowStaticStrStringInst.into message; .ok { code := (-32603)#i32, message := text, data }
+
+/-- [url::{impl core::clone::Clone for url::Url}::clone]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/url-2.5.8/src/lib.rs', lines 227:9-227:14
+    Name pattern: [url::{core::clone::Clone<url::Url>}::clone]
+    Visibility: public -/
+@[rust_fun "url::{core::clone::Clone<url::Url>}::clone"]
+def url.Url.Insts.CoreCloneClone.clone : url.Url → Result url.Url
+  := fun value => .ok value
+
+/-- [url::{url::Url}::as_str]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/url-2.5.8/src/lib.rs', lines 653:4-653:32
+    Name pattern: [url::{url::Url}::as_str]
+    Visibility: public -/
+@[rust_fun "url::{url::Url}::as_str"]
+-- Exact UTF-8 bytes in the pinned Str = Slice U8 representation.
+-- Only native pointer-width representability is required. The oversized branch
+-- is explicit model failure, not a new Rust URL check or a universal size axiom.
+def url.Url.as_str : url.Url → Result Str
+  := fun value =>
+    let bytes : List U8 := value.value.toByteArray.toList.map (fun x =>
+      ⟨x.toNat, by cases x; simp only [UInt8.toNat_ofBitVec,
+        UScalarTy.U8_numBits_eq, Nat.reducePow]; omega⟩)
+    if representable : value.value.toByteArray.size ≤ Usize.max
+    then .ok (Slice.from bytes (by
+      simpa only [bytes, List.length_map, ByteArray.length_toList] using representable))
+    else .fail .maximumSizeExceeded
+
+/-- [veoveo_audit_contract::model::{impl core::clone::Clone for veoveo_audit_contract::model::AuditRequest}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/audit/contract/src/model.rs', lines 60:16-60:21
+    Name pattern: [veoveo_audit_contract::model::{core::clone::Clone<veoveo_audit_contract::model::AuditRequest>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_audit_contract::model::{core::clone::Clone<veoveo_audit_contract::model::AuditRequest>}::clone"]
+def veoveo_audit_contract.model.AuditRequest.Insts.CoreCloneClone.clone
+  :
+  veoveo_audit_contract.model.AuditRequest → Result
+    veoveo_audit_contract.model.AuditRequest
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::execution::{impl core::clone::Clone for veoveo_hub_sdk::execution::ExecutionContext}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 31:16-31:21
+    Name pattern: [veoveo_hub_sdk::execution::{core::clone::Clone<veoveo_hub_sdk::execution::ExecutionContext>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::execution::{core::clone::Clone<veoveo_hub_sdk::execution::ExecutionContext>}::clone"]
+def veoveo_hub_sdk.execution.ExecutionContext.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.execution.ExecutionContext → Result
+    veoveo_hub_sdk.execution.ExecutionContext
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::execution::{impl core::cmp::PartialEq<veoveo_hub_sdk::execution::ExecutionContext> for veoveo_hub_sdk::execution::ExecutionContext}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 31:23-31:32
+    Name pattern: [veoveo_hub_sdk::execution::{core::cmp::PartialEq<veoveo_hub_sdk::execution::ExecutionContext, veoveo_hub_sdk::execution::ExecutionContext>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::execution::{core::cmp::PartialEq<veoveo_hub_sdk::execution::ExecutionContext, veoveo_hub_sdk::execution::ExecutionContext>}::eq"]
+def veoveo_hub_sdk.execution.ExecutionContext.Insts.CoreCmpPartialEqExecutionContext.eq
+  :
+  veoveo_hub_sdk.execution.ExecutionContext →
+    veoveo_hub_sdk.execution.ExecutionContext → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+/-- [veoveo_hub_sdk::identity::{impl core::clone::Clone for veoveo_hub_sdk::identity::Principal}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 61:16-61:21
+    Name pattern: [veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::Principal>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::Principal>}::clone"]
+def veoveo_hub_sdk.identity.Principal.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.identity.Principal → Result
+    veoveo_hub_sdk.identity.Principal
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::identity::{impl core::clone::Clone for veoveo_hub_sdk::identity::AccessTokenSubject}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 127:16-127:21
+    Name pattern: [veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::AccessTokenSubject>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::AccessTokenSubject>}::clone"]
+def veoveo_hub_sdk.identity.AccessTokenSubject.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.identity.AccessTokenSubject → Result
+    veoveo_hub_sdk.identity.AccessTokenSubject
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::identity::{impl core::clone::Clone for veoveo_hub_sdk::identity::OpaqueTaskId}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 183:0-183:43
+    Name pattern: [veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::OpaqueTaskId>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::identity::{core::clone::Clone<veoveo_hub_sdk::identity::OpaqueTaskId>}::clone"]
+def veoveo_hub_sdk.identity.OpaqueTaskId.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.identity.OpaqueTaskId → Result
+    veoveo_hub_sdk.identity.OpaqueTaskId
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::internal_auth::exchange::{impl core::clone::Clone for veoveo_hub_sdk::internal_auth::exchange::DelegationContext}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 27:16-27:21
+    Name pattern: [veoveo_hub_sdk::internal_auth::exchange::{core::clone::Clone<veoveo_hub_sdk::internal_auth::exchange::DelegationContext>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::internal_auth::exchange::{core::clone::Clone<veoveo_hub_sdk::internal_auth::exchange::DelegationContext>}::clone"]
+def veoveo_hub_sdk.internal_auth.exchange.DelegationContext.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.internal_auth.exchange.DelegationContext → Result
+    veoveo_hub_sdk.internal_auth.exchange.DelegationContext
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::internal_auth::request::{impl core::clone::Clone for veoveo_hub_sdk::internal_auth::request::HubRequestContext}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/request.rs', lines 6:16-6:21
+    Name pattern: [veoveo_hub_sdk::internal_auth::request::{core::clone::Clone<veoveo_hub_sdk::internal_auth::request::HubRequestContext>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::internal_auth::request::{core::clone::Clone<veoveo_hub_sdk::internal_auth::request::HubRequestContext>}::clone"]
+def veoveo_hub_sdk.internal_auth.request.HubRequestContext.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.internal_auth.request.HubRequestContext → Result
+    veoveo_hub_sdk.internal_auth.request.HubRequestContext
+  := fun value => .ok value
+
+/-- [veoveo_hub_sdk::internal_auth::{impl core::clone::Clone for veoveo_hub_sdk::internal_auth::ActingServer}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 290:16-290:21
+    Name pattern: [veoveo_hub_sdk::internal_auth::{core::clone::Clone<veoveo_hub_sdk::internal_auth::ActingServer>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::internal_auth::{core::clone::Clone<veoveo_hub_sdk::internal_auth::ActingServer>}::clone"]
+def veoveo_hub_sdk.internal_auth.ActingServer.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.internal_auth.ActingServer → Result
+    veoveo_hub_sdk.internal_auth.ActingServer
+  := fun value => .ok value
+
+-- OPEN NATIVE OBSERVATION: no success/output contract is asserted here.
+/-- [veoveo_hub_sdk::internal_auth::{veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer}::issue]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 336:4-339:59
+    Name pattern: [veoveo_hub_sdk::internal_auth::{veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer}::issue]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::internal_auth::{veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer}::issue"]
+axiom veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer.issue
+  :
+  veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer →
+    veoveo_hub_sdk.internal_auth.ForwardedRequest → Result
+    (core.result.Result veoveo_hub_sdk.internal_auth.IssuedHubInternalToken
+    veoveo_hub_sdk.internal_auth.InternalTokenError)
+
+-- OPEN NATIVE OBSERVATION: no success/output contract is asserted here.
+/-- [veoveo_hub_sdk::internal_auth::{impl core::fmt::Display for veoveo_hub_sdk::internal_auth::InternalTokenError}::fmt]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 920:4-920:60
+    Name pattern: [veoveo_hub_sdk::internal_auth::{core::fmt::Display<veoveo_hub_sdk::internal_auth::InternalTokenError>}::fmt]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::internal_auth::{core::fmt::Display<veoveo_hub_sdk::internal_auth::InternalTokenError>}::fmt"]
+axiom veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay.fmt
+  :
+  veoveo_hub_sdk.internal_auth.InternalTokenError → core.fmt.Formatter →
+    Result ((core.result.Result Unit core.fmt.Error) × core.fmt.Formatter)
+
+/-- [veoveo_hub_sdk::registration::declaration::{impl core::clone::Clone for veoveo_hub_sdk::registration::declaration::ResourceIndicator}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/declaration.rs', lines 128:11-128:16
+    Name pattern: [veoveo_hub_sdk::registration::declaration::{core::clone::Clone<veoveo_hub_sdk::registration::declaration::ResourceIndicator>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_hub_sdk::registration::declaration::{core::clone::Clone<veoveo_hub_sdk::registration::declaration::ResourceIndicator>}::clone"]
+def veoveo_hub_sdk.registration.declaration.ResourceIndicator.Insts.CoreCloneClone.clone
+  :
+  veoveo_hub_sdk.registration.declaration.ResourceIndicator → Result
+    veoveo_hub_sdk.registration.declaration.ResourceIndicator
+  := fun value => .ok value
+
+/-- [veoveo_types::authority::{impl core::clone::Clone for veoveo_types::authority::InvocationAuthority}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 72:16-72:21
+    Name pattern: [veoveo_types::authority::{core::clone::Clone<veoveo_types::authority::InvocationAuthority>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::authority::{core::clone::Clone<veoveo_types::authority::InvocationAuthority>}::clone"]
+def veoveo_types.authority.InvocationAuthority.Insts.CoreCloneClone.clone
+  :
+  veoveo_types.authority.InvocationAuthority → Result
+    veoveo_types.authority.InvocationAuthority
+  := fun value => .ok value
+
+/-- [veoveo_types::execution::{impl core::cmp::Ord for veoveo_types::execution::DeploymentId}::cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/execution.rs', lines 18:0-18:46
+    Name pattern: [veoveo_types::execution::{core::cmp::Ord<veoveo_types::execution::DeploymentId>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::execution::{core::cmp::Ord<veoveo_types::execution::DeploymentId>}::cmp"]
+def veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd.cmp
+  :
+  veoveo_types.execution.DeploymentId → veoveo_types.execution.DeploymentId
+    → Result Ordering
+  := fun left right => .ok (compare left.value right.value)
+
+/-- [veoveo_types::execution::{impl core::cmp::PartialOrd<veoveo_types::execution::DeploymentId> for veoveo_types::execution::DeploymentId}::partial_cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/execution.rs', lines 18:0-18:46
+    Name pattern: [veoveo_types::execution::{core::cmp::PartialOrd<veoveo_types::execution::DeploymentId, veoveo_types::execution::DeploymentId>}::partial_cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::execution::{core::cmp::PartialOrd<veoveo_types::execution::DeploymentId, veoveo_types::execution::DeploymentId>}::partial_cmp"]
+def veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialOrdDeploymentId.partial_cmp
+  :
+  veoveo_types.execution.DeploymentId → veoveo_types.execution.DeploymentId
+    → Result (Option Ordering)
+  := fun left right => .ok (some (compare left.value right.value))
+
+/-- [veoveo_types::execution::{impl core::cmp::PartialEq<veoveo_types::execution::DeploymentId> for veoveo_types::execution::DeploymentId}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/execution.rs', lines 18:0-18:46
+    Name pattern: [veoveo_types::execution::{core::cmp::PartialEq<veoveo_types::execution::DeploymentId, veoveo_types::execution::DeploymentId>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::execution::{core::cmp::PartialEq<veoveo_types::execution::DeploymentId, veoveo_types::execution::DeploymentId>}::eq"]
+def veoveo_types.execution.DeploymentId.Insts.CoreCmpPartialEqDeploymentId.eq
+  :
+  veoveo_types.execution.DeploymentId → veoveo_types.execution.DeploymentId
+    → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+/-- [veoveo_types::platform_names::{impl core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug> for veoveo_types::platform_names::ServerSlug}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 5:0-5:38
+    Name pattern: [veoveo_types::platform_names::{core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug, veoveo_types::platform_names::ServerSlug>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::platform_names::{core::cmp::PartialEq<veoveo_types::platform_names::ServerSlug, veoveo_types::platform_names::ServerSlug>}::eq"]
+def veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq
+  :
+  veoveo_types.platform_names.ServerSlug →
+    veoveo_types.platform_names.ServerSlug → Result Bool
+  := fun left right => .ok (decide (left = right))
+
+/-- [veoveo_types::platform_names::{impl core::clone::Clone for veoveo_types::platform_names::OAuthClientId}::clone]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 39:0-39:36
+    Name pattern: [veoveo_types::platform_names::{core::clone::Clone<veoveo_types::platform_names::OAuthClientId>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::platform_names::{core::clone::Clone<veoveo_types::platform_names::OAuthClientId>}::clone"]
+def veoveo_types.platform_names.OAuthClientId.Insts.CoreCloneClone.clone
+  :
+  veoveo_types.platform_names.OAuthClientId → Result
+    veoveo_types.platform_names.OAuthClientId
+  := fun value => .ok value
+
+-- OPEN NATIVE OBSERVATION: no success/output contract is asserted here.
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::build_namespaces]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 98:4-128:5 -/
+axiom registration.snapshot.RegistrationSnapshot.build_namespaces
+  :
+  alloc.collections.btree.map.BTreeMap veoveo_types.execution.DeploymentId
+    (alloc.sync.Arc registration.snapshot.RegisteredServer) alloc.alloc.Global
+    → Result (alloc.collections.btree.map.BTreeMap
+    veoveo_types.platform_names.ServerSlug registration.snapshot.Namespace
+    alloc.alloc.Global)
+
+
+
+end
+
+
+namespace Aeneas.Std.core.iter.traits.iterator
+
+/-- Method spelling emitted for generic iterator dictionary dispatch. Forward
+verbatim to the existing operational default; no extra mapping law is assumed. -/
+def Iterator.map
+    {Self : Type _} {B : Type _} {F : Type _} {Clause0_Item : Type _}
+    (iterator : Iterator Self Clause0_Item)
+    (mapper : Aeneas.Std.core.ops.function.FnMut F Clause0_Item B) :=
+  _root_.core.iter.traits.iterator.Iterator.map.default iterator mapper
+
+end Aeneas.Std.core.iter.traits.iterator

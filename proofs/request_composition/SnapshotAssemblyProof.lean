@@ -1,7 +1,7 @@
-import RequestCompositionHub.Funs
+import HubCurrentRoles.Funs
 import Lean.Util.CollectAxioms
 
-open Aeneas Aeneas.Std RequestCompositionHub
+open Aeneas Aeneas.Std veoveo_hub
 
 namespace SnapshotAssemblyProof
 noncomputable section
@@ -188,7 +188,7 @@ run_cmd do
     unless (found.filter (fun axiomName => !standard.contains axiomName)).isEmpty do
       throwError "unreviewed context/universal axiom in {declaration}: {found}"
   let namespaceBoundary := standard.push
-    ``RequestCompositionHub.registration.snapshot.RegistrationSnapshot.build_namespaces
+    ``_root_.registration.snapshot.RegistrationSnapshot.build_namespaces
   for declaration in #[``SnapshotAssemblyProof.extracted_of_connection,
       ``SnapshotAssemblyProof.extracted_of_success] do
     let found ← Lean.collectAxioms declaration
@@ -200,8 +200,8 @@ run_cmd do
   -- that callback succeeds or renders any particular text. No issuer/helper
   -- symbols are permitted by this HTTP-constructor audit.
   let formattingBoundary := standard ++ #[
-    ``RequestCompositionHub.alloc.string.ToString.Blanket.to_string,
-    ``RequestCompositionHub.veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay.fmt]
+    ``_root_.alloc.string.ToString.Blanket.to_string,
+    ``_root_.veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay.fmt]
   let found ← Lean.collectAxioms ``SnapshotAssemblyProof.http_new_exact
   unless (found.filter (fun axiomName => !formattingBoundary.contains axiomName)).isEmpty do
     throwError "unreviewed HTTP constructor axiom: {found}"

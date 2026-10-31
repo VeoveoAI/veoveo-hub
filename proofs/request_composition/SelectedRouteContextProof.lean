@@ -1,6 +1,6 @@
 import SelectedMapCollectionProof
 
-open Aeneas Aeneas.Std RequestCompositionHub
+open Aeneas Aeneas.Std veoveo_hub
 
 namespace SelectedRouteContextProof
 noncomputable section
@@ -164,10 +164,10 @@ supplied catalog generation. Its result is derived, not a theorem premise.
 Unavailability, absent captures, missing rows and wrong slugs have no fallback. -/
 theorem selected_get_exact (snapshot : Snapshot) (composition : Composition)
     (selected : Snapshot) (slug : Slug)
-    (success : RequestCompositionHub.registration.snapshot.RegistrationSnapshot.selected
+    (success : veoveo_hub.registration.snapshot.RegistrationSnapshot.selected
       snapshot composition = .ok selected)
     (unique : CompositionKeysUnique composition) :
-    RequestCompositionHub.registration.snapshot.RegistrationSnapshot.get selected slug =
+    veoveo_hub.registration.snapshot.RegistrationSnapshot.get selected slug =
       .ok ((resolveRoute snapshot composition.components slug).map Prod.snd) := by
   have image := SelectedMapCollectionProof.selected_success_complete snapshot composition selected success
   rcases image with ⟨_, outputKeysUnique, outputMembers⟩
@@ -229,7 +229,7 @@ provenance here. Context refusal remains exactly the actual request_context Rust
 Result; no success/content assumption is made for native error formatting. -/
 theorem selected_route_context_exact
     (snapshot : Snapshot) (composition : Composition) (selected : Snapshot) (slug : Slug)
-    (success : RequestCompositionHub.registration.snapshot.RegistrationSnapshot.selected
+    (success : veoveo_hub.registration.snapshot.RegistrationSnapshot.selected
       snapshot composition = .ok selected)
     (unique : CompositionKeysUnique composition) (coherent : KeyRowCoherent snapshot)
     (http : mcp.upstream_http.UpstreamTransport)
@@ -238,14 +238,14 @@ theorem selected_route_context_exact
     (subject : SnapshotAssemblyProof.Subject)
     (permissions : alloc.collections.btree.set.BTreeSet
       veoveo_types.permission_names.PermissionName alloc.alloc.Global) :
-    RequestCompositionHub.registration.snapshot.RegistrationSnapshot.get selected slug =
+    veoveo_hub.registration.snapshot.RegistrationSnapshot.get selected slug =
       .ok ((resolveRoute snapshot composition.components slug).map Prod.snd) ∧
-    RequestCompositionHub.auth.verified.AuthenticatedSubject.request_context subject =
+    veoveo_hub.auth.verified.AuthenticatedSubject.request_context subject =
       .ok (SnapshotAssemblyProof.expectedContext subject) ∧
     ∀ key row context,
       resolveRoute snapshot composition.components slug = some (key, row) →
       SnapshotAssemblyProof.expectedContext subject = .Ok context →
-      RequestCompositionHub.mcp.upstream_authorized_http.HubAuthorizedHttpClient.new
+      veoveo_hub.mcp.upstream_authorized_http.HubAuthorizedHttpClient.new
         http issuer profile row subject permissions =
         .ok (.Ok { (SnapshotAssemblyProof.expectedClient
           http issuer profile row subject permissions context) with
@@ -267,7 +267,7 @@ end SelectedRouteContextProof
 run_cmd do
   let standard := #[``propext, ``Classical.choice, ``Quot.sound]
   let withNamespaceBoundary := standard.push
-    ``RequestCompositionHub.registration.snapshot.RegistrationSnapshot.build_namespaces
+    ``_root_.registration.snapshot.RegistrationSnapshot.build_namespaces
   let getter ← Lean.collectAxioms ``SelectedRouteContextProof.selected_get_exact
   unless (getter.filter (fun axiomName => !withNamespaceBoundary.contains axiomName)).isEmpty do
     throwError "unreviewed exact-route boundary: {getter}"
@@ -275,8 +275,8 @@ run_cmd do
   unless (fields.filter (fun axiomName => !standard.contains axiomName)).isEmpty do
     throwError "unreviewed route-field axiom: {fields}"
   let withFormatting := withNamespaceBoundary ++ #[
-    ``RequestCompositionHub.alloc.string.ToString.Blanket.to_string,
-    ``RequestCompositionHub.veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay.fmt]
+    ``_root_.alloc.string.ToString.Blanket.to_string,
+    ``_root_.veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay.fmt]
   let client ← Lean.collectAxioms ``SelectedRouteContextProof.selected_route_context_exact
   unless (client.filter (fun axiomName => !withFormatting.contains axiomName)).isEmpty do
     throwError "unreviewed route/context boundary: {client}"

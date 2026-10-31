@@ -1,0 +1,191 @@
+{
+  "scope": "Shared extracted Hub graph and direct policy-to-client composition; manual proof-only milestone",
+  "source": {
+    "hub_extraction_baseline": "3bc2923ca1d2e0c559e532286c16ec3d6a5ceb7a",
+    "sdk": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "core": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "working_tree_base": "1057bcb2aa8af4a35291f47cd8a75bb7220da15e",
+    "freeze_sha256": "9722e6f64c0efe43ca76af3c475a00bcf42a4b988849209e9abad5988b32c812",
+    "frozen_lean_files_rechecked_before_commit": [
+      "proofs/current_roles/HubCurrentRoles/Funs.lean",
+      "proofs/current_roles/HubCurrentRoles/FunsExternal.lean",
+      "proofs/current_roles/HubCurrentRoles/Types.lean",
+      "proofs/current_roles/HubCurrentRoles/TypesExternal.lean",
+      "proofs/request_composition/RequestCompositionHub.lean",
+      "proofs/request_composition/SelectedCollectionProof.lean",
+      "proofs/request_composition/SelectedMapCollectionProof.lean",
+      "proofs/request_composition/SelectedMapInsertionProof.lean",
+      "proofs/request_composition/SelectedRegistrationProof.lean",
+      "proofs/request_composition/SelectedRouteContextProof.lean",
+      "proofs/request_composition/SnapshotAssemblyProof.lean",
+      "proofs/request_composition/SnapshotConstructorProof.lean",
+      "proofs/request_composition/DirectPolicyClientProof.lean",
+      "proofs/current_roles/lakefile.lean",
+      "proofs/request_composition/lakefile.lean"
+    ]
+  },
+  "layout": {
+    "case": "Aeneas-only shared graph layout",
+    "command": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+      "-namespace",
+      "veoveo_hub",
+      "-subdir",
+      "HubCurrentRoles",
+      "-backend",
+      "lean",
+      "-filter-trait-methods",
+      "-split-files",
+      "-dest",
+      "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/shared-graph-layout1/outputs",
+      "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/evidence-http-permissions-restoration1/outputs/hub_request_composition.llbc"
+    ],
+    "elapsed_s": 2.44,
+    "exit": 0,
+    "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/shared-graph-layout1/logs/aeneas-shared-graph-layout.log",
+    "log_sha256": "f20b58b384077da747ccff69dab093fda30e9eebf2ae0e009e548275e4a9575c",
+    "output_files": [
+      "HubCurrentRoles/Funs.lean",
+      "HubCurrentRoles/FunsExternal_Template.lean",
+      "HubCurrentRoles/Types.lean",
+      "HubCurrentRoles/TypesExternal_Template.lean"
+    ],
+    "output_hashes": {
+      "HubCurrentRoles/Funs.lean": "43df990902f78532e80e293923ed5d8c4d4dc3593468c183aada016d517d36f7",
+      "HubCurrentRoles/FunsExternal_Template.lean": "0204b64d17e358c2548a53ffc5690f91e60d46e8cd658bc0923456f6dbfc441e",
+      "HubCurrentRoles/Types.lean": "dd8fb951da2545bf3fbf49d4cb0e654c7fc965f67faa7e2c21b9cd7ad2eba689",
+      "HubCurrentRoles/TypesExternal_Template.lean": "7b647eedf4eaafe03528a078f63b590fed4bdf950241555f0188c6bd6da1bcf6"
+    },
+    "source_llbc_sha256": "b5807ac43f5b1106519ca6ba985e5fc9650bd0fd2ac844aa6b1babcb676d1d29",
+    "summary_note": "Remote receipt ended with a literal escaped \\n suffix; this local corrected copy preserves all recorded fields and tool outputs.",
+    "summary_source_raw_sha256": "937217be7a1e81a377644eef21a7ff62361ab97e95b3556f6a7870adf0a0dc06",
+    "timed_out": false,
+    "timeout_seconds": 600,
+    "tool_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c"
+  },
+  "layout_summary_sha256": "c27380e76de766027fcfcdf9221f92adf460778ce12518d4dd8b9215a226c82b",
+  "validation": {
+    "lean_version": "Lean (version 4.35.0, x86_64-unknown-linux-gnu, commit eb6cafb7290e8bd5f2937522d8d804f58f02bafc, Release)",
+    "lake_binary": "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+    "aeneas_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "aeneas_discriminant_sha256": "467f244cc2103c050f38e732c153712c5c9fbbccc0ca0827d5c32990b174f411",
+    "configs": {
+      "current_roles_lakefile": "615808ac06fbb52247511f7cdf8383719c74225512986e3405bbbc122fda7a40",
+      "current_roles_manifest": "d214cb9a41ac3954a91f6e78f009e09d269057c0656fbf79f3ac5524e0a3c15b",
+      "request_lakefile": "439949b6d4ca6ace8fbc45e6ffecdc8ce6bbef28e577e2248e45075ead61a86f",
+      "request_manifest": "22c7b4a238d63b8bd5bdf30c30a04c4589f0794a3e9763b311a1736299171138"
+    },
+    "effective_source_count": 109,
+    "effective_source_map_before_sha256": "d27c07654a53b35b6951f44baf0b64bba52f4fb22ae50c0716db35e85a10cb52",
+    "effective_source_map_after_sha256": "d27c07654a53b35b6951f44baf0b64bba52f4fb22ae50c0716db35e85a10cb52",
+    "effective_source_map_matches": true,
+    "source_mismatches": {},
+    "steps": [
+      {
+        "command": "LAKE_NO_UPDATE=1 lake build",
+        "exit": "0",
+        "log_bytes": 94615,
+        "log_sha256": "75330dc3732f276c609a41776f4c5393f259382f03535d5d3718a2e8ed8c18da",
+        "stage": "01-current-roles-build",
+        "timing": "elapsed=45.27 maxrss_kb=2795140 exit=0"
+      },
+      {
+        "command": "LAKE_NO_UPDATE=1 lake env lean ModelAudit.lean",
+        "exit": "0",
+        "log_bytes": 704,
+        "log_sha256": "186d393e43ee5414e550b086fcfecb3921c4e91649af6add5c77fc91a99fe312",
+        "stage": "02-model-audit",
+        "timing": "elapsed=2.55 maxrss_kb=2684024 exit=0"
+      },
+      {
+        "command": "LAKE_NO_UPDATE=1 lake build",
+        "exit": "0",
+        "log_bytes": 37283,
+        "log_sha256": "a65316157181435d77028b4e0f472cd1b2769a97180c3e18340371edd79a4251",
+        "stage": "03-request-default-build",
+        "timing": "elapsed=5.14 maxrss_kb=2748616 exit=0"
+      },
+      {
+        "command": "LAKE_NO_UPDATE=1 lake build SelectedRegistrationProof SelectedCollectionProof SelectedMapInsertionProof SelectedMapCollectionProof SelectedRouteContextProof SnapshotConstructorProof",
+        "exit": "0",
+        "log_bytes": 68116,
+        "log_sha256": "a05faa352f8842be54f4d458453a973142954a3e64d489e84fa9345c5b24dd2c",
+        "stage": "04-request-six-targets",
+        "timing": "elapsed=22.14 maxrss_kb=2769756 exit=0"
+      },
+      {
+        "command": "LAKE_NO_UPDATE=1 lake env lean DirectPolicyClientProof.lean",
+        "exit": "0",
+        "log_bytes": 474,
+        "log_sha256": "6f7eb9a41b5e04f98f00086bc323783aa82b9cd064c29c97b9dc1d1507f0ec60",
+        "stage": "05-direct-policy-client",
+        "timing": "elapsed=2.69 maxrss_kb=2710540 exit=0"
+      }
+    ]
+  },
+  "execution": {
+    "host": "Ubuntu Linux x86_64 via existing tunnel",
+    "root": "GPT-6 Astra: source/theorem review and receipt",
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "current_roles_directory": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/shared-graph-consolidation2/proofs/current_roles",
+    "request_directory": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/shared-graph-consolidation2/proofs/request_composition",
+    "environment": "Pinned Lake binary directory on PATH; LAKE_NO_UPDATE=1; reviewed private dependency overrides",
+    "stage_directories": "Stages 01/02 run in current_roles; 03/04/05 in request_composition",
+    "timing": "Command elapsed seconds, excluding preparation, transfer and review; warm dependency caches"
+  },
+  "theorem": {
+    "name": "DirectPolicyClientProof.direct_policy_client_exact",
+    "sha256": "120f0ce6d973d19c925979ae6dce3fe5cd6359d63e5b0909c4cba264ec790055",
+    "property": "Actual granted_permissions followed by actual HTTP new returns the complete independently specified client; computed permission membership iff the existing independent Grants relation. Direct subject and independently characterized accepted context; no desired-grant premise.",
+    "axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound",
+      "alloc.string.ToString.Blanket.to_string",
+      "veoveo_hub_sdk.internal_auth.InternalTokenError.Insts.CoreFmtDisplay.fmt"
+    ],
+    "warning": "One unused simp argument (bind_ok); proof and executable axiom audit pass. Direct lean invocation emits no OLean."
+  },
+  "compiled_shared_model": {
+    "HubCurrentRoles/Funs": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/shared-graph-consolidation2/proofs/current_roles/.lake/build/lib/lean/HubCurrentRoles/Funs.olean",
+      "sha256": "cfe90f46b89e75f9ec420f81250e197e09a189dde40fe63ce51b4b9064c3abb3",
+      "size": 562872
+    },
+    "HubCurrentRoles/Types": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/shared-graph-consolidation2/proofs/current_roles/.lake/build/lib/lean/HubCurrentRoles/Types.olean",
+      "sha256": "f147e89c079241ee0ee4657b0d6b124c2744fdce067cb1f72ca9b638ebbcf5a1",
+      "size": 4480784
+    },
+    "RequestCompositionHub": {
+      "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/shared-graph-consolidation2/proofs/request_composition/.lake/build/lib/lean/RequestCompositionHub.olean",
+      "sha256": "60124ba902eff0e5486fa5ab381dc31041ccae7c2b91346399ff4fb7eac31713",
+      "size": 1328
+    }
+  },
+  "evidence": {
+    "local_summary": "/tmp/hub-request-composition-20261030/evidence-shared-graph-consolidation2-final/summary.json",
+    "summary_sha256": "9bbabd14c83011638d9285f68ea7895d81664e246cfadfa6a7bdae142460784e",
+    "archive_sha256": "063d9e952b66d7affb0bce9a0468af0a718e92731ccc9addcd86ba1fdb299dc0"
+  },
+  "prior_attempts": [
+    "Noninteractive invocation lacked lake on PATH (exit 127); corrected to pinned binary and PATH.",
+    "Initial private copy included only changed paths and omitted unchanged RefreshPredicateProof.lean (exit 1, 3.50 seconds). Final graph copied complete packages: all five checks passed.",
+    "Layout receipt had a literal escaped newline suffix; corrected local JSON retains the raw receipt identity and unchanged tool outputs."
+  ],
+  "review": [
+    "Raw Types/Funs are untouched Aeneas outputs; layout change only namespaces/import paths from the restored LLBC.",
+    "All 35 common grant function bodies retained. Existing seven routing proof files retain statements/specifications/bodies modulo namespace and import relocation.",
+    "Existing current_roles FunsExternal remains an exact prefix; request-specific operations appended once.",
+    "ServerEndpoint now uses actual extracted url.Url; ten Ord dictionaries add reached default min. Historical mutation recipes remain pinned to their original model."
+  ],
+  "boundaries": [
+    "Source-reviewed composition of extracted subcalls, not extraction/refinement of the async caller.",
+    "Installation and server row are supplied; one-generation selected-route composition remains open.",
+    "No delegated narrowing or SDK issuer/recipient composition claim. No namespace-helper completion/order claim.",
+    "Native collections, primitive models, compiler/translator and Lean remain trusted boundaries.",
+    "Baseline excludes newer main OpenShell pin, downstream WithCauses formatting and added RefreshRevocation::AdministratorRevocation domain. Covered grant/constructor bodies unchanged; not whole-current-main applicability.",
+    "No runtime, Cargo, canonical Lake dependency, CI, deployment or authorization behavior change. No native test, full Docker gate, paid call or push in this slice."
+  ]
+}

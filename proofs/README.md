@@ -697,8 +697,17 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   the unchanged proof, an independent accepted-input witness proves the lost grant,
   and exact source restoration passes the connected targets. This covers that
   constructor edge, not every composed edge or provenance of the supplied grants.
-  Next, consolidate the duplicate generated graphs so the existing current-policy
-  proof can connect directly to the selected row, delegation and client fields.
+  The [shared graph qualification](request_composition/evidence/shared-policy-request-graph.json)
+  removes the duplicate generated graph and passes all existing current-policy
+  defaults, model audit, request defaults and six routing targets. The new
+  [direct-policy/client theorem](request_composition/DirectPolicyClientProof.lean)
+  composes actual grant computation with the complete HTTP constructor: accepted
+  direct clients preserve the computed set, with membership exactly characterized
+  by the independent existing grant relation. It assumes no desired grant set.
+  The supplied installation and row are not yet derived from one computed selected
+  route; that connection, delegated narrowing and SDK issuance remain next. This
+  uses the recorded Hub `3bc2923` source baseline, not a fresh extraction of all
+  current main; see the shared graph README for intervening source/domain changes.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

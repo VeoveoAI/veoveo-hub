@@ -47,6 +47,15 @@ inductive core.net.ip_addr.IpAddr where
 | V4 : core.net.ip_addr.Ipv4Addr → core.net.ip_addr.IpAddr
 | V6 : core.net.ip_addr.Ipv6Addr → core.net.ip_addr.IpAddr
 
+/-- [alloc::borrow::Cow]
+    Source: '/rustc/library/alloc/src/borrow.rs', lines 169:0-169:32
+    Name pattern: [alloc::borrow::Cow]
+    Visibility: public -/
+@[discriminant isize, rust_type "alloc::borrow::Cow"]
+inductive alloc.borrow.Cow (B : Type _) (Clause0_Owned : Type _) where
+| Borrowed : B → alloc.borrow.Cow B Clause0_Owned
+| Owned : Clause0_Owned → alloc.borrow.Cow B Clause0_Owned
+
 /-- Trait declaration: [chrono::offset::Offset]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/chrono-0.4.45/src/offset/mod.rs', lines 291:0-291:44
     Name pattern: [chrono::offset::Offset]
@@ -93,6 +102,25 @@ structure chrono.offset.TimeZone (Self : Type _) (Self_Offset : Type _) where
     Visibility: public -/
 @[reducible, rust_type "chrono::offset::utc::Utc"]
 def chrono.offset.utc.Utc := Unit
+
+/-- [jsonwebtoken::algorithms::Algorithm]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jsonwebtoken-11.0.0/src/algorithms.rs', lines 43:0-43:18
+    Name pattern: [jsonwebtoken::algorithms::Algorithm]
+    Visibility: public -/
+@[discriminant isize, rust_type "jsonwebtoken::algorithms::Algorithm"]
+inductive jsonwebtoken.algorithms.Algorithm where
+| HS256 : jsonwebtoken.algorithms.Algorithm
+| HS384 : jsonwebtoken.algorithms.Algorithm
+| HS512 : jsonwebtoken.algorithms.Algorithm
+| ES256 : jsonwebtoken.algorithms.Algorithm
+| ES384 : jsonwebtoken.algorithms.Algorithm
+| RS256 : jsonwebtoken.algorithms.Algorithm
+| RS384 : jsonwebtoken.algorithms.Algorithm
+| RS512 : jsonwebtoken.algorithms.Algorithm
+| PS256 : jsonwebtoken.algorithms.Algorithm
+| PS384 : jsonwebtoken.algorithms.Algorithm
+| PS512 : jsonwebtoken.algorithms.Algorithm
+| EdDSA : jsonwebtoken.algorithms.Algorithm
 
 /-- [prost_types::protobuf::Value]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/prost-types-0.14.4/src/protobuf.rs', lines 2136:0-2136:16
@@ -361,6 +389,23 @@ structure openshell_sdk.config.ClientConfig where
   auth : Option openshell_sdk.config.AuthConfig
   insecure_skip_verify : Bool
 
+/-- [rmcp::model::ErrorCode]
+    Source: '/cargo/git/checkouts/rust-sdk-ed0400b05853d1c3/faa4e9d/crates/rmcp/src/model.rs', lines 620:0-620:20
+    Name pattern: [rmcp::model::ErrorCode]
+    Visibility: public -/
+@[reducible, rust_type "rmcp::model::ErrorCode"]
+def rmcp.model.ErrorCode := Std.I32
+
+/-- [rmcp::model::ErrorData]
+    Source: '/cargo/git/checkouts/rust-sdk-ed0400b05853d1c3/faa4e9d/crates/rmcp/src/model.rs', lines 643:0-643:20
+    Name pattern: [rmcp::model::ErrorData]
+    Visibility: public -/
+@[rust_type "rmcp::model::ErrorData"]
+structure rmcp.model.ErrorData where
+  code : rmcp.model.ErrorCode
+  message : alloc.borrow.Cow Str String
+  data : Option serde_json.value.Value
+
 /-- [veoveo_audit_contract::model::AuditRequest]
     Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/audit/contract/src/model.rs', lines 62:0-62:23
     Name pattern: [veoveo_audit_contract::model::AuditRequest]
@@ -380,6 +425,28 @@ structure veoveo_audit_contract.model.AuditRequest where
 @[rust_type "veoveo_hub_sdk::execution::ExecutionContext"]
 structure veoveo_hub_sdk.execution.ExecutionContext where
   composition : veoveo_hub_sdk.execution.CompositionRevision
+
+/-- [veoveo_hub_sdk::execution::ResolvedComponent]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 41:0-41:26
+    Name pattern: [veoveo_hub_sdk::execution::ResolvedComponent]
+    Visibility: public -/
+@[discriminant isize, rust_type "veoveo_hub_sdk::execution::ResolvedComponent"]
+inductive veoveo_hub_sdk.execution.ResolvedComponent where
+| Deployment :
+  veoveo_types.execution.DeploymentId →
+  veoveo_hub_sdk.execution.ResolvedComponent
+| Unavailable : veoveo_hub_sdk.execution.ResolvedComponent
+
+/-- [veoveo_hub_sdk::execution::ResolvedComposition]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 51:0-51:30
+    Name pattern: [veoveo_hub_sdk::execution::ResolvedComposition]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::execution::ResolvedComposition"]
+structure veoveo_hub_sdk.execution.ResolvedComposition where
+  components : alloc.collections.btree.map.BTreeMap
+    veoveo_types.platform_names.ServerSlug
+    veoveo_hub_sdk.execution.ResolvedComponent alloc.alloc.Global
+  revision : veoveo_hub_sdk.execution.CompositionRevision
 
 /-- [veoveo_hub_sdk::identity::GroupRole]
     Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 21:0-21:18
@@ -616,6 +683,137 @@ structure veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller where
   delegation_context : Option
     veoveo_hub_sdk.internal_auth.exchange.DelegationContext
 
+/-- [veoveo_hub_sdk::registration::declaration::ResourceIndicator]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/declaration.rs', lines 132:0-132:28
+    Name pattern: [veoveo_hub_sdk::registration::declaration::ResourceIndicator]
+    Visibility: public -/
+@[reducible, rust_type
+  "veoveo_hub_sdk::registration::declaration::ResourceIndicator"]
+def veoveo_hub_sdk.registration.declaration.ResourceIndicator := url.Url
+
+/-- [veoveo_hub_sdk::internal_auth::HubInternalIdentity]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 215:0-215:30
+    Name pattern: [veoveo_hub_sdk::internal_auth::HubInternalIdentity]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::internal_auth::HubInternalIdentity"]
+structure veoveo_hub_sdk.internal_auth.HubInternalIdentity where
+  issuer : veoveo_types.identity.TokenIssuer
+  profile : veoveo_hub_sdk.identity.HubProfileId
+  server : veoveo_types.platform_names.ServerSlug
+  deployment : veoveo_types.execution.DeploymentId
+  audience : veoveo_hub_sdk.registration.declaration.ResourceIndicator
+  client : veoveo_types.platform_names.OAuthClientId
+  actor : veoveo_hub_sdk.identity.Principal
+  authority : veoveo_types.authority.InvocationAuthority
+  permissions : alloc.collections.btree.set.BTreeSet
+    veoveo_types.permission_names.PermissionName alloc.alloc.Global
+  request_context : Option
+    veoveo_hub_sdk.internal_auth.request.HubRequestContext
+  acting_server : Option veoveo_hub_sdk.internal_auth.ActingServer
+  acting_task : Option veoveo_hub_sdk.identity.OpaqueTaskId
+  delegation_context : Option
+    veoveo_hub_sdk.internal_auth.exchange.DelegationContext
+  jwt_id : veoveo_hub_sdk.identity.JwtId
+  issued_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+  not_before : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+  expires_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+
+/-- [veoveo_hub_sdk::internal_auth::IssuedHubInternalToken]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 299:0-299:33
+    Name pattern: [veoveo_hub_sdk::internal_auth::IssuedHubInternalToken]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::internal_auth::IssuedHubInternalToken"]
+structure veoveo_hub_sdk.internal_auth.IssuedHubInternalToken where
+  bearer_token : String
+  identity : veoveo_hub_sdk.internal_auth.HubInternalIdentity
+
+/-- [veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 314:0-314:33
+    Name pattern: [veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer"]
+structure veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer where
+  issuer : veoveo_types.identity.TokenIssuer
+  signing_key : veoveo_hub_sdk.internal_auth.HubInternalSigningKey
+
+/-- [veoveo_hub_sdk::internal_auth::InternalTokenError]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 876:0-876:27
+    Name pattern: [veoveo_hub_sdk::internal_auth::InternalTokenError]
+    Visibility: public -/
+@[discriminant isize, rust_type
+  "veoveo_hub_sdk::internal_auth::InternalTokenError"]
+inductive veoveo_hub_sdk.internal_auth.InternalTokenError where
+| DeploymentMismatch : veoveo_hub_sdk.internal_auth.InternalTokenError
+| EmptyPrivateKey : veoveo_hub_sdk.internal_auth.InternalTokenError
+| InvalidSigningKey : veoveo_hub_sdk.internal_auth.InternalTokenError
+| InvalidIssuer : veoveo_hub_sdk.internal_auth.InternalTokenError
+| KeyIdNotThumbprint :
+  String →
+  veoveo_hub_sdk.internal_auth.InternalTokenError
+| InvalidTokenId : veoveo_hub_sdk.internal_auth.InternalTokenError
+| InvalidKeyId : veoveo_hub_sdk.internal_auth.InternalTokenError
+| EmptyTrustBundle : veoveo_hub_sdk.internal_auth.InternalTokenError
+| MissingKeyId : veoveo_hub_sdk.internal_auth.InternalTokenError
+| DuplicateKeyId : String → veoveo_hub_sdk.internal_auth.InternalTokenError
+| UnknownKeyId : String → veoveo_hub_sdk.internal_auth.InternalTokenError
+| UnsupportedTrustKey : veoveo_hub_sdk.internal_auth.InternalTokenError
+| UnsupportedTokenAlgorithm :
+  jsonwebtoken.algorithms.Algorithm →
+  veoveo_hub_sdk.internal_auth.InternalTokenError
+| UnsupportedTokenType : veoveo_hub_sdk.internal_auth.InternalTokenError
+| ExpiredDelegation : veoveo_hub_sdk.internal_auth.InternalTokenError
+| DelegationDepthExceeded : veoveo_hub_sdk.internal_auth.InternalTokenError
+| AudienceMismatch :
+  veoveo_types.platform_names.ServerSlug →
+  veoveo_types.platform_names.ServerSlug →
+  veoveo_hub_sdk.internal_auth.InternalTokenError
+| SubjectPrincipalMismatch : veoveo_hub_sdk.internal_auth.InternalTokenError
+| InconsistentClaims : veoveo_hub_sdk.internal_auth.InternalTokenError
+| PermissionOutsideAudience :
+  veoveo_types.permission_names.PermissionName →
+  veoveo_hub_sdk.internal_auth.InternalTokenError
+| InvalidRequestContext : veoveo_hub_sdk.internal_auth.InternalTokenError
+| InvalidTimestamp :
+  Str →
+  Std.I64 →
+  veoveo_hub_sdk.internal_auth.InternalTokenError
+| Identifier :
+  veoveo_types.error.IdentifierError →
+  veoveo_hub_sdk.internal_auth.InternalTokenError
+| TrustBundleJson :
+  serde_json.error.Error →
+  veoveo_hub_sdk.internal_auth.InternalTokenError
+| Jwt :
+  jsonwebtoken.errors.Error →
+  veoveo_hub_sdk.internal_auth.InternalTokenError
+
+/-- [veoveo_hub_sdk::internal_auth::ForwardedRequest]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 443:0-443:27
+    Name pattern: [veoveo_hub_sdk::internal_auth::ForwardedRequest]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::internal_auth::ForwardedRequest"]
+structure veoveo_hub_sdk.internal_auth.ForwardedRequest where
+  profile : veoveo_hub_sdk.identity.HubProfileId
+  server : veoveo_types.platform_names.ServerSlug
+  deployment : veoveo_types.execution.DeploymentId
+  audience : veoveo_hub_sdk.registration.declaration.ResourceIndicator
+  client : veoveo_types.platform_names.OAuthClientId
+  actor : veoveo_hub_sdk.identity.Principal
+  authority : veoveo_types.authority.InvocationAuthority
+  permissions : alloc.collections.btree.set.BTreeSet
+    veoveo_types.permission_names.PermissionName alloc.alloc.Global
+  request_context : Option
+    veoveo_hub_sdk.internal_auth.request.HubRequestContext
+  acting_server : Option veoveo_hub_sdk.internal_auth.ActingServer
+  acting_task : Option veoveo_hub_sdk.identity.OpaqueTaskId
+  delegation_context : Option
+    veoveo_hub_sdk.internal_auth.exchange.DelegationContext
+  expires_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+
 /-- [veoveo_hub_sdk::registration::access::Access]
     Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 5:0-5:15
     Name pattern: [veoveo_hub_sdk::registration::access::Access]
@@ -747,6 +945,53 @@ def veoveo_hub_sdk.registration.authorization.MatcherNativeMatcherShared0Resourc
   "veoveo_hub_sdk::registration::authorization::NativeMatcher"]
 def veoveo_hub_sdk.registration.authorization.NativeMatcher :=
   veoveo_types.resource.ResourceUri
+
+/-- [veoveo_hub_sdk::registration::declaration::ServerEndpoint]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/declaration.rs', lines 70:0-70:25
+    Name pattern: [veoveo_hub_sdk::registration::declaration::ServerEndpoint]
+    Visibility: public -/
+@[reducible, rust_type
+  "veoveo_hub_sdk::registration::declaration::ServerEndpoint"]
+def veoveo_hub_sdk.registration.declaration.ServerEndpoint := url.Url
+
+/-- [veoveo_hub::delegation::SubjectDelegation]
+    Source: 'crates/veoveo-hub/src/delegation.rs', lines 43:0-56:1
+    Visibility: public -/
+structure delegation.SubjectDelegation where
+  acting_server : veoveo_hub_sdk.internal_auth.ActingServer
+  permissions : alloc.collections.btree.set.BTreeSet
+    veoveo_types.permission_names.PermissionName alloc.alloc.Global
+  task : Option veoveo_hub_sdk.identity.OpaqueTaskId
+  request_context : veoveo_hub_sdk.internal_auth.request.HubRequestContext
+  context : Option veoveo_hub_sdk.internal_auth.exchange.DelegationContext
+  expires_at : chrono.datetime.DateTime chrono.offset.utc.Utc
+    chrono.offset.utc.Utc
+
+/-- [veoveo_hub::contract::oauth::PrincipalDisplayName]
+    Source: 'crates/veoveo-hub/src/contract/oauth.rs', lines 13:0-13:40
+    Visibility: public -/
+@[reducible]
+def contract.oauth.PrincipalDisplayName := String
+
+/-- [veoveo_hub::auth::verified::AuthenticatedSubject]
+    Source: 'crates/veoveo-hub/src/auth/verified.rs', lines 19:0-32:1
+    Visibility: public -/
+structure auth.verified.AuthenticatedSubject where
+  execution : Option veoveo_hub_sdk.execution.ExecutionContext
+  extensions : veoveo_types.extensions.AdmittedExtensions
+  audit : veoveo_audit_contract.model.AuditRequest
+  access_token : veoveo_hub_sdk.identity.AccessTokenSubject
+  principal : veoveo_hub_sdk.identity.Principal
+  actor : veoveo_hub_sdk.identity.Principal
+  principal_display_name : Option contract.oauth.PrincipalDisplayName
+  authority : veoveo_types.authority.InvocationAuthority
+  delegation : Option delegation.SubjectDelegation
+
+/-- [veoveo_hub::auth::verified::{veoveo_hub::auth::verified::AuthenticatedSubject}::request_context::{closure}]
+    Source: 'crates/veoveo-hub/src/auth/verified.rs', lines 42:29-42:91 -/
+@[reducible]
+def auth.verified.AuthenticatedSubject.request_context.closure :=
+  delegation.SubjectDelegation
 
 /-- [veoveo_hub::registration::snapshot::Namespace]
     Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 75:0-78:1
@@ -1683,12 +1928,6 @@ structure contract.catalog.AdmittedPolicyTarget where
   wire : serde_json.value.Value
   audit : contract.catalog.TargetAuditResource
 
-/-- [veoveo_hub::contract::oauth::PrincipalDisplayName]
-    Source: 'crates/veoveo-hub/src/contract/oauth.rs', lines 13:0-13:40
-    Visibility: public -/
-@[reducible]
-def contract.oauth.PrincipalDisplayName := String
-
 /-- [veoveo_hub::control_plane::ids::TraceId]
     Source: 'crates/veoveo-hub/src/control_plane/ids.rs', lines 51:0-51:27
     Visibility: public -/
@@ -1800,7 +2039,7 @@ structure delegation.CurrentPermissions where
   caller : veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller
 
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 160:34-160:58 -/
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 169:34-169:58 -/
 @[reducible]
 def registration.snapshot.RegistrationSnapshot.iter.closure := Unit
 
@@ -1865,6 +2104,66 @@ def delegation.HeldCurrentPermissionsBTreeSetPermissionNameGlobal.held.closure
   control_plane.authorization_config.InstallationAuthorization ×
   veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller
 
+/-- [veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 34:0-50:1 -/
+structure mcp.upstream_authorized_http.HubAuthorizedHttpClient where
+  http : mcp.upstream_http.UpstreamTransport
+  issuer : veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer
+  profile : veoveo_hub_sdk.identity.HubProfileId
+  server : veoveo_types.platform_names.ServerSlug
+  deployment : veoveo_types.execution.DeploymentId
+  audience : veoveo_hub_sdk.registration.declaration.ResourceIndicator
+  client : veoveo_types.platform_names.OAuthClientId
+  actor : veoveo_hub_sdk.identity.Principal
+  authority : veoveo_types.authority.InvocationAuthority
+  permissions : alloc.collections.btree.set.BTreeSet
+    veoveo_types.permission_names.PermissionName alloc.alloc.Global
+  request_context : veoveo_hub_sdk.internal_auth.request.HubRequestContext
+  acting_server : Option veoveo_hub_sdk.internal_auth.ActingServer
+  acting_task : Option veoveo_hub_sdk.identity.OpaqueTaskId
+  delegation_context : Option
+    veoveo_hub_sdk.internal_auth.exchange.DelegationContext
+  delegation_expires_at : Option (chrono.datetime.DateTime
+    chrono.offset.utc.Utc chrono.offset.utc.Utc)
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure#3}]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 101:21-101:55 -/
+@[reducible]
+def mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_3 := Unit
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure#2}]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 97:26-97:65 -/
+@[reducible]
+def mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_2 := Unit
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure#1}]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 92:21-92:66 -/
+@[reducible]
+def mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_1 := Unit
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::new::{closure}]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 88:25-88:84 -/
+@[reducible]
+def mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure := Unit
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpError]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 187:0-192:1 -/
+@[discriminant isize]
+inductive mcp.upstream_authorized_http.HubAuthorizedHttpError where
+| InternalToken :
+  veoveo_hub_sdk.internal_auth.InternalTokenError →
+  mcp.upstream_authorized_http.HubAuthorizedHttpError
+| Http :
+  reqwest_1.error.Error →
+  mcp.upstream_authorized_http.HubAuthorizedHttpError
+
+/-- [veoveo_hub::mcp::upstream_authorized_http::{veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpClient}::issue_bearer_token_until::{closure}]
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 178:36-178:71 -/
+@[reducible]
+def mcp.upstream_authorized_http.HubAuthorizedHttpClient.issue_bearer_token_until.closure
+  :=
+  chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc
+
 /-- Trait declaration: [veoveo_hub::policy::catalog::PolicyCatalogView]
     Source: 'crates/veoveo-hub/src/policy/catalog.rs', lines 12:0-22:1
     Visibility: public -/
@@ -1928,6 +2227,31 @@ structure policy.session.SessionRequest where
   token : veoveo_hub_sdk.identity.AccessTokenSubject
   principal : veoveo_hub_sdk.identity.Principal
   now : chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+@[reducible]
+def registration.snapshot.RegistrationSnapshot.new.closure (T0 : Type _)
+  (Clause0_IntoIter : Type _) :=
+Unit
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{closure}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 137:56-137:85 -/
+@[reducible]
+def registration.snapshot.RegistrationSnapshot.get.closure :=
+  veoveo_types.platform_names.ServerSlug
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}::{closure}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 162:48-162:80 -/
+def registration.snapshot.RegistrationSnapshot.selected.closure.closure :=
+  veoveo_types.execution.DeploymentId × alloc.sync.Arc
+  registration.snapshot.RegisteredServer
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 156:28-163:17 -/
+@[reducible]
+def registration.snapshot.RegistrationSnapshot.selected.closure :=
+  registration.snapshot.RegistrationSnapshot
 
 /-- [veoveo_hub::store::refresh::RefreshRevocation]
     Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 23:0-30:1

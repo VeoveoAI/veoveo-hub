@@ -447,13 +447,6 @@ abbrev veoveo_types.identity.PolicyVersion := CurrentRolesId 42
 @[rust_type "veoveo_hub_sdk::registration::declaration::ServerVersion"]
 abbrev veoveo_hub_sdk.registration.declaration.ServerVersion := CurrentRolesId 43
 
-/-- [veoveo_hub_sdk::registration::declaration::ServerEndpoint]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/05273d1/crates/veoveo-hub-sdk/src/registration/declaration.rs', lines 70:0-70:25
-    Name pattern: [veoveo_hub_sdk::registration::declaration::ServerEndpoint]
-    Visibility: public -/
-@[rust_type "veoveo_hub_sdk::registration::declaration::ServerEndpoint"]
-abbrev veoveo_hub_sdk.registration.declaration.ServerEndpoint := CurrentRolesId 44
-
 /-- [veoveo_types::actions::ActionName]
     Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/actions.rs', lines 7:0-7:21
     Name pattern: [veoveo_types::actions::ActionName]
@@ -578,3 +571,20 @@ abbrev uuid.Uuid := CurrentRolesId 59
 
 @[rust_type "veoveo_types::digest::Sha256Digest"]
 abbrev veoveo_types.digest.Sha256Digest := CurrentRolesId 60
+
+
+-- Additional carried domains reached by the shared request-assembly graph.
+structure RequestCompositionOpaque (tag : Nat) where
+  value : _root_.String
+  deriving DecidableEq
+
+structure core.iter.adapters.filter_map.FilterMap (I F : Type _) where
+  iter : I
+  f : F
+
+abbrev jsonwebtoken.errors.Error := RequestCompositionOpaque 0
+abbrev reqwest_1.error.Error := RequestCompositionOpaque 1
+abbrev serde_json.error.Error := RequestCompositionOpaque 2
+abbrev veoveo_hub_sdk.internal_auth.HubInternalSigningKey := RequestCompositionOpaque 3
+abbrev veoveo_types.error.IdentifierError := RequestCompositionOpaque 4
+abbrev mcp.upstream_http.UpstreamTransport := RequestCompositionOpaque 5

@@ -1,7 +1,7 @@
 import SnapshotAssemblyProof
 import CollectionProof
 
-open Aeneas Aeneas.Std RequestCompositionHub
+open Aeneas Aeneas.Std veoveo_hub
 open IteratorProof
 
 namespace SelectedRegistrationProof
@@ -14,9 +14,9 @@ abbrev Slug := veoveo_types.platform_names.ServerSlug
 abbrev Deployment := veoveo_types.execution.DeploymentId
 
 abbrev valuesIterator :=
-  RequestCompositionHub.alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV
+  veoveo_hub.alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV
     Deployment (alloc.sync.Arc Server)
-abbrev slugOps := RequestCompositionHub.registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool
+abbrev slugOps := veoveo_hub.registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool
 
 abbrev entries (snapshot : Snapshot) : List Server := snapshot.servers.map Prod.snd
 
@@ -27,7 +27,7 @@ def filterModel (slug : Slug) :=
 theorem values_cursor_law : CursorLaw valuesIterator (listEnumeration Server) := by
   intro state _
   cases state <;> simp [valuesIterator,
-    RequestCompositionHub.alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV.next,
+    _root_.alloc.collections.btree.map.Values.Insts.CoreIterTraitsIteratorIteratorSharedAV.next,
     NextStep, listEnumeration, alloc.sync.Arc]
 
 theorem slug_predicate_law (slug : Slug) :
@@ -36,9 +36,9 @@ theorem slug_predicate_law (slug : Slug) :
   intro state same server
   subst state
   simp [slugOps,
-    RequestCompositionHub.registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool.call_mut,
-    RequestCompositionHub.alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref,
-    RequestCompositionHub.veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq]
+    veoveo_hub.registration.snapshot.RegistrationSnapshot.get.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3ArcRegisteredServerBool.call_mut,
+    _root_.alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref,
+    _root_.veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq]
 
 /-- Explicit finite-cursor recurrence proof for THIS operational model.
 The earlier generic proof's enumeration laws are reused; equality of separately
@@ -46,9 +46,9 @@ elaborated partial_fixpoint definitions is neither assumed nor axiomatized. -/
 theorem filter_next_law (slug : Slug)
     (state : core.iter.adapters.filter.Filter (List Server) Slug)
     (valid : (filterModel slug).valid state) :
-    RequestCompositionHub.CurrentRolesNative.filterNext valuesIterator slugOps state
+    _root_.CurrentRolesNative.filterNext valuesIterator slugOps state
       ⦃ result => NextStep (filterModel slug) state result ⦄ := by
-  unfold RequestCompositionHub.CurrentRolesNative.filterNext
+  unfold _root_.CurrentRolesNative.filterNext
   step with (values_cursor_law state.iter valid.1) as ⟨entry, next, taken⟩
   rcases taken with ⟨nextValid, entryEq, suffix⟩
   cases remaining : (listEnumeration Server).remaining state.iter with
@@ -85,13 +85,13 @@ def onlyMatch : List Server → Option Server
 /-- The actual getter accepts exactly one matching raw map value. Zero values
 and ambiguity are both refused; namespace helper contents are irrelevant. -/
 theorem get_exact (snapshot : Snapshot) (slug : Slug) :
-    RequestCompositionHub.registration.snapshot.RegistrationSnapshot.get snapshot slug =
+    veoveo_hub.registration.snapshot.RegistrationSnapshot.get snapshot slug =
       .ok (onlyMatch (matching snapshot slug)) := by
   apply CollectionProof.exact_of_total
-  unfold RequestCompositionHub.registration.snapshot.RegistrationSnapshot.get
-  simp only [RequestCompositionHub.alloc.collections.btree.map.BTreeMap.values,
-    RequestCompositionHub.core.iter.traits.iterator.Iterator.filter.default,
-    RequestCompositionHub.core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next,
+  unfold veoveo_hub.registration.snapshot.RegistrationSnapshot.get
+  simp only [_root_.alloc.collections.btree.map.BTreeMap.values,
+    _root_.core.iter.traits.iterator.Iterator.filter.default,
+    _root_.core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next,
     bind_ok, bind_tc_ok]
   step with (filter_next_law slug { iter := entries snapshot, predicate := slug }
     ⟨trivial, rfl⟩) as ⟨first, next, firstSpec⟩
@@ -103,14 +103,14 @@ theorem get_exact (snapshot : Snapshot) (slug : Slug) :
     have firstNone : first = none := by
       simpa [filteredRows] using firstHead
     rw [firstNone]
-    simp [RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitTry.branch,
-      RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual,
+    simp [_root_.core.option.Option.Insts.CoreOpsTry_traitTry.branch,
+      _root_.core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual,
       filteredRows, onlyMatch]
   | cons server rest =>
     have firstSome : first = some server := by
       simpa [filteredRows] using firstHead
     rw [firstSome]
-    simp only [RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitTry.branch, bind_ok, bind_tc_ok]
+    simp only [_root_.core.option.Option.Insts.CoreOpsTry_traitTry.branch, bind_ok, bind_tc_ok]
     step with (filter_next_law slug next nextValid) as ⟨second, last, secondSpec⟩
     have remaining : (filterModel slug).remaining next = rest := by
       simpa [filteredRows] using nextRemaining
@@ -120,14 +120,14 @@ theorem get_exact (snapshot : Snapshot) (slug : Slug) :
     | nil =>
       simp only [List.head?_nil] at secondHead
       subst second
-      simp [RequestCompositionHub.alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref,
-        RequestCompositionHub.core.bool.Bool.then_some, core.option.Option.is_none,
+      simp [_root_.alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref,
+        _root_.core.bool.Bool.then_some, core.option.Option.is_none,
         filteredRows, onlyMatch]
     | cons other tail =>
       simp only [List.head?_cons] at secondHead
       subst second
-      simp [RequestCompositionHub.alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref,
-        RequestCompositionHub.core.bool.Bool.then_some, core.option.Option.is_none,
+      simp [_root_.alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref,
+        _root_.core.bool.Bool.then_some, core.option.Option.is_none,
         filteredRows, onlyMatch]
 
 /-- Independent map-value lookup; no authorized/desired route is supplied. -/
@@ -136,11 +136,11 @@ def lookupBy : List (Deployment × Server) → Deployment → Option Server
   | (key, server) :: rest, query =>
     if key = query then some server else lookupBy rest query
 
-abbrev mapLookup : List (Deployment × Server) → Deployment → Result (Option Server) := RequestCompositionHub.alloc.collections.btree.map.BTreeMap.get
-  RequestCompositionHub.alloc.alloc.Global.Insts.CoreAllocAllocatorClone
-  (RequestCompositionHub.core.borrow.Borrow.Blanket Deployment)
-  RequestCompositionHub.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd
-  RequestCompositionHub.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd
+abbrev mapLookup : List (Deployment × Server) → Deployment → Result (Option Server) := _root_.alloc.collections.btree.map.BTreeMap.get
+  veoveo_hub.alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+  (veoveo_hub.core.borrow.Borrow.Blanket Deployment)
+  veoveo_hub.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd
+  veoveo_hub.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd
 
 theorem lookup_exact (servers : List (Deployment × Server)) (query : Deployment) :
     mapLookup servers query = .ok (lookupBy servers query) := by
@@ -151,12 +151,12 @@ theorem lookup_exact (servers : List (Deployment × Server)) (query : Deployment
     cases key
     cases query
     have tail := ih
-    simp only [mapLookup, RequestCompositionHub.alloc.collections.btree.map.BTreeMap.get] at tail
-    simp [mapLookup, RequestCompositionHub.alloc.collections.btree.map.BTreeMap.get,
-      RequestCompositionHub.CurrentRolesSDK.mapGetBy, RequestCompositionHub.core.borrow.Borrow.Blanket,
-      RequestCompositionHub.core.borrow.Borrow.Blanket.borrow,
-      RequestCompositionHub.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd,
-      RequestCompositionHub.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd.cmp,
+    simp only [mapLookup, _root_.alloc.collections.btree.map.BTreeMap.get] at tail
+    simp [mapLookup, _root_.alloc.collections.btree.map.BTreeMap.get,
+      _root_.CurrentRolesSDK.mapGetBy, veoveo_hub.core.borrow.Borrow.Blanket,
+      _root_.core.borrow.Borrow.Blanket.borrow,
+      veoveo_hub.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd,
+      _root_.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd.cmp,
       lookupBy, _root_.compare_eq_iff_eq, tail]
     all_goals split <;> rfl
 
@@ -172,7 +172,7 @@ def chooseOne (snapshot : Snapshot) (entry : Slug × veoveo_hub_sdk.execution.Re
     | none => none
     | some server => if server.slug = entry.1 then some (deployment, server) else none
 
-abbrev selectOps := RequestCompositionHub.registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer
+abbrev selectOps := veoveo_hub.registration.snapshot.RegistrationSnapshot.selected.closure.Insts.CoreOpsFunctionFnMutTuplePairShared1ServerSlugShared2ResolvedComponentOptionPairDeploymentIdArcRegisteredServer
 
 /-- A proof-local normal form of the extracted closure. The generated capture
 is a semireducible tuple alias. Expose the exact FnOnce pair destructuring
@@ -183,23 +183,23 @@ private theorem selected_entry_body (snapshot : Snapshot) (slug : Slug)
     (deployment : Deployment) :
     selectOps.call_mut snapshot (slug, .Deployment deployment) = (do
       let candidate ← mapLookup snapshot.servers deployment
-      let branch ← RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitTry.branch candidate
+      let branch ← _root_.core.option.Option.Insts.CoreOpsTry_traitTry.branch candidate
       match branch with
       | .Continue server =>
-        let row ← RequestCompositionHub.alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref
+        let row ← _root_.alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref
           alloc.alloc.Global server
-        let same ← RequestCompositionHub.veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq row.slug slug
+        let same ← _root_.veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq row.slug slug
         let picked ← Aeneas.Std.core.bool.Bool.then
           ({ call_once := fun pair (_ : Unit) => do
               let (key, value) := pair
-              let cloned ← RequestCompositionHub.alloc.sync.Arc.Insts.CoreCloneClone.clone
-                RequestCompositionHub.alloc.alloc.Global.Insts.CoreAllocAllocatorClone value
+              let cloned ← _root_.alloc.sync.Arc.Insts.CoreCloneClone.clone
+                veoveo_hub.alloc.alloc.Global.Insts.CoreAllocAllocatorClone value
               .ok (key, cloned) } :
             Aeneas.Std.core.ops.function.FnOnce (Deployment × Server) Unit (Deployment × Server))
           same (deployment, server)
         .ok (picked, snapshot)
       | .Break residual =>
-        let picked ← RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
+        let picked ← _root_.core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
           (Deployment × Server) residual
         .ok (picked, snapshot)) := by
   with_unfolding_all rfl
@@ -217,17 +217,17 @@ theorem selected_entry_exact (snapshot : Snapshot)
     cases found : lookupBy snapshot.servers deployment with
     | none =>
       simp [found, chooseOne,
-        RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitTry.branch,
-        RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual,
+        _root_.core.option.Option.Insts.CoreOpsTry_traitTry.branch,
+        _root_.core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual,
         bind_ok, bind_tc_ok]
     | some server =>
       by_cases same : server.slug = slug <;>
         simp [found, chooseOne, same,
-          RequestCompositionHub.core.option.Option.Insts.CoreOpsTry_traitTry.branch,
-          RequestCompositionHub.alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref,
-          RequestCompositionHub.veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq,
+          _root_.core.option.Option.Insts.CoreOpsTry_traitTry.branch,
+          _root_.alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref,
+          _root_.veoveo_types.platform_names.ServerSlug.Insts.CoreCmpPartialEqServerSlug.eq,
           Aeneas.Std.core.bool.Bool.then,
-          RequestCompositionHub.alloc.sync.Arc.Insts.CoreCloneClone.clone, bind_ok, bind_tc_ok]
+          _root_.alloc.sync.Arc.Insts.CoreCloneClone.clone, bind_ok, bind_tc_ok]
 
 theorem selected_unavailable (snapshot : Snapshot) (slug : Slug) :
     selectOps.call_mut snapshot (slug, .Unavailable) = .ok (none, snapshot) := by

@@ -1,6 +1,6 @@
 import SelectedCollectionProof
 
-open Aeneas Aeneas.Std RequestCompositionHub
+open Aeneas Aeneas.Std veoveo_hub
 
 namespace SelectedMapInsertionProof
 noncomputable section
@@ -10,7 +10,7 @@ abbrev Deployment := SelectedCollectionProof.Deployment
 abbrev Row := SelectedCollectionProof.Row
 abbrev Snapshot := SelectedCollectionProof.Snapshot
 abbrev Entry := SelectedCollectionProof.Entry
-abbrev comparison := RequestCompositionHub.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd.cmp
+abbrev comparison := _root_.veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd.cmp
 
 /-- Strict ordering by the exact nominal string values compared by this
 operational map model. Unique keys on an unsorted list would not suffice. -/
@@ -59,13 +59,13 @@ caller. Its actual comparator returns compare on key.value; both insertion and
 replacement preserve the entire row. Native BTreeMap refinement is separate. -/
 theorem insert_ordered_whole_row_union (row : Row) (before : List Row)
     (ordered : Ordered before) (compatible : Compatible row before) :
-    RequestCompositionHub.CurrentRolesNative.insertMap comparison row.1 row.2 before
+    _root_.CurrentRolesNative.insertMap comparison row.1 row.2 before
       ⦃ after => Inserted row before after ⦄ := by
   revert ordered compatible
   induction before with
   | nil =>
     intro _ _
-    unfold RequestCompositionHub.CurrentRolesNative.insertMap
+    unfold _root_.CurrentRolesNative.insertMap
     simp only [WP.spec_ok]
     change Inserted row [] [row]
     refine ⟨?_, ?_, ?_⟩
@@ -80,7 +80,7 @@ theorem insert_ordered_whole_row_union (row : Row) (before : List Row)
     have tailCompatible : Compatible row tail := by
       intro old member same
       exact compatible old (List.mem_cons_of_mem head member) same
-    unfold RequestCompositionHub.CurrentRolesNative.insertMap
+    unfold _root_.CurrentRolesNative.insertMap
     have compareStep : comparison row.1 head.1 =
         .ok (compare row.1.value head.1.value) := rfl
     rw [compareStep]
@@ -149,7 +149,7 @@ theorem insert_emitted_ordered (snapshot : Snapshot) (components : List Entry)
     (newMember : row ∈ SelectedCollectionProof.emitted snapshot components)
     (oldMembers : ∀ old ∈ before, old ∈ SelectedCollectionProof.emitted snapshot components)
     (ordered : Ordered before) :
-    RequestCompositionHub.CurrentRolesNative.insertMap comparison row.1 row.2 before
+    _root_.CurrentRolesNative.insertMap comparison row.1 row.2 before
       ⦃ after => Inserted row before after ⦄ := by
   exact insert_ordered_whole_row_union row before ordered
     (emitted_compatible snapshot components row before newMember oldMembers)
