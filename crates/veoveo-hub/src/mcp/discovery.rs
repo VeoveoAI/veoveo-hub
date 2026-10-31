@@ -87,6 +87,104 @@ struct SurfaceState<T> {
     failed: BTreeMap<DiscoveryCacheKey, Instant>,
 }
 
+impl<T: Clone + PartialEq> SurfaceState<T> {
+    fn get(&self, key: &DiscoveryCacheKey) -> Option<AdmittedCatalog<T>> {
+        let entry = self.entries.get(key)?;
+        Some(AdmittedCatalog {
+            items: entry.items.clone(),
+            denied: entry.denied,
+        })
+    }
+
+    fn begin(&mut self, key: DiscoveryCacheKey, coalesce: bool) -> Option<DiscoveryFetch> {
+        if key.catalog_generation < self.generation {
+            return None;
+        }
+        if key.catalog_generation > self.generation {
+            self.entries.clear();
+            self.in_flight.clear();
+            self.failed.clear();
+            self.generation = key.catalog_generation;
+        }
+        if coalesce
+            && self
+                .failed
+                .get(&key)
+                .is_some_and(|retry_at| *retry_at > Instant::now())
+        {
+            return None;
+        }
+        if (coalesce && self.in_flight.contains_key(&key))
+            || self.in_flight.len() >= MAX_CACHE_ENTRIES_PER_SURFACE
+        {
+            return None;
+        }
+        let request = Uuid::now_v7();
+        self.in_flight.insert(key.clone(), request);
+        Some(DiscoveryFetch {
+            key,
+            request,
+            denied: 0,
+        })
+    }
+
+    fn finish(&mut self, fetch: &DiscoveryFetch, items: Option<Vec<T>>) -> bool {
+        if self.in_flight.get(&fetch.key) != Some(&fetch.request) {
+            return false;
+        }
+        self.in_flight.remove(&fetch.key);
+        if let Some(items) = items {
+            self.failed.remove(&fetch.key);
+            let changed = self
+                .entries
+                .get(&fetch.key)
+                .is_none_or(|previous| previous.items != items || previous.denied != fetch.denied);
+            if self.entries.len() >= MAX_CACHE_ENTRIES_PER_SURFACE
+                && !self.entries.contains_key(&fetch.key)
+            {
+                self.entries.pop_first();
+            }
+            self.entries.insert(
+                fetch.key.clone(),
+                CachedItems {
+                    items,
+                    denied: fetch.denied,
+                },
+            );
+            changed
+        } else {
+            if self.failed.len() >= MAX_CACHE_ENTRIES_PER_SURFACE
+                && !self.failed.contains_key(&fetch.key)
+            {
+                self.failed.pop_first();
+            }
+            self.failed.insert(
+                fetch.key.clone(),
+                Instant::now() + Duration::from_millis(veoveo_hub_sdk::PRIVATE_CATALOG_TTL_MS),
+            );
+            false
+        }
+    }
+
+    fn invalidate_cached_key(&mut self, key: &DiscoveryCacheKey) {
+        self.entries.remove(key);
+    }
+
+    fn invalidate_key(&mut self, key: &DiscoveryCacheKey) {
+        self.entries.remove(key);
+        self.in_flight.remove(key);
+        self.failed.remove(key);
+    }
+
+    fn invalidate(&mut self, server: &ServerSlug) {
+        self.entries.retain(|key, _| &key.server != server);
+        // A response captured before this event must not repopulate the cache,
+        // even if a replacement request has already started for the same key.
+        self.in_flight.retain(|key, _| &key.server != server);
+        self.failed.retain(|key, _| &key.server != server);
+    }
+}
+
 #[derive(Debug)]
 struct SurfaceCache<T>(Mutex<SurfaceState<T>>);
 impl<T> Default for SurfaceCache<T> {
@@ -117,102 +215,25 @@ impl<T: Clone + PartialEq> SurfaceCache<T> {
     }
 
     async fn get(&self, key: &DiscoveryCacheKey) -> Option<AdmittedCatalog<T>> {
-        let state = self.0.lock().await;
-        let entry = state.entries.get(key)?;
-        Some(AdmittedCatalog {
-            items: entry.items.clone(),
-            denied: entry.denied,
-        })
+        self.0.lock().await.get(key)
     }
 
     async fn begin(&self, key: DiscoveryCacheKey, coalesce: bool) -> Option<DiscoveryFetch> {
-        let mut state = self.0.lock().await;
-        if key.catalog_generation < state.generation {
-            return None;
-        }
-        if key.catalog_generation > state.generation {
-            state.entries.clear();
-            state.in_flight.clear();
-            state.failed.clear();
-            state.generation = key.catalog_generation;
-        }
-        if coalesce
-            && state
-                .failed
-                .get(&key)
-                .is_some_and(|retry_at| *retry_at > Instant::now())
-        {
-            return None;
-        }
-        if (coalesce && state.in_flight.contains_key(&key))
-            || state.in_flight.len() >= MAX_CACHE_ENTRIES_PER_SURFACE
-        {
-            return None;
-        }
-        let request = Uuid::now_v7();
-        state.in_flight.insert(key.clone(), request);
-        Some(DiscoveryFetch {
-            key,
-            request,
-            denied: 0,
-        })
+        self.0.lock().await.begin(key, coalesce)
     }
 
     async fn finish(&self, fetch: &DiscoveryFetch, items: Option<Vec<T>>) -> bool {
-        let mut state = self.0.lock().await;
-        if state.in_flight.get(&fetch.key) != Some(&fetch.request) {
-            return false;
-        }
-        state.in_flight.remove(&fetch.key);
-        if let Some(items) = items {
-            state.failed.remove(&fetch.key);
-            let changed = state
-                .entries
-                .get(&fetch.key)
-                .is_none_or(|previous| previous.items != items || previous.denied != fetch.denied);
-            if state.entries.len() >= MAX_CACHE_ENTRIES_PER_SURFACE
-                && !state.entries.contains_key(&fetch.key)
-            {
-                state.entries.pop_first();
-            }
-            state.entries.insert(
-                fetch.key.clone(),
-                CachedItems {
-                    items,
-                    denied: fetch.denied,
-                },
-            );
-            changed
-        } else {
-            if state.failed.len() >= MAX_CACHE_ENTRIES_PER_SURFACE
-                && !state.failed.contains_key(&fetch.key)
-            {
-                state.failed.pop_first();
-            }
-            state.failed.insert(
-                fetch.key.clone(),
-                Instant::now() + Duration::from_millis(veoveo_hub_sdk::PRIVATE_CATALOG_TTL_MS),
-            );
-            false
-        }
+        self.0.lock().await.finish(fetch, items)
     }
 
     async fn invalidate_cached_key(&self, key: &DiscoveryCacheKey) {
-        self.0.lock().await.entries.remove(key);
+        self.0.lock().await.invalidate_cached_key(key)
     }
     async fn invalidate_key(&self, key: &DiscoveryCacheKey) {
-        let mut state = self.0.lock().await;
-        state.entries.remove(key);
-        state.in_flight.remove(key);
-        state.failed.remove(key);
+        self.0.lock().await.invalidate_key(key)
     }
     async fn invalidate(&self, server: &ServerSlug) {
-        let mut state = self.0.lock().await;
-        state.entries.retain(|key, _| &key.server != server);
-        // A response captured before this event must not repopulate the cache,
-        // even if a replacement request has already started for the same key.
-        state.in_flight.retain(|key, _| &key.server != server);
-        state.failed.retain(|key, _| &key.server != server);
+        self.0.lock().await.invalidate(server)
     }
 }
 

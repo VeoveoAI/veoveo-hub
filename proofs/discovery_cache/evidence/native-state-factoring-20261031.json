@@ -1,0 +1,280 @@
+{
+  "body_correspondence": {
+    "path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/body-correspondence.json",
+    "sha256": "bead2ae3c7dc78796f91e91d233d1f059b5fcf32ea8fce7567d123d5789937fa",
+    "methods": {
+      "get": {
+        "critical_body_tokens_equal": true,
+        "normalized_sha256": "c29d3cf21c0da42174ca67e999b95355666daf52fb843069fe9fc193af973126"
+      },
+      "begin": {
+        "critical_body_tokens_equal": true,
+        "normalized_sha256": "a5082106b1b1f210b1f8b9b95db1ce4ef59aacef53f0d86f4d9bfb22eb2fb3f6"
+      },
+      "finish": {
+        "critical_body_tokens_equal": true,
+        "normalized_sha256": "9be0abc17cb5412be1f52edf7df486140f250f8aaa3b732bdf3445acc514ef0c"
+      },
+      "invalidate_cached_key": {
+        "critical_body_tokens_equal": true,
+        "normalized_sha256": "f3348f0cb53d40838a9f0b2e39487eef5181fa9468e5f7499ec94a09ee2a5ee8"
+      },
+      "invalidate_key": {
+        "critical_body_tokens_equal": true,
+        "normalized_sha256": "ababac248a5bd454e0d5bca87c0c723a86433e0e20946b00130afbe8cb0d0068"
+      },
+      "invalidate": {
+        "critical_body_tokens_equal": true,
+        "normalized_sha256": "115278305af3e7893f7465e707bded2d35d3f636d1c3a056e171ee409fd5289f"
+      }
+    }
+  },
+  "environment": {
+    "SQLX_OFFLINE": true,
+    "database_url_environment_variables": "unset in runner environment"
+  },
+  "evidence_directories": [
+    "/tmp/hub-discovery-cache-control-20261031/state-factoring1/native-validation1",
+    "/tmp/hub-discovery-cache-control-20261031/state-factoring1/native-validation-continuation1"
+  ],
+  "initial_setup_failure": {
+    "classification": "command setup failure; Cargo rejected --exact because the invocation omitted the Cargo -- separator",
+    "command": [
+      "/Users/rozgo/.cargo/bin/rustup",
+      "run",
+      "1.99.0-aarch64-apple-darwin",
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "veoveo-hub",
+      "--manifest-path",
+      "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source/Cargo.toml",
+      "--lib",
+      "mcp::tests::upstream_fingerprint_covers_actor_and_authority",
+      "--exact",
+      "--nocapture"
+    ],
+    "elapsed_ms": 36,
+    "exit_status": 1,
+    "log_bytes": 237,
+    "log_path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/native-validation1/logs/fingerprint-test.log",
+    "log_sha256": "a06ac15b50685f71b6bcc5b840d62c2e40bdac5dc986d08abe1cef95b6fa78b4",
+    "not_a_test_failure": true
+  },
+  "repository": {
+    "base_archive_sha256": "d948c2389c52afa4eacd1a12da31314c04581ba9f5c1715507062ed5fc73b3d8",
+    "head": "8543cc5bfca04320f86d5eda80962a1dfb208d07",
+    "path": "/Users/rozgo/VeoveoAI/veoveo-hub",
+    "tree": "1a232f638c425ecbb556831c28fa8fec6d4ecec4"
+  },
+  "runner": {
+    "corrected_exact_flag_placement": "cargo test ... filter -- --exact --nocapture",
+    "corrected_path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/run-validation.py",
+    "corrected_sha256": "6adc95a375e4e4550e8cbfc6ef61e158fd123a314e1818dbd18a0a30d3197eb8",
+    "initial_path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/run-validation-initial-v1.py",
+    "initial_sha256": "b64558f5875b860c92bae383b1b9654aaeb2c26cde2c0d08b18163323146314c"
+  },
+  "scope": {
+    "deployment": false,
+    "extraction_run": false,
+    "format_check_passed": true,
+    "lean_proof_check": false,
+    "rust_native_checks": true,
+    "strict_clippy_passed": true,
+    "total_tests_passed": 22
+  },
+  "source": {
+    "file_count": 1083,
+    "frozen_files": {
+      "crates/veoveo-hub/DESIGN.md": "a4488db1a093f045837f126b67484a63ef1ac506b294d605651640ef4fb9ffc9",
+      "crates/veoveo-hub/src/mcp.rs": "860f7597fe65eba9067cb5700cd9c8ae7e8fdc0e25694f5b16bcd36f77175d3a",
+      "crates/veoveo-hub/src/mcp/authorization.rs": "58f9393d0d18d14efa4f99a2367e2e30c13c591ca9f719e9f8b842de30ca41f9",
+      "crates/veoveo-hub/src/mcp/discovery.rs": "a735da477222014a85464fc992152026f6162900292e2b19fa0e8e0dc187b9b7"
+    },
+    "map_sha256_after": "344bb5cf21df8baf75b81abab4c1104c853d46cce9c124b05f0cc2e3755a538f",
+    "map_sha256_before": "344bb5cf21df8baf75b81abab4c1104c853d46cce9c124b05f0cc2e3755a538f",
+    "path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source",
+    "unchanged": true
+  },
+  "stages": [
+    {
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source",
+      "elapsed_ms": 651,
+      "exit_status": 0,
+      "log_bytes": 0,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/native-validation1/logs/fmt-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "fmt-check"
+    },
+    {
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source/Cargo.toml",
+        "--lib",
+        "mcp::authorization::tests::",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source",
+      "elapsed_ms": 30776,
+      "exit_status": 0,
+      "log_bytes": 1252,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/native-validation1/logs/authorization-tests.log",
+      "log_sha256": "754429eb9fe6b115e9505c5824b3434f873b1a8e37d720e4808dd46b808a1d3b",
+      "name": "authorization-tests",
+      "tests": {
+        "failed": 0,
+        "names": [
+          "mcp::authorization::tests::discovery_cache_separates_delegation_ceilings_in_both_fill_orders",
+          "mcp::authorization::tests::discovery_cache_separates_current_principal_groups_in_both_fill_orders"
+        ],
+        "passed": 8
+      }
+    },
+    {
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source/Cargo.toml",
+        "--lib",
+        "mcp::discovery::tests::",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source",
+      "elapsed_ms": 2929,
+      "exit_status": 0,
+      "log_bytes": 1609,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/native-validation1/logs/discovery-tests.log",
+      "log_sha256": "2354efd4cefe166c78bce1d4eba3a153bb0d42405d438b451f875ff2efc6b2fe",
+      "name": "discovery-tests",
+      "tests": {
+        "failed": 0,
+        "passed": 13
+      }
+    },
+    {
+      "classification": "setup failure before test selection; Cargo rejected --exact because the separator was missing",
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source/Cargo.toml",
+        "--lib",
+        "mcp::tests::upstream_fingerprint_covers_actor_and_authority",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source",
+      "elapsed_ms": 36,
+      "exit_status": 1,
+      "log_bytes": 237,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/native-validation1/logs/fingerprint-test.log",
+      "log_sha256": "a06ac15b50685f71b6bcc5b840d62c2e40bdac5dc986d08abe1cef95b6fa78b4",
+      "name": "fingerprint-test"
+    },
+    {
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source/Cargo.toml",
+        "--lib",
+        "mcp::tests::upstream_fingerprint_covers_actor_and_authority",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source",
+      "elapsed_ms": 1280,
+      "exit_status": 0,
+      "log_bytes": 395,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/native-validation-continuation1/logs/fingerprint-test.log",
+      "log_sha256": "e080dd4c1706accd8792f756537cfec122b15387e045f7ff8876206c5fd2c1ee",
+      "name": "fingerprint-test",
+      "tests": {
+        "failed": 0,
+        "name": "mcp::tests::upstream_fingerprint_covers_actor_and_authority",
+        "passed": 1
+      }
+    },
+    {
+      "command": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source/Cargo.toml",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/private-source1/source",
+      "elapsed_ms": 10837,
+      "exit_status": 0,
+      "log_bytes": 206,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/state-factoring1/native-validation-continuation1/logs/strict-lib-clippy.log",
+      "log_sha256": "cd04e9aed0428a6c8bbd86bdb89c9c14097b725f41dd95f7c6f90a0f6697885d",
+      "name": "strict-lib-clippy",
+      "result": "passed with -D warnings"
+    }
+  ],
+  "task": "frozen Hub SurfaceState factoring native qualification",
+  "test_binary": {
+    "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+    "sha256": "aa434c08a5e3bbbbfaebbaf14683408e2715de46bc43af83545f7f8de273418d",
+    "size_bytes": 168122904
+  },
+  "toolchain": {
+    "cargo_target_dir": "/tmp/hub-session-family-20261030/mac-integration-run1/target",
+    "rust_toolchain": "1.99.0-aarch64-apple-darwin",
+    "rustup": "/Users/rozgo/.cargo/bin/rustup"
+  },
+  "evidence_class": "source preparation and native component qualification; no formal equivalence or new Lean theorem",
+  "original_summary_sha256": "4a9fef5e1651cce9ce3992c477164065c3d96e59ad0c6589b66f50aa4899483b",
+  "review": "Coordinator reviewed the complete source diff, all six normalized body correspondences, four frozen file hashes, six stage log hashes, successful test counts and native binary identity."
+}

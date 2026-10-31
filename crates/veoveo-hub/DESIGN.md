@@ -556,6 +556,17 @@ retained execution composition, and the optional exchanged permission ceiling. N
 delegation and a delegation carrying no permissions are distinct. The principal's and
 actor's `authenticated_at` timestamps record HTTP re-verification and do not change
 cache identity; fresh request audit observations do not change it either.
+Each surface serializes its cache transitions under one mutex. A completion is
+accepted only when its key and request ticket still name the current in-flight fetch.
+A higher catalog generation clears older contents, work and retry records; full key or
+server invalidation removes their affected tickets too. A stale completion changes
+nothing. Removing only cached descriptors leaves in-flight work and retry records
+intact. Successful completion stores the complete descriptors and denied count;
+failed completion retains cached descriptors and records when coalesced discovery may
+retry. Each surface bounds cached entries, in-flight work and retry records at 4096:
+new entries or retry records evict the smallest key at capacity, while starting work
+at capacity is refused.
+
 A registered server's tools, resources, templates and prompts change
 with its declarations, which start a new generation, and its tool descriptions also
 while it runs when it advertises `tools.listChanged`. For such a server the Hub keeps a

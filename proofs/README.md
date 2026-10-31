@@ -856,6 +856,16 @@ Prevents cross-context disclosure and stale routing represented as current disco
   pass. These tests execute native catalog/policy/narrowing/cache operations, not
   token endpoints, HTTP dispatch, upstream responses or watches. Tool execution
   still reauthorizes. This establishes no new Lean theorem or deployed result.
+- **Transition preparation:** six existing critical sections now live on the
+  private `SurfaceState<T>`; the async cache wrappers acquire the same mutex and
+  call them. Normalized body comparison and 22 focused native tests, formatting
+  and strict library Clippy pass. The
+  [factoring receipt](discovery_cache/evidence/native-state-factoring-20261031.json)
+  records this source preparation, not a formal equivalence or cache theorem.
+  Extraction is pending: the pinned translator cannot select inherent methods by
+  their impl owner, and its generated effect model has no stateful UUID/clock
+  observations. A fixed no-argument axiom must not be treated as producing a fresh
+  ticket on each call. Native observation and history correspondence remain open.
 - **Boundary/effort:** moderate for key/cursor comparisons; substantial for the
   cache/listener state machine. Assume collision-resistant identity hashing, correct
   authenticated inputs and mutex/watch-channel semantics where effects are modeled.
