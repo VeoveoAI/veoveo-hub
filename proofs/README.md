@@ -710,6 +710,9 @@ verification wrapper and integration with Hub's pinned SDK remain open. Claims
 preservation is not JSON/cryptographic verification.
 Core's private permission-namespace helper is still represented by a handwritten
 adapter; extracted ownership wrappers alone do not close its refinement gap.
+A [bounded unchanged-helper probe](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-permission-namespace-extraction-boundary.md)
+passes Charon with the helper transparent, but pinned Aeneas rejects the
+string-pattern method signature and emits no Lean. No canonical model changed.
 The [composition review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-issuer-composition-boundaries.md)
 states the exact set/traversal, timestamp and complete-field correspondence still
 needed between the two proof representations; it proposes no runtime adapter.
