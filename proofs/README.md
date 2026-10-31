@@ -728,8 +728,16 @@ The checked [value bridge](current_roles/SdkInternalAuthBridgeValues.lean) now
 establishes identifier/payload, ordered-set and bounded-timestamp correspondence
 between the two type graphs, including ordering and roundtrips. Its
 [receipt](current_roles/evidence/sdk-issuer-bridge-values.json) records a joint
-tool context and standard-only axiom guards. Complete record semantics and the
-actual issuer connection remain pending; the opaque Hub issuer is unchanged.
+tool context and standard-only axiom guards. The subsequent
+[complete record bridge](current_roles/SdkInternalAuthBridgeProof.lean) derives
+available request/identity conversions from independent physical timestamp bounds,
+preserves every named field and canonical set invariant, and establishes the
+SDK-to-Hub output/error direction. Ordered grants and actor chains retain their
+positions; returned Rust errors and modeled effects, failures and divergence are
+preserved. Its [qualification](current_roles/evidence/sdk-issuer-bridge-records.json)
+distinguishes field meaning from invertibility. The actual issuer connection and
+timestamp comparison/minimum correspondence remain pending; Hub's opaque issuer
+is unchanged, and these are proof adapters rather than runtime conversions.
 Core's private permission-namespace helper is still represented by a handwritten
 adapter; extracted ownership wrappers alone do not close its refinement gap.
 A [bounded unchanged-helper probe](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-permission-namespace-extraction-boundary.md)

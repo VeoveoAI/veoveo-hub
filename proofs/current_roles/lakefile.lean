@@ -89,3 +89,7 @@ lean_lib RefreshModelAudit
 lean_lib RefreshPredicateProof
 
 lean_lib SdkInternalAuthBridgeValues
+
+lean_lib SdkInternalAuthBridgeRecords
+lean_lib SdkInternalAuthBridgeFields
+lean_lib SdkInternalAuthBridgeProof

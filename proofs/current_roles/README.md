@@ -840,8 +840,53 @@ local SDK commit and existing pinned dependencies, and their effective configura
 is recorded. These checks do not qualify a fresh remote checkout of the new Git
 dependency.
 
-Complete record field correspondence, preservation of error constructor meaning,
-timestamp comparison/minimum laws, actual issuer linkage and the composed caller
-theorem remain the next obligations. Invertibility alone would not rule out
-swapping two same-typed fields in both directions. No conclusion about the older
-pinned issuer's native behavior follows from this representation foundation.
+The complete record checkpoint below now supplies named field semantics and
+physical-domain sufficiency. Timestamp comparison/minimum laws, actual issuer
+linkage and the composed caller theorem remain the next obligations. No conclusion
+about the older pinned issuer's native behavior follows from these representation
+proofs.
+
+## Complete SDK record and result bridge
+
+[Records](SdkInternalAuthBridgeRecords.lean) defines concrete Hub/SDK mappings;
+[Fields](SdkInternalAuthBridgeFields.lean) independently names the corresponding
+fields and enum meanings; [Proof](SdkInternalAuthBridgeProof.lean) proves the full
+forward and SDK-output directions. `RequestPhysical` and `IdentityPhysical` enumerate
+only the carried timestamp range bounds. They suffice to derive an available
+conversion, complete `RequestFields`/`IdentityFields`, deterministic canonical set
+order/uniqueness, and full Hub-side roundtrip. No conversion-success, admission,
+issuer-success or desired-record premise is used.
+
+All Principal fields (including group roles and authentication time), complete
+source token/context/audit/execution, authority/provenance/output owner and ordered
+initial grants, permission membership, inherited actor order/Task, identifiers,
+resource/client/deployment and full timestamps are retained. SDK→Hub output fields
+preserve the complete identity and bearer. Every `InternalTokenError` constructor
+and payload position is preserved. Nested Rust results keep Ok/Err, while Aeneas
+failure, divergence and visible effects remain unchanged. Arbitrary SDK lists are
+not asserted canonical; the reverse direction preserves membership. Non-leap
+qualification, native order/memory/string refinement and key/error nominal-value
+correspondence remain explicit, rather than new native admission rules.
+
+The [proof-adapter fault](mutations/swap-sdk-bridge-group-roles.patch) swaps Read and
+Write in both directions of the group-role equivalence in a disposable proof copy.
+The inverse laws still compile; the unchanged independent field proof rejects the
+wrong meanings. A [standalone witness](mutations/SdkBridgeRoleSwapWitness.lean),
+which imports no failed proof, establishes both facts with three standard-only
+audits. This is an adapter sensitivity control, not a production defect or native
+source mutation. Exact same-tree restoration precedes the final named targets:
+
+```sh
+lake build SdkInternalAuthBridgeRecords SdkInternalAuthBridgeFields SdkInternalAuthBridgeProof
+```
+
+The complete proof passed directly in 4.004 s and the restored named targets in
+9.365 s. All 23 executable guards and ten printed closures accept only standard
+Lean axioms, with no `sorryAx`. The
+[compact receipt](evidence/sdk-issuer-bridge-records.json) records source/configuration
+maps, timings, artifact bytes/digests, intended semantic rejection and separate
+proof-authoring/cache-companion/target-configuration failures. No runtime, Cargo
+pin, generated body, primitive model or translator changed. The Hub's opaque SDK
+issuer operation remains unchanged: calling the checked SDK implementation and
+proving the full forwarding outcome is the next step, for an explicitly composed
+prepared stack rather than an unproved claim about the older pinned native body.

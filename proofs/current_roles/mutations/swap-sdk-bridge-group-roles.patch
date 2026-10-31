@@ -1,0 +1,19 @@
+--- a/proofs/current_roles/SdkInternalAuthBridgeRecords.lean
++++ b/proofs/current_roles/SdkInternalAuthBridgeRecords.lean
+@@ -12,12 +12,12 @@
+ def groupRoleEquiv : veoveo_hub.veoveo_hub_sdk.identity.GroupRole ≃
+     RequestCompositionSdk.identity.GroupRole where
+   toFun value := match value with
+-    | .Read => .Read
+-    | .Write => .Write
++    | .Read => .Write
++    | .Write => .Read
+     | .Admin => .Admin
+   invFun value := match value with
+-    | .Read => .Read
+-    | .Write => .Write
++    | .Read => .Write
++    | .Write => .Read
+     | .Admin => .Admin
+   left_inv value := by cases value <;> rfl
+   right_inv value := by cases value <;> rfl
