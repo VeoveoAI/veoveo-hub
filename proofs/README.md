@@ -705,9 +705,14 @@ SDK `859990c` qualifies the actual-source permission-detail inversion. The uncha
 theorem rejects it, independent witnesses derive both complete wrong results, and
 same-tree source/raw restoration plus a fresh fourteen-audit baseline passes; see
 the [permission-control record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-claims-permission-control.md).
-Public issue permission ownership, concrete signer-argument composition,
-verification wrapper and integration with Hub's pinned SDK remain open. Claims
-preservation is not JSON/cryptographic verification.
+SDK `6665e9c` adds a generic public-issuer proof composing exact first-foreign refusal,
+complete identity and claims construction, exact signer arguments and preserved
+signing errors/results. Its two manual targets and all four audits pass; see the
+[public-composition record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-public-issuer-composition.md).
+Populated public-issuer examples and source controls remain next. Native
+permission ownership, cryptographic signing, the verification wrapper and
+integration with Hub's pinned SDK remain open. Claims preservation is not
+JSON/cryptographic verification.
 Core's private permission-namespace helper is still represented by a handwritten
 adapter; extracted ownership wrappers alone do not close its refinement gap.
 A [bounded unchanged-helper probe](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-permission-namespace-extraction-boundary.md)
