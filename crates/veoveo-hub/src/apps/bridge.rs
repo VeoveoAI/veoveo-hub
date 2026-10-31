@@ -72,10 +72,13 @@ impl AppsService {
         &self.origins
     }
 
-    /// `GET /apps/host.js`, and `GET` and `POST /apps/{slug}/{page}`.
+    /// `GET /apps/host-{digest}.js`, and `GET` and `POST /apps/{slug}/{page}`.
     pub fn router(self) -> Router {
         Router::new()
-            .route(pages::HOST_SCRIPT, get(|| async { pages::host_script() }))
+            .route(
+                pages::host_script_path(),
+                get(|| async { pages::host_script() }),
+            )
             .route("/apps/{slug}/{*page}", get(open).post(bridge))
             .with_state(self)
     }

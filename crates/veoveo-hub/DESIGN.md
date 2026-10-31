@@ -860,7 +860,12 @@ policy sources and proxy URL as JSON data in a `<script type="application/json">
 element, never as markup. Its policy is `default-src 'none'; script-src 'self';
 connect-src 'self'; frame-src {sandbox origin}; img-src 'self' data:; base-uri 'none';
 form-action 'none'; frame-ancestors 'none'`, and it answers `Cache-Control: private,
-no-store` and `Referrer-Policy: no-referrer`.
+no-store` and `Referrer-Policy: no-referrer`. Its script is at `/apps/host-{digest}.js`,
+the first 16 bytes of the script's SHA-256 in hex, and answers `Cache-Control: public,
+max-age=31536000, immutable`: a cache anywhere between the Hub and the browser may keep
+it, and a new Hub's host pages, which no cache keeps, name its new script. A CDN rewrites
+a shorter lifetime, such as Cloudflare's four-hour browser lifetime over `no-cache`, so
+a script at a fixed path would outlive the Hub that served it.
 
 1. The host page creates the proxy frame from the sandbox origin with
    `sandbox="allow-scripts allow-same-origin"`, as the specification asks of the
@@ -1043,7 +1048,7 @@ host page reads the stream with `fetch`, since `EventSource` cannot POST.
 | `POST /ucs.auth.RebacApi/DeleteResource` | gRPC: removes the repository Lore is about to delete, when an owner deletes it |
 | `GET /apps/{slug}/{page}` | The host page of the App `ui://{slug}/{page}` for the browser session ([Apps host](#apps-host)) |
 | `POST /apps/{slug}/{page}` | That App's bridge: one JSON-RPC request of its view, run as the person; a `subscriptions/listen` answers with its event stream |
-| `GET /apps/host.js` | The host page's script |
+| `GET /apps/host-{digest}.js` | The host page's script, immutable ([host page](#host-page-and-sandbox-proxy)) |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 

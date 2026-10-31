@@ -1,21 +1,33 @@
 //! The Apps host's documents: each App's host page, the sandbox proxy page, the host
 //! script, and the plain pages that say why no App opens.
+use std::sync::LazyLock;
+
 use axum::{
     http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use veoveo_hub_sdk::apps::UiCsp;
 
 use super::{csp::AppPolicy, origins::AppOrigins, route::AppView};
 
-/// The host page's script, served at [`HOST_SCRIPT`].
+/// The host page's script, served at [`host_script_path`].
 const HOST_JS: &str = include_str!("host.js");
 /// The sandbox proxy's page, whose host origin the Hub fills in.
 const PROXY_HTML: &str = include_str!("proxy.html");
 const HOST_ORIGIN_SLOT: &str = "\"{{HOST_ORIGIN}}\"";
-/// Where the host page loads its script.
-pub(super) const HOST_SCRIPT: &str = "/apps/host.js";
+/// Where the host page loads its script: a path named by the script's own digest, so a
+/// cache anywhere between the Hub and the browser may keep it for good, and a new Hub's
+/// host pages, which no cache keeps, name its new script.
+static HOST_SCRIPT: LazyLock<String> = LazyLock::new(|| {
+    let digest = Sha256::digest(HOST_JS.as_bytes());
+    format!("/apps/host-{}.js", hex::encode(&digest[..16]))
+});
+
+pub(super) fn host_script_path() -> &'static str {
+    &HOST_SCRIPT
+}
 
 /// What the host page tells its script, as JSON data.
 #[derive(Serialize)]
@@ -114,9 +126,10 @@ pub(super) fn host_page(
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
          <title>{}</title>\
          <script type=\"application/json\" id=\"app\">{}</script>\
-         <script src=\"{HOST_SCRIPT}\" defer></script></head><body></body></html>\n",
+         <script src=\"{}\" defer></script></head><body></body></html>\n",
         escaped(title),
         script_json(&config),
+        host_script_path(),
     );
     let policy = format!(
         "default-src 'none'; script-src 'self'; connect-src 'self'; frame-src {}; \
@@ -126,7 +139,7 @@ pub(super) fn host_page(
     private(html(StatusCode::OK, body), &policy)
 }
 
-/// The host page's script.
+/// The host page's script, immutable at its path.
 pub(super) fn host_script() -> Response {
     let mut response = (
         [(header::CONTENT_TYPE, "text/javascript; charset=utf-8")],
@@ -134,7 +147,10 @@ pub(super) fn host_script() -> Response {
     )
         .into_response();
     let headers = response.headers_mut();
-    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
+    headers.insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("public, max-age=31536000, immutable"),
+    );
     headers.insert(
         header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),

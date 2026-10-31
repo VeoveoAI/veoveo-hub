@@ -20,6 +20,7 @@ use axum::{
 };
 use rmcp::model::{JsonObject, Resource, Tool};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use tower::ServiceExt as _;
 use veoveo_hub_sdk::apps::{
     ResourceUiMeta, UiCsp, UiVisibility, app_resource, app_resource_with_meta, link_tool_to_app,
@@ -499,6 +500,11 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
         );
         assert_eq!(data["csp"]["connectDomains"], json!(["https://api.example.net"]));
         assert!(page.contains("<title>Board &lt;/script&gt;</title>"));
+        let script = page
+            .split_once("<script src=\"")
+            .and_then(|(_, rest)| rest.split_once('"'))
+            .map(|(src, _)| src.to_owned())
+            .unwrap();
         assert_eq!(fixture.received().len(), 2, "both resource pages were read");
 
         // Signed out, a page load signs in and comes back; anything else is refused.
@@ -525,12 +531,22 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
         let (_, _, body) = fixture.send(fixture.open("/apps/fixture/framing.html", true)).await;
         assert!(String::from_utf8(body).unwrap().contains("an App frames only its own server&#39;s app origin"));
 
+        // The page names its script by the script's digest, which any cache may keep.
+        let digest = script
+            .strip_prefix("/apps/host-")
+            .and_then(|rest| rest.strip_suffix(".js"))
+            .unwrap();
         let (status, headers, body) = fixture
-            .send(axum::http::Request::get("/apps/host.js").body(Body::empty()).unwrap())
+            .send(axum::http::Request::get(&script).body(Body::empty()).unwrap())
             .await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(headers[header::CONTENT_TYPE], "text/javascript; charset=utf-8");
-        assert!(String::from_utf8(body).unwrap().contains("allow-scripts allow-same-origin"));
+        assert_eq!(headers[header::CACHE_CONTROL], "public, max-age=31536000, immutable");
+        let body = String::from_utf8(body).unwrap();
+        assert!(body.contains("allow-scripts allow-same-origin"));
+        assert_eq!(digest, hex::encode(&Sha256::digest(body.as_bytes())[..16]));
+        let stale = axum::http::Request::get("/apps/host.js").body(Body::empty()).unwrap();
+        assert_eq!(fixture.send(stale).await.0, StatusCode::NOT_FOUND);
     })
     .await
     .expect("App host page deadline");
