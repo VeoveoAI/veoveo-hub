@@ -1,0 +1,243 @@
+{
+  "kind": "complete collection in the operational model and exact extracted selected successful-result preservation",
+  "status": "checked implementation-linked partial routing contract; namespace completion and combined semantic qualification remain open",
+  "source": {
+    "hub_parent": "ef07e8d",
+    "hub_runtime_revision": "3bc2923ca1d2e0c559e532286c16ec3d6a5ceb7a",
+    "sdk_pin": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "extraction_receipt": "extraction-checkpoint.json",
+    "tooling_receipt": "discriminant-tooling-checkpoint.json"
+  },
+  "proof": {
+    "path": "SelectedMapCollectionProof.lean",
+    "sha256": "b43ef104bcbc99bc998f458bfb104cd60a3c8ccfbe46e29ea6be65ddbb0162bf",
+    "canonical_lakefile_sha256": "699f2b1df9fc9b83c0d6efe657a5f256f5c4af21a0f482f0ef895dc315da23ae",
+    "private_lakefile_sha256": "0db49cdc0dea06eda3614c934e9c1a20b86fd766e530119e18ed9d7b16bede70",
+    "per_declaration_axiom_allowlists": {
+      "SelectedMapCollectionProof.collect_map_correct": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "SelectedMapCollectionProof.collect_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "SelectedMapCollectionProof.selected_factorization": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "RequestCompositionHub.registration.snapshot.RegistrationSnapshot.build_namespaces"
+      ],
+      "SelectedMapCollectionProof.selected_success_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "RequestCompositionHub.registration.snapshot.RegistrationSnapshot.build_namespaces"
+      ]
+    },
+    "raw_axiom_audits": {
+      "collect_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "collect_map_correct": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "selected_factorization": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "registration.snapshot.RegistrationSnapshot.build_namespaces"
+      ],
+      "selected_success_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "registration.snapshot.RegistrationSnapshot.build_namespaces"
+      ]
+    },
+    "normalized_axiom_audits": {
+      "collect_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "collect_map_correct": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "selected_factorization": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "RequestCompositionHub.registration.snapshot.RegistrationSnapshot.build_namespaces"
+      ],
+      "selected_success_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "RequestCompositionHub.registration.snapshot.RegistrationSnapshot.build_namespaces"
+      ]
+    },
+    "printed_symbol_aliases": {
+      "registration.snapshot.RegistrationSnapshot.build_namespaces": "RequestCompositionHub.registration.snapshot.RegistrationSnapshot.build_namespaces"
+    },
+    "source_executable_audit_authoritative": true
+  },
+  "effective_sources": {
+    "baseline_receipt": "ordered-map-insertion-checkpoint.json",
+    "baseline_receipt_sha256": "dac88f488963a0213d142a342bff17b6f3eded5f41e80965da438e1fcc7d6cf7",
+    "baseline_reconstruction": "Reconstruct its finite-scan baseline and apply its target_overrides.",
+    "target_overrides": {
+      "request_composition/lakefile.lean": "0db49cdc0dea06eda3614c934e9c1a20b86fd766e530119e18ed9d7b16bede70",
+      "request_composition/SelectedMapCollectionProof.lean": "b43ef104bcbc99bc998f458bfb104cd60a3c8ccfbe46e29ea6be65ddbb0162bf"
+    },
+    "direct_uses_baseline_lakefile": true,
+    "entries": 64,
+    "same_path_maps_verified_before_after": true
+  },
+  "validation": {
+    "lean_toolchain": "leanprover/lean4:v4.35.0",
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "packet_sha256": "5468cc93bf5720e6131be76640a06c37368ce709fd512af0bd9f6d5e37178a91",
+    "direct": {
+      "command": [
+        "LAKE_NO_UPDATE=1 lake env lean SelectedMapCollectionProof.lean"
+      ],
+      "executed_command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "SelectedMapCollectionProof.lean"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+      "elapsed_s": 10.185,
+      "started_unix": 1793415363.2492678,
+      "exit": 0,
+      "timed_out": false,
+      "timeout_s": 300,
+      "log_sha256": "9605a36972864d2c7e48308b4de7b6f79a7bcba77f5b9274e611de850883880e",
+      "log_bytes": 5280,
+      "effective_map_before_sha256": "68b47d5aa71bd727c2f1ca8cb2982a2df4f7c9196ba8db2f568c8432251f8ba2",
+      "effective_map_after_sha256": "68b47d5aa71bd727c2f1ca8cb2982a2df4f7c9196ba8db2f568c8432251f8ba2",
+      "summary_sha256": "6f0f639939a26f4c9d1bc3553c6120e9deb2d8d204ff11b03a98f803d4c9619f",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-selected-map-collection-direct2/summary.json"
+    },
+    "direct_interpretation": {
+      "case": "read-only audit interpretation supplement; original summary and log remain unchanged",
+      "original_runner_summary_sha256": "6f0f639939a26f4c9d1bc3553c6120e9deb2d8d204ff11b03a98f803d4c9619f",
+      "raw_log_sha256": "9605a36972864d2c7e48308b4de7b6f79a7bcba77f5b9274e611de850883880e",
+      "runner_reported_complete": false,
+      "runner_reported_reason": "The allowlist parser expected the fully qualified boundary name, while Lean's #print axioms output used the shortened name registration.snapshot.RegistrationSnapshot.build_namespaces.",
+      "command_exit": 0,
+      "elapsed_seconds": 10.185,
+      "timed_out": false,
+      "source_map_entries": 64,
+      "source_map_before_sha256": "68b47d5aa71bd727c2f1ca8cb2982a2df4f7c9196ba8db2f568c8432251f8ba2",
+      "source_map_after_sha256": "68b47d5aa71bd727c2f1ca8cb2982a2df4f7c9196ba8db2f568c8432251f8ba2",
+      "source_map_unchanged": true,
+      "audits": {
+        "collect_map_correct": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "collect_complete": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "selected_factorization": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound",
+          "registration.snapshot.RegistrationSnapshot.build_namespaces"
+        ],
+        "selected_success_complete": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound",
+          "registration.snapshot.RegistrationSnapshot.build_namespaces"
+        ]
+      },
+      "allowlist_interpretation": {
+        "standard_only_declarations": [
+          "collect_map_correct",
+          "collect_complete"
+        ],
+        "boundary_declarations": [
+          "selected_factorization",
+          "selected_success_complete"
+        ],
+        "printed_boundary_name": "registration.snapshot.RegistrationSnapshot.build_namespaces",
+        "source_declaration_name": "RequestCompositionHub.registration.snapshot.RegistrationSnapshot.build_namespaces",
+        "source_location": "veoveo-hub/proofs/request_composition/RequestCompositionHub/FunsExternal.lean:2147",
+        "only_expected_boundary_present": true,
+        "sorryAx_present": false
+      },
+      "collection_olean_emitted": false,
+      "no_retry_or_source_change": true
+    },
+    "direct_interpretation_sha256": "8f0563cf63b6783423e36eed457db19a5b9bc6db37775aa6d50a8d4a75778483",
+    "target": {
+      "command": [
+        "LAKE_NO_UPDATE=1 lake build SelectedMapCollectionProof"
+      ],
+      "executed_command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build",
+        "SelectedMapCollectionProof"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+      "elapsed_s": 10.837,
+      "started_unix": 1793415565.4693038,
+      "exit": 0,
+      "timed_out": false,
+      "timeout_s": 300,
+      "log_sha256": "12ecca2f50b46a032fae32c6d18dea20f1b525c76574a668ff9a6454e03ffb08",
+      "log_bytes": 62908,
+      "effective_map_before_sha256": "76bbb76536a2b415067d16bf029645e2ab2d1cbf376f810e1cc31ce3c354680e",
+      "effective_map_after_sha256": "76bbb76536a2b415067d16bf029645e2ab2d1cbf376f810e1cc31ce3c354680e",
+      "summary_sha256": "cc89f042e87184204ef5adc242235f991a418b3304e7695b7f9e46b8a668b4ae",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-selected-map-collection-target1/summary.json"
+    },
+    "artifact": {
+      "exists": true,
+      "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition/.lake/build/lib/lean/SelectedMapCollectionProof.olean",
+      "sha256": "b1432e2ed8d9f16cee41e3e2888c9625d5dacfe246c6c8f5af63e7d542b3210e"
+    }
+  },
+  "development_failures": [
+    {
+      "elapsed_s": 7.882,
+      "exit": 1,
+      "proof_sha256": "0c44465701e8aff7578ed02653309295640d0d44e30423f338f68a450271b7c2",
+      "summary_sha256": "6c99603db35565a3c0f1cbc556cc891e85468ebe3f28bbc4307b2fa7d382ce69",
+      "log_sha256": "35e226366d494882eeea0b0d5a22ea24ecd9c4655d63358002b42f800426aad4",
+      "cause": "Redundant remaining-suffix rewrite and unreduced monadic wrappers/bind. Corrected through proof normalization only, preserving contract and model.",
+      "qualification_credit": false
+    },
+    {
+      "stage": "target setup",
+      "cause": "Runner read interpretation acceptance flags at the wrong JSON level. It stopped before changing configuration or invoking Lean; correcting only the temporary runner preceded one actual target run.",
+      "qualification_credit": false
+    }
+  ],
+  "limits": [
+    "collect_complete derives actual successful collection from the empty accumulator, strict order, unique keys and full Eligible membership equivalence. No desired-map or component-uniqueness premise is assumed.",
+    "The exact extracted selected body factors through the derived map and actual of helper. selected_success_complete preserves that full map whenever selected returns success; it does not assert unconditional selected success.",
+    "Collector declarations use standard axioms only. Caller declarations additionally mention the existing uninterpreted build_namespaces function, without assuming its success or namespace ordering.",
+    "Native BTreeMap/Arc/iterator representation, equality, key order and compiler/translator correspondence remain explicit boundaries. Constructor coherence, per-slug route uniqueness, namespace completion and request/issuer composition remain open.",
+    "The combined contract has not yet received its own semantic mutation qualification; prior entry and getter controls retain their narrower scope.",
+    "No production defect or runtime change was found. Production source, generated models and dependency pins are unchanged. No native, full Docker, deployment or model-driven checks ran."
+  ]
+}

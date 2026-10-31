@@ -663,7 +663,15 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   exact whole-row union in the explicit map model. Equal-key compatibility is
   derived from the checked emissions, not a desired-output premise
   ([receipt](request_composition/evidence/ordered-map-insertion-checkpoint.json)).
-  Complete `collectMap` output and actual `selected` composition remain open.
+  The [complete collection proof](request_composition/SelectedMapCollectionProof.lean)
+  now derives a successful collector result with exact eligible whole-row contents,
+  ordering and unique keys. It connects that map to the actual extracted `selected`
+  body and proves preservation in every successful result
+  ([receipt](request_composition/evidence/complete-selection-collection-checkpoint.json)).
+  Collector audits are standard-only; caller audits also name the existing
+  uninterpreted namespace helper. Its completion, native representation refinement,
+  constructor coherence, per-slug uniqueness, combined semantic qualification and
+  broader request/issuer composition remain open.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

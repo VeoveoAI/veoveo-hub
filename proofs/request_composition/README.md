@@ -215,9 +215,41 @@ LAKE_NO_UPDATE=1 lake build SelectedMapInsertionProof
 ```
 
 This verifies the handwritten collection primitive used by the extracted caller;
-native BTreeMap correspondence remains a boundary. It does not yet establish
+native BTreeMap correspondence remains a boundary. Insertion alone does not establish
 `collectMap`'s complete output, the full `selected` method or namespace completion.
 No production defect was found or runtime behavior changed in this checkpoint.
+
+## Complete collection and selected-result preservation
+
+[SelectedMapCollectionProof.lean](SelectedMapCollectionProof.lean) composes the
+qualified entry predicate, finite cursor and ordered insertion. `collect_complete`
+derives an actual successful collector result from the empty accumulator, with
+strict key ordering, unique keys and whole-row membership if and only if the
+independent `Eligible` relation holds. No desired output or unique-component premise
+is assumed. The recursive collector contract also covers prior accumulator rows.
+
+`selected_factorization` connects the exact extracted `selected` wrappers to that
+derived map before the actual `of` call. `selected_success_complete` proves that
+any successful `selected` result contains exactly the same eligible whole rows,
+with ordering and unique deployment keys. The collector's two audited declarations
+use standard axioms only; the two caller declarations additionally name the existing
+uninterpreted `build_namespaces` helper. That boundary grants no helper-success or
+namespace-ordering guarantee.
+
+The [collection receipt](evidence/complete-selection-collection-checkpoint.json)
+records source identities, manual validation and per-declaration audits. With the
+documented private patched-tool setup:
+
+```sh
+LAKE_NO_UPDATE=1 lake env lean SelectedMapCollectionProof.lean
+LAKE_NO_UPDATE=1 lake build SelectedMapCollectionProof
+```
+
+Native collection/representation correspondence, namespace completion, constructor
+coherence, per-slug route uniqueness, full request/issuer composition and semantic
+qualification of this combined contract remain open. Successful-result correctness
+does not establish unconditional `selected` success. No production defect or runtime
+change is claimed by this proof-only checkpoint.
 
 ## Intended contract
 
