@@ -684,9 +684,17 @@ required kind refuses an independently admitted Service. Frozen contracts reject
 both faults and standalone witnesses prove the wrong results. Exact source and
 generated-output restoration plus fresh nine-audit baseline builds pass; see the
 [control record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-context-semantic-controls.md).
-These deliberate faults are not new production defects. This does not yet establish
-full issuance, complete signed claims, admitted issuance examples or integration
-with Hub's pinned SDK.
+These deliberate faults are not new production defects.
+SDK `95ecd75` proves generic complete identity construction and exact delegation
+refusal priority, including optional contexts, full output preservation and the
+conditional source-token expiry cap. Populated Direct and inherited-chain acting
+examples pass with the final named targets and all nine audits; five explicit
+native provider/time/ID boundaries remain. See the
+[constructor record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-full-identity-construction.md).
+Constructor deadline controls, public issue permission ownership, complete signed
+claims, verification wrapper and integration with Hub's pinned SDK remain open.
+Core's private permission-namespace helper is still represented by a handwritten
+adapter; extracted ownership wrappers alone do not close its refinement gap.
 The [composition review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-issuer-composition-boundaries.md)
 states the exact set/traversal, timestamp and complete-field correspondence still
 needed between the two proof representations; it proposes no runtime adapter.
