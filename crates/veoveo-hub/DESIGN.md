@@ -1000,11 +1000,10 @@ A frame nested in the App's frame inherits that frame's `sandbox="allow-scripts"
 its opaque origin, so the origin's session cookie is not sent and the application has
 no storage: measured in Chrome, such a nested frame got the Hub's 401 where a plain
 same-site frame of the origin reached the application. The host page carries the App's
-server's app origin when the server declares one, and the path of the person's own
-Computer on the issuer's origin when they have one. Its `ui/open-link` navigates the
-page to a URL of exactly that app origin, or to a URL on the issuer's origin under that
-Computer's path, which the Computer's own sign-in then admits for its owner alone, and
-refuses every other target.
+server's app origin when the server declares one. Its `ui/open-link` navigates the page
+to a URL of exactly that origin, or to a URL under `/computer/apps/` on the issuer's
+origin, which reaches the signed-in person's own Computer alone, and refuses every
+other target.
 
 `hub.app_origin_code` and `hub.app_origin_session` hold the codes and sessions; a family's
 or Computer's deletion removes them, and an expired or revoked family admits none.
@@ -1894,7 +1893,11 @@ native ForwardTcp to its fixed loopback port. The installation may name further
 programs of the Computer version in `computers.apps`, each a name, a lowercase DNS
 label, and a loopback port: `/computer/c/{computer}/apps/{name}/{*path}` reaches that
 port with the same admission, headers and limits, and the program serves under that
-path. The Computer's own program keeps every other path. HTTP entities remain encoded streams;
+path. The Computer's own program keeps every other path. `GET /computer/apps/{name}/{*path}`,
+with its query, is the stable way in that names no Computer: it signs the person in as
+`GET /computer` does, starts their Computer when it is not ready, and then redirects to
+that path of their own Computer, so a link to it reaches whoever follows it in their own
+Computer and nobody else's. HTTP entities remain encoded streams;
 hop-by-hop and Connection-nominated headers, incoming credentials/cookies/forwarded
 identity, backend cookies and CORS headers do not cross this boundary. Unsafe HTTP
 and WebSocket requests require exactly the public origin; Origin is then removed
