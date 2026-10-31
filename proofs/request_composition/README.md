@@ -329,10 +329,38 @@ LAKE_NO_UPDATE=1 lake build SelectedRouteContextProof SnapshotConstructorProof
 ```
 
 Successful constructor/selection remains conditional on the unresolved namespace
-helper. The native collection/allocation refinement, combined source mutation,
-current-policy provenance and SDK issuer/recipient connection remain open. Existing
-entry/getter mutation controls retain their narrower scope. No runtime change,
-native check, deployment or paid model call was part of this milestone.
+helper. Native collection/allocation refinement, current-policy provenance and the
+SDK issuer/recipient connection remain open. Entry/getter mutation controls retain
+their narrower scope. No runtime change, native check, deployment or paid model call
+was part of this milestone.
+
+## HTTP permission-preservation source control
+
+The [actual Rust mutation](mutations/erase-http-permissions.patch) replaces only the
+HTTP constructor's supplied permissions with an empty set in a disposable source
+copy. The unchanged `SnapshotAssemblyProof.http_new_exact` rejects the re-extracted
+code at its complete-client equality. An [independent witness](mutations/HttpPermissionsWitness.lean)
+imports only the raw model, constructs an accepted direct context and supplies a
+singleton permission. It proves the mutant returns the complete client with no
+permissions, contradicting the unchanged independent specification. All four
+executable witness audits pass without `sorryAx`; no failed proof module is imported.
+
+Reversing the same patch in the same source tree reproduces all four canonical raw
+outputs byte for byte. A fresh restored package passes the model build, direct
+assembly proof and both connected route/constructor targets. The
+[receipt](evidence/http-permission-preservation-control.json) records the final
+private-tool configuration, source and artifact identities, commands, timings and
+earlier setup/proof-local failures. The initial fresh packages omitted the existing
+private dependency overrides, causing the known discriminant-name collision;
+corrected mutant and restored packages were both checked before qualification.
+
+This qualifies sensitivity to permission loss in the HTTP constructor, not every
+edge of the composed route proof, current-policy provenance or SDK issuance. The
+witness establishes acceptance by the extracted context function, not native
+authentication of its arbitrary typed inputs. No production defect or runtime
+change was found. The next composition step will reuse the existing policy proof
+through one shared generated graph, avoiding duplicate nominal types and recursive
+collection models.
 
 ## Source and model ownership
 

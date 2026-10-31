@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/mcp/upstream_authorized_http.rs
++++ b/crates/veoveo-hub/src/mcp/upstream_authorized_http.rs
+@@ -82,7 +82,7 @@
+             client: subject.access_token.oauth_client_id.clone(),
+             actor: subject.actor.clone(),
+             authority: subject.authority.clone(),
+-            permissions,
++            permissions: BTreeSet::new(),
+             request_context: subject
+                 .request_context()
+                 .map_err(|error| crate::mcp_support::mcp_internal(error.to_string()))?,

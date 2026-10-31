@@ -692,6 +692,13 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   successful namespace-helper completion, current-policy provenance, async wiring
   and SDK issuer/recipient composition remain explicit boundaries. This is not a
   full constructor-input presence/latest-row or unconditional completion theorem.
+  The [HTTP permission-loss source control](request_composition/evidence/http-permission-preservation-control.json)
+  now qualifies constructor preservation: an actual Rust mutation is rejected by
+  the unchanged proof, an independent accepted-input witness proves the lost grant,
+  and exact source restoration passes the connected targets. This covers that
+  constructor edge, not every composed edge or provenance of the supplied grants.
+  Next, consolidate the duplicate generated graphs so the existing current-policy
+  proof can connect directly to the selected row, delegation and client fields.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 
