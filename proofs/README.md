@@ -104,7 +104,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
-| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Native authority-key collision corrected; prove cache transitions and stale-response fencing |
+| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Exact reads and key invalidation checked; prove start/completion, histories, server invalidation and listener freshness |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
@@ -862,10 +862,9 @@ Prevents cross-context disclosure and stale routing represented as current disco
   and strict library Clippy pass. The
   [factoring receipt](discovery_cache/evidence/native-state-factoring-20261031.json)
   records this source preparation, not a formal equivalence or cache theorem.
-  Extraction is pending: the pinned translator cannot select inherent methods by
-  their impl owner, and its generated effect model has no stateful UUID/clock
-  observations. A fixed no-argument axiom must not be treated as producing a fresh
-  ticket on each call. Native observation and history correspondence remain open.
+  The pinned translator could not select inherent methods by their impl owner,
+  and its generated effect model has no stateful UUID/clock observations. A fixed
+  no-argument axiom must not be treated as producing a fresh ticket on each call.
   A subsequent [native-qualified refinement](discovery_cache/evidence/native-lazy-inputs-20261031.json)
   gives the six private state methods unique selector names and supplies lazy
   clock/UUID function inputs from the locked wrappers. Sampling stays in the same
@@ -879,9 +878,23 @@ Prevents cross-context disclosure and stale routing represented as current disco
   Its three import modules compile using uninterpreted external templates; the
   function module does not. This is a translator/library limitation, not a
   qualified cache model. No native algorithm or generated body was rewritten.
-  The five supported operations are the next intermediate proof target;
-  server-wide invalidation stays explicitly open. Complete transition/history
-  proofs and native wrapper refinement remain pending.
+  The [five-operation extraction](discovery_cache/evidence/five-operation-extraction-20261031.json)
+  includes the pinned SDK TTL initializer and compiles unchanged generated
+  Types/Funs. Server-wide invalidation stays explicitly open.
+- **Checked read/invalidation contracts:** the independent
+  [cache proof package](discovery_cache/README.md) now implements primitive models
+  and proves the actual generated key comparator, complete cached reads,
+  cached-only removal and full key invalidation. Whole payloads and denied counts
+  are retained; removal preserves generation and unrelated entries. Cached-only
+  removal preserves in-flight tickets and retry records. Full key invalidation
+  removes the selected key from all three maps; absence after removal uses the
+  native map's unique-key precondition. Ten executable axiom guards pass; the
+  read/removal proofs have only standard Lean logical axioms. See the
+  [qualification receipt](discovery_cache/evidence/read-key-invalidation-20261031.json).
+  Native collection/identifier/clone correspondence and async mutex refinement
+  remain explicit boundaries. Start/completion contracts, finite histories,
+  semantic controls and server-wide invalidation remain pending. This checkpoint
+  does not yet establish stale-response fencing or listener freshness.
 - **Boundary/effort:** moderate for key/cursor comparisons; substantial for the
   cache/listener state machine. Assume collision-resistant identity hashing, correct
   authenticated inputs and mutex/watch-channel semantics where effects are modeled.

@@ -1,0 +1,231 @@
+{
+  "case": "Production-linked discovery cache reads and key invalidation preserve exact values and unrelated state",
+  "evidence_class": "implementation-linked synchronous-operation proof under explicit handwritten native primitive models; no native async refinement",
+  "source": {
+    "runtime_revision": "688b91a",
+    "discovery_rs": {
+      "sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+      "bytes": 36053
+    },
+    "sdk_revision": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+    "core_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "checked_nine_file_map": {
+      "CacheKeyFrameProof.lean": {
+        "sha256": "c8cbac62e63c314fb9921fa6a9aa5cdae3fa4f777445a781936e891ac9d54bdd",
+        "bytes": 13150
+      },
+      "HubDiscoveryCacheState/Funs.lean": {
+        "sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+        "bytes": 33054
+      },
+      "HubDiscoveryCacheState/FunsExternal.lean": {
+        "sha256": "d11eeee90fbb5dee664f68046f70ff4ac2a206e38b082ef350be25093682f4ac",
+        "bytes": 20504
+      },
+      "HubDiscoveryCacheState/Types.lean": {
+        "sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+        "bytes": 3732
+      },
+      "HubDiscoveryCacheState/TypesExternal.lean": {
+        "sha256": "3f4e6930a1658bcb2d259f4a51eedd6d81fe920c19bf76ae94749866291e9bb2",
+        "bytes": 3082
+      },
+      "README.md": {
+        "sha256": "c9fd3ac6ae21fc5214c84ecaebd598b1fc2f5c5b0fb09a4af33411f0650fc414",
+        "bytes": 3075
+      },
+      "lake-manifest.json": {
+        "sha256": "dd9ef3178940943c40d1aa5df7aff9582832d10525e4c7376aab967432f19da4",
+        "bytes": 3915
+      },
+      "lakefile.lean": {
+        "sha256": "7421a908d9ea93626e03061a6cd0cb6d9b5556621d7d6d86b8a48ba599a27098",
+        "bytes": 385
+      },
+      "lean-toolchain": {
+        "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "bytes": 25
+      }
+    },
+    "committed_nine_file_map": {
+      "CacheKeyFrameProof.lean": {
+        "sha256": "c8cbac62e63c314fb9921fa6a9aa5cdae3fa4f777445a781936e891ac9d54bdd",
+        "bytes": 13150
+      },
+      "HubDiscoveryCacheState/Funs.lean": {
+        "sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+        "bytes": 33054
+      },
+      "HubDiscoveryCacheState/FunsExternal.lean": {
+        "sha256": "d11eeee90fbb5dee664f68046f70ff4ac2a206e38b082ef350be25093682f4ac",
+        "bytes": 20504
+      },
+      "HubDiscoveryCacheState/Types.lean": {
+        "sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+        "bytes": 3732
+      },
+      "HubDiscoveryCacheState/TypesExternal.lean": {
+        "sha256": "3f4e6930a1658bcb2d259f4a51eedd6d81fe920c19bf76ae94749866291e9bb2",
+        "bytes": 3082
+      },
+      "README.md": {
+        "sha256": "66ab1d954cf7153e80dabab1c54a5ca118bcc1a6fdd5253687e9491eb5e99530",
+        "bytes": 4164
+      },
+      "lake-manifest.json": {
+        "sha256": "dd9ef3178940943c40d1aa5df7aff9582832d10525e4c7376aab967432f19da4",
+        "bytes": 3915
+      },
+      "lakefile.lean": {
+        "sha256": "7421a908d9ea93626e03061a6cd0cb6d9b5556621d7d6d86b8a48ba599a27098",
+        "bytes": 385
+      },
+      "lean-toolchain": {
+        "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "bytes": 25
+      }
+    },
+    "postcheck_change": "README prose only; all Lean/config/generated files match the passed packet"
+  },
+  "extraction_receipt": {
+    "relative_path": "five-operation-extraction-20261031.json",
+    "sha256": "1549bf51d122091d72e2464ea3ac8dfa24da91837b79a171786ed35d994f312b",
+    "bytes": 21088
+  },
+  "validation_summary": {
+    "purpose": "Cache key frame proof validation; the first two proof drafts failed, and the third passed. No source fixes were made by the builder.",
+    "source": {
+      "repo": "/Users/rozgo/VeoveoAI/veoveo-hub",
+      "proof_directory": "proofs/discovery_cache",
+      "raw_funs_sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+      "raw_types_sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+      "final_proof_sha256": "c8cbac62e63c314fb9921fa6a9aa5cdae3fa4f777445a781936e891ac9d54bdd",
+      "checked_packet_sha256": "e6e87c84facf5ea2b43bcb0cd1a51a3adfca9532a63c3e13f99d58246b6b8973"
+    },
+    "environment": {
+      "remote_package": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/cache-key-frame-check1/source",
+      "lean_toolchain": "leanprover/lean4:v4.35.0",
+      "lake": "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+      "qualified_aeneas_commit": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+      "qualified_aeneas_root": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/aeneas/backends/lean",
+      "aeneas_ops_sha256": "c2f45dde6c27c1dec53c067a4f6fdcd2981ae8e3a6c4e3a40e6e4f102df368c5",
+      "aeneas_scalar_eqord_sha256": "6a9f3bd0e4d6346067f0fe4cd16f27d027e10d5c72ccd246d7fea1d4fc545a50",
+      "aeneas_private_patch": {
+        "file": "backends/lean/Aeneas/Data/Discriminant.lean",
+        "diff": "2 insertions, 1 deletion: bind generated discriminant instance to an explicit generated name (instName) instead of relying on anonymous instance naming",
+        "working_tree_head": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf"
+      },
+      "private_config": {
+        "lakefile_sha256": "ec24f002e4aa4e1c4c6986b8443f4566752f2855d8cae27fa2e07115181c071b",
+        "manifest_sha256": "2bbd5afa9c8e51f8033f5715cc74818997fd2640f1cff10b2dc85d165228ed23",
+        "difference": "absolute qualified Aeneas path in place of git requirement; reused diagnostic config also keeps package name surfaceCacheRawDiagnostic rather than canonical hubDiscoveryCacheProof"
+      },
+      "canonical_package_config_hashes": {
+        "lakefile_sha256": "7421a908d9ea93626e03061a6cd0cb6d9b5556621d7d6d86b8a48ba599a27098",
+        "manifest_sha256": "dd9ef3178940943c40d1aa5df7aff9582832d10525e4c7376aab967432f19da4"
+      },
+      "dependency_cache": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/lean-interface-diagnostic2/source/.lake/packages",
+      "LAKE_NO_UPDATE": "1"
+    },
+    "attempts": [
+      {
+        "leaf_sha256": "d4205bb2a18d2c08ec7f38342b44cfc53560884417eecf31716b30885c159cf5",
+        "command": "LAKE_NO_UPDATE=1 lake build HubDiscoveryCacheState; then LAKE_NO_UPDATE=1 lake env lean CacheKeyFrameProof.lean -o .lake/build/lib/lean/CacheKeyFrameProof.olean",
+        "model_build_exit": 0,
+        "model_build_elapsed_ms": 10685,
+        "model_build_jobs": 1805,
+        "model_build_log_sha256": "c5248c80772fac335061ebc41c9e4cbef9f76f017e0be0a4244f7b8b7c642845",
+        "proof_exit": 1,
+        "proof_elapsed_ms": 6235,
+        "proof_log_sha256": "ae092056982908df70cccf2d4db31a2af22eb722952498b218f36bd403135af0",
+        "evidence": "../cache-key-frame-check1/remote-run1",
+        "result": "model built; proof failed on comparator-rewrite, NativeMap get/remove rewriting, Vector clone, syntax, and missing proof-name reductions"
+      },
+      {
+        "leaf_sha256": "1d09ce8248f91d599141e90e08c24b5874d823f22af826cb569a7d386b146806",
+        "command": "LAKE_NO_UPDATE=1 lake env lean CacheKeyFrameProof.lean -o .lake/build/lib/lean/CacheKeyFrameProof.olean",
+        "exit": 1,
+        "elapsed_ms": 2998,
+        "log_sha256": "3e317c6b9d69bcff8c68f9f10a872f71e1ff6871082a27f5c6b5aa97225d4230",
+        "model_rebuilt": false,
+        "result": "proof failed on dotted Ordering constructor elaboration and residual Boolean/tuple normalization goals"
+      },
+      {
+        "leaf_sha256": "c8cbac62e63c314fb9921fa6a9aa5cdae3fa4f777445a781936e891ac9d54bdd",
+        "command": "LAKE_NO_UPDATE=1 lake env lean CacheKeyFrameProof.lean -o .lake/build/lib/lean/CacheKeyFrameProof.olean",
+        "exit": 0,
+        "elapsed_ms": 4230,
+        "log_sha256": "75c05b947e0db53c991746a8244abc9405dcb6fab4d628f415923900551bbc97",
+        "model_rebuilt": false,
+        "result": "all five printed closures standard-only; all ten executable axiom-closure guards passed; no sorryAx"
+      }
+    ],
+    "final_artifacts": {
+      "CacheKeyFrameProof.olean": {
+        "sha256": "77db850a6d78475196f50a3195f152020f86b77b150d9d9c77e7a627ce150373",
+        "bytes": 768784
+      },
+      "HubDiscoveryCacheState.Funs.olean": {
+        "sha256": "a1e7c75e2384d60f0e39c8d075ba69aba6663ca386c4e1d2e8053a61a8cd033a",
+        "bytes": 148360
+      },
+      "HubDiscoveryCacheState.FunsExternal.olean": {
+        "sha256": "5a3b1d328b1f26e4e5ab7c237c948456fa02d76096c249f28e6a44e4728de765",
+        "bytes": 204112
+      },
+      "HubDiscoveryCacheState.Types.olean": {
+        "sha256": "db60a838ef6177550e4a9a2aa2d4f961ba8fd0543d5c4dade91ba9ca1359bf23",
+        "bytes": 164000
+      },
+      "HubDiscoveryCacheState.TypesExternal.olean": {
+        "sha256": "b4cecc5719230e994bd89b4aa07985f3b39a37b2fa6cc9384f0eb9700c2e893b",
+        "bytes": 111536
+      }
+    },
+    "guarded_declarations": [
+      "CacheKeyFrameProof.keyOrder_eq",
+      "CacheKeyFrameProof.key_comparison_exact",
+      "CacheKeyFrameProof.map_get_exact",
+      "CacheKeyFrameProof.map_remove_exact",
+      "CacheKeyFrameProof.erase_other",
+      "CacheKeyFrameProof.erase_removed",
+      "CacheKeyFrameProof.cached_exact",
+      "CacheKeyFrameProof.remove_cached_exact",
+      "CacheKeyFrameProof.discard_key_exact",
+      "CacheKeyFrameProof.discard_key_frames"
+    ],
+    "qualification_boundary": "Four-module model compiles; actual generated cached/remove_cached/discard_key contracts and derived comparison/frame lemmas checked under explicit native primitive correspondence. Start/complete behaviors, histories, semantic controls and server-wide invalidation are not proved by this checkpoint."
+  },
+  "validation_summary_original": {
+    "path": "/tmp/hub-discovery-cache-control-20261031/state-operations-plan2/cache-key-frame-check3/final-summary.json",
+    "sha256": "567cb49a92e23f1f8d5c7a3b42c1832db4616341a31b916ae3c008f39226e3fb",
+    "bytes": 5796
+  },
+  "root_review": {
+    "contracts_and_generated_callers_reviewed": true,
+    "final_lean_config_files_match_passed_packet": true,
+    "three_proof_logs_and_model_log_hash_verified": true,
+    "all_run_input_lists_equal_before_after": true,
+    "all_ten_guard_names_present": true,
+    "successful_log_five_standard_only_closures_verified": true,
+    "compiled_artifact_sizes_and_hashes": "Builder read-only Linux measurements; identities cross-referenced with preserved OLean hash lists."
+  },
+  "assumptions": [
+    "Native BTreeMap corresponds to unique-key, appropriately ordered association lists with lawful borrowing/comparison and representable lengths.",
+    "Native identifiers, strings, UUIDs and collection/payload operations correspond to the stated models; payload Clone preserves every supplied value for cached_exact.",
+    "Native allocation/destructor/unsafe/interior-mutability effects and async mutex/clock/UUID observations are outside this synchronous model.",
+    "Lean kernel, pinned translators and qualified dependency code are trusted; clean unpatched upstream Aeneas reproduction was not measured."
+  ],
+  "remaining": [
+    "Start and completion full-state contracts, capacity/eviction behavior and histories.",
+    "Actual-source semantic controls and restored baseline for the completed state-machine slice.",
+    "Server-wide retain invalidation, native wrapper/hash construction, cursor/listener and cross-replica freshness."
+  ],
+  "unchanged_runtime_validation": "No native suite rerun for proof-only edits; native-lazy-inputs-20261031.json retains the separately qualified22tests/fmt/Clippy result.",
+  "not_run": [
+    "Broad Mac/Linux Docker qualification",
+    "Deployment",
+    "Paid model calls",
+    "Remote push"
+  ]
+}
