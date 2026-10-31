@@ -1,0 +1,247 @@
+{
+  "case": "discovery-cache-exact-completion-and-direct-key-fence-20261031",
+  "evidence_class": "Implementation-linked model-relative Lean contracts; manual Linux compiler qualification; no native or deployed acceptance in this checkpoint",
+  "team": {
+    "implementation": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source": {
+    "runtime_revision": "688b91a",
+    "proof_parent_revision": "5dcf9d5",
+    "sdk_revision": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+    "core_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "discovery_rs": {
+      "sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+      "bytes": 36053
+    },
+    "checked_file_map": {
+      "CacheCompleteProof.lean": {
+        "sha256": "2126c263a05b3c456a50b9f4a4e110782972d989065145194dda0e695b6052c5",
+        "bytes": 17119
+      },
+      "CacheCompleteSpecification.lean": {
+        "sha256": "99e9e73c3c5228556671f2f5754d096c640aa30ac902af955be2bd94bcb9bcd9",
+        "bytes": 3631
+      },
+      "CacheKeyFrameProof.lean": {
+        "sha256": "c8cbac62e63c314fb9921fa6a9aa5cdae3fa4f777445a781936e891ac9d54bdd",
+        "bytes": 13150
+      },
+      "CacheStartProof.lean": {
+        "sha256": "6ab63db1ed4012d862dd784379cfd816bdcac5b7daca719cceaec5dd1c20035b",
+        "bytes": 21721
+      },
+      "CacheStartSpecification.lean": {
+        "sha256": "ed3e26cbbec913d9709b27ac29d03df6598b5b2606a64a125eeba14295eb887a",
+        "bytes": 3548
+      },
+      "HubDiscoveryCacheState/Funs.lean": {
+        "sha256": "14d75fc6a7ba823546a5d6743f476dd48e246e8c57c3a73573fd22dceebe8706",
+        "bytes": 33054
+      },
+      "HubDiscoveryCacheState/FunsExternal.lean": {
+        "sha256": "d11eeee90fbb5dee664f68046f70ff4ac2a206e38b082ef350be25093682f4ac",
+        "bytes": 20504
+      },
+      "HubDiscoveryCacheState/Types.lean": {
+        "sha256": "06d0d11d8e8319646e723752c693b4dec301ae1833ad544cfc89bee23a9b05a3",
+        "bytes": 3732
+      },
+      "HubDiscoveryCacheState/TypesExternal.lean": {
+        "sha256": "3f4e6930a1658bcb2d259f4a51eedd6d81fe920c19bf76ae94749866291e9bb2",
+        "bytes": 3082
+      },
+      "README.md": {
+        "sha256": "7b0876eba584ab9c7e61ba1065b55c80d0be763176e1ba409f8b1b346e8f8e6b",
+        "bytes": 6269
+      },
+      "lake-manifest.json": {
+        "sha256": "dd9ef3178940943c40d1aa5df7aff9582832d10525e4c7376aab967432f19da4",
+        "bytes": 3915
+      },
+      "lakefile.lean": {
+        "sha256": "7421a908d9ea93626e03061a6cd0cb6d9b5556621d7d6d86b8a48ba599a27098",
+        "bytes": 385
+      },
+      "lean-toolchain": {
+        "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "bytes": 25
+      }
+    },
+    "postcheck_readme": {
+      "sha256": "44f5ecd889e6e03e6d29f07f4bdbe431d8a3f0da6bf80ec74875c6faf1a9d48f",
+      "bytes": 8769
+    },
+    "postcheck_change": "README prose only; both checked leaves, prior proofs, raw generated files, primitive models and configuration unchanged"
+  },
+  "prerequisite_receipts": [
+    "five-operation-extraction-20261031.json",
+    "read-key-invalidation-20261031.json",
+    "start-contract-20261031.json"
+  ],
+  "toolchain": {
+    "lean": "4.35.0",
+    "aeneas_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "qualification_configuration": "Same five-operation model and qualified private Lake override as preceding receipts. Existing discriminant instance-name patch remains present; clean upstream reproduction unmeasured. No extraction/model/prerequisite rebuild.",
+    "effective_lakefile_sha256": "ec24f002e4aa4e1c4c6986b8443f4566752f2855d8cae27fa2e07115181c071b",
+    "effective_manifest_sha256": "2bbd5afa9c8e51f8033f5715cc74818997fd2640f1cff10b2dc85d165228ed23"
+  },
+  "execution": {
+    "attempt": 1,
+    "prior_read_only_olean_inventory": {
+      "sha256": "2a20f5273e81068e5b16dee7b2f7d1bfe61dd6f1b9523884d81d15bcf84c8f91",
+      "bytes": 2133
+    },
+    "packet": {
+      "sha256": "be4de7895a4baca95f930eb6f787ab742c440a99b8c416b06839ecaa88da0a89",
+      "bytes": 3844
+    },
+    "runner": {
+      "sha256": "dc8fe679768268f802d5f673a3de25016a98732062a447f0c6e66985b0e03964",
+      "bytes": 5189
+    },
+    "stages": {
+      "specification": {
+        "command": "LAKE_NO_UPDATE=1 lake env lean CacheCompleteSpecification.lean -o .lake/build/lib/lean/CacheCompleteSpecification.olean",
+        "exit_status": 0,
+        "elapsed_ms": 14361,
+        "log": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "olean": {
+          "sha256": "4d7df8b6d293d04fcd7599eec11f6c848ae191865388e19bacb5935969c2c530",
+          "bytes": 58264
+        }
+      },
+      "proof": {
+        "command": "LAKE_NO_UPDATE=1 lake env lean CacheCompleteProof.lean -o .lake/build/lib/lean/CacheCompleteProof.olean",
+        "exit_status": 0,
+        "elapsed_ms": 4474,
+        "log": {
+          "sha256": "7711c9cf70a63ff97819042e89782f7281d5f5dce0411393aa78eab257abbb03",
+          "bytes": 7411
+        },
+        "olean": {
+          "sha256": "6c464fa5adb5c10fab046ede0dab0be8fb36b7351aaaf1a950fdac1328775ebc",
+          "bytes": 662280
+        }
+      }
+    },
+    "source_config_and_seven_prerequisites": "Precheck and both postchecks passed with identical input lists; effective private config was checked in addition to recorded canonical config identities.",
+    "input_before_and_after": {
+      "sha256": "78bf776dcbf46ee468a39e81047703862611e94ed07c40de27979a8f67f51539",
+      "bytes": 2403
+    },
+    "specification_import": "new specification OLean hash stable across proof stage",
+    "failed_compiler_attempts": 0,
+    "warnings": "Unused simp/tactic arguments, an unnecessary simpa and a deprecated lemma name; no compiler errors or ignored axiom failures."
+  },
+  "contracts": {
+    "complete_exact": "Actual generated complete equals independent whole-state completeOutcome for every branch-selected physically representable input, including arbitrary comparison/clock/addition Result failures and divergence.",
+    "stale_complete": "Missing or mismatched full request ticket returns false and the identical entire state, with no length, clock or comparison-success premise.",
+    "successful_complete": "Current success stores the entire vector and denied count, erases current ticket and retry, retains actual Vec.ne/denied comparison Result, and explicitly names any capacity eviction.",
+    "new_payload_accepted": "An absent entry is accepted with full payload/denied preservation without requiring element comparison or clock success.",
+    "failed_complete": "Current failure preserves cached entries, removes the current ticket and inserts the observed native retry deadline after clock and addition bind; actual SDK TTL/conversion equals 5000000000ns.",
+    "false_flag_consumes_ticket": "An observed false Vec.ne and equal denied count return false while consuming the current ticket; key absence afterward uses native unique-key input.",
+    "success_frames": "Other complete values are preserved except the named entries-map eviction victim; composed with successful_complete this frames the actual operation.",
+    "discard_key_then_stale_complete": "Actual key invalidation followed by actual completion produces precisely the invalidated state for either payload outcome; ticket absence is derived using unique in-flight keys."
+  },
+  "axiom_audit": {
+    "executable_guards": 13,
+    "standard_only_guards": 6,
+    "actual_complete_guards": 7,
+    "permitted_standard": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "only_additional_primitive": "HubDiscoveryCacheModel.tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add",
+    "printed_closures": {
+      "CacheCompleteProof.ticket_guard_exact": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheCompleteProof.ttl_delay_exact": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheCompleteProof.complete_exact": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheCompleteProof.stale_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheCompleteProof.successful_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheCompleteProof.new_payload_accepted": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheCompleteProof.failed_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheCompleteProof.false_flag_consumes_ticket": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheCompleteProof.discard_key_then_stale_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ]
+    },
+    "no_sorryAx": true,
+    "interpretation": "Instant.add is an existing uninterpreted Result-valued native primitive. Its presence in actual-complete declaration closures also follows from reference to the whole complete body, even for stale/success branches. No totality, nonoverflow, future-deadline or occurrence-on-unused-branch claim."
+  },
+  "root_review": [
+    "Reviewed actual Rust, unchanged generated complete, independent full-state specification and final theorem statements.",
+    "Reviewed direct composition of actual discard_key and actual complete, including unique-key premise; no assumed complete result or assumed erased-key absence.",
+    "Verified local checked-source hashes, before/after identity lists, stage statuses, nine printed closures and recorded OLean byte/hash identities. Binary identities are the remote runner measurements, not an independent local recompilation."
+  ],
+  "boundaries": [
+    "Physical list/usize length bound only on the active map; stale completion requires none.",
+    "Sorted/unique, capacity and generation-coherence invariant preservation remains unproved; native minimum eviction requires sorted representation.",
+    "Arbitrary element PartialEq.ne remains the pinned library Result, not structural equality or !eq. Native vector specialization and concrete descriptor correspondence remain external.",
+    "Native Instant.add, clock/UUID observations, allocation/destructor effects, async mutex linearization and post-panic native state remain explicit boundaries.",
+    "Direct key invalidation is supported; server-wide retain/FnMut translation remains unsupported."
+  ],
+  "remaining": [
+    "sorted/unique map invariant preservation",
+    "capacity and generation-coherence invariant preservation",
+    "finite replacement/generation histories",
+    "actual-source semantic controls",
+    "server-wide invalidation",
+    "cursor/listener and native wrapper refinement"
+  ],
+  "not_run": [
+    "extraction or primitive-model/prerequisite rebuild",
+    "native tests (runtime unchanged; prior 22-test receipt retained)",
+    "full Mac/Linux Docker checks",
+    "deployment",
+    "remote push",
+    "paid model acceptance"
+  ],
+  "scratch_evidence": "/tmp/hub-discovery-cache-control-20261031/state-operations-plan2/cache-complete-check1/remote-run1"
+}

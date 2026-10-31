@@ -104,7 +104,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
-| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Exact reads, key invalidation and fetch start checked; prove completion, histories, server invalidation and listener freshness |
+| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Exact reads, key invalidation, start/completion and direct key fence checked; prove invariant/history closure, server invalidation and listener freshness |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
@@ -892,9 +892,9 @@ Prevents cross-context disclosure and stale routing represented as current disco
   read/removal proofs have only standard Lean logical axioms. See the
   [qualification receipt](discovery_cache/evidence/read-key-invalidation-20261031.json).
   Native collection/identifier/clone correspondence and async mutex refinement
-  remain explicit boundaries. Completion contracts, finite histories,
-  semantic controls and server-wide invalidation remain pending. This checkpoint
-  does not yet establish stale-response fencing or listener freshness.
+  remain explicit boundaries. Finite histories, semantic controls and server-wide
+  invalidation remain pending. The read/removal checkpoint alone does not
+  establish stale-response fencing or listener freshness.
 - **Checked fetch-start contract:** [the start receipt](discovery_cache/evidence/start-contract-20261031.json)
   connects the actual generated operation to an independent complete-state
   specification. It proves old-generation no-op, newer-generation reset, cooldown
@@ -906,14 +906,28 @@ Prevents cross-context disclosure and stale routing represented as current disco
   The final leaf passed in 7.398 s with sixteen executable standard-only axiom
   guards. This establishes neither native invocation counts nor sorted/unique-map
   invariant preservation, which is still needed for history refinement.
+- **Checked completion and direct key fence:** [the completion receipt](discovery_cache/evidence/complete-contract-20261031.json)
+  connects actual completion to an independent full-state specification. Missing
+  or mismatched tickets produce a complete no-op. Current success preserves the
+  exact vector/denied fields and comparison Result, consumes ticket/retry records
+  and names any capacity eviction. Current failure preserves cached descriptors
+  and stores the observed retry deadline. A false changed flag can still consume
+  a current ticket. The actual `discard_key` followed by actual `complete` is
+  proved to leave exactly the invalidated state, assuming unique in-flight keys.
+  The first Linux check passed (14.361 s specification, 4.474 s proof). Six
+  primitive/frame axiom guards are standard-only; seven actual-completion guards
+  additionally admit precisely the existing native `Instant.add` Result boundary.
+  This does not prove native addition or arbitrary payload structural equality.
+  No comparison/clock success assumption is required for stale rejection. Longer
+  histories and invariant preservation remain open.
 - **Boundary/effort:** moderate for key/cursor comparisons; substantial for the
   cache/listener state machine. Assume collision-resistant identity hashing, correct
   authenticated inputs and mutex/watch-channel semantics where effects are modeled.
-- **Residual/next:** establish the actual critical-section transitions and composed
-  histories: stale finish is a complete no-op, invalidation and generation changes
-  fence earlier work, and valid completions preserve exact payloads and unrelated
-  entries subject to explicit capacity eviction. A key-equality proof does not
-  establish freshness, reconnect
+- **Residual/next:** establish map ordering/uniqueness, capacity and generation
+  invariant preservation, then compose the checked operations into finite
+  histories covering replacement work and generation changes. Qualify actual-source
+  semantic controls and close server-wide invalidation's translation boundary.
+  The checked direct key fence does not establish reconnect
   delivery, actual client caching behavior or cross-replica notification reliability.
 
 ## HUB-FACTORY-01 — Reconciliation and native lifecycle recovery

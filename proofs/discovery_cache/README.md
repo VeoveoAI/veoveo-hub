@@ -46,12 +46,34 @@ boundaries. No post-panic native state or globally fresh no-argument UUID is ass
 The only start input bound is physical list/usize correspondence, waived for the
 old map when newer generation first clears it.
 
-Sorted/unique-map invariant maintenance, `complete` full-state contracts and finite
-histories over actual method results remain the next proof step. The inserted-ticket
-read/frame/size lemmas do not require sortedness, and no new sorted/unique invariant
-claim is made. Payload equality for completion must follow the supplied `PartialEq`
-dictionary or an explicit full-value law. A completion returning `false` can still
-remove current ticket/retry records; it does not mean state was unchanged.
+The actual `complete` operation now has an independent full-state contract in
+`CacheCompleteSpecification` and `CacheCompleteProof`. A missing or wrong ticket
+returns `false` with every state field unchanged, without requiring a normal clock
+or element-comparison result. A current successful response installs the complete
+vector and denied count, removes its ticket and retry record, and frames unrelated
+values except the explicitly named capacity-eviction victim. A current failed
+response retains cached entries, removes its ticket, and records the observed retry
+deadline after the native clock/addition bind. The actual SDK TTL initializer is
+proved to yield exactly five seconds in the nanosecond duration model.
+
+For arbitrary payload `PartialEq`, the changed flag preserves the pinned library's
+`Vec.ne` Result, including per-element `.ne`, failures and divergence. It is not
+replaced with `!eq`, structural inequality or a reflexivity assumption; native Vec
+specialization/equality correspondence remains a boundary. A proved false-flag case
+still consumes the current ticket and retry, so `false` alone does not mean no-op.
+
+The direct composition theorem executes actual `discard_key` followed by actual
+`complete`. With unique in-flight keys it returns precisely the invalidated state,
+for either a successful or failed late payload and arbitrary clock input. Its missing
+ticket is derived from key erasure, not assumed. This covers supported key invalidation,
+not the unsupported server-wide operation below.
+
+Sorted/unique-map invariant maintenance, minimum-eviction correspondence and finite
+histories over actual method results remain next. The insertion read/frame/size and
+room frame lemmas do not establish those invariants. The whole-list room update is
+exact; identifying its head victim with the native minimum requires justified sorted
+order. Capacity-invariant preservation and the invariant that all stored generations
+match the state's generation also remain pending.
 
 Server-wide `discard_server` invalidation remains unsupported and unproved. The
 six-root extraction translated, but unchanged generated retain-closure dictionaries
@@ -68,6 +90,8 @@ LAKE_NO_UPDATE=1 lake build HubDiscoveryCacheState
 LAKE_NO_UPDATE=1 lake env lean CacheKeyFrameProof.lean -o .lake/build/lib/lean/CacheKeyFrameProof.olean
 LAKE_NO_UPDATE=1 lake env lean CacheStartSpecification.lean -o .lake/build/lib/lean/CacheStartSpecification.olean
 LAKE_NO_UPDATE=1 lake env lean CacheStartProof.lean -o .lake/build/lib/lean/CacheStartProof.olean
+LAKE_NO_UPDATE=1 lake env lean CacheCompleteSpecification.lean -o .lake/build/lib/lean/CacheCompleteSpecification.olean
+LAKE_NO_UPDATE=1 lake env lean CacheCompleteProof.lean -o .lake/build/lib/lean/CacheCompleteProof.olean
 ```
 
 The primitive model build passed in 10.685s. The final read/key-invalidation leaf
@@ -80,8 +104,17 @@ axiom guards and eleven printed closures containing only the same three standard
 axioms. One proof-statement parenthesization correction restored the intended
 non-coalesced acceptance domain; it changed no runtime behavior. Initial script
 precheck errors and proof-authoring failures are recorded separately from successful
-checks. These results do not qualify completion/history invariants or native
-collection/time refinement.
+checks. The completion specification compiled in 14.361s and its proof passed in
+4.474s on the first compiler check. Thirteen executable guards passed: six
+primitive/frame declarations permit only standard axioms, and seven actual-completion
+outcome declarations additionally permit only the existing native
+`HubDiscoveryCacheModel.tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add`
+axiom. Of nine printed closures, two are standard-only and seven include that exact
+addition boundary; none contain `sorryAx`. The dependency appears even in stale and
+success theorem closures because Lean traverses the whole referenced completion
+definition; it does not assert time addition occurs in those branches. Native addition
+is not assumed total, nonoverflowing or future-valued. These results do not qualify
+history/map invariants or native collection/time refinement.
 
 Validation used Lean 4.35.0 and the pinned Aeneas revision with the existing
 [qualified discriminant instance-name patch](../request_composition/tooling/qualified-discriminant-instance.patch)
