@@ -445,7 +445,8 @@ that repository ID: the token the deployment's one public token-exchange client 
 obtain for that person, which the Lore contribution's profile admits against the
 person's current [grant](#groups-and-sharing) on every issue. The client requests no scope or resource
 and holds no assignment of its own; a pusher without the grant is refused with
-`invalid_grant`. Before every sandbox creation and restart the Hub rotates the
+`invalid_grant`. The token carries the pusher's actions; the instance only reads, which
+any grant, a reader's included, allows. Before every sandbox creation and restart the Hub rotates the
 credential, so the sandbox starts as the latest pusher.
 
 A push applies to an existing instance by the image, the policy, the size, the driver
@@ -1355,7 +1356,7 @@ grant on, another scope, a resource, a wrong or replaced secret and an instance'
 are refused. A person who creates a repository through an in-process fake of Lore's
 repository service, which tells the Hub's `RebacApi` of each creation as Lore does, owns it
 at once: the answer comes once the revision is active, and the
-repository's next token for their Computer holds it with `owner`; another creator, an
+repository's next token for their Computer holds it with `write` and `owner`; another creator, an
 unregistered creation of theirs and a taken name answer as the creation route says.
 Images and revisions are synthetic values; no OpenShell, Lore server, BuildKit or image
 is involved.
@@ -1406,7 +1407,12 @@ role, and that today's documents read and write as before. They check that a Com
 client asks for its owner's login token without a scope and for one repository's token
 with that repository's scope, refusing any other scope, that a repository its owner holds
 no grant on is refused at admission, and that no token carries more than one repository.
-They check the sharing changes: an owner shares with a person and with a group, sets a
+They check that each level is its Lore actions in the token, `reader` none, `member`
+`write` and `owner` `write` and `owner`, and that a level shows the actions that decide
+it; that a reader's listing names the repository without actions and a reader reads the
+access list but changes nothing; that a group's levels unite with a person's own; and
+that a registered creator holds `write` and `owner`. They check the sharing changes: an
+owner shares with a person and with a group, sets a
 level that replaces an administrator's actions and removes it, and is refused, with
 nothing changed, a change that would leave them without `owner`; someone without
 `owner`, an unknown repository or group and another tenant's repository are refused; a
@@ -1431,16 +1437,17 @@ holds none; and a role granted to a group's ID is held through it.
 records synthetic `hub.person` rows as a sign-in writes them, and calls the access and
 group routes as the acceptance callers. It checks the exact answers: the creator's owner
 entry, a share with a person named by an email in any case and the list that follows,
-by email, and a group created with its creator as owner and its `id`, listed only to its
-members.
+by email, the same person lowered to `reader`, without actions, and back, and a group
+created with its creator as owner and its `id`, listed only to its members.
 It checks the refusals by problem type: reading without a grant, sharing or changing a
 group without being its owner, an email no one signed in with, whose detail asks for a
 sign-in, the caller's own lowering or removal on a repository and in a group, bodies of
 another shape, an unknown repository, group and group name, and a taken name. Sharing
 the repository with a group and adding the `client_secret_post` client's principal to it
 lets that principal's repository token be issued and Lore's listing name the repository
-with `owner`; removing the membership takes both away. An administrator's assignment
-with other actions is listed with them and replaced by the level an owner sets, and a
+with `write` and `owner`, beside the repository it reads without actions; removing the
+membership takes both away. An administrator's assignment with other actions is listed
+with them, at the level they show, and replaced by the level an owner sets, and a
 principal without a `hub.person` row is listed with a null email and name after the
 people. Deleting the group, refused to a member who is not its owner, answers the
 caller's remaining groups and takes its assignment off the repository, and a second
@@ -1949,9 +1956,17 @@ Every Lore token names its person by Hub principal ID in its `identity` claim, s
 pusher a Lore branch event names is a Hub principal. A repository token's `resources`
 hold one entry, for the repository its `scope` names, with the person's native actions
 on it as `permission`; a login token holds none. `root_domains` names the private Lore
-recipient's host. An assignment without actions still allows Lore's ordinary
-unprotected operations, writes included; no read-only role is inferred from it. Only an
-explicit assignment, to the person or to a group they belong to, grants a repository.
+recipient's host. The actions are Lore's own, by Lore's names, and Lore checks one on
+every operation that changes a repository, from the token alone: `write` to write and to
+push to an unprotected branch, `push-protected` to push to a protected branch, `owner`
+or `admin` to protect branches and delete the repository (Lore also lets `write` do that
+for the repository's recorded creator), `obliterate` and `migrate` for those operations.
+Any entry for the repository reads it, so an assignment without actions is read-only. No
+action implies another: `owner` holds no `push-protected`. Assignments carry levels of
+these actions (below): a reader none, a member `write`, an owner `write` and `owner`; an
+administrator may publish any of `write`, `owner`, `admin`, `push-protected`,
+`obliterate` and `migrate`. Only an explicit assignment, to the person or to a group they
+belong to, grants a repository.
 Creating a repository, through the Hub or with Lore, makes its creator the owner; no
 other grant is automatic, and no administrator role or Work Context membership grants repositories.
 Removing an assignment or a membership stops further issuance, while tokens already
@@ -1963,8 +1978,8 @@ directly or through a server that calls the Hub for them, with no administrator 
 and no quota. The Hub creates the repository in the one Lore deployment as the
 caller, with a Lore login token it issues for them through the deployment's public
 client, so Lore records them as creator. It then publishes one revision that
-registers the repository, titled by its name, and assigns the caller `owner`. The
-Hub prepares no personal repository of its own. The publication takes the process's
+registers the repository, titled by its name, and assigns the caller the owner level,
+`write` and `owner`. The Hub prepares no personal repository of its own. The publication takes the process's
 publication lock and is built again on a revision conflict. The route answers 201
 with `{id, name, remote}`, where `remote` is `<deployment endpoint>/<id>`, once the
 revision is active in this process, so the caller's next repository token holds it. Lore
@@ -1988,9 +2003,10 @@ The Lore section holds groups beside repositories and assignments. A group has a
 32-hex `id`, a `tenant`, a `name` unique in its tenant (1 to 64 of `a`–`z`, `0`–`9` and
 `-`, starting with a letter) and `members`, each a principal of the tenant with the role
 `member` or `owner`. An assignment names exactly one subject: a `principal`, or a `group`
-of the repository's tenant. A person's actions on a repository are the union of their own
-assignment's and those of every group of the tenant they belong to; holding any of those
-assignments is holding a grant on the repository. Every reader of grants uses that one
+of the repository's tenant, at the same levels for either. A person's actions on a
+repository are the union of their own assignment's and those of every group of the tenant
+they belong to; holding any of those assignments is holding a grant on the repository,
+and one without actions, a reader's, grants it read-only. Every reader of grants uses that one
 rule: repository tokens, for a Computer, an exchange or a factory instance's pusher, the
 listing, and the watch and status routes; the selection route reads no grant. Groups are
 catalog objects of kind `lore.group`. An assignment keeps its `principal` member and adds
@@ -2059,7 +2075,7 @@ the section alone (`sharing/changes.rs`). Fields that need two words are camelCa
 | Route | Who | Behavior |
 |---|---|---|
 | `GET /lore/{profile}/repositories/{id}/access` | a holder of a grant on it | The access list |
-| `PUT /lore/{profile}/repositories/{id}/access` | an owner of it | `{"person": "<email>", "access": …}` or `{"group": "<name>", "access": …}`, exactly one of `person` and `group`, with `access` `member`, `owner` or `none`. Sets that subject's assignment, or removes it, and answers the access list |
+| `PUT /lore/{profile}/repositories/{id}/access` | an owner of it | `{"person": "<email>", "access": …}` or `{"group": "<name>", "access": …}`, exactly one of `person` and `group`, with `access` `reader`, `member`, `owner` or `none`. Sets that subject's assignment, or removes it, and answers the access list |
 | `POST /lore/{profile}/groups` | anyone | `{"name": "<name>"}`: creates the group with the caller as its one member, its owner; 201 with the group |
 | `GET /lore/{profile}/groups` | anyone | `{"groups": [<group>]}`: the groups the caller belongs to, by name |
 | `PUT /lore/{profile}/groups/{name}/members` | an owner of the group | `{"person": "<email>", "role": "member", "owner" or "none"}`: sets or removes that membership, and answers the group |
@@ -2073,9 +2089,12 @@ person is named by the email and display name of their last sign-in; one with no
 `hub.person` row, such as a principal an administrator assigned, has both `null` and is
 listed after the people who signed in. `actions` is the assignment's native action set
 as the section stores it, in its canonical order, and `access` its level: `owner` when
-the actions hold `owner`, otherwise `member`. An owner sets a level: `member`, an
-assignment without actions, or `owner`, the `owner` action, which replaces whatever
-actions an administrator published. Groups, assignments and memberships are listed by
+the actions hold `owner`, `member` when they hold `write`, otherwise `reader`. An owner
+sets a level, which replaces whatever actions an administrator published: `reader`, an
+assignment without actions, which clones and pulls and pushes nothing; `member`, `write`,
+which also pushes to unprotected branches; or `owner`, `write` and `owner`, which also
+shares the repository, protects its branches and deletes it. A protected branch takes
+`push-protected`, which only an administrator publishes. Groups, assignments and memberships are listed by
 email and name. A group also shows its `id`, which grants outside Lore name it by; other
 IDs stay internal.
 
@@ -2137,8 +2156,8 @@ Hub answers both as gRPC on its own listener, at `/ucs.auth.RebacApi/CreateResou
 `/ucs.auth.RebacApi/DeleteResource`, and admits the same tokens as the listing.
 
 A creation publishes the revision the creation route publishes: the repository,
-registered in the token's person's tenant and titled by its name, and their `owner`
-assignment. A repository registered as theirs already changes nothing; one registered
+registered in the token's person's tenant and titled by its name, and their owner
+assignment, `write` and `owner`. A repository registered as theirs already changes nothing; one registered
 without their own owner assignment answers `PERMISSION_DENIED`, so Lore stores nothing.
 A deletion by a person whose actions on the repository, own or through a group, hold
 `owner` removes its registration and every assignment on it; anyone else's answers

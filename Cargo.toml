@@ -12,7 +12,7 @@ publish = false
 
 [workspace.dependencies]
 # Native wire types are consumed only by the executable's approved contribution.
-lore-proto = { git = "https://github.com/VeoveoAI/lore", rev = "ff40bb216a241a7d453a11892aab17fdce1a6198", default-features = false }
+lore-proto = { git = "https://github.com/VeoveoAI/lore", rev = "c33e017af48d221c5b42d19865adf78814bcced4", default-features = false }
 # veoveo-core, pinned to one revision for every core crate.
 veoveo-audit = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "120306eb969c6134dadd422dca701a2ce63e9492" }
 veoveo-audit-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "120306eb969c6134dadd422dca701a2ce63e9492" }

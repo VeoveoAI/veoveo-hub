@@ -2224,7 +2224,7 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         assert_eq!(status, reqwest::StatusCode::OK, "{issued}");
         assert_eq!(
             claims(issued["access_token"].as_str().unwrap())["resources"],
-            json!([{"resource_id": format!("urc-{id}"), "permission": ["owner"]}])
+            json!([{"resource_id": format!("urc-{id}"), "permission": ["write", "owner"]}])
         );
         let owners = |plane: &serde_json::Value, id: &str| {
             plane["lore"]["assignments"]
@@ -2241,7 +2241,10 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
                 .collect::<Vec<_>>()
         };
         let plane = hub.control_plane().await;
-        assert_eq!(owners(&plane, &id), [(member.clone(), json!(["owner"]))]);
+        assert_eq!(
+            owners(&plane, &id),
+            [(member.clone(), json!(["write", "owner"]))]
+        );
 
         // Another person cannot claim it through its ID, and owns nothing of it.
         let (status, refused) =
@@ -2253,7 +2256,7 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         );
         assert_eq!(
             owners(&hub.control_plane().await, &id),
-            [(member.clone(), json!(["owner"]))]
+            [(member.clone(), json!(["write", "owner"]))]
         );
 
         // Its creator calling again changes nothing.
@@ -2287,7 +2290,7 @@ async fn a_person_creates_a_repository_and_owns_it_at_once() {
         assert_eq!(status, reqwest::StatusCode::CREATED, "{registered}");
         assert_eq!(
             owners(&hub.control_plane().await, unregistered),
-            [(member.clone(), json!(["owner"]))]
+            [(member.clone(), json!(["write", "owner"]))]
         );
 
         // Lore refuses a name another repository holds.

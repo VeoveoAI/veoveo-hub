@@ -2299,8 +2299,8 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "lore-proto"
-version = "0.1.64"
-source = "git+https://github.com/VeoveoAI/lore?rev=ff40bb216a241a7d453a11892aab17fdce1a6198#ff40bb216a241a7d453a11892aab17fdce1a6198"
+version = "0.1.65"
+source = "git+https://github.com/VeoveoAI/lore?rev=c33e017af48d221c5b42d19865adf78814bcced4#c33e017af48d221c5b42d19865adf78814bcced4"
 dependencies = [
  "prost 0.14.4",
  "prost-types 0.14.4",

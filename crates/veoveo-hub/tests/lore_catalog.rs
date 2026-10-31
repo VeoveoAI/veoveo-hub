@@ -392,7 +392,7 @@ async fn resources() {
     assert!(
         listed(&mut catalog)
             .await
-            .contains(&entry(CREATED, &["owner"]))
+            .contains(&entry(CREATED, &["write", "owner"]))
     );
     let plane = hub.control_plane().await;
     let registered = plane["lore"]["repositories"]

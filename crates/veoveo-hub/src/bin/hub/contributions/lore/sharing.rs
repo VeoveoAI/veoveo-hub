@@ -34,7 +34,7 @@ use veoveo_hub::{
 };
 use veoveo_types::{PrincipalId, TenantId};
 
-pub(crate) use changes::{Caller, Level, Named, Refusal, Setting};
+pub(crate) use changes::{Access, Caller, Level, Named, Refusal, Setting};
 
 use super::{
     Deployment, Group, GroupId, GroupName, GroupRole, Lore, NativeAction, RepositoryId, Subject,
@@ -70,7 +70,7 @@ struct AccessChange {
     person: Option<String>,
     #[serde(default)]
     group: Option<String>,
-    access: Setting,
+    access: Access,
 }
 
 /// The body of `POST …/groups`.
@@ -169,7 +169,7 @@ async fn set_access(
     let id = RepositoryId::parse(&id).map_err(|_| refused(Refusal::UnknownRepository))?;
     let change = parse::<AccessChange>(
         &body,
-        r#"The body is {"person": "<email>", "access": "member", "owner" or "none"} or {"group": "<name>", "access": "member", "owner" or "none"}."#,
+        r#"The body is {"person": "<email>", "access": "reader", "member", "owner" or "none"} or {"group": "<name>", "access": "reader", "member", "owner" or "none"}."#,
     )?;
     let named = match (&change.person, &change.group) {
         (Some(email), None) => Named::Person(person(&state, &tenant, email).await?.principal),
