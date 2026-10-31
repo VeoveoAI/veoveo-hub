@@ -138,7 +138,28 @@ private patched-tool workflow above apply.
 This checks the entry closure, not the complete `selected` method. Collection,
 derived output uniqueness, namespace construction, current-policy provenance and
 actual SDK issuer/recipient composition remain open. Its actual-source semantic
-control is pending; the getter ambiguity control does not cover this new contract.
+control is now qualified separately from the getter ambiguity control.
+
+The [entry control receipt](evidence/selected-entry-control.json) records the
+[actual-Rust slug-check bypass](mutations/bypass-selected-slug.patch), unchanged
+proof rejection and [independent witness](mutations/SelectedEntrySlugWitness.lean).
+For a complete registration keyed by its own deployment and a different requested
+slug, the mutant returns the whole keyed row and unchanged state while `chooseOne`
+returns none. The witness proves outer `Result` success and the contradiction;
+all four audits permit only standard axioms. It imports only the mutant model.
+
+Restoring the same scratch Rust source reproduced all four canonical generated
+files byte-for-byte. A fresh model/assembly build passed in **13.686 s**, the frozen
+entry proof directly in **2.818 s**, and its target in **3.320 s**, with all ten
+module audits passing. The standalone witness passed in **2.518 s**. The committed
+proof and production code were unchanged throughout qualification.
+
+Reproduction follows the getter control workflow above, using the entry patch and
+`lake env lean SelectedEntrySlugWitness.lean` against the freshly extracted mutant.
+This witness is outside default targets and is expected to fail on the correct
+canonical model. Keep raw generated outputs untouched and restore the source before
+checking canonical hashes and the ordinary proof. This supplies no native-execution
+or full selected-pipeline guarantee beyond the stated model boundary.
 
 ## Intended contract
 

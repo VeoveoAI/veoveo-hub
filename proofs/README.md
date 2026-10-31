@@ -647,8 +647,10 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   preserves the complete keyed row and unchanged snapshot, with no desired-route
   or well-formedness premise. All ten module audits and direct/target checks pass
   ([entry receipt](request_composition/evidence/selected-entry-checkpoint.json)).
-  Full collection, derived route uniqueness and this entry contract's actual-source
-  semantic control remain open.
+  The entry contract now has a qualified actual-Rust slug-check bypass, independent
+  semantic counterexample and exact canonical restoration
+  ([control receipt](request_composition/evidence/selected-entry-control.json)).
+  Full collection, derived route uniqueness and composed request routing remain open.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

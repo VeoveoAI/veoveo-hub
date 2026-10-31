@@ -1,0 +1,11 @@
+--- a/crates/veoveo-hub/src/registration/snapshot.rs
++++ b/crates/veoveo-hub/src/registration/snapshot.rs
+@@ -159,7 +159,7 @@
+                         return None;
+                     };
+                     let server = self.servers.get(deployment)?;
+-                    (&server.slug == slug).then(|| (*deployment, server.clone()))
++                    true.then(|| (*deployment, server.clone()))
+                 })
+                 .collect(),
+         )
