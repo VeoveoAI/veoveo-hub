@@ -56,6 +56,8 @@ pub(super) struct ServeConfig {
     pub(super) refresh_delivery_cipher: RefreshTokenDeliveryCipher,
     pub(super) refresh_delivery_window: HubRefreshDeliveryWindow,
     pub(super) allow_loopback_hosts: bool,
+    /// The sandbox proxy's public origin and the address of the Apps listener.
+    pub(super) apps: Option<(veoveo_hub::apps::SandboxOrigin, SocketAddr)>,
     pub(super) offline_mode: bool,
     pub(super) audit_retention_days: std::num::NonZeroU32,
     pub(super) audit_exports: veoveo_audit::export::AuditExportConfig,
@@ -75,6 +77,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         refresh_delivery_cipher,
         refresh_delivery_window,
         allow_loopback_hosts,
+        apps: apps_config,
         offline_mode,
         audit_retention_days,
         audit_signing_key,
@@ -109,6 +112,16 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     let ct = CancellationToken::new();
     let _stop = ct.clone().drop_guard();
     let allowed_hosts = Arc::new(public_allowed_hosts(&deployment, allow_loopback_hosts));
+    let (app_origins, apps_listen_address) = match apps_config {
+        Some((sandbox, address)) => (
+            Some(veoveo_hub::apps::AppOrigins::new(
+                deployment.base_url(),
+                sandbox,
+            )?),
+            Some(address),
+        ),
+        None => (None, None),
+    };
     let http = Arc::new(RwLock::new(build_http_client(&initial_catalog)?));
     let initial_catalog = Arc::new(
         initial_catalog
@@ -246,6 +259,19 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             auth_state.clone(),
             authenticate_mcp,
         ));
+    // An App's bridge sends the person's requests to these routes in process.
+    let apps = app_origins
+        .clone()
+        .map(|origins| {
+            veoveo_hub::apps::AppsService::new(
+                catalog.clone(),
+                hub_state.clone(),
+                origins,
+                deployment.host_authority(),
+                mcp_router.clone(),
+            )
+        })
+        .transpose()?;
     router = router.merge(mcp_router);
 
     router = router.merge(
@@ -363,6 +389,9 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             .with_state(admin_state)
             .layer(middleware::from_fn_with_state(auth_state, authenticate_mcp)),
     );
+    if let Some(apps) = apps {
+        router = router.merge(apps.router());
+    }
     let router = router
         .layer(middleware::from_fn(
             veoveo_hub::request_observation::observe_request,
@@ -386,6 +415,31 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         None => tokio::net::TcpListener::bind(listen_address)
             .await
             .with_context(|| format!("listen on {listen_address}"))?,
+    };
+    // The Apps listener serves the sandbox proxy and nothing else: the listener, not a
+    // Host header, decides what answers.
+    let apps_serving = match (app_origins, apps_listen_address) {
+        (Some(origins), Some(address)) => {
+            let apps_listener = tokio::net::TcpListener::bind(address)
+                .await
+                .with_context(|| format!("listen for Apps on {address}"))?;
+            tracing::info!(
+                service = "veoveo-hub",
+                address = %apps_listener.local_addr()?,
+                sandbox = origins.sandbox(),
+                "apps listening"
+            );
+            let apps_router = veoveo_hub::apps::SandboxProxy::new(origins).router().layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
+            );
+            let stop = ct.clone();
+            Some(tokio::spawn(std::future::IntoFuture::into_future(
+                axum::serve(apps_listener, apps_router)
+                    .with_graceful_shutdown(async move { stop.cancelled().await }),
+            )))
+        }
+        _ => None,
     };
     tracing::info!(
         service = "veoveo-hub",
@@ -448,6 +502,11 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         selection_watcher.await?;
         control_watcher.await?;
         registration_housekeeping.await?;
+        if let Some(apps_serving) = apps_serving
+            && let Err(error) = apps_serving.await?
+        {
+            tracing::warn!(%error, "the Apps listener ended with an error");
+        }
         Ok::<(), tokio::task::JoinError>(())
     })
     .await;

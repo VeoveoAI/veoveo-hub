@@ -202,6 +202,18 @@ struct ServeArgs {
     /// Accept loopback Host headers in addition to the issuer's host.
     #[arg(long, env = "VEOVEO_ALLOW_LOOPBACK_HOSTS", default_value_t = false)]
     allow_loopback_hosts: bool,
+    /// The public origin of the Apps sandbox proxy, `sandbox.{apps domain}`, such as
+    /// `https://sandbox.apps.veoveo.example`. Without it the Hub hosts no App.
+    #[arg(long, env = "VEOVEO_APPS_SANDBOX_ORIGIN")]
+    apps_sandbox_origin: Option<veoveo_hub::apps::SandboxOrigin>,
+    /// Socket address of the Apps listener, which serves only the sandbox proxy; bound
+    /// only with a sandbox origin.
+    #[arg(
+        long,
+        env = "VEOVEO_APPS_LISTEN_ADDRESS",
+        default_value = "127.0.0.1:8081"
+    )]
+    apps_listen_address: std::net::SocketAddr,
     /// Installation connectivity.
     #[arg(
         long,
@@ -319,6 +331,8 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         refresh_delivery_key_b64,
         refresh_delivery_window_seconds,
         allow_loopback_hosts,
+        apps_sandbox_origin,
+        apps_listen_address,
         connectivity_mode,
         audit_retention_days,
         audit_signing_key_b64,
@@ -365,6 +379,7 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         refresh_delivery_cipher,
         refresh_delivery_window,
         allow_loopback_hosts,
+        apps: apps_sandbox_origin.map(|sandbox| (sandbox, apps_listen_address)),
         offline_mode: connectivity_mode == ConnectivityMode::Offline,
         audit_retention_days,
         audit_signing_key,

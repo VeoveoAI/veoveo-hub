@@ -151,6 +151,17 @@ impl Hub {
         hub
     }
 
+    /// The fields of every JSON log event the Hub wrote whose message is `message`.
+    pub fn logged(&self, message: &str) -> Vec<serde_json::Value> {
+        std::fs::read_to_string(&self.log)
+            .unwrap_or_default()
+            .lines()
+            .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+            .map(|event| event.get("fields").cloned().unwrap_or(event))
+            .filter(|fields| fields["message"] == message)
+            .collect()
+    }
+
     /// Restart this fixture's owned process with the same seed, database and keys.
     pub async fn restart(&mut self) {
         self.child.kill().await.unwrap();
