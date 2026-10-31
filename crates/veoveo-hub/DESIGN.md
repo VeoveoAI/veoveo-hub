@@ -168,6 +168,7 @@ each registration's login and creates each data environment's database. The othe
 | `VEOVEO_ALLOW_LOOPBACK_HOSTS` | Accept loopback `Host` headers beside the issuer's host |
 | `VEOVEO_APPS_SANDBOX_ORIGIN` | Optional: the public origin of the Apps sandbox proxy, such as `https://sandbox.apps.veoveo.example`; without it the Hub hosts no App ([Apps host](#apps-host)) |
 | `VEOVEO_APPS_LISTEN_ADDRESS` | The socket address of the Apps listener, which serves only the sandbox proxy, `127.0.0.1:8081` by default; bound only with `VEOVEO_APPS_SANDBOX_ORIGIN` |
+| `VEOVEO_APPS_LISTENS_PER_SESSION` | The most open live-resource listens of one browser session on a replica, 8 by default ([live resources](#live-resources)) |
 
 The configuration's `secrets` section names the remaining secrets, such as the
 registration secret and the hosted authorization server's signing key, by
@@ -948,6 +949,7 @@ the person sees now:
 | `tools/call` | The SDK's `resolve_app_tool` finds the name for this App: a tool of the App's own server whose `_meta.ui` links it to this exact App with a visibility that includes `app` | `tools/call` of `{slug}__{name}` |
 | `resources/read` | The URI is the App's own server's: its scheme is the slug, or it starts with `ui://{slug}/` | `resources/read` |
 | `tasks/get`, `tasks/update`, `tasks/cancel` | Always; the Hub's Task routes admit only the person's own Tasks | The same request |
+| `subscriptions/listen` | It names only `resourceSubscriptions`, each of them the App's own server's ([live resources](#live-resources)) | The same request, answered with an event stream |
 | `ping` | Always | Answered by the bridge |
 
 Another method answers `-32601`; a refused tool or resource answers `-32602` naming
@@ -975,9 +977,47 @@ the reason, logged at INFO, and reaches no server.
   App's policy, whose `script-src` and `style-src` allow `'unsafe-inline'`. Its frame
   is `allow-scripts` only, so its forms do not submit.
 
-Known limit: the host serves no reactive adapter. A view's `subscriptions/listen`
-answers `-32601`, so a reactive view reads current state through ordinary requests
-and receives no `ui/notifications/resource-updated` wake.
+### Live Resources
+
+MCP Apps `2026-01-26` lets a host forward a view's methods outside `ui/`, and the host
+forwards MCP's own `subscriptions/listen`: nothing is added to the `ui/` namespace. A
+view sends it to its bridge, `POST /apps/{slug}/{page}`, as every request, and the
+answer is the listen's stream, `text/event-stream` with one event per JSON-RPC message.
+The bridge route carries it because a POST answered by an event stream is MCP's own
+Streamable HTTP pattern, the one the Hub's endpoint answers a listen with; because that
+route already holds the session, exact-`Origin` and size checks; and because a page may
+itself end in any segment, so no suffix route such as `…/listen` names one App. The
+host page reads the stream with `fetch`, since `EventSource` cannot POST.
+
+- **Admission.** The App is in the person's catalog, and `params.notifications` names
+  `resourceSubscriptions` and nothing else: 1 to 64 URIs, each the App's own server's
+  by the rule of `resources/read`. A listen for list changes or Tasks, or for another
+  server's resource, answers `-32602` and reaches no server.
+- **Forwarding.** The bridge sends the listen, with the view's own request `id`, to the
+  Hub's `/mcp/{computers.profile}` in process as the person, as it sends every request,
+  so the profile's ordinary listen serves it: resource policy, the upstream listens on
+  the selected deployments, URI projection, and completion with a hint when the catalog
+  or the person's selection changes. Its bearer lives 15 minutes, the longest a
+  listen's forwarded token lives, and never beyond the session's refresh family.
+- **Relay.** Each message of the endpoint's stream becomes one event whose data is the
+  message's JSON text unchanged: `notifications/subscriptions/acknowledged`, each
+  `notifications/resources/updated` `{"uri": …}`, and the listen's final response, all
+  of which name the view's request. A listen the endpoint refuses answers JSON, as any
+  bridge request does. A comment every 15 seconds keeps the stream open through
+  proxies. A notification carries no domain state: the view reads current state through
+  an ordinary `resources/read`.
+- **Limits.** One browser session, its refresh family, holds at most
+  `VEOVEO_APPS_LISTENS_PER_SESSION` open listens on a replica, 8 by default; one more
+  answers 429 and reaches no server. The bridge reads the session again every five
+  seconds, under the five-second read bound of Computer streams, and ends the stream
+  when the session no longer admits, as after a logout or a refresh-token replay, or
+  when the listen's bearer expires. It then sends one final JSON-RPC error naming the
+  listen and why, and the view may listen again.
+- **Teardown.** The host page delivers the stream's messages into the frame unchanged,
+  and only after `ui/notifications/initialized`. It ends the stream, by aborting the
+  fetch, when the view sends `notifications/cancelled` naming the listen, when it tears
+  the App down, and when the page goes away. Ending the stream drops the in-process
+  listen, which ends its upstream listens on the servers.
 
 ## HTTP Surface
 
@@ -1002,7 +1042,7 @@ and receives no `ui/notifications/resource-updated` wake.
 | `POST /ucs.auth.RebacApi/CreateResource` | gRPC: registers the repository Lore is about to create, its creator its owner |
 | `POST /ucs.auth.RebacApi/DeleteResource` | gRPC: removes the repository Lore is about to delete, when an owner deletes it |
 | `GET /apps/{slug}/{page}` | The host page of the App `ui://{slug}/{page}` for the browser session ([Apps host](#apps-host)) |
-| `POST /apps/{slug}/{page}` | That App's bridge: one JSON-RPC request of its view, run as the person |
+| `POST /apps/{slug}/{page}` | That App's bridge: one JSON-RPC request of its view, run as the person; a `subscriptions/listen` answers with its event stream |
 | `GET /apps/host.js` | The host page's script |
 
 Every route except the probes requires a `Host` header naming the issuer's host.
