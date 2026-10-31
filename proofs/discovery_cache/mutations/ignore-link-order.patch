@@ -1,0 +1,53 @@
+--- a/crates/veoveo-hub/src/mcp/discovery.rs
++++ b/crates/veoveo-hub/src/mcp/discovery.rs
+@@ -18,7 +18,7 @@
+ const DISCOVERY_CHANGE_BUFFER: usize = 256;
+ const DISCOVERY_SETTLE_BUDGET: Duration = Duration::from_secs(2);
+ 
+-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
++#[derive(Debug, Clone, PartialEq, Eq)]
+ pub(super) struct DiscoveryCacheKey {
+     pub(super) catalog_generation: u64,
+     pub(super) principal: PrincipalId,
+@@ -27,6 +27,41 @@
+     /// The link whose runner serves the server, when it is linked: each runner lists its
+     /// own descriptors.
+     pub(super) link: Option<veoveo_hub_sdk::hub::LinkName>,
++}
++
++
++impl Ord for DiscoveryCacheKey {
++    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
++        match self.catalog_generation.cmp(&other.catalog_generation) {
++            std::cmp::Ordering::Equal => match self.principal.cmp(&other.principal) {
++                std::cmp::Ordering::Equal => match self
++                    .authorization_fingerprint
++                    .cmp(&other.authorization_fingerprint)
++                {
++                    std::cmp::Ordering::Equal => match self.server.cmp(&other.server) {
++                        std::cmp::Ordering::Equal => {
++                            // Retain the actual dependency; deliberately discard its distinction.
++                            match self.link.cmp(&other.link) {
++                                std::cmp::Ordering::Less => std::cmp::Ordering::Equal,
++                                std::cmp::Ordering::Equal => std::cmp::Ordering::Equal,
++                                std::cmp::Ordering::Greater => std::cmp::Ordering::Equal,
++                            }
++                        }
++                        order => order,
++                    },
++                    order => order,
++                },
++                order => order,
++            },
++            order => order,
++        }
++    }
++}
++
++impl PartialOrd for DiscoveryCacheKey {
++    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
++        Some(self.cmp(other))
++    }
+ }
+ 
+ /// Keep the upstream identity beside the projected descriptor. Server-owned

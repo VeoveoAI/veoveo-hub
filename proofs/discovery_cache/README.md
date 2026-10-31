@@ -7,7 +7,21 @@ The [current qualification](evidence/current-linked-cache-proofs-20261031.json)
 checks four model modules, all nine proof modules and 103 executable axiom guards.
 It extends the earlier `688b91a` graph with the optional link and actual identifier
 wrapper derives. Earlier receipts and timings below remain evidence for their named
-source; current-source link fault controls are a separate pending check.
+source. The [link-order control](evidence/link-order-control-20261031.json) now
+qualifies the new key distinction with an actual Rust fault and exact restoration.
+
+The control keeps all key fields but deliberately makes `Ord` ignore the link's
+comparison result. The unchanged native regression observes one link's complete
+descriptor replacing another's and invalidation losing the other's pending result.
+A fresh generated model compiles; an independent Funs-only witness proves unequal
+present-link keys compare equal. The unchanged `key_comparison_exact` rejects that
+result. Its failed OLean is absent; cascading audit errors are not counted as
+additional failures. The first witness attempt had two unavailable lemma names;
+only its tactics were corrected, without changing statements, guards or models.
+Same-tree reversal restores all 1,144 source files and all four generated files
+exactly, then a fresh model and all nine original proof modules pass. The receipt
+retains both attempts, exact commands, output identities and the native assertion.
+This is a deliberate fault control, not a new production bug or deployment.
 
 The first proof leaf covers complete cached reads, cached-only removal, and full key
 invalidation. Its independent observations retain entire payloads and denied counts.

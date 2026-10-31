@@ -1,0 +1,1355 @@
+{
+  "agents": {
+    "execution": "GPT-6 Luna",
+    "proof_author": "GPT-6.1 Sol",
+    "review": "GPT-6 Astra"
+  },
+  "authoring_failure": {
+    "cause": "Two unavailable compare_self lemma names. Model compiled; independent witness failed, so unchanged KeyFrame was not attempted.",
+    "correction": "Only witness tactics: use typed principal/server reflexivity from compare_eq_iff_eq. No changed statements, imports, audits, Rust, generated model or external primitives.",
+    "run": {
+      "borrowed_dependency_packages_only": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/cache-key-frame-check1/source/.lake/packages",
+      "complete": false,
+      "effective_source_map": {
+        "canonical_sha256": "2b834771c0b014f5050075c5e808f092603d8fe8c73d5b3a76b4e4d101839674",
+        "checked_files": "All frozen package files and actual copied raw overlays; before/after maps retained beside the phase summary.",
+        "entries": 37
+      },
+      "extraction_summary_sha256": "14f47840b085ab102fe52931a8e03a4266f74cbd0a4bae756bc7cfef120d7aaf",
+      "independent_bad_comparison_witness_pass": false,
+      "initial_own_build_artifacts": {},
+      "phase": "mutant",
+      "primary_olean_outputs": {
+        "HubDiscoveryCacheState/Funs.olean": {
+          "bytes": 176864,
+          "sha256": "63a7b330eee0a52e8e44d19b93767a39cec820bf208f5c2033478e3204fbe1b9"
+        },
+        "HubDiscoveryCacheState/FunsExternal.olean": {
+          "bytes": 209752,
+          "sha256": "b90f0b57b77ddcbb6f8d53b6537e4c46e02219a04766aae5bba893520ec6ecd1"
+        },
+        "HubDiscoveryCacheState/Types.olean": {
+          "bytes": 169624,
+          "sha256": "9050fc08e9847e63cdb37bed73a287359ab7fab0db38128631de01d14e638d37"
+        },
+        "HubDiscoveryCacheState/TypesExternal.olean": {
+          "bytes": 82896,
+          "sha256": "a7c283620d84fe6a16c391bb045de434fdc5828ed112c75ac07bfb1e4f330775"
+        }
+      },
+      "proof_manifest_sha256": "8daf35151e14a93eeef83732f2efed2ec5c0316e866223e0de2e21dbe7c87fba",
+      "source_package": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-lean/source",
+      "stages": [
+        {
+          "argv": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "HubDiscoveryCacheState"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-lean/source",
+          "elapsed_ms": 12855,
+          "exit": 0,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-lean/evidence/model-build.log",
+          "log_bytes": 288,
+          "log_sha256": "1564dad83e27eea4cf941cc5561637bb25e8cb1181ac85bed87082a5df7baf28",
+          "stage": "model-build",
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "CacheLinkOrderFaultWitness.lean",
+            "-o",
+            ".lake/build/lib/lean/CacheLinkOrderFaultWitness.olean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-lean/source",
+          "elapsed_ms": 3536,
+          "exit": 1,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-lean/evidence/CacheLinkOrderFaultWitness.log",
+          "log_bytes": 1965,
+          "log_sha256": "c4ebd73f3b1a86d30f793704046f92ffe64186b58950b9ca474f807beb73f248",
+          "stage": "CacheLinkOrderFaultWitness",
+          "timed_out": false
+        }
+      ],
+      "stopped_at": "independent-witness-authoring-or-interface",
+      "summary": {
+        "bytes": 14860,
+        "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/mutant-lean-mirror/summary.json",
+        "sha256": "47ddb9428f9c6a37ca25a756c0bff590f4e6197aaec1e92769e7cff1083df1f8"
+      }
+    }
+  },
+  "axiom_audit": {
+    "accepted_sorryAx": false,
+    "boundary_modules": [
+      "CacheCompleteProof",
+      "CacheStateInvariantProof",
+      "CacheHistoryProof"
+    ],
+    "existing_native_boundary": "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add",
+    "restored_guard_count": 103,
+    "review": "Actual logs independently audited. Builder initially called all restored leaves standard-only; root corrected that statement. No guard or primitive weakened.",
+    "standard": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "witness_guard_count": 3
+  },
+  "boundaries": [
+    "Model-relative implementation proof; standard-library collection/text/order/allocation/destructor correspondence and translator/compiler trust remain explicit.",
+    "Key construction/fingerprinting, parsing/admission, async locks/listeners, server-wide retain invalidation, pagination and SQL remain outside this control.",
+    "Full-key invalidation isolation does not promise cross-key write isolation under capacity eviction.",
+    "Native command durations include compilation; reported test-body time0.01s is not individual cache latency.",
+    "Native fixture and extraction source trees are separate; extraction never contains the test overlay.",
+    "Restored native binary hash differs from first baseline despite exact restored source: no reproducible binary claim.",
+    "No runtime changes, new auth checks, CI hooks, deployment, image publication or paid model calls. No fresh full native suite; prior c23 Mac/Linux result retains its own scope."
+  ],
+  "case": "Actual-source linked-cache comparison fault control",
+  "date": "2026-10-31",
+  "execution_packets": {
+    "CacheLinkOrderFaultWitness.lean": {
+      "bytes": 3451,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/CacheLinkOrderFaultWitness.lean",
+      "sha256": "3c624c6a123477f4318c35ab63f47b83fd1dbeaff2a3178866f4eb67ff4dabea"
+    },
+    "control.json": {
+      "bytes": 1820,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/control.json",
+      "sha256": "8fa1b00e7cbe55633e11b10df31947cf1151216ba6f65122a1c7226ebe255b4a"
+    },
+    "extraction-plan.json": {
+      "bytes": 22378,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/extraction-plan.json",
+      "sha256": "49d25e871821a29a99c3d3c13d63da85a33120908a113d4f7a1f7ccc36a25fa3"
+    },
+    "proof-inputs.json": {
+      "bytes": 7401,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/proof-inputs.json",
+      "sha256": "8daf35151e14a93eeef83732f2efed2ec5c0316e866223e0de2e21dbe7c87fba"
+    },
+    "run-extraction.py": {
+      "bytes": 30406,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/run-extraction.py",
+      "sha256": "186bae893ce4c4eaa0f9625fc67b39bb589c53c6dd80eb9e59637971978c9dd6"
+    },
+    "run-lean.py": {
+      "bytes": 7798,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/run-lean.py",
+      "sha256": "ddae479b616f2fa02546c4fe3587d512f9bdac6a3061a5d70a18bf1ea8921c88"
+    },
+    "run-native.py": {
+      "bytes": 6249,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/run-native.py",
+      "sha256": "6e66126ff62b331c0c978ba8235e4c7db80e8a44bb136ba472c5a4ab92f7eb02"
+    },
+    "witness-retry2/CacheLinkOrderFaultWitness.lean": {
+      "bytes": 3710,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/CacheLinkOrderFaultWitness.lean",
+      "sha256": "61cb7f5c253b4e22c307cfdaacb31756d8621400a0006892baf94b791c8385f5"
+    },
+    "witness-retry2/proof-inputs.json": {
+      "bytes": 7401,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/proof-inputs.json",
+      "sha256": "8d1d6252386a01d7cca7fd16458f754b60a3550d8747ae4cc350448d7a979571"
+    },
+    "witness-retry2/run-lean.py": {
+      "bytes": 7815,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/run-lean.py",
+      "sha256": "41dcf9ed566bd617f30c5d438b5ba34ede2e708c4053074ae45a62546c856839"
+    }
+  },
+  "fault": "Keep all five key fields and first four comparisons. Compute optional-link comparison, then deliberately map every result to Equal. PartialOrd delegates to this Ord. This injected defect is not a production bug or deployed change.",
+  "lean_toolchain": {
+    "lake": "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+    "note": "Only qualified dependency packages reused, with existing documented instance-naming adjustment. Own model/leaf artifacts fresh on every attempt. No new backend patch.",
+    "private_lakefile_sha256": "ec24f002e4aa4e1c4c6986b8443f4566752f2855d8cae27fa2e07115181c071b",
+    "private_manifest_sha256": "2bbd5afa9c8e51f8033f5715cc74818997fd2640f1cff10b2dc85d165228ed23",
+    "qualified_aeneas_root": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/aeneas/backends/lean"
+  },
+  "mutant_extraction": {
+    "control": {
+      "same_tree_source": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+      "source_map_file_sha256": "73d21415ce04740a91229a6e4c593243b439355e7fa51ef86cdff0d8ae897ce3",
+      "source_map_sha256": "be72129bb863fd0699b8351660c47d181e045188809970bb43bca39a474fe552",
+      "source_override": {
+        "crates/veoveo-hub/src/mcp/discovery.rs": "d8eb23400b33bb503b973bb3ab578c9b2b56edf9739eb7879448af7b9d2e0e15"
+      }
+    },
+    "inventory": {
+      "bytes": 1118059,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction-mirror/llbc-inventory.json",
+      "sha256": "355b57a19eb5de0787b1a6925c2e214a3cf650a7bd29f89121cabedd558a8830"
+    },
+    "llbc": {
+      "bytes": 1395277,
+      "charon_version": "0.1.293",
+      "decl_counts": {
+        "fun_decls": 174,
+        "global_decls": 51,
+        "trait_decls": 17,
+        "trait_impls": 93,
+        "type_decls": 38
+      },
+      "has_errors": false,
+      "inventory_gate_pass": true,
+      "path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction/outputs/surface_state.llbc",
+      "sha256": "43e8c513726d9952551e5e30f400a1e54db31923dd710cf897cf798a0392676a"
+    },
+    "phase": "mutant",
+    "raw4": {
+      "Funs.lean": {
+        "accepted_sha256": "1195e6aefd0393a29dbf36baeaefa69c209f7e3c20af5ea46f3c455e7d07d599",
+        "byte_identical": false,
+        "bytes": 46862,
+        "diff_sha256": "5ab0bce52306166d426ef9ff6b85442b8104042b8a1dda4e50c702d4dcfb67fa",
+        "sha256": "096a8c57c5307f5ca35e61606dcc624a73660938b1981313062423c519e502da"
+      },
+      "FunsExternal_Template.lean": {
+        "accepted_sha256": "0621bf0af51ce4e447340abe9d3ee0202373173bb46903ea43057659862287e9",
+        "byte_identical": true,
+        "bytes": 14462,
+        "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256": "0621bf0af51ce4e447340abe9d3ee0202373173bb46903ea43057659862287e9"
+      },
+      "Types.lean": {
+        "accepted_sha256": "415ffe7521bc4d17be4465ca28d3d99f987d26c252a2fabf97cdc9d9f5a1e55f",
+        "byte_identical": false,
+        "bytes": 4919,
+        "diff_sha256": "727ee629a6d8fdfc28ff85c4e1578d885f40617131ad3713f8a9f0e9ceeeecf4",
+        "sha256": "791653fd49d54a910ab2076d1cae36add45d56691e3646f03f9c2124fb8a6840"
+      },
+      "TypesExternal_Template.lean": {
+        "accepted_sha256": "a99c04974ae9c7f974e8773ee3e93d8b9a421123bbbd83929650abf38464a2a7",
+        "byte_identical": true,
+        "bytes": 1911,
+        "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256": "a99c04974ae9c7f974e8773ee3e93d8b9a421123bbbd83929650abf38464a2a7"
+      }
+    },
+    "selector_counts": {
+      "expected_generated_local_helpers": "not a gate; inventory all actual helpers",
+      "include_selectors": 36,
+      "opaques": 0,
+      "starts": 5,
+      "transparent_root_methods": 5
+    },
+    "source": {
+      "cargo_lock_sha256": "ae4364822a7c5f8c9847df4b1d5681fe2a68c2b1ecc56ab13df6c7037f6f1d41",
+      "cargo_toml_sha256": "61044a1397e6042c4d1fd8216ead08d063ebe62919f189bf7b72054656703588",
+      "final_map_verified": true,
+      "hub_archive_sha256": "6f5b7071e582ddf9c15316b6639469e9e604557c57c28e3c8938c28df824a9e6",
+      "hub_file_count": 1144,
+      "hub_manifest_sha256": "7d655f5765e13827024f85ea21e9df4bb747a2fb448f8a26708db56c408f0b5f",
+      "hub_source_map_verified": true,
+      "metadata_stage_elapsed_ms": 1358,
+      "root": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+      "sdk_checkout_root": "/home/rozgo/.cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f",
+      "sdk_manifest_file_count": 178,
+      "sdk_tracked_map_verified": true
+    },
+    "stages": [
+      {
+        "argv": [
+          "patch",
+          "-p1",
+          "-i",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/fault.patch"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+        "elapsed_ms": 8,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction/logs/apply-fault.log",
+        "log_bytes": 53,
+        "log_sha256": "ba513809a3b467e3d04da7d6be091e45e62e1745afd74e19b518aa7dc1e0a3bd",
+        "stage": "apply-fault",
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "metadata",
+          "--locked",
+          "--offline",
+          "--format-version",
+          "1",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+        "elapsed_ms": 965,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction/logs/verify-source-pin-metadata.log",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "verify-source-pin-metadata",
+        "stdout_bytes": 3043054,
+        "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction/cargo-metadata.json",
+        "stdout_sha256": "0164c457e5a3308be6ff4a881441944028d152df4a1a7c5e88f3ddcf51bc2767",
+        "timed_out": false,
+        "timeout_seconds": 180
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "clean",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+        "elapsed_ms": 164,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction/logs/clean-hub-charon-target.log",
+        "log_bytes": 21,
+        "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+        "stage": "clean-hub-charon-target",
+        "timed_out": false,
+        "timeout_seconds": 120
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+          "cargo",
+          "--sysroot",
+          "default",
+          "--preset=aeneas",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::cached",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::start",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::complete",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::remove_cached",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::discard_key",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::cached",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::start",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::complete",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::remove_cached",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::discard_key",
+          "--include",
+          "veoveo_hub::mcp::discovery::DiscoveryCacheKey",
+          "--include",
+          "veoveo_hub::mcp::discovery::DiscoveryFetch",
+          "--include",
+          "veoveo_hub::mcp::discovery::AdmittedCatalog",
+          "--include",
+          "veoveo_hub::mcp::discovery::CachedItems",
+          "--include",
+          "veoveo_hub::mcp::discovery::SurfaceState",
+          "--include",
+          "veoveo_hub::mcp::discovery::MAX_CACHE_ENTRIES_PER_SURFACE",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::start::_::call_once",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::complete::_::call_once",
+          "--include",
+          "{impl core::clone::Clone for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::cmp",
+          "--include",
+          "veoveo_hub_sdk::protocol::PRIVATE_CATALOG_TTL_MS",
+          "--include",
+          "veoveo_hub_sdk::hub::tool_name::LinkName",
+          "--include",
+          "{impl core::clone::Clone for veoveo_hub_sdk::hub::tool_name::LinkName}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_hub_sdk::hub::tool_name::LinkName}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_hub_sdk::hub::tool_name::LinkName}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_hub_sdk::hub::tool_name::LinkName}::cmp",
+          "--include",
+          "{impl core::cmp::Eq for veoveo_hub_sdk::hub::tool_name::LinkName}::assert_fields_are_eq",
+          "--include",
+          "veoveo_types::identity::PrincipalId",
+          "--include",
+          "{impl core::clone::Clone for veoveo_types::identity::PrincipalId}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_types::identity::PrincipalId}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_types::identity::PrincipalId}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_types::identity::PrincipalId}::cmp",
+          "--include",
+          "{impl core::cmp::Eq for veoveo_types::identity::PrincipalId}::assert_fields_are_eq",
+          "--include",
+          "veoveo_types::platform_names::ServerSlug",
+          "--include",
+          "{impl core::clone::Clone for veoveo_types::platform_names::ServerSlug}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_types::platform_names::ServerSlug}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_types::platform_names::ServerSlug}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_types::platform_names::ServerSlug}::cmp",
+          "--include",
+          "{impl core::cmp::Eq for veoveo_types::platform_names::ServerSlug}::assert_fields_are_eq",
+          "--dest-file",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction/outputs/surface_state.llbc",
+          "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+          "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+          "--",
+          "--manifest-path",
+          "crates/veoveo-hub/Cargo.toml",
+          "--lib",
+          "--locked"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+        "elapsed_ms": 30320,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction/logs/charon-five-state-roots.log",
+        "log_bytes": 4871,
+        "log_sha256": "ad5e3286e36a8a20c28c334f7e9893f83c6a23f750d11e343426b75129a754e4",
+        "stage": "charon-five-state-roots",
+        "timed_out": false,
+        "timeout_seconds": 600
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+          "-namespace",
+          "HubDiscoveryCacheModel",
+          "-subdir",
+          "HubDiscoveryCacheState",
+          "-backend",
+          "lean",
+          "-filter-trait-methods",
+          "-split-files",
+          "-dest",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction/outputs",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction/outputs/surface_state.llbc"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+        "elapsed_ms": 1268,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction/logs/aeneas-five-state-translation.log",
+        "log_bytes": 3599,
+        "log_sha256": "31517b05420baafaade8b5b27017e970fffc7a2abca61b3fa413501613e30ea6",
+        "stage": "aeneas-five-state-translation",
+        "timed_out": false,
+        "timeout_seconds": 600
+      }
+    ],
+    "summary": {
+      "bytes": 382259,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/mutant-extraction-mirror/summary.json",
+      "sha256": "14f47840b085ab102fe52931a8e03a4266f74cbd0a4bae756bc7cfef120d7aaf"
+    },
+    "transparent_own_function_count": 37
+  },
+  "mutant_lean": {
+    "borrowed_dependency_packages_only": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/cache-key-frame-check1/source/.lake/packages",
+    "complete": true,
+    "effective_source_map": {
+      "canonical_sha256": "dda8c7c4ad9060a2dbed6cb0a961ec7d9890e42945c60716e42b6b11c33edd73",
+      "checked_files": "All frozen package files and actual copied raw overlays; before/after maps retained beside the phase summary.",
+      "entries": 37
+    },
+    "expected_target_rejected_candidate": true,
+    "extraction_summary_sha256": "14f47840b085ab102fe52931a8e03a4266f74cbd0a4bae756bc7cfef120d7aaf",
+    "failed_target_olean_absent": true,
+    "independent_bad_comparison_witness_pass": true,
+    "initial_own_build_artifacts": {},
+    "phase": "mutant",
+    "primary_olean_outputs": {
+      "CacheLinkOrderFaultWitness.olean": {
+        "bytes": 243936,
+        "sha256": "2931734d813dcaa23f20a2bf3661d9881701c645fb0dcf29d801230845351f0a"
+      },
+      "HubDiscoveryCacheState/Funs.olean": {
+        "bytes": 176880,
+        "sha256": "4d06129114f92f3ac6ae997947ea03227f549d8020a064ee39d107375d2a457a"
+      },
+      "HubDiscoveryCacheState/FunsExternal.olean": {
+        "bytes": 209768,
+        "sha256": "483592dd1695d19cc4cdc5eb8e764c6b953ebae95b4915f4a94780080d218e88"
+      },
+      "HubDiscoveryCacheState/Types.olean": {
+        "bytes": 169640,
+        "sha256": "8bcde2b84dde20e7ef4ab98306bb11dfa8ad267703c857f29817882f740ed072"
+      },
+      "HubDiscoveryCacheState/TypesExternal.olean": {
+        "bytes": 82912,
+        "sha256": "68ac5f97a2d8f44bbdf2f2cb3e0bcb2e8dd58b00b7f86482c4bd44624185da30"
+      }
+    },
+    "proof_manifest_sha256": "8d1d6252386a01d7cca7fd16458f754b60a3550d8747ae4cc350448d7a979571",
+    "source_package": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/mutant-lean/source",
+    "stages": [
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build",
+          "HubDiscoveryCacheState"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/mutant-lean/source",
+        "elapsed_ms": 8648,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/mutant-lean/evidence/model-build.log",
+        "log_bytes": 288,
+        "log_sha256": "690de694b5eae5cc2cd6b3ed5895cf9341383676999349520eff7c55f3dc1473",
+        "stage": "model-build",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheLinkOrderFaultWitness.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheLinkOrderFaultWitness.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/mutant-lean/source",
+        "elapsed_ms": 3277,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/mutant-lean/evidence/CacheLinkOrderFaultWitness.log",
+        "log_bytes": 2345,
+        "log_sha256": "7304d8604d8377cb281f46d26d5ff4c07ab78af0688c5c8164e85b7ce670fffb",
+        "stage": "CacheLinkOrderFaultWitness",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheKeyFrameProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheKeyFrameProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/mutant-lean/source",
+        "elapsed_ms": 2882,
+        "exit": 1,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/mutant-lean/evidence/CacheKeyFrameProof.log",
+        "log_bytes": 8018,
+        "log_sha256": "adb919061b486731c4013e4122f7558a542ce8c6fb55937eaf47dab110e20278",
+        "stage": "CacheKeyFrameProof",
+        "timed_out": false
+      }
+    ],
+    "stopped_at": "CacheKeyFrameProof",
+    "summary": {
+      "bytes": 15916,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/witness-retry2/mutant-lean-mirror/summary.json",
+      "sha256": "94d7fe222cbcb0b112657a1827fb3b4fb6abc1e4171aece8c7b7edb892820cf2"
+    }
+  },
+  "native": {
+    "case": "link-order-ignore-link",
+    "classification": "Root must review intended final aggregate failure; compilation/setup errors do not qualify.",
+    "complete": true,
+    "control_sha256": "8fa1b00e7cbe55633e11b10df31947cf1151216ba6f65122a1c7226ebe255b4a",
+    "expected_assertion_observed": true,
+    "fault_patch_sha256": "82afae93730c333e800e725e7e1960b03450eb10d81e69f2f22a6795d689d7d6",
+    "fixture_map_sha256": "b78936687e79bb142bf11df14b24b1b71068cac1d7633a7ae64b4abb900a2955",
+    "fixture_source_exactly_restored": true,
+    "native_test_overlay_sha256": "602fe2dc1dd8399bf1570b16c7e5e4989203a111d10dd21aa39cac76eeac6a1e",
+    "pristine_map_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+    "restored_fixture_map_sha256": "b78936687e79bb142bf11df14b24b1b71068cac1d7633a7ae64b4abb900a2955",
+    "restored_native_pass": true,
+    "reviewed_outcome": "Baseline stores first/denied5 and second/denied17, keeps second when first is invalidated, then accepts second replacement/denied23. Mutant first read aliases second/17; after first invalidation the second cached read is None and remains None after finishing its pending fetch. The unchanged final aggregate assertion fails. Same-source reversal restores passing behavior; compiler/setup failure is not counted.",
+    "single_selected_test_failed": true,
+    "source_files": 1144,
+    "source_root": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-source",
+    "stages": [
+      {
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-source/Cargo.toml",
+          "--lib",
+          "mcp::discovery::tests::distinct_link_cache_entries_and_tickets_survive_key_invalidation",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-source",
+        "elapsed_ms": 36434,
+        "executed_binary": {
+          "bytes": 177796488,
+          "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-b10e884bd78a5830",
+          "sha256": "dcb3e1d09c457fd04ba911afc400cb457d57dc35143332832b532c55e1d3d708"
+        },
+        "exit": 0,
+        "log_bytes": 551,
+        "log_path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-evidence/logs/baseline-native-regression.log",
+        "log_sha256": "dee1ed118b074a9a53c92c9a2b76e2230e2202984d879c1c6e01a17ba66148f0",
+        "stage": "baseline-native-regression",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "patch",
+          "-p1",
+          "-i",
+          "/tmp/hub-discovery-cache-current-20261031/link-order-control1/fault.patch"
+        ],
+        "cwd": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-source",
+        "elapsed_ms": 8,
+        "exit": 0,
+        "log_bytes": 55,
+        "log_path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-evidence/logs/apply-fault.log",
+        "log_sha256": "b1c927529ad0ebcaf1ad6c99c7aef06343bb62c8c261de9c75047c0ed7912f07",
+        "stage": "apply-fault",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-source/Cargo.toml",
+          "--lib",
+          "mcp::discovery::tests::distinct_link_cache_entries_and_tickets_survive_key_invalidation",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-source",
+        "elapsed_ms": 25052,
+        "executed_binary": {
+          "bytes": 177796520,
+          "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-b10e884bd78a5830",
+          "sha256": "3b772643509aa0ae11519f899042484c3a2cef152c49885695dee02399824496"
+        },
+        "exit": 101,
+        "log_bytes": 2406,
+        "log_path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-evidence/logs/mutant-native-regression.log",
+        "log_sha256": "1088dd3782d224e328b3dac561c282904356073557a9e0430746053861022dad",
+        "stage": "mutant-native-regression",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "patch",
+          "-R",
+          "-p1",
+          "-i",
+          "/tmp/hub-discovery-cache-current-20261031/link-order-control1/fault.patch"
+        ],
+        "cwd": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-source",
+        "elapsed_ms": 6,
+        "exit": 0,
+        "log_bytes": 55,
+        "log_path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-evidence/logs/reverse-same-fault.log",
+        "log_sha256": "b1c927529ad0ebcaf1ad6c99c7aef06343bb62c8c261de9c75047c0ed7912f07",
+        "stage": "reverse-same-fault",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-source/Cargo.toml",
+          "--lib",
+          "mcp::discovery::tests::distinct_link_cache_entries_and_tickets_survive_key_invalidation",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-source",
+        "elapsed_ms": 24905,
+        "executed_binary": {
+          "bytes": 177796488,
+          "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-b10e884bd78a5830",
+          "sha256": "d4909e49386d2b78b88c4e735639436dd10436876ab7123bab0220e53ff56797"
+        },
+        "exit": 0,
+        "log_bytes": 551,
+        "log_path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-evidence/logs/restored-native-regression.log",
+        "log_sha256": "bec9430a3f3364e5aaa11d79432a3dd836602cda46f9dfcdd3d6c0ea59b4ef60",
+        "stage": "restored-native-regression",
+        "timed_out": false
+      }
+    ],
+    "summary_identity": {
+      "bytes": 6182,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/native-evidence/summary.json",
+      "sha256": "64e46eec37636292d1893377238f74264516a67dbb384d304e1e8cbd6a9c12d0"
+    },
+    "timing_scope": "Cargo command elapsed time includes compilation; it is not cache operation latency.",
+    "toolchain": "1.99.0-aarch64-apple-darwin",
+    "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target"
+  },
+  "raw_diff_review": "Only semantic generated change is key Ord mapping link lt/eq/gt to Equal. Types and other Funs changes are source positions. Both external templates remain byte-identical.",
+  "restored_extraction": {
+    "control": {
+      "same_tree_source": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+      "source_map_file_sha256": "1b51464e6fd06d14e9bb2558191399607ee96a48d5370aabee8a3e29fb14a93c",
+      "source_map_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+      "source_override": {}
+    },
+    "inventory": {
+      "bytes": 1118051,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction-mirror/llbc-inventory.json",
+      "sha256": "e779cbe6281851560c895bd1740b78f8522fdb055be6a627adfdc9f693c98f59"
+    },
+    "llbc": {
+      "bytes": 1388028,
+      "charon_version": "0.1.293",
+      "decl_counts": {
+        "fun_decls": 174,
+        "global_decls": 51,
+        "trait_decls": 17,
+        "trait_impls": 93,
+        "type_decls": 38
+      },
+      "has_errors": false,
+      "inventory_gate_pass": true,
+      "path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction/outputs/surface_state.llbc",
+      "sha256": "c22486fe0c6f15e913d338555cb1d1f1ff70bfc72e3a8b34207e886ed9173087"
+    },
+    "phase": "restored",
+    "raw4": {
+      "Funs.lean": {
+        "accepted_sha256": "1195e6aefd0393a29dbf36baeaefa69c209f7e3c20af5ea46f3c455e7d07d599",
+        "byte_identical": true,
+        "bytes": 46691,
+        "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256": "1195e6aefd0393a29dbf36baeaefa69c209f7e3c20af5ea46f3c455e7d07d599"
+      },
+      "FunsExternal_Template.lean": {
+        "accepted_sha256": "0621bf0af51ce4e447340abe9d3ee0202373173bb46903ea43057659862287e9",
+        "byte_identical": true,
+        "bytes": 14462,
+        "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256": "0621bf0af51ce4e447340abe9d3ee0202373173bb46903ea43057659862287e9"
+      },
+      "Types.lean": {
+        "accepted_sha256": "415ffe7521bc4d17be4465ca28d3d99f987d26c252a2fabf97cdc9d9f5a1e55f",
+        "byte_identical": true,
+        "bytes": 4912,
+        "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256": "415ffe7521bc4d17be4465ca28d3d99f987d26c252a2fabf97cdc9d9f5a1e55f"
+      },
+      "TypesExternal_Template.lean": {
+        "accepted_sha256": "a99c04974ae9c7f974e8773ee3e93d8b9a421123bbbd83929650abf38464a2a7",
+        "byte_identical": true,
+        "bytes": 1911,
+        "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256": "a99c04974ae9c7f974e8773ee3e93d8b9a421123bbbd83929650abf38464a2a7"
+      }
+    },
+    "selector_counts": {
+      "expected_generated_local_helpers": "not a gate; inventory all actual helpers",
+      "include_selectors": 36,
+      "opaques": 0,
+      "starts": 5,
+      "transparent_root_methods": 5
+    },
+    "source": {
+      "cargo_lock_sha256": "ae4364822a7c5f8c9847df4b1d5681fe2a68c2b1ecc56ab13df6c7037f6f1d41",
+      "cargo_toml_sha256": "61044a1397e6042c4d1fd8216ead08d063ebe62919f189bf7b72054656703588",
+      "final_map_verified": true,
+      "hub_archive_sha256": "6f5b7071e582ddf9c15316b6639469e9e604557c57c28e3c8938c28df824a9e6",
+      "hub_file_count": 1144,
+      "hub_manifest_sha256": "7d655f5765e13827024f85ea21e9df4bb747a2fb448f8a26708db56c408f0b5f",
+      "hub_source_map_verified": true,
+      "metadata_stage_elapsed_ms": 891,
+      "root": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+      "sdk_checkout_root": "/home/rozgo/.cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f",
+      "sdk_manifest_file_count": 178,
+      "sdk_tracked_map_verified": true
+    },
+    "stages": [
+      {
+        "argv": [
+          "patch",
+          "-R",
+          "-p1",
+          "-i",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/fault.patch"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+        "elapsed_ms": 5,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction/logs/reverse-same-fault.log",
+        "log_bytes": 53,
+        "log_sha256": "ba513809a3b467e3d04da7d6be091e45e62e1745afd74e19b518aa7dc1e0a3bd",
+        "stage": "reverse-same-fault",
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "metadata",
+          "--locked",
+          "--offline",
+          "--format-version",
+          "1",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+        "elapsed_ms": 518,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction/logs/verify-source-pin-metadata.log",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "verify-source-pin-metadata",
+        "stdout_bytes": 3043054,
+        "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction/cargo-metadata.json",
+        "stdout_sha256": "0164c457e5a3308be6ff4a881441944028d152df4a1a7c5e88f3ddcf51bc2767",
+        "timed_out": false,
+        "timeout_seconds": 180
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "clean",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+        "elapsed_ms": 268,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction/logs/clean-hub-charon-target.log",
+        "log_bytes": 21,
+        "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+        "stage": "clean-hub-charon-target",
+        "timed_out": false,
+        "timeout_seconds": 120
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+          "cargo",
+          "--sysroot",
+          "default",
+          "--preset=aeneas",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::cached",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::start",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::complete",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::remove_cached",
+          "--start-from",
+          "veoveo_hub::mcp::discovery::_::discard_key",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::cached",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::start",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::complete",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::remove_cached",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::discard_key",
+          "--include",
+          "veoveo_hub::mcp::discovery::DiscoveryCacheKey",
+          "--include",
+          "veoveo_hub::mcp::discovery::DiscoveryFetch",
+          "--include",
+          "veoveo_hub::mcp::discovery::AdmittedCatalog",
+          "--include",
+          "veoveo_hub::mcp::discovery::CachedItems",
+          "--include",
+          "veoveo_hub::mcp::discovery::SurfaceState",
+          "--include",
+          "veoveo_hub::mcp::discovery::MAX_CACHE_ENTRIES_PER_SURFACE",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::start::_::call_once",
+          "--include",
+          "veoveo_hub::mcp::discovery::_::complete::_::call_once",
+          "--include",
+          "{impl core::clone::Clone for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_hub::mcp::discovery::DiscoveryCacheKey}::cmp",
+          "--include",
+          "veoveo_hub_sdk::protocol::PRIVATE_CATALOG_TTL_MS",
+          "--include",
+          "veoveo_hub_sdk::hub::tool_name::LinkName",
+          "--include",
+          "{impl core::clone::Clone for veoveo_hub_sdk::hub::tool_name::LinkName}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_hub_sdk::hub::tool_name::LinkName}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_hub_sdk::hub::tool_name::LinkName}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_hub_sdk::hub::tool_name::LinkName}::cmp",
+          "--include",
+          "{impl core::cmp::Eq for veoveo_hub_sdk::hub::tool_name::LinkName}::assert_fields_are_eq",
+          "--include",
+          "veoveo_types::identity::PrincipalId",
+          "--include",
+          "{impl core::clone::Clone for veoveo_types::identity::PrincipalId}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_types::identity::PrincipalId}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_types::identity::PrincipalId}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_types::identity::PrincipalId}::cmp",
+          "--include",
+          "{impl core::cmp::Eq for veoveo_types::identity::PrincipalId}::assert_fields_are_eq",
+          "--include",
+          "veoveo_types::platform_names::ServerSlug",
+          "--include",
+          "{impl core::clone::Clone for veoveo_types::platform_names::ServerSlug}::clone",
+          "--include",
+          "{impl core::cmp::PartialEq<_> for veoveo_types::platform_names::ServerSlug}::eq",
+          "--include",
+          "{impl core::cmp::PartialOrd<_> for veoveo_types::platform_names::ServerSlug}::partial_cmp",
+          "--include",
+          "{impl core::cmp::Ord for veoveo_types::platform_names::ServerSlug}::cmp",
+          "--include",
+          "{impl core::cmp::Eq for veoveo_types::platform_names::ServerSlug}::assert_fields_are_eq",
+          "--dest-file",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction/outputs/surface_state.llbc",
+          "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+          "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+          "--",
+          "--manifest-path",
+          "crates/veoveo-hub/Cargo.toml",
+          "--lib",
+          "--locked"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+        "elapsed_ms": 50166,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction/logs/charon-five-state-roots.log",
+        "log_bytes": 4871,
+        "log_sha256": "8074341aa0c52ba936b794eebc0264ada8794baa54306fb1804cb64cf29794cd",
+        "stage": "charon-five-state-roots",
+        "timed_out": false,
+        "timeout_seconds": 600
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+          "-namespace",
+          "HubDiscoveryCacheModel",
+          "-subdir",
+          "HubDiscoveryCacheState",
+          "-backend",
+          "lean",
+          "-filter-trait-methods",
+          "-split-files",
+          "-dest",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction/outputs",
+          "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction/outputs/surface_state.llbc"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/extraction-source",
+        "elapsed_ms": 2546,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction/logs/aeneas-five-state-translation.log",
+        "log_bytes": 4031,
+        "log_sha256": "615a279596231276222d0dad3029835caac9e1f65bafc2ca79db4994ad4e532e",
+        "stage": "aeneas-five-state-translation",
+        "timed_out": false,
+        "timeout_seconds": 600
+      }
+    ],
+    "summary": {
+      "bytes": 382198,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/restored-extraction-mirror/summary.json",
+      "sha256": "5a43d9d4c474b8a261ee8174ac0b1eca8699fe8988a76d345f66fade17981347"
+    },
+    "transparent_own_function_count": 37
+  },
+  "restored_lean": {
+    "borrowed_dependency_packages_only": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-control-20261031/cache-key-frame-check1/source/.lake/packages",
+    "complete": true,
+    "effective_source_map": {
+      "canonical_sha256": "39f655e5a215176ab815d4dad0b09b3ee8b319c2b5907b75a202262de8b72e89",
+      "checked_files": "All frozen package files and actual copied raw overlays; before/after maps retained beside the phase summary.",
+      "entries": 36
+    },
+    "extraction_summary_sha256": "5a43d9d4c474b8a261ee8174ac0b1eca8699fe8988a76d345f66fade17981347",
+    "initial_own_build_artifacts": {},
+    "phase": "restored",
+    "primary_olean_outputs": {
+      "CacheCompleteProof.olean": {
+        "bytes": 662280,
+        "sha256": "6c464fa5adb5c10fab046ede0dab0be8fb36b7351aaaf1a950fdac1328775ebc"
+      },
+      "CacheCompleteSpecification.olean": {
+        "bytes": 58264,
+        "sha256": "4d7df8b6d293d04fcd7599eec11f6c848ae191865388e19bacb5935969c2c530"
+      },
+      "CacheHistoryProof.olean": {
+        "bytes": 589072,
+        "sha256": "174e90daf949c70e1794899ea3d3f5dce882e0c1149acc5ae4e0ac947556b45e"
+      },
+      "CacheKeyFrameProof.olean": {
+        "bytes": 857984,
+        "sha256": "1406dd854cbbeec3eb16eecc2ce21acda59818101190bba5710a704b9532d596"
+      },
+      "CacheKeyOrderProof.olean": {
+        "bytes": 103632,
+        "sha256": "16ef785b102f259b05fa8b3ad9cb278b73a67012fc09f252e3633bde983d76fd"
+      },
+      "CacheMapInvariantProof.olean": {
+        "bytes": 364144,
+        "sha256": "04d441d950a8c35fc2e5e3c51579611863a5bdd332fb0cc2d30de02f99e294c2"
+      },
+      "CacheStartProof.olean": {
+        "bytes": 924912,
+        "sha256": "dfbffee827099afd060e098e485e87c29284d51e8b754b88cfbd9db02ab5919d"
+      },
+      "CacheStartSpecification.olean": {
+        "bytes": 88416,
+        "sha256": "eafce0146ca58fd1bbcd0a9e7c64c7d565fb73289ae816f4e10720a2889d479a"
+      },
+      "CacheStateInvariantProof.olean": {
+        "bytes": 367544,
+        "sha256": "6d08d94c6468d5186026264ca120947c9acf9e2f2d0cfad9685075e72d0fcc13"
+      },
+      "HubDiscoveryCacheState/Funs.olean": {
+        "bytes": 176168,
+        "sha256": "d3ec5ba866f608d1dd07bb11cb8b927df5abaa87d17fe49b290b6a09af6d0783"
+      },
+      "HubDiscoveryCacheState/FunsExternal.olean": {
+        "bytes": 209752,
+        "sha256": "3b92c3bf53df14cee23802cfc876b1d09bedfd129689ca7f1388fa06dbb06ab6"
+      },
+      "HubDiscoveryCacheState/Types.olean": {
+        "bytes": 169624,
+        "sha256": "0ca3923b2e043db2665b129adba6a461b6bbf1a44cc036bf703c580663b739c2"
+      },
+      "HubDiscoveryCacheState/TypesExternal.olean": {
+        "bytes": 82896,
+        "sha256": "6da7a2697e403583aec84d46e765e872065df36155d1c010d57b137606a43c52"
+      }
+    },
+    "proof_manifest_sha256": "8daf35151e14a93eeef83732f2efed2ec5c0316e866223e0de2e21dbe7c87fba",
+    "restored_all_nine_leaves_pass": true,
+    "source_package": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+    "stages": [
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build",
+          "HubDiscoveryCacheState"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+        "elapsed_ms": 19718,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/evidence/model-build.log",
+        "log_bytes": 288,
+        "log_sha256": "90525e1189553ca5b71122d90a333f27629fa69e5294c265e8a8007ee5e8c506",
+        "stage": "model-build",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheKeyFrameProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheKeyFrameProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+        "elapsed_ms": 6003,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/evidence/CacheKeyFrameProof.log",
+        "log_bytes": 6428,
+        "log_sha256": "6bb0b07461a7a15e469f4fc3b66420e34050594d4c4a09ddb98ea9e05dd40f3d",
+        "stage": "CacheKeyFrameProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheStartSpecification.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheStartSpecification.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+        "elapsed_ms": 4547,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/evidence/CacheStartSpecification.log",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "CacheStartSpecification",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheStartProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheStartProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+        "elapsed_ms": 5247,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/evidence/CacheStartProof.log",
+        "log_bytes": 8799,
+        "log_sha256": "d5583889f289caa32a7a0b24980d0c90c462c43dd2313d82fddbe33132f96742",
+        "stage": "CacheStartProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheCompleteSpecification.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheCompleteSpecification.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+        "elapsed_ms": 4855,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/evidence/CacheCompleteSpecification.log",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "CacheCompleteSpecification",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheCompleteProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheCompleteProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+        "elapsed_ms": 5174,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/evidence/CacheCompleteProof.log",
+        "log_bytes": 7411,
+        "log_sha256": "7711c9cf70a63ff97819042e89782f7281d5f5dce0411393aa78eab257abbb03",
+        "stage": "CacheCompleteProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheKeyOrderProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheKeyOrderProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+        "elapsed_ms": 3638,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/evidence/CacheKeyOrderProof.log",
+        "log_bytes": 384,
+        "log_sha256": "12b2d6f1f6680bc3708216448cf0502fb07315f4270f189921bc1f1e0e690ae5",
+        "stage": "CacheKeyOrderProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheMapInvariantProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheMapInvariantProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+        "elapsed_ms": 3885,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/evidence/CacheMapInvariantProof.log",
+        "log_bytes": 2661,
+        "log_sha256": "28b127e6022737b3fab862072cde1d9b758f6224e6085978d6a5ef33c9bd7a2f",
+        "stage": "CacheMapInvariantProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheStateInvariantProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheStateInvariantProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+        "elapsed_ms": 3433,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/evidence/CacheStateInvariantProof.log",
+        "log_bytes": 1610,
+        "log_sha256": "b6ce5e8a324bb9fe9f9a916633a0ebea3542224aea74ead039740639ae59c138",
+        "stage": "CacheStateInvariantProof",
+        "timed_out": false
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "CacheHistoryProof.lean",
+          "-o",
+          ".lake/build/lib/lean/CacheHistoryProof.olean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/source",
+        "elapsed_ms": 4247,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-discovery-cache-current-20261031/link-order-control1/restored-lean/evidence/CacheHistoryProof.log",
+        "log_bytes": 1436,
+        "log_sha256": "8e12d74b50b88472044f3b86925690f7ee120da4fc182845e30e3c0a340be25a",
+        "stage": "CacheHistoryProof",
+        "timed_out": false
+      }
+    ],
+    "summary": {
+      "bytes": 22012,
+      "path": "/tmp/hub-discovery-cache-current-20261031/link-order-control1/restored-lean-mirror/evidence/summary.json",
+      "sha256": "2a3c95c6952f70cfafc91ef310e3f662e40304e50e9cbde5916793e4bc51a084"
+    }
+  },
+  "retained_artifacts": {
+    "proofs/discovery_cache/mutations/CacheLinkOrderFaultWitness.lean": {
+      "bytes": 3710,
+      "path": "/Users/rozgo/VeoveoAI/veoveo-hub/proofs/discovery_cache/mutations/CacheLinkOrderFaultWitness.lean",
+      "sha256": "61cb7f5c253b4e22c307cfdaacb31756d8621400a0006892baf94b791c8385f5"
+    },
+    "proofs/discovery_cache/mutations/ignore-link-order.patch": {
+      "bytes": 2170,
+      "path": "/Users/rozgo/VeoveoAI/veoveo-hub/proofs/discovery_cache/mutations/ignore-link-order.patch",
+      "sha256": "82afae93730c333e800e725e7e1960b03450eb10d81e69f2f22a6795d689d7d6"
+    },
+    "proofs/discovery_cache/mutations/link-order-native-regression.patch": {
+      "bytes": 3138,
+      "path": "/Users/rozgo/VeoveoAI/veoveo-hub/proofs/discovery_cache/mutations/link-order-native-regression.patch",
+      "sha256": "78d33332ce5bab24efa11ecfbbcfb864b0d22c0c3c4d062b51990996492b0252"
+    }
+  },
+  "semantic_review": {
+    "classification": "Semantic rejection supported by independent witness and native regression. Subsequent sorryAx-dependent audit failures are cascading, not extra results. Failed target OLean absent.",
+    "residual": "At equal first four fields, actual link comparison maps lt/eq/gt to ok eq; theorem requires ok(compare left.link right.link). No premise equates links.",
+    "target": "CacheKeyFrameProof.key_comparison_exact, line88",
+    "witness": "Funs-only, no failed-proof import. Distinct first/second present-link keys and actual comparator Equal, for every common prefix. Three standard-only executable axiom guards."
+  },
+  "source": {
+    "applicability": "Qualification uses exact c23 snapshot and4ab proof bytes. Later Apps/factory commits0aa6593/1e92ed3 were fast-forwarded; this control does not qualify their behavior. Cache source/Cargo pins/committed proof modules are unchanged.",
+    "core": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "hub": "c23d9ae0f9a50a2a7f2d53e8840279dcfc37090e",
+    "proof_checkpoint": "4ab4275be44a0875e6803c26c9fa0b10b92a8b49",
+    "publication_parent": "1e92ed3e430cf5f81b078ac932ef27648fd99e0f",
+    "sdk": "7360c0f96cb616c519d27256df214ff4f2e6e831"
+  },
+  "status": "Qualified semantic control, exact restoration, full baseline proof recheck",
+  "toolchain": {
+    "aeneas": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+    "aeneas_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "charon": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+    "charon_sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+    "charon_target": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target",
+    "rust_toolchain": "nightly-2026-09-17-x86_64-unknown-linux-gnu"
+  },
+  "unchanged_model_and_proof_sources": {
+    "CacheCompleteProof.lean": {
+      "bytes": 17119,
+      "sha256": "2126c263a05b3c456a50b9f4a4e110782972d989065145194dda0e695b6052c5"
+    },
+    "CacheCompleteSpecification.lean": {
+      "bytes": 3631,
+      "sha256": "99e9e73c3c5228556671f2f5754d096c640aa30ac902af955be2bd94bcb9bcd9"
+    },
+    "CacheHistoryProof.lean": {
+      "bytes": 20772,
+      "sha256": "03ed390d3d60baa1589409c4cf0b5d0d3b6403a09445ca2ee5c14f0071858e33"
+    },
+    "CacheKeyFrameProof.lean": {
+      "bytes": 16402,
+      "sha256": "cf145afd6cdb8be425d48ce866dd904152e50acc612314bc45987ab76421bdde"
+    },
+    "CacheKeyOrderProof.lean": {
+      "bytes": 5878,
+      "sha256": "1d231c2549e91f1589f88088c9b3e7166bf964b9eb736af213e9129a24a25086"
+    },
+    "CacheMapInvariantProof.lean": {
+      "bytes": 15910,
+      "sha256": "082936af2a4d5c639275a2a1360bb1913dd727b712cdd9cf45b0558029082f40"
+    },
+    "CacheStartProof.lean": {
+      "bytes": 22284,
+      "sha256": "3c539cf2d3e52e2c70df01da4a4bf2f54d871f87e70659185ed2bd4d7d955f18"
+    },
+    "CacheStartSpecification.lean": {
+      "bytes": 3548,
+      "sha256": "ed3e26cbbec913d9709b27ac29d03df6598b5b2606a64a125eeba14295eb887a"
+    },
+    "CacheStateInvariantProof.lean": {
+      "bytes": 14095,
+      "sha256": "d6033c750c81723d08676a195545710c89cc5e681408f242c75ab8e867e8bde5"
+    },
+    "HubDiscoveryCacheState/Funs.lean": {
+      "bytes": 46691,
+      "sha256": "1195e6aefd0393a29dbf36baeaefa69c209f7e3c20af5ea46f3c455e7d07d599"
+    },
+    "HubDiscoveryCacheState/FunsExternal.lean": {
+      "bytes": 17819,
+      "sha256": "05592d30a1aa64db287e21f95698075fdc3fce3965a3b3434767d3c767e08dcf"
+    },
+    "HubDiscoveryCacheState/Types.lean": {
+      "bytes": 4912,
+      "sha256": "415ffe7521bc4d17be4465ca28d3d99f987d26c252a2fabf97cdc9d9f5a1e55f"
+    },
+    "HubDiscoveryCacheState/TypesExternal.lean": {
+      "bytes": 2119,
+      "sha256": "b6856f534c9a16cb72af016f6cfcc88732310e21e15ce15b38feee36426b2124"
+    }
+  }
+}

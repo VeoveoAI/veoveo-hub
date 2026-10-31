@@ -1,0 +1,88 @@
+--- a/crates/veoveo-hub/src/mcp/discovery.rs
++++ b/crates/veoveo-hub/src/mcp/discovery.rs
+@@ -1043,4 +1043,84 @@
+         assert_eq!(degradation.failures.len(), 1);
+         assert_eq!(degradation.failures[0].server, failed);
+     }
+-}
++    #[tokio::test]
++    async fn distinct_link_cache_entries_and_tickets_survive_key_invalidation() {
++        let cache = CatalogDiscoveryCache::default();
++        let mut first = key(1, "linked-fixture");
++        first.link = Some("first".parse().unwrap());
++        let mut second = first.clone();
++        second.link = Some("second".parse().unwrap());
++        assert_ne!(first, second, "typed links distinguish the complete keys");
++        let first_items = vec![Tool::new(
++            "first",
++            "complete first descriptor",
++            std::sync::Arc::default(),
++        )];
++        let second_items = vec![Tool::new(
++            "second",
++            "complete second descriptor",
++            std::sync::Arc::default(),
++        )];
++        let replacement = vec![Tool::new(
++            "second",
++            "replacement second descriptor",
++            std::sync::Arc::default(),
++        )];
++        let fetch = cache
++            .start_tools(first.clone())
++            .await
++            .unwrap()
++            .with_denied(5);
++        cache.finish_tools(fetch, first_items.clone()).await;
++        let fetch = cache
++            .start_tools(second.clone())
++            .await
++            .unwrap()
++            .with_denied(17);
++        cache.finish_tools(fetch, second_items.clone()).await;
++        let before_first = cache.tools(&first).await;
++        let before_second = cache.tools(&second).await;
++        let pending_second = cache
++            .start_tools(second.clone())
++            .await
++            .unwrap()
++            .with_denied(23);
++        cache.invalidate_key(&first).await;
++        let after_first = cache.tools(&first).await;
++        let after_second = cache.tools(&second).await;
++        cache
++            .finish_tools(pending_second, replacement.clone())
++            .await;
++        let completed_second = cache.tools(&second).await;
++        // Observe payloads, counts and the accepted second ticket before failing.
++        assert_eq!(
++            (
++                before_first,
++                before_second,
++                after_first,
++                after_second,
++                completed_second
++            ),
++            (
++                Some(AdmittedCatalog {
++                    items: first_items,
++                    denied: 5
++                }),
++                Some(AdmittedCatalog {
++                    items: second_items.clone(),
++                    denied: 17
++                }),
++                None,
++                Some(AdmittedCatalog {
++                    items: second_items,
++                    denied: 17
++                }),
++                Some(AdmittedCatalog {
++                    items: replacement,
++                    denied: 23
++                }),
++            ),
++            "distinct-link cache payload and in-flight isolation",
++        );
++    }
++}

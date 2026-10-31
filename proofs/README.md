@@ -113,7 +113,13 @@ another link's complete cached value, ticket and retry state, including absent v
 present links. Existing operation/state/history guarantees pass for the extended key
 domain. The actual identifier wrappers replace their old handwritten primitive
 substitutes; standard-library and native-wrapper correspondence remain boundaries.
-The new link-comparison source fault control is pending, separate from this baseline.
+The [link-comparison source control](discovery_cache/evidence/link-order-control-20261031.json)
+now qualifies that baseline: an actual Rust comparator fault causes the native cache
+regression to fail and the unchanged comparison theorem to reject its wrong result.
+An independent generated-function witness confirms the collision. Reversing the
+fault restores the exact source/model and all nine proof modules pass afresh.
+This deliberately injected fault is not another production defect; broader native
+key construction, asynchronous discovery and database refinement remain open.
 
 Keep two independent fields for each result:
 
