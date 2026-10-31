@@ -21,3 +21,5 @@ lean_lib SnapshotConstructorProof
 
 lean_lib DirectPolicyClientProof
 lean_lib DelegatedPolicyClientProof
+
+lean_lib RegisteredSurfacesProof

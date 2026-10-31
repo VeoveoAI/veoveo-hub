@@ -100,3 +100,5 @@ lean_lib SdkInternalAuthBridgeOperationsProof
 lean_lib SdkInternalAuthCallerProof
 lean_lib SdkInternalAuthCallerExamples
 lean_lib SdkInternalAuthCallerWitnesses
+
+lean_lib AppOriginAdmissionProof

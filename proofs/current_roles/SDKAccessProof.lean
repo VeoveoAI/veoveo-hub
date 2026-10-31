@@ -183,6 +183,7 @@ def resourceResult (uri : Uri) (exact : Option Access)
 
 def expectedAccess (declaration : Declaration) (target : Target) : Option Access :=
   match target with
+  | .AppOrigin => declaration.requirements.app_origin
   | .Tool tool => lookupRaw declaration.requirements.tools tool
   | .Prompt prompt => lookupRaw declaration.requirements.prompts prompt
   | .ResourceTemplate template => lookupRaw declaration.requirements.resource_templates template
@@ -229,7 +230,7 @@ theorem resource_resolution_success_iff
       templateTrace uri) exact entries
 
 include rootLaw segmentLaw keyLaw queryLaw parseLaw templateTrace in
-/-- Exact total public access for all four target kinds. Both absence and
+/-- Exact total public access for all five target kinds. Both absence and
 complete access values are outputs; no whole-access interpretation is assumed. -/
 theorem access_exact (declaration : Declaration) (target : Target) :
     veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access declaration target =
@@ -238,6 +239,12 @@ theorem access_exact (declaration : Declaration) (target : Target) :
   apply CollectionProof.exact_of_total
   unfold veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access
   cases target with
+  | AppOrigin =>
+    cases declared : declaration.requirements.app_origin <;>
+      simp [veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration.access,
+        core.option.Option.as_ref, declared, expectedAccess, bind_ok, bind_tc_ok,
+        core.option.Option.Insts.CoreOpsTry_traitTry.branch,
+        core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual]
   | Tool tool =>
     change (do
       let found ← toolLookup declaration.requirements.tools tool

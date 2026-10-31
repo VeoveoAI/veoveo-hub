@@ -19,6 +19,7 @@ abbrev Timestamp := chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset
 No relation to a separately supplied decide_server argument is assumed here. -/
 def projectedTarget : Target → Option (Slug × Option Requirement)
   | .Server server | .Task server _ | .PlatformTask server _ => some (server, none)
+  | .AppOrigin server => some (server, some .AppOrigin)
   | .Tool server tool => some (server, some (.Tool tool))
   | .Resource server uri => some (server, some (.Resource uri))
   | .ResourceTemplate server uri => some (server, some (.ResourceTemplate uri))
@@ -80,6 +81,7 @@ def kernelSpelling : contract.actions.HubAction → _root_.String
   | .TasksGet => "tasks_get"
   | .TasksUpdate => "tasks_update"
   | .TasksCancel => "tasks_cancel"
+  | .AppOrigin => "app_origin"
   | .AdminRead => "admin_read"
   | .AdminWrite => "admin_write"
 
@@ -98,6 +100,7 @@ def kernelCodes : contract.actions.HubAction → List Nat
   | .TasksGet => [116, 97, 115, 107, 115, 95, 103, 101, 116]
   | .TasksUpdate => [116, 97, 115, 107, 115, 95, 117, 112, 100, 97, 116, 101]
   | .TasksCancel => [116, 97, 115, 107, 115, 95, 99, 97, 110, 99, 101, 108]
+  | .AppOrigin => [97, 112, 112, 95, 111, 114, 105, 103, 105, 110]
   | .AdminRead => [97, 100, 109, 105, 110, 95, 114, 101, 97, 100]
   | .AdminWrite => [97, 100, 109, 105, 110, 95, 119, 114, 105, 116, 101]
 

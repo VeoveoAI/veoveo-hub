@@ -52,6 +52,17 @@ records the source and results. Re-extraction and formal qualification of the ad
 App-origin, registration-surface and administrative-revocation domains remain open
 at this checkpoint. Native success does not extend the old model's domain.
 
+The subsequent [current-domain qualification](request_composition/evidence/current-domains-20261031.json)
+freshly extracts that exact merged Hub/SDK stack and checks the shared proof graph.
+It covers the fifth authorization target (`AppOrigin`), including legitimate
+zero-grant `Authenticated` access and exact permission/undeclared refusals; every
+constructed and selected registration is an unchanged input occurrence, with all
+surface fields and route order preserved; administrative revocation is included
+in the refresh predicate's domain. Existing policy, session/refresh, routing and
+caller targets pass with the refreshed types. This does not qualify the separate
+HTTP forwarder, declaration validation, native SQL or deployed behavior. The
+prepared SDK issuer bridge retains its own native-source equivalence boundary.
+
 The Task-continuity qualification is a separate source boundary: changed Hub files
 based on `651390dbbb8b4e65b5b8bcd3f8714a981fac2371` and the exact sibling SDK files
 based on `7e2489dccbee6d00b377b174f68f9d5de692a68b`. Its shared-source package records

@@ -19,7 +19,13 @@ theorem kernel_eligible_exact (action : contract.actions.HubAction) :
     contract.actions.HubAction.targets_registered_server action = .ok (eligible (.Kernel action)) := by
   cases action <;>
     simp [contract.actions.HubAction.targets_registered_server,
-      contract.actions.HubAction.mcp_method, core.option.Option.is_some, eligible, bind_ok]
+      contract.actions.HubAction.mcp_method, core.option.Option.is_some, eligible, bind_ok,
+      contract.actions.HubAction.Insts.CoreCmpPartialEqHubAction.eq]
+  all_goals
+    simp only [Aeneas.Std.Discriminant.read_discriminant,
+      contract.actions.HubAction.read_discriminant,
+      IScalar.bv_toInt_eq, IScalar.ofInt_val_eq]
+  all_goals decide +kernel
 
 /- This set is derived from the qualified actual role/risk evaluator. -/
 def grants (installation : Installation) (declaration : Declaration) (principal : Principal) :
@@ -76,7 +82,7 @@ theorem declared_route_observed {C : Type} (ops : policy.catalog.PolicyCatalogVi
 def missingReason : Requirement → control_plane.policy.PolicyReasonCode
   | .Tool _ => .UnknownTool
   | .Prompt _ => .UnknownPrompt
-  | .Resource _ | .ResourceTemplate _ => .UndeclaredTarget
+  | .AppOrigin | .Resource _ | .ResourceTemplate _ => .UndeclaredTarget
 
 def finish (request : Request) (version : Version) (sample : Timestamp)
     (allowed : Bool) (required : Option PermissionName) (held : Finset PermissionName) : Decision :=

@@ -19,17 +19,28 @@ policy/client theorem pass in the qualified private tool configuration. The
 [receipt](../request_composition/evidence/shared-policy-request-graph.json) records
 commands, source identities and unchanged effective source maps.
 
-The superset was extracted from the qualified Hub `3bc2923` source with SDK
-`239622d` and Core `120306e`, then regenerated from the restored LLBC with the
-`veoveo_hub` namespace and `HubCurrentRoles` output path. This is not a fresh
-extraction of all current main: the intervening Apps changes advanced OpenShell
-and changed downstream HTTP `WithCauses` formatting outside the constructor.
-Current main also adds `RefreshRevocation::AdministratorRevocation`; the covered
-`bound_to` and `deliverable` bodies are unchanged, but the extracted enum domain
-remains the baseline domain. These runtime changes are preserved, and a future
-source refresh must account for that new variant. The covered source correspondence remains
-the recorded `3bc2923` baseline; no Cargo or runtime file changes accompany this
-proof-layout consolidation.
+The original consolidation used Hub `3bc2923`, SDK `239622d` and Core `120306e`.
+The maintained graph has now been freshly extracted from Hub `1ccb868`, SDK
+`154a473` and Core `120306e`, with the same 17 start selectors and existing opaque
+boundaries. Generated files are adopted byte for byte. The
+[current-domain receipt](../request_composition/evidence/current-domains-20261031.json)
+records the extraction, proof qualification and manual package configuration.
+The new domain includes `AppOrigin`, complete registration surfaces and
+`AdministratorRevocation`. It does not extend coverage to the separate HTTP
+forwarder or surrounding async/formatting paths merely because their source is
+present in the same tree.
+
+[AppOriginAdmissionProof](AppOriginAdmissionProof.lean) derives the complete policy
+decision from the declaration and current grants: declared `Authenticated` access
+works with zero grants, a declared permission works when held, and missing grants
+and absent declarations retain their distinct refusal reasons. Its executable
+axiom audit allows only the existing template parser/matcher and sampled clock,
+besides standard Lean axioms. The parser/matcher occur transitively in the shared
+access function's other branches; the App-origin branch does not execute them.
+The new refresh facts distinguish the recorded reason from `revoked_at`, whose
+presence causes refusal, including administrative revocation. No new runtime
+admission rule is introduced. Run `lake build AppOriginAdmissionProof` manually
+in the qualified private dependency configuration; it is not a default or CI gate.
 
 Two source-model refinements are explicit: `ServerEndpoint` is now the actual
 extracted `url.Url` wrapper instead of the old opaque ID placeholder, and ten

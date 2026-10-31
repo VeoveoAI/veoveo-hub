@@ -85,7 +85,7 @@ def membershipEquiv : veoveo_hub.veoveo_types.authority.WorkContextMembershipLev
   left_inv value := by cases value <;> rfl
   right_inv value := by cases value <;> rfl
 
-def algorithmEquiv : veoveo_hub.jsonwebtoken.algorithms.Algorithm ≃
+def algorithmEquiv : veoveo_hub.jsonwebtoken_1.algorithms.Algorithm ≃
     RequestCompositionSdk.jsonwebtoken.algorithms.Algorithm where
   toFun value := match value with
     | .HS256 => .HS256

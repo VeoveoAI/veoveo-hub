@@ -97,6 +97,90 @@ theorem collect_coherent {I : Type}
 termination_by (model.remaining state).length
 decreasing_by simp_all
 
+/-- Insertion cannot manufacture a row or alter any carried field. Unlike a
+whole-row union specification, this permits same-key replacement. -/
+theorem insert_preserves (property : Server → Prop) (key : Deployment) (row : Server)
+    (before : List Row) (newRow : property row)
+    (oldRows : ∀ entry ∈ before, property entry.2) :
+    _root_.CurrentRolesNative.insertMap comparison key row before
+      ⦃ after => ∀ entry ∈ after, property entry.2 ⦄ := by
+  revert oldRows
+  induction before with
+  | nil =>
+    intro _
+    unfold _root_.CurrentRolesNative.insertMap
+    simp only [WP.spec_ok]
+    intro entry member
+    have same : entry = (key, row) := by simpa using member
+    subst entry
+    exact newRow
+  | cons head tail recursive =>
+    intro oldRows
+    have tailRows : ∀ entry ∈ tail, property entry.2 := by
+      intro entry member
+      exact oldRows entry (List.mem_cons_of_mem _ member)
+    unfold _root_.CurrentRolesNative.insertMap
+    have compareStep : comparison key head.1 = .ok (compare key.value head.1.value) := rfl
+    rw [compareStep]
+    simp only [bind_ok]
+    cases compare key.value head.1.value with
+    | lt =>
+      simp only [WP.spec_ok]
+      intro entry member
+      rcases List.mem_cons.mp member with same | old
+      · subst entry; exact newRow
+      · exact oldRows entry old
+    | eq =>
+      simp only [WP.spec_ok]
+      intro entry member
+      rcases List.mem_cons.mp member with same | old
+      · subst entry; exact newRow
+      · exact tailRows entry old
+    | gt =>
+      step with (recursive tailRows) as ⟨updated, updatedRows⟩
+      try simp only [WP.spec_ok]
+      intro entry member
+      rcases List.mem_cons.mp member with same | old
+      · subst entry; exact oldRows head List.mem_cons_self
+      · exact updatedRows entry old
+
+/-- Finite map collection preserves arbitrary complete-row properties through
+replacement and cursor traversal. Native allocation/refinement is separate. -/
+theorem collect_preserves {I : Type}
+    (iterator : Aeneas.Std.core.iter.traits.iterator.Iterator I Row)
+    (model : Enumeration I Row) (cursor : CursorLaw iterator model)
+    (state : I) (before : List Row) (valid : model.valid state)
+    (property : Server → Prop)
+    (oldRows : ∀ entry ∈ before, property entry.2)
+    (pending : ∀ entry ∈ model.remaining state, property entry.2) :
+    _root_.CurrentRolesNative.collectMap iterator comparison state before
+      ⦃ after => ∀ entry ∈ after, property entry.2 ⦄ := by
+  unfold _root_.CurrentRolesNative.collectMap
+  step with (cursor state valid) as ⟨entry, next, taken⟩
+  rcases taken with ⟨nextValid, entryEq, suffix⟩
+  change entry = (model.remaining state).head? at entryEq
+  change model.remaining next = (model.remaining state).tail at suffix
+  cases remaining : model.remaining state with
+  | nil =>
+    simp only [remaining, List.head?_nil, List.tail_nil] at entryEq suffix
+    subst entry
+    simpa only [WP.spec_ok] using oldRows
+  | cons head tail =>
+    simp only [remaining, List.head?_cons, List.tail_cons] at entryEq suffix
+    subst entry
+    rcases head with ⟨key, row⟩
+    have newRow : property row := pending (key, row) (by rw [remaining]; simp)
+    step with (insert_preserves property key row before newRow oldRows)
+      as ⟨updated, updatedRows⟩
+    have nextRows : ∀ entry ∈ model.remaining next, property entry.2 := by
+      intro entry member
+      apply pending entry
+      rw [remaining]
+      exact List.mem_cons_of_mem _ (by simpa only [suffix] using member)
+    exact collect_preserves iterator model cursor next updated nextValid property updatedRows nextRows
+termination_by (model.remaining state).length
+decreasing_by simp_all
+
 section Constructor
 variable {S I : Type}
 variable (ops : Aeneas.Std.core.iter.traits.collect.IntoIterator S Server I)
@@ -207,6 +291,36 @@ theorem new_success_coherent (source : S) (initial : I)
   rw [sameMap] at member
   exact coherent (key, row) member
 
+/-- Every constructed output row is an unchanged complete input row. This
+includes fields carried without being inspected by construction, such as surfaces.
+It imposes no equality requirement on distinct same-key input rows. -/
+theorem new_success_rows (source : S) (initial : I)
+    (model : Enumeration I Server) (cursor : CursorLaw ops.iteratorInst model)
+    (opened : ops.into_iter source = .ok initial) (valid : model.valid initial)
+    (result : Snapshot)
+    (success : veoveo_hub.registration.snapshot.RegistrationSnapshot.new ops source = .ok result) :
+    ∀ entry ∈ result.servers, entry.2 ∈ model.remaining initial := by
+  let state : Aeneas.Std.core.iter.adapters.map.Map I Unit := { iter := initial, f := () }
+  have pending : ∀ entry ∈ (constructorEnumeration model).remaining state,
+      entry.2 ∈ model.remaining initial := by
+    intro entry member
+    change entry ∈ (model.remaining initial).map (fun server => (server.deployment, server)) at member
+    rcases List.mem_map.mp member with ⟨row, sourceMember, same⟩
+    subst entry
+    exact sourceMember
+  have total := collect_preserves (mappedIterator ops) (constructorEnumeration model)
+    (constructor_cursor_law ops model cursor) state [] ⟨valid, trivial⟩
+    (fun row => row ∈ model.remaining initial) (by intro entry member; cases member) pending
+  rcases result_exists_of_total _ _ total with ⟨rows, collected, preserved⟩
+  have factorization := new_collection_body ops source initial opened
+  rw [collected] at factorization
+  simp only [bind_ok, bind_tc_ok] at factorization
+  have assembled : veoveo_hub.registration.snapshot.RegistrationSnapshot.of rows = .ok result := by
+    rw [← factorization]
+    exact success
+  have sameMap := (SnapshotAssemblyProof.extracted_of_success rows result assembled).1
+  simpa only [sameMap] using preserved
+
 /-- The constructor discharges the row/key premise of the connected retained
 route/context guarantee. Component uniqueness is still its separate native-map
 boundary. Endpoint/declaration are from this supplied catalog generation. -/
@@ -272,3 +386,18 @@ run_cmd do
   let connected ← Lean.collectAxioms ``SnapshotConstructorProof.constructed_route_context_exact
   unless (connected.filter (fun axiomName => !withFormatting.contains axiomName)).isEmpty do
     throwError "unreviewed constructed-route/context boundary: {connected}"
+
+#print axioms SnapshotConstructorProof.insert_preserves
+#print axioms SnapshotConstructorProof.collect_preserves
+#print axioms SnapshotConstructorProof.new_success_rows
+run_cmd do
+  let standard := #[``propext, ``Classical.choice, ``Quot.sound]
+  for declaration in #[``SnapshotConstructorProof.insert_preserves,
+      ``SnapshotConstructorProof.collect_preserves] do
+    let found ← Lean.collectAxioms declaration
+    unless (found.filter (fun n => !standard.contains n)).isEmpty do
+      throwError "unexpected whole-row preservation axiom: {found}"
+  let found ← Lean.collectAxioms ``SnapshotConstructorProof.new_success_rows
+  unless (found.filter (fun n => !(standard ++
+      #[``_root_.registration.snapshot.RegistrationSnapshot.build_namespaces]).contains n)).isEmpty do
+    throwError "unexpected constructor row-origin axiom: {found}"

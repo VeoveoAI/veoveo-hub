@@ -17,16 +17,24 @@ modulo symbol relocation. The consolidation passes all 25 current-policy default
 targets, the model audit, request defaults, six routing targets and the new direct
 policy/client theorem; see the [receipt](evidence/shared-policy-request-graph.json).
 
-The source baseline remains Hub `3bc2923`, SDK `239622d` and Core `120306e`, not
-a re-extraction of current main or its newer OpenShell dependency. Current Apps
-runtime changes, including downstream `WithCauses` formatting outside the HTTP
-constructor, are preserved. The shared model records the real endpoint wrapper
-and expanded `Ord.min` dictionaries. Current main's additional
-`RefreshRevocation::AdministratorRevocation` variant is outside the baseline enum
-domain even though `bound_to` and `deliverable` bodies are unchanged; a future
-source refresh must include it before claiming whole-current-main applicability.
-Namespace-helper completion and ordering, SDK issuer/recipient composition and
-async caller wiring remain separate obligations.
+That consolidation used Hub `3bc2923`, SDK `239622d` and Core `120306e`. The
+[current-domain qualification](evidence/current-domains-20261031.json) refreshes
+the shared model from Hub `1ccb868`, SDK `154a473` and Core `120306e`, including
+App-origin policy, registration surfaces and administrative revocation. Existing
+request and current-policy targets pass on that graph. The separate HTTP forwarder,
+namespace-helper completion/ordering and async caller wiring remain outside it;
+the prepared SDK issuer connection retains its recorded native-equivalence boundary.
+
+[RegisteredSurfacesProof](RegisteredSurfacesProof.lean) connects actual constructor
+and selection outcomes to an unchanged complete input occurrence. Its explicit
+payload observation preserves every route prefix, body limit, request rate and
+route occurrence in order, plus the app-origin bit. Same-key overwriting remains
+permitted; this proves input provenance, not which input must win. The source
+newtypes are represented by their actual String/u64/u32 payload shapes; their
+parsers and declaration validation are not proved here. Namespace-helper success,
+finite-cursor/native-collection correspondence and snapshot acquisition remain
+explicit assumptions. Run `lake build RegisteredSurfacesProof` manually in the
+qualified private dependency configuration; this adds no default or CI gate.
 
 Historical mutation witnesses and receipts are frozen recipes for their recorded
 generated namespaces and hashes. They do not import the consolidated graph and
@@ -496,15 +504,17 @@ Two own-code boundaries need particular care:
 - Namespace construction is separated from snapshot assembly. Any theorem about
   preserving the deployment map must hold for arbitrary helper results. It does
   not establish the helper's completion or ordinary namespace ordering.
-- The SDK issuer is unresolved in the Hub extraction. It must be connected to the
-  separately extracted actual SDK implementation through field-preserving typed
-  adapters. An assumed issuer returning a desired identity is not a proof of
+- The SDK issuer call is modeled through the separately qualified prepared SDK
+  implementation and field-preserving adapters. Equivalence to Hub's pinned native
+  SDK, and composition with computed route/current-grant provenance, remain separate
+  obligations. An assumed issuer returning a desired identity is not a proof of
   forwarded identity or successful issuance.
 
-Native SDK source-preparation commits after `239622d` are not part of Hub's current
-dependency. Their tests and extraction cannot be claimed as proof of the pinned
-stack without establishing and recording that integration.
-SDK `e268032` successfully translates the actual issuer and context path after an
+The issuer bridge retains the prepared SDK `6afa18a` model, whose applicability
+was also checked against merged SDK `dbfd2a0`. Hub's current SDK pin `154a473`
+still differs in the service-context string construction and a local signing
+variable name. The native equivalence boundary has not been discharged by this
+domain refresh. Historically, SDK `e268032` translated the issuer/context path after an
 ordered-guard rewrite; its 35 native token tests pass. The
 [translation record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-request-composition-translation.md)
 states the exact inputs and limitations.

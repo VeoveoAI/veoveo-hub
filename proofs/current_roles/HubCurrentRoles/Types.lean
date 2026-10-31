@@ -103,24 +103,24 @@ structure chrono.offset.TimeZone (Self : Type _) (Self_Offset : Type _) where
 @[reducible, rust_type "chrono::offset::utc::Utc"]
 def chrono.offset.utc.Utc := Unit
 
-/-- [jsonwebtoken::algorithms::Algorithm]
+/-- [jsonwebtoken#1::algorithms::Algorithm]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jsonwebtoken-11.0.0/src/algorithms.rs', lines 43:0-43:18
-    Name pattern: [jsonwebtoken::algorithms::Algorithm]
+    Name pattern: [jsonwebtoken#1::algorithms::Algorithm]
     Visibility: public -/
-@[discriminant isize, rust_type "jsonwebtoken::algorithms::Algorithm"]
-inductive jsonwebtoken.algorithms.Algorithm where
-| HS256 : jsonwebtoken.algorithms.Algorithm
-| HS384 : jsonwebtoken.algorithms.Algorithm
-| HS512 : jsonwebtoken.algorithms.Algorithm
-| ES256 : jsonwebtoken.algorithms.Algorithm
-| ES384 : jsonwebtoken.algorithms.Algorithm
-| RS256 : jsonwebtoken.algorithms.Algorithm
-| RS384 : jsonwebtoken.algorithms.Algorithm
-| RS512 : jsonwebtoken.algorithms.Algorithm
-| PS256 : jsonwebtoken.algorithms.Algorithm
-| PS384 : jsonwebtoken.algorithms.Algorithm
-| PS512 : jsonwebtoken.algorithms.Algorithm
-| EdDSA : jsonwebtoken.algorithms.Algorithm
+@[discriminant isize, rust_type "jsonwebtoken#1::algorithms::Algorithm"]
+inductive jsonwebtoken_1.algorithms.Algorithm where
+| HS256 : jsonwebtoken_1.algorithms.Algorithm
+| HS384 : jsonwebtoken_1.algorithms.Algorithm
+| HS512 : jsonwebtoken_1.algorithms.Algorithm
+| ES256 : jsonwebtoken_1.algorithms.Algorithm
+| ES384 : jsonwebtoken_1.algorithms.Algorithm
+| RS256 : jsonwebtoken_1.algorithms.Algorithm
+| RS384 : jsonwebtoken_1.algorithms.Algorithm
+| RS512 : jsonwebtoken_1.algorithms.Algorithm
+| PS256 : jsonwebtoken_1.algorithms.Algorithm
+| PS384 : jsonwebtoken_1.algorithms.Algorithm
+| PS512 : jsonwebtoken_1.algorithms.Algorithm
+| EdDSA : jsonwebtoken_1.algorithms.Algorithm
 
 /-- [prost_types::protobuf::Value]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/prost-types-0.14.4/src/protobuf.rs', lines 2136:0-2136:16
@@ -140,7 +140,7 @@ structure prost_types.protobuf.Struct where
     prost_types.protobuf.Value alloc.alloc.Global
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::MiddlewareEndpointSelector]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 99:0-99:37
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 99:0-99:37
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::MiddlewareEndpointSelector]
     Visibility: public -/
 @[rust_type
@@ -151,7 +151,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.MiddlewareEndpoint
   exclude : alloc.vec.Vec String
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::NetworkMiddlewareConfig]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 77:0-77:34
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 77:0-77:34
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::NetworkMiddlewareConfig]
     Visibility: public -/
 @[rust_type
@@ -167,7 +167,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.NetworkMiddlewareC
   order : Std.I32
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::NetworkBinary]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 399:0-399:24
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 399:0-399:24
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::NetworkBinary]
     Visibility: public -/
 @[rust_type
@@ -177,7 +177,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.NetworkBinary
   path : String
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::L7QueryMatcher]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 389:0-389:25
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 389:0-389:25
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::L7QueryMatcher]
     Visibility: public -/
 @[rust_type
@@ -188,7 +188,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.L7QueryMatcher
   any : alloc.vec.Vec String
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::L7Allow]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 350:0-350:18
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 350:0-350:18
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::L7Allow]
     Visibility: public -/
 @[rust_type
@@ -208,7 +208,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.L7Allow where
     std.hash.random.RandomState alloc.alloc.Global
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::L7Rule]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 344:0-344:17
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 344:0-344:17
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::L7Rule]
     Visibility: public -/
 @[rust_type "openshell_core::proto::generated::openshell::sandbox::v1::L7Rule"]
@@ -216,7 +216,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.L7Rule where
   allow : Option openshell_core.proto.generated.openshell.sandbox.v1.L7Allow
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::L7DenyRule]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 306:0-306:21
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 306:0-306:21
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::L7DenyRule]
     Visibility: public -/
 @[rust_type
@@ -236,7 +236,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.L7DenyRule where
     std.hash.random.RandomState alloc.alloc.Global
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::GraphqlOperation]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 291:0-291:27
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 291:0-291:27
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::GraphqlOperation]
     Visibility: public -/
 @[rust_type
@@ -248,7 +248,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.GraphqlOperation
   fields : alloc.vec.Vec String
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::McpOptions]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 258:0-258:21
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 258:0-258:21
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::McpOptions]
     Visibility: public -/
 @[rust_type
@@ -259,7 +259,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.McpOptions where
   versions : alloc.vec.Vec String
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::NetworkCredentialBinding]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 111:0-111:35
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 111:0-111:35
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::NetworkCredentialBinding]
     Visibility: public -/
 @[rust_type
@@ -269,7 +269,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.NetworkCredentialB
   provider : String
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::NetworkEndpoint]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 119:0-119:26
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 119:0-119:26
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::NetworkEndpoint]
     Visibility: public -/
 @[rust_type
@@ -310,7 +310,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.NetworkEndpoint
   token_grant_owner : String
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::NetworkPolicyRule]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 64:0-64:28
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 64:0-64:28
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::NetworkPolicyRule]
     Visibility: public -/
 @[rust_type
@@ -324,7 +324,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.NetworkPolicyRule
     openshell_core.proto.generated.openshell.sandbox.v1.NetworkBinary
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::ProcessPolicy]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 54:0-54:24
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 54:0-54:24
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::ProcessPolicy]
     Visibility: public -/
 @[rust_type
@@ -335,7 +335,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.ProcessPolicy
   run_as_group : String
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::LandlockPolicy]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 47:0-47:25
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 47:0-47:25
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::LandlockPolicy]
     Visibility: public -/
 @[rust_type
@@ -345,7 +345,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.LandlockPolicy
   compatibility : String
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::FilesystemPolicy]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 34:0-34:27
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 34:0-34:27
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::FilesystemPolicy]
     Visibility: public -/
 @[rust_type
@@ -357,7 +357,7 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.FilesystemPolicy
   read_write : alloc.vec.Vec String
 
 /-- [openshell_core::proto::generated::openshell::sandbox::v1::SandboxPolicy]
-    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/5b765994c5e35107/out/openshell.sandbox.v1.rs', lines 4:0-4:24
+    Source: '/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target/x86_64-unknown-linux-gnu/debug/build/openshell-core/768b2294296341ef/out/openshell.sandbox.v1.rs', lines 4:0-4:24
     Name pattern: [openshell_core::proto::generated::openshell::sandbox::v1::SandboxPolicy]
     Visibility: public -/
 @[rust_type
@@ -378,14 +378,24 @@ structure openshell_core.proto.generated.openshell.sandbox.v1.SandboxPolicy
     openshell_core.proto.generated.openshell.sandbox.v1.NetworkMiddlewareConfig
     std.hash.random.RandomState alloc.alloc.Global
 
+/-- [openshell_sdk::config::ClientIdentity]
+    Source: '/cargo/git/checkouts/openshell-f2a3eacab63ae477/c80bda2/crates/openshell-sdk/src/config.rs', lines 62:0-62:25
+    Name pattern: [openshell_sdk::config::ClientIdentity]
+    Visibility: public -/
+@[rust_type "openshell_sdk::config::ClientIdentity"]
+structure openshell_sdk.config.ClientIdentity where
+  certificate : alloc.vec.Vec Std.U8
+  private_key : alloc.vec.Vec Std.U8
+
 /-- [openshell_sdk::config::ClientConfig]
-    Source: '/cargo/git/checkouts/openshell-f2a3eacab63ae477/c28524b/crates/openshell-sdk/src/config.rs', lines 85:0-85:23
+    Source: '/cargo/git/checkouts/openshell-f2a3eacab63ae477/c80bda2/crates/openshell-sdk/src/config.rs', lines 104:0-104:23
     Name pattern: [openshell_sdk::config::ClientConfig]
     Visibility: public -/
 @[rust_type "openshell_sdk::config::ClientConfig"]
 structure openshell_sdk.config.ClientConfig where
   gateway : String
   ca_cert : Option (alloc.vec.Vec Std.U8)
+  client_identity : Option openshell_sdk.config.ClientIdentity
   auth : Option openshell_sdk.config.AuthConfig
   insecure_skip_verify : Bool
 
@@ -419,7 +429,7 @@ structure veoveo_audit_contract.model.AuditRequest where
   task : Option veoveo_types.task.TaskId
 
 /-- [veoveo_hub_sdk::execution::ExecutionContext]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 33:0-33:27
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/execution.rs', lines 33:0-33:27
     Name pattern: [veoveo_hub_sdk::execution::ExecutionContext]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::execution::ExecutionContext"]
@@ -427,7 +437,7 @@ structure veoveo_hub_sdk.execution.ExecutionContext where
   composition : veoveo_hub_sdk.execution.CompositionRevision
 
 /-- [veoveo_hub_sdk::execution::ResolvedComponent]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 41:0-41:26
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/execution.rs', lines 41:0-41:26
     Name pattern: [veoveo_hub_sdk::execution::ResolvedComponent]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::execution::ResolvedComponent"]
@@ -438,7 +448,7 @@ inductive veoveo_hub_sdk.execution.ResolvedComponent where
 | Unavailable : veoveo_hub_sdk.execution.ResolvedComponent
 
 /-- [veoveo_hub_sdk::execution::ResolvedComposition]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/execution.rs', lines 51:0-51:30
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/execution.rs', lines 51:0-51:30
     Name pattern: [veoveo_hub_sdk::execution::ResolvedComposition]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::execution::ResolvedComposition"]
@@ -449,7 +459,7 @@ structure veoveo_hub_sdk.execution.ResolvedComposition where
   revision : veoveo_hub_sdk.execution.CompositionRevision
 
 /-- [veoveo_hub_sdk::identity::GroupRole]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 21:0-21:18
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/identity.rs', lines 21:0-21:18
     Name pattern: [veoveo_hub_sdk::identity::GroupRole]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::identity::GroupRole"]
@@ -459,7 +469,7 @@ inductive veoveo_hub_sdk.identity.GroupRole where
 | Admin : veoveo_hub_sdk.identity.GroupRole
 
 /-- [veoveo_hub_sdk::identity::GroupMembership]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 45:0-45:26
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/identity.rs', lines 45:0-45:26
     Name pattern: [veoveo_hub_sdk::identity::GroupMembership]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::identity::GroupMembership"]
@@ -468,7 +478,7 @@ structure veoveo_hub_sdk.identity.GroupMembership where
   role : veoveo_hub_sdk.identity.GroupRole
 
 /-- [veoveo_hub_sdk::identity::PrincipalAssurance]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 123:0-123:27
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/identity.rs', lines 123:0-123:27
     Name pattern: [veoveo_hub_sdk::identity::PrincipalAssurance]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::identity::PrincipalAssurance"]
@@ -476,7 +486,7 @@ inductive veoveo_hub_sdk.identity.PrincipalAssurance where
 | UsPerson : veoveo_hub_sdk.identity.PrincipalAssurance
 
 /-- [veoveo_hub_sdk::identity::PrincipalKind]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 114:0-114:22
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/identity.rs', lines 114:0-114:22
     Name pattern: [veoveo_hub_sdk::identity::PrincipalKind]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::identity::PrincipalKind"]
@@ -485,7 +495,7 @@ inductive veoveo_hub_sdk.identity.PrincipalKind where
 | Service : veoveo_hub_sdk.identity.PrincipalKind
 
 /-- [veoveo_hub_sdk::identity::Principal]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 63:0-63:20
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/identity.rs', lines 63:0-63:20
     Name pattern: [veoveo_hub_sdk::identity::Principal]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::identity::Principal"]
@@ -521,7 +531,7 @@ inductive veoveo_types.provenance.InvocationMode where
 | Automated : veoveo_types.provenance.InvocationMode
 
 /-- [veoveo_hub_sdk::identity::AccessTokenSubject]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/identity.rs', lines 129:0-129:29
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/identity.rs', lines 129:0-129:29
     Name pattern: [veoveo_hub_sdk::identity::AccessTokenSubject]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::identity::AccessTokenSubject"]
@@ -546,7 +556,7 @@ structure veoveo_hub_sdk.identity.AccessTokenSubject where
     chrono.offset.utc.Utc
 
 /-- [veoveo_hub_sdk::internal_auth::exchange::DelegatingTask]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 19:0-19:25
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 19:0-19:25
     Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegatingTask]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegatingTask"]
@@ -556,7 +566,7 @@ structure veoveo_hub_sdk.internal_auth.exchange.DelegatingTask where
   task : veoveo_hub_sdk.identity.OpaqueTaskId
 
 /-- [veoveo_hub_sdk::internal_auth::ActingServer]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 292:0-292:23
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 292:0-292:23
     Name pattern: [veoveo_hub_sdk::internal_auth::ActingServer]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::ActingServer"]
@@ -566,7 +576,7 @@ structure veoveo_hub_sdk.internal_auth.ActingServer where
   client : veoveo_types.platform_names.OAuthClientId
 
 /-- [veoveo_hub_sdk::internal_auth::exchange::DelegationContext]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 29:0-29:28
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 29:0-29:28
     Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegationContext]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegationContext"]
@@ -660,7 +670,7 @@ structure veoveo_types.authority.InvocationAuthority where
   provenance : veoveo_types.provenance.InvocationProvenance
 
 /-- [veoveo_hub_sdk::internal_auth::request::HubRequestContext]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/request.rs', lines 8:0-8:28
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/internal_auth/request.rs', lines 8:0-8:28
     Name pattern: [veoveo_hub_sdk::internal_auth::request::HubRequestContext]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::request::HubRequestContext"]
@@ -671,7 +681,7 @@ structure veoveo_hub_sdk.internal_auth.request.HubRequestContext where
   principal : veoveo_hub_sdk.identity.Principal
 
 /-- [veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 100:0-100:26
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/internal_auth/exchange.rs', lines 100:0-100:26
     Name pattern: [veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::exchange::DelegatedCaller"]
@@ -684,7 +694,7 @@ structure veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller where
     veoveo_hub_sdk.internal_auth.exchange.DelegationContext
 
 /-- [veoveo_hub_sdk::registration::declaration::ResourceIndicator]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/declaration.rs', lines 132:0-132:28
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/declaration.rs', lines 136:0-136:28
     Name pattern: [veoveo_hub_sdk::registration::declaration::ResourceIndicator]
     Visibility: public -/
 @[reducible, rust_type
@@ -692,7 +702,7 @@ structure veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller where
 def veoveo_hub_sdk.registration.declaration.ResourceIndicator := url.Url
 
 /-- [veoveo_hub_sdk::internal_auth::HubInternalIdentity]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 215:0-215:30
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 215:0-215:30
     Name pattern: [veoveo_hub_sdk::internal_auth::HubInternalIdentity]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::HubInternalIdentity"]
@@ -722,7 +732,7 @@ structure veoveo_hub_sdk.internal_auth.HubInternalIdentity where
     chrono.offset.utc.Utc
 
 /-- [veoveo_hub_sdk::internal_auth::IssuedHubInternalToken]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 299:0-299:33
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 299:0-299:33
     Name pattern: [veoveo_hub_sdk::internal_auth::IssuedHubInternalToken]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::IssuedHubInternalToken"]
@@ -731,7 +741,7 @@ structure veoveo_hub_sdk.internal_auth.IssuedHubInternalToken where
   identity : veoveo_hub_sdk.internal_auth.HubInternalIdentity
 
 /-- [veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 314:0-314:33
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 314:0-314:33
     Name pattern: [veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::HubInternalTokenIssuer"]
@@ -740,7 +750,7 @@ structure veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer where
   signing_key : veoveo_hub_sdk.internal_auth.HubInternalSigningKey
 
 /-- [veoveo_hub_sdk::internal_auth::InternalTokenError]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 876:0-876:27
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 889:0-889:27
     Name pattern: [veoveo_hub_sdk::internal_auth::InternalTokenError]
     Visibility: public -/
 @[discriminant isize, rust_type
@@ -761,7 +771,7 @@ inductive veoveo_hub_sdk.internal_auth.InternalTokenError where
 | UnknownKeyId : String → veoveo_hub_sdk.internal_auth.InternalTokenError
 | UnsupportedTrustKey : veoveo_hub_sdk.internal_auth.InternalTokenError
 | UnsupportedTokenAlgorithm :
-  jsonwebtoken.algorithms.Algorithm →
+  jsonwebtoken_1.algorithms.Algorithm →
   veoveo_hub_sdk.internal_auth.InternalTokenError
 | UnsupportedTokenType : veoveo_hub_sdk.internal_auth.InternalTokenError
 | ExpiredDelegation : veoveo_hub_sdk.internal_auth.InternalTokenError
@@ -787,11 +797,11 @@ inductive veoveo_hub_sdk.internal_auth.InternalTokenError where
   serde_json.error.Error →
   veoveo_hub_sdk.internal_auth.InternalTokenError
 | Jwt :
-  jsonwebtoken.errors.Error →
+  jsonwebtoken_1.errors.Error →
   veoveo_hub_sdk.internal_auth.InternalTokenError
 
 /-- [veoveo_hub_sdk::internal_auth::ForwardedRequest]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 443:0-443:27
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/internal_auth.rs', lines 448:0-448:27
     Name pattern: [veoveo_hub_sdk::internal_auth::ForwardedRequest]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::internal_auth::ForwardedRequest"]
@@ -815,7 +825,7 @@ structure veoveo_hub_sdk.internal_auth.ForwardedRequest where
     chrono.offset.utc.Utc
 
 /-- [veoveo_hub_sdk::registration::access::Access]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 5:0-5:15
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/access.rs', lines 5:0-5:15
     Name pattern: [veoveo_hub_sdk::registration::access::Access]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::registration::access::Access"]
@@ -824,7 +834,7 @@ inductive veoveo_hub_sdk.registration.access.Access where
 | Write : veoveo_hub_sdk.registration.access.Access
 
 /-- [veoveo_hub_sdk::registration::access::Risk]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/access.rs', lines 13:0-13:13
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/access.rs', lines 13:0-13:13
     Name pattern: [veoveo_hub_sdk::registration::access::Risk]
     Visibility: public -/
 @[discriminant isize, rust_type "veoveo_hub_sdk::registration::access::Risk"]
@@ -836,7 +846,7 @@ inductive veoveo_hub_sdk.registration.access.Risk where
 | Administer : veoveo_hub_sdk.registration.access.Risk
 
 /-- [veoveo_hub_sdk::registration::authorization::PermissionDeclaration]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 20:0-20:32
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 20:0-20:32
     Name pattern: [veoveo_hub_sdk::registration::authorization::PermissionDeclaration]
     Visibility: public -/
 @[rust_type
@@ -849,7 +859,7 @@ structure veoveo_hub_sdk.registration.authorization.PermissionDeclaration where
     veoveo_hub_sdk.registration.access.Risk alloc.alloc.Global
 
 /-- [veoveo_hub_sdk::registration::authorization::RouteAccess]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 37:0-37:20
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 37:0-37:20
     Name pattern: [veoveo_hub_sdk::registration::authorization::RouteAccess]
     Visibility: public -/
 @[discriminant isize, rust_type
@@ -861,7 +871,7 @@ inductive veoveo_hub_sdk.registration.authorization.RouteAccess where
   veoveo_hub_sdk.registration.authorization.RouteAccess
 
 /-- [veoveo_hub_sdk::registration::authorization::Requirements]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 53:0-53:23
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 53:0-53:23
     Name pattern: [veoveo_hub_sdk::registration::authorization::Requirements]
     Visibility: public -/
 @[rust_type "veoveo_hub_sdk::registration::authorization::Requirements"]
@@ -878,9 +888,10 @@ structure veoveo_hub_sdk.registration.authorization.Requirements where
   prompts : alloc.collections.btree.map.BTreeMap
     veoveo_hub_sdk.identity.PromptName
     veoveo_hub_sdk.registration.authorization.RouteAccess alloc.alloc.Global
+  app_origin : Option veoveo_hub_sdk.registration.authorization.RouteAccess
 
 /-- [veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 66:0-66:35
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 70:0-70:35
     Name pattern: [veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration]
     Visibility: public -/
 @[rust_type
@@ -894,7 +905,7 @@ structure veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration
   calls_hub : Bool
 
 /-- [veoveo_hub_sdk::registration::authorization::RequirementTarget]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 143:0-143:30
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 151:0-151:30
     Name pattern: [veoveo_hub_sdk::registration::authorization::RequirementTarget]
     Visibility: public -/
 @[discriminant isize, rust_type
@@ -912,9 +923,10 @@ inductive veoveo_hub_sdk.registration.authorization.RequirementTarget where
 | Prompt :
   veoveo_hub_sdk.identity.PromptName →
   veoveo_hub_sdk.registration.authorization.RequirementTarget
+| AppOrigin : veoveo_hub_sdk.registration.authorization.RequirementTarget
 
 /-- Trait declaration: [veoveo_hub_sdk::registration::authorization_decision::Matcher]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 8:0-8:27
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 8:0-8:27
     Name pattern: [veoveo_hub_sdk::registration::authorization_decision::Matcher] -/
 @[rust_trait "veoveo_hub_sdk::registration::authorization_decision::Matcher"]
 structure veoveo_hub_sdk.registration.authorization_decision.Matcher (Self :
@@ -922,7 +934,7 @@ structure veoveo_hub_sdk.registration.authorization_decision.Matcher (Self :
   «matches» : Self → T → Result Bool
 
 /-- Trait declaration: [veoveo_hub_sdk::registration::authorization_decision::Cursor]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 4:0-4:26
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/authorization_decision.rs', lines 4:0-4:26
     Name pattern: [veoveo_hub_sdk::registration::authorization_decision::Cursor] -/
 @[rust_trait "veoveo_hub_sdk::registration::authorization_decision::Cursor"]
 structure veoveo_hub_sdk.registration.authorization_decision.Cursor (Self :
@@ -930,7 +942,7 @@ structure veoveo_hub_sdk.registration.authorization_decision.Cursor (Self :
   next : Self → Result ((Option I) × Self)
 
 /-- [veoveo_hub_sdk::registration::authorization::{impl veoveo_hub_sdk::registration::authorization_decision::Matcher<&'_0 veoveo_types::resource_template::ResourceTemplateUri> for veoveo_hub_sdk::registration::authorization::NativeMatcher<'_1>}::matches::{closure}]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 306:59-306:69
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 318:59-318:69
     Name pattern: [veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::closure] -/
 @[reducible, rust_type
   "veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization_decision::Matcher<veoveo_hub_sdk::registration::authorization::NativeMatcher<'1>, &'0 veoveo_types::resource_template::ResourceTemplateUri>}::matches::closure"]
@@ -939,7 +951,7 @@ def veoveo_hub_sdk.registration.authorization.MatcherNativeMatcherShared0Resourc
   veoveo_types.resource.ResourceUri
 
 /-- [veoveo_hub_sdk::registration::authorization::NativeMatcher]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 302:0-302:24
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 314:0-314:24
     Name pattern: [veoveo_hub_sdk::registration::authorization::NativeMatcher] -/
 @[reducible, rust_type
   "veoveo_hub_sdk::registration::authorization::NativeMatcher"]
@@ -947,12 +959,32 @@ def veoveo_hub_sdk.registration.authorization.NativeMatcher :=
   veoveo_types.resource.ResourceUri
 
 /-- [veoveo_hub_sdk::registration::declaration::ServerEndpoint]
-    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/239622d/crates/veoveo-hub-sdk/src/registration/declaration.rs', lines 70:0-70:25
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/declaration.rs', lines 74:0-74:25
     Name pattern: [veoveo_hub_sdk::registration::declaration::ServerEndpoint]
     Visibility: public -/
 @[reducible, rust_type
   "veoveo_hub_sdk::registration::declaration::ServerEndpoint"]
 def veoveo_hub_sdk.registration.declaration.ServerEndpoint := url.Url
+
+/-- [veoveo_hub_sdk::registration::surfaces::PublicRouteDeclaration]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/surfaces.rs', lines 35:0-35:33
+    Name pattern: [veoveo_hub_sdk::registration::surfaces::PublicRouteDeclaration]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::registration::surfaces::PublicRouteDeclaration"]
+structure veoveo_hub_sdk.registration.surfaces.PublicRouteDeclaration where
+  «prefix» : veoveo_hub_sdk.registration.surfaces.PublicRoutePrefix
+  max_body_bytes : veoveo_hub_sdk.registration.surfaces.BodyLimit
+  requests_per_minute : veoveo_hub_sdk.registration.surfaces.RequestRate
+
+/-- [veoveo_hub_sdk::registration::surfaces::SurfacesDeclaration]
+    Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/154a473/crates/veoveo-hub-sdk/src/registration/surfaces.rs', lines 23:0-23:30
+    Name pattern: [veoveo_hub_sdk::registration::surfaces::SurfacesDeclaration]
+    Visibility: public -/
+@[rust_type "veoveo_hub_sdk::registration::surfaces::SurfacesDeclaration"]
+structure veoveo_hub_sdk.registration.surfaces.SurfacesDeclaration where
+  public_routes : alloc.vec.Vec
+    veoveo_hub_sdk.registration.surfaces.PublicRouteDeclaration
+  app_origin : Bool
 
 /-- [veoveo_hub::delegation::SubjectDelegation]
     Source: 'crates/veoveo-hub/src/delegation.rs', lines 43:0-56:1
@@ -994,7 +1026,7 @@ def auth.verified.AuthenticatedSubject.request_context.closure :=
   delegation.SubjectDelegation
 
 /-- [veoveo_hub::registration::snapshot::Namespace]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 75:0-78:1
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 77:0-80:1
     Visibility: public -/
 structure registration.snapshot.Namespace where
   routed : veoveo_types.execution.DeploymentId
@@ -1017,7 +1049,7 @@ structure registration.snapshot.ServerCapabilities where
 def execution.BranchName := String
 
 /-- [veoveo_hub::registration::snapshot::RegisteredServer]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 40:0-56:1
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 40:0-58:1
     Visibility: public -/
 structure registration.snapshot.RegisteredServer where
   deployment : veoveo_types.execution.DeploymentId
@@ -1030,12 +1062,13 @@ structure registration.snapshot.RegisteredServer where
     veoveo_hub_sdk.registration.authorization.AuthorizationDeclaration
   capabilities : registration.snapshot.ServerCapabilities
   branch : Option execution.BranchName
+  surfaces : Option veoveo_hub_sdk.registration.surfaces.SurfacesDeclaration
   registered_at : chrono.datetime.DateTime chrono.offset.utc.Utc
     chrono.offset.utc.Utc
   orphaned : Bool
 
 /-- [veoveo_hub::registration::snapshot::RegistrationSnapshot]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 67:0-70:1
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 69:0-72:1
     Visibility: public -/
 structure registration.snapshot.RegistrationSnapshot where
   servers : alloc.collections.btree.map.BTreeMap
@@ -1159,6 +1192,12 @@ structure contract.secrets.SecretReference where
   rotation_hint : Option String
   metadata : serde_json.value.Value
 
+/-- [veoveo_hub::computers::spec::ComputerRuntime]
+    Source: 'crates/veoveo-hub/src/computers/spec.rs', lines 21:0-26:1 -/
+structure computers.spec.ComputerRuntime where
+  supervisor_image : String
+  sandbox_runtime_image : String
+
 /-- [veoveo_hub::computers::spec::PersistenceBackend]
     Source: 'crates/veoveo-hub/src/computers/spec.rs', lines 12:0-15:1 -/
 @[discriminant isize]
@@ -1167,27 +1206,29 @@ inductive computers.spec.PersistenceBackend where
 | Kubernetes : computers.spec.PersistenceBackend
 
 /-- [veoveo_hub::computers::spec::ComputerProvisionSpec]
-    Source: 'crates/veoveo-hub/src/computers/spec.rs', lines 19:0-26:1
+    Source: 'crates/veoveo-hub/src/computers/spec.rs', lines 43:0-52:1
     Visibility: public -/
 structure computers.spec.ComputerProvisionSpec where
   config : control_plane.computers.Computers
   model_secret : contract.secrets.SecretReference
   hub_url : String
   backend : computers.spec.PersistenceBackend
+  runtime : computers.spec.ComputerRuntime
   policy : alloc.vec.Vec Std.U8
   template : alloc.vec.Vec Std.U8
 
 /-- [veoveo_hub::forward_connections::Connection]
-    Source: 'crates/veoveo-hub/src/forward_connections.rs', lines 24:0-27:1 -/
+    Source: 'crates/veoveo-hub/src/forward_connections.rs', lines 27:0-30:1 -/
 structure forward_connections.Connection where
   client : tokio.sync.once_cell.OnceCell openshell_sdk.client.OpenShellClient
   streams : alloc.sync.Arc tokio.sync.semaphore.Semaphore
 
 /-- [veoveo_hub::forward_connections::ForwardConnections]
-    Source: 'crates/veoveo-hub/src/forward_connections.rs', lines 18:0-22:1 -/
+    Source: 'crates/veoveo-hub/src/forward_connections.rs', lines 18:0-25:1 -/
 structure forward_connections.ForwardConnections where
   config : Option openshell_sdk.config.ClientConfig
   connections : alloc.sync.Arc (Slice forward_connections.Connection)
+  places : alloc.sync.Arc tokio.sync.semaphore.Semaphore
 
 /-- [veoveo_hub::computers::gateway::Gateway]
     Source: 'crates/veoveo-hub/src/computers/gateway.rs', lines 59:0-63:1 -/
@@ -1413,14 +1454,21 @@ structure factory.image.ImageBuilder where
   registry : factory.image.RegistryHost
 
 /-- [veoveo_hub::control_plane::factory::FactoryCaps]
-    Source: 'crates/veoveo-hub/src/control_plane/factory.rs', lines 53:0-58:1
+    Source: 'crates/veoveo-hub/src/control_plane/factory.rs', lines 94:0-99:1
     Visibility: public -/
 structure control_plane.factory.FactoryCaps where
   instances_per_user : Std.U32
   enforce : Bool
 
+/-- [veoveo_hub::control_plane::factory::FactoryProviderGrant]
+    Source: 'crates/veoveo-hub/src/control_plane/factory.rs', lines 59:0-63:1
+    Visibility: public -/
+structure control_plane.factory.FactoryProviderGrant where
+  provider : String
+  repositories : alloc.vec.Vec String
+
 /-- [veoveo_hub::control_plane::factory::FactoryConfiguration]
-    Source: 'crates/veoveo-hub/src/control_plane/factory.rs', lines 14:0-48:1
+    Source: 'crates/veoveo-hub/src/control_plane/factory.rs', lines 14:0-53:1
     Visibility: public -/
 structure control_plane.factory.FactoryConfiguration where
   gateway : control_plane.computers.ComputerGateway
@@ -1434,6 +1482,7 @@ structure control_plane.factory.FactoryConfiguration where
   lore_profile : String
   image_builder : factory.image.ImageBuilder
   caps : Option control_plane.factory.FactoryCaps
+  providers : alloc.vec.Vec control_plane.factory.FactoryProviderGrant
 
 /-- [veoveo_hub::control_plane::data_label::DataLabelDefinition]
     Source: 'crates/veoveo-hub/src/control_plane/data_label.rs', lines 10:0-20:1
@@ -1882,7 +1931,7 @@ structure catalog.HubCatalog where
     contract.identity.SecretReferenceId Std.Usize alloc.alloc.Global
 
 /-- [veoveo_hub::contract::actions::HubAction]
-    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 4:0-19:1
+    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 4:0-21:1
     Visibility: public -/
 @[discriminant isize]
 inductive contract.actions.HubAction where
@@ -1898,11 +1947,12 @@ inductive contract.actions.HubAction where
 | TasksGet : contract.actions.HubAction
 | TasksUpdate : contract.actions.HubAction
 | TasksCancel : contract.actions.HubAction
+| AppOrigin : contract.actions.HubAction
 | AdminRead : contract.actions.HubAction
 | AdminWrite : contract.actions.HubAction
 
 /-- [veoveo_hub::contract::actions::PolicyAction]
-    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 49:0-52:1
+    Source: 'crates/veoveo-hub/src/contract/actions.rs', lines 52:0-55:1
     Visibility: public -/
 @[discriminant isize]
 inductive contract.actions.PolicyAction where
@@ -1935,13 +1985,13 @@ structure contract.catalog.AdmittedPolicyTarget where
 def control_plane.ids.TraceId := String
 
 /-- [veoveo_hub::control_plane::policy::DecodedPolicyTarget]
-    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 272:0-272:50
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 276:0-276:50
     Visibility: public -/
 @[reducible]
 def control_plane.policy.DecodedPolicyTarget := serde_json.value.Value
 
 /-- [veoveo_hub::control_plane::policy::PolicyTarget]
-    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 222:0-268:1
+    Source: 'crates/veoveo-hub/src/control_plane/policy.rs', lines 222:0-272:1
     Visibility: public -/
 @[discriminant isize]
 inductive control_plane.policy.PolicyTarget where
@@ -1972,6 +2022,9 @@ inductive control_plane.policy.PolicyTarget where
 | PlatformTask :
   veoveo_types.platform_names.ServerSlug →
   veoveo_types.task.TaskId →
+  control_plane.policy.PolicyTarget
+| AppOrigin :
+  veoveo_types.platform_names.ServerSlug →
   control_plane.policy.PolicyTarget
 | Owner :
   contract.catalog.AdmittedPolicyTarget →
@@ -2047,7 +2100,7 @@ structure delegation.CurrentPermissions where
   caller : veoveo_hub_sdk.internal_auth.exchange.DelegatedCaller
 
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::iter::{closure}]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 169:34-169:58 -/
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 171:34-171:58 -/
 @[reducible]
 def registration.snapshot.RegistrationSnapshot.iter.closure := Unit
 
@@ -2155,7 +2208,7 @@ def mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure_1 := Unit
 def mcp.upstream_authorized_http.HubAuthorizedHttpClient.new.closure := Unit
 
 /-- [veoveo_hub::mcp::upstream_authorized_http::HubAuthorizedHttpError]
-    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 187:0-192:1 -/
+    Source: 'crates/veoveo-hub/src/mcp/upstream_authorized_http.rs', lines 228:0-233:1 -/
 @[discriminant isize]
 inductive mcp.upstream_authorized_http.HubAuthorizedHttpError where
 | InternalToken :
@@ -2237,40 +2290,41 @@ structure policy.session.SessionRequest where
   now : chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc
 
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 87:21-87:67 -/
 @[reducible]
 def registration.snapshot.RegistrationSnapshot.new.closure (T0 : Type _)
   (Clause0_IntoIter : Type _) :=
 Unit
 
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{closure}]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 137:56-137:85 -/
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 139:56-139:85 -/
 @[reducible]
 def registration.snapshot.RegistrationSnapshot.get.closure :=
   veoveo_types.platform_names.ServerSlug
 
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}::{closure}]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 162:48-162:80 -/
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 164:48-164:80 -/
 def registration.snapshot.RegistrationSnapshot.selected.closure.closure :=
   veoveo_types.execution.DeploymentId × alloc.sync.Arc
   registration.snapshot.RegisteredServer
 
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::selected::{closure}]
-    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 156:28-163:17 -/
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 158:28-165:17 -/
 @[reducible]
 def registration.snapshot.RegistrationSnapshot.selected.closure :=
   registration.snapshot.RegistrationSnapshot
 
 /-- [veoveo_hub::store::refresh::RefreshRevocation]
-    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 23:0-30:1
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 23:0-33:1
     Visibility: public -/
 @[discriminant isize]
 inductive store.refresh.RefreshRevocation where
 | ClientRevocation : store.refresh.RefreshRevocation
 | TokenReplay : store.refresh.RefreshRevocation
+| AdministratorRevocation : store.refresh.RefreshRevocation
 
 /-- [veoveo_hub::store::refresh::RefreshBinding]
-    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 35:0-39:1
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 38:0-42:1
     Visibility: public -/
 structure store.refresh.RefreshBinding where
   authorization_server : contract.identity.AuthorizationServerId
@@ -2278,14 +2332,14 @@ structure store.refresh.RefreshBinding where
   oauth_client_id : veoveo_types.platform_names.OAuthClientId
 
 /-- [veoveo_hub::store::refresh::RefreshPrincipal]
-    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 69:0-72:1
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 72:0-75:1
     Visibility: public -/
 structure store.refresh.RefreshPrincipal where
   principal : veoveo_hub_sdk.identity.Principal
   display_name : contract.oauth.PrincipalDisplayName
 
 /-- [veoveo_hub::store::refresh::RefreshFamily]
-    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 43:0-56:1
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 46:0-59:1
     Visibility: public -/
 structure store.refresh.RefreshFamily where
   id : veoveo_hub_sdk.identity.HubRefreshFamilyId
@@ -2306,7 +2360,7 @@ structure store.refresh.RefreshFamily where
   revocation : Option store.refresh.RefreshRevocation
 
 /-- [veoveo_hub::store::refresh::RefreshDeliveryEnvelope]
-    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 91:0-94:1
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 94:0-97:1
     Visibility: public -/
 structure store.refresh.RefreshDeliveryEnvelope where
   envelope : secrecy.SecretBox Str
@@ -2314,7 +2368,7 @@ structure store.refresh.RefreshDeliveryEnvelope where
     chrono.offset.utc.Utc
 
 /-- [veoveo_hub::store::refresh::RefreshToken]
-    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 98:0-109:1
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 101:0-112:1
     Visibility: public -/
 structure store.refresh.RefreshToken where
   id : uuid.Uuid
@@ -2333,7 +2387,7 @@ structure store.refresh.RefreshToken where
   delivery : Option store.refresh.RefreshDeliveryEnvelope
 
 /-- [veoveo_hub::store::refresh::deliverable::{closure}]
-    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 555:25-555:61 -/
+    Source: 'crates/veoveo-hub/src/store/refresh.rs', lines 558:25-558:61 -/
 @[reducible]
 def store.refresh.deliverable.closure :=
   chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc

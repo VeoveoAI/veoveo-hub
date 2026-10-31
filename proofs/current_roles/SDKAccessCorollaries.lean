@@ -57,6 +57,7 @@ def ResourceDeclares (uri : Uri) (exact : Option Access)
 
 def Declares (declaration : Declaration) (target : Target) (output : Access) : Prop :=
   match target with
+  | .AppOrigin => declaration.requirements.app_origin = some output
   | .Tool tool => lookupRaw declaration.requirements.tools tool = some output
   | .Prompt prompt => lookupRaw declaration.requirements.prompts prompt = some output
   | .ResourceTemplate template => lookupRaw declaration.requirements.resource_templates template = some output
@@ -98,6 +99,7 @@ theorem expected_some_iff (declaration : Declaration) (target : Target) (output 
       (keyModel := keyModel) (queryModel := queryModel) declaration target = some output ↔
       Declares parsed decodeParsed text keyModel queryModel declaration target output := by
   cases target with
+  | AppOrigin => rfl
   | Tool tool => rfl
   | Prompt prompt => rfl
   | ResourceTemplate template => rfl

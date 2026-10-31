@@ -208,7 +208,7 @@ structure IssuedFields (hub : veoveo_hub.veoveo_hub_sdk.internal_auth.IssuedHubI
   bearer_token : hub.bearer_token = sdk.bearer_token
   identity : IdentityFields hub.identity sdk.identity
 
-def AlgorithmFields : veoveo_hub.jsonwebtoken.algorithms.Algorithm →
+def AlgorithmFields : veoveo_hub.jsonwebtoken_1.algorithms.Algorithm →
     RequestCompositionSdk.jsonwebtoken.algorithms.Algorithm → Prop
   | .HS256, .HS256 => True
   | .HS384, .HS384 => True

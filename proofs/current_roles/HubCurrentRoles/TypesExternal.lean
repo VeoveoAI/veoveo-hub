@@ -582,9 +582,25 @@ structure core.iter.adapters.filter_map.FilterMap (I F : Type _) where
   iter : I
   f : F
 
-abbrev jsonwebtoken.errors.Error := RequestCompositionOpaque 0
+abbrev jsonwebtoken_1.errors.Error := RequestCompositionOpaque 0
 abbrev reqwest_1.error.Error := RequestCompositionOpaque 1
 abbrev serde_json.error.Error := RequestCompositionOpaque 2
 abbrev veoveo_hub_sdk.internal_auth.HubInternalSigningKey := RequestCompositionOpaque 3
 abbrev veoveo_types.error.IdentifierError := RequestCompositionOpaque 4
 abbrev mcp.upstream_http.UpstreamTransport := RequestCompositionOpaque 5
+
+
+/- Carried SDK surface newtypes retain their native String/u64/u32 payloads.
+The constructors/parsers and their declaration-validation invariants are not
+extracted here; these are value representations, not extra admission rules. -/
+@[rust_type "veoveo_hub_sdk::registration::surfaces::PublicRoutePrefix"]
+structure veoveo_hub_sdk.registration.surfaces.PublicRoutePrefix where
+  value : String
+
+@[rust_type "veoveo_hub_sdk::registration::surfaces::BodyLimit"]
+structure veoveo_hub_sdk.registration.surfaces.BodyLimit where
+  value : U64
+
+@[rust_type "veoveo_hub_sdk::registration::surfaces::RequestRate"]
+structure veoveo_hub_sdk.registration.surfaces.RequestRate where
+  value : U32

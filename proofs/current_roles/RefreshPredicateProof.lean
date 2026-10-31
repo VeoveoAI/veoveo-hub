@@ -113,6 +113,24 @@ theorem refuses_iff (family : Family) (token successor : Token) (now : Timestamp
   rw [deliverable_exact]
   by_cases valid : Deliverable family token successor now <;> simp [valid]
 
+/-- Administrative revocation is now in the carried enum domain. The actual
+delivery predicate consults the revocation timestamp, independently of which
+reason was recorded; it does not infer timestamp validity from a reason tag. -/
+theorem revocation_reason_irrelevant (family : Family) (token successor : Token)
+    (now : Timestamp) (reason : Option store.refresh.RefreshRevocation) :
+    store.refresh.deliverable { family with revocation := reason } token successor now =
+      store.refresh.deliverable family token successor now := by
+  rw [deliverable_exact, deliverable_exact]
+  rfl
+
+theorem administrative_revoked_refused (family : Family) (token successor : Token)
+    (now revokedAt : Timestamp) :
+    store.refresh.deliverable
+      { family with revocation := some .AdministratorRevocation, revoked_at := some revokedAt }
+      token successor now = .ok false := by
+  rw [deliverable_exact]
+  simp [Deliverable]
+
 /-- The arithmetic condition implies the unbounded successor equation; overflow
 cannot masquerade as a successor. This uses the pinned checked-add theorem. -/
 theorem next_generation_arithmetic (token successor : Token)
@@ -197,3 +215,13 @@ run_cmd do
     let found ← Lean.collectAxioms declaration
     unless (found.filter (fun axiomName => !allowed.contains axiomName)).isEmpty do
       throwError "unreviewed refresh predicate axiom in {declaration}: {found}"
+
+#print axioms RefreshPredicateProof.revocation_reason_irrelevant
+#print axioms RefreshPredicateProof.administrative_revoked_refused
+run_cmd do
+  let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
+  for declaration in #[``RefreshPredicateProof.revocation_reason_irrelevant,
+      ``RefreshPredicateProof.administrative_revoked_refused] do
+    let found ← Lean.collectAxioms declaration
+    unless (found.filter (fun n => !allowed.contains n)).isEmpty do
+      throwError "unexpected revocation-domain axiom: {found}"
