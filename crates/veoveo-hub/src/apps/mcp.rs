@@ -40,28 +40,70 @@ pub(super) enum Failure {
     Unavailable(String),
 }
 
+/// What the Hub's MCP endpoint answered a listen.
+pub(super) enum Listened {
+    /// It refused the listen, or ended it at once.
+    Answer(Answer),
+    /// The listen's open event stream.
+    Stream(Body),
+}
+
 /// The person's MCP client of one profile, with a bearer that never leaves the process.
 pub(super) struct PersonMcp {
     pub(super) router: Router,
     pub(super) host: HeaderValue,
     pub(super) profile: HubProfileId,
     pub(super) bearer: HeaderValue,
+    /// When the bearer expires.
+    pub(super) expires_at: chrono::DateTime<chrono::Utc>,
     /// The browser request's correlation, which every record of the in-process request names.
     pub(super) observation: crate::request_observation::RequestObservation,
 }
 
 impl PersonMcp {
-    /// Send one request. `meta` is the request's own `_meta`, whose protocol version and
-    /// client information the host sets; its client capabilities stay, with the Apps and
-    /// Tasks extensions declared, so a Task-based tool answers an App with its Task.
-    /// `tool` is the called tool, whose annotated arguments travel as `Mcp-Param-*`
-    /// headers too.
+    /// Send one request and read its JSON-RPC answer.
     pub(super) async fn request(
         &self,
         method: &str,
-        mut params: Map<String, Value>,
+        params: Map<String, Value>,
         tool: Option<&Tool>,
     ) -> Result<Answer, Failure> {
+        let response = self.send(&json!(1), method, params, tool).await?;
+        answer(response).await
+    }
+
+    /// Send `subscriptions/listen` with the view's own request `id`, so every message of
+    /// its stream names the view's request, and keep the stream the endpoint opens.
+    pub(super) async fn listen(
+        &self,
+        id: &Value,
+        params: Map<String, Value>,
+    ) -> Result<Listened, Failure> {
+        let response = self.send(id, "subscriptions/listen", params, None).await?;
+        let stream = response
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.starts_with("text/event-stream"));
+        if stream && response.status().is_success() {
+            Ok(Listened::Stream(response.into_body()))
+        } else {
+            answer(response).await.map(Listened::Answer)
+        }
+    }
+
+    /// Send one request with `id`. `meta` is the request's own `_meta`, whose protocol
+    /// version and client information the host sets; its client capabilities stay, with
+    /// the Apps and Tasks extensions declared, so a Task-based tool answers an App with
+    /// its Task. `tool` is the called tool, whose annotated arguments travel as
+    /// `Mcp-Param-*` headers too.
+    async fn send(
+        &self,
+        id: &Value,
+        method: &str,
+        mut params: Map<String, Value>,
+        tool: Option<&Tool>,
+    ) -> Result<axum::response::Response, Failure> {
         let mut meta = match params.remove("_meta") {
             Some(Value::Object(meta)) => meta,
             _ => Map::new(),
@@ -105,7 +147,7 @@ impl PersonMcp {
             request = request.header(name, value);
         }
         let body = serde_json::to_vec(&json!({
-            "jsonrpc": "2.0", "id": 1, "method": method, "params": params
+            "jsonrpc": "2.0", "id": id, "method": method, "params": params
         }))
         .map_err(|error| Failure::Unavailable(error.to_string()))?;
         let mut request = request
@@ -118,28 +160,10 @@ impl PersonMcp {
             .oneshot(request)
             .await
             .map_err(|error| Failure::Unavailable(error.to_string()))?;
-        let status = response.status();
-        if status == StatusCode::UNAUTHORIZED {
+        if response.status() == StatusCode::UNAUTHORIZED {
             return Err(Failure::Unauthenticated);
         }
-        let bytes = axum::body::to_bytes(
-            response.into_body(),
-            veoveo_hub_sdk::MAX_MCP_RESPONSE_BYTES + 64 * 1024,
-        )
-        .await
-        .map_err(|error| Failure::Unavailable(error.to_string()))?;
-        let mut message: Map<String, Value> = serde_json::from_slice(&bytes).map_err(|_| {
-            Failure::Unavailable(format!("HTTP {status} without a JSON-RPC response"))
-        })?;
-        if let Some(Value::Object(error)) = message.remove("error") {
-            return Ok(Answer::Error(Value::Object(error)));
-        }
-        match message.remove("result") {
-            Some(result) if status.is_success() => Ok(Answer::Result(result)),
-            _ => Err(Failure::Unavailable(format!(
-                "HTTP {status} without a JSON-RPC result"
-            ))),
-        }
+        Ok(response)
     }
 
     /// Every item of a paged list, `resources/list` or `tools/list`, under `key`.
@@ -176,6 +200,28 @@ impl PersonMcp {
         Err(Failure::Unavailable(format!(
             "{method} exceeds {MAX_PAGES} pages"
         )))
+    }
+}
+
+/// The JSON-RPC answer of one response.
+async fn answer(response: axum::response::Response) -> Result<Answer, Failure> {
+    let status = response.status();
+    let bytes = axum::body::to_bytes(
+        response.into_body(),
+        veoveo_hub_sdk::MAX_MCP_RESPONSE_BYTES + 64 * 1024,
+    )
+    .await
+    .map_err(|error| Failure::Unavailable(error.to_string()))?;
+    let mut message: Map<String, Value> = serde_json::from_slice(&bytes)
+        .map_err(|_| Failure::Unavailable(format!("HTTP {status} without a JSON-RPC response")))?;
+    if let Some(Value::Object(error)) = message.remove("error") {
+        return Ok(Answer::Error(Value::Object(error)));
+    }
+    match message.remove("result") {
+        Some(result) if status.is_success() => Ok(Answer::Result(result)),
+        _ => Err(Failure::Unavailable(format!(
+            "HTTP {status} without a JSON-RPC result"
+        ))),
     }
 }
 

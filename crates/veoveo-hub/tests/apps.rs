@@ -34,6 +34,7 @@ async fn qualify() {
         &[
             ("VEOVEO_APPS_SANDBOX_ORIGIN", SANDBOX.to_owned()),
             ("VEOVEO_APPS_LISTEN_ADDRESS", "127.0.0.1:0".to_owned()),
+            ("VEOVEO_APPS_LISTENS_PER_SESSION", "3".to_owned()),
         ],
         |_| {},
     )

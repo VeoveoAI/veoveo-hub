@@ -5,6 +5,7 @@
 mod admission;
 mod bridge;
 mod csp;
+mod listen;
 mod mcp;
 mod origins;
 mod pages;
@@ -15,6 +16,7 @@ mod tests;
 
 pub use bridge::AppsService;
 pub use csp::{AppPolicy, PolicyError};
+pub use listen::ListenLimits;
 pub use origins::{AppOrigins, SandboxOrigin};
 pub use route::{AppView, SANDBOX_SLUG};
 pub use sandbox::SandboxProxy;

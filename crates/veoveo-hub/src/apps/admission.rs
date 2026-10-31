@@ -50,6 +50,7 @@ pub(super) enum Method {
     TasksGet,
     TasksUpdate,
     TasksCancel,
+    SubscriptionsListen,
 }
 
 impl Method {
@@ -61,6 +62,7 @@ impl Method {
             "tasks/get" => Self::TasksGet,
             "tasks/update" => Self::TasksUpdate,
             "tasks/cancel" => Self::TasksCancel,
+            "subscriptions/listen" => Self::SubscriptionsListen,
             _ => return None,
         })
     }
@@ -73,6 +75,7 @@ impl Method {
             Self::TasksGet => "tasks/get",
             Self::TasksUpdate => "tasks/update",
             Self::TasksCancel => "tasks/cancel",
+            Self::SubscriptionsListen => "subscriptions/listen",
         }
     }
 }
@@ -90,6 +93,10 @@ pub(super) enum Refusal {
     Tool { tool: String, app: String },
     #[error("the resource `{resource}` belongs to another server than the App `{app}`'s")]
     Resource { resource: String, app: String },
+    #[error(
+        "an App's listen names 1 to {MAX_LISTEN_URIS} `resourceSubscriptions` and no other notifications"
+    )]
+    Listen,
 }
 
 impl Refusal {
@@ -145,6 +152,37 @@ pub(super) fn admit_read(view: &AppView, params: &Map<String, Value>) -> Result<
             app: view.uri().to_owned(),
         })
     }
+}
+
+/// The most resources one listen of an App names.
+pub(super) const MAX_LISTEN_URIS: usize = 64;
+
+/// A view listens only for updates of its own server's resources: its
+/// `params.notifications` names `resourceSubscriptions` and nothing else, 1 to
+/// [`MAX_LISTEN_URIS`] of them, each as `resources/read` admits it.
+pub(super) fn admit_listen(view: &AppView, params: &Map<String, Value>) -> Result<(), Refusal> {
+    let Some(Value::Object(notifications)) = params.get("notifications") else {
+        return Err(Refusal::Missing("notifications"));
+    };
+    let uris = match (
+        notifications.len(),
+        notifications.get("resourceSubscriptions"),
+    ) {
+        (1, Some(Value::Array(uris))) if (1..=MAX_LISTEN_URIS).contains(&uris.len()) => uris,
+        _ => return Err(Refusal::Listen),
+    };
+    for uri in uris {
+        let Value::String(uri) = uri else {
+            return Err(Refusal::Listen);
+        };
+        if !view.owns_resource(uri) {
+            return Err(Refusal::Resource {
+                resource: uri.clone(),
+                app: view.uri().to_owned(),
+            });
+        }
+    }
+    Ok(())
 }
 
 /// A Task request names its Task.
@@ -288,6 +326,65 @@ mod tests {
     }
 
     #[test]
+    fn a_view_listens_only_for_its_own_servers_resources() {
+        let listen = |notifications: Value| {
+            json!({"notifications": notifications})
+                .as_object()
+                .unwrap()
+                .clone()
+        };
+        assert_eq!(
+            admit_listen(
+                &view(),
+                &listen(json!({"resourceSubscriptions": [
+                    "fixture://events", "fixture://events?cursor=eyJhIjoxfQ%3D%3D", "ui://fixture/board.html"
+                ]}))
+            ),
+            Ok(())
+        );
+        for uri in [
+            "neighbor://events",
+            "ui://neighbor/board.html",
+            "fixtures://events",
+        ] {
+            assert_eq!(
+                admit_listen(
+                    &view(),
+                    &listen(json!({"resourceSubscriptions": ["fixture://events", uri]}))
+                ),
+                Err(Refusal::Resource {
+                    resource: uri.to_owned(),
+                    app: "ui://fixture/board.html".to_owned()
+                }),
+                "{uri}"
+            );
+        }
+        let too_many: Vec<String> = (0..=MAX_LISTEN_URIS)
+            .map(|n| format!("fixture://items/{n}"))
+            .collect();
+        for notifications in [
+            json!({}),
+            json!({"resourceSubscriptions": []}),
+            json!({"resourceSubscriptions": too_many}),
+            json!({"resourceSubscriptions": [7]}),
+            json!({"resourceSubscriptions": "fixture://events"}),
+            json!({"resourceSubscriptions": ["fixture://events"], "resourcesListChanged": true}),
+            json!({"resourceSubscriptions": ["fixture://events"], "toolsListChanged": true}),
+            json!({"taskIds": ["task-1"]}),
+        ] {
+            assert_eq!(
+                admit_listen(&view(), &listen(notifications.clone())),
+                Err(Refusal::Listen),
+                "{notifications}"
+            );
+        }
+        assert_eq!(
+            admit_listen(&view(), &Map::new()),
+            Err(Refusal::Missing("notifications"))
+        );
+    }
+
+    #[test]
     fn requests_are_json_rpc_with_a_method_the_bridge_serves() {
         let request: ViewRequest = serde_json::from_value(
             json!({"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {}}),
@@ -312,10 +409,15 @@ mod tests {
             "resources/list",
             "prompts/get",
             "ui/initialize",
-            "subscriptions/listen",
+            "ui/notifications/resource-updated",
+            "notifications/cancelled",
         ] {
             assert_eq!(Method::parse(method), None, "{method}");
         }
+        assert_eq!(
+            Method::parse("subscriptions/listen"),
+            Some(Method::SubscriptionsListen)
+        );
         assert_eq!(
             admit_task(json!({"taskId": "t"}).as_object().unwrap()),
             Ok(())

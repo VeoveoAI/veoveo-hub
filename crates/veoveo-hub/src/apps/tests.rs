@@ -1,10 +1,14 @@
 //! The Apps host end to end, in process: a real browser session of a ready Computer,
-//! the host page and the bridge, against a fake MCP endpoint of the Computers' profile
-//! that verifies each request's bearer as the Hub's profile admission does and serves a
-//! catalog of its own: the App, another App of its server, another server's App and an
-//! App whose declared policy the Hub refuses, with linked and unlinked tools. Every
-//! credential and value is synthetic fixture data.
-use std::sync::{Arc, Mutex, Once};
+//! the host page, the bridge and its live-resource listens behind the Hub's request
+//! observation, against a fake MCP endpoint of the Computers' profile behind the Hub's
+//! own profile authentication. The endpoint serves a catalog of its own: the App,
+//! another App of its server, another server's App and an App whose declared policy the
+//! Hub refuses, with linked and unlinked tools; and it answers a listen with an event
+//! stream of its own messages. Every credential and value is synthetic fixture data.
+use std::sync::{
+    Arc, Mutex, Once,
+    atomic::{AtomicUsize, Ordering},
+};
 
 use axum::{
     Json, Router,
@@ -22,7 +26,7 @@ use veoveo_hub_sdk::apps::{
 };
 
 use super::{AppOrigins, AppsService};
-use crate::{BearerToken, HubCatalog, HubCatalogHandle, HubState, JwtAuthConfig, JwtVerifier};
+use crate::{HubCatalog, HubCatalogHandle, HubState};
 
 /// A synthetic Ed25519 PKCS#8 key the test catalog's authorization server signs with.
 const SIGNING_KEY: &str = "MC4CAQAwBQYDK2VwBCIEII4AsVspz8h7mpqvOkgslJP07HfqpiWMZA+6Ii90lVBl";
@@ -120,73 +124,116 @@ struct Received {
 
 #[derive(Clone)]
 struct Endpoint {
-    hub: HubState,
-    catalog: Arc<HubCatalog>,
     received: Arc<Mutex<Vec<Received>>>,
+    /// The JSON text of every listen message the endpoint sent.
+    sent: Arc<Mutex<Vec<String>>>,
+    /// How many of the listen streams it opened have closed.
+    closes: Arc<AtomicUsize>,
 }
 
-/// The bearer admitted as the Hub's profile authentication admits it: signature,
-/// issuer, audience, scope, invocation authority and the session family's state.
-async fn admitted(endpoint: &Endpoint, headers: &HeaderMap) -> bool {
-    let catalog = &endpoint.catalog;
-    let profile = catalog.profile(&"operator".parse().unwrap()).unwrap();
-    let server = catalog
-        .authorization_server(&profile.authorization_server)
-        .unwrap();
-    let Some(Ok(value)) = headers
-        .get(header::AUTHORIZATION)
-        .map(|value| value.to_str())
-    else {
-        return false;
+/// The Hub's own profile authentication, which admits every request of `/mcp/{profile}`:
+/// the bearer's signature, issuer, audience and scope, its invocation authority, its
+/// session family's state and revocation, and its authentication record.
+fn profile_authentication(
+    hub: &HubState,
+    catalog: &HubCatalogHandle,
+) -> crate::http::ProfileAuthState {
+    use base64::Engine as _;
+    let issuer = veoveo_hub_sdk::TokenIssuer::parse(HOST).unwrap();
+    let key = || {
+        veoveo_hub_sdk::HubInternalSigningKey::new(
+            base64::engine::general_purpose::STANDARD
+                .decode(SIGNING_KEY)
+                .unwrap(),
+        )
+        .unwrap()
     };
-    let Ok(bearer) = BearerToken::from_authorization_header(value) else {
-        return false;
-    };
-    let jwks = crate::issuance::authorization_server_jwks_from_signing_key(catalog, server)
-        .await
-        .unwrap();
-    let config = JwtAuthConfig::new(
-        server.issuer.clone(),
-        profile.protected_resource.clone(),
-        profile.required_scopes.iter().cloned().collect(),
-        crate::http::auth_support::allowed_hub_jwt_algorithms(),
+    let registrations = crate::registration::RegistrationService::new(
+        hub.platform_store().clone(),
+        catalog.clone(),
+        hub.clone(),
+        crate::registration::RegistrationIdentity {
+            issuer: issuer.clone(),
+            signing_key: key(),
+            verification_key: None,
+        },
+        crate::registration::ServerDatabase {
+            url: veoveo_hub_sdk::registration::DatabaseUrl::new(
+                url::Url::parse("postgres://127.0.0.1/unused").unwrap(),
+            )
+            .unwrap(),
+        },
+        std::time::Duration::from_secs(60),
     )
     .unwrap();
-    let Ok(verified) = JwtVerifier::new(config, jwks)
-        .with_extensions(endpoint.hub.token_extension_registry().unwrap())
-        .unwrap()
-        .verify(&bearer)
-    else {
-        return false;
-    };
-    let subject = endpoint
-        .hub
-        .resolve_authenticated_subject(catalog, verified)
-        .await
-        .unwrap();
-    assert!(
-        subject.access_token.session_family.is_some(),
-        "the bearer names the session"
-    );
-    assert!(
-        subject.access_token.expires_at - subject.access_token.issued_at
-            <= chrono::TimeDelta::seconds(60),
-        "the bearer lives at most a minute"
-    );
-    assert_eq!(
-        subject.access_token.oauth_client_id.as_str(),
-        "operator-local-public"
-    );
+    let delegation = crate::delegation::DelegationService::new(
+        registrations,
+        catalog.clone(),
+        hub.clone(),
+        veoveo_hub_sdk::HubInternalTokenIssuer::new(issuer, key()).unwrap(),
+    )
+    .unwrap();
+    crate::http::ProfileAuthState {
+        catalog: catalog.clone(),
+        hub_state: hub.clone(),
+        deployment: veoveo_hub_sdk::PublicDeployment::new(HOST).unwrap(),
+        auth_http: Arc::new(parking_lot::RwLock::new(reqwest::Client::new())),
+        delegation,
+    }
+}
+
+/// Counts the listen streams the endpoint opened that have closed since.
+struct Closes(Arc<AtomicUsize>);
+
+impl Drop for Closes {
+    fn drop(&mut self) {
+        self.0.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+/// The endpoint's answer to a listen: its acknowledgement and one update, each naming
+/// the listen, then nothing until the stream closes. A listen of `fixture://ending`
+/// ends at once with the listen's final response instead. Every message it sends is
+/// recorded as the JSON text it sent.
+fn listen_stream(endpoint: &Endpoint, id: &Value, params: &Value) -> Response {
+    let named = json!({"io.modelcontextprotocol/subscriptionId": id});
+    let uris = params["notifications"]["resourceSubscriptions"].clone();
+    let ending = uris == json!(["fixture://ending"]);
+    let mut messages = vec![json!({
+        "jsonrpc": "2.0",
+        "method": "notifications/subscriptions/acknowledged",
+        "params": {"_meta": named, "notifications": {"resourceSubscriptions": uris}}
+    })];
+    messages.push(if ending {
+        json!({"jsonrpc": "2.0", "id": id, "result": {"_meta": named}})
+    } else {
+        json!({
+            "jsonrpc": "2.0",
+            "method": "notifications/resources/updated",
+            "params": {"_meta": named, "uri": uris[0]}
+        })
+    });
+    let messages: Vec<String> = messages.iter().map(Value::to_string).collect();
     endpoint
-        .hub
-        .access_token_session_valid(
-            &profile.protected_resource,
-            &server.id,
-            &subject.access_token,
-            &subject.principal,
-        )
-        .await
+        .sent
+        .lock()
         .unwrap()
+        .extend(messages.iter().cloned());
+    let closes = Closes(endpoint.closes.clone());
+    let body = async_stream::stream! {
+        let _closes = closes;
+        for message in messages {
+            yield Ok::<_, std::convert::Infallible>(axum::body::Bytes::from(format!("data: {message}\n\n")));
+        }
+        if !ending {
+            std::future::pending::<()>().await;
+        }
+    };
+    (
+        [(header::CONTENT_TYPE, "text/event-stream")],
+        Body::from_stream(body),
+    )
+        .into_response()
 }
 
 async fn mcp(State(endpoint): State<Endpoint>, request: Request) -> Response {
@@ -199,15 +246,38 @@ async fn mcp(State(endpoint): State<Endpoint>, request: Request) -> Response {
             .is_some(),
         "the in-process request carries the browser request's correlation"
     );
-    if !admitted(&endpoint, &headers).await {
-        return StatusCode::UNAUTHORIZED.into_response();
-    }
+    // The Hub's profile authentication admitted the person's bearer of the session.
+    let subject = request
+        .extensions()
+        .get::<crate::AuthenticatedSubject>()
+        .cloned()
+        .expect("the profile authentication admits the bearer");
+    assert!(
+        subject.access_token.session_family.is_some(),
+        "the bearer names the session"
+    );
+    assert_eq!(
+        subject.access_token.oauth_client_id.as_str(),
+        "operator-local-public"
+    );
     let bytes = axum::body::to_bytes(request.into_body(), usize::MAX)
         .await
         .unwrap();
     let message: Value = serde_json::from_slice(&bytes).unwrap();
     let method = message["method"].as_str().unwrap().to_owned();
     let params = message["params"].clone();
+    let lifetime = subject.access_token.expires_at - subject.access_token.issued_at;
+    if method == "subscriptions/listen" {
+        assert!(
+            lifetime > chrono::TimeDelta::seconds(60) && lifetime <= chrono::TimeDelta::minutes(15),
+            "a listen's bearer lives as long as a listen's forwarded token: {lifetime}"
+        );
+    } else {
+        assert!(
+            lifetime <= chrono::TimeDelta::seconds(60),
+            "a request's bearer lives at most a minute"
+        );
+    }
     assert_eq!(headers["mcp-protocol-version"], "2026-07-28");
     assert_eq!(headers["mcp-method"], method.as_str());
     let meta = &params["_meta"];
@@ -235,6 +305,9 @@ async fn mcp(State(endpoint): State<Endpoint>, request: Request) -> Response {
             .map(|value| value.to_str().unwrap().to_owned()),
         params: params.clone(),
     });
+    if method == "subscriptions/listen" {
+        return listen_stream(&endpoint, &message["id"], &params);
+    }
     let (first, second) = resources();
     let answer = match method.as_str() {
         "resources/list" if params.get("cursor").is_none() => {
@@ -264,28 +337,44 @@ struct Fixture {
     router: Router,
     cookie: String,
     received: Arc<Mutex<Vec<Received>>>,
+    sent: Arc<Mutex<Vec<String>>>,
+    closes: Arc<AtomicUsize>,
 }
+
+/// The listens one browser session may hold in these tests, and how soon an open listen
+/// notices that its session ended.
+const LIMITS: super::ListenLimits = super::ListenLimits {
+    per_session: std::num::NonZeroUsize::new(2).unwrap(),
+    recheck: std::time::Duration::from_millis(100),
+};
 
 impl Fixture {
     async fn start(
         db: &crate::test_store::TestDb,
     ) -> (Self, crate::computers::test_fixture::AppsOwner) {
         let owner = crate::computers::test_fixture::apps_owner(db, catalog()).await;
-        let catalog = Arc::new(owner.catalog.clone());
-        let received = Arc::new(Mutex::new(Vec::new()));
-        let endpoint = Router::new()
+        let catalog = HubCatalogHandle::new(Arc::new(owner.catalog.clone()));
+        let endpoint = Endpoint {
+            received: Arc::default(),
+            sent: Arc::default(),
+            closes: Arc::default(),
+        };
+        // The fake endpoint stands where the Hub's MCP handler does, behind the Hub's own
+        // profile authentication, as `/mcp/{profile}` is.
+        let mcp = Router::new()
             .route("/mcp/{profile}", post(mcp))
-            .with_state(Endpoint {
-                hub: owner.hub.clone(),
-                catalog: catalog.clone(),
-                received: received.clone(),
-            });
+            .with_state(endpoint.clone())
+            .layer(axum::middleware::from_fn_with_state(
+                profile_authentication(&owner.hub, &catalog),
+                crate::http::authenticate_profile,
+            ));
         let router = AppsService::new(
-            HubCatalogHandle::new(catalog.clone()),
+            catalog,
             owner.hub.clone(),
             AppOrigins::new(HOST, SANDBOX.parse().unwrap()).unwrap(),
             "veoveo.example",
-            endpoint,
+            mcp,
+            LIMITS,
         )
         .unwrap()
         .router()
@@ -296,10 +385,37 @@ impl Fixture {
             Self {
                 router,
                 cookie: owner.cookie.clone(),
-                received,
+                received: endpoint.received,
+                sent: endpoint.sent,
+                closes: endpoint.closes,
             },
             owner,
         )
+    }
+
+    /// Open a listen of `uris` with the request `id`: its response, whose body is the
+    /// listen's stream when it opened.
+    async fn listen(&self, id: &str, notifications: Value) -> Response {
+        let body = json!({
+            "jsonrpc": "2.0", "id": id, "method": "subscriptions/listen",
+            "params": {"notifications": notifications}
+        });
+        self.router
+            .clone()
+            .oneshot(self.bridge(Some(HOST), body.to_string()))
+            .await
+            .unwrap()
+    }
+
+    /// Wait until `count` of the endpoint's listen streams have closed.
+    async fn closed(&self, count: usize) {
+        tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            while self.closes.load(Ordering::SeqCst) < count {
+                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .unwrap_or_else(|_| panic!("{count} upstream listens closed"));
     }
 
     async fn send(&self, request: axum::http::Request<Body>) -> (StatusCode, HeaderMap, Vec<u8>) {
@@ -470,7 +586,7 @@ async fn the_bridge_reaches_only_the_apps_own_linked_tools_and_resources_as_the_
         assert_eq!(fixture.received().last().unwrap().name.as_deref(), Some("task-1"));
 
         // Methods the bridge does not serve.
-        for method in ["subscriptions/listen", "tools/list", "resources/list", "ui/initialize"] {
+        for method in ["tools/list", "resources/list", "ui/initialize", "ui/notifications/resource-updated"] {
             let (_, text) = fixture.call(method, json!({})).await;
             assert_eq!(response(&text)["error"]["code"], -32601, "{method}");
         }
@@ -502,4 +618,181 @@ async fn the_bridge_reaches_only_the_apps_own_linked_tools_and_resources_as_the_
     })
     .await
     .expect("App bridge deadline");
+}
+
+/// The data of the stream's next event, past its comments; None once it ends.
+async fn next_event(events: &mut sse_stream::SseStream<Body>) -> Option<String> {
+    use futures::StreamExt as _;
+    tokio::time::timeout(std::time::Duration::from_secs(10), async {
+        loop {
+            match events.next().await {
+                Some(Ok(event)) => {
+                    if let Some(data) = event.data {
+                        return Some(data);
+                    }
+                }
+                Some(Err(error)) => panic!("the listen's stream broke: {error}"),
+                None => return None,
+            }
+        }
+    })
+    .await
+    .expect("the listen's next event")
+}
+
+/// The listen's open stream, from its response.
+fn stream(response: Response) -> sse_stream::SseStream<Body> {
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response.headers()[header::CONTENT_TYPE],
+        "text/event-stream"
+    );
+    assert_eq!(
+        response.headers()[header::CACHE_CONTROL],
+        "private, no-store"
+    );
+    sse_stream::SseStream::new(response.into_body())
+}
+
+#[tokio::test]
+async fn a_listen_relays_its_servers_own_messages_unchanged_and_ends_with_the_view() {
+    tokio::time::timeout(std::time::Duration::from_secs(120), async {
+        let db = crate::test_store::TestDb::new().await;
+        let (fixture, _owner) = Fixture::start(&db).await;
+
+        // The acknowledgement and an update reach the page as the server sent them.
+        let uri = "fixture://events?cursor=eyJhZnRlciI6MX0%3D";
+        let notifications = json!({"resourceSubscriptions": [uri]});
+        let mut events = stream(fixture.listen("listen-1", notifications.clone()).await);
+        let sent = fixture.sent.lock().unwrap().clone();
+        assert_eq!(
+            next_event(&mut events).await.as_deref(),
+            Some(sent[0].as_str())
+        );
+        assert_eq!(
+            next_event(&mut events).await.as_deref(),
+            Some(sent[1].as_str())
+        );
+        let update: Value = serde_json::from_str(&sent[1]).unwrap();
+        assert_eq!(update["method"], "notifications/resources/updated");
+        assert_eq!(update["params"]["uri"], uri);
+        assert_eq!(
+            update["params"]["_meta"]["io.modelcontextprotocol/subscriptionId"], "listen-1",
+            "the in-process listen carries the view's own id"
+        );
+        let listen = fixture
+            .received()
+            .into_iter()
+            .find(|received| received.method == "subscriptions/listen")
+            .unwrap();
+        assert_eq!(listen.params["notifications"], notifications);
+
+        // The page aborting its fetch ends the listen at the endpoint.
+        drop(events);
+        fixture.closed(1).await;
+
+        // A listen the endpoint ends delivers its final response and ends with it.
+        let mut events = stream(
+            fixture
+                .listen(
+                    "listen-2",
+                    json!({"resourceSubscriptions": ["fixture://ending"]}),
+                )
+                .await,
+        );
+        assert!(
+            next_event(&mut events)
+                .await
+                .unwrap()
+                .contains("notifications/subscriptions/acknowledged")
+        );
+        let last: Value = serde_json::from_str(&next_event(&mut events).await.unwrap()).unwrap();
+        assert_eq!(last["id"], "listen-2");
+        assert!(last["result"].is_object());
+        assert_eq!(
+            next_event(&mut events).await,
+            None,
+            "nothing follows the final response"
+        );
+        fixture.closed(2).await;
+
+        // Another server's resource, list changes or Tasks reach no server.
+        fixture.received();
+        for notifications in [
+            json!({"resourceSubscriptions": ["fixture://events", "neighbor://events"]}),
+            json!({"resourceSubscriptions": ["ui://neighbor/board.html"]}),
+            json!({"resourceSubscriptions": ["fixture://events"], "resourcesListChanged": true}),
+            json!({"taskIds": ["task-1"]}),
+            json!({"resourceSubscriptions": []}),
+        ] {
+            let response = fixture.listen("listen-3", notifications.clone()).await;
+            assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(response.headers()[header::CONTENT_TYPE], "application/json");
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            let answer: Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(answer["id"], "listen-3");
+            assert_eq!(answer["error"]["code"], -32602, "{notifications}");
+            assert!(
+                fixture
+                    .received()
+                    .iter()
+                    .all(|received| received.method != "subscriptions/listen"),
+                "{notifications} reached no server"
+            );
+        }
+    })
+    .await
+    .expect("App listen deadline");
+}
+
+#[tokio::test]
+async fn a_session_holds_its_ceiling_of_listens_and_its_end_closes_them() {
+    tokio::time::timeout(std::time::Duration::from_secs(120), async {
+        let db = crate::test_store::TestDb::new().await;
+        let (fixture, owner) = Fixture::start(&db).await;
+        let notifications = || json!({"resourceSubscriptions": ["fixture://events"]});
+
+        // The session's ceiling refuses one listen more, until one ends.
+        let first = stream(fixture.listen("first", notifications()).await);
+        let mut second = stream(fixture.listen("second", notifications()).await);
+        let refused = fixture.listen("third", notifications()).await;
+        assert_eq!(refused.status(), StatusCode::TOO_MANY_REQUESTS);
+        let listens = fixture
+            .received()
+            .into_iter()
+            .filter(|received| received.method == "subscriptions/listen")
+            .count();
+        assert_eq!(listens, 2, "the refused listen reached no server");
+        drop(first);
+        fixture.closed(1).await;
+        let mut third = stream(fixture.listen("third", notifications()).await);
+
+        // The session's end closes every open listen, each with an error naming it.
+        for events in [&mut second, &mut third] {
+            assert!(next_event(events).await.unwrap().contains("acknowledged"));
+            assert!(next_event(events).await.unwrap().contains("resources/updated"));
+        }
+        owner.revoke().await;
+        for (id, events) in [("second", &mut second), ("third", &mut third)] {
+            let ended: Value = serde_json::from_str(&next_event(events).await.unwrap()).unwrap();
+            assert_eq!(
+                ended,
+                json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "error": {"code": -32603, "message": "The browser session ended; sign in to listen again."}
+                })
+            );
+            assert_eq!(next_event(events).await, None);
+        }
+        fixture.closed(3).await;
+        assert_eq!(
+            fixture.listen("fourth", notifications()).await.status(),
+            StatusCode::UNAUTHORIZED
+        );
+    })
+    .await
+    .expect("App listen ceiling deadline");
 }

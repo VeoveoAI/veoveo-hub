@@ -214,6 +214,14 @@ struct ServeArgs {
         default_value = "127.0.0.1:8081"
     )]
     apps_listen_address: std::net::SocketAddr,
+    /// The most open live-resource listens of one browser session on this replica.
+    #[arg(
+        long,
+        env = "VEOVEO_APPS_LISTENS_PER_SESSION",
+        default_value = "8",
+        value_parser = clap::value_parser!(std::num::NonZeroUsize)
+    )]
+    apps_listens_per_session: std::num::NonZeroUsize,
     /// Installation connectivity.
     #[arg(
         long,
@@ -333,6 +341,7 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         allow_loopback_hosts,
         apps_sandbox_origin,
         apps_listen_address,
+        apps_listens_per_session,
         connectivity_mode,
         audit_retention_days,
         audit_signing_key_b64,
@@ -380,6 +389,7 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         refresh_delivery_window,
         allow_loopback_hosts,
         apps: apps_sandbox_origin.map(|sandbox| (sandbox, apps_listen_address)),
+        apps_listens_per_session,
         offline_mode: connectivity_mode == ConnectivityMode::Offline,
         audit_retention_days,
         audit_signing_key,

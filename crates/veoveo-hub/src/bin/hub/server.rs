@@ -58,6 +58,8 @@ pub(super) struct ServeConfig {
     pub(super) allow_loopback_hosts: bool,
     /// The sandbox proxy's public origin and the address of the Apps listener.
     pub(super) apps: Option<(veoveo_hub::apps::SandboxOrigin, SocketAddr)>,
+    /// The most open live-resource listens of one browser session.
+    pub(super) apps_listens_per_session: std::num::NonZeroUsize,
     pub(super) offline_mode: bool,
     pub(super) audit_retention_days: std::num::NonZeroU32,
     pub(super) audit_exports: veoveo_audit::export::AuditExportConfig,
@@ -78,6 +80,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         refresh_delivery_window,
         allow_loopback_hosts,
         apps: apps_config,
+        apps_listens_per_session,
         offline_mode,
         audit_retention_days,
         audit_signing_key,
@@ -269,6 +272,10 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
                 origins,
                 deployment.host_authority(),
                 mcp_router.clone(),
+                veoveo_hub::apps::ListenLimits {
+                    per_session: apps_listens_per_session,
+                    ..Default::default()
+                },
             )
         })
         .transpose()?;

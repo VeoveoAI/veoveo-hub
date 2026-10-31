@@ -17,7 +17,8 @@ use veoveo_types::InvocationProvenance;
 use super::{
     admission::{self, INTERNAL_ERROR, Method, Refusal, RequestId, ViewRequest},
     csp::AppPolicy,
-    mcp::{Answer, Failure, PersonMcp},
+    listen::{self, ListenLimits, Listens},
+    mcp::{Answer, Failure, Listened, PersonMcp},
     origins::AppOrigins,
     pages,
     route::AppView,
@@ -28,6 +29,9 @@ use crate::{HubCatalog, HubCatalogHandle, HubState, problem::Problem};
 const MAX_REQUEST_BYTES: usize = 256 * 1024;
 /// How long the bearer of one bridge request lives, at most.
 const BEARER_SECONDS: u32 = 60;
+/// How long the bearer of one listen lives, at most: the longest a listen's forwarded
+/// token lives.
+const LISTEN_BEARER_SECONDS: u32 = 15 * 60;
 
 /// The Apps host on the issuer's origin: host pages, the host script and bridges.
 #[derive(Clone)]
@@ -37,17 +41,21 @@ pub struct AppsService {
     origins: Arc<AppOrigins>,
     host: HeaderValue,
     mcp: Router,
+    limits: ListenLimits,
+    listens: Arc<Listens>,
 }
 
 impl AppsService {
     /// The host for the Hub whose `/mcp/{profile}` routes `mcp` serves, with their own
-    /// authentication, at the `Host` authority `host`.
+    /// authentication, at the `Host` authority `host`, with live resources bounded by
+    /// `limits`.
     pub fn new(
         catalog: HubCatalogHandle,
         hub: HubState,
         origins: AppOrigins,
         host: &str,
         mcp: Router,
+        limits: ListenLimits,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             catalog,
@@ -55,6 +63,8 @@ impl AppsService {
             origins: Arc::new(origins),
             host: HeaderValue::from_str(host).context("the issuer's host authority")?,
             mcp,
+            limits,
+            listens: Arc::default(),
         })
     }
 
@@ -70,13 +80,15 @@ impl AppsService {
             .with_state(self)
     }
 
-    /// The person's MCP client for this session, with a bearer of its refresh family.
+    /// The person's MCP client for this session, with a bearer of its refresh family
+    /// that lives at most `lifetime` seconds.
     async fn person(
         &self,
         catalog: &HubCatalog,
         config: &crate::control_plane::Computers,
         session: &crate::computers::BrowserSession,
         observation: crate::request_observation::RequestObservation,
+        lifetime: u32,
     ) -> anyhow::Result<PersonMcp> {
         let family = self
             .hub
@@ -103,7 +115,7 @@ impl AppsService {
             None,
             crate::issuance::AccessTokenInvocation {
                 lifetime: Some(crate::token_profile::TokenLifetime::from_seconds(
-                    std::num::NonZeroU32::new(BEARER_SECONDS).expect("nonzero"),
+                    std::num::NonZeroU32::new(lifetime).context("a bearer lives a while")?,
                 )),
                 not_after: Some(family.expires_at),
                 purpose: None,
@@ -123,6 +135,7 @@ impl AppsService {
             host: self.host.clone(),
             profile: config.profile.clone(),
             bearer: HeaderValue::from_str(&format!("Bearer {}", token.access_token))?,
+            expires_at: token.expires_at,
             observation,
         })
     }
@@ -202,7 +215,13 @@ async fn open(State(apps): State<AppsService>, request: Request) -> Response {
         Err(error) => return unavailable(&error),
     };
     let person = match apps
-        .person(&catalog, &config, &session, observation.clone())
+        .person(
+            &catalog,
+            &config,
+            &session,
+            observation.clone(),
+            BEARER_SECONDS,
+        )
         .await
     {
         Ok(person) => person,
@@ -279,6 +298,11 @@ async fn bridge(State(apps): State<AppsService>, request: Request) -> Response {
             Ok(None) => return sign_in_required(),
             Err(error) => return unavailable(&error),
         };
+    // An open listen reads the session again from these cookies alone.
+    let mut cookies = HeaderMap::new();
+    for value in request.headers().get_all(header::COOKIE) {
+        cookies.append(header::COOKIE, value.clone());
+    }
     let bytes = match axum::body::to_bytes(request.into_body(), MAX_REQUEST_BYTES).await {
         Ok(bytes) => bytes,
         Err(_) => {
@@ -300,8 +324,23 @@ async fn bridge(State(apps): State<AppsService>, request: Request) -> Response {
         .into_response();
     };
     let id = view_request.id.clone();
+    if Method::parse(&view_request.method) == Some(Method::SubscriptionsListen) {
+        let session = Admitted {
+            catalog,
+            config,
+            session,
+            cookies,
+        };
+        return listen(&apps, &view, view_request, session, observation).await;
+    }
     let person = match apps
-        .person(&catalog, &config, &session, observation.clone())
+        .person(
+            &catalog,
+            &config,
+            &session,
+            observation.clone(),
+            BEARER_SECONDS,
+        )
         .await
     {
         Ok(person) => person,
@@ -317,6 +356,137 @@ async fn bridge(State(apps): State<AppsService>, request: Request) -> Response {
                 error(INTERNAL_ERROR, "The Hub could not complete this request."),
             )
         }
+    }
+}
+
+/// The browser session a bridge request was admitted with.
+struct Admitted {
+    catalog: Arc<HubCatalog>,
+    config: Arc<crate::control_plane::Computers>,
+    session: crate::computers::BrowserSession,
+    /// The request's cookies, from which an open listen reads the session again.
+    cookies: HeaderMap,
+}
+
+/// A view's `subscriptions/listen`: admitted against the person's catalog, within the
+/// session's ceiling, sent as the person with the view's own `id`, and answered with the
+/// endpoint's event stream, relayed unchanged.
+async fn listen(
+    apps: &AppsService,
+    view: &AppView,
+    request: ViewRequest,
+    admitted: Admitted,
+    observation: crate::request_observation::RequestObservation,
+) -> Response {
+    let Admitted {
+        catalog,
+        config,
+        session,
+        cookies,
+    } = admitted;
+    let id = request.id;
+    let params = request.params.unwrap_or_default();
+    let person = match apps
+        .person(
+            &catalog,
+            &config,
+            &session,
+            observation.clone(),
+            BEARER_SECONDS,
+        )
+        .await
+    {
+        Ok(person) => person,
+        Err(error) => return unavailable(&error),
+    };
+    let unanswered = |cause: String| {
+        tracing::warn!(app = view.uri(), %cause, "App listen unavailable");
+        response(
+            &id,
+            error(INTERNAL_ERROR, "The Hub could not complete this request."),
+        )
+    };
+    let resources: Vec<Resource> = match person.list("resources/list", "resources").await {
+        Ok(resources) => resources,
+        Err(Failure::Unauthenticated) => return sign_in_required(),
+        Err(Failure::Unavailable(cause)) => return unanswered(cause),
+    };
+    if let Err(refusal) =
+        admission::find_app(view, &resources).and_then(|_| admission::admit_listen(view, &params))
+    {
+        tracing::info!(app = view.uri(), method = "subscriptions/listen", %refusal, "App request refused");
+        return response(&id, error(refusal.code(), refusal.to_string()));
+    }
+    let Some(permit) = apps
+        .listens
+        .acquire(session.family(), apps.limits.per_session)
+    else {
+        tracing::info!(
+            app = view.uri(),
+            limit = apps.limits.per_session.get(),
+            "App listen refused at the session's ceiling"
+        );
+        return Problem::new(
+            StatusCode::TOO_MANY_REQUESTS,
+            "apps-listen-limit",
+            "Too many live listens",
+        )
+        .detail(format!(
+            "This browser session holds {} open listens, the most it may.",
+            apps.limits.per_session
+        ))
+        .into_response();
+    };
+    let wire_id = match serde_json::to_value(&id) {
+        Ok(wire_id) => wire_id,
+        Err(cause) => return unanswered(cause.to_string()),
+    };
+    // The listen alone gets the bearer that lives as long as a listen's forwarded token.
+    let person = match apps
+        .person(
+            &catalog,
+            &config,
+            &session,
+            observation,
+            LISTEN_BEARER_SECONDS,
+        )
+        .await
+    {
+        Ok(person) => person,
+        Err(error) => return unavailable(&error),
+    };
+    match person.listen(&wire_id, params).await {
+        Ok(Listened::Answer(answer)) => response(&id, answer),
+        Ok(Listened::Stream(body)) => {
+            let hub = apps.hub.clone();
+            let handle = apps.catalog.clone();
+            let family = session.family().clone();
+            let cookies = Arc::new(cookies);
+            listen::relay(listen::Relay {
+                id: wire_id,
+                app: view.uri().to_owned(),
+                body,
+                permit,
+                expires_at: person.expires_at,
+                recheck: apps.limits.recheck,
+                admitted: Arc::new(move || {
+                    let (hub, handle, family, cookies) =
+                        (hub.clone(), handle.clone(), family.clone(), cookies.clone());
+                    Box::pin(async move {
+                        matches!(
+                            tokio::time::timeout(
+                                crate::computers::ADMISSION_READ_TIMEOUT,
+                                crate::computers::app_session(&hub, &handle.current(), &cookies),
+                            )
+                            .await,
+                            Ok(Ok(Some((_, session)))) if session.family() == &family
+                        )
+                    })
+                }),
+            })
+        }
+        Err(Failure::Unauthenticated) => sign_in_required(),
+        Err(Failure::Unavailable(cause)) => unanswered(cause),
     }
 }
 
@@ -352,6 +522,8 @@ async fn serve(
         Method::TasksGet | Method::TasksUpdate | Method::TasksCancel => {
             admission::admit_task(&params).map(|()| None)
         }
+        // The bridge answers a listen with its stream before it comes here.
+        Method::SubscriptionsListen => Err(Refusal::Listen),
     });
     let tool = match admitted {
         Ok(tool) => tool,
