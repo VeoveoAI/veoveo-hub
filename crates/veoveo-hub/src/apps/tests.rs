@@ -87,12 +87,21 @@ fn resources() -> (Vec<Resource>, Vec<Resource>) {
     );
     let mut plain = Resource::new("ui://fixture/plain.html", "plain");
     plain.mime_type = Some("text/html".into());
+    // The fixture server is a linked one: the person holds grants on the repositories of
+    // its links `team-a` and `team-b`, and the Hub's catalog names each runner's fixed
+    // resources under its link, as a neighbor's are under its own scheme.
     (
-        vec![board, app_resource("ui://neighbor/board.html", "board")],
+        vec![
+            board,
+            app_resource("ui://neighbor/board.html", "board"),
+            Resource::new("fixture://team-a/status", "status"),
+            Resource::new("neighbor://team-a/status", "status"),
+        ],
         vec![
             app_resource("ui://fixture/other.html", "other"),
             framing,
             plain,
+            Resource::new("fixture://team-b/status", "status"),
         ],
     )
 }
@@ -558,6 +567,7 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
         let body = String::from_utf8(body).unwrap();
         assert!(body.contains("allow-scripts allow-same-origin"));
         assert!(body.contains("url.pathname.startsWith(config.computerApps)"));
+        assert!(body.contains(r#"new Set(["tools/call", "resources/list", "resources/read", ...taskMethods])"#));
         assert_eq!(digest, hex::encode(&Sha256::digest(body.as_bytes())[..16]));
         let stale = axum::http::Request::get("/apps/host.js").body(Body::empty()).unwrap();
         assert_eq!(fixture.send(stale).await.0, StatusCode::NOT_FOUND);
@@ -615,8 +625,37 @@ async fn the_bridge_reaches_only_the_apps_own_linked_tools_and_resources_as_the_
         );
         assert_eq!(fixture.received().last().unwrap().name.as_deref(), Some("task-1"));
 
+        // The view lists its own server's resources from the person's catalog, every page
+        // of it, with nothing sent but the reads that find the App: a linked server's
+        // under exactly the person's links, and its Apps.
+        fixture.received();
+        let (status, text) = fixture.call("resources/list", json!({})).await;
+        assert_eq!(status, StatusCode::OK);
+        let answer = response(&text);
+        let listed: Vec<&str> = answer["result"]["resources"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{text}"))
+            .iter()
+            .map(|resource| resource["uri"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            listed,
+            [
+                "ui://fixture/board.html",
+                "fixture://team-a/status",
+                "ui://fixture/other.html",
+                "ui://fixture/framing.html",
+                "ui://fixture/plain.html",
+                "fixture://team-b/status",
+            ]
+        );
+        assert!(answer["result"].get("nextCursor").is_none(), "{text}");
+        assert_eq!(answer["result"]["resources"][0]["mimeType"], "text/html;profile=mcp-app");
+        let sent: Vec<String> = fixture.received().into_iter().map(|r| r.method).collect();
+        assert_eq!(sent, ["resources/list", "resources/list"]);
+
         // Methods the bridge does not serve.
-        for method in ["tools/list", "resources/list", "ui/initialize", "ui/notifications/resource-updated"] {
+        for method in ["tools/list", "resources/templates/list", "ui/initialize", "ui/notifications/resource-updated"] {
             let (_, text) = fixture.call(method, json!({})).await;
             assert_eq!(response(&text)["error"]["code"], -32601, "{method}");
         }

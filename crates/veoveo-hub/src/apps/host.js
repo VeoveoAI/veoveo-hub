@@ -11,7 +11,7 @@
   const config = JSON.parse(document.getElementById("app").textContent);
   const bridgePath = window.location.pathname;
   const taskMethods = new Set(["tasks/get", "tasks/update", "tasks/cancel"]);
-  const bridged = new Set(["tools/call", "resources/read", ...taskMethods]);
+  const bridged = new Set(["tools/call", "resources/list", "resources/read", ...taskMethods]);
   // The Tasks this view's calls created: the only Tasks it may ask about.
   const tasks = new Set();
   // The view's open listens, by request id: aborting one ends its stream at the Hub.

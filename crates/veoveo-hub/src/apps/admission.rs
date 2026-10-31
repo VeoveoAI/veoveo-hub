@@ -46,6 +46,7 @@ pub(super) enum RequestId {
 pub(super) enum Method {
     Ping,
     ToolsCall,
+    ResourcesList,
     ResourcesRead,
     TasksGet,
     TasksUpdate,
@@ -58,6 +59,7 @@ impl Method {
         Some(match method {
             "ping" => Self::Ping,
             "tools/call" => Self::ToolsCall,
+            "resources/list" => Self::ResourcesList,
             "resources/read" => Self::ResourcesRead,
             "tasks/get" => Self::TasksGet,
             "tasks/update" => Self::TasksUpdate,
@@ -71,6 +73,7 @@ impl Method {
         match self {
             Self::Ping => "ping",
             Self::ToolsCall => "tools/call",
+            Self::ResourcesList => "resources/list",
             Self::ResourcesRead => "resources/read",
             Self::TasksGet => "tasks/get",
             Self::TasksUpdate => "tasks/update",
@@ -137,6 +140,19 @@ pub(super) fn admit_tool(
     })?;
     params.insert("name".to_owned(), Value::String(tool.name.to_string()));
     Ok(tool.clone())
+}
+
+/// The resources a view lists: those of `resources`, the catalog the person sees, that
+/// are its own server's, as `resources/read` admits them. A linked server's are its
+/// runners', `{slug}://{link}/…` for each link the person holds a grant on, and its Apps
+/// once.
+pub(super) fn listed<'a>(
+    view: &AppView,
+    resources: &'a [Resource],
+) -> impl Iterator<Item = &'a Resource> {
+    resources
+        .iter()
+        .filter(|resource| view.owns_resource(&resource.uri))
 }
 
 /// A view reads only its own server's resources.
@@ -406,7 +422,7 @@ mod tests {
         }
         for method in [
             "tools/list",
-            "resources/list",
+            "resources/templates/list",
             "prompts/get",
             "ui/initialize",
             "ui/notifications/resource-updated",
@@ -418,6 +434,7 @@ mod tests {
             Method::parse("subscriptions/listen"),
             Some(Method::SubscriptionsListen)
         );
+        assert_eq!(Method::parse("resources/list"), Some(Method::ResourcesList));
         assert_eq!(
             admit_task(json!({"taskId": "t"}).as_object().unwrap()),
             Ok(())

@@ -532,7 +532,7 @@ async fn serve(
         )
     };
     let admitted = admission::find_app(view, &resources).and_then(|app| match method {
-        Method::Ping => Ok(None),
+        Method::Ping | Method::ResourcesList => Ok(None),
         Method::ToolsCall => admission::admit_tool(app, &tools, &mut params).map(Some),
         Method::ResourcesRead => admission::admit_read(view, &params).map(|()| None),
         Method::TasksGet | Method::TasksUpdate | Method::TasksCancel => {
@@ -550,6 +550,12 @@ async fn serve(
     };
     if method == Method::Ping {
         return Ok(Answer::Result(Value::Object(Map::new())));
+    }
+    // The host lists the catalog it just read, every page of it, so the answer names no
+    // cursor and its request reaches no server again.
+    if method == Method::ResourcesList {
+        let listed: Vec<&Resource> = admission::listed(view, &resources).collect();
+        return Ok(Answer::Result(json!({ "resources": listed })));
     }
     person.request(method.name(), params, tool.as_ref()).await
 }

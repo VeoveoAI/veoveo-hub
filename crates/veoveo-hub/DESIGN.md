@@ -1242,6 +1242,7 @@ the person sees now:
 | View request | Admitted when | Sent as |
 |---|---|---|
 | `tools/call` | The SDK's `resolve_app_tool` finds the name for this App: a tool of the App's own server whose `_meta.ui` links it to this exact App with a visibility that includes `app` | `tools/call` of `{slug}__{name}` |
+| `resources/list` | Always | Answered by the bridge from the catalog it read to find the App: every page of the person's resources, those of them that are the App's own server's, by the rule of `resources/read`, in one answer without a cursor |
 | `resources/read` | The URI is the App's own server's: its scheme is the slug, or it starts with `ui://{slug}/` | `resources/read` |
 | `tasks/get`, `tasks/update`, `tasks/cancel` | Always; the Hub's Task routes admit only the person's own Tasks | The same request |
 | `subscriptions/listen` | It names only `resourceSubscriptions`, each of them the App's own server's ([live resources](#live-resources)) | The same request, answered with an event stream |
@@ -1251,10 +1252,18 @@ Another method answers `-32601`; a refused tool or resource answers `-32602` nam
 the reason, logged at INFO, and reaches no server.
 
 - **Names.** A view calls a tool by its own server's name for it, such as `resolve`;
-  the Hub calls it by its catalog name, `{slug}__resolve`. A name that already holds
-  `__` names no tool of the App.
+  the Hub calls it by its catalog name, `{slug}__resolve`. A view of a linked server
+  names a runner's tool with its link, `{link}__resolve`, which the Hub calls as
+  `{slug}__{link}__resolve`. Any other name that holds `__` names no tool of the App.
 - **Addresses.** A view's resource address travels unchanged, its query included, such
   as `{slug}://events?cursor=…`.
+- **Lists.** MCP Apps names `tools/call` and `resources/read` for a view, and lets a
+  host forward any other message whose method does not start with `ui/`; the bridge
+  answers `resources/list` so a view finds its own server's resources. The catalog is
+  the person's after the link projection, so a view of a linked server lists
+  `{slug}://{link}/…` for exactly the links whose repositories grant the person, each
+  of its runners' fixed resources once per link, and the server's Apps once. It lists
+  no tools, templates or other server's resources.
 - **Tasks.** Every request of an App declares the Tasks extension
   `io.modelcontextprotocol/tasks` among its client capabilities, so a Task-based tool
   answers with its Task (`resultType` `task`) where the session's OAuth client

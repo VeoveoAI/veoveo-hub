@@ -17,8 +17,8 @@ use rmcp::{
     RoleClient,
     model::{
         CallToolRequestParams, CallToolResponse, ClientConfig, ClientRequest, GetTaskParams,
-        ListResourceTemplatesRequest, ListToolsRequest, ReadResourceRequestParams,
-        ResourceContents, ServerResult, TaskPayload,
+        ListResourceTemplatesRequest, ListResourcesRequest, ListToolsRequest,
+        ReadResourceRequestParams, ResourceContents, ServerResult, TaskPayload,
     },
     service::RunningService,
 };
@@ -200,6 +200,30 @@ async fn templates(client: &Client) -> Vec<String> {
         .collect()
 }
 
+/// The linked server's resources the Hub lists to `client` now, which the Apps host's
+/// bridge lists to a view of that server.
+async fn resources(client: &Client) -> Vec<String> {
+    let ServerResult::ListResourcesResult(listed) = client
+        .send_request(ClientRequest::ListResourcesRequest(ListResourcesRequest {
+            method: Default::default(),
+            params: None,
+            extensions: Default::default(),
+        }))
+        .await
+        .unwrap()
+    else {
+        panic!("resources/list returned another result");
+    };
+    let mut uris: Vec<String> = listed
+        .resources
+        .into_iter()
+        .map(|resource| resource.uri.clone())
+        .filter(|uri| uri.starts_with("ledger://"))
+        .collect();
+    uris.sort();
+    uris
+}
+
 fn call(name: &str, arguments: Value) -> CallToolRequestParams {
     CallToolRequestParams::new(name.to_owned())
         .with_arguments(arguments.as_object().unwrap().clone())
@@ -251,6 +275,30 @@ async fn each_link_serves_its_own_names_to_the_people_its_repository_grants() {
                 "ledger://team-a/entries/{entry}"
             ]
         );
+        // The resources a view of the server lists are each runner's under its link, for
+        // exactly the links the caller holds a grant on.
+        let listed = resources(&member).await;
+        assert!(!listed.is_empty());
+        assert!(
+            listed.iter().all(|uri| uri.starts_with("ledger://team-a/")),
+            "{listed:?}"
+        );
+        let both = resources(&admin).await;
+        let team = |link: &str| -> Vec<String> {
+            both.iter()
+                .filter_map(|uri| uri.strip_prefix(&format!("ledger://{link}/")))
+                .map(str::to_owned)
+                .collect()
+        };
+        assert_eq!(team("team-a"), team("team-b"), "{both:?}");
+        assert_eq!(
+            listed,
+            team("team-a")
+                .iter()
+                .map(|rest| format!("ledger://team-a/{rest}"))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(both.len(), 2 * listed.len(), "{both:?}");
 
         // A call reaches its link's runner, which reads the caller's grant on its
         // repository from the forwarded token.
