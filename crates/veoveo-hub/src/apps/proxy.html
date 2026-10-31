@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>App sandbox</title>
+<style>html,body{margin:0;height:100%;overflow:hidden}iframe{display:block;border:0;width:100%;height:100%}</style>
+</head>
+<body>
+<script>
+"use strict";
+// The MCP Apps sandbox proxy of a web host (MCP Apps 2026-01-26). It holds no session or
+// data, runs the App in an opaque-origin frame under this page's policy, which the
+// frame's about:srcdoc document inherits, and forwards messages between the host page
+// and the App. It sends nothing of its own but its readiness.
+(() => {
+  const host = "{{HOST_ORIGIN}}";
+  const sandboxMethods = "ui/notifications/sandbox-";
+  let app = null;
+  const isMessage = (data) =>
+    data !== null && typeof data === "object" && !Array.isArray(data) && data.jsonrpc === "2.0";
+  window.addEventListener("message", (event) => {
+    const data = event.data;
+    if (!isMessage(data)) return;
+    if (event.source === window.parent && event.origin === host) {
+      if (typeof data.method === "string" && data.method.startsWith(sandboxMethods)) {
+        const params = data.params;
+        if (data.method === sandboxMethods + "resource-ready" && app === null &&
+            params !== null && typeof params === "object" && typeof params.html === "string") {
+          app = document.createElement("iframe");
+          // Never allow-same-origin, whatever the host asks: the App has an opaque
+          // origin, no cookies and no storage.
+          app.setAttribute("sandbox", "allow-scripts");
+          app.setAttribute("referrerpolicy", "no-referrer");
+          app.title = "App";
+          app.srcdoc = params.html;
+          document.body.appendChild(app);
+        }
+        return;
+      }
+      if (app !== null && app.contentWindow !== null) app.contentWindow.postMessage(data, "*");
+    } else if (app !== null && event.source === app.contentWindow) {
+      window.parent.postMessage(data, host);
+    }
+  });
+  window.parent.postMessage(
+    { jsonrpc: "2.0", method: sandboxMethods + "proxy-ready", params: {} }, host);
+})();
+</script>
+</body>
+</html>

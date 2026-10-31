@@ -215,6 +215,18 @@ pub(super) async fn ready_computer(
     provisioner: &Provisioner,
     cookie: &veoveo_types::Sha256Digest,
 ) -> Computer {
+    signed_in_computer(hub, catalog, provisioner, cookie)
+        .await
+        .0
+}
+
+/// [`ready_computer`], with the refresh token of the family its session holds.
+async fn signed_in_computer(
+    hub: &crate::HubState,
+    catalog: &HubCatalog,
+    provisioner: &Provisioner,
+    cookie: &veoveo_types::Sha256Digest,
+) -> (Computer, crate::IssuedHubRefreshToken) {
     use std::collections::BTreeSet;
     use veoveo_hub_sdk::{Principal, PrincipalKind, TokenIssuer, TokenSubject};
     let config = provisioner.config.as_ref();
@@ -271,11 +283,12 @@ pub(super) async fn ready_computer(
         .complete(&issued.grant.family_id, cookie)
         .await
         .unwrap();
-    store
+    let computer = store
         .computer(&tenant, &principal.id, &computer.id)
         .await
         .unwrap()
-        .unwrap()
+        .unwrap();
+    (computer, issued)
 }
 
 /// A Hub over a disposable database, admitting the test catalog's browser client.
@@ -301,5 +314,60 @@ pub(super) fn runtime(
         http: reqwest::Client::new(),
         installation,
         browser: Default::default(),
+    }
+}
+
+/// An owner signed in for the Apps host: a ready Computer whose browser session the
+/// cookie `__Host-computer={cookie}` selects, in `catalog` with its Computers prepared
+/// on the fake gateway.
+pub(crate) struct AppsOwner {
+    pub(crate) hub: crate::HubState,
+    pub(crate) catalog: HubCatalog,
+    pub(crate) cookie: String,
+    refresh: crate::IssuedHubRefreshToken,
+    config: Arc<Computers>,
+    _gateway: fake::Gateway,
+}
+
+impl AppsOwner {
+    /// End the session as a logout of its refresh family would.
+    pub(crate) async fn revoke(&self) {
+        let profile = self.catalog.profile(&self.config.profile).unwrap();
+        self.hub
+            .revoke_refresh_token_family(
+                &self.refresh.token,
+                &profile.authorization_server,
+                &profile.protected_resource,
+                &self.config.oauth_client,
+                Utc::now(),
+            )
+            .await
+            .unwrap();
+    }
+}
+
+pub(crate) async fn apps_owner(
+    db: &crate::test_store::TestDb,
+    mut catalog: HubCatalog,
+) -> AppsOwner {
+    let hub = hub(db);
+    let (gateway, provisioner) = gateway(Strategy::Oauth2ClientCredentials).await;
+    let cookie = super::oauth::opaque().unwrap();
+    let (_, refresh) =
+        signed_in_computer(&hub, &catalog, &provisioner, &super::oauth::digest(&cookie)).await;
+    catalog.runtime = Some(Arc::new(crate::hosting::HostedRuntime::with_computers(
+        super::runtime::ComputerConfiguration {
+            config: provisioner.config.clone(),
+            installation: installation(&provisioner),
+            http: reqwest::Client::new(),
+        },
+    )));
+    AppsOwner {
+        hub,
+        catalog,
+        cookie,
+        refresh,
+        config: provisioner.config.clone(),
+        _gateway: gateway,
     }
 }

@@ -71,3 +71,17 @@ impl HostedRuntime {
         })
     }
 }
+
+#[cfg(test)]
+impl HostedRuntime {
+    /// A runtime whose only prepared resource is `computers`.
+    pub(crate) fn with_computers(
+        computers: crate::computers::runtime::ComputerConfiguration,
+    ) -> Self {
+        Self {
+            upstream_http: HubUpstreamHttpClientPool::new(),
+            computer_gateway: None,
+            computers: Some(Arc::new(computers)),
+        }
+    }
+}

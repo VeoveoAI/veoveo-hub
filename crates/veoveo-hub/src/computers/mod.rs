@@ -27,5 +27,5 @@ mod provisioning;
 mod proxy;
 pub(crate) mod runtime;
 #[cfg(test)]
-mod test_fixture;
+pub(crate) mod test_fixture;
 pub use runtime::{ComputerRuntime, ComputerService};
