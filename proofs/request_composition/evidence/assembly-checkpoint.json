@@ -1,0 +1,212 @@
+{
+  "kind": "snapshot-context-http-assembly-first-checked-proof",
+  "status": "six declarations and executable axiom audits checked; semantic-control and connected routing/issuer qualification pending",
+  "files": {
+    "RequestCompositionHub.lean": {
+      "bytes": 34,
+      "sha256": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9"
+    },
+    "RequestCompositionHub/Types.lean": {
+      "bytes": 115359,
+      "sha256": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2"
+    },
+    "RequestCompositionHub/Funs.lean": {
+      "bytes": 223858,
+      "sha256": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1"
+    },
+    "RequestCompositionHub/TypesExternal.lean": {
+      "bytes": 842,
+      "sha256": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd"
+    },
+    "RequestCompositionHub/FunsExternal.lean": {
+      "bytes": 128047,
+      "sha256": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2"
+    },
+    "SnapshotAssemblyProof.lean": {
+      "bytes": 13243,
+      "sha256": "52d30db8e5e58b83d15d2388ef832377e91fb6bbfaa8035d82c604fcbe224fc8"
+    },
+    "lakefile.lean": {
+      "bytes": 212,
+      "sha256": "5d6e69e71a822cc81536fea9f5ae97406e23c8b72dae3d9214e4a1e05da3019e"
+    },
+    "lake-manifest.json": {
+      "bytes": 4829,
+      "sha256": "122bb04c46b444c1de2a0dc47a258c6b5fc97e3c0274ed44ad489a7609aa8cc6"
+    },
+    "lean-toolchain": {
+      "bytes": 25,
+      "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+    }
+  },
+  "checks": [
+    {
+      "name": "generated-models",
+      "summary_sha256": "f1d660b7f32e4909a702537815075019c73a9b6dfb6a73c0eeb33195346f7294",
+      "summary_path": "/tmp/hub-request-composition-20261030/evidence-hub-a-model-build5/summary.json",
+      "result": {
+        "case": "Hub A ordinary models5: unfold let-bound UTF8 byte list in representability proof",
+        "packet_path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/hub-a-models-packet5.json",
+        "packet_sha256": "e7d56dc88068a42035998ba9e2967ac3a9e5300d00ce99c5fdb8dd7280303a34",
+        "source_root": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition",
+        "source_map_before": {
+          "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+          "lake-manifest.json": "122bb04c46b444c1de2a0dc47a258c6b5fc97e3c0274ed44ad489a7609aa8cc6",
+          "lakefile.lean": "5d6e69e71a822cc81536fea9f5ae97406e23c8b72dae3d9214e4a1e05da3019e",
+          "RequestCompositionHub.lean": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9",
+          "RequestCompositionHub/Funs.lean": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1",
+          "RequestCompositionHub/TypesExternal.lean": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd",
+          "RequestCompositionHub/FunsExternal.lean": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2",
+          "RequestCompositionHub/Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2"
+        },
+        "source_map_after": {
+          "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+          "lake-manifest.json": "122bb04c46b444c1de2a0dc47a258c6b5fc97e3c0274ed44ad489a7609aa8cc6",
+          "lakefile.lean": "5d6e69e71a822cc81536fea9f5ae97406e23c8b72dae3d9214e4a1e05da3019e",
+          "RequestCompositionHub.lean": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9",
+          "RequestCompositionHub/Funs.lean": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1",
+          "RequestCompositionHub/TypesExternal.lean": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd",
+          "RequestCompositionHub/FunsExternal.lean": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2",
+          "RequestCompositionHub/Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2"
+        },
+        "source_map_unchanged": true,
+        "current_roles_root": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/current_roles",
+        "current_roles_typesexternal_sha256": "6df818e75c75be437d185ac0e786d69e648e6d24fb01c50fa450dc9fce9e6269",
+        "authority_sibling_present": true,
+        "lake_packages_link": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition/.lake/packages",
+        "lake_packages_resolved": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/probe-1/source-parent/veoveo-hub/proofs/current_roles/.lake/packages",
+        "private_build_dir": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition/.lake/build",
+        "lean_toolchain": "leanprover/lean4:v4.35.0",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build",
+          "RequestCompositionHub"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition",
+        "started_unix": 1793406976.2411547,
+        "elapsed_s": 11.032,
+        "timeout_s": 900,
+        "timed_out": false,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/hub-a-model-build5/lake-build.log",
+        "log_bytes": 511,
+        "log_sha256": "2685b494f919f83f8782fdba55e3ff768e694bbf5d3a2e19c2bb8a228b07820e",
+        "complete": true
+      }
+    },
+    {
+      "name": "direct-proof",
+      "summary_sha256": "adbb2fc6109221ce7ab478512ce7d02e72be5b45b8bd66175bb48194fb44b6c7",
+      "summary_path": "/tmp/hub-request-composition-20261030/evidence-snapshot-assembly-direct5/summary.json",
+      "result": {
+        "case": "SnapshotAssemblyProof direct check against compiled RequestCompositionHub model5",
+        "packet_path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/hub-a-models-packet5.json",
+        "packet_sha256": "e7d56dc88068a42035998ba9e2967ac3a9e5300d00ce99c5fdb8dd7280303a34",
+        "source_root": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition",
+        "model_source_map_before": {
+          "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+          "lake-manifest.json": "122bb04c46b444c1de2a0dc47a258c6b5fc97e3c0274ed44ad489a7609aa8cc6",
+          "lakefile.lean": "5d6e69e71a822cc81536fea9f5ae97406e23c8b72dae3d9214e4a1e05da3019e",
+          "RequestCompositionHub.lean": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9",
+          "RequestCompositionHub/Funs.lean": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1",
+          "RequestCompositionHub/TypesExternal.lean": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd",
+          "RequestCompositionHub/FunsExternal.lean": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2",
+          "RequestCompositionHub/Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2"
+        },
+        "model_source_map_after": {
+          "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+          "lake-manifest.json": "122bb04c46b444c1de2a0dc47a258c6b5fc97e3c0274ed44ad489a7609aa8cc6",
+          "lakefile.lean": "5d6e69e71a822cc81536fea9f5ae97406e23c8b72dae3d9214e4a1e05da3019e",
+          "RequestCompositionHub.lean": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9",
+          "RequestCompositionHub/Funs.lean": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1",
+          "RequestCompositionHub/TypesExternal.lean": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd",
+          "RequestCompositionHub/FunsExternal.lean": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2",
+          "RequestCompositionHub/Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2"
+        },
+        "model_source_map_unchanged": true,
+        "proof_path": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition/SnapshotAssemblyProof.lean",
+        "proof_sha256": "52d30db8e5e58b83d15d2388ef832377e91fb6bbfaa8035d82c604fcbe224fc8",
+        "expected_proof_sha256": "52d30db8e5e58b83d15d2388ef832377e91fb6bbfaa8035d82c604fcbe224fc8",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "env",
+          "lean",
+          "SnapshotAssemblyProof.lean"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition",
+        "started_unix": 1793407316.1474354,
+        "elapsed_s": 2.819,
+        "timeout_s": 300,
+        "timed_out": false,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/evidence-snapshot-assembly-direct5/direct.log",
+        "log_bytes": 36899,
+        "log_sha256": "8c07f9780670a83d7244a8a19c137406009e810ed59408a4e8fcf165ca70c7fa",
+        "complete": true
+      }
+    },
+    {
+      "name": "default-package",
+      "summary_sha256": "4bfdacd4776888b8605426986f738687fd6af5f3bdb5da44e7676194ab1fe9e5",
+      "summary_path": "/tmp/hub-request-composition-20261030/evidence-hub-a-first-proof-final-build2/summary.json",
+      "result": {
+        "case": "Request composition A first snapshot/context/HTTP assembly checkpoint",
+        "packet_path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/hub-a-first-proof-final.json",
+        "packet_sha256": "63c1e2af9a689b26f6f82bab8105cd6312a7796c94b775ca82dfcd3b2798418a",
+        "source_root": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition",
+        "source_map_before": {
+          "RequestCompositionHub.lean": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9",
+          "RequestCompositionHub/Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2",
+          "RequestCompositionHub/Funs.lean": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1",
+          "RequestCompositionHub/TypesExternal.lean": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd",
+          "RequestCompositionHub/FunsExternal.lean": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2",
+          "SnapshotAssemblyProof.lean": "52d30db8e5e58b83d15d2388ef832377e91fb6bbfaa8035d82c604fcbe224fc8",
+          "lakefile.lean": "5d6e69e71a822cc81536fea9f5ae97406e23c8b72dae3d9214e4a1e05da3019e",
+          "lake-manifest.json": "122bb04c46b444c1de2a0dc47a258c6b5fc97e3c0274ed44ad489a7609aa8cc6",
+          "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+        },
+        "source_map_after": {
+          "RequestCompositionHub.lean": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9",
+          "RequestCompositionHub/Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2",
+          "RequestCompositionHub/Funs.lean": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1",
+          "RequestCompositionHub/TypesExternal.lean": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd",
+          "RequestCompositionHub/FunsExternal.lean": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2",
+          "SnapshotAssemblyProof.lean": "52d30db8e5e58b83d15d2388ef832377e91fb6bbfaa8035d82c604fcbe224fc8",
+          "lakefile.lean": "5d6e69e71a822cc81536fea9f5ae97406e23c8b72dae3d9214e4a1e05da3019e",
+          "lake-manifest.json": "122bb04c46b444c1de2a0dc47a258c6b5fc97e3c0274ed44ad489a7609aa8cc6",
+          "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+        },
+        "source_map_unchanged": true,
+        "current_roles_root": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/current_roles",
+        "current_roles_typesexternal_sha256": "6df818e75c75be437d185ac0e786d69e648e6d24fb01c50fa450dc9fce9e6269",
+        "authority_sibling_present": true,
+        "lake_packages_link": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition/.lake/packages",
+        "lake_packages_resolved": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/probe-1/source-parent/veoveo-hub/proofs/current_roles/.lake/packages",
+        "private_build_dir": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition/.lake/build",
+        "lean_toolchain": "leanprover/lean4:v4.35.0",
+        "command": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+          "build"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/request_composition",
+        "started_unix": 1793407381.9920347,
+        "elapsed_s": 3.221,
+        "timeout_s": 900,
+        "timed_out": false,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/hub-a-first-proof-final-build2/lake-build.log",
+        "log_bytes": 37530,
+        "log_sha256": "3ec0d187c05aa772c70334402b5d6dd529f4cc9de2c0106f2e5271ceb6abe35b",
+        "complete": true
+      }
+    }
+  ],
+  "not_included": [
+    "SelectedRegistrationProof.lean (unfinished draft)",
+    "Actual namespace-helper completion/ordering",
+    "Actual SDK issuer bridge and recipient composition",
+    "Native primitive/compiler/SQL/async refinement",
+    "Semantic mutation qualification for this new module",
+    "Deployment and paid model calls"
+  ]
+}
