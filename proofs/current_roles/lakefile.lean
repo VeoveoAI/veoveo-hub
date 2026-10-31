@@ -96,3 +96,5 @@ lean_lib SdkInternalAuthBridgeProof
 
 lean_lib SdkInternalAuthBridgeOperations
 lean_lib SdkInternalAuthBridgeOperationsProof
+
+lean_lib SdkInternalAuthCallerProof

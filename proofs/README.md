@@ -744,9 +744,19 @@ bounds, then connects the complete request to the independently specified SDK
 outcome. No successful issuance or desired-output premise is introduced. This is
 an explicitly composed prepared stack, not native equivalence to Hub's older
 SDK dependency. The [receipt](current_roles/evidence/sdk-issuer-operational-connection.json)
-records the qualification and the proof-module import adjustment. Timestamp
-comparison/minimum and the actual caller's complete outcome remain next; these
-are proof adapters rather than runtime conversions.
+records the qualification and the proof-module import adjustment. The
+[actual caller theorem](current_roles/SdkInternalAuthCallerProof.lean) now connects
+the extracted `issue_bearer_token_until` body to that complete independent SDK
+outcome. It preserves every client/request field, applies the optional inherited
+deadline with full seconds/nanoseconds comparison, and returns the exact bearer
+or wrapped error while retaining modeled effects/failures. Independent physical
+and text bounds supply conversion; no successful admission or issuance is assumed.
+The [caller receipt](current_roles/evidence/sdk-issuer-caller.json) records the
+passing generic theorem. Populated acceptance and the actual-source deadline
+control remain pending. This covers a supplied client and deadline, not their
+asynchronous/current-policy provenance, the 60/900-second TTL/clock wrappers,
+HTTP attachment, transport or native signature verification. The prepared-source
+applicability boundary remains; no runtime conversion is added.
 Core's private permission-namespace helper is still represented by a handwritten
 adapter; extracted ownership wrappers alone do not close its refinement gap.
 A [bounded unchanged-helper probe](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-permission-namespace-extraction-boundary.md)

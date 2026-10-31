@@ -841,8 +841,8 @@ is recorded. These checks do not qualify a fresh remote checkout of the new Git
 dependency.
 
 The complete record checkpoint below now supplies named field semantics and
-physical-domain sufficiency. Actual issuer linkage is supplied below; timestamp
-comparison/minimum laws and the composed caller theorem remain pending. No conclusion
+physical-domain sufficiency. Actual issuer linkage and the generic caller/time
+theorems are supplied below; populated caller/control qualification remains pending. No conclusion
 about the older pinned issuer's native behavior follows from these representation
 proofs.
 
@@ -938,5 +938,46 @@ proof-authoring/import-format failures. This composes unchanged extracted Hub
 It does not establish native equivalence to Hub's older SDK `239622d` dependency.
 Core namespace-helper, native collection/order/UTF-8/allocation/date refinement,
 crypto/signing/serialization/verifier and deployed-stack correspondence remain
-explicit. Full timestamp minimum and actual caller composition are the next proof
-obligations; there is no instrumented native call-count/effect-trace claim.
+explicit. The following generic caller theorem adds the actual request assembly
+and timestamp minimum; there is no instrumented native call-count/effect-trace claim.
+
+## Generic actual issuer caller
+
+[SdkInternalAuthCallerProof](SdkInternalAuthCallerProof.lean) proves the actual
+extracted `HubAuthorizedHttpClient.issue_bearer_token_until` equals the SDK's
+complete independent `issueOutcome`, after lossless request conversion and the
+caller's exact bearer/error projection. The independent `callerRequest` retains
+every profile/server/deployment/resource/client, principal/authority/permission,
+context/audit/execution, acting server/Task and inherited-chain field. The caller
+first clips its supplied deadline by its optional delegation deadline; the SDK's
+delegation and source-expiry rules then apply in their existing order.
+
+Timestamp comparison and minimum preserve seconds and nanoseconds under the
+physical scalar bounds. The Hub minimum law covers the complete mathematical
+pair model; the SDK law also proves conversion correspondence. Physical range,
+non-leap qualification and native Chrono validity/order refinement remain distinct.
+`CallerPhysical` and the original-field text bounds suffice to derive conversion;
+no own issuer, admission or desired output equality is an input premise.
+
+The complete caller equation keeps first-foreign refusal, every SDK validation/ID
+outcome, the full assembled claims passed to the signer, exact signing errors or
+returned bearer, and the existing Aeneas failure/divergence/effect mapping. It
+proves value/dependency equations, not a native execution trace. The clock and
+signer are not assumed successful in this generic theorem. It qualifies the
+explicit prepared Hub3bc2923 + SDK6afa18a stack, not native SDK239 equivalence or
+a deployed transport/server/verifier.
+
+The theorem takes an existing client and a supplied deadline. It does not yet
+cover ordinary 60-second/subscription 900-second TTL selection, the outer caller
+clock/addition wrappers, HTTP bearer attachment or transport. Authenticity and
+current-policy provenance of the supplied client are separate caller premises,
+not established by this issuer equation.
+
+Run `lake build SdkInternalAuthCallerProof` manually. Ten executable audit guards
+accept only the standard axioms and, for the connected caller, the same six SDK
+primitive boundaries. The direct check passed in 2.735 s and the named target in
+3.903 s with qualified prerequisites replayed. The [receipt](evidence/sdk-issuer-caller.json) separates the
+initial proof-authoring diagnostics from the passing direct and named checks,
+including exact input/output identities. Populated valid caller acceptance and
+the actual-source deadline control remain the next qualification steps; no
+complete caller-slice qualification is claimed yet.

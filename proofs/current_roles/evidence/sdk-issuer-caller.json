@@ -1,0 +1,158 @@
+{
+  "checkpoint": "Generic complete extracted Hub issuer caller and exact timestamp minimum",
+  "date": "2026-10-31",
+  "source_parent": "a1cf258d12a864de602dfa1f700e2748a3805c26",
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "baseline": {
+    "receipt": {
+      "path": "proofs/current_roles/evidence/sdk-issuer-operational-connection.json",
+      "sha256": "c7cb1f3a5e5c799675f0b0c925f8edbc10c1d9a97749837909f4271960cbf52f"
+    },
+    "stack": "Same prepared composition of unchanged extracted Hub3bc2923/SDK239/Core120 caller and checked SDK6afa18a prepared issuer under qualified Lean4.35/Aeneasfdebf instance-naming patch. No runtime/Cargo-pin/generated/native-model/dependency/tool changes or new extraction."
+  },
+  "source_sha256": {
+    "SdkInternalAuthCallerProof.lean": "dfcf90e34b4e6860f77c48523f93ea2f65f782900339a5c8e14baf3125b631ab",
+    "lakefile.lean": "07b851a1ca3c83aaee5150d2e1328fc63167f791020e8b31d5777b55e7ea8a0e",
+    "README.md": "57b04ec47f28a3038b3c964eca262c6491f8e139ec422db5728bcf620bc26f1d"
+  },
+  "contract": {
+    "caller": "caller_assembly is an equation for the actual extracted issue_bearer_token_until. Independent callerRequest copies every complete request field and uses the optional caller delegation deadline before SDK validation. Clone and Option/map_or/min operations are established, not success premises.",
+    "time": "Independent seconds+nanos comparison; actual Hub minimum and SDK minimum after lossless conversion; physical range preserves nanos and is separate from non-leap/native Chrono correspondence. CallerPhysical derives RequestPhysical for actor/context/delegation/requested/cap timestamps.",
+    "outcome": "caller_exact derives an actual converted request, complete RequestFields, canonical order/uniqueness and request roundtrip, then exact SDK issueOutcome plus returned bearer/error projection. First foreign/context/delegation/expiry/identifier/signing priorities and complete signer claims remain in that outcome. No own output, admission or primitive-success premise; failures/divergence/effects retain the existing result mapping.",
+    "boundary": "Prepared-stack model result, not native SDK239 equivalence or deployed HTTP/server/crypto/verifier qualification. Native collection/order/UTF8/allocation/date/namespace refinements remain. Value/dependency equations, not instrumented effect trace or call counts. Populated valid caller and actual-source deadline control remain pending; this is not complete caller-slice qualification.",
+    "supplied_input_boundary": "This theorem takes an existing client and supplied deadline. Ordinary60s/subscription900s TTL selection, outer caller clock/addition, HTTP bearer attachment/transport, and authenticity/current-policy provenance of that client remain separate."
+  },
+  "audit": {
+    "executable_guards": 10,
+    "printed_closures": 5,
+    "time_physical_guards": "Standard axioms only.",
+    "connected_caller": "Standard axioms plus precisely SDK provider check/UTC clock/UUIDv7/UUID text conversion/JwtId.parse/sign_forwarded; no sorryAx or old own-issuer axiom."
+  },
+  "authoring_failure": {
+    "summary": {
+      "path": "/tmp/hub-request-composition-20261031/evidence-caller-direct1/summary.json",
+      "sha256": "8ede128bb5da38d1ddfa57f3c6c0ae4b4a30693c614eae4a839500e7b0e080ec"
+    },
+    "log": {
+      "path": "/tmp/hub-request-composition-20261031/evidence-caller-direct1/direct.log",
+      "sha256": "cc989708e2a88567ba0cefcb582376ecb97753e6cf896a8e3e27956fb34ebd67"
+    },
+    "elapsed_s": 2.747,
+    "meaning": "Draft proof failed only type/projection/equality/Option clone and bind normalization. No semantic counterexample or product defect. Generic statements/domains unchanged."
+  },
+  "direct": {
+    "summary": {
+      "path": "/tmp/hub-request-composition-20261031/evidence-caller-direct2/summary.json",
+      "sha256": "250095a6b68861dc87b68d53907a035bf818f10385b603fa02a6b75b579e7ae2"
+    },
+    "stage": {
+      "argv": [
+        "LAKE_NO_UPDATE=1",
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "-o",
+        ".lake/build/lib/lean/SdkInternalAuthCallerProof.olean",
+        "SdkInternalAuthCallerProof.lean"
+      ],
+      "elapsed_s": 2.735,
+      "exit": 0,
+      "log_sha256": "af0545d341a7fddb93c8fe690a6faca130394c19cfcbca4b373f0fad0dc626fd",
+      "time_sha256": "afd5ee9eb8144ce3888f92f656fd4fe01742a8eaa92f813ba5f7c09eb99e4148"
+    },
+    "source_map_count": 75,
+    "sdk_source_map_count": 52,
+    "source_map_unchanged": true,
+    "sdk_source_map_unchanged": true,
+    "imports_unchanged": true,
+    "output": {
+      "bytes": 305512,
+      "exists": true,
+      "sha256": "f133e1b5d4d9b313a09891706ce9c0efb1c82966a0e9c82d13c0755218a2cbb3"
+    },
+    "evidence": [
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-direct2/source-before.json",
+        "sha256": "451b751c3335e10be1ca85c02e8bdf0b12a6a5f1464eb63c4f17fd9703bc2639"
+      },
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-direct2/source-after.json",
+        "sha256": "451b751c3335e10be1ca85c02e8bdf0b12a6a5f1464eb63c4f17fd9703bc2639"
+      },
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-direct2/sdk-source-before.json",
+        "sha256": "ee95389d06f637b377e2bab2d9ef3dc08f82a6eabcbc887d480415ccd3c6e29f"
+      },
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-direct2/sdk-source-after.json",
+        "sha256": "ee95389d06f637b377e2bab2d9ef3dc08f82a6eabcbc887d480415ccd3c6e29f"
+      },
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-direct2/imports-before.json",
+        "sha256": "42191cab76d6c1e7079082a261cb683e4aab07fefa711ff69d9c264bb6558745"
+      },
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-direct2/imports-after.json",
+        "sha256": "42191cab76d6c1e7079082a261cb683e4aab07fefa711ff69d9c264bb6558745"
+      }
+    ]
+  },
+  "named": {
+    "summary": {
+      "path": "/tmp/hub-request-composition-20261031/evidence-caller-target1/summary.json",
+      "sha256": "04ebd6765d1ab1216b7cb8a9f472d8a89c2b146d333de7682da7864c8ea3e2bd"
+    },
+    "stage": {
+      "argv": [
+        "LAKE_NO_UPDATE=1",
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "build",
+        "SdkInternalAuthCallerProof"
+      ],
+      "elapsed_s": 3.903,
+      "exit": 0,
+      "log_sha256": "e6299bf73f0332d608af6a6b257ba2e8501be6921b0ccd9514749452c768953f",
+      "time_sha256": "73d2c048f7fc0693bd5f25772379003b032d2ea76f9f43c651521ac96f1fe618"
+    },
+    "source_map_count": 75,
+    "sdk_source_map_count": 52,
+    "source_map_unchanged": true,
+    "sdk_source_map_unchanged": true,
+    "imports_unchanged": true,
+    "output": {
+      "bytes": 305736,
+      "exists": true,
+      "sha256": "158421fa3f98b397ea890feb8b1baa8e6fea4f7785de2471d08d37c9e7cf805e"
+    },
+    "evidence": [
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-target1/source-before.json",
+        "sha256": "1c84b65ec0ebca5da6ed0faaa6d309d52e36004d5500717499e4042f19d66241"
+      },
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-target1/source-after.json",
+        "sha256": "1c84b65ec0ebca5da6ed0faaa6d309d52e36004d5500717499e4042f19d66241"
+      },
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-target1/sdk-source-before.json",
+        "sha256": "ee95389d06f637b377e2bab2d9ef3dc08f82a6eabcbc887d480415ccd3c6e29f"
+      },
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-target1/sdk-source-after.json",
+        "sha256": "ee95389d06f637b377e2bab2d9ef3dc08f82a6eabcbc887d480415ccd3c6e29f"
+      },
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-target1/imports-before.json",
+        "sha256": "42191cab76d6c1e7079082a261cb683e4aab07fefa711ff69d9c264bb6558745"
+      },
+      {
+        "path": "/tmp/hub-request-composition-20261031/evidence-caller-target1/imports-after.json",
+        "sha256": "42191cab76d6c1e7079082a261cb683e4aab07fefa711ff69d9c264bb6558745"
+      }
+    ]
+  }
+}
