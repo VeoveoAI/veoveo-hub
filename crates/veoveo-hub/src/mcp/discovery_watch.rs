@@ -76,9 +76,10 @@ impl HubMcp {
         if snapshot.generation() != key.catalog_generation {
             return false;
         }
-        let Some((_, manifest)) = snapshot
-            .catalog()
-            .profile_server(&self.profile_id, &key.server)
+        let Some(manifest) =
+            snapshot
+                .catalog()
+                .keyed_server(&self.profile_id, &key.server, key.link.as_ref())
         else {
             return false;
         };
@@ -113,10 +114,12 @@ impl HubMcp {
         if snapshot.generation() != key.catalog_generation {
             return Err(mcp_internal("catalog changed during discovery; retry"));
         }
-        let (_, manifest) = snapshot
+        let manifest = snapshot
             .catalog()
-            .profile_server(&self.profile_id, &key.server)
+            .keyed_server(&self.profile_id, &key.server, key.link.as_ref())
             .ok_or_else(|| mcp_internal("unknown catalog server"))?;
+        // A runner's watch listens to that runner.
+        let routed = self.at(manifest);
         let filter = catalog_change_filter(&manifest.capabilities);
         if filter.tools_list_changed.is_none()
             && filter.resources_list_changed.is_none()
@@ -155,7 +158,7 @@ impl HubMcp {
             let deadline = tokio::time::Instant::now() + remaining;
             let mut generation = self.catalog.subscribe();
             let (connection, subscription) = tokio::time::timeout(OPEN_DEADLINE, async {
-                let connection = self.upstream(&key.server, downstream, subject).await.map_err(super::http_response::RequestError::into_protocol)?;
+                let connection = routed.upstream(&key.server, downstream, subject).await.map_err(super::http_response::RequestError::into_protocol)?;
                 // Ask only for the changes the server advertises.
                 let effective = connection
                     .peer

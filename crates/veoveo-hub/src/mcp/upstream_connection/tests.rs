@@ -147,6 +147,7 @@ async fn connect(
         &server,
         &super::super::task_ownership_tests::subject(),
         Default::default(),
+        None,
     )
     .unwrap();
     discover(

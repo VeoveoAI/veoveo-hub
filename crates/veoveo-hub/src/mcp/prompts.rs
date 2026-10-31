@@ -43,25 +43,35 @@ impl HubMcp {
             .profile(&self.profile_id)
             .map(|profile| profile.discovery_failure_mode)
             .unwrap_or(DiscoveryFailureMode::FailClosed);
-        let servers = snapshot
-            .catalog()
-            .profile_servers(&self.profile_id)
-            .into_iter()
-            .filter(|server| server.capabilities.prompts)
-            .map(|server| server.slug.clone())
-            .collect::<Vec<_>>();
+        // A linked server's prompts are one set, which the runner the caller reaches first
+        // serves.
+        let catalog = snapshot.catalog();
+        let mut servers = Vec::<crate::registration::RegisteredServer>::new();
+        for server in self.reachable(&subject, |capabilities| capabilities.prompts) {
+            let serving = match server.runner {
+                None => Some(server),
+                Some(_) => catalog
+                    .shared_runner(&subject.principal, &server.slug)
+                    .filter(|shared| shared.deployment == server.deployment)
+                    .cloned(),
+            };
+            servers.extend(serving);
+        }
         let fingerprint = super::discovery_authorization_fingerprint(&subject)?;
-        let results = stream::iter(servers.into_iter().map(|server_slug| {
+        let results = stream::iter(servers.into_iter().map(|server| {
             let context = &context;
             let subject = &subject;
+            let hub = self.at(&server);
+            let server_slug = server.slug.clone();
             async move {
                 let key = DiscoveryCacheKey {
                     catalog_generation,
                     principal: subject.actor.id.clone(),
                     authorization_fingerprint: fingerprint,
                     server: server_slug.clone(),
+                    link: server.link().cloned(),
                 };
-                let result = self
+                let result = hub
                     .server_prompts(key, &server_slug, context, subject)
                     .await;
                 (server_slug, result)
@@ -194,13 +204,16 @@ impl HubMcp {
         request: GetPromptRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<GetPromptResult, RequestError> {
-        let server = self.server_for_prompt(&request.name)?;
+        let caller = self.authenticated(&context)?;
+        let routed = self.server_for_prompt(&caller, &request.name)?;
+        let hub = self.at(&routed);
+        let server = routed.slug;
         let prompt = PromptName::parse(request.name.clone())
             .map_err(|err| mcp_invalid_params(format!("invalid prompt name: {err}")))?;
-        let subject = self
+        let subject = hub
             .authorize_prompt(&context, HubAction::PromptsGet, server.clone(), prompt)
             .await?;
-        self.idempotent_upstream_request(&server, context.peer.clone(), &subject, |upstream| {
+        hub.idempotent_upstream_request(&server, context.peer.clone(), &subject, |upstream| {
             let request = request.clone();
             async move { upstream.get_prompt(request).await }
         })

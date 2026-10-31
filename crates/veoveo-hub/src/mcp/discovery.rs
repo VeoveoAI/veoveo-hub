@@ -24,6 +24,9 @@ pub(super) struct DiscoveryCacheKey {
     pub(super) principal: PrincipalId,
     pub(super) authorization_fingerprint: [u8; 32],
     pub(super) server: ServerSlug,
+    /// The link whose runner serves the server, when it is linked: each runner lists its
+    /// own descriptors.
+    pub(super) link: Option<veoveo_hub_sdk::hub::LinkName>,
 }
 
 /// Keep the upstream identity beside the projected descriptor. Server-owned
@@ -563,6 +566,7 @@ mod tests {
             principal: PrincipalId::parse("principal").unwrap(),
             authorization_fingerprint: [7; 32],
             server: ServerSlug::parse(server).unwrap(),
+            link: None,
         }
     }
 

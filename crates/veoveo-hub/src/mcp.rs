@@ -132,6 +132,38 @@ impl HubMcp {
         }
     }
 
+    /// This operation with `server`'s slug served by `server` alone, when `server` is the
+    /// runner of one link of a linked server: everything that routes by slug then reaches
+    /// that runner. Any other server is already the one its slug routes to.
+    fn at(&self, server: &crate::registration::RegisteredServer) -> Self {
+        if server.runner.is_none() {
+            return self.clone();
+        }
+        Self {
+            catalog: self.catalog.narrowed(&server.slug, server.deployment),
+            ..self.clone()
+        }
+    }
+
+    /// The registered servers this operation's caller reaches whose capabilities `serves`
+    /// admits: each runner of a linked server whose linked repository they hold a grant
+    /// on, by link, and every other server.
+    fn reachable(
+        &self,
+        subject: &AuthenticatedSubject,
+        serves: impl Fn(&crate::registration::ServerCapabilities) -> bool,
+    ) -> Vec<crate::registration::RegisteredServer> {
+        let catalog = self.catalog.current();
+        let mut servers = catalog
+            .reachable_servers(&self.profile_id, &subject.principal)
+            .into_iter()
+            .filter(|server| serves(&server.capabilities))
+            .cloned()
+            .collect::<Vec<_>>();
+        servers.sort_by(|left, right| (&left.slug, left.link()).cmp(&(&right.slug, right.link())));
+        servers
+    }
+
     async fn upstream(
         &self,
         server_slug: &ServerSlug,
@@ -190,6 +222,19 @@ impl HubMcp {
         if let Some(delegation) = &subject.delegation {
             permissions = delegation.narrow(permissions);
         }
+        // A runner reads the caller's grant on its linked repository from its token. A
+        // caller without one never reaches the runner.
+        let repository = match &server.runner {
+            Some(runner) => Some(
+                snapshot
+                    .catalog()
+                    .repository_grant(&subject.principal, &runner.repository)
+                    .ok_or_else(|| {
+                        mcp_invalid_params(format!("unknown upstream server `{server_slug}`"))
+                    })?,
+            ),
+            None => None,
+        };
         let authorized_http_client = HubAuthorizedHttpClient::new(
             transport,
             self.internal_token_issuer.clone(),
@@ -197,6 +242,7 @@ impl HubMcp {
             &server,
             subject,
             permissions,
+            repository,
         )?;
         let handler = HubUpstreamHandler::new(HubUpstreamHandlerConfig {
             catalog: self.catalog.clone(),

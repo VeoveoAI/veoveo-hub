@@ -2,6 +2,7 @@
 //! before returning content.
 use super::http_response::RequestError;
 use super::{HubMcp, discovery::DiscoveryCacheKey};
+use crate::contract::HubAction;
 use crate::control_plane::HubResourceProjection;
 use crate::{
     AuthenticatedSubject,
@@ -64,7 +65,7 @@ impl HubMcp {
     }
     pub(super) async fn handle_read_resource(
         &self,
-        mut request: ReadResourceRequestParams,
+        request: ReadResourceRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, RequestError> {
         if let Some(task_id) = parse_hub_task_resource_uri(&request.uri) {
@@ -72,8 +73,27 @@ impl HubMcp {
                 .read_task_status_resource(task_id, &request.uri, &context)
                 .await;
         }
-        let server = self.server_for_resource(&request.uri)?;
-        let projection = self.project_resource_for_upstream(&request.uri)?;
+        let caller = self.authenticated(&context)?;
+        let (routed, projection) = self
+            .project_resource_for_upstream(&caller, HubAction::ResourcesRead, &request.uri)
+            .await?;
+        // A runner's URIs reach that runner alone.
+        // Boxed: the routed read's future is large, and nesting it would overflow a
+        // worker's stack in a debug build.
+        Box::pin(
+            self.at(&routed)
+                .read_routed_resource(request, context, projection),
+        )
+        .await
+    }
+
+    async fn read_routed_resource(
+        &self,
+        mut request: ReadResourceRequestParams,
+        context: RequestContext<RoleServer>,
+        projection: HubResourceProjection,
+    ) -> Result<ReadResourceResult, RequestError> {
+        let server = projection.server.clone();
         let subject = self.admit_resource_read(&context, &projection).await?;
         let result = async {
             // The canonical request context owns metadata.
@@ -88,6 +108,7 @@ impl HubMcp {
                 principal: subject.actor.id.clone(),
                 authorization_fingerprint: super::discovery_authorization_fingerprint(&subject)?,
                 server: server.clone(),
+                link: manifest.link().cloned(),
             };
             self.ensure_discovery_watch(&key, context.peer.clone(), &subject)
                 .await?;

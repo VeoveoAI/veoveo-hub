@@ -86,20 +86,22 @@ deployment plus endpoint. Publication hints complete existing listens normally,
 requiring native re-listen and current admission instead of silently keeping a stale
 selection alive.
 
-Each authenticated principal's selection, `hub.selection`, names a branch per
-server. Each server that has registered instances, or that the selection names,
-routes to the instance of the selected branch, or else of the configured
-`execution.baseBranch`, instead of its registered deployment. When that instance is
-missing, when several instances serve that branch, or when no base branch is
-configured, the component is `unavailable`, never another branch or the server's
-other deployment, and a tool call to that server answers with the cause.
-A server whose selected branch is [linked](#linked-repositories) routes to the
-runners of that branch instead, one per link, as the catalog lists them.
-`PUT /selection/{profile}/{server}` with `{"branch": "…"}` and `DELETE` of the same
-path change the caller's own selection and nothing else, so authentication is their
-only check; a delegated caller changes the selection of the principal it carries.
-Each change notifies the `hub` channel with the principal, and every replica
-completes only that principal's open listens with a list-changed hint.
+Each authenticated principal's selection, `hub.selection`, names a branch per server.
+Each server that has registered instances, or that the selection names, routes to the
+instance of the selected branch, or else of the configured `execution.baseBranch`,
+instead of its registered deployment. When that instance is missing, when several
+instances serve that branch, or when no base branch is configured, the component is
+`unavailable`, never another branch or the server's other deployment, and a tool call to
+that server answers with the cause. A server whose selected branch is
+[linked](#linked-repositories) routes to the runners of that branch instead, one per
+link, as the catalog lists them: the composition's `runners` component names each link's
+runner, so a captured composition keeps routing each link where it did. A branch with
+both an instance and runners is unavailable, as one with two instances is. `PUT
+/selection/{profile}/{server}` with `{"branch": "…"}` and `DELETE` of the same path
+change the caller's own selection and nothing else, so authentication is their only
+check; a delegated caller changes the selection of the principal it carries. Each change
+notifies the `hub` channel with the principal, and every replica completes only that
+principal's open listens with a list-changed hint.
 
 Tasks persist exact deployment and composition before the projected response.
 A native retry of the same Task preserves its first capture. Later reads, changes,
@@ -663,10 +665,18 @@ caller's selected branch whose linked repository the caller holds a
 [grant](#groups-and-sharing) on, from that link's runner: its tools as
 `{slug}__{link}__{tool}`, and its resources and templates as `{slug}://{link}/{rest}`,
 which reach the runner as `{slug}://{rest}`, so the program never knows its link's name.
-Its `ui://{slug}/` resources are one set for the server, served by any of those runners.
-A name or URI that names a link the caller holds no grant on, or no link of the selected
-branch, is refused as a target the server did not declare. Tasks keep the runner that
-created them, as they keep an instance.
+Its `ui://{slug}/` resources, its prompts and its app origin are one set for the server,
+served by the first runner by link the caller reaches. A name or URI that names a link
+the caller holds no grant on, or no link of the selected branch, or a linked server's
+name without a link, is refused as a target the server did not declare, and the denial
+is recorded as one. Each runner is discovered, watched and cached on its own, and policy
+decides on the server's own names and URIs, which every runner of the server declares
+alike; a view holding several runners that declare differently decides nothing for the
+server. The caller's grant comes from the installation's sections, as their group
+memberships do: the Lore section lists every assignment with its actions, and a person
+reaches a runner through their own assignment or one of a group they belong to. Tasks
+keep the runner that created them, as they keep an instance: a Task's route names the
+runner's deployment, which its captured composition selects.
 
 Discovery caches the admitted descriptors per catalog generation, caller authority and
 OAuth client. A registered server's tools, resources, templates and prompts change
@@ -700,18 +710,17 @@ provider's, and their Lore groups by ID ([groups and sharing](#groups-and-sharin
 
 ## Forwarded Identity
 
-`mcp/upstream_authorized_http.rs` issues a fresh RFC 9068 token for each upstream
-HTTP request. Its `aud` is the server's registered MCP endpoint, `client_id` the
-caller's OAuth client, `act` the Hub's issuer, and `authorization_details` the
-permissions granted in the server's namespace. A token for a
-[runner](#linked-repositories) adds a second RFC 9396 detail, of type
-`https://veoveo.ai/oauth/repository`, whose `identifier` is the linked repository's ID
-and whose `actions` are the caller's Lore actions on it, the same set a Lore token for
-that repository would carry, so the server decides by the grant Lore decides by; the
-SDK's verifier reads it. Ordinary tokens live at most 60
-seconds and a `subscriptions/listen` token at most 15 minutes, never longer than the
-caller's own token. The server verifies them with the keys its registration response
-names in `veoveo_access_tokens`.
+`mcp/upstream_authorized_http.rs` issues a fresh RFC 9068 token for each upstream HTTP
+request. Its `aud` is the server's registered MCP endpoint, `client_id` the caller's
+OAuth client, `act` the Hub's issuer, and `authorization_details` the permissions
+granted in the server's namespace. A token for a [runner](#linked-repositories) adds a
+second RFC 9396 detail, of type `https://veoveo.ai/oauth/repository`, whose `identifier`
+is the linked repository's ID and whose `actions` are the caller's Lore actions on it,
+the same set a Lore token for that repository would carry, so the server decides by the
+grant Lore decides by; the SDK's verifier reads it. A token for a runner's app origin
+carries it too. Ordinary tokens live at most 60 seconds and a `subscriptions/listen`
+token at most 15 minutes, never longer than the caller's own token. The server verifies
+them with the keys its registration response names in `veoveo_access_tokens`.
 
 The issuer's RFC 8414 metadata names `{issuer}/jwks.json` as its `jwks_uri`. That JWK
 Set lists the same keys: the public half of each forwarded-token key, with its RFC
@@ -1445,6 +1454,18 @@ selected branch without an instance lists no tools of that server and refuses a 
 with its cause, that a change completes only the changed principal's listens with a
 tool-list hint, and that a Task started before a change completes on the instance it
 started on, under its captured composition.
+
+`tests/linked.rs` starts the binary with base branch `dev` linked: two runners of the
+Ledger fixture register for the links `team-a` and `team-b`, each of a synthetic linked
+repository, and the Lore section grants the `member` caller `write` on team-a's
+repository and the `admin` caller a read grant on both. It checks that the member lists
+team-a's tools as `ledger__team-a__{tool}` and its templates as `ledger://team-a/…`, and
+nothing of team-b, while the admin lists both; that a call reaches its link's runner
+with the caller's grant on its repository in the forwarded token's repository detail;
+that a name of team-b, of a link the branch lacks, or without a link, is refused as a
+tool the server did not declare; that a runner's resource reads back under its linked
+URI and another link's is refused; and that a Task completes on the runner that
+created it. Synthetic fixture data; no Lore server, sandbox or n8n is involved.
 
 `tests/factory.rs` applies pushes against an in-process fake OpenShell gateway
 (`tests/factory/gateway.rs`), which answers the methods the factory sends with the

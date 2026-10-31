@@ -46,9 +46,18 @@ impl PolicyCatalogView for HubCatalog {
     fn installation_authorization(&self) -> &InstallationAuthorization {
         &self.control_plane().authorization
     }
+    /// The server's declaration. The runners of a linked server serve one program, so a
+    /// view that holds several of them decides by their declaration while they all
+    /// declare the same, and refuses while they differ.
     fn server_authorization(&self, server: &ServerSlug) -> Option<&AuthorizationDeclaration> {
-        self.server(server)
-            .map(|server| server.authorization.as_ref())
+        if let Some(server) = self.server(server) {
+            return Some(server.authorization.as_ref());
+        }
+        let mut runners = self.registrations().runners(server);
+        let first = runners.next()?;
+        runners
+            .all(|runner| runner.authorization == first.authorization)
+            .then_some(first.authorization.as_ref())
     }
 }
 impl HubCatalog {

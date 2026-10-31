@@ -278,10 +278,17 @@ impl HubState {
             .composition(&draft.execution.composition)
             .await?
             .context("Task execution composition is not retained")?;
-        let selected = match capture.components().get(&draft.server) {
-            Some(veoveo_hub_sdk::ResolvedComponent::Deployment { deployment }) => Some(*deployment),
-            _ => None,
-        };
+        // A linked server's composition selects one runner per link; the Task keeps the
+        // runner that created it.
+        let selected = capture
+            .components()
+            .get(&draft.server)
+            .and_then(|component| {
+                component
+                    .deployments()
+                    .into_iter()
+                    .find(|deployment| *deployment == draft.deployment)
+            });
         ensure!(
             decision::capture_matches(
                 &draft.execution,

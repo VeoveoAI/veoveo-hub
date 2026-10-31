@@ -571,6 +571,31 @@ fn a_persons_actions_unite_their_own_assignment_and_their_groups() {
     let mut elsewhere = alice.clone();
     elsewhere.tenant = Some(TenantId::parse("tenant-b").unwrap());
     assert!(!section.grants(&elsewhere, &second));
+    // The grant a runner's forwarded token carries, which the catalog reads from the
+    // section's assignments.
+    let grant = |current: &HubCatalog, principal: &veoveo_hub_sdk::Principal, id: &str| {
+        current
+            .repository_grant(
+                principal,
+                &veoveo_hub_sdk::registration::RepositoryId::parse(id).unwrap(),
+            )
+            .map(|grant| {
+                grant
+                    .actions
+                    .iter()
+                    .map(|action| action.to_string())
+                    .collect::<Vec<_>>()
+            })
+    };
+    assert_eq!(
+        grant(&current, &alice, FIRST),
+        Some(vec!["owner".to_owned(), "write".to_owned()])
+    );
+    assert_eq!(
+        grant(&current, &alice, SECOND),
+        Some(vec!["admin".to_owned()])
+    );
+    assert_eq!(grant(&current, &elsewhere, SECOND), None);
 
     // A removed membership takes the group's assignments with it at the next revision.
     let mut removed = grouped();
@@ -587,6 +612,8 @@ fn a_persons_actions_unite_their_own_assignment_and_their_groups() {
     assert_eq!(actions(&section, "native-alice", "tenant-a", SECOND), None);
     assert!(exchange(&current, SECOND).is_err());
     assert!(!section.grants(&alice, &second));
+    assert_eq!(grant(&current, &alice, FIRST), Some(vec![]));
+    assert_eq!(grant(&current, &alice, SECOND), None);
     assert_eq!(
         actions(&section, "native-bob", "tenant-a", SECOND),
         Some(vec![Admin])

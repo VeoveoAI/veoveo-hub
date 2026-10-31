@@ -605,7 +605,13 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
         };
     let catalog = snapshot.catalog();
     let selected = snapshot.selected(&admitted.composition).current();
-    let Some(registered) = selected.server(&server).cloned().filter(|registered| {
+    // A linked server's app origin is one for the server, which the runner the caller
+    // reaches first serves.
+    let serving = selected
+        .server(&server)
+        .filter(|registered| registered.runner.is_none())
+        .or_else(|| selected.shared_runner(&subject.principal, &server));
+    let Some(registered) = serving.cloned().filter(|registered| {
         registered
             .surfaces
             .as_ref()
@@ -651,12 +657,19 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
         &registered.authorization,
         &subject.principal,
     );
+    // A runner's app origin reads the caller's grant on its linked repository, as its MCP
+    // endpoint does.
+    let repository = registered
+        .runner
+        .as_ref()
+        .and_then(|runner| catalog.repository_grant(&subject.principal, &runner.repository));
     let bearer = match crate::mcp::forwarded_bearer(
         &origins.issuer,
         profile,
         &registered,
         &subject,
         permissions,
+        repository,
         i64::from(BEARER_SECONDS),
     ) {
         Ok(bearer) => bearer,

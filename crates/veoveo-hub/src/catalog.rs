@@ -136,6 +136,23 @@ impl HubCatalogHandle {
         }
     }
 
+    /// The same request view with `server`'s slug served by `server` alone, as a request
+    /// that reaches one runner of a linked server, or a Task one created, sees it.
+    pub fn narrowed(&self, server: &ServerSlug, deployment: veoveo_types::DeploymentId) -> Self {
+        let snapshot = self.snapshot();
+        let registrations = snapshot
+            .catalog
+            .registrations()
+            .narrowed(server, deployment);
+        Self {
+            state: Arc::new(RwLock::new(HubCatalogHandleState {
+                catalog: Arc::new(snapshot.catalog.with_registrations(registrations)),
+                generation: snapshot.generation,
+            })),
+            changes: tokio::sync::watch::channel(snapshot.generation).0,
+        }
+    }
+
     /// Check stable native connection/auth bootstrap before preparing a revision.
     pub fn validate_replacement(&self, catalog: &HubCatalog) -> Result<()> {
         Self::check_replacement(&self.state.read().catalog, catalog)
@@ -758,6 +775,93 @@ impl HubCatalog {
         self.registrations.get(server_slug)
     }
 
+    /// The grant `principal` holds on the source repository `repository`, own or through
+    /// a group, as the installation's sections record it.
+    pub fn repository_grant(
+        &self,
+        principal: &Principal,
+        repository: &veoveo_hub_sdk::registration::RepositoryId,
+    ) -> Option<veoveo_hub_sdk::registration::RepositoryGrant> {
+        let tenant = principal.tenant.as_ref()?;
+        self.sections
+            .repository_grant(tenant, &principal.id, repository)
+    }
+
+    /// Whether `principal` reaches `server`: every server that is no runner, and a runner
+    /// when the principal holds a grant on its linked repository.
+    pub fn reaches(&self, principal: &Principal, server: &RegisteredServer) -> bool {
+        server.runner.as_ref().is_none_or(|runner| {
+            self.repository_grant(principal, &runner.repository)
+                .is_some()
+        })
+    }
+
+    /// The registered servers `principal` reaches, when the profile exists: the runners
+    /// of a linked server by link.
+    pub fn reachable_servers(
+        &self,
+        profile_id: &HubProfileId,
+        principal: &Principal,
+    ) -> Vec<&RegisteredServer> {
+        self.profile_servers(profile_id)
+            .into_iter()
+            .filter(|server| self.reaches(principal, server))
+            .collect()
+    }
+
+    /// The deployment that serves `server` for `link` to `principal`: the server for no
+    /// link, the runner of `link` when the principal reaches it, and none otherwise. A
+    /// link the principal holds no grant on is no target, as one the branch lacks.
+    pub fn routed_server(
+        &self,
+        principal: &Principal,
+        server: &ServerSlug,
+        link: Option<&veoveo_hub_sdk::hub::LinkName>,
+    ) -> Option<&RegisteredServer> {
+        match link {
+            None => self.server(server).filter(|server| server.runner.is_none()),
+            Some(link) => self
+                .registrations
+                .runners(server)
+                .find(|runner| runner.link() == Some(link))
+                .filter(|runner| self.reaches(principal, runner)),
+        }
+    }
+
+    /// The deployment a discovery of `server` for `link` lists, when the profile exists:
+    /// the server for no link and the runner of `link` otherwise, whoever asks.
+    pub fn keyed_server(
+        &self,
+        profile_id: &HubProfileId,
+        server: &ServerSlug,
+        link: Option<&veoveo_hub_sdk::hub::LinkName>,
+    ) -> Option<&RegisteredServer> {
+        self.profile(profile_id)?;
+        match link {
+            None => self.server(server),
+            Some(link) => self
+                .registrations
+                .runners(server)
+                .find(|runner| runner.link() == Some(link)),
+        }
+    }
+
+    /// The runner of a linked server that serves what all its runners share, its Apps and
+    /// prompts, to `principal`: the first by link it reaches.
+    pub fn shared_runner(
+        &self,
+        principal: &Principal,
+        server: &ServerSlug,
+    ) -> Option<&RegisteredServer> {
+        let mut runners = self
+            .registrations
+            .runners(server)
+            .filter(|runner| self.reaches(principal, runner))
+            .collect::<Vec<_>>();
+        runners.sort_by(|left, right| left.link().cmp(&right.link()));
+        runners.into_iter().next()
+    }
+
     /// A registered server, when the profile exists. Every registered server is visible
     /// to every profile; permissions decide what a caller may use.
     pub fn profile_server(
@@ -777,24 +881,64 @@ impl HubCatalog {
         self.registrations.iter().collect()
     }
 
-    /// The server whose URI scheme, or whose `ui://<slug>/` App prefix, owns `uri`.
+    /// The server whose URI scheme, or whose `ui://<slug>/` App prefix, owns `uri`, as
+    /// it serves `principal`. A linked server's URIs name the link after the scheme,
+    /// `{slug}://{link}/{rest}`, and reach that link's runner when the principal reaches
+    /// it; its Apps are one set, which the runner the principal reaches first serves.
     pub fn server_for_resource_uri(
         &self,
         profile_id: &HubProfileId,
+        principal: &Principal,
         uri: &str,
-    ) -> Option<&RegisteredServer> {
-        let scheme = resource_scheme(uri)?;
-        self.profile_servers(profile_id)
+    ) -> ResourceRoute<'_> {
+        let Some(scheme) = resource_scheme(uri) else {
+            return ResourceRoute::Unowned;
+        };
+        let owners = self
+            .profile_servers(profile_id)
             .into_iter()
-            .find(|server| server_owns_hub_resource_uri(server, uri, &scheme))
+            .filter(|server| server_owns_hub_resource_uri(server, uri, &scheme))
+            .collect::<Vec<_>>();
+        let Some(&owner) = owners.first() else {
+            return ResourceRoute::Unowned;
+        };
+        if owner.runner.is_none() {
+            return ResourceRoute::Server(owner);
+        }
+        let routed = if scheme.as_str() == "ui" {
+            self.shared_runner(principal, &owner.slug)
+        } else {
+            uri.strip_prefix(&format!("{scheme}://"))
+                .and_then(|rest| rest.split_once('/'))
+                .and_then(|(link, _)| veoveo_hub_sdk::hub::LinkName::parse(link).ok())
+                .and_then(|link| self.routed_server(principal, &owner.slug, Some(&link)))
+        };
+        match routed {
+            Some(server) => ResourceRoute::Server(server),
+            None => ResourceRoute::Unreached(&owner.slug),
+        }
     }
 
+    /// Whether a registered server's URI scheme, or `ui://<slug>/` App prefix, owns `uri`.
+    pub fn owns_resource_uri(&self, profile_id: &HubProfileId, uri: &str) -> bool {
+        resource_scheme(uri).is_some_and(|scheme| {
+            self.profile_servers(profile_id)
+                .into_iter()
+                .any(|server| server_owns_hub_resource_uri(server, uri, &scheme))
+        })
+    }
+
+    /// The servers that declare `prompt`, one for each slug: a linked server's prompts
+    /// are one set, which the runner `principal` reaches first serves.
     pub fn prompt_servers(
         &self,
         profile_id: &HubProfileId,
+        principal: &Principal,
         prompt: &veoveo_hub_sdk::PromptName,
     ) -> Vec<&RegisteredServer> {
-        self.profile_servers(profile_id)
+        let mut slugs = BTreeMap::<&ServerSlug, &RegisteredServer>::new();
+        for server in self
+            .profile_servers(profile_id)
             .into_iter()
             .filter(|server| {
                 server
@@ -803,7 +947,16 @@ impl HubCatalog {
                     .prompts
                     .contains_key(prompt)
             })
-            .collect()
+        {
+            let serving = match server.runner {
+                None => Some(server),
+                Some(_) => self.shared_runner(principal, &server.slug),
+            };
+            if let Some(serving) = serving {
+                slugs.entry(&server.slug).or_insert(serving);
+            }
+        }
+        slugs.into_values().collect()
     }
 
     pub fn policy(&self, version: &PolicyVersion) -> Option<&PolicySet> {
@@ -823,6 +976,18 @@ impl HubCatalog {
             .get(tenant)
             .map(|index| &self.control_plane.tenants[*index])
     }
+}
+
+/// Where a resource URI routes for one principal.
+#[derive(Debug, Clone, Copy)]
+pub enum ResourceRoute<'a> {
+    /// The server, or the runner, that serves it.
+    Server(&'a RegisteredServer),
+    /// A linked server's URI that names a link the principal holds no grant on, or no
+    /// link of the selected branch: a target the server did not declare.
+    Unreached(&'a ServerSlug),
+    /// No registered server owns it.
+    Unowned,
 }
 
 fn server_owns_hub_resource_uri(

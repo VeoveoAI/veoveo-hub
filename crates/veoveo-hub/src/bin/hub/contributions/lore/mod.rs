@@ -20,7 +20,7 @@ use veoveo_hub::{
     contract::{
         AuthorizationServerId, CatalogFacts, CatalogObjectDescriptor, CatalogSection,
         GroupMembershipDescriptor, OAuthGrantType, ProtectedResourceDescriptor,
-        ProtectedResourceName, SectionKey,
+        ProtectedResourceName, RepositoryGrantDescriptor, RepositoryGrantee, SectionKey,
     },
     token_profile::{ProfileRequest, TokenContext, TokenLifetime, TokenProfile, TokenPurpose},
 };
@@ -384,6 +384,41 @@ impl CatalogSection for Lore {
             }
         }
         Ok(memberships)
+    }
+    /// Every assignment, with its actions as Lore names them: the grant a Lore token for
+    /// the repository carries, and that a runner serving the repository is reached by.
+    fn repository_grants(
+        &self,
+    ) -> std::result::Result<Vec<RepositoryGrantDescriptor>, ExtensionError> {
+        let invalid = |_| ExtensionError::new("native assignment is no repository grant");
+        self.assignments
+            .iter()
+            .map(|a| {
+                Ok(RepositoryGrantDescriptor {
+                    tenant: a.tenant.clone(),
+                    repository: veoveo_hub_sdk::registration::RepositoryId::parse(
+                        a.repository.as_str(),
+                    )
+                    .map_err(invalid)?,
+                    grantee: match &a.subject {
+                        Subject::Principal(principal) => {
+                            RepositoryGrantee::Principal(principal.clone())
+                        }
+                        Subject::Group(group) => RepositoryGrantee::Group(
+                            veoveo_types::GroupId::parse(group.as_str()).map_err(invalid)?,
+                        ),
+                    },
+                    actions: a
+                        .actions
+                        .iter()
+                        .map(|action| {
+                            veoveo_hub_sdk::registration::RepositoryAction::parse(action.as_str())
+                                .map_err(invalid)
+                        })
+                        .collect::<std::result::Result<_, _>>()?,
+                })
+            })
+            .collect()
     }
 }
 impl Lore {

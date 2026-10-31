@@ -47,6 +47,8 @@ pub(super) struct HubAuthorizedHttpClient {
     acting_task: Option<veoveo_hub_sdk::OpaqueTaskId>,
     delegation_context: Option<veoveo_hub_sdk::DelegationContext>,
     delegation_expires_at: Option<chrono::DateTime<Utc>>,
+    /// For a runner, the caller's grant on its linked repository.
+    repository: Option<veoveo_hub_sdk::registration::RepositoryGrant>,
 }
 
 impl std::fmt::Debug for HubAuthorizedHttpClient {
@@ -63,7 +65,8 @@ impl std::fmt::Debug for HubAuthorizedHttpClient {
 
 impl HubAuthorizedHttpClient {
     /// `permissions` are the caller's permissions in `server`'s namespace, as the
-    /// Hub granted them; the server checks them again.
+    /// Hub granted them; the server checks them again. `repository` is the caller's
+    /// grant on a runner's linked repository, which every token for the runner carries.
     pub(super) fn new(
         http: UpstreamTransport,
         issuer: HubInternalTokenIssuer,
@@ -71,6 +74,7 @@ impl HubAuthorizedHttpClient {
         server: &crate::registration::RegisteredServer,
         subject: &crate::AuthenticatedSubject,
         permissions: BTreeSet<PermissionName>,
+        repository: Option<veoveo_hub_sdk::registration::RepositoryGrant>,
     ) -> Result<Self, McpError> {
         Ok(Self {
             http,
@@ -99,6 +103,7 @@ impl HubAuthorizedHttpClient {
                 .delegation
                 .as_ref()
                 .map(|delegation| delegation.expires_at),
+            repository,
         })
     }
 
@@ -160,7 +165,7 @@ impl HubAuthorizedHttpClient {
         expires_at: chrono::DateTime<Utc>,
     ) -> Result<String, HubAuthorizedHttpError> {
         // The issuer also caps this deadline at the signed source token expiry.
-        match self.issuer.issue(ForwardedRequest {
+        let request = ForwardedRequest {
             profile: self.profile.clone(),
             server: self.server.clone(),
             deployment: self.deployment,
@@ -176,7 +181,11 @@ impl HubAuthorizedHttpClient {
             expires_at: self
                 .delegation_expires_at
                 .map_or(expires_at, |deadline| deadline.min(expires_at)),
-        }) {
+        };
+        match self
+            .issuer
+            .issue_with_repository(request, self.repository.clone())
+        {
             Ok(issued) => Ok(issued.bearer_token),
             Err(error) => Err(HubAuthorizedHttpError::InternalToken(error)),
         }
@@ -192,35 +201,39 @@ pub(crate) fn forwarded_bearer(
     server: &crate::registration::RegisteredServer,
     subject: &crate::AuthenticatedSubject,
     permissions: BTreeSet<PermissionName>,
+    repository: Option<veoveo_hub_sdk::registration::RepositoryGrant>,
     lifetime: i64,
 ) -> anyhow::Result<String> {
     let expires_at = Utc::now() + TimeDelta::seconds(lifetime);
-    let issued = issuer.issue(ForwardedRequest {
-        profile,
-        server: server.slug.clone(),
-        deployment: server.deployment,
-        audience: ResourceIndicator::from(&server.endpoint),
-        client: subject.access_token.oauth_client_id.clone(),
-        actor: subject.actor.clone(),
-        authority: subject.authority.clone(),
-        permissions,
-        request_context: Some(subject.request_context()?),
-        acting_server: subject
-            .delegation
-            .as_ref()
-            .map(|delegation| delegation.acting_server.clone()),
-        acting_task: subject.acting_task().cloned(),
-        delegation_context: subject
-            .delegation
-            .as_ref()
-            .and_then(|delegation| delegation.context.clone()),
-        expires_at: subject
-            .delegation
-            .as_ref()
-            .map_or(expires_at, |delegation| {
-                delegation.expires_at.min(expires_at)
-            }),
-    })?;
+    let issued = issuer.issue_with_repository(
+        ForwardedRequest {
+            profile,
+            server: server.slug.clone(),
+            deployment: server.deployment,
+            audience: ResourceIndicator::from(&server.endpoint),
+            client: subject.access_token.oauth_client_id.clone(),
+            actor: subject.actor.clone(),
+            authority: subject.authority.clone(),
+            permissions,
+            request_context: Some(subject.request_context()?),
+            acting_server: subject
+                .delegation
+                .as_ref()
+                .map(|delegation| delegation.acting_server.clone()),
+            acting_task: subject.acting_task().cloned(),
+            delegation_context: subject
+                .delegation
+                .as_ref()
+                .and_then(|delegation| delegation.context.clone()),
+            expires_at: subject
+                .delegation
+                .as_ref()
+                .map_or(expires_at, |delegation| {
+                    delegation.expires_at.min(expires_at)
+                }),
+        },
+        repository,
+    )?;
     Ok(issued.bearer_token)
 }
 
@@ -421,6 +434,7 @@ mod tests {
             ),
             capabilities: Default::default(),
             branch: None,
+            runner: None,
             surfaces: None,
             registered_at: chrono::Utc::now(),
             orphaned: false,
@@ -502,6 +516,7 @@ mod tests {
                 delegation: None,
             },
             BTreeSet::from([PermissionName::parse("upstream-b.items.read").unwrap()]),
+            None,
         )
         .unwrap()
     }
@@ -580,6 +595,7 @@ mod tests {
             &registered_server(),
             &subject,
             baseline.permissions,
+            baseline.repository,
         )
         .unwrap();
         let verifier = HubInternalTokenVerifier::new(
