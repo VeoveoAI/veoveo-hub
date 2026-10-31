@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT linked_repository, revision, message\nFROM hub.lore_runner_failure\nWHERE deployment = $1 AND repository = $2 AND branch = $3 AND link = $4\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "linked_repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_runner_failure",
+            "name": "linked_repository"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_runner_failure",
+            "name": "revision"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.lore_runner_failure",
+            "name": "message"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1918fee3c4917e55de1c50a5c63c46d7c471b5d3945fa4a4253bd2aa5600e6ab"
+}

@@ -4,11 +4,22 @@
 use anyhow::{Context, Result};
 use chrono::Utc;
 use veoveo_hub::{execution::BranchName, factory::Revision};
+use veoveo_hub_sdk::hub::LinkName;
 use veoveo_store::PlatformStore;
 use veoveo_types::PrincipalId;
 
 use super::Watched;
 use crate::contributions::lore::{DeploymentId, RepositoryId};
+
+/// Why the Hub could not run a link of a branch: nobody watches the linked repository,
+/// the watcher's grant was refused, or reading its tracked branch failed.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct RunnerFailure {
+    pub linked_repository: RepositoryId,
+    pub revision: Revision,
+    pub message: String,
+}
 
 /// A watched repository's watcher, and why the last subscription as them failed.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -122,6 +133,131 @@ impl WatchStore {
             })
         })
         .transpose()
+    }
+
+    /// The watcher of `watched`, none while nobody watches it.
+    pub async fn watcher(&self, watched: &Watched) -> Result<Option<PrincipalId>> {
+        Ok(self.status(watched).await?.map(|status| status.watcher))
+    }
+
+    /// The link of the branch ran at the revision, or failed to: why, and the linked
+    /// repository it names.
+    pub async fn runner(
+        &self,
+        watched: &Watched,
+        branch: &BranchName,
+        link: &LinkName,
+        failure: Option<(&RepositoryId, &Revision, &str)>,
+    ) -> Result<()> {
+        let result = match failure {
+            None => {
+                sqlx::query_file!(
+                    "src/bin/hub/contributions/lore/factory/runner_ran.sql",
+                    watched.deployment.as_str(),
+                    watched.repository.as_str(),
+                    branch.as_str(),
+                    link.as_str()
+                )
+                .execute(self.0.pool())
+                .await
+            }
+            Some((linked, revision, message)) => {
+                sqlx::query_file!(
+                    "src/bin/hub/contributions/lore/factory/runner_failed.sql",
+                    watched.deployment.as_str(),
+                    watched.repository.as_str(),
+                    branch.as_str(),
+                    link.as_str(),
+                    linked.as_str(),
+                    revision.as_str(),
+                    message,
+                    Utc::now()
+                )
+                .execute(self.0.pool())
+                .await
+            }
+        };
+        result.context("failed to record the runner")?;
+        Ok(())
+    }
+
+    pub async fn runner_failure(
+        &self,
+        watched: &Watched,
+        branch: &BranchName,
+        link: &LinkName,
+    ) -> Result<Option<RunnerFailure>> {
+        sqlx::query_file!(
+            "src/bin/hub/contributions/lore/factory/runner_failure.sql",
+            watched.deployment.as_str(),
+            watched.repository.as_str(),
+            branch.as_str(),
+            link.as_str()
+        )
+        .fetch_optional(self.0.pool())
+        .await
+        .context("failed to read the runner's failure")?
+        .map(|row| {
+            Ok(RunnerFailure {
+                linked_repository: RepositoryId::parse(row.linked_repository)?,
+                revision: Revision::parse(row.revision)?,
+                message: row.message,
+            })
+        })
+        .transpose()
+    }
+
+    /// The links of the branch that failed to run.
+    pub async fn runner_failures(
+        &self,
+        watched: &Watched,
+        branch: &BranchName,
+    ) -> Result<Vec<LinkName>> {
+        sqlx::query_file_scalar!(
+            "src/bin/hub/contributions/lore/factory/runner_failures.sql",
+            watched.deployment.as_str(),
+            watched.repository.as_str(),
+            branch.as_str()
+        )
+        .fetch_all(self.0.pool())
+        .await
+        .context("failed to read the branch's failed links")?
+        .into_iter()
+        .map(|link| LinkName::parse(link).context("a stored link is malformed"))
+        .collect()
+    }
+
+    /// The branches, by repository and the revision they failed at, with a link that
+    /// could not run and names `linked`.
+    pub async fn runner_failures_naming(
+        &self,
+        linked: &Watched,
+    ) -> Result<Vec<(Watched, BranchName, Revision)>> {
+        sqlx::query_file!(
+            "src/bin/hub/contributions/lore/factory/runner_failures_naming.sql",
+            linked.deployment.as_str(),
+            linked.repository.as_str()
+        )
+        .fetch_all(self.0.pool())
+        .await
+        .context("failed to read the links waiting for the repository")?
+        .into_iter()
+        .map(|row| {
+            Ok((
+                Watched {
+                    deployment: linked.deployment.clone(),
+                    repository: RepositoryId::parse(row.repository)?,
+                },
+                BranchName::parse(row.branch)?,
+                Revision::parse(row.revision)?,
+            ))
+        })
+        .collect::<Result<Vec<_>>>()
+        .map(|mut failed| {
+            failed.dedup();
+            failed
+        })
+        .context("a stored runner failure is malformed")
     }
 
     /// The branch's latest push was prepared, or failed to be.

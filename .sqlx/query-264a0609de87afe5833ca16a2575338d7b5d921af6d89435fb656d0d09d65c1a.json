@@ -1,0 +1,143 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT revision, served_at IS NOT NULL AS \"served!\", failed_stage, failed_message, warning,\n    ungranted_providers, link, linked_repository, tracked_branch, tracked_branch_name,\n    linked_revision\nFROM hub.instance\nWHERE deployment = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "revision"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "served!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "failed_stage",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "failed_stage"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "failed_message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "failed_message"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "warning",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "warning"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ungranted_providers",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "ungranted_providers"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "link",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "link"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "linked_repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "linked_repository"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "tracked_branch",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "tracked_branch"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "tracked_branch_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "tracked_branch_name"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "linked_revision",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "linked_revision"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      null,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "264a0609de87afe5833ca16a2575338d7b5d921af6d89435fb656d0d09d65c1a"
+}

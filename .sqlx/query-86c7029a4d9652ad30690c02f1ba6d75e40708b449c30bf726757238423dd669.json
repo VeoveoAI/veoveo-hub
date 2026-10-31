@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "-- The instance whose client presents a secret with this digest, its latest pusher and\n-- its repository.\nSELECT deployment, pusher, repository\nFROM hub.instance\nWHERE client_digest = $1\n",
+  "query": "-- The ordinary instance of a branch, which serves it when its revision holds no links.\nSELECT deployment, database\nFROM hub.instance\nWHERE repository = $1 AND branch = $2 AND link IS NULL\nLIMIT 1\n",
   "describe": {
     "columns": [
       {
@@ -16,37 +16,26 @@
       },
       {
         "ordinal": 1,
-        "name": "pusher",
+        "name": "database",
         "type_info": "Text",
         "origin": {
           "Table": {
             "table": "hub.instance",
-            "name": "pusher"
-          }
-        }
-      },
-      {
-        "ordinal": 2,
-        "name": "repository",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "hub.instance",
-            "name": "repository"
+            "name": "database"
           }
         }
       }
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Text"
       ]
     },
     "nullable": [
       false,
-      true,
       false
     ]
   },
-  "hash": "0a6f48ecafaba2bdabaa003783044c29c9b9110a80d152f46c718491e292efbd"
+  "hash": "86c7029a4d9652ad30690c02f1ba6d75e40708b449c30bf726757238423dd669"
 }

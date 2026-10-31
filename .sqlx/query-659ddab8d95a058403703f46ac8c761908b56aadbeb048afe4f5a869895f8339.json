@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The Hub applied a revision of the runner's tracked branch to its sandbox.\nUPDATE hub.instance\nSET linked_revision = $2\nWHERE deployment = $1 AND link IS NOT NULL\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "659ddab8d95a058403703f46ac8c761908b56aadbeb048afe4f5a869895f8339"
+}

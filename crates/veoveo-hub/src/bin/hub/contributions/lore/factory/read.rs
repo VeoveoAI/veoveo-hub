@@ -33,16 +33,36 @@ pub(super) struct File {
 
 /// The tree under `openshell/` at the revision, which Lore proves by its signature.
 pub(super) async fn tree(
+    client: ThinClientServiceClient<Channel>,
+    request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
+    revision: &Revision,
+) -> Result<Vec<TreeNode>> {
+    walk(client, request, revision, Some(ROOT), None).await
+}
+
+/// The entries at the top level of the revision, links included, which Lore lists without
+/// entering them.
+pub(super) async fn top_level(
+    client: ThinClientServiceClient<Channel>,
+    request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
+    revision: &Revision,
+) -> Result<Vec<TreeNode>> {
+    walk(client, request, revision, None, Some(1)).await
+}
+
+async fn walk(
     mut client: ThinClientServiceClient<Channel>,
     request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
     revision: &Revision,
+    prefix: Option<&str>,
+    max_depth: Option<u32>,
 ) -> Result<Vec<TreeNode>> {
     let message = RevisionTreeRequest {
         query: Some(revision_tree_request::Query::Signature(
             hex::decode(revision.as_str())?.into(),
         )),
-        path_prefix: Some(ROOT.into()),
-        max_depth: None,
+        path_prefix: prefix.map(str::to_owned),
+        max_depth,
     };
     tokio::time::timeout(COMMAND_TIMEOUT, async {
         let mut stream = client
@@ -74,6 +94,56 @@ pub(super) async fn tree(
     })
     .await
     .context("Lore did not answer with the revision's tree in time")?
+}
+
+/// The links at the top level of a revision's tree whose names are lowercase DNS labels:
+/// each names its linked repository in its address's context and the revision it pins in
+/// its address's hash, and says whether it follows the parent's branch.
+pub(super) fn links(nodes: &[TreeNode]) -> Result<Vec<super::LinkNode>> {
+    let mut links = Vec::new();
+    for node in nodes {
+        if node.node_type != NodeType::Link as i32 || node.path.contains('/') {
+            continue;
+        }
+        let Ok(name) = veoveo_hub_sdk::hub::LinkName::parse(&node.path) else {
+            continue;
+        };
+        let address = node
+            .address
+            .as_ref()
+            .with_context(|| format!("the link {name} has no address"))?;
+        links.push(super::LinkNode {
+            name,
+            repository: crate::contributions::lore::RepositoryId::parse(hex::encode(
+                &address.context,
+            ))
+            .with_context(|| format!("the link {} names no repository", node.path))?,
+            pinned: Revision::parse(hex::encode(&address.hash))
+                .with_context(|| format!("the link {} pins no revision", node.path))?,
+            follows: node.tracking,
+        });
+    }
+    links.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(links)
+}
+
+/// The files to read of a linked repository's revision: `openshell/policy.yaml` and
+/// `openshell/providers.yaml`, when present.
+pub(super) fn linked_plan(nodes: &[TreeNode]) -> Vec<File> {
+    let file = |node: &TreeNode| node.node_type == NodeType::File as i32;
+    nodes
+        .iter()
+        .filter(|node| {
+            file(node)
+                && (node.path == format!("{ROOT}/policy.yaml")
+                    || node.path == format!("{ROOT}/providers.yaml"))
+        })
+        .map(|node| File {
+            path: node.path.clone(),
+            size: node.size,
+            executable: false,
+        })
+        .collect()
 }
 
 /// The files to read for a revision whose `openshell/run` is an executable file: `run`,
@@ -164,6 +234,15 @@ pub(super) async fn write(
         std::fs::set_permissions(&output, std::os::unix::fs::PermissionsExt::from_mode(mode))?;
     }
     Ok(())
+}
+
+/// What a linked repository's revision written under `directory` adds to a runner.
+pub(super) fn linked(directory: &Path) -> Result<veoveo_hub::factory::LinkedPrepared> {
+    let prepared = prepared(directory)?;
+    Ok(veoveo_hub::factory::LinkedPrepared {
+        policy: prepared.policy,
+        providers: prepared.providers,
+    })
 }
 
 /// What a revision written under `directory` applies.

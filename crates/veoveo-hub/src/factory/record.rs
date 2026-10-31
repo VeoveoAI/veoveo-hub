@@ -5,10 +5,15 @@ use anyhow::{Context, Result};
 use veoveo_store::PlatformStore;
 use veoveo_types::{DeploymentId, PrincipalId};
 
-use super::{Failure, InstanceClient, Revision, Stage};
+use veoveo_hub_sdk::hub::LinkName;
+
+use super::{
+    Failure, InstanceClient, Link, LinkedClient, Revision, Runner, RunnerStatus, Stage,
+    TrackedBranch,
+};
 use crate::{data_environment::DatabaseName, execution::BranchName};
 
-/// The deployment and database of the instance of `branch` of `repository`.
+/// The deployment and database of the ordinary instance of `branch` of `repository`.
 pub(super) async fn instance(
     store: &PlatformStore,
     repository: &str,
@@ -30,6 +35,159 @@ pub(super) async fn instance(
         ))
     })
     .transpose()
+}
+
+/// The deployment and database of the runner of `link` of `branch` of `repository`.
+pub(super) async fn runner(
+    store: &PlatformStore,
+    repository: &str,
+    branch: &BranchName,
+    link: &LinkName,
+) -> Result<Option<(DeploymentId, DatabaseName)>> {
+    sqlx::query_file!(
+        "src/factory/record/runner.sql",
+        repository,
+        branch.as_str(),
+        link.as_str()
+    )
+    .fetch_optional(store.pool())
+    .await
+    .context("failed to look up the runner")?
+    .map(|row| {
+        Ok((
+            DeploymentId::try_from(row.deployment)
+                .context("stored runner deployment is invalid")?,
+            DatabaseName::parse(row.database).context("stored runner database is invalid")?,
+        ))
+    })
+    .transpose()
+}
+
+/// A runner's row, as both runner listings read it.
+struct RunnerRow {
+    repository: String,
+    branch: String,
+    link: String,
+    linked_repository: String,
+    tracked_branch: String,
+    tracked_branch_name: String,
+    revision: Option<String>,
+    pusher: Option<String>,
+    linked_revision: Option<String>,
+    linked_pusher: Option<String>,
+}
+
+impl TryFrom<RunnerRow> for Runner {
+    type Error = anyhow::Error;
+    fn try_from(row: RunnerRow) -> Result<Self> {
+        Ok(Self {
+            repository: row.repository,
+            branch: BranchName::parse(row.branch)
+                .context("the stored runner branch is malformed")?,
+            link: Link {
+                name: LinkName::parse(row.link).context("the stored link is malformed")?,
+                repository: row.linked_repository,
+                tracked: TrackedBranch {
+                    id: row.tracked_branch,
+                    name: row.tracked_branch_name,
+                },
+            },
+            revision: row
+                .revision
+                .map(Revision::parse)
+                .transpose()
+                .context("the stored runner revision is malformed")?,
+            pusher: row
+                .pusher
+                .map(PrincipalId::parse)
+                .transpose()
+                .context("the stored runner pusher is malformed")?,
+            linked_revision: row
+                .linked_revision
+                .map(Revision::parse)
+                .transpose()
+                .context("the stored linked revision is malformed")?,
+            linked_pusher: row
+                .linked_pusher
+                .map(PrincipalId::parse)
+                .transpose()
+                .context("the stored linked pusher is malformed")?,
+        })
+    }
+}
+
+/// The runners of `branch` of `repository`, by link name.
+pub(super) async fn runners(
+    store: &PlatformStore,
+    repository: &str,
+    branch: &BranchName,
+) -> Result<Vec<Runner>> {
+    sqlx::query_file_as!(
+        RunnerRow,
+        "src/factory/record/runners.sql",
+        repository,
+        branch.as_str()
+    )
+    .fetch_all(store.pool())
+    .await
+    .context("failed to list the branch's runners")?
+    .into_iter()
+    .map(Runner::try_from)
+    .collect()
+}
+
+/// The runners whose links name `linked_repository`.
+pub(super) async fn tracking(
+    store: &PlatformStore,
+    linked_repository: &str,
+) -> Result<Vec<Runner>> {
+    sqlx::query_file_as!(
+        RunnerRow,
+        "src/factory/record/tracking.sql",
+        linked_repository
+    )
+    .fetch_all(store.pool())
+    .await
+    .context("failed to list the runners of the linked repository")?
+    .into_iter()
+    .map(Runner::try_from)
+    .collect()
+}
+
+/// Record the runner's tracked branch's name and its latest pusher, whose token the
+/// runner's client issues for the linked repository.
+pub(super) async fn linked(
+    store: &PlatformStore,
+    deployment: DeploymentId,
+    tracked_name: &str,
+    pusher: &PrincipalId,
+) -> Result<()> {
+    sqlx::query_file!(
+        "src/factory/record/linked.sql",
+        deployment.as_uuid(),
+        tracked_name,
+        pusher.as_str()
+    )
+    .execute(store.pool())
+    .await
+    .context("failed to record the runner's tracked branch")?;
+    Ok(())
+}
+
+pub(super) async fn linked_applied(
+    store: &PlatformStore,
+    deployment: DeploymentId,
+    revision: &Revision,
+) -> Result<()> {
+    sqlx::query_file!(
+        "src/factory/record/linked_applied.sql",
+        deployment.as_uuid(),
+        revision.as_str()
+    )
+    .execute(store.pool())
+    .await
+    .context("failed to record the runner's linked revision")?;
+    Ok(())
 }
 
 /// Record `pusher` as the instance's latest pusher, before the Hub restarts or creates
@@ -88,6 +246,19 @@ pub(super) async fn client_of(
                     .transpose()
                     .context("the stored instance pusher is malformed")?,
                 repository: row.repository,
+                linked: row
+                    .linked_repository
+                    .map(|repository| {
+                        Ok::<_, anyhow::Error>(LinkedClient {
+                            repository,
+                            pusher: row
+                                .linked_pusher
+                                .map(PrincipalId::parse)
+                                .transpose()
+                                .context("the stored linked pusher is malformed")?,
+                        })
+                    })
+                    .transpose()?,
             })
         })
         .transpose()
@@ -167,6 +338,8 @@ pub(super) async fn failed(
 
 /// The instance's record, when the instance exists.
 pub(super) struct Record {
+    /// For a runner, its link and what it applied of the tracked branch.
+    pub runner: Option<RunnerStatus>,
     pub revision: Option<Revision>,
     /// Whether the instance's server registered or resumed since the Hub last restarted
     /// or created its sandbox.
@@ -194,7 +367,26 @@ pub(super) async fn read(
         }),
         _ => None,
     };
+    let runner = match (
+        row.link,
+        row.linked_repository,
+        row.tracked_branch,
+        row.tracked_branch_name,
+    ) {
+        (Some(link), Some(repository), Some(id), Some(name)) => Some(RunnerStatus {
+            link: LinkName::parse(link).context("the stored link is malformed")?,
+            linked_repository: repository,
+            tracked_branch: TrackedBranch { id, name },
+            linked_revision: row
+                .linked_revision
+                .map(Revision::parse)
+                .transpose()
+                .context("the stored linked revision is malformed")?,
+        }),
+        _ => None,
+    };
     Ok(Some(Record {
+        runner,
         revision: row
             .revision
             .map(Revision::parse)

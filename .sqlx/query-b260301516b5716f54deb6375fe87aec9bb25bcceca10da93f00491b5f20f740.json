@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The instance whose client presents a secret with this digest, its latest pusher and\n-- its repository, and for a runner its linked repository and that repository's tracked\n-- branch's latest pusher.\nSELECT deployment, pusher, repository, linked_repository, linked_pusher\nFROM hub.instance\nWHERE client_digest = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deployment",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "deployment"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "pusher",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "pusher"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "repository"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "linked_repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "linked_repository"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "linked_pusher",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "linked_pusher"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "b260301516b5716f54deb6375fe87aec9bb25bcceca10da93f00491b5f20f740"
+}

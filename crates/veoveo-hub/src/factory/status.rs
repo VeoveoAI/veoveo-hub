@@ -34,9 +34,25 @@ pub struct InstanceStatus {
     /// Why the instance was created above a cap.
     pub warning: Option<String>,
     /// The providers its revision requested in `openshell/providers.yaml` that the
-    /// installation does not grant its repository, so the sandbox runs without them.
+    /// installation does not grant its repository, so the sandbox runs without them. A
+    /// runner's are those of its linked repository's tracked branch.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub ungranted_providers: Vec<String>,
+    /// For a runner, its link, the linked repository and the branch of it the link
+    /// tracks, where people push to change what the runner serves, and the revision of
+    /// that branch the Hub last applied. `appliedRevision` is the branch's own.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runner: Option<RunnerStatus>,
+}
+
+/// What a runner serves beside its branch's program.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunnerStatus {
+    pub link: veoveo_hub_sdk::hub::LinkName,
+    pub linked_repository: String,
+    pub tracked_branch: super::TrackedBranch,
+    pub linked_revision: Option<Revision>,
 }
 
 /// The sandbox's lifecycle as OpenShell reports it. OpenShell restarts its main program

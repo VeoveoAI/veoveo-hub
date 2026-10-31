@@ -105,7 +105,7 @@ pub(super) const LORE_IDENTITY: &str = "LORE_IDENTITY";
 /// Lore runs from [`LORE`] with the Lore provider's placeholder as its access token, from
 /// the sandbox's environment, which the gateway replaces with the real token in Lore's
 /// requests.
-fn start_command(repository: &url::Url, branch: &BranchName) -> Vec<String> {
+pub(super) fn start_command(repository: &url::Url, branch: &BranchName) -> Vec<String> {
     let script = format!(
         r#"set -e
 [ -d /sandbox/src/.lore ] || {LORE} clone "$1" /sandbox/src --branch "$2"
@@ -121,6 +121,54 @@ exec ./openshell/run"#
         repository.to_string(),
         branch.to_string(),
     ]
+}
+
+/// The fixed start command of a runner's sandbox. It checks the parent repository's branch
+/// out at `/sandbox/src` under a view that leaves out every link at the revision's top
+/// level, so Lore reaches none of the linked repositories through the parent; every start
+/// writes the view again, as the links stand. The first start clones the linked repository
+/// at the branch the runner's link tracks into `/sandbox/link`; every start then resets that
+/// checkout to the tracked branch's latest revision and the parent's to its branch's, and
+/// replaces itself with the parent's program, which reads the linked repository from
+/// `/sandbox/link`. `$1` is the parent repository, `$2` the branch, `$3` the linked
+/// repository, `$4` the tracked branch's ID, and the rest the links to leave out.
+pub(super) fn runner_start_command(
+    repository: &url::Url,
+    branch: &BranchName,
+    linked: &url::Url,
+    tracked: &str,
+    links: &[veoveo_hub_sdk::hub::LinkName],
+) -> Vec<String> {
+    let script = format!(
+        r#"set -e
+parent=$1 branch=$2 linked=$3 tracked=$4
+shift 4
+exclude() {{ for link in "$@"; do printf '/%s\n' "$link"; done; }}
+if [ -d /sandbox/src/.lore ]; then
+  exclude "$@" > /sandbox/src/.lore/view
+else
+  exclude "$@" > /sandbox/.view
+  {LORE} clone "$parent" /sandbox/src --branch "$branch" --view /sandbox/.view
+fi
+[ -d /sandbox/link/.lore ] || {LORE} clone "$linked" /sandbox/link --branch "$tracked"
+cd /sandbox/link
+{LORE} sync --reset "$tracked@LATEST"
+cd /sandbox/src
+{LORE} sync --reset "$branch@LATEST"
+exec ./openshell/run"#
+    );
+    let mut command = vec![
+        "/bin/sh".into(),
+        "-c".into(),
+        script,
+        "runner".into(),
+        repository.to_string(),
+        branch.to_string(),
+        linked.to_string(),
+        tracked.to_owned(),
+    ];
+    command.extend(links.iter().map(ToString::to_string));
+    command
 }
 
 /// What the installation's factory template gives every instance's sandbox: its size
@@ -164,23 +212,40 @@ pub(super) fn policy(
     base: &p::sandbox::v1::SandboxPolicy,
     repository: Option<&str>,
 ) -> Result<p::sandbox::v1::SandboxPolicy> {
+    policies(base, &[("repository", repository)])
+}
+
+/// The base policy with the network rules of each repository's `openshell/policy.yaml`
+/// added in turn, each named by whose it is: a runner's parent repository's, then its
+/// linked repository's. Each adds rules under names of its own and changes nothing else.
+pub(super) fn policies(
+    base: &p::sandbox::v1::SandboxPolicy,
+    repositories: &[(&str, Option<&str>)],
+) -> Result<p::sandbox::v1::SandboxPolicy> {
     let mut policy = base.clone();
-    if let Some(repository) = repository {
+    let mut owners = HashMap::new();
+    for (whose, repository) in repositories {
+        let Some(repository) = repository else {
+            continue;
+        };
         let own = openshell_policy::parse_sandbox_policy(repository).map_err(|error| {
-            anyhow::anyhow!("the repository's openshell/policy.yaml is invalid: {error}")
+            anyhow::anyhow!("the {whose}'s openshell/policy.yaml is invalid: {error}")
         })?;
         ensure!(
             own.filesystem.is_none()
                 && own.landlock.is_none()
                 && own.process.is_none()
                 && own.network_middlewares.is_empty(),
-            "the repository's openshell/policy.yaml may only add network policies"
+            "the {whose}'s openshell/policy.yaml may only add network policies"
         );
         for (name, rule) in own.network_policies {
-            ensure!(
-                !policy.network_policies.contains_key(&name),
-                "the repository's openshell/policy.yaml redefines the installation's network policy `{name}`"
-            );
+            if policy.network_policies.contains_key(&name) {
+                let owner = owners.get(&name).copied().unwrap_or("installation");
+                anyhow::bail!(
+                    "the {whose}'s openshell/policy.yaml redefines the {owner}'s network policy `{name}`"
+                );
+            }
+            owners.insert(name.clone(), *whose);
             policy.network_policies.insert(name, rule);
         }
     }
@@ -218,7 +283,7 @@ pub(super) fn create_request(
             }),
             policy: Some(source.policy.clone()),
             providers: attached(&name, source),
-            command: start_command(&source.remote, branch),
+            command: source.command(branch),
             restart_policy: p::SandboxRestartPolicy::Always as i32,
             ..Default::default()
         }),
@@ -227,17 +292,20 @@ pub(super) fn create_request(
 }
 
 /// Whether the sandbox `name` runs this source: its image, under its policy, with its
-/// shape and its providers, as OpenShell recorded its create request. OpenShell records a
+/// shape, its providers and its start command, as OpenShell recorded its create request.
+/// A runner's command names the links its checkout of the parent leaves out, so a parent
+/// push that changes them recreates the runner. OpenShell records a
 /// created sandbox's policy in its canonical form, which [`policy`] returns, so an
 /// unchanged policy compares equal, and its size, driver configuration and providers as
 /// they were sent.
-pub(super) fn runs(name: &str, sandbox: &p::Sandbox, source: &Source) -> bool {
+pub(super) fn runs(name: &str, sandbox: &p::Sandbox, source: &Source, branch: &BranchName) -> bool {
     let mut attached = attached(name, source);
     attached.sort();
     sandbox.spec.as_ref().is_some_and(|spec| {
         let mut providers = spec.providers.clone();
         providers.sort();
         providers == attached
+            && spec.command == source.command(branch)
             && spec.template.as_ref().is_some_and(|template| {
                 template.image == source.image.as_str()
                     && template.resources == source.shape.resources
@@ -341,6 +409,54 @@ mod tests {
                 "factory",
                 "grpcs://lore.internal:41337/repository",
                 "dev/jose/it's"
+            ]
+        );
+    }
+
+    #[test]
+    fn a_runners_start_command_leaves_out_the_parents_links_and_serves_the_tracked_branch() {
+        let parent = url::Url::parse("grpcs://lore.internal:41337/parent").unwrap();
+        let linked = url::Url::parse("grpcs://lore.internal:41337/linked").unwrap();
+        let branch = BranchName::parse("main").unwrap();
+        let links =
+            ["team-a", "team-b"].map(|name| veoveo_hub_sdk::hub::LinkName::parse(name).unwrap());
+        let command = runner_start_command(
+            &parent,
+            &branch,
+            &linked,
+            "e726318bbc3fd75ac8733a7e030cc35b",
+            &links,
+        );
+        assert_eq!(command[..2], ["/bin/sh", "-c"]);
+        assert_eq!(
+            command[2],
+            "set -e\n\
+             parent=$1 branch=$2 linked=$3 tracked=$4\n\
+             shift 4\n\
+             exclude() { for link in \"$@\"; do printf '/%s\\n' \"$link\"; done; }\n\
+             if [ -d /sandbox/src/.lore ]; then\n\
+             \x20 exclude \"$@\" > /sandbox/src/.lore/view\n\
+             else\n\
+             \x20 exclude \"$@\" > /sandbox/.view\n\
+             \x20 /opt/veoveo/lore/usr/local/bin/lore clone \"$parent\" /sandbox/src --branch \"$branch\" --view /sandbox/.view\n\
+             fi\n\
+             [ -d /sandbox/link/.lore ] || /opt/veoveo/lore/usr/local/bin/lore clone \"$linked\" /sandbox/link --branch \"$tracked\"\n\
+             cd /sandbox/link\n\
+             /opt/veoveo/lore/usr/local/bin/lore sync --reset \"$tracked@LATEST\"\n\
+             cd /sandbox/src\n\
+             /opt/veoveo/lore/usr/local/bin/lore sync --reset \"$branch@LATEST\"\n\
+             exec ./openshell/run"
+        );
+        assert_eq!(
+            command[3..],
+            [
+                "runner",
+                "grpcs://lore.internal:41337/parent",
+                "main",
+                "grpcs://lore.internal:41337/linked",
+                "e726318bbc3fd75ac8733a7e030cc35b",
+                "team-a",
+                "team-b"
             ]
         );
     }
@@ -452,7 +568,43 @@ mod tests {
         );
         assert_eq!(
             policy(&base, None).unwrap(),
-            openshell_policy::validate_and_canonicalize_sandbox_policy(base).unwrap()
+            openshell_policy::validate_and_canonicalize_sandbox_policy(base.clone()).unwrap()
+        );
+
+        // A runner adds its parent's rules, then its linked repository's, each of its own.
+        let rule = |name: &str, host: &str| {
+            format!(
+                "version: 1\nnetwork_policies:\n  {name}:\n    endpoints:\n      - {{host: {host}, port: 443}}\n    binaries:\n      - path: /**\n"
+            )
+        };
+        let parent = rule("packages", "packages.example");
+        let linked = rule("team-api", "api.team.example");
+        let runner = policies(
+            &base,
+            &[
+                ("repository", Some(&parent)),
+                ("linked repository", Some(&linked)),
+            ],
+        )
+        .unwrap();
+        let mut names = runner.network_policies.keys().collect::<Vec<_>>();
+        names.sort();
+        assert_eq!(names, ["internet", "packages", "team-api"]);
+        let clash = policies(
+            &base,
+            &[
+                ("repository", Some(&parent)),
+                (
+                    "linked repository",
+                    Some(&rule("packages", "other.example")),
+                ),
+            ],
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            clash.contains("the linked repository's openshell/policy.yaml redefines the repository's network policy `packages`"),
+            "{clash}"
         );
     }
 }

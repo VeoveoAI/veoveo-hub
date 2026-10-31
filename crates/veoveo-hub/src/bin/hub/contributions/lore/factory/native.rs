@@ -23,12 +23,12 @@ use tonic::{
 };
 use veoveo_hub::{
     HubCatalog, HubCatalogHandle,
-    factory::{Prepared, Revision},
+    factory::{LinkedPrepared, Prepared, Revision},
     token_profile::TokenIssueError,
 };
 use veoveo_types::{PrincipalId, TenantId};
 
-use super::{BoxFuture, Branch, Events, Lore as LoreProtocol, Refused, Watched};
+use super::{BoxFuture, Branch, Events, LinkNode, Lore as LoreProtocol, Refused, Watched};
 use crate::contributions::lore::{
     BranchId, Deployment, DeploymentId, Lore, RepositoryId, person::issue,
 };
@@ -137,6 +137,34 @@ fn branch(record: NativeBranch) -> Result<Branch> {
     })
 }
 
+impl NativeLore {
+    /// Lore's record of the revision, as `person` reads it.
+    async fn revision(
+        &self,
+        person: &PrincipalId,
+        watched: &Watched,
+        revision: &Revision,
+    ) -> Result<lore_proto::lore::thin_client::v1::Revision> {
+        let (deployment, token) = self.token(person, watched).await?;
+        let mut client = ThinClientServiceClient::new(connect(&deployment).await?);
+        let message = RevisionInfoRequest {
+            query: Some(revision_info_request::Query::Signature(
+                hex::decode(revision.as_str())?.into(),
+            )),
+        };
+        tokio::time::timeout(
+            TIMEOUT,
+            client.revision_info(request(message, &token, &watched.repository)?),
+        )
+        .await
+        .context("Lore did not answer for the revision in time")?
+        .map_err(|status| failed("read the revision", &status))?
+        .into_inner()
+        .revision
+        .context("Lore answered without the revision")
+    }
+}
+
 impl LoreProtocol for NativeLore {
     fn locate(&self, id: &RepositoryId, tenant: &TenantId) -> Option<Watched> {
         let section = Lore::of(&self.catalog.current()).ok()?;
@@ -243,25 +271,67 @@ impl LoreProtocol for NativeLore {
         revision: &'a Revision,
     ) -> BoxFuture<'a, Result<PrincipalId>> {
         Box::pin(async move {
-            let (deployment, token) = self.token(person, watched).await?;
-            let mut client = ThinClientServiceClient::new(connect(&deployment).await?);
-            let message = RevisionInfoRequest {
-                query: Some(revision_info_request::Query::Signature(
-                    hex::decode(revision.as_str())?.into(),
-                )),
-            };
-            let record = tokio::time::timeout(
-                TIMEOUT,
-                client.revision_info(request(message, &token, &watched.repository)?),
-            )
-            .await
-            .context("Lore did not answer for the revision in time")?
-            .map_err(|status| failed("read the revision", &status))?
-            .into_inner()
-            .revision
-            .context("Lore answered without the revision")?;
+            let record = self.revision(person, watched, revision).await?;
             PrincipalId::parse(record.committed_by)
                 .context("Lore names no committer of the revision")
+        })
+    }
+
+    fn revision_branch<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        watched: &'a Watched,
+        revision: &'a Revision,
+    ) -> BoxFuture<'a, Result<BranchId>> {
+        Box::pin(async move {
+            let record = self.revision(person, watched, revision).await?;
+            let identifier = record
+                .identifier
+                .context("Lore names no branch of the revision")?;
+            BranchId::parse(hex::encode(&identifier.branch_id))
+                .context("Lore names no branch of the revision")
+        })
+    }
+
+    fn links<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        watched: &'a Watched,
+        revision: &'a Revision,
+    ) -> BoxFuture<'a, Result<Vec<LinkNode>>> {
+        Box::pin(async move {
+            let (deployment, token) = self.token(person, watched).await?;
+            let nodes = super::read::top_level(
+                ThinClientServiceClient::new(connect(&deployment).await?),
+                |message| request(message, &token, &watched.repository),
+                revision,
+            )
+            .await?;
+            super::read::links(&nodes)
+        })
+    }
+
+    fn read_linked<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        watched: &'a Watched,
+        revision: &'a Revision,
+        directory: &'a Path,
+    ) -> BoxFuture<'a, Result<LinkedPrepared>> {
+        Box::pin(async move {
+            let (deployment, token) = self.token(person, watched).await?;
+            let nodes = super::read::tree(
+                ThinClientServiceClient::new(connect(&deployment).await?),
+                |message| request(message, &token, &watched.repository),
+                revision,
+            )
+            .await?;
+            let files = super::read::linked_plan(&nodes);
+            if !files.is_empty() {
+                let url = repository_url(&deployment, &watched.repository);
+                super::read::write(&url, &token, revision, &files, directory).await?;
+            }
+            super::read::linked(directory)
         })
     }
 

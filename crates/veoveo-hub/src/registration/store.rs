@@ -223,7 +223,9 @@ impl RegistrationStore {
     }
 
     /// Record a new instance of `branch` of `repository` in `database` under the digest
-    /// of its registration token.
+    /// of its registration token: the runner of `runner`'s link, or with none the branch's
+    /// ordinary instance.
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_instance(
         &self,
         deployment: DeploymentId,
@@ -232,6 +234,7 @@ impl RegistrationStore {
         database: &DatabaseName,
         branch: &BranchName,
         now: DateTime<Utc>,
+        runner: Option<&crate::factory::Link>,
     ) -> Result<()> {
         sqlx::query_file!(
             "src/registration/store/create_instance.sql",
@@ -241,6 +244,10 @@ impl RegistrationStore {
             database.as_str(),
             branch.as_str(),
             now,
+            runner.map(|link| link.name.as_str()),
+            runner.map(|link| link.repository.as_str()),
+            runner.map(|link| link.tracked.id.as_str()),
+            runner.map(|link| link.tracked.name.as_str()),
         )
         .execute(self.store.pool())
         .await

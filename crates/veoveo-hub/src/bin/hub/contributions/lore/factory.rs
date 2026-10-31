@@ -2,7 +2,10 @@
 //! then subscribes to the repository's Lore notifications as that person. Each push of a
 //! branch is prepared as its pusher: the Hub reads `openshell/` at the pushed revision and
 //! applies it to the branch's instance, or removes the instance when the revision has no
-//! `openshell/run`. Lore checks access only when a subscription starts and drops nothing
+//! `openshell/run`. A revision whose top level holds links is served by one runner per
+//! link instead, each serving the branch of its linked repository that the link tracks,
+//! which the Hub reads as the linked repository's watcher; a push to a tracked branch
+//! applies to its runners as its pusher. Lore checks access only when a subscription starts and drops nothing
 //! silently, ending a lagging stream instead, so on every subscription the Hub re-checks
 //! every branch: it applies each latest revision it has not applied and removes the
 //! instances of deleted branches. Hub acts in Lore only as a person, under that person's
@@ -17,7 +20,8 @@ use std::{future::Future, path::Path, pin::Pin};
 use anyhow::Result;
 use futures::stream::BoxStream;
 use lore_proto::lore::notification::Event;
-use veoveo_hub::factory::{Prepared, Revision};
+use veoveo_hub::factory::{LinkedPrepared, Prepared, Revision};
+use veoveo_hub_sdk::hub::LinkName;
 use veoveo_types::PrincipalId;
 
 use super::{DeploymentId, RepositoryId};
@@ -39,6 +43,20 @@ pub(crate) struct Branch {
     pub latest: Revision,
     /// Deleted or archived; Lore keeps the record of either.
     pub deleted: bool,
+}
+
+/// A link at the top level of a revision whose name is a lowercase DNS label, as the
+/// revision's tree names it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct LinkNode {
+    pub name: LinkName,
+    /// The repository it links.
+    pub repository: RepositoryId,
+    /// The revision of the linked repository the link pins.
+    pub pinned: Revision,
+    /// Whether the link follows the parent's branch, Lore's default, rather than the branch
+    /// of its pinned revision, as a link added with `--disable-branching` does.
+    pub follows: bool,
 }
 
 /// Lore refused the person, or the Hub issues the person no Lore token for the
@@ -89,6 +107,29 @@ pub(crate) trait Lore: Send + Sync + 'static {
         revision: &'a Revision,
         directory: &'a Path,
     ) -> BoxFuture<'a, Result<Option<Prepared>>>;
+    /// The links at the top level of the revision whose names are lowercase DNS labels.
+    fn links<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        watched: &'a Watched,
+        revision: &'a Revision,
+    ) -> BoxFuture<'a, Result<Vec<LinkNode>>>;
+    /// The branch the revision lives on.
+    fn revision_branch<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        watched: &'a Watched,
+        revision: &'a Revision,
+    ) -> BoxFuture<'a, Result<super::BranchId>>;
+    /// Read the `openshell/policy.yaml` and `openshell/providers.yaml` a linked
+    /// repository's revision holds, into `directory`.
+    fn read_linked<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        watched: &'a Watched,
+        revision: &'a Revision,
+        directory: &'a Path,
+    ) -> BoxFuture<'a, Result<LinkedPrepared>>;
 }
 
 #[cfg(test)]

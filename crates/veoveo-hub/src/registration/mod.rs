@@ -19,7 +19,7 @@ use veoveo_hub_sdk::registration::{RegistrationErrorCode, RegistrationErrorRespo
 pub use endpoint::{JWK_SET_MEDIA_TYPE, router};
 pub use service::{
     INSTANCES_PATH, NewInstance, RegistrationIdentity, RegistrationService, ServerDatabase,
-    create_instance, reissue_token, remove_instance,
+    create_instance, create_runner, reissue_token, remove_instance,
 };
 pub(crate) use service::{digest, random_token};
 pub use snapshot::{Namespace, RegisteredServer, RegistrationSnapshot, ServerCapabilities};

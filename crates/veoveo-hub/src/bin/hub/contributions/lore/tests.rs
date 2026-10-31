@@ -1478,3 +1478,53 @@ fn a_registered_creator_owns_with_write_and_owner() {
         Some(vec![NativeAction::Write, NativeAction::Owner])
     );
 }
+
+#[test]
+fn an_instances_client_asks_for_its_own_repository_and_a_runner_also_for_its_linked_one() {
+    use veoveo_hub::factory::{InstanceClient, LinkedClient};
+    let section = Lore::of(&catalog(plane())).unwrap();
+    let deployment = &section.deployments[0];
+    let own = RepositoryId::parse(FIRST).unwrap();
+    let linked = RepositoryId::parse(SECOND).unwrap();
+    let [pusher, linked_pusher] =
+        ["native-alice", "native-bob"].map(|id| PrincipalId::parse(id).unwrap());
+    let instance = InstanceClient {
+        deployment: veoveo_types::DeploymentId::new(),
+        pusher: Some(pusher.clone()),
+        repository: FIRST.into(),
+        linked: None,
+    };
+    let scope = |id: &str| format!("repo/{id}/access");
+    let requested = |instance: &InstanceClient, scope: Option<&str>| {
+        super::instance_client::requested(deployment, scope, &own, instance)
+    };
+    // Without a scope, or with its own repository's, the pusher's token for it.
+    for asked in [None, Some(scope(FIRST))] {
+        assert_eq!(
+            requested(&instance, asked.as_deref()),
+            Ok((Some(pusher.clone()), own.clone()))
+        );
+    }
+    // An ordinary instance gets no other repository's.
+    assert!(requested(&instance, Some(&scope(SECOND))).is_err());
+    // A runner gets its linked repository's, as the tracked branch's latest pusher.
+    let runner = InstanceClient {
+        linked: Some(LinkedClient {
+            repository: SECOND.into(),
+            pusher: Some(linked_pusher.clone()),
+        }),
+        ..instance.clone()
+    };
+    assert_eq!(
+        requested(&runner, Some(&scope(SECOND))),
+        Ok((Some(linked_pusher), linked))
+    );
+    assert_eq!(requested(&runner, None), Ok((Some(pusher), own.clone())));
+    for refused in [
+        scope("22222222222222222222222222222222"),
+        "native:login".to_owned(),
+        format!("{} {}", scope(FIRST), scope(SECOND)),
+    ] {
+        assert!(requested(&runner, Some(&refused)).is_err(), "{refused}");
+    }
+}

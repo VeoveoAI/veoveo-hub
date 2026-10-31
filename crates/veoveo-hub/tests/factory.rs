@@ -491,6 +491,7 @@ async fn a_first_push_creates_the_instance_in_its_data_environment() {
                 deployment,
                 pusher: Some(PrincipalId::parse("alice").unwrap()),
                 repository: REPOSITORY.into(),
+                linked: None,
             })
         );
         for (client, secret) in [
