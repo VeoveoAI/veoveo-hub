@@ -3303,6 +3303,111 @@ def registration.snapshot.RegistrationSnapshot.of
     registration.snapshot.RegistrationSnapshot.build_namespaces servers
   ok { servers, namespaces }
 
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{impl core::ops::function::FnMut<(veoveo_hub::registration::snapshot::RegisteredServer,), (veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}<T0, Clause0_IntoIter>}::call_mut]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+def
+  registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer.call_mut
+  {T0 : Type _} {Clause0_IntoIter : Type _}
+  (coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T0
+  registration.snapshot.RegisteredServer Clause0_IntoIter)
+  (c : registration.snapshot.RegistrationSnapshot.new.closure T0
+  Clause0_IntoIter) (tupled_args : registration.snapshot.RegisteredServer) :
+  Result ((veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+    registration.snapshot.RegisteredServer)) ×
+    (registration.snapshot.RegistrationSnapshot.new.closure T0
+    Clause0_IntoIter))
+  := do
+  let a ← alloc.sync.Arc.new tupled_args
+  ok ((tupled_args.deployment, a), c)
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{impl core::ops::function::FnOnce<(veoveo_hub::registration::snapshot::RegisteredServer,), (veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}<T0, Clause0_IntoIter>}::call_once]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+def
+  registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnOnceTupleRegisteredServerPairDeploymentIdArcRegisteredServer.call_once
+  {T0 : Type _} {Clause0_IntoIter : Type _}
+  (coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T0
+  registration.snapshot.RegisteredServer Clause0_IntoIter)
+  (c : registration.snapshot.RegistrationSnapshot.new.closure T0
+  Clause0_IntoIter) (rs : registration.snapshot.RegisteredServer) :
+  Result (veoveo_types.execution.DeploymentId × (alloc.sync.Arc
+    registration.snapshot.RegisteredServer))
+  := do
+  let (p, _) ←
+    registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer.call_mut
+      coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst c
+      rs
+  ok p
+
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{impl core::ops::function::FnOnce<(veoveo_hub::registration::snapshot::RegisteredServer,), (veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}<T0, Clause0_IntoIter>}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+@[reducible]
+def
+  registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnOnceTupleRegisteredServerPairDeploymentIdArcRegisteredServer
+  {T0 : Type _} {Clause0_IntoIter : Type _}
+  (coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T0
+  registration.snapshot.RegisteredServer Clause0_IntoIter) :
+  core.ops.function.FnOnce
+  (registration.snapshot.RegistrationSnapshot.new.closure T0 Clause0_IntoIter)
+  registration.snapshot.RegisteredServer (veoveo_types.execution.DeploymentId
+  × (alloc.sync.Arc registration.snapshot.RegisteredServer)) := {
+  call_once :=
+    registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnOnceTupleRegisteredServerPairDeploymentIdArcRegisteredServer.call_once
+    coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst
+}
+
+/-- Trait implementation: [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{impl core::ops::function::FnMut<(veoveo_hub::registration::snapshot::RegisteredServer,), (veoveo_types::execution::DeploymentId, alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>)> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}<T0, Clause0_IntoIter>}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+@[reducible]
+def
+  registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer
+  {T0 : Type _} {Clause0_IntoIter : Type _}
+  (coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T0
+  registration.snapshot.RegisteredServer Clause0_IntoIter) :
+  core.ops.function.FnMut
+  (registration.snapshot.RegistrationSnapshot.new.closure T0 Clause0_IntoIter)
+  registration.snapshot.RegisteredServer (veoveo_types.execution.DeploymentId
+  × (alloc.sync.Arc registration.snapshot.RegisteredServer)) := {
+  FnOnceInst :=
+    registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnOnceTupleRegisteredServerPairDeploymentIdArcRegisteredServer
+    coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst
+  call_mut :=
+    registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer.call_mut
+    coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst
+}
+
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new]:
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 81:4-88:5
+    Visibility: public -/
+def registration.snapshot.RegistrationSnapshot.new
+  {T0 : Type _} {Clause0_IntoIter : Type _}
+  (coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T0
+  registration.snapshot.RegisteredServer Clause0_IntoIter) (servers : T0) :
+  Result registration.snapshot.RegistrationSnapshot
+  := do
+  let t ←
+    coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst.into_iter
+      servers
+  let m ←
+    coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst.iteratorInst.map
+      (registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer
+      coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst)
+      t ()
+  let bm ←
+    core.iter.traits.iterator.Iterator.collect.default
+      (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+      coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst.iteratorInst
+      (registration.snapshot.RegistrationSnapshot.new.closure.Insts.CoreOpsFunctionFnMutTupleRegisteredServerPairDeploymentIdArcRegisteredServer
+      coreitertraitscollectIntoIteratorT0RegisteredServerClause0_IntoIterInst))
+      (alloc.collections.btree.map.BTreeMapKVGlobal.Insts.CoreIterTraitsCollectFromIteratorPair
+      (alloc.sync.Arc registration.snapshot.RegisteredServer)
+      veoveo_types.execution.DeploymentId.Insts.CoreCmpOrd) m
+  registration.snapshot.RegistrationSnapshot.of bm
+
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{impl core::ops::function::FnMut<(&'_2 &'_3 alloc::sync::Arc<veoveo_hub::registration::snapshot::RegisteredServer>,), bool> for veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{closure}<'_0, '_1>}::call_mut]:
     Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 137:56-137:85 -/
 def

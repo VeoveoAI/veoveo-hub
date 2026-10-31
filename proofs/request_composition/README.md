@@ -261,6 +261,17 @@ namespace-helper boundary remains open.
 
 ## Intended contract
 
+The unchanged `RegistrationSnapshot::new` constructor is now included in the
+raw extraction. Its generic iterator, mapping closure and complete row allocation
+remain visible; existing generated definitions are unchanged. The
+[extraction receipt](evidence/snapshot-constructor-extraction.json) records the
+16-root probe. The [model checkpoint](evidence/snapshot-constructor-model-checkpoint.json)
+records a passing six-target build of the model and prior proofs. The handwritten
+model adds allocation-erased `Arc.new` and the missing generic `Iterator.map`
+method spelling, forwarding to the existing default. No generated code or Rust
+was patched. Constructor coherence and the connected route theorem remain pending;
+successful translation and compilation do not establish those properties.
+
 For an admitted request, the selected registration determines the recipient slug,
 deployment and resource. The HTTP client preserves the admitted actor, authority,
 permissions and request context. Issuance passes those exact fields to the actual

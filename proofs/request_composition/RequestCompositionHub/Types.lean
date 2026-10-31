@@ -2228,6 +2228,13 @@ structure policy.session.SessionRequest where
   principal : veoveo_hub_sdk.identity.Principal
   now : chrono.datetime.DateTime chrono.offset.utc.Utc chrono.offset.utc.Utc
 
+/-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::new::{closure}]
+    Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 85:21-85:67 -/
+@[reducible]
+def registration.snapshot.RegistrationSnapshot.new.closure (T0 : Type _)
+  (Clause0_IntoIter : Type _) :=
+Unit
+
 /-- [veoveo_hub::registration::snapshot::{veoveo_hub::registration::snapshot::RegistrationSnapshot}::get::{closure}]
     Source: 'crates/veoveo-hub/src/registration/snapshot.rs', lines 137:56-137:85 -/
 @[reducible]

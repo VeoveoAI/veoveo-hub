@@ -676,6 +676,12 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   confirms that Charon extracts the namespace algorithm but the pinned Aeneas
   fails on its nested borrows and an indexed projection. Partial outputs are not
   adopted; this adds no proof coverage and does not justify a runtime change.
+  The actual snapshot constructor now translates unchanged and compiles alongside
+  all six existing request-composition targets. The handwritten model adds only
+  `Arc.new` and a missing generic map-method adapter
+  ([checkpoint](request_composition/evidence/snapshot-constructor-model-checkpoint.json)).
+  Constructor coherence and connected per-slug routing are still being proved;
+  this supporting checkpoint makes no additional operation-correctness claim.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

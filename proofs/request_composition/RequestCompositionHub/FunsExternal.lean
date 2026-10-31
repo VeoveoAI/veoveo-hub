@@ -1852,6 +1852,16 @@ def alloc.borrow.CowAStrString.Insts.CoreConvertFromString.from
   : String → Result (alloc.borrow.Cow Str String)
   := fun text => .ok (.Owned text)
 
+/-- [alloc::sync::{alloc::sync::Arc<T>}::new]:
+    Source: '/rustc/library/alloc/src/sync.rs', lines 444:4-444:33
+    Name pattern: [alloc::sync::{alloc::sync::Arc<@T>}::new]
+    Visibility: public -/
+-- Existing Arc representation erases allocation/refcounts to the whole value.
+-- Native allocation/failure/refinement remains outside this operational model.
+@[rust_fun "alloc::sync::{alloc::sync::Arc<@T>}::new"]
+def alloc.sync.Arc.new {T : Type _} : T → Result (alloc.sync.Arc T)
+  := fun value => .ok value
+
 /-- [alloc::sync::{impl core::clone::Clone for alloc::sync::Arc<T>}::clone]:
     Source: '/rustc/library/alloc/src/sync.rs', lines 2521:4-2521:32
     Name pattern: [alloc::sync::{core::clone::Clone<alloc::sync::Arc<@T>>}::clone]
@@ -2157,3 +2167,15 @@ axiom registration.snapshot.RegistrationSnapshot.build_namespaces
 end
 end RequestCompositionHub
 
+
+namespace Aeneas.Std.core.iter.traits.iterator
+
+/-- Method spelling emitted for generic iterator dictionary dispatch. Forward
+verbatim to the existing operational default; no extra mapping law is assumed. -/
+def Iterator.map
+    {Self : Type _} {B : Type _} {F : Type _} {Clause0_Item : Type _}
+    (iterator : Iterator Self Clause0_Item)
+    (mapper : Aeneas.Std.core.ops.function.FnMut F Clause0_Item B) :=
+  RequestCompositionHub.core.iter.traits.iterator.Iterator.map.default iterator mapper
+
+end Aeneas.Std.core.iter.traits.iterator
