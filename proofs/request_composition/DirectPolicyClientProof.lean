@@ -58,7 +58,72 @@ theorem direct_policy_client_exact
     rw [GrantedPermissionsProof.granted_permissions_exact] at membership
     simpa only [expectedGrants, WP.spec_ok] using membership
 
+/-- Retained-route/direct-policy composition for one supplied catalog generation.
+The row is bound by the computed resolver, and the installation is projected from
+that same generation. Constructor coherence supplies the deployment-field fact;
+no desired row or grant set is assumed. An absent route has no getter fallback.
+Actual constructor/selection success remains conditional on namespace-helper
+completion. Snapshot acquisition, async transport wiring and delegated narrowing
+remain outside this source-reviewed composition of extracted subcalls. -/
+theorem constructed_direct_policy_route_exact {S I : Type}
+    (ops : Aeneas.Std.core.iter.traits.collect.IntoIterator S Server I)
+    (source : S) (initial : I)
+    (model : IteratorProof.Enumeration I Server)
+    (cursor : IteratorProof.CursorLaw ops.iteratorInst model)
+    (opened : ops.into_iter source = .ok initial) (valid : model.valid initial)
+    (generation : catalog.HubCatalog)
+    (constructed : registration.snapshot.RegistrationSnapshot.new ops source =
+      .ok generation.registrations)
+    (composition : SelectedMapCollectionProof.Composition)
+    (selected : SnapshotAssemblyProof.Snapshot) (slug : SelectedCollectionProof.Slug)
+    (selectedSuccess : registration.snapshot.RegistrationSnapshot.selected
+      generation.registrations composition = .ok selected)
+    (unique : SelectedRouteContextProof.CompositionKeysUnique composition)
+    (http : mcp.upstream_http.UpstreamTransport)
+    (issuer : veoveo_hub_sdk.internal_auth.HubInternalTokenIssuer)
+    (profile : veoveo_hub_sdk.identity.HubProfileId)
+    (subject : Subject) (context : Context)
+    (direct : subject.delegation = none)
+    (accepted : SnapshotAssemblyProof.expectedContext subject = .Ok context) :
+    registration.snapshot.RegistrationSnapshot.get selected slug =
+      .ok ((SelectedRouteContextProof.resolveRoute generation.registrations
+        composition.components slug).map Prod.snd) ∧
+    match SelectedRouteContextProof.resolveRoute generation.registrations
+        composition.components slug with
+    | none => registration.snapshot.RegistrationSnapshot.get selected slug = .ok none
+    | some (key, row) =>
+      row.slug = slug ∧ row.deployment = key ∧
+      (do
+        let permissions ← policy.grants.granted_permissions
+          generation.control_plane_value.authorization row.authorization subject.principal
+        mcp.upstream_authorized_http.HubAuthorizedHttpClient.new
+          http issuer profile row subject permissions) =
+        .ok (.Ok { (SnapshotAssemblyProof.expectedClient http issuer profile row subject
+          (expectedGrants generation.control_plane_value.authorization row subject) context)
+            with server := slug, deployment := key }) ∧
+      (∀ permission : Permission,
+        permission ∈ expectedGrants generation.control_plane_value.authorization row subject ↔
+          GrantedPermissionsProof.Grants generation.control_plane_value.authorization
+            subject.principal row.authorization permission) := by
+  have coherent := SnapshotConstructorProof.new_success_coherent ops source initial
+    model cursor opened valid generation.registrations constructed
+  have getter := SelectedRouteContextProof.selected_get_exact generation.registrations
+    composition selected slug selectedSuccess unique
+  refine ⟨getter, ?_⟩
+  cases route : SelectedRouteContextProof.resolveRoute generation.registrations
+      composition.components slug with
+  | none => simpa only [route, Option.map_none] using getter
+  | some pair =>
+    rcases pair with ⟨key, row⟩
+    rcases SelectedRouteContextProof.resolved_route_fields generation.registrations
+      composition slug key row unique coherent route with ⟨sameSlug, sameDeployment⟩
+    rcases direct_policy_client_exact generation.control_plane_value.authorization
+      http issuer profile row subject context direct accepted with ⟨client, membership⟩
+    refine ⟨sameSlug, sameDeployment, ?_, membership⟩
+    simpa [SnapshotAssemblyProof.expectedClient, ← sameSlug, ← sameDeployment] using client
+
 #print axioms direct_policy_client_exact
+#print axioms constructed_direct_policy_route_exact
 end
 end DirectPolicyClientProof
 
@@ -71,3 +136,8 @@ run_cmd do
   let found ← Lean.collectAxioms ``DirectPolicyClientProof.direct_policy_client_exact
   unless (found.filter (fun axiomName => !allowed.contains axiomName)).isEmpty do
     throwError "unreviewed direct policy/client axiom: {found}"
+  let routeAllowed := allowed.push
+    ``registration.snapshot.RegistrationSnapshot.build_namespaces
+  let routeFound ← Lean.collectAxioms ``DirectPolicyClientProof.constructed_direct_policy_route_exact
+  unless (routeFound.filter (fun axiomName => !routeAllowed.contains axiomName)).isEmpty do
+    throwError "unreviewed constructed direct policy/route axiom: {routeFound}"

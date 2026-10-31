@@ -704,8 +704,11 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   composes actual grant computation with the complete HTTP constructor: accepted
   direct clients preserve the computed set, with membership exactly characterized
   by the independent existing grant relation. It assumes no desired grant set.
-  The supplied installation and row are not yet derived from one computed selected
-  route; that connection, delegated narrowing and SDK issuance remain next. This
+  Its checked `constructed_direct_policy_route_exact` corollary now derives the row
+  from computed retained-route resolution and installation policy from the same
+  supplied catalog, with exact absence/no-fallback and complete present-client
+  guarantees ([receipt](request_composition/evidence/direct-policy-route.json)).
+  Actual delegated narrowing and SDK issuance remain next. This
   uses the recorded Hub `3bc2923` source baseline, not a fresh extraction of all
   current main; see the shared graph README for intervening source/domain changes.
 

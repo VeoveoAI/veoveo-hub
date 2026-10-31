@@ -41,10 +41,21 @@ the complete accepted client preserves the computed permission set, whose member
 are exactly the independent existing `Grants` relation for that installation,
 row declaration and current subject principal. No supplied desired-grant premise,
 new policy rule, delegated narrowing claim or async caller proof is introduced.
-The installation and row are supplied inputs here; connecting both to one computed
-selected route remains the next obligation. The audit permits only standard Lean
+The first theorem takes installation and row as supplied inputs. The subsequent
+`constructed_direct_policy_route_exact` derives the row from the computed retained
+route and uses authorization from that same supplied catalog generation. Actual
+constructor success supplies key/row coherence; actual selected lookup returns
+exactly that row, or `none` without fallback. The present branch proves the complete
+client and independent grant membership without assuming a desired row or set.
+The [route receipt](evidence/direct-policy-route.json) records its passing manual
+check. Finite cursor/native collection correspondence, composition-key uniqueness,
+successful namespace-helper completion, snapshot acquisition and async caller
+wiring remain explicit boundaries; this is not a globally latest-state claim.
+The direct theorem's audit permits only standard Lean
 axioms and the constructor's two existing error-formatting symbols. The check
-passes in 2.69 seconds with one unused-simp warning and no unreviewed axiom.
+passes in 2.69 seconds with one unused-simp warning and no unreviewed axiom. The
+route theorem additionally names the existing namespace helper; both pass together
+in 2.64 seconds. Actual delegated narrowing and SDK issuance remain next.
 
 ## First checked assembly checkpoint
 
