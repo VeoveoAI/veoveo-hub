@@ -5,7 +5,7 @@ use anyhow::Context as _;
 use axum::{
     Json, Router,
     extract::{Request, State},
-    http::{HeaderMap, HeaderValue, StatusCode, Uri, header},
+    http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
     routing::get,
 };
@@ -72,28 +72,12 @@ impl AppsService {
         &self.origins
     }
 
-    /// `GET /apps/host-{digest}.js`, `GET` and `POST /apps/{slug}/{page}`, and
-    /// `GET /app-origins/{slug}`, where a person enters a server's app origin.
+    /// `GET /apps/host-{digest}.js`, and `GET` and `POST /apps/{slug}/{page}`.
     pub fn router(self) -> Router {
         Router::new()
             .route(
                 pages::host_script_path(),
                 get(|| async { pages::host_script() }),
-            )
-            .route(
-                &format!("{}/{{slug}}", super::server_origin::ENTRY_PATH),
-                get(
-                    |State(apps): State<AppsService>, uri: Uri, headers: HeaderMap| async move {
-                        super::server_origin::enter(
-                            &apps.hub,
-                            &apps.catalog,
-                            &apps.origins,
-                            &uri,
-                            &headers,
-                        )
-                        .await
-                    },
-                ),
             )
             .route("/apps/{slug}/{*page}", get(open).post(bridge))
             .with_state(self)

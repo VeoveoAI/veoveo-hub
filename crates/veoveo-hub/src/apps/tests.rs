@@ -917,21 +917,34 @@ async fn an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_th
             .unwrap(),
         )
         .unwrap();
-        let listener = super::SandboxProxy::new(
+        let servers = super::ServerOrigins::new(
+            fixture.catalog.clone(),
+            fixture.hub.clone(),
             origins.clone(),
-            Some(super::ServerOrigins::new(
-                fixture.catalog.clone(),
-                fixture.hub.clone(),
-                origins,
-                profile_authentication(&fixture.hub, &fixture.catalog),
-                issuer,
-                crate::HubUpstreamHttpClientPool::new(),
-            )),
-        )
-        .router()
-        .layer(axum::middleware::from_fn(
-            crate::request_observation::observe_request,
-        ));
+            profile_authentication(&fixture.hub, &fixture.catalog),
+            issuer,
+            crate::HubUpstreamHttpClientPool::new(),
+        );
+        // The entry is on the issuer's listener, the origins on the Apps listener.
+        let entry = servers
+            .clone()
+            .entry_router()
+            .layer(axum::middleware::from_fn(
+                crate::request_observation::observe_request,
+            ));
+        let listener = super::SandboxProxy::new(origins, Some(servers))
+            .router()
+            .layer(axum::middleware::from_fn(
+                crate::request_observation::observe_request,
+            ));
+        let enter = |path: &str, signed_in: bool| {
+            let entry = entry.clone();
+            let request = fixture.open(path, signed_in);
+            async move {
+                let response = entry.oneshot(request).await.unwrap();
+                (response.status(), response.headers().clone())
+            }
+        };
         let on_origin = |path: &str, cookies: &[(&str, &str)], navigate: bool| {
             let mut request = axum::http::Request::get(path)
                 .header("x-forwarded-host", "beacon.apps.veoveo.example");
@@ -985,7 +998,7 @@ async fn an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_th
 
         // On the issuer, the signed-in person gets a code for that browser's state.
         let entry_path = entry.trim_start_matches(HOST);
-        let (status, headers, _) = fixture.send(fixture.open(entry_path, true)).await;
+        let (status, headers) = enter(entry_path, true).await;
         assert_eq!(status, StatusCode::SEE_OTHER);
         let redeem = headers[header::LOCATION].to_str().unwrap().to_owned();
         let session_path = redeem
@@ -994,7 +1007,7 @@ async fn an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_th
             .to_owned();
         assert!(session_path.starts_with("/_veoveo/session?code="));
         // Signed out, the entry signs in first and comes back to itself.
-        let (status, headers, _) = fixture.send(fixture.open(entry_path, false)).await;
+        let (status, headers) = enter(entry_path, false).await;
         assert_eq!(status, StatusCode::SEE_OTHER);
         assert_eq!(headers[header::LOCATION], "/computer");
 
@@ -1070,7 +1083,7 @@ async fn an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_th
         register(RouteAccess::Permission(
             veoveo_types::PermissionName::parse("beacon.editor.use").unwrap(),
         ));
-        let (status, _, _) = fixture.send(fixture.open(entry_path, true)).await;
+        let (status, _) = enter(entry_path, true).await;
         assert_eq!(status, StatusCode::FORBIDDEN);
         let (status, _, _) = send(on_origin(
             "/editor",

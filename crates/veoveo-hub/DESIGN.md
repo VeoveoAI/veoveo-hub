@@ -901,8 +901,10 @@ in through the issuer, as identity-aware proxies do, and holds the session itsel
 2. On the issuer, the person's Computer session admits them as it admits an App's host
    page: without one, a page load signs in at `/computer`, and the sign-in returns to the
    same entry. A server that no registration declares an app origin for answers 404.
-   The server's `app_origin` requirement must allow the person, as policy decides it,
-   or the entry answers 403. The Hub then stores a code, 256 random bits of which it
+   The server's `app_origin` requirement must allow the person, decided as for a request
+   on the origin (step 4): a bearer of the family through the Hub's profile
+   authentication in process, so the decision sees the subject every request sees, its
+   scopes and groups included; otherwise the entry answers 403. The Hub then stores a code, 256 random bits of which it
    keeps the SHA-256, bound to the state's digest, the server, the person's Computer and
    session family and the return path, valid 60 seconds, and sends the browser with 303
    to `https://{slug}.{apps domain}/_veoveo/session?code={code}`.

@@ -289,6 +289,21 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         })
         .transpose()?;
     router = router.merge(mcp_router);
+    // Servers' app origins: their entry on the issuer here, their origins on the Apps
+    // listener.
+    let server_origins = app_origins.clone().map(|origins| {
+        veoveo_hub::apps::ServerOrigins::new(
+            catalog.clone(),
+            hub_state.clone(),
+            origins,
+            auth_state.clone(),
+            internal_token_issuer.clone(),
+            upstream_http.clone(),
+        )
+    });
+    if let Some(servers) = &server_origins {
+        router = router.merge(servers.clone().entry_router());
+    }
 
     router = router.merge(
         Router::new()
@@ -447,15 +462,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
                 sandbox = origins.sandbox(),
                 "apps listening"
             );
-            let servers = veoveo_hub::apps::ServerOrigins::new(
-                catalog.clone(),
-                hub_state.clone(),
-                origins.clone(),
-                auth_state.clone(),
-                internal_token_issuer.clone(),
-                upstream_http.clone(),
-            );
-            let apps_router = veoveo_hub::apps::SandboxProxy::new(origins, Some(servers))
+            let apps_router = veoveo_hub::apps::SandboxProxy::new(origins, server_origins)
                 .router()
                 .layer(axum::middleware::from_fn(
                     veoveo_hub::request_observation::observe_request,

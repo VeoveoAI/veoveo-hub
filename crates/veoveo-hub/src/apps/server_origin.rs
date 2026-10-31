@@ -187,111 +187,6 @@ fn declares_origin(catalog: &crate::HubCatalog, server: &ServerSlug) -> bool {
     })
 }
 
-/// `GET /app-origins/{slug}?path=…&state=…` on the issuer: the person enters `slug`'s app
-/// origin. Signed in and allowed by the server's `app_origin` requirement, they get a code
-/// for the browser holding `state`, redeemed at the app origin's [`SESSION_PATH`].
-pub(super) async fn enter(
-    hub: &HubState,
-    catalog: &HubCatalogHandle,
-    origins: &AppOrigins,
-    uri: &Uri,
-    headers: &HeaderMap,
-) -> Response {
-    let not_here = || {
-        refused(
-            StatusCode::NOT_FOUND,
-            "No app here",
-            "This address names no app.",
-        )
-    };
-    let Some(server) = uri
-        .path()
-        .strip_prefix(&format!("{ENTRY_PATH}/"))
-        .and_then(|slug| ServerSlug::parse(slug).ok())
-        .filter(|server| origins.app_server(&origins.app_origin(server)).is_some())
-    else {
-        return not_here();
-    };
-    let Some((return_to, state)) = uri.query().and_then(entry_query) else {
-        return not_here();
-    };
-    let catalog = catalog.current();
-    if catalog
-        .runtime
-        .as_ref()
-        .and_then(|runtime| runtime.computers.as_ref())
-        .is_none()
-    {
-        return refused(
-            StatusCode::NOT_FOUND,
-            "No app here",
-            "This installation signs no one in to apps.",
-        );
-    }
-    let (config, session) = match crate::computers::app_session(hub, &catalog, headers).await {
-        Ok(Some(admitted)) => admitted,
-        Ok(None) if bridge::document_navigation(headers) => {
-            let entry = entry_url("", &server, &return_to, &state);
-            return crate::computers::sign_in_for_entry(&entry)
-                .unwrap_or_else(|error| unavailable(&error));
-        }
-        Ok(None) => {
-            return private(
-                Problem::new(
-                    StatusCode::UNAUTHORIZED,
-                    "apps-sign-in-required",
-                    "Sign-in required",
-                )
-                .into_response(),
-            );
-        }
-        Err(error) => return unavailable(&error),
-    };
-    if !declares_origin(&catalog, &server) {
-        return not_here();
-    }
-    let decision = catalog.decide(crate::PolicyRequest {
-        principal: session.principal(),
-        profile: &config.profile,
-        action: HubAction::AppOrigin.into(),
-        target: &PolicyTarget::AppOrigin {
-            server: server.clone(),
-        },
-        trace_id: &trace_id(),
-    });
-    if decision.effect != PolicyEffect::Allow {
-        tracing::info!(%server, reason = ?decision.reason, "app origin entry refused");
-        return refused(
-            StatusCode::FORBIDDEN,
-            "Not allowed",
-            &format!("You may not open {server}'s app."),
-        );
-    }
-    let code = match opaque() {
-        Ok(code) => code,
-        Err(error) => return unavailable(&error),
-    };
-    if let Err(error) = hub
-        .hub_store()
-        .insert_app_origin_code(
-            &digest(&code),
-            &state,
-            &server,
-            &session.computer().id,
-            session.family(),
-            &return_to,
-            Utc::now() + TimeDelta::seconds(CODE_SECONDS),
-        )
-        .await
-    {
-        return unavailable(&error);
-    }
-    see_other(&format!(
-        "{}{SESSION_PATH}?code={code}",
-        origins.app_origin(&server)
-    ))
-}
-
 fn trace_id() -> TraceId {
     TraceId::parse(uuid::Uuid::now_v7().to_string()).expect("a UUID is a trace")
 }
@@ -327,6 +222,170 @@ impl ServerOrigins {
             issuer,
             upstream,
         }
+    }
+
+    /// `GET /app-origins/{slug}` on the issuer, where a person enters a server's app origin.
+    pub fn entry_router(self) -> Router {
+        Router::new()
+            .route(
+                &format!("{ENTRY_PATH}/{{slug}}"),
+                axum::routing::get(
+                    |State(origins): State<ServerOrigins>, uri: Uri, headers: HeaderMap| async move {
+                        origins.enter(&uri, &headers).await
+                    },
+                ),
+            )
+            .with_state(self)
+    }
+
+    /// `GET /app-origins/{slug}?path=…&state=…` on the issuer: the person enters `slug`'s
+    /// app origin. Signed in and allowed by the server's `app_origin` requirement, as a
+    /// request on the origin is, they get a code for the browser holding `state`, redeemed
+    /// at the app origin's [`SESSION_PATH`].
+    async fn enter(&self, uri: &Uri, headers: &HeaderMap) -> Response {
+        let not_here = || {
+            refused(
+                StatusCode::NOT_FOUND,
+                "No app here",
+                "This address names no app.",
+            )
+        };
+        let origins = &self.origins;
+        let Some(server) = uri
+            .path()
+            .strip_prefix(&format!("{ENTRY_PATH}/"))
+            .and_then(|slug| ServerSlug::parse(slug).ok())
+            .filter(|server| origins.app_server(&origins.app_origin(server)).is_some())
+        else {
+            return not_here();
+        };
+        let Some((return_to, state)) = uri.query().and_then(entry_query) else {
+            return not_here();
+        };
+        let catalog = self.catalog.current();
+        if catalog
+            .runtime
+            .as_ref()
+            .and_then(|runtime| runtime.computers.as_ref())
+            .is_none()
+        {
+            return refused(
+                StatusCode::NOT_FOUND,
+                "No app here",
+                "This installation signs no one in to apps.",
+            );
+        }
+        let (config, session) =
+            match crate::computers::app_session(&self.hub, &catalog, headers).await {
+                Ok(Some(admitted)) => admitted,
+                Ok(None) if bridge::document_navigation(headers) => {
+                    let entry = entry_url("", &server, &return_to, &state);
+                    return crate::computers::sign_in_for_entry(&entry)
+                        .unwrap_or_else(|error| unavailable(&error));
+                }
+                Ok(None) => {
+                    return private(
+                        Problem::new(
+                            StatusCode::UNAUTHORIZED,
+                            "apps-sign-in-required",
+                            "Sign-in required",
+                        )
+                        .into_response(),
+                    );
+                }
+                Err(error) => return unavailable(&error),
+            };
+        if !declares_origin(&catalog, &server) {
+            return not_here();
+        }
+        let request = Request::get("/")
+            .body(Body::empty())
+            .expect("a fixed request");
+        let decided = self
+            .as_person(
+                &catalog,
+                &config,
+                &session,
+                &server,
+                request,
+                Admission::Decide,
+            )
+            .await;
+        if decided.status() != StatusCode::NO_CONTENT {
+            return decided;
+        }
+        let code = match opaque() {
+            Ok(code) => code,
+            Err(error) => return unavailable(&error),
+        };
+        if let Err(error) = self
+            .hub
+            .hub_store()
+            .insert_app_origin_code(
+                &digest(&code),
+                &state,
+                &server,
+                &session.computer().id,
+                session.family(),
+                &return_to,
+                Utc::now() + TimeDelta::seconds(CODE_SECONDS),
+            )
+            .await
+        {
+            return unavailable(&error);
+        }
+        see_other(&format!(
+            "{}{SESSION_PATH}?code={code}",
+            origins.app_origin(&server)
+        ))
+    }
+
+    /// Run `request` as the person of `session`: a bearer of the session's family passes
+    /// the Hub's own profile authentication in process, as an MCP request's does, and the
+    /// authenticated subject is admitted to `server`'s app origin, then, with
+    /// [`Admission::Forward`], forwarded to the instance it selected. [`Admission::Decide`]
+    /// answers 204 once admitted.
+    async fn as_person(
+        &self,
+        catalog: &crate::HubCatalog,
+        config: &crate::control_plane::Computers,
+        session: &crate::computers::BrowserSession,
+        server: &ServerSlug,
+        request: Request,
+        admission: Admission,
+    ) -> Response {
+        let token = match bridge::family_bearer(&self.hub, catalog, config, session, BEARER_SECONDS)
+            .await
+        {
+            Ok(token) => token,
+            Err(error) => return unavailable(&error),
+        };
+        let (mut parts, body) = request.into_parts();
+        match HeaderValue::from_str(&format!("Bearer {}", token.access_token)) {
+            Ok(bearer) => parts.headers.insert(header::AUTHORIZATION, bearer),
+            Err(error) => return unavailable(&error),
+        };
+        let profile = config.profile.clone();
+        let auth = self.auth.clone();
+        let forward = Forward {
+            origins: self.clone(),
+            server: server.clone(),
+            profile: profile.clone(),
+            admission,
+        };
+        Router::new()
+            .fallback(forwarded)
+            .with_state(forward)
+            .layer(axum::middleware::from_fn(move |request, next| {
+                let auth = auth.clone();
+                let profile = profile.clone();
+                async move {
+                    crate::http::authenticate_for_profile(&auth, &profile, request, next).await
+                }
+            }))
+            .oneshot(Request::from_parts(parts, body))
+            .await
+            .unwrap_or_else(|never| match never {})
     }
 
     /// The server whose app origin a request names in `X-Forwarded-Host`: exactly one
@@ -391,40 +450,15 @@ impl ServerOrigins {
             )
             .into_response();
         }
-        let token =
-            match bridge::family_bearer(&self.hub, &catalog, &config, &session, BEARER_SECONDS)
-                .await
-            {
-                Ok(token) => token,
-                Err(error) => return unavailable(&error),
-            };
-        let (mut parts, body) = request.into_parts();
-        match HeaderValue::from_str(&format!("Bearer {}", token.access_token)) {
-            Ok(bearer) => parts.headers.insert(header::AUTHORIZATION, bearer),
-            Err(error) => return unavailable(&error),
-        };
-        let profile = config.profile.clone();
-        let auth = self.auth.clone();
-        let forward = Forward {
-            origins: self.clone(),
-            server,
-            profile: profile.clone(),
-        };
-        // The person's bearer passes the Hub's own authentication in process, as an MCP
-        // request's does, before the forward sees its subject.
-        Router::new()
-            .fallback(forwarded)
-            .with_state(forward)
-            .layer(axum::middleware::from_fn(move |request, next| {
-                let auth = auth.clone();
-                let profile = profile.clone();
-                async move {
-                    crate::http::authenticate_for_profile(&auth, &profile, request, next).await
-                }
-            }))
-            .oneshot(Request::from_parts(parts, body))
-            .await
-            .unwrap_or_else(|never| match never {})
+        self.as_person(
+            &catalog,
+            &config,
+            &session,
+            &server,
+            request,
+            Admission::Forward,
+        )
+        .await
     }
 
     /// No admitted session: a page load goes to the issuer to sign in, holding new state;
@@ -531,11 +565,21 @@ impl ServerOrigins {
     }
 }
 
+/// What an authenticated request on an app origin does once the person is admitted.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Admission {
+    /// Answer 204: the entry only decides.
+    Decide,
+    /// Forward the request to the instance the person selected.
+    Forward,
+}
+
 #[derive(Clone)]
 struct Forward {
     origins: ServerOrigins,
     server: ServerSlug,
     profile: veoveo_hub_sdk::HubProfileId,
+    admission: Admission,
 }
 
 /// The authenticated request on the app origin: admitted to the person's execution, it
@@ -546,6 +590,7 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
         origins,
         server,
         profile,
+        admission,
     } = forward;
     let Some(mut subject) = request.extensions().get::<AuthenticatedSubject>().cloned() else {
         return Problem::internal().into_response();
@@ -597,6 +642,9 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
             "Not allowed",
             &format!("You may not open {server}'s app."),
         );
+    }
+    if admission == Admission::Decide {
+        return StatusCode::NO_CONTENT.into_response();
     }
     let permissions = crate::policy::granted_permissions(
         &catalog.control_plane().authorization,
