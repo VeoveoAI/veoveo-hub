@@ -23,6 +23,8 @@ use crate::{
 
 pub(super) const SESSION_COOKIE: &str = "__Host-computer";
 const LOGIN_COOKIE: &str = "__Host-computer-login";
+/// The App path a sign-in an App started returns to.
+const RETURN_COOKIE: &str = "__Host-computer-return";
 const LOGIN_TTL: i64 = 600;
 const TOKEN_BYTES: usize = 64 * 1024;
 
@@ -452,7 +454,7 @@ async fn finish(
         .join_computer_session(&catalog, &runtime.config, &computer, &cookie_digest)
         .await?
     {
-        return entered(&cookie, &joined);
+        return entered(&cookie, &joined, &headers);
     }
     // Each handoff gives the Computer's own Lore client a new secret.
     let lore = CustodyClient::new(computer.native_name())?;
@@ -524,13 +526,15 @@ async fn finish(
         .context("Computer custody deadline")?
     });
     worker.await.context("Computer custody worker failed")??;
-    entered(&cookie, &session)
+    entered(&cookie, &session, &headers)
 }
 
 /// The browser's way into its Computer with the session `cookie` selects. Entry creates
-/// the sandbox, on the start page, when it is missing.
-fn entered(cookie: &str, session: &super::BrowserSession) -> Result<Response> {
-    let mut response = redirect(super::pages::ENTRY)?;
+/// the sandbox, on the start page, when it is missing. A sign-in an App started returns
+/// to that App instead, once its path parses again as an App's.
+fn entered(cookie: &str, session: &super::BrowserSession, headers: &HeaderMap) -> Result<Response> {
+    let app = returning_app(headers);
+    let mut response = redirect(app.as_deref().unwrap_or(super::pages::ENTRY))?;
     response.headers_mut().append(
         header::SET_COOKIE,
         set_cookie(
@@ -542,7 +546,84 @@ fn entered(cookie: &str, session: &super::BrowserSession) -> Result<Response> {
     response
         .headers_mut()
         .append(header::SET_COOKIE, set_cookie(LOGIN_COOKIE, "", 0)?);
+    if !return_cookies(headers).is_empty() {
+        response
+            .headers_mut()
+            .append(header::SET_COOKIE, return_cookie("", 0)?);
+    }
     Ok(response)
+}
+
+/// The values of the request's return cookies.
+fn return_cookies(headers: &HeaderMap) -> Vec<String> {
+    headers
+        .get_all(header::COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .flat_map(|value| value.split(';'))
+        .filter_map(|item| item.trim().split_once('='))
+        .filter(|(key, _)| *key == RETURN_COOKIE)
+        .map(|(_, value)| value.to_owned())
+        .collect()
+}
+
+/// The App path of the request's one return cookie, when it parses as an App's. Two
+/// return cookies name no App.
+fn returning_app(headers: &HeaderMap) -> Option<String> {
+    match return_cookies(headers).as_slice() {
+        [path] => crate::apps::AppView::from_path(path).map(|view| view.path()),
+        _ => None,
+    }
+}
+
+fn return_cookie(path: &str, age: i64) -> Result<HeaderValue> {
+    ensure!(
+        path.is_empty() || crate::apps::AppView::from_path(path).is_some(),
+        "invalid App return path"
+    );
+    Ok(HeaderValue::from_str(&format!(
+        "{RETURN_COOKIE}={path}; Path=/; Max-Age={age}; Secure; HttpOnly; SameSite=Lax"
+    ))?)
+}
+
+/// Sign in for an App: `/computer` signs the browser in, and the callback returns it to
+/// `view`'s path.
+pub(crate) fn sign_in_for_app(view: &crate::apps::AppView) -> Result<Response> {
+    let mut response = redirect(super::pages::ENTRY)?;
+    response
+        .headers_mut()
+        .append(header::SET_COOKIE, return_cookie(&view.path(), LOGIN_TTL)?);
+    Ok(response)
+}
+
+/// The browser session of the request's session cookie under the current Computers
+/// configuration: what an App's host page and bridge admit. None without Computers, a
+/// cookie or an admitted session.
+pub(crate) async fn app_session(
+    hub: &crate::HubState,
+    catalog: &crate::HubCatalog,
+    headers: &HeaderMap,
+) -> Result<
+    Option<(
+        std::sync::Arc<crate::control_plane::Computers>,
+        super::BrowserSession,
+    )>,
+> {
+    let Some(config) = catalog
+        .runtime
+        .as_ref()
+        .and_then(|runtime| runtime.computers.as_ref())
+        .map(|computers| computers.config.clone())
+    else {
+        return Ok(None);
+    };
+    let Some(value) = cookie(headers, SESSION_COOKIE)? else {
+        return Ok(None);
+    };
+    Ok(hub
+        .computer_browser_session(catalog, &config, &digest(&value), None)
+        .await?
+        .map(|session| (config, session)))
 }
 
 /// Parameterless same-origin logout. Family/owner come only from fresh native

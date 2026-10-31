@@ -21,6 +21,7 @@ pub(crate) use gateway::connect as connect_gateway;
 mod lifecycle;
 pub use lifecycle::{ComputerStatus, RestartStatus};
 mod oauth;
+pub(crate) use oauth::{app_session, sign_in_for_app};
 mod pages;
 mod provisioning;
 mod proxy;
