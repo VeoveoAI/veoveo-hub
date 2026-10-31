@@ -1,0 +1,235 @@
+{
+  "case": "discovery-cache-finite-actual-operation-histories-20261031",
+  "evidence_class": "Implementation-linked finite normal-return history proofs over the five supported extracted operations; native representation/concurrency assumptions retained",
+  "team": {
+    "implementation": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source": {
+    "runtime_revision": "688b91a",
+    "proof_parent_revision": "a34bab3",
+    "sdk_revision": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+    "core_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "discovery_rs": {
+      "sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+      "bytes": 36053
+    },
+    "new_checked_leaf": {
+      "path": "CacheHistoryProof.lean",
+      "sha256": "03ed390d3d60baa1589409c4cf0b5d0d3b6403a09445ca2ee5c14f0071858e33",
+      "bytes": 20772
+    },
+    "unchanged_source_and_configuration_map": {
+      "receipt": "state-invariants-20261031.json",
+      "sha256": "17907f4c8d877c4ab6ad5d33d3cc9e83d190f3528d2c530632b16d6fd26b57b1",
+      "bytes": 9307,
+      "reuse": "All checked prior source/configuration at parent a34bab3, including the referenced earlier file map and added state leaf. Prior postcheck_readme equals this run's checked README. Each exact 17-file packet identity is recorded below."
+    },
+    "checked_readme": {
+      "sha256": "541c53f2b1d8e1034ab3ea171bbabadb75baa22ed0694238dca8cbceb793db23",
+      "bytes": 11961
+    },
+    "postcheck_readme": {
+      "sha256": "2e829bed8c4949a8bd9b14970bfed69fcc65022398b0230270b73d8f267aea89",
+      "bytes": 14043
+    },
+    "postcheck_change": "Documentation only; accepted history source and all prior proofs/model/configuration remain unchanged"
+  },
+  "toolchain": {
+    "lean": "4.35.0",
+    "aeneas_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "effective_lakefile_sha256": "ec24f002e4aa4e1c4c6986b8443f4566752f2855d8cae27fa2e07115181c071b",
+    "effective_manifest_sha256": "2bbd5afa9c8e51f8033f5715cc74818997fd2640f1cff10b2dc85d165228ed23",
+    "configuration": "Reuse the qualified private dependency override and existing discriminant instance-name patch documented in the prerequisite receipt. No tool modification or dependency rebuild. Clean unpatched upstream reproduction remains unmeasured."
+  },
+  "execution": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "packet": {
+          "sha256": "69c90b3ad7de96ca5df643cc5c8704e7525219c1e083e37ed8360fb01533505b",
+          "bytes": 5276
+        },
+        "runner": {
+          "sha256": "3a6bd548f63e3b7b84328df06ce794fe24aadaea98387ac98d231ce552ff65ba",
+          "bytes": 6482
+        },
+        "source": {
+          "sha256": "a73895d22fedd72f4f33492385d9c95a3210e0bf359e95da440e1dd9d59cc250",
+          "bytes": 20501
+        },
+        "command": "LAKE_NO_UPDATE=1 lake env lean CacheHistoryProof.lean -o .lake/build/lib/lean/CacheHistoryProof.olean",
+        "exit_status": 1,
+        "elapsed_ms": 2752,
+        "input_postcheck_exit": 0,
+        "log": {
+          "sha256": "298817f6104af8d350b7e6ed3a78503f722be88a3e20ae4f6d7b258d659e1a22",
+          "bytes": 7486
+        },
+        "input_before": {
+          "sha256": "b840161cba496ef9c02e8531d0ba615ed31fb547e008dce4b85040cb6a9d7511",
+          "bytes": 3545
+        },
+        "input_after": {
+          "sha256": "b840161cba496ef9c02e8531d0ba615ed31fb547e008dce4b85040cb6a9d7511",
+          "bytes": 3545
+        }
+      },
+      {
+        "attempt": 2,
+        "packet": {
+          "sha256": "e9986f26516fe7f15823ac3c739a84adde84fd62ea134b0e70a1d7d1df8469d0",
+          "bytes": 5302
+        },
+        "runner": {
+          "sha256": "4c2b5b6bb12493728e80e0b8c127eff121df0edfda9e220b0395cac5d6521b6d",
+          "bytes": 6482
+        },
+        "source": {
+          "sha256": "5bcf66b09c01a71dcca0e6f9168a66e85df9575f569abfe6b46c740e2622129a",
+          "bytes": 20751
+        },
+        "command": "LAKE_NO_UPDATE=1 lake env lean CacheHistoryProof.lean -o .lake/build/lib/lean/CacheHistoryProof.olean",
+        "exit_status": 1,
+        "elapsed_ms": 2696,
+        "input_postcheck_exit": 0,
+        "log": {
+          "sha256": "c63820d2b3d2229dde3fa0baffb0a8f643a6bc0779ecb45ca33e40f6dd6399bd",
+          "bytes": 1161
+        },
+        "input_before": {
+          "sha256": "4bcab9aebdc35cace90e12c94edccd28be8d046298d9a675fd1dea3a04396465",
+          "bytes": 3545
+        },
+        "input_after": {
+          "sha256": "4bcab9aebdc35cace90e12c94edccd28be8d046298d9a675fd1dea3a04396465",
+          "bytes": 3545
+        }
+      },
+      {
+        "attempt": 3,
+        "packet": {
+          "sha256": "2880d88046017abcebeab77f1ef345454112a0bf54a0e4d4028444dfcbac9134",
+          "bytes": 5175
+        },
+        "runner": {
+          "sha256": "4cb27f6f3dda7a5342a61f85966d325f3e31324691ccc724485255f95ee52639",
+          "bytes": 6482
+        },
+        "source": {
+          "sha256": "03ed390d3d60baa1589409c4cf0b5d0d3b6403a09445ca2ee5c14f0071858e33",
+          "bytes": 20772
+        },
+        "command": "LAKE_NO_UPDATE=1 lake env lean CacheHistoryProof.lean -o .lake/build/lib/lean/CacheHistoryProof.olean",
+        "exit_status": 0,
+        "elapsed_ms": 2847,
+        "input_postcheck_exit": 0,
+        "log": {
+          "sha256": "8e12d74b50b88472044f3b86925690f7ee120da4fc182845e30e3c0a340be25a",
+          "bytes": 1436
+        },
+        "input_before": {
+          "sha256": "cc25a400861b3d41df315642d42cf163962d11cdeb1b24a86e68a8bee15e3615",
+          "bytes": 3545
+        },
+        "input_after": {
+          "sha256": "cc25a400861b3d41df315642d42cf163962d11cdeb1b24a86e68a8bee15e3615",
+          "bytes": 3545
+        }
+      }
+    ],
+    "accepted_artifact": {
+      "path": ".lake/build/lib/lean/CacheHistoryProof.olean",
+      "sha256": "174e90daf949c70e1794899ea3d3f5dce882e0c1149acc5ae4e0ac947556b45e",
+      "bytes": 589072
+    },
+    "timeout_seconds": 180,
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "gates": "17 source/config inputs, effective private configuration, 12 qualified prerequisite OLeans, supporting source identities and pinned Mathlib artifact identities matched around the accepted run. No dependency/model rebuild.",
+    "repairs": [
+      "Attempt1: reserved prefix identifier caused parser cascades; the start accepted-output projection needed an explicit Option Fetch type before rewriting; the Nonreuse induction tail needed an explicit index. These were syntax/elaboration errors, not counterexamples.",
+      "Attempt1 audit observation: accepted_start_history already included the existing Instant.add boundary through its History/Step type. Guards for History-typed declarations were corrected to allow precisely that previously documented axiom; start_excludes remains standard-only. No new primitive or premise was added.",
+      "Attempt2: one remaining multiline record-layout parser error in accepted_advance_history. Individual printed audits did not qualify a failed module; no OLean was accepted. One-field-per-line layout repaired the final draft."
+    ],
+    "warnings": "One unused bind_tc_eq simplifier argument in the accepted run; no compiler errors or sorryAx.",
+    "metadata_correction": "Retry2 log is 1161 bytes, as measured from the mirrored file; an initial worker message repeated retry1's 7486-byte count. Hash identities and the underlying logs were unchanged."
+  },
+  "contracts": {
+    "Step_and_History": "Each step contains the actual extracted read/start/complete/remove_cached/discard_key normal-result equation. Reads explicitly preserve state. The finite history relation contains no StateOk premise and no copied transition executor.",
+    "reachable_ok": "Induction from the empty represented state derives strict ordering, unique keys, each map capacity at most4096, stored-key generation coherence and nondecreasing state generation through arbitrary finite supported histories.",
+    "generation_fence": "Once a reachable state generation exceeds a fetch key generation, arbitrary later supported normal-return operations preserve that fetch completion as a whole-state no-op; no ticket premise.",
+    "Nonreuse": "Only accepted same-key start outputs in the finite suffix must differ from the old ticket. Rejected starts, unused callback observations, other keys and all other operations are unrestricted; no global UUID freshness.",
+    "discard_suffix_fence": "Actual full key invalidation derives ticket absence. An arbitrary supported suffix satisfying Nonreuse preserves exclusion, so actual late completion returns false and the identical final state. Final lookup mismatch is proved rather than assumed.",
+    "accepted_histories": "From a typed observed successful ticket callback, construct an initial noncoalesced accepted history with exact key/request/denied0 and stored ticket. Append a successful strictly newer-generation start to any reachable history, returning the full extended history and reset state. Clock inputs are unrestricted."
+  },
+  "axiom_audit": {
+    "executable_guards": 12,
+    "standard_only_guards": [
+      "CacheHistoryProof.start_excludes"
+    ],
+    "existing_native_boundary_guards": 11,
+    "permitted_standard": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "only_additional_primitive": "HubDiscoveryCacheModel.tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add",
+    "printed_closures": {
+      "CacheHistoryProof.step_preserves": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheHistoryProof.reachable_ok": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheHistoryProof.generation_fence": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheHistoryProof.history_excludes": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheHistoryProof.discard_suffix_fence": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheHistoryProof.accepted_start_history": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheHistoryProof.accepted_advance_history": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ]
+    },
+    "type_dependency_note": "History/Step contain the actual complete equation in their types, so even constructive start-history proofs inherit its Instant.add dependency. This does not assert that time addition executes in start.",
+    "new_axioms": false,
+    "sorryAx_in_accepted_closures": false
+  },
+  "boundaries": [
+    "These are finite supported normal-return histories, not post-panic state, infinite-trace liveness, native callback effect counts or async mutex/scheduler refinement.",
+    "The empty-state base is represented structurally; native constructor, collection/identifier/order/clone/equality/clock correspondence remain explicit. Native Instant.add remains an arbitrary Result boundary, not assumed total or future-valued.",
+    "Full key invalidation is proved. Cached-only removal is not claimed to fence work; server-wide invalidation remains excluded because of the recorded translator limitation.",
+    "Actual-source semantic controls and fresh restored qualification are next; listeners, client caching and cross-replica notification delivery remain open.",
+    "No runtime/generated/model/tool/authorization change, native or full Docker rerun, remote push, deployment or paid model call occurred."
+  ]
+}

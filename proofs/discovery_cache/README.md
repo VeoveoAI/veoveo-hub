@@ -90,7 +90,23 @@ Matching an in-flight ticket now derives its key's generation. Consequently any
 older-generation completion is a complete no-op, independently of ticket freshness,
 payload comparison, denied count or clock result. The initial empty representation
 is structural; native constructor and mutex correspondence remain external. Finite
-actual-operation histories and same-key replacement fencing remain next.
+actual-operation histories and same-key replacement fencing are established below.
+
+`CacheHistoryProof` defines steps by the actual extracted methods' normal-return
+equations, including cached-read observations that leave state unchanged. It does
+not copy an executor or put `StateOk` into the step/history premises. Induction from
+the empty representation derives all map invariants and nondecreasing generation
+across arbitrary finite supported histories. Once generation advances past a fetch,
+any later supported suffix still leaves that fetch's completion a whole-state no-op.
+
+After actual full key invalidation, a finite suffix also fences the old completion
+when accepted starts for that same key do not reuse its ticket. This `Nonreuse`
+condition applies only to accepted outputs: rejected starts, unused callback inputs,
+other keys and other operations remain unrestricted. Final ticket exclusion is
+derived rather than assumed. Constructive acceptance lemmas build an initial
+noncoalesced history and append a successful generation advance to an existing
+history, with the exact observed ticket and zero denied count. Neither needs a clock
+success premise. Cached-only removal remains distinct from full key invalidation.
 
 Server-wide `discard_server` invalidation remains unsupported and unproved. The
 six-root extraction translated, but unchanged generated retain-closure dictionaries
@@ -112,6 +128,7 @@ LAKE_NO_UPDATE=1 lake env lean CacheCompleteProof.lean -o .lake/build/lib/lean/C
 LAKE_NO_UPDATE=1 lake env lean CacheKeyOrderProof.lean -o .lake/build/lib/lean/CacheKeyOrderProof.olean
 LAKE_NO_UPDATE=1 lake env lean CacheMapInvariantProof.lean -o .lake/build/lib/lean/CacheMapInvariantProof.olean
 LAKE_NO_UPDATE=1 lake env lean CacheStateInvariantProof.lean -o .lake/build/lib/lean/CacheStateInvariantProof.olean
+LAKE_NO_UPDATE=1 lake env lean CacheHistoryProof.lean -o .lake/build/lib/lean/CacheHistoryProof.olean
 ```
 
 The primitive model build passed in 10.685s. The final read/key-invalidation leaf
@@ -157,6 +174,17 @@ unreduced record projection and a nonexistent library lemma name; proof-only rep
 preserved all statements. Sixteen source/configuration entries and eleven prerequisite
 artifacts were checked around the accepted run. This is normal-return closure;
 native post-panic state, callback invocation counts and liveness are not claimed.
+
+The [finite-history leaf](evidence/finite-histories-20261031.json) passed in 2.847s.
+All twelve executable guards pass: `start_excludes` is standard-only; eleven
+history/completion declarations additionally permit precisely the existing native
+`Instant.add` boundary. All seven printed history closures include that boundary,
+including constructive start histories: their `History`/`Step` types contain the
+actual completion equation. This dependency does not mean addition executes during
+a start. Earlier parser, projection and induction-index errors are recorded as failed
+authoring attempts; no `sorryAx` appears in accepted closures. Seventeen inputs and
+twelve prerequisite artifacts were gated around the final check. Actual-source
+semantic controls, server-wide invalidation and listener freshness remain open.
 
 Validation used Lean 4.35.0 and the pinned Aeneas revision with the existing
 [qualified discriminant instance-name patch](../request_composition/tooling/qualified-discriminant-instance.patch)
