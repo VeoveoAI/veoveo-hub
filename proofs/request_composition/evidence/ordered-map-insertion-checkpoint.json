@@ -1,0 +1,133 @@
+{
+  "kind": "ordered whole-row insertion in the explicit map operational model",
+  "status": "checked collection building block; full collectMap and selected composition remain open",
+  "source": {
+    "hub_parent": "282acdc",
+    "hub_runtime_revision": "3bc2923ca1d2e0c559e532286c16ec3d6a5ceb7a",
+    "sdk_pin": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "extraction_receipt": "extraction-checkpoint.json",
+    "tooling_receipt": "discriminant-tooling-checkpoint.json"
+  },
+  "proof": {
+    "path": "SelectedMapInsertionProof.lean",
+    "sha256": "d960bd52bc76c831d357ddd20fa1183b1d6417b135ff5e001b8b17fc95ac9334",
+    "declarations": [
+      "ordered_keys_nodup",
+      "insert_ordered_whole_row_union",
+      "emitted_compatible",
+      "insert_emitted_ordered"
+    ],
+    "allowed_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "axiom_audits": {
+      "emitted_compatible": [
+        "propext",
+        "Quot.sound"
+      ],
+      "insert_emitted_ordered": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "insert_ordered_whole_row_union": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "ordered_keys_nodup": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ]
+    },
+    "canonical_lakefile_sha256": "f82d1c57ac904ffaef6df1abc99e01a207ba0ffcb36e70486a0cd32a21a5de3b",
+    "private_lakefile_sha256": "bc971d76ffe82ee57d9314e89bc8baa35c1d6ad820348bc0c0b024c3829c6c8e"
+  },
+  "effective_sources": {
+    "baseline_receipt": "finite-selection-scan-checkpoint.json",
+    "baseline_receipt_sha256": "e621d639ca0c1fbd10e4a5ba7c62d4946e7970ac79f120a39741c570c577bde6",
+    "baseline_reconstruction": "Apply that receipt effective_sources.overrides to its referenced registration-lookup baseline.",
+    "target_overrides": {
+      "request_composition/lakefile.lean": "bc971d76ffe82ee57d9314e89bc8baa35c1d6ad820348bc0c0b024c3829c6c8e",
+      "request_composition/SelectedMapInsertionProof.lean": "d960bd52bc76c831d357ddd20fa1183b1d6417b135ff5e001b8b17fc95ac9334"
+    },
+    "direct_uses_baseline_lakefile": true,
+    "entries": 63,
+    "same_path_maps_verified_before_after": true
+  },
+  "validation": {
+    "lean_toolchain": "leanprover/lean4:v4.35.0",
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "packet_sha256": "39de61a5695013e8fdc56c3d4525afe5efa5faab913933c465bf7e1d4ced0fac",
+    "direct": {
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+        "env",
+        "lean",
+        "SelectedMapInsertionProof.lean"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+      "started_unix": 1793414675.1105723,
+      "elapsed_s": 3.024,
+      "timeout_s": 300,
+      "timed_out": false,
+      "exit": 0,
+      "log_sha256": "432beffb48aab4d7246d00eea00d2e0854a162fcc4038da8e850faeee3391a5d",
+      "log_bytes": 422,
+      "effective_map_before_sha256": "7d151fd367836001b21de527deb70b119a2293ea4a53825cedbb99f763398b53",
+      "effective_map_after_sha256": "7d151fd367836001b21de527deb70b119a2293ea4a53825cedbb99f763398b53",
+      "summary_sha256": "dc2574a75d28a6a5bf0aaaa8326e62810070010b4a9fd637bc9b40c937bdd565",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-selected-map-insertion-direct2/summary.json"
+    },
+    "target": {
+      "command": [
+        "LAKE_NO_UPDATE=1 lake build SelectedMapInsertionProof"
+      ],
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+      "started_unix": 1793414825.9557922,
+      "elapsed_s": 3.473,
+      "timeout_s": 300,
+      "timed_out": false,
+      "exit": 0,
+      "log_sha256": "86dd5cc1582b8615f7001f1596e9da8b027c15c704e85067dfbeca783a11db9f",
+      "log_bytes": 57396,
+      "effective_map_before_sha256": "61ed8dc4a769453e3713f5b081fd13e3e61211c378103b2f7739857db37935d0",
+      "effective_map_after_sha256": "61ed8dc4a769453e3713f5b081fd13e3e61211c378103b2f7739857db37935d0",
+      "summary_sha256": "2b8735e9ea192ae1030cf0b0f7216e98422cc7e13d1fa2dcd3a957a4dca78c85",
+      "temporary_summary": "/tmp/hub-request-composition-20261030/evidence-selected-map-insertion-target1/summary.json"
+    },
+    "artifact": {
+      "exists": true,
+      "path": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition/.lake/build/lib/lean/SelectedMapInsertionProof.olean",
+      "sha256": "d2fade4b5b972b935ff3564edba8ec12680121fc675d61486ed28f26d0e54bba"
+    }
+  },
+  "development_failures": [
+    {
+      "elapsed_s": 3.023,
+      "exit": 1,
+      "source_sha256": "72e456c28cf4ac250906e1c09142b5d406b7eac27e9ebd459fcf7ef5541b3bf4",
+      "summary_sha256": "4d1ac08508abbc83afea4b90f135d6af64f01853d43612e5fd59b8ab7423b730",
+      "log_sha256": "f0de522d3a735a7428bbc6c7e0f4d04637ba8e183cfea18423507bd07e17543b",
+      "cause": "Three change tactics encountered unreduced successful Result postconditions. Adding three simp only [WP.spec_ok] steps fixed elaboration without changing contracts or models.",
+      "qualification_credit": false
+    },
+    {
+      "stage": "target setup",
+      "cause": "The frozen packet was absent remotely at the first runner launch; no Lake command or source/config change occurred. The exact packet was copied before the one target execution.",
+      "qualification_credit": false
+    }
+  ],
+  "limits": [
+    "Strict ordering is an input invariant; output ordering and key uniqueness are derived, not assumed. Equal-key row compatibility is required for whole-row union and is derived from shared independent eligible emissions.",
+    "The theorem proves THIS handwritten insertMap used by the extracted caller. Native BTreeMap, key representation/order, equality, clone and compiler/translator correspondence remain explicit boundaries.",
+    "No namespace-helper or SDK issuer premise is used. This checkpoint does not yet establish collectMap output, actual selected correctness, constructor coherence, per-slug uniqueness or namespace completion.",
+    "No original production defect was found. Production Rust, generated models, dependency pins and runtime policy remain unchanged. No native, full Docker, deployment or model-driven acceptance ran."
+  ]
+}

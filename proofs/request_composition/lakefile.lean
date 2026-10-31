@@ -11,3 +11,5 @@ lean_lib SnapshotAssemblyProof
 lean_lib SelectedRegistrationProof
 
 lean_lib SelectedCollectionProof
+
+lean_lib SelectedMapInsertionProof

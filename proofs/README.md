@@ -656,8 +656,14 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   entry predicate, exact eligible reference-sequence contents, and equal-key whole-row
   consistency. Five standard-only audits and direct/nondefault target checks pass
   ([receipt](request_composition/evidence/finite-selection-scan-checkpoint.json)).
-  This does not yet prove ordered map insertion, `collectMap`'s result or the full
+  That scan checkpoint alone does not prove map insertion, `collectMap`'s result or the full
   `selected` body; native iterator/collection correspondence remains a boundary.
+  The subsequent [insertion proof](request_composition/SelectedMapInsertionProof.lean)
+  establishes total insertion, strict output ordering, derived key uniqueness and
+  exact whole-row union in the explicit map model. Equal-key compatibility is
+  derived from the checked emissions, not a desired-output premise
+  ([receipt](request_composition/evidence/ordered-map-insertion-checkpoint.json)).
+  Complete `collectMap` output and actual `selected` composition remain open.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

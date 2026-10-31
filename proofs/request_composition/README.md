@@ -188,11 +188,36 @@ LAKE_NO_UPDATE=1 lake env lean SelectedCollectionProof.lean
 LAKE_NO_UPDATE=1 lake build SelectedCollectionProof
 ```
 
-Ordered map insertion, `collectMap`'s complete result and connection to the actual
-`selected` body remain open. So do per-slug route uniqueness, constructor coherence,
-namespace-helper completion and request/issuer composition. The finite-scan proofs
+The scan alone does not establish ordered insertion, `collectMap`'s complete result
+or connection to the actual `selected` body. Per-slug route uniqueness, constructor
+coherence, namespace-helper completion and request/issuer composition remain open.
+The finite-scan proofs
 use no namespace-helper success assumption. This checkpoint does not close the full
 selection slice or its semantic qualification.
+
+## Ordered map insertion
+
+[SelectedMapInsertionProof.lean](SelectedMapInsertionProof.lean) proves total
+insertion into the explicit comparator-driven map model, preserving strict key
+ordering, deriving unique output keys, and retaining the exact whole-row union.
+For replacement at an existing key, it requires equal-key row compatibility;
+`emitted_compatible` derives that invariant from the checked selection emissions.
+It never assumes the desired final route map. Unique but unsorted input alone would
+not suffice, because insertion stops at the first larger key.
+
+The [insertion receipt](evidence/ordered-map-insertion-checkpoint.json) records
+manual direct and nondefault target checks with four standard-only axiom audits.
+Use the documented private patched-tool setup:
+
+```sh
+LAKE_NO_UPDATE=1 lake env lean SelectedMapInsertionProof.lean
+LAKE_NO_UPDATE=1 lake build SelectedMapInsertionProof
+```
+
+This verifies the handwritten collection primitive used by the extracted caller;
+native BTreeMap correspondence remains a boundary. It does not yet establish
+`collectMap`'s complete output, the full `selected` method or namespace completion.
+No production defect was found or runtime behavior changed in this checkpoint.
 
 ## Intended contract
 
