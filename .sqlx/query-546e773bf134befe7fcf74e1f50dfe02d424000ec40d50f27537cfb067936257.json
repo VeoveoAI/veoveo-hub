@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The owner keeps their Computer on, or no longer does.\nUPDATE hub.computer SET keep_on = $4 WHERE id = $1 AND tenant = $2 AND principal_id = $3\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "546e773bf134befe7fcf74e1f50dfe02d424000ec40d50f27537cfb067936257"
+}

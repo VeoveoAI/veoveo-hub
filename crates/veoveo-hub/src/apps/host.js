@@ -215,17 +215,24 @@
   };
 
   // A view never frames a full web application: a frame nested in the view inherits its
-  // sandbox and opaque origin, so it holds no session. The view opens its server's app
-  // origin top-level instead, the one target this host opens; other targets fail.
+  // sandbox and opaque origin, so it holds no session. The view opens top-level instead
+  // its server's app origin, or a program of the person's own Computer under
+  // `/computer/apps/` on this origin, which reaches nobody else's; other targets fail.
   const openLink = (id, params) => {
     let url;
     try {
-      url = new URL(typeof params.url === "string" ? params.url : "");
+      url = new URL(typeof params.url === "string" ? params.url : "", window.location.origin);
     } catch {
       return fail(id, INVALID_PARAMS, "ui/open-link needs a URL.");
     }
-    if (!config.appOrigin || url.origin !== config.appOrigin) {
-      return fail(id, INVALID_PARAMS, "This host opens only the App's own server's app origin.");
+    const appOrigin = Boolean(config.appOrigin) && url.origin === config.appOrigin;
+    // The URL parser has already resolved dot segments, so the path is what it names.
+    const computer = url.origin === window.location.origin
+      && typeof config.computerApps === "string"
+      && url.pathname.startsWith(config.computerApps)
+      && url.pathname.length > config.computerApps.length;
+    if (!appOrigin && !computer) {
+      return fail(id, INVALID_PARAMS, "This host opens only the App's own server's app origin and your own Computer's programs.");
     }
     // The page itself goes there: no pop-up to block and no opener to reach back.
     reply(id, {});

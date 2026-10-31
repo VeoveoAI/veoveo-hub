@@ -272,3 +272,112 @@ async fn a_page_load_of_a_computer_without_its_sandbox_goes_back_to_entry() {
     .await
     .expect("the Computer forwarding test exceeded its bound");
 }
+
+#[tokio::test]
+async fn a_further_program_serves_its_own_path_and_has_a_stable_way_in() {
+    tokio::time::timeout(Duration::from_secs(90), async {
+        let serve = |answer: &'static str| async move {
+            let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+                .await
+                .unwrap();
+            let address = listener.local_addr().unwrap();
+            tokio::spawn(
+                axum::serve(
+                    listener,
+                    axum::Router::new().fallback(move |uri: axum::http::Uri| async move {
+                        format!("{answer} {uri}")
+                    }),
+                )
+                .into_future(),
+            );
+            address
+        };
+        let (computer_program, ledger) = (serve("computer").await, serve("ledger").await);
+        let mut config = crate::computers::test_fixture::config();
+        config.apps = vec![crate::control_plane::ComputerApp {
+            name: "ledger".into(),
+            port: 5678,
+        }];
+        let (fake, provisioner) =
+            crate::computers::test_fixture::gateway_with(Strategy::Oauth2ClientCredentials, config)
+                .await;
+        fake.forward_to(computer_program);
+        fake.forward_port(5678, ledger);
+        let db = crate::test_store::TestDb::new().await;
+        let hub = hub(&db);
+        let computer = ready_computer(&hub, &catalog(), &provisioner, &digest(COOKIE)).await;
+        provisioner
+            .replace(&computer, uuid::Uuid::now_v7())
+            .await
+            .unwrap();
+        let runtime = runtime(hub, catalog(), installation(&provisioner));
+        let id = computer.id.to_string();
+        let answer = |path: &'static str| {
+            let runtime = runtime.clone();
+            let request = request(&id, path, "navigate", Some("document"), "text/html");
+            async move {
+                let response = forward(runtime, request).await;
+                assert_eq!(response.status(), StatusCode::OK, "{path}");
+                let body = response.into_body().collect().await.unwrap().to_bytes();
+                String::from_utf8(body.to_vec()).unwrap()
+            }
+        };
+
+        // The program serves under its path from its own port; the Computer's program
+        // keeps every other path, an unknown program's among them.
+        assert_eq!(answer("/apps/ledger/books?year=2026").await, "ledger /apps/ledger/books?year=2026");
+        assert_eq!(answer("/apps/ledger/").await, "ledger /apps/ledger/");
+        assert_eq!(answer("/apps/other/x").await, "computer /apps/other/x");
+        assert_eq!(answer("/").await, "computer /");
+        // Its mount without the slash is redirected to it.
+        let mount = forward(
+            runtime.clone(),
+            request(&id, "/apps/ledger?x=1", "navigate", Some("document"), "text/html"),
+        )
+        .await;
+        assert_eq!(mount.status(), StatusCode::PERMANENT_REDIRECT);
+        assert_eq!(
+            mount.headers()[header::LOCATION],
+            format!("/computer/c/{id}/apps/ledger/?x=1")
+        );
+
+        // The stable way in names no Computer: signed out, it signs in and returns
+        // here; signed in, it goes to that path of the person's own Computer.
+        let way_in = |path: &str, cookie: bool| {
+            let mut headers = axum::http::HeaderMap::new();
+            if cookie {
+                headers.insert(
+                    header::COOKIE,
+                    format!("{SESSION_COOKIE}={COOKIE}").parse().unwrap(),
+                );
+            }
+            crate::computers::oauth::app_entry(runtime.clone(), path.parse().unwrap(), headers)
+        };
+        let signed_out = way_in("/computer/apps/ledger/books/../books?year=2026", false).await;
+        assert_eq!(signed_out.status(), StatusCode::SEE_OTHER);
+        assert_eq!(signed_out.headers()[header::LOCATION], "/computer");
+        assert_eq!(
+            signed_out.headers()[header::SET_COOKIE],
+            "__Host-computer-return=/computer/apps/ledger/books?year=2026; Path=/; Max-Age=600; Secure; HttpOnly; SameSite=Lax"
+        );
+        let signed_in = way_in("/computer/apps/ledger/books?year=2026", true).await;
+        assert_eq!(signed_in.status(), StatusCode::SEE_OTHER);
+        assert_eq!(
+            signed_in.headers()[header::LOCATION],
+            format!("/computer/c/{id}/apps/ledger/books?year=2026")
+        );
+        assert_eq!(
+            way_in("/computer/apps/ledger", true).await.headers()[header::LOCATION],
+            format!("/computer/c/{id}/apps/ledger/")
+        );
+        for unknown in ["/computer/apps/other/", "/computer/apps/Ledger/", "/computer/apps/"] {
+            assert_eq!(
+                way_in(unknown, true).await.status(),
+                StatusCode::NOT_FOUND,
+                "{unknown}"
+            );
+        }
+    })
+    .await
+    .expect("the further program test exceeded its bound");
+}

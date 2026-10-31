@@ -1,9 +1,9 @@
-//! The Computer's actions: `GET /computer/status`, `POST /computer/restart` and `POST
-//! /computer/previous`, for the owner's browser session, or for a bearer with a tenant
-//! whose token the Computers' profile admits: the Computer's own Hub credential, or a
-//! server calling the Hub for its caller. And `GET /computer/version`, the current
-//! version and its summary only, public, for a server that names it in a tool's
-//! description.
+//! The Computer's actions: `GET /computer/status`, `POST /computer/restart`, `POST
+//! /computer/previous`, `POST /computer/keep-on` and `POST /computer/stop`, for the
+//! owner's browser session, or for a bearer with a tenant whose token the Computers'
+//! profile admits: the Computer's own Hub credential, or a server calling the Hub for
+//! its caller. And `GET /computer/version`, the current version and its summary only,
+//! public, for a server that names it in a tool's description.
 use axum::{
     Extension, Json,
     http::{HeaderMap, HeaderValue, StatusCode, header},
@@ -200,6 +200,169 @@ async fn browser_act(runtime: &ComputerRuntime, headers: &HeaderMap, target: Tar
     .await;
     result.unwrap_or_else(|error| {
         tracing::warn!(error = %error, "Computer restart refused");
+        super::oauth::refused(&error)
+    })
+}
+
+/// The body of `POST /computer/keep-on`: `{"keepOn": true}` from a bearer, or
+/// `keepOn=true` from the status page's form.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct KeepOn {
+    keep_on: bool,
+}
+
+fn keep_on_body(headers: &HeaderMap, body: &[u8]) -> Option<bool> {
+    let json = headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.starts_with("application/json"));
+    if json {
+        return serde_json::from_slice::<KeepOn>(body)
+            .ok()
+            .map(|body| body.keep_on);
+    }
+    match url::form_urlencoded::parse(body)
+        .collect::<Vec<_>>()
+        .as_slice()
+    {
+        [(name, value)] if name == "keepOn" => match value.as_ref() {
+            "true" => Some(true),
+            "false" => Some(false),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+/// `POST /computer/keep-on`: keep the caller's Computer on, so collection never stops
+/// it, or no longer. It stays as set across restarts and updates. A bearer gets `204`;
+/// the owner's browser session, from this origin only, goes to the status page.
+pub(super) async fn keep_on(
+    runtime: ComputerRuntime,
+    subject: Option<Extension<AuthenticatedSubject>>,
+    headers: HeaderMap,
+    body: axum::body::Bytes,
+) -> Response {
+    let Some(keep_on) = keep_on_body(&headers, &body) else {
+        return Problem::new(
+            StatusCode::BAD_REQUEST,
+            "computer-keep-on-invalid",
+            "Invalid keep-on request",
+        )
+        .detail("the body names keepOn, true or false")
+        .into_response();
+    };
+    let Some(Extension(subject)) = subject else {
+        return browser_owned(&runtime, &headers, async |runtime, computer| {
+            runtime
+                .hub
+                .hub_store()
+                .keep_computer_on(computer, keep_on)
+                .await?;
+            super::oauth::redirect(super::pages::STATUS)
+        })
+        .await;
+    };
+    let computer = match owned_any(&runtime, &subject).await {
+        Ok(computer) => computer,
+        Err(response) => return *response,
+    };
+    match runtime
+        .hub
+        .hub_store()
+        .keep_computer_on(&computer, keep_on)
+        .await
+    {
+        Ok(()) => no_store(StatusCode::NO_CONTENT.into_response()),
+        Err(error) => {
+            tracing::error!(computer = %computer.id, "failed to keep the Computer on: {error:#}");
+            Problem::internal().into_response()
+        }
+    }
+}
+
+/// `POST /computer/stop`: stop the caller's Computer now, as collection does whatever
+/// its idle times or its keep-on: its sandbox is deleted and its home kept, and its next
+/// entry starts it again. A bearer gets `204`, or `409` while an operation runs; the
+/// owner's browser session, from this origin only, goes to the status page.
+pub(super) async fn stop(
+    runtime: ComputerRuntime,
+    subject: Option<Extension<AuthenticatedSubject>>,
+    headers: HeaderMap,
+) -> Response {
+    let Some(Extension(subject)) = subject else {
+        return browser_owned(&runtime, &headers, async |runtime, computer| {
+            super::collection::stop(&runtime.hub, &runtime.installation, computer).await?;
+            super::oauth::redirect(super::pages::STATUS)
+        })
+        .await;
+    };
+    let computer = match owned_any(&runtime, &subject).await {
+        Ok(computer) => computer,
+        Err(response) => return *response,
+    };
+    match super::collection::stop(&runtime.hub, &runtime.installation, &computer).await {
+        Ok(super::collection::Stop::Busy) => Problem::new(
+            StatusCode::CONFLICT,
+            "computer-operation-running",
+            "The Computer is restarting or stopping",
+        )
+        .into_response(),
+        Ok(_) => no_store(StatusCode::NO_CONTENT.into_response()),
+        Err(error) => {
+            tracing::warn!(computer = %computer.id, "Computer stop failed: {error:#}");
+            unavailable("the Computer cannot stop now")
+        }
+    }
+}
+
+/// The caller's Computer, ready or not: one being started or stopped is still kept on,
+/// or stopped.
+async fn owned_any(
+    runtime: &ComputerRuntime,
+    subject: &AuthenticatedSubject,
+) -> Result<Computer, Box<Response>> {
+    let principal = &subject.principal;
+    let Some(tenant) = principal.tenant.as_ref() else {
+        return owned(runtime, subject).await;
+    };
+    match runtime
+        .hub
+        .hub_store()
+        .owned_computer(tenant, &principal.id)
+        .await
+    {
+        Ok(Some(computer)) => Ok(computer),
+        _ => owned(runtime, subject).await,
+    }
+}
+
+/// A browser action on the owner's Computer, from this origin only.
+async fn browser_owned(
+    runtime: &ComputerRuntime,
+    headers: &HeaderMap,
+    act: impl AsyncFnOnce(&ComputerRuntime, &Computer) -> anyhow::Result<Response>,
+) -> Response {
+    if !super::proxy::same_origin(runtime, headers) {
+        return super::oauth::private(
+            Problem::new(
+                StatusCode::FORBIDDEN,
+                "computer-origin-refused",
+                "Computer origin refused",
+            )
+            .into_response(),
+        );
+    }
+    let result = async {
+        let Some((_, session)) = super::oauth::admitted(runtime, headers).await? else {
+            return Ok(super::oauth::denied());
+        };
+        act(runtime, session.computer()).await
+    }
+    .await;
+    result.unwrap_or_else(|error| {
+        tracing::warn!(error = %error, "Computer action refused");
         super::oauth::refused(&error)
     })
 }

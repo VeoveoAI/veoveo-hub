@@ -136,6 +136,93 @@ pub(super) async fn entry(runtime: ComputerRuntime, headers: HeaderMap) -> Respo
         let Some((value, session)) = admitted(&runtime, &headers).await? else {
             return sign_in(&runtime).await;
         };
+        let ready = session.computer().base_path();
+        enter(&runtime, &value, &session, &ready).await
+    }
+    .await;
+    result.unwrap_or_else(|error| {
+        // Never log a callback query, provider response, cookie or grant.
+        tracing::warn!(error = %error, "Computer entry unavailable");
+        refused(&error)
+    })
+}
+
+/// `GET /computer/apps/{name}/{*path}`, with its query: the stable way into the further
+/// program `name` that names no Computer. It signs the person in as `GET /computer`
+/// does, returning here, starts their Computer when it is not ready, and then goes to
+/// that path of their own Computer, so a link to it reaches whoever follows it in their
+/// own Computer and nobody else's.
+pub(super) async fn app_entry(
+    runtime: ComputerRuntime,
+    uri: axum::http::Uri,
+    headers: HeaderMap,
+) -> Response {
+    let target = uri
+        .path_and_query()
+        .and_then(|target| computer_app_path(target.as_str()));
+    let Some((target, mounted)) = target.filter(|(target, _)| {
+        app_name(target).is_some_and(|name| runtime.config.app(name).is_some())
+    }) else {
+        return private(crate::problem::Problem::not_found().into_response());
+    };
+    let result = async {
+        let Some((value, session)) = admitted(&runtime, &headers).await? else {
+            let mut response = redirect(super::pages::ENTRY)?;
+            response
+                .headers_mut()
+                .append(header::SET_COOKIE, return_cookie(&target, LOGIN_TTL)?);
+            return Ok(response);
+        };
+        let ready = format!("{}{mounted}", session.computer().base_path());
+        enter(&runtime, &value, &session, &ready).await
+    }
+    .await;
+    result.unwrap_or_else(|error| {
+        tracing::warn!(error = %error, "Computer app entry unavailable");
+        refused(&error)
+    })
+}
+
+/// A way into a further program of the person's Computer, `/computer/apps/{name}` or a
+/// path and query below it, re-spelled canonically, and that path as the Computer
+/// mounts it, `apps/{name}/…`; none for anything else, or what a cookie cannot carry.
+fn computer_app_path(value: &str) -> Option<(String, String)> {
+    let url = url::Url::parse(&format!("https://entry.invalid{value}")).ok()?;
+    let rest = url.path().strip_prefix(APPS_ENTRY)?;
+    let (name, below) = rest.split_once('/').unwrap_or((rest, ""));
+    veoveo_hub_sdk::hub::LinkName::parse(name).ok()?;
+    let mounted = format!(
+        "apps/{name}/{below}{}",
+        url.query()
+            .map(|query| format!("?{query}"))
+            .unwrap_or_default()
+    );
+    let target = format!("{APPS_ENTRY}{mounted}", mounted = &mounted["apps/".len()..]);
+    (target.len() <= 2048
+        && !target
+            .bytes()
+            .any(|byte| byte.is_ascii_control() || b" \";,\\".contains(&byte)))
+    .then_some((target, mounted))
+}
+
+/// The program a canonical way in names.
+fn app_name(target: &str) -> Option<&str> {
+    target.strip_prefix(APPS_ENTRY)?.split(['/', '?']).next()
+}
+
+/// The way into a Computer's further programs.
+const APPS_ENTRY: &str = "/computer/apps/";
+
+/// Enter the Computer of `session`: create a missing sandbox, show the start page while
+/// it is created or started, and go to `ready` on it once it is ready, or to the status
+/// page when a failure or a sandbox the Hub can no longer serve needs the owner.
+async fn enter(
+    runtime: &ComputerRuntime,
+    value: &str,
+    session: &super::BrowserSession,
+    ready: &str,
+) -> Result<Response> {
+    {
         let computer = session.computer();
         match runtime.enter(computer).await? {
             super::lifecycle::Entry::Ready => {
@@ -147,14 +234,14 @@ pub(super) async fn entry(runtime: ComputerRuntime, headers: HeaderMap) -> Respo
                         .computer_browser_session(
                             &runtime.catalog.current(),
                             &runtime.config,
-                            &digest(&value),
+                            &digest(value),
                             Some(&computer.id)
                         )
                         .await?
                         .is_some(),
                     "Computer admission ended during entry"
                 );
-                redirect(&computer.base_path())
+                redirect(ready)
             }
             super::lifecycle::Entry::Starting(Some(operation)) => {
                 let changes =
@@ -173,12 +260,6 @@ pub(super) async fn entry(runtime: ComputerRuntime, headers: HeaderMap) -> Respo
             super::lifecycle::Entry::Attention => redirect(super::pages::STATUS),
         }
     }
-    .await;
-    result.unwrap_or_else(|error| {
-        // Never log a callback query, provider response, cookie or grant.
-        tracing::warn!(error = %error, "Computer entry unavailable");
-        refused(&error)
-    })
 }
 
 /// The page of an entry that cannot continue: Computers unavailable and why, or the
@@ -567,12 +648,14 @@ fn return_cookies(headers: &HeaderMap) -> Vec<String> {
         .collect()
 }
 
-/// Where a sign-in returns: an App's path, or the entry of a server's app origin,
-/// re-spelled canonically; anything else is none.
+/// Where a sign-in returns: an App's path, the entry of a server's app origin, or the way
+/// into a further program of the person's Computer, re-spelled canonically; anything
+/// else is none.
 fn return_target(path: &str) -> Option<String> {
     crate::apps::AppView::from_path(path)
         .map(|view| view.path())
         .or_else(|| crate::apps::entry_from_path(path))
+        .or_else(|| computer_app_path(path).map(|(target, _)| target))
 }
 
 /// The return target of the request's one return cookie. Two return cookies name none.

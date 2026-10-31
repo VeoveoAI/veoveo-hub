@@ -263,7 +263,17 @@ pub async fn stop_owned(
     let Some(computer) = hub.hub_store().owned_computer(tenant, principal).await? else {
         return Ok(Stop::None);
     };
-    let provisioner = computers.installation.for_computer(&computer)?;
+    stop(hub, &computers.installation, &computer).await
+}
+
+/// Stop `computer` now, as a collection does whatever its idle times or its keep-on.
+pub(super) async fn stop(
+    hub: &HubState,
+    installation: &Installation,
+    computer: &Computer,
+) -> Result<Stop> {
+    let computer = computer.clone();
+    let provisioner = installation.for_computer(&computer)?;
     if provisioner
         .sandbox(&computer.native_name())
         .await?

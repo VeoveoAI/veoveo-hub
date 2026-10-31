@@ -39,10 +39,13 @@ struct HostConfig<'a> {
     sandbox: &'a str,
     csp: UiCsp,
     host: HostInfo,
-    /// The App's server's app origin, when the server declares one: the one target of
+    /// The App's server's app origin, when the server declares one: a target of
     /// `ui/open-link` the host opens.
     #[serde(skip_serializing_if = "Option::is_none")]
     app_origin: Option<String>,
+    /// The path on this origin under which `ui/open-link` opens the further programs of
+    /// the signed-in person's own Computer.
+    computer_apps: &'static str,
 }
 
 #[derive(Serialize)]
@@ -126,6 +129,7 @@ pub(super) fn host_page(
             version: env!("CARGO_PKG_VERSION"),
         },
         app_origin,
+        computer_apps: "/computer/apps/",
     };
     let body = format!(
         "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\

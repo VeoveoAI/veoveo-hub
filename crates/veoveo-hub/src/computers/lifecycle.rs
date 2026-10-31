@@ -127,6 +127,8 @@ pub struct ComputerStatus {
     /// again.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collected: Option<DateTime<Utc>>,
+    /// Whether its owner keeps it on: collection never deletes its sandbox.
+    pub keep_on: bool,
 }
 
 impl ComputerRuntime {
@@ -278,6 +280,7 @@ impl ComputerRuntime {
             blocked: observed.blocked.clone(),
             updated,
             collected: computer.collected_at,
+            keep_on: computer.keep_on,
         })
     }
 }
