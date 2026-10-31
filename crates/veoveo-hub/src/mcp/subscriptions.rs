@@ -124,7 +124,7 @@ impl HubMcp {
                 if accepted.tools_list_changed != Some(true)
                     || self
                         .discovery_watches
-                        .unchanging(catalog_generation, &manifest.slug)
+                        .unchanging(catalog_generation, manifest.deployment)
                 {
                     filter.tools_list_changed = None;
                 }
@@ -392,8 +392,7 @@ impl HubMcp {
             )));
         }
         if route.filter.tools_list_changed == Some(true) && effective.tools_list_changed.is_none() {
-            self.discovery_watches
-                .learned_unchanging(generation, server);
+            self.discovery_watches.learned_unchanging(generation, key.1);
         }
         if effective == SubscriptionFilter::new() {
             return Ok(None);

@@ -1,0 +1,708 @@
+{
+  "base_revision": "3104ee9783776a4e0bdab35f67e9d001036fac9a",
+  "boundaries": [
+    "Native tests use explicit admitted views and declared repository grants; HTTP bearer admission and registration endpoints are outside these scenarios.",
+    "Notifications use the actual RMCP source/sink and cache invalidation; no independent packet capture was taken.",
+    "These executions do not prove arbitrary scheduler histories, reconnect delivery, replica adoption or server behavior changing capabilities by caller.",
+    "Generated and handwritten Lean artifacts are unchanged. Current linked-runner cache/issuer formal applicability remains open.",
+    "No full Docker checks, push, deployment or model-driven acceptance completed at this checkpoint."
+  ],
+  "cause": "Effective unchanging capability was remembered by generation and server slug. Distinct linked or selected deployments shared that memo despite independent MCP advertisements. A dynamic deployment was treated as watched without discovery or subscription, leaving its cached descriptor stale.",
+  "classification": "Production defect reproduced and corrected with native tests; no new Lean theorem",
+  "correction": "Keep the existing set and generation pruning; key capability observations by catalog generation and the actual deployment. All five callers use the resolved manifest deployment or the captured subscription-route deployment. No additional authorization rule or runtime component.",
+  "date": "2026-10-31",
+  "format_only_final_change": {
+    "description": "Join the learned_unchanging call onto one line. Six native tests pass before this whitespace-only change; final formatting passes afterward. Final committed-byte full Mac/Linux checks remain pending.",
+    "diff": {
+      "bytes": 465,
+      "sha256": "efd329213999dd3b6761a549edf4401f025dc296060b9f935917dd889e0042ac"
+    },
+    "path": "crates/veoveo-hub/src/mcp/subscriptions.rs"
+  },
+  "native_inputs": "Declared fixture tool and repository grants; actual admitted/selected Hub views and routed loopback RMCP sources; static source advertises tools without listChanged, dynamic source advertises it. This is synthetic descriptor data, not model output.",
+  "observations": {
+    "expected_and_fixed_both_cases": {
+      "change_had_receiver": true,
+      "dynamic_active_before_ensure": false,
+      "dynamic_cache_contents": null,
+      "dynamic_cache_evicted": true,
+      "dynamic_discovered": true,
+      "dynamic_listen_opened": true,
+      "dynamic_watch_reused": true,
+      "no_extra_discovery": true,
+      "no_extra_listen": true,
+      "static_not_watched": true,
+      "static_reused": true
+    },
+    "original_both_cases": {
+      "change_had_receiver": false,
+      "dynamic_active_before_ensure": true,
+      "dynamic_cache_contents": {
+        "denied": 17,
+        "items": [
+          {
+            "description": "dynamic runner complete descriptor",
+            "input_schema": {},
+            "name": "sample",
+            "other_optional_fields": null
+          }
+        ]
+      },
+      "dynamic_cache_evicted": false,
+      "dynamic_discovered": false,
+      "dynamic_listen_opened": false,
+      "dynamic_watch_reused": false,
+      "no_extra_discovery": true,
+      "no_extra_listen": true,
+      "static_not_watched": true,
+      "static_reused": true
+    }
+  },
+  "pins": {
+    "core": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "lore": "c33e017af48d221c5b42d19865adf78814bcced4",
+    "sdk": "7360c0f96cb616c519d27256df214ff4f2e6e831"
+  },
+  "property": "HUB-CATALOG-01",
+  "roles": {
+    "execution": "GPT-6 Luna",
+    "implementation": "GPT-6.1 Sol",
+    "review": "GPT-6 Astra"
+  },
+  "runs": {
+    "final_formatting": {
+      "receipt": {
+        "bytes": 2766,
+        "sha256": "c43fad75e767488387e908891773531a260556b77f7a93ae3a1239b72de43b58"
+      },
+      "result": {
+        "base_revision": "3104ee9783776a4e0bdab35f67e9d001036fac9a",
+        "build_input_count": 839,
+        "build_input_map": "/private/tmp/hub-unchanging-deployment-20261031/fix3/evidence-format2/build-input-map.before.json",
+        "build_input_map_sha256": "db89e61f74f94f5b30b2dec30901348e9a515ae2c379ed92cdd569072baa8082",
+        "build_inputs_unchanged": true,
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "complete": true,
+        "cwd": "/private/tmp/hub-unchanging-deployment-20261031/fix3/source",
+        "frozen_baseline_source": "/tmp/hub-unchanging-deployment-20261031/base3104ee9",
+        "frozen_baseline_source_map_sha256": "17d125ce16fede15eb7b3f9ce5ea93e86c4b6f543e3193b7325988efdb73a57a",
+        "log_path": "/private/tmp/hub-unchanging-deployment-20261031/fix3/evidence-format2/format-check.log",
+        "overlay_manifest": "/private/tmp/hub-unchanging-deployment-20261031/fix3/overlay-manifest.json",
+        "overlay_manifest_sha256": "6b26af770ee1bdb9b98847dd332c52b08cefdb419ebafac02a15a41fa6502774",
+        "overlay_sha256": {
+          "crates/veoveo-hub/DESIGN.md": "87f3b82d4a5b3fcb0f1adab2e03bc86ef006ef91f17be3259f1f3e15822ad60b",
+          "crates/veoveo-hub/src/mcp/discovery_watch.rs": "8489b204d891994d2c266d84b9fc715462f18756c9fa39b96ae1934a7b750619",
+          "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": "505ae9a4f45e522dae46929859175bc8ab47866f5d3abae48bd49457bd04dbb8",
+          "crates/veoveo-hub/src/mcp/subscriptions.rs": "e048344e7844bf151d42ea3823ed9cada87492e8f3618a3b61c3d61c8cb5f8a3"
+        },
+        "phase": "fixed",
+        "postgres_bin": "/opt/homebrew/opt/postgresql@18/bin",
+        "source_count": 1143,
+        "source_map": "/private/tmp/hub-unchanging-deployment-20261031/fix3/evidence-format2/source-map.before.json",
+        "source_map_sha256": "c10a0f2ee1acbf8051a4830f0389caa666780cf7163939a42da4e8448db3c37e",
+        "source_root": "/private/tmp/hub-unchanging-deployment-20261031/fix3/source",
+        "source_unchanged": true,
+        "sqlx_offline": true,
+        "stages": [
+          {
+            "build_inputs_after_sha256": "db89e61f74f94f5b30b2dec30901348e9a515ae2c379ed92cdd569072baa8082",
+            "build_inputs_unchanged": true,
+            "elapsed_ms": 669,
+            "exit": 0,
+            "log_bytes": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "named_tests": [],
+            "source_after_sha256": "c10a0f2ee1acbf8051a4830f0389caa666780cf7163939a42da4e8448db3c37e",
+            "source_unchanged": true,
+            "test_binary": null,
+            "test_result_lines": [],
+            "test_run_counts": [],
+            "timed_out": false
+          }
+        ],
+        "timeout_seconds": 600,
+        "toolchain": "1.99.0-aarch64-apple-darwin",
+        "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target"
+      }
+    },
+    "fixed_subscription_test": {
+      "receipt": {
+        "bytes": 3550,
+        "sha256": "4e11ff323b0f1e838f0aa3694c30c0d335d4f44b736d9aa30e116f5db8a48c14"
+      },
+      "result": {
+        "base_revision": "3104ee9783776a4e0bdab35f67e9d001036fac9a",
+        "build_input_count": 839,
+        "build_input_map": "/private/tmp/hub-unchanging-deployment-20261031/fix2/evidence-subscriptions1/build-input-map.before.json",
+        "build_input_map_sha256": "f166c98d3dbacf339a039dd11736f754f241ec84f2eae1225b3d4c9891f2dadd",
+        "build_inputs_unchanged": true,
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/private/tmp/hub-unchanging-deployment-20261031/fix2/source/Cargo.toml",
+          "--lib",
+          "mcp::subscriptions::tests::",
+          "--",
+          "--nocapture"
+        ],
+        "complete": true,
+        "cwd": "/private/tmp/hub-unchanging-deployment-20261031/fix2/source",
+        "frozen_baseline_source": "/tmp/hub-unchanging-deployment-20261031/base3104ee9",
+        "frozen_baseline_source_map_sha256": "17d125ce16fede15eb7b3f9ce5ea93e86c4b6f543e3193b7325988efdb73a57a",
+        "log_path": "/private/tmp/hub-unchanging-deployment-20261031/fix2/evidence-subscriptions1/focused-test.log",
+        "overlay_manifest": "/private/tmp/hub-unchanging-deployment-20261031/fix2/overlay-manifest.json",
+        "overlay_manifest_sha256": "b23d05cec0889ce8d4eb235739f2ef8b53138c95fa8f9d53bd0f530742a13fbd",
+        "overlay_sha256": {
+          "crates/veoveo-hub/DESIGN.md": "87f3b82d4a5b3fcb0f1adab2e03bc86ef006ef91f17be3259f1f3e15822ad60b",
+          "crates/veoveo-hub/src/mcp/discovery_watch.rs": "8489b204d891994d2c266d84b9fc715462f18756c9fa39b96ae1934a7b750619",
+          "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": "505ae9a4f45e522dae46929859175bc8ab47866f5d3abae48bd49457bd04dbb8",
+          "crates/veoveo-hub/src/mcp/subscriptions.rs": "19608baa39ce580a5a92ef4e15532f960d2f695d7f3303ceda2a0c7581975ac9"
+        },
+        "phase": "fixed",
+        "postgres_bin": "/opt/homebrew/opt/postgresql@18/bin",
+        "source_count": 1143,
+        "source_map": "/private/tmp/hub-unchanging-deployment-20261031/fix2/evidence-subscriptions1/source-map.before.json",
+        "source_map_sha256": "3f22b83e96f6fa944c9a42cd57cc7bdec40a761c2211f4906bde8ae1df4bc65b",
+        "source_root": "/private/tmp/hub-unchanging-deployment-20261031/fix2/source",
+        "source_unchanged": true,
+        "sqlx_offline": true,
+        "stages": [
+          {
+            "build_inputs_after_sha256": "f166c98d3dbacf339a039dd11736f754f241ec84f2eae1225b3d4c9891f2dadd",
+            "build_inputs_unchanged": true,
+            "elapsed_ms": 689,
+            "exit": 0,
+            "log_bytes": 424,
+            "log_sha256": "5ccd384b42e0ab36f28d9062d6d283c946073f2cfe7e885e7358af9743fb6f2e",
+            "named_tests": [
+              [
+                "mcp::subscriptions::tests::an_ended_catalog_source_reaches_the_downstream_reconnect_path",
+                "ok"
+              ]
+            ],
+            "source_after_sha256": "3f22b83e96f6fa944c9a42cd57cc7bdec40a761c2211f4906bde8ae1df4bc65b",
+            "source_unchanged": true,
+            "test_binary": {
+              "bytes": 177787528,
+              "mtime_ns": 1793486561187934858,
+              "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-b10e884bd78a5830",
+              "sha256": "c0ab90595a28f13a7c43c362fbd5ba6f59e1ee923a1e326c75cdd0f394d836c7"
+            },
+            "test_result_lines": [
+              [
+                "ok",
+                "1",
+                "0",
+                "0",
+                "0",
+                "330",
+                "0.00"
+              ]
+            ],
+            "test_run_counts": [
+              1
+            ],
+            "timed_out": false
+          }
+        ],
+        "timeout_seconds": 600,
+        "toolchain": "1.99.0-aarch64-apple-darwin",
+        "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target"
+      }
+    },
+    "fixed_watch_tests": {
+      "receipt": {
+        "bytes": 4077,
+        "sha256": "0390d2da6cc07a8865c3af79053895c903951a92fbc5272d288f7cf1a768e686"
+      },
+      "result": {
+        "base_revision": "3104ee9783776a4e0bdab35f67e9d001036fac9a",
+        "build_input_count": 839,
+        "build_input_map": "/private/tmp/hub-unchanging-deployment-20261031/fix2/evidence-run2/build-input-map.before.json",
+        "build_input_map_sha256": "f166c98d3dbacf339a039dd11736f754f241ec84f2eae1225b3d4c9891f2dadd",
+        "build_inputs_unchanged": true,
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/private/tmp/hub-unchanging-deployment-20261031/fix2/source/Cargo.toml",
+          "--lib",
+          "mcp::discovery_watch::tests::",
+          "--",
+          "--nocapture"
+        ],
+        "complete": true,
+        "cwd": "/private/tmp/hub-unchanging-deployment-20261031/fix2/source",
+        "frozen_baseline_source": "/tmp/hub-unchanging-deployment-20261031/base3104ee9",
+        "frozen_baseline_source_map_sha256": "17d125ce16fede15eb7b3f9ce5ea93e86c4b6f543e3193b7325988efdb73a57a",
+        "log_path": "/private/tmp/hub-unchanging-deployment-20261031/fix2/evidence-run2/focused-test.log",
+        "overlay_manifest": "/private/tmp/hub-unchanging-deployment-20261031/fix2/overlay-manifest.json",
+        "overlay_manifest_sha256": "b23d05cec0889ce8d4eb235739f2ef8b53138c95fa8f9d53bd0f530742a13fbd",
+        "overlay_sha256": {
+          "crates/veoveo-hub/DESIGN.md": "87f3b82d4a5b3fcb0f1adab2e03bc86ef006ef91f17be3259f1f3e15822ad60b",
+          "crates/veoveo-hub/src/mcp/discovery_watch.rs": "8489b204d891994d2c266d84b9fc715462f18756c9fa39b96ae1934a7b750619",
+          "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": "505ae9a4f45e522dae46929859175bc8ab47866f5d3abae48bd49457bd04dbb8",
+          "crates/veoveo-hub/src/mcp/subscriptions.rs": "19608baa39ce580a5a92ef4e15532f960d2f695d7f3303ceda2a0c7581975ac9"
+        },
+        "phase": "fixed",
+        "postgres_bin": "/opt/homebrew/opt/postgresql@18/bin",
+        "source_count": 1143,
+        "source_map": "/private/tmp/hub-unchanging-deployment-20261031/fix2/evidence-run2/source-map.before.json",
+        "source_map_sha256": "3f22b83e96f6fa944c9a42cd57cc7bdec40a761c2211f4906bde8ae1df4bc65b",
+        "source_root": "/private/tmp/hub-unchanging-deployment-20261031/fix2/source",
+        "source_unchanged": true,
+        "sqlx_offline": true,
+        "stages": [
+          {
+            "build_inputs_after_sha256": "f166c98d3dbacf339a039dd11736f754f241ec84f2eae1225b3d4c9891f2dadd",
+            "build_inputs_unchanged": true,
+            "elapsed_ms": 32488,
+            "exit": 0,
+            "log_bytes": 942,
+            "log_sha256": "cab1f81462a043c01282c745c3f35f5b02767bc35758db1ea2e7b6bf6564af71",
+            "named_tests": [
+              [
+                "mcp::discovery_watch::tests::publication_while_ensure_waits_for_watch_lock_is_rechecked",
+                "ok"
+              ],
+              [
+                "mcp::discovery_watch::tests::an_unchanging_deployment_does_not_suppress_the_same_link_in_another_selection",
+                "ok"
+              ],
+              [
+                "mcp::discovery_watch::tests::stale_admission_cannot_remove_a_newer_discovery_watch",
+                "ok"
+              ],
+              [
+                "mcp::discovery_watch::tests::live_publication_fences_a_selected_discovery_watch",
+                "ok"
+              ],
+              [
+                "mcp::discovery_watch::tests::an_unchanging_link_does_not_suppress_another_runners_watch",
+                "ok"
+              ]
+            ],
+            "source_after_sha256": "3f22b83e96f6fa944c9a42cd57cc7bdec40a761c2211f4906bde8ae1df4bc65b",
+            "source_unchanged": true,
+            "test_binary": {
+              "bytes": 177787528,
+              "mtime_ns": 1793486561187934858,
+              "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-b10e884bd78a5830",
+              "sha256": "c0ab90595a28f13a7c43c362fbd5ba6f59e1ee923a1e326c75cdd0f394d836c7"
+            },
+            "test_result_lines": [
+              [
+                "ok",
+                "5",
+                "0",
+                "0",
+                "0",
+                "326",
+                "1.18"
+              ]
+            ],
+            "test_run_counts": [
+              5
+            ],
+            "timed_out": false
+          }
+        ],
+        "timeout_seconds": 600,
+        "toolchain": "1.99.0-aarch64-apple-darwin",
+        "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target"
+      }
+    },
+    "fixture_setup_failure": {
+      "receipt": {
+        "bytes": 3798,
+        "sha256": "eb57362f8a231a308e67bc6b919adae8d4cc75846c5ff7c18bf8d9304caff1ec"
+      },
+      "result": {
+        "base_revision": "3104ee9783776a4e0bdab35f67e9d001036fac9a",
+        "build_input_count": 839,
+        "build_input_map": "/private/tmp/hub-unchanging-deployment-20261031/test-only1/evidence-run1/build-input-map.before.json",
+        "build_input_map_sha256": "dcee09862eb692af249c16acdce0a46aed370bf7661126f223c22b8a866c8405",
+        "build_inputs_unchanged": true,
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/private/tmp/hub-unchanging-deployment-20261031/test-only1/source/Cargo.toml",
+          "--lib",
+          "mcp::discovery_watch::tests::",
+          "--",
+          "--nocapture"
+        ],
+        "complete": false,
+        "cwd": "/private/tmp/hub-unchanging-deployment-20261031/test-only1/source",
+        "frozen_baseline_source": "/tmp/hub-unchanging-deployment-20261031/base3104ee9",
+        "frozen_baseline_source_map_sha256": "17d125ce16fede15eb7b3f9ce5ea93e86c4b6f543e3193b7325988efdb73a57a",
+        "log_path": "/private/tmp/hub-unchanging-deployment-20261031/test-only1/evidence-run1/focused-test.log",
+        "overlay_manifest": "/private/tmp/hub-unchanging-deployment-20261031/test-only1/overlay-manifest.json",
+        "overlay_manifest_sha256": "0b9976d293ac66f3c9de09ad0a41983b671ecfa6c35db1807f542d40c60998da",
+        "overlay_sha256": {
+          "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": "838d3ecf981f8b2979f592002562e8ddddc15d7738648d1627a9b7f43d10e4ee"
+        },
+        "phase": "test-only",
+        "postgres_bin": "/opt/homebrew/opt/postgresql@18/bin",
+        "source_count": 1143,
+        "source_map": "/private/tmp/hub-unchanging-deployment-20261031/test-only1/evidence-run1/source-map.before.json",
+        "source_map_sha256": "01debaa881db60f904ed0485021f951fbf6e49d39aa277ff2f26a5b4334c566a",
+        "source_root": "/private/tmp/hub-unchanging-deployment-20261031/test-only1/source",
+        "source_unchanged": true,
+        "sqlx_offline": true,
+        "stages": [
+          {
+            "build_inputs_after_sha256": "dcee09862eb692af249c16acdce0a46aed370bf7661126f223c22b8a866c8405",
+            "build_inputs_unchanged": true,
+            "elapsed_ms": 47506,
+            "exit": 101,
+            "log_bytes": 3950,
+            "log_sha256": "5ae094cd0561d6a1cace601869a3473f0b6f8c76d0428e84b49f8a4fd8a02ae1",
+            "named_tests": [
+              [
+                "mcp::discovery_watch::tests::an_unchanging_deployment_does_not_suppress_the_same_link_in_another_selection",
+                "FAILED"
+              ],
+              [
+                "mcp::discovery_watch::tests::an_unchanging_link_does_not_suppress_another_runners_watch",
+                "FAILED"
+              ],
+              [
+                "mcp::discovery_watch::tests::publication_while_ensure_waits_for_watch_lock_is_rechecked",
+                "ok"
+              ],
+              [
+                "mcp::discovery_watch::tests::stale_admission_cannot_remove_a_newer_discovery_watch",
+                "ok"
+              ],
+              [
+                "mcp::discovery_watch::tests::live_publication_fences_a_selected_discovery_watch",
+                "ok"
+              ]
+            ],
+            "source_after_sha256": "01debaa881db60f904ed0485021f951fbf6e49d39aa277ff2f26a5b4334c566a",
+            "source_unchanged": true,
+            "test_binary": {
+              "bytes": 177792088,
+              "mtime_ns": 1793486053190001695,
+              "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-b10e884bd78a5830",
+              "sha256": "dff9fc761a55ab08018cff950ad73436a3937ca1c0b432bb8db5ccbbd37b92d2"
+            },
+            "test_result_lines": [
+              [
+                "FAILED",
+                "3",
+                "2",
+                "0",
+                "0",
+                "326",
+                "1.25"
+              ]
+            ],
+            "test_run_counts": [
+              5
+            ],
+            "timed_out": false
+          }
+        ],
+        "timeout_seconds": 600,
+        "toolchain": "1.99.0-aarch64-apple-darwin",
+        "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target"
+      }
+    },
+    "formatting_difference": {
+      "receipt": {
+        "bytes": 2769,
+        "sha256": "23c1d325af40560b239bac00a176f5042cbe384bc3cb22a8f0a60edbfb2d3c5e"
+      },
+      "result": {
+        "base_revision": "3104ee9783776a4e0bdab35f67e9d001036fac9a",
+        "build_input_count": 839,
+        "build_input_map": "/private/tmp/hub-unchanging-deployment-20261031/fix2/evidence-format1/build-input-map.before.json",
+        "build_input_map_sha256": "f166c98d3dbacf339a039dd11736f754f241ec84f2eae1225b3d4c9891f2dadd",
+        "build_inputs_unchanged": true,
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "complete": false,
+        "cwd": "/private/tmp/hub-unchanging-deployment-20261031/fix2/source",
+        "frozen_baseline_source": "/tmp/hub-unchanging-deployment-20261031/base3104ee9",
+        "frozen_baseline_source_map_sha256": "17d125ce16fede15eb7b3f9ce5ea93e86c4b6f543e3193b7325988efdb73a57a",
+        "log_path": "/private/tmp/hub-unchanging-deployment-20261031/fix2/evidence-format1/format-check.log",
+        "overlay_manifest": "/private/tmp/hub-unchanging-deployment-20261031/fix2/overlay-manifest.json",
+        "overlay_manifest_sha256": "b23d05cec0889ce8d4eb235739f2ef8b53138c95fa8f9d53bd0f530742a13fbd",
+        "overlay_sha256": {
+          "crates/veoveo-hub/DESIGN.md": "87f3b82d4a5b3fcb0f1adab2e03bc86ef006ef91f17be3259f1f3e15822ad60b",
+          "crates/veoveo-hub/src/mcp/discovery_watch.rs": "8489b204d891994d2c266d84b9fc715462f18756c9fa39b96ae1934a7b750619",
+          "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": "505ae9a4f45e522dae46929859175bc8ab47866f5d3abae48bd49457bd04dbb8",
+          "crates/veoveo-hub/src/mcp/subscriptions.rs": "19608baa39ce580a5a92ef4e15532f960d2f695d7f3303ceda2a0c7581975ac9"
+        },
+        "phase": "fixed",
+        "postgres_bin": "/opt/homebrew/opt/postgresql@18/bin",
+        "source_count": 1143,
+        "source_map": "/private/tmp/hub-unchanging-deployment-20261031/fix2/evidence-format1/source-map.before.json",
+        "source_map_sha256": "3f22b83e96f6fa944c9a42cd57cc7bdec40a761c2211f4906bde8ae1df4bc65b",
+        "source_root": "/private/tmp/hub-unchanging-deployment-20261031/fix2/source",
+        "source_unchanged": true,
+        "sqlx_offline": true,
+        "stages": [
+          {
+            "build_inputs_after_sha256": "f166c98d3dbacf339a039dd11736f754f241ec84f2eae1225b3d4c9891f2dadd",
+            "build_inputs_unchanged": true,
+            "elapsed_ms": 666,
+            "exit": 1,
+            "log_bytes": 542,
+            "log_sha256": "a138f70e6fc3065682f113158ab29abc65da7e657dd4d0c118ddf7c48452c74b",
+            "named_tests": [],
+            "source_after_sha256": "3f22b83e96f6fa944c9a42cd57cc7bdec40a761c2211f4906bde8ae1df4bc65b",
+            "source_unchanged": true,
+            "test_binary": null,
+            "test_result_lines": [],
+            "test_run_counts": [],
+            "timed_out": false
+          }
+        ],
+        "timeout_seconds": 600,
+        "toolchain": "1.99.0-aarch64-apple-darwin",
+        "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target"
+      }
+    },
+    "incomplete_caller_update_compile_failure": {
+      "receipt": {
+        "bytes": 2981,
+        "sha256": "335f45b4cd0fc4dd2752accdaba87e168d4a14170347f258c70f94be2dff08bd"
+      },
+      "result": {
+        "base_revision": "3104ee9783776a4e0bdab35f67e9d001036fac9a",
+        "build_input_count": 839,
+        "build_input_map": "/private/tmp/hub-unchanging-deployment-20261031/fixed-validation-prepared/evidence-run1/build-input-map.before.json",
+        "build_input_map_sha256": "6876bb5fbe46d73c8295e342ea532562807f4646bbd49975ed385d7b03e89508",
+        "build_inputs_unchanged": true,
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/private/tmp/hub-unchanging-deployment-20261031/fixed-validation-prepared/source/Cargo.toml",
+          "--lib",
+          "mcp::discovery_watch::tests::",
+          "--",
+          "--nocapture"
+        ],
+        "complete": false,
+        "cwd": "/private/tmp/hub-unchanging-deployment-20261031/fixed-validation-prepared/source",
+        "frozen_baseline_source": "/tmp/hub-unchanging-deployment-20261031/base3104ee9",
+        "frozen_baseline_source_map_sha256": "17d125ce16fede15eb7b3f9ce5ea93e86c4b6f543e3193b7325988efdb73a57a",
+        "log_path": "/private/tmp/hub-unchanging-deployment-20261031/fixed-validation-prepared/evidence-run1/focused-test.log",
+        "overlay_manifest": "/private/tmp/hub-unchanging-deployment-20261031/fixed-validation-prepared/overlay-manifest.json",
+        "overlay_manifest_sha256": "f8b2db8e99f1f3bdfed069a87d48dd740828c91f9592d2fa83ef92801f57c7fa",
+        "overlay_sha256": {
+          "crates/veoveo-hub/DESIGN.md": "87f3b82d4a5b3fcb0f1adab2e03bc86ef006ef91f17be3259f1f3e15822ad60b",
+          "crates/veoveo-hub/src/mcp/discovery_watch.rs": "8489b204d891994d2c266d84b9fc715462f18756c9fa39b96ae1934a7b750619",
+          "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": "505ae9a4f45e522dae46929859175bc8ab47866f5d3abae48bd49457bd04dbb8"
+        },
+        "phase": "fixed",
+        "postgres_bin": "/opt/homebrew/opt/postgresql@18/bin",
+        "source_count": 1143,
+        "source_map": "/private/tmp/hub-unchanging-deployment-20261031/fixed-validation-prepared/evidence-run1/source-map.before.json",
+        "source_map_sha256": "cec8c905fd12dfc2cb2c3e0f3593a7a042bf29875ed25bf02a343ed69547e316",
+        "source_root": "/private/tmp/hub-unchanging-deployment-20261031/fixed-validation-prepared/source",
+        "source_unchanged": true,
+        "sqlx_offline": true,
+        "stages": [
+          {
+            "build_inputs_after_sha256": "6876bb5fbe46d73c8295e342ea532562807f4646bbd49975ed385d7b03e89508",
+            "build_inputs_unchanged": true,
+            "elapsed_ms": 11332,
+            "exit": 101,
+            "log_bytes": 1581,
+            "log_sha256": "5a01ff540c776421f89aa472a3020b780d97eb2899862db9e63fde80ee19e482",
+            "named_tests": [],
+            "source_after_sha256": "cec8c905fd12dfc2cb2c3e0f3593a7a042bf29875ed25bf02a343ed69547e316",
+            "source_unchanged": true,
+            "test_binary": null,
+            "test_result_lines": [],
+            "test_run_counts": [],
+            "timed_out": false
+          }
+        ],
+        "timeout_seconds": 600,
+        "toolchain": "1.99.0-aarch64-apple-darwin",
+        "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target"
+      }
+    },
+    "original_runtime_reproduction": {
+      "receipt": {
+        "bytes": 3798,
+        "sha256": "681b73b4c2f54dbaa6cda226a3275f7ecd4a1d1bd419f76d5a4da12ee897e269"
+      },
+      "result": {
+        "base_revision": "3104ee9783776a4e0bdab35f67e9d001036fac9a",
+        "build_input_count": 839,
+        "build_input_map": "/private/tmp/hub-unchanging-deployment-20261031/test-only2/evidence-run1/build-input-map.before.json",
+        "build_input_map_sha256": "eaa31ead9921a8363bae685d78551b8d1e967fda337cedbdfa0f997ce0ca9b91",
+        "build_inputs_unchanged": true,
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/private/tmp/hub-unchanging-deployment-20261031/test-only2/source/Cargo.toml",
+          "--lib",
+          "mcp::discovery_watch::tests::",
+          "--",
+          "--nocapture"
+        ],
+        "complete": false,
+        "cwd": "/private/tmp/hub-unchanging-deployment-20261031/test-only2/source",
+        "frozen_baseline_source": "/tmp/hub-unchanging-deployment-20261031/base3104ee9",
+        "frozen_baseline_source_map_sha256": "17d125ce16fede15eb7b3f9ce5ea93e86c4b6f543e3193b7325988efdb73a57a",
+        "log_path": "/private/tmp/hub-unchanging-deployment-20261031/test-only2/evidence-run1/focused-test.log",
+        "overlay_manifest": "/private/tmp/hub-unchanging-deployment-20261031/test-only2/overlay-manifest.json",
+        "overlay_manifest_sha256": "c683e6fca51f3a0516a2c8e750154e37e845ecbfaef6788480e06b0a4ef4f943",
+        "overlay_sha256": {
+          "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": "505ae9a4f45e522dae46929859175bc8ab47866f5d3abae48bd49457bd04dbb8"
+        },
+        "phase": "test-only",
+        "postgres_bin": "/opt/homebrew/opt/postgresql@18/bin",
+        "source_count": 1143,
+        "source_map": "/private/tmp/hub-unchanging-deployment-20261031/test-only2/evidence-run1/source-map.before.json",
+        "source_map_sha256": "406d7ed47bf1eb9bef58883bc842c2f2d48c61853dbee7561b5a170ff82876ad",
+        "source_root": "/private/tmp/hub-unchanging-deployment-20261031/test-only2/source",
+        "source_unchanged": true,
+        "sqlx_offline": true,
+        "stages": [
+          {
+            "build_inputs_after_sha256": "eaa31ead9921a8363bae685d78551b8d1e967fda337cedbdfa0f997ce0ca9b91",
+            "build_inputs_unchanged": true,
+            "elapsed_ms": 39531,
+            "exit": 101,
+            "log_bytes": 2514,
+            "log_sha256": "5350f2c1b6c3b965b8675cf8c06a2b6be4d8b3e33d2b825d2f8bd4ca84f0e8c5",
+            "named_tests": [
+              [
+                "mcp::discovery_watch::tests::live_publication_fences_a_selected_discovery_watch",
+                "ok"
+              ],
+              [
+                "mcp::discovery_watch::tests::publication_while_ensure_waits_for_watch_lock_is_rechecked",
+                "ok"
+              ],
+              [
+                "mcp::discovery_watch::tests::stale_admission_cannot_remove_a_newer_discovery_watch",
+                "ok"
+              ],
+              [
+                "mcp::discovery_watch::tests::an_unchanging_link_does_not_suppress_another_runners_watch",
+                "FAILED"
+              ],
+              [
+                "mcp::discovery_watch::tests::an_unchanging_deployment_does_not_suppress_the_same_link_in_another_selection",
+                "FAILED"
+              ]
+            ],
+            "source_after_sha256": "406d7ed47bf1eb9bef58883bc842c2f2d48c61853dbee7561b5a170ff82876ad",
+            "source_unchanged": true,
+            "test_binary": {
+              "bytes": 177792088,
+              "mtime_ns": 1793486236331452354,
+              "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-b10e884bd78a5830",
+              "sha256": "cbcae56378cc0789ae6ef3587795c01f0db989fa9b721e43fb7746167316626f"
+            },
+            "test_result_lines": [
+              [
+                "FAILED",
+                "3",
+                "2",
+                "0",
+                "0",
+                "326",
+                "7.14"
+              ]
+            ],
+            "test_run_counts": [
+              5
+            ],
+            "timed_out": false
+          }
+        ],
+        "timeout_seconds": 600,
+        "toolchain": "1.99.0-aarch64-apple-darwin",
+        "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target"
+      }
+    }
+  },
+  "scenarios": [
+    "Two distinct links in one admitted composition, identical server slug/generation",
+    "Same server slug/link in distinct admitted compositions selecting different deployments"
+  ],
+  "setup_only_launch_errors": "One invocation referenced an uncopied runner path; two fresh evidence-directory guards rejected precreated empty paths. No compiler/formatter ran in those attempts; corrected invocations used preserved/new evidence paths. These are not runtime regression results.",
+  "source_files": {
+    "crates/veoveo-hub/DESIGN.md": {
+      "bytes": 177885,
+      "sha256": "87f3b82d4a5b3fcb0f1adab2e03bc86ef006ef91f17be3259f1f3e15822ad60b"
+    },
+    "crates/veoveo-hub/src/mcp/discovery_watch.rs": {
+      "bytes": 10979,
+      "sha256": "8489b204d891994d2c266d84b9fc715462f18756c9fa39b96ae1934a7b750619"
+    },
+    "crates/veoveo-hub/src/mcp/discovery_watch/tests.rs": {
+      "bytes": 25322,
+      "sha256": "505ae9a4f45e522dae46929859175bc8ab47866f5d3abae48bd49457bd04dbb8"
+    },
+    "crates/veoveo-hub/src/mcp/subscriptions.rs": {
+      "bytes": 23522,
+      "sha256": "e048344e7844bf151d42ea3823ed9cada87492e8f3618a3b61c3d61c8cb5f8a3"
+    }
+  },
+  "test_bytes_identical_between_reproduction_and_fix": {
+    "bytes": 25322,
+    "sha256": "505ae9a4f45e522dae46929859175bc8ab47866f5d3abae48bd49457bd04dbb8"
+  }
+}

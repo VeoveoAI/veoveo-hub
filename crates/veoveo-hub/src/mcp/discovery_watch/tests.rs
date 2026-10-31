@@ -17,6 +17,9 @@ const DEADLINE: Duration = Duration::from_secs(3);
 struct Source {
     opened: mpsc::UnboundedSender<()>,
     ended: mpsc::UnboundedSender<()>,
+    infos: mpsc::UnboundedSender<()>,
+    changes: tokio::sync::broadcast::Sender<()>,
+    list_changed: bool,
 }
 struct Ended(mpsc::UnboundedSender<()>);
 impl Drop for Ended {
@@ -26,12 +29,12 @@ impl Drop for Ended {
 }
 impl ServerHandler for Source {
     fn get_info(&self) -> ServerConfig {
-        ServerConfig::new(
-            ServerCapabilities::builder()
-                .enable_tools()
-                .enable_tool_list_changed()
-                .build(),
-        )
+        let _ = self.infos.send(());
+        let mut capabilities = ServerCapabilities::builder().enable_tools().build();
+        if self.list_changed {
+            capabilities.tools.as_mut().unwrap().list_changed = Some(true);
+        }
+        ServerConfig::new(capabilities)
     }
     fn accepted_subscription_filter(
         &self,
@@ -42,9 +45,18 @@ impl ServerHandler for Source {
     async fn listen(&self, context: SubscriptionContext) -> Result<(), McpError> {
         // Observe both normal cancellation and disposal of this actual listen future.
         let _ended = Ended(self.ended.clone());
+        let mut changes = self.changes.subscribe();
         self.opened.send(()).unwrap();
-        context.cancelled().await;
-        Ok(())
+        loop {
+            tokio::select! {
+                () = context.cancelled() => return Ok(()),
+                changed = changes.recv() => {
+                    changed.expect("fixture change channel closed or lagged");
+                    context.sink().notify_tool_list_changed().await
+                        .map_err(|_| mcp_internal("fixture notification failed"))?;
+                }
+            }
+        }
     }
 }
 
@@ -57,6 +69,8 @@ struct Fixture {
     server: crate::registration::RegisteredServer,
     opened: mpsc::UnboundedReceiver<()>,
     ended: mpsc::UnboundedReceiver<()>,
+    infos: mpsc::UnboundedReceiver<()>,
+    changes: tokio::sync::broadcast::Sender<()>,
     downstream: RunningService<RoleServer, Downstream>,
     _client: RunningService<RoleClient, ()>,
     serving: tokio::task::JoinHandle<()>,
@@ -73,7 +87,15 @@ impl Fixture {
         let database = crate::test_store::TestDb::new().await;
         let (opened, receiver) = mpsc::unbounded_channel();
         let (ended, ended_receiver) = mpsc::unbounded_channel();
-        let source = Source { opened, ended };
+        let (infos, info_receiver) = mpsc::unbounded_channel();
+        let (changes, _) = tokio::sync::broadcast::channel(8);
+        let source = Source {
+            opened,
+            ended,
+            infos,
+            changes: changes.clone(),
+            list_changed: true,
+        };
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let endpoint = format!("http://{}/mcp", listener.local_addr().unwrap());
         let service = StreamableHttpService::new(
@@ -122,6 +144,8 @@ impl Fixture {
             server,
             opened: receiver,
             ended: ended_receiver,
+            infos: info_receiver,
+            changes,
             downstream,
             _client: client,
             serving,
@@ -333,4 +357,332 @@ async fn publication_while_ensure_waits_for_watch_lock_is_rechecked() {
     })
     .await
     .expect("watch-lock publication scenario exceeded its bound");
+}
+
+/// Real catalog contribution: the caller holds a read grant on the runners' source.
+#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+struct RunnerGrantFixture {
+    tenant: String,
+    principal: String,
+    repository: String,
+}
+impl crate::contract::CatalogSection for RunnerGrantFixture {
+    fn validate(
+        &self,
+        facts: &crate::contract::CatalogFacts,
+    ) -> Result<(), veoveo_types::ExtensionError> {
+        if !facts
+            .tenants
+            .contains(&veoveo_types::TenantId::parse(&self.tenant).unwrap())
+        {
+            return Err(veoveo_types::ExtensionError::new("unknown fixture tenant"));
+        }
+        Ok(())
+    }
+
+    fn protected_resources(&self) -> Vec<crate::contract::ProtectedResourceDescriptor> {
+        Vec::new()
+    }
+
+    fn repository_grants(
+        &self,
+    ) -> Result<Vec<crate::contract::RepositoryGrantDescriptor>, veoveo_types::ExtensionError> {
+        Ok(vec![crate::contract::RepositoryGrantDescriptor {
+            tenant: veoveo_types::TenantId::parse(&self.tenant).unwrap(),
+            repository: veoveo_hub_sdk::registration::RepositoryId::parse(&self.repository)
+                .unwrap(),
+            grantee: crate::contract::RepositoryGrantee::Principal(
+                veoveo_types::PrincipalId::parse(&self.principal).unwrap(),
+            ),
+            actions: BTreeSet::new(),
+        }])
+    }
+}
+
+/// Observe the same production path for either two links of one selection, or two
+/// selections of one link. Only the initialized endpoint's capability differs.
+async fn unchanging_runner_isolation(same_link: bool) {
+    let mut fixture = Fixture::new().await;
+    let (opened, mut static_opened) = mpsc::unbounded_channel();
+    let (ended, _) = mpsc::unbounded_channel();
+    let (infos, mut static_infos) = mpsc::unbounded_channel();
+    let static_source = Source {
+        opened,
+        ended,
+        infos,
+        changes: tokio::sync::broadcast::channel(8).0,
+        list_changed: false,
+    };
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let endpoint = format!("http://{}/mcp", listener.local_addr().unwrap());
+    let service = StreamableHttpService::new(
+        move || Ok(static_source.clone()),
+        veoveo_hub_sdk::stateless_session_manager(),
+        veoveo_hub_sdk::canonical_streamable_http_server_config(),
+    );
+    let router = axum::Router::new().nest_service("/mcp", service);
+    let static_serving = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+
+    let repository = veoveo_hub_sdk::registration::RepositoryId::parse("a".repeat(32)).unwrap();
+    let mut static_server = fixture.server.clone();
+    static_server.deployment = veoveo_hub_sdk::DeploymentId::new();
+    static_server.endpoint =
+        veoveo_hub_sdk::registration::ServerEndpoint::new(endpoint.parse().unwrap()).unwrap();
+    static_server.branch = Some("static".parse().unwrap());
+    static_server.runner = Some(crate::registration::RunnerOf {
+        link: "first".parse().unwrap(),
+        repository: repository.clone(),
+    });
+    fixture.server.branch = Some(
+        if same_link { "dynamic" } else { "static" }
+            .parse()
+            .unwrap(),
+    );
+    fixture.server.runner = Some(crate::registration::RunnerOf {
+        link: if same_link { "first" } else { "second" }.parse().unwrap(),
+        repository: repository.clone(),
+    });
+    assert_eq!(static_server.authorization, fixture.server.authorization);
+
+    let mut plane: crate::control_plane::HubControlPlane =
+        serde_json::from_str(include_str!("../../../testdata/hub.json")).unwrap();
+    let context = &plane.work_contexts[0];
+    let mut subject = crate::mcp::task_ownership_tests::subject();
+    // This fixture admits the configured context, not the Task fixture's enterprise.
+    subject.actor.tenant = Some(context.tenant.clone());
+    subject.principal.tenant = Some(context.tenant.clone());
+    subject.authority.tenant = context.tenant.clone();
+    subject.authority.work_context = context.id.clone();
+    subject.authority.policy_revision = context.policy_revision.clone();
+    subject.authority.output_policy = context.output_policy.clone();
+    subject.access_token.work_context = context.id.clone();
+    let grant = RunnerGrantFixture {
+        tenant: subject.principal.tenant.as_ref().unwrap().to_string(),
+        principal: subject.principal.id.to_string(),
+        repository: repository.to_string(),
+    };
+    let mut builder = crate::kernel_catalog_registry_builder().unwrap();
+    builder
+        .register_section::<RunnerGrantFixture>("watchfixture".parse().unwrap())
+        .unwrap();
+    let binding = crate::HubCatalogAdmission::unbound()
+        .bind(builder.build().unwrap())
+        .unwrap();
+    plane.extensions.insert(
+        "watchfixture".to_owned(),
+        serde_json::to_value(grant).unwrap(),
+    );
+    let catalog = HubCatalog::from_control_plane(plane, binding)
+        .unwrap()
+        .with_registrations(crate::registration::RegistrationSnapshot::new([
+            static_server.clone(),
+            fixture.server.clone(),
+        ]));
+    // The grant is admitted through the same contribution that production uses.
+    for server in [&static_server, &fixture.server] {
+        assert!(catalog.reaches(&subject.principal, server));
+        assert_eq!(
+            catalog
+                .repository_grant(&subject.principal, &repository)
+                .unwrap()
+                .repository,
+            repository,
+        );
+    }
+    fixture.root = HubMcp::new(
+        HubCatalogHandle::new(Arc::new(catalog)),
+        "workspace".parse().unwrap(),
+        HubState::new(fixture._database.a.clone()),
+        crate::test_catalog::token_issuer(),
+        crate::mcp::upstream_http::HubUpstreamHttpClientPool::new(),
+    );
+    let snapshot = fixture.root.live_catalog.snapshot();
+    let admitted = |server: &crate::registration::RegisteredServer| {
+        let runners = if same_link {
+            BTreeMap::from([(server.link().unwrap().clone(), server.deployment)])
+        } else {
+            BTreeMap::from([
+                (
+                    static_server.link().unwrap().clone(),
+                    static_server.deployment,
+                ),
+                (
+                    fixture.server.link().unwrap().clone(),
+                    fixture.server.deployment,
+                ),
+            ])
+        };
+        let composition = ResolvedComposition::new(BTreeMap::from([(
+            server.slug.clone(),
+            ResolvedComponent::Runners { runners },
+        )]));
+        let mut subject = subject.clone();
+        subject.execution = Some(composition.context());
+        let view = fixture.root.for_admission(
+            &snapshot,
+            crate::execution::Admitted {
+                composition,
+                unavailable: BTreeMap::new(),
+            },
+            subject.access_token.oauth_client_id.clone(),
+        );
+        let selected = view.catalog.current();
+        assert_eq!(
+            selected
+                .keyed_server(&view.profile_id, &server.slug, server.link())
+                .unwrap()
+                .deployment,
+            server.deployment,
+        );
+        let key = DiscoveryCacheKey {
+            catalog_generation: snapshot.generation(),
+            principal: subject.actor.id.clone(),
+            authorization_fingerprint: crate::mcp::discovery_authorization_fingerprint(&subject)
+                .unwrap(),
+            server: server.slug.clone(),
+            link: server.link().cloned(),
+        };
+        (view, subject, key)
+    };
+    let (static_view, static_subject, static_key) = admitted(&static_server);
+    let (dynamic_view, dynamic_subject, dynamic_key) = admitted(&fixture.server);
+    assert_ne!(static_key, dynamic_key);
+    assert_eq!(
+        static_key.catalog_generation,
+        dynamic_key.catalog_generation
+    );
+    assert_eq!(static_key.link == dynamic_key.link, same_link);
+    assert_eq!(
+        static_key.authorization_fingerprint == dynamic_key.authorization_fingerprint,
+        !same_link,
+    );
+
+    static_view
+        .ensure_discovery_watch(
+            &static_key,
+            fixture.downstream.peer().clone(),
+            &static_subject,
+        )
+        .await
+        .unwrap();
+    assert!(
+        static_infos.try_recv().is_ok(),
+        "static runner was actually discovered"
+    );
+    while static_infos.try_recv().is_ok() {}
+    static_view
+        .ensure_discovery_watch(
+            &static_key,
+            fixture.downstream.peer().clone(),
+            &static_subject,
+        )
+        .await
+        .unwrap();
+    let static_reused = matches!(
+        static_infos.try_recv(),
+        Err(mpsc::error::TryRecvError::Empty)
+    );
+    let static_not_watched = matches!(
+        static_opened.try_recv(),
+        Err(mpsc::error::TryRecvError::Empty)
+    );
+
+    // Record the pre-ensure result instead of aborting before the other observations.
+    let active_before = dynamic_view.discovery_watch_active(&dynamic_key).await;
+    dynamic_view
+        .ensure_discovery_watch(
+            &dynamic_key,
+            fixture.downstream.peer().clone(),
+            &dynamic_subject,
+        )
+        .await
+        .unwrap();
+    let opened = tokio::time::timeout(DEADLINE, fixture.opened.recv())
+        .await
+        .ok()
+        .flatten()
+        .is_some();
+    let discovered = fixture.infos.try_recv().is_ok();
+    while fixture.infos.try_recv().is_ok() {}
+    let first_cell = dynamic_view
+        .discovery_watches
+        .watches
+        .lock()
+        .await
+        .get(&dynamic_key)
+        .cloned();
+    dynamic_view
+        .ensure_discovery_watch(
+            &dynamic_key,
+            fixture.downstream.peer().clone(),
+            &dynamic_subject,
+        )
+        .await
+        .unwrap();
+    let next_cell = dynamic_view
+        .discovery_watches
+        .watches
+        .lock()
+        .await
+        .get(&dynamic_key)
+        .cloned();
+    let reused = match (first_cell, next_cell) {
+        (Some(first), Some(next)) => Arc::ptr_eq(&first, &next),
+        _ => false,
+    };
+    let no_extra_discovery = matches!(
+        fixture.infos.try_recv(),
+        Err(mpsc::error::TryRecvError::Empty)
+    );
+    let no_extra_listen = matches!(
+        fixture.opened.try_recv(),
+        Err(mpsc::error::TryRecvError::Empty)
+    );
+    let expected = payload("dynamic runner complete descriptor", 17);
+    cache(&dynamic_view, &dynamic_key, &expected).await;
+    let notified = fixture.changes.send(()).is_ok();
+    let evicted = tokio::time::timeout(DEADLINE, async {
+        loop {
+            if dynamic_view.discovery.tools(&dynamic_key).await.is_none() {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .is_ok();
+    let contents = dynamic_view.discovery.tools(&dynamic_key).await;
+    static_serving.abort();
+    assert_eq!(
+        (
+            static_reused,
+            static_not_watched,
+            active_before,
+            opened,
+            discovered,
+            reused,
+            no_extra_discovery,
+            no_extra_listen,
+            notified,
+            evicted,
+            contents
+        ),
+        (
+            true, true, false, true, true, true, true, true, true, true, None
+        ),
+    );
+}
+
+#[tokio::test]
+async fn an_unchanging_link_does_not_suppress_another_runners_watch() {
+    tokio::time::timeout(Duration::from_secs(30), unchanging_runner_isolation(false))
+        .await
+        .expect("different-link watch isolation exceeded its bound");
+}
+
+#[tokio::test]
+async fn an_unchanging_deployment_does_not_suppress_the_same_link_in_another_selection() {
+    tokio::time::timeout(Duration::from_secs(30), unchanging_runner_isolation(true))
+        .await
+        .expect("selected-deployment watch isolation exceeded its bound");
 }

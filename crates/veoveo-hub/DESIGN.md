@@ -723,9 +723,12 @@ before changing the watch map, including after waiting for its mutex, and checks
 the live generation again after upstream discovery before remembering an unchanging
 server or keeping a stream. A live publication makes an old watch inactive; the
 watch invalidates its key's cached descriptors, in-flight tickets and retry records
-and ends its stream even when the upstream is quiet. A server whose discovered
-capabilities do not advertise the change is remembered for the generation and never
-watched. Known limit: the watch beside a cached tool list is per catalog generation,
+and ends its stream even when the upstream is quiet. A deployment whose discovered
+capabilities do not advertise the change is remembered by its deployment ID and the
+live catalog generation and needs no watch. That observation is reused only for the
+same deployment, including across admitted selections; another link's runner or
+another selected deployment is discovered independently. Known limit: the watch
+beside a cached tool list is per catalog generation,
 caller and authority, so a server that advertises the change, such as console, holds
 one listen per caller, and those listens count toward the replica's cap of 256
 discovery watches; a discovery beyond it fails until watches end. List pages use an opaque

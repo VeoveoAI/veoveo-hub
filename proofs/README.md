@@ -1017,6 +1017,19 @@ Prevents cross-context disclosure and stale routing represented as current disco
   algorithm, generated model or translator was patched to obtain a passing result;
   pagination remains unproved. The newer linked-runner dependency context has not
   been extracted by this attempt.
+- **Native deployment isolation finding:** the
+  [deployment memo receipt](discovery_cache/evidence/native-unchanging-deployment-20261031.json)
+  records a second watch defect on the integrated runtime. Remembering effective
+  unchanging capabilities by server name lets one static deployment suppress a
+  dynamic deployment's discovery and subscription. Both different links in one
+  selection and the same link in different selections reproduce this behavior,
+  retaining a complete cached descriptor with denied count 17. The correction
+  keys the existing memo by generation and actual deployment, including its two
+  subscription callers. The byte-identical regressions and three earlier watch
+  tests pass (5/5), as does the subscription regression (1/1). Final formatting
+  passes after a whitespace-only adjustment. This is native qualification, not
+  an extension of the frozen Lean graph; full integrated Mac/Linux checks and
+  current-source formal correspondence are separate obligations.
 - **Boundary/effort:** substantial for the cache/listener state machine. Native
   collection/identifier/clone/equality/time and mutex/observation refinement remain
   explicit. Any hash-based identity correspondence is conditional on no collisions

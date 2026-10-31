@@ -15,33 +15,33 @@ use std::{
 };
 use tokio::sync::{Mutex, OnceCell};
 use tokio_util::sync::CancellationToken;
-use veoveo_hub_sdk::ServerSlug;
+use veoveo_types::DeploymentId;
 
 const MAX_WATCHES: usize = 256;
 const OPEN_DEADLINE: Duration = Duration::from_secs(10);
 #[derive(Debug, Default)]
 pub(super) struct DiscoveryWatches {
     watches: Mutex<BTreeMap<DiscoveryCacheKey, Arc<OnceCell<Watch>>>>,
-    /// Servers whose discovered capabilities advertise no catalog change while they
+    /// Deployments whose discovered capabilities advertise no catalog change while they
     /// run, by catalog generation. Their discovery needs no watch.
-    unchanging: std::sync::Mutex<BTreeSet<(u64, ServerSlug)>>,
+    unchanging: std::sync::Mutex<BTreeSet<(u64, DeploymentId)>>,
 }
 impl DiscoveryWatches {
-    pub(super) fn unchanging(&self, generation: u64, server: &ServerSlug) -> bool {
+    pub(super) fn unchanging(&self, generation: u64, deployment: DeploymentId) -> bool {
         self.unchanging
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .contains(&(generation, server.clone()))
+            .contains(&(generation, deployment))
     }
-    /// Remember that `server` advertises no catalog change in `generation`, forgetting
+    /// Remember that `deployment` advertises no catalog change in `generation`, forgetting
     /// earlier generations.
-    pub(super) fn learned_unchanging(&self, generation: u64, server: &ServerSlug) {
+    pub(super) fn learned_unchanging(&self, generation: u64, deployment: DeploymentId) {
         let mut unchanging = self
             .unchanging
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         unchanging.retain(|(known, _)| *known >= generation);
-        unchanging.insert((generation, server.clone()));
+        unchanging.insert((generation, deployment));
     }
 }
 #[derive(Debug)]
@@ -94,7 +94,7 @@ impl HubMcp {
         }
         if self
             .discovery_watches
-            .unchanging(key.catalog_generation, &key.server)
+            .unchanging(key.catalog_generation, manifest.deployment)
         {
             return true;
         }
@@ -133,7 +133,7 @@ impl HubMcp {
         }
         if self
             .discovery_watches
-            .unchanging(key.catalog_generation, &key.server)
+            .unchanging(key.catalog_generation, manifest.deployment)
         {
             return Ok(());
         }
@@ -218,7 +218,7 @@ impl HubMcp {
             && watch.unchanging
         {
             self.discovery_watches
-                .learned_unchanging(key.catalog_generation, &key.server);
+                .learned_unchanging(key.catalog_generation, manifest.deployment);
             let mut watches = self.discovery_watches.watches.lock().await;
             if watches
                 .get(key)
