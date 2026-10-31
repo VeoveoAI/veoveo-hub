@@ -761,8 +761,12 @@ separate admitted-input case whose caller cap equals the sampled clock returns
 Only typed external observations are premises; fixture ownership/context/chain
 conditions and conversion are independently proved. Their
 [receipt](current_roles/evidence/sdk-issuer-caller-examples.json) records passing
-fixture/outcome targets. The actual-source deadline fault and restored baseline
-remain pending. These results cover a supplied client and deadline, not their
+fixture/outcome targets. The [deadline-control checkpoint](current_roles/evidence/sdk-issuer-caller-deadline-control.json)
+records an actual Rust fault that compiles and is rejected by the unchanged caller
+contract at its deadline equation. Exact same-tree source/raw restoration and a
+fresh build of the three original caller targets pass. The independent wrong-output
+witness failed elaboration and remains an explicitly unqualified draft; the full
+control is still incomplete. These results cover a supplied client and deadline, not their
 asynchronous/current-policy provenance, the 60/900-second TTL/clock wrappers,
 HTTP attachment, transport or native signature verification. The prepared-source
 applicability boundary remains; no runtime conversion is added.
@@ -772,8 +776,9 @@ A [bounded unchanged-helper probe](https://github.com/VeoveoAI/veoveo-docs/blob/
 passes Charon with the helper transparent, but pinned Aeneas rejects the
 string-pattern method signature and emits no Lean. No canonical model changed.
 The [composition review](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-issuer-composition-boundaries.md)
-states the exact set/traversal, timestamp and complete-field correspondence still
-needed between the two proof representations; it proposes no runtime adapter.
+records the original set/traversal, timestamp and complete-field obligations. The
+bridge above supplies their stated model-level correspondence; native refinement
+and the other explicit applicability boundaries remain. No runtime adapter is added.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

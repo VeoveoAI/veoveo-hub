@@ -1024,5 +1024,39 @@ lake build SdkInternalAuthCallerExamples SdkInternalAuthCallerWitnesses SdkInter
 The [receipt](evidence/sdk-issuer-caller-examples.json) records focused direct and
 named validation (2.952 s fixture, 2.612 s witness, 6.092 s named targets), exact
 inputs/artifacts, and separate authoring failures. The
-generic caller theorem is unchanged. Actual-source deadline mutation/restoration
-remains the next qualification step.
+generic caller theorem is unchanged. The following checkpoint records partial
+qualification of the actual-source deadline control.
+
+## Caller deadline control checkpoint
+
+The [test-only Rust patch](mutations/ignore-caller-delegation-deadline.patch)
+ignores the retained caller cap while preserving the comparison dependency. Fresh
+Charon/Aeneas extraction succeeds; the generated function differs only at that
+comparison, with source-span changes and unchanged external interfaces. The fresh
+mutant model and unaffected fixtures compile in 23.998 s. The unchanged caller
+contract rejects it in 2.740 s at `earlier requested requested = earlier cap requested`,
+and its axiom guard rejects the resulting unfinished proof.
+
+This control is **not fully qualified**. The independent
+[wrong-output witness](mutations/CallerDeadlineBypassWitness.lean) failed compilation
+on module qualification and allocator type errors. Its subsequent partial edits
+have not been checked; it is retained as an explicitly unqualified draft, outside
+the ordinary targets. Automated content review stopped the coding worker twice
+during that editing task. No actual wrong-output theorem, usable JWT or new
+production defect is claimed from the draft.
+
+The caller patch was reversed in the same scratch source tree. Fresh extraction
+reproduced all four canonical raw files byte for byte. Reversing the existing
+catalog naming annotation then restored the original full 962-file archive map.
+A fresh restored package passed `SdkInternalAuthCallerProof`,
+`SdkInternalAuthCallerExamples` and `SdkInternalAuthCallerWitnesses` in 25.982 s;
+all nineteen guarded declarations pass with their existing boundaries. Shared
+Lake dependencies were reused, and the three proof/fixture source files are
+unchanged. No runtime change, native suite, deployment or CI hook was introduced.
+
+The [checkpoint receipt](evidence/sdk-issuer-caller-deadline-control.json) distinguishes
+the completed contract rejection and restoration from the unfinished independent
+witness. It also records the first mutation's interface pruning and the evidence
+reader correction; neither is counted as a semantic proof result. The supplied
+client/deadline, prepared SDK-version, native representation, external primitive,
+TTL wrapper and transport limitations above remain in force.
