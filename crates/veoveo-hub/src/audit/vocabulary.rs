@@ -49,6 +49,8 @@ pub enum AdministrativeOperation {
     JwtRevoke,
     JwtPrune,
     ServerHealth,
+    /// Every session of a person ended, and their Computer stopped.
+    SessionsEnd,
     TaskCancel,
     UsageRead,
 }
@@ -75,6 +77,10 @@ pub enum AdminOperationFailure {
     RevisionId,
     /// A publication named no revision in `If-Match`, or one that is no longer active.
     RevisionPrecondition,
+    /// A person's sessions could not be ended.
+    SessionsEnd,
+    /// A person's sessions ended, and their Computer could not be stopped.
+    StopComputer,
     TaskOwnership,
     TaskRoute,
 }

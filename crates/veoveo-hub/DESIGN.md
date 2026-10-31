@@ -777,7 +777,7 @@ ordinary login establishes new custody; there is no legacy binding or backfill.
 | `/.well-known/oauth-authorization-server/oauth`, `/oauth/.well-known/openid-configuration`, `/.well-known/oauth-protected-resource/mcp/{profile}` | Hosted authorization server metadata at its RFC 8414 and OpenID discovery locations, and protected resource metadata |
 | `/mcp/{profile}` | The profile's MCP endpoint |
 | `/console-api/{profile}/session` | Console session bootstrap |
-| `/admin/{profile}/...` | Configuration, audit, JWT revocation, Task cancellation, server health and usage |
+| `/admin/{profile}/...` | Configuration, audit, JWT revocation, ending a person's sessions, Task cancellation, server health and usage |
 | `PUT`/`DELETE /selection/{profile}/{server}` | The caller's branch for a server, or back to the base branch; 204 |
 | `PUT /factory/{profile}/watch?repository=<id>` | The Hub watches a Lore repository as the caller; 204, or 403 without the caller's grant |
 | `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
@@ -1496,6 +1496,27 @@ revokes using ClientRevocation, clears successor delivery envelopes, and commits
 native `hub.authentication` Revoke record with BrowserSession method. A newer
 handoff cannot be revoked by the old cookie. The cookie is cleared only after that
 operation succeeds (or when there is no current admitted session).
+
+An administrator ends every session of a person with
+`DELETE /admin/{profile}/people/{email}/sessions`, as when the person's access changes in
+the identity provider, whose roles, groups and data labels a session keeps from its
+sign-in. It names the person of the caller's tenant who signed in with that email, needs
+`admin_write` and is audited as the `sessions_end` operation on
+`veoveo://people/{tenant}/{principal}`. One transaction locks the person's Computer first,
+as custody does, and clears its Lore client, so no secret mints a Lore token for it; it
+revokes each of the person's unexpired families with `administrator_revocation` and clears
+their successor deliveries. The Hub then stops the person's Computer as collection does:
+its sandbox is deleted, its home kept, and its next entry, after a sign-in, creates it
+again with a new Lore client. Every request of those families is refused from then on;
+the Computer's Lore tokens go with its sandbox, since they never leave it; and the next
+sign-in brings what the identity provider names then. The answer names the person, the
+sessions ended and the Computer: `stopped`, `notRunning`, `busy` while a replacement holds
+it, which then starts without a session or a Lore client, or `none`. It is 404
+`person-not-found` when no one of the tenant signed in with that email, and 502
+`computer-not-stopped` when the sandbox could not be removed, after the sessions ended;
+ending them again is harmless. A Lore token issued outside a Computer keeps its rights
+until it expires under the deployment's token lifetime, a forwarded token for at most 60
+seconds, and a Task the authority of the call that created it.
 
 The native audit declaration flow updates a changed class's documenting schema
 in place before startup records are written. The added `browser_session` method

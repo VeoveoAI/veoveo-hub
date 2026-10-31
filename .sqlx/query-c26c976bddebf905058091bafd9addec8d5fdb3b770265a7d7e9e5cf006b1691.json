@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Lock the person's Computer first, matching custody's lock order, and clear its Lore\n-- client, so no secret mints a Lore token for it until the next handoff gives a new one.\nUPDATE hub.computer SET lore_client_digest = NULL\nWHERE tenant = $1 AND principal_id = $2\nRETURNING id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.computer",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c26c976bddebf905058091bafd9addec8d5fdb3b770265a7d7e9e5cf006b1691"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- A Computer's Lore client, as a handoff stores it.\nUPDATE hub.computer SET lore_client_digest = $3 WHERE id = $1 AND tenant = $2\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6e8cc80d187e9b7bbc1788ba1fca4f659dcee746cc71704ab0f574e19c91b9fd"
+}
