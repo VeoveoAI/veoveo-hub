@@ -104,7 +104,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
-| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Exact cache operations and key/map preservation checked; prove state/history closure, server invalidation and listener freshness |
+| HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Cache transition invariants and generation fence checked; prove finite histories, server invalidation and listener freshness |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
@@ -931,12 +931,23 @@ Prevents cross-context disclosure and stale routing represented as current disco
   with 32 executable standard-only axiom guards across the pair. This does not
   verify Rust's `BTreeMap` implementation or establish reachable cache-state
   invariants; those require composing the established operation contracts.
+- **Checked actual-operation state invariants:** the
+  [state receipt](discovery_cache/evidence/state-invariants-20261031.json)
+  proves the empty represented state has strictly ordered, unique, bounded maps
+  with every stored key at the state's generation. Actual start, completion,
+  cached-only removal and key invalidation preserve these properties whenever
+  they return normally. Start never decreases generation; other mutations preserve
+  it exactly. Earlier physical usize bounds are derived, not assumed separately.
+  An older-generation completion is therefore a whole-state no-op without a
+  ticket-freshness premise. The leaf passed in 2.776 s with seventeen guards:
+  fourteen standard-only and three permitting the existing native `Instant.add`
+  boundary. No after-state invariant or separate callback-success premise is assumed. Finite
+  histories and native constructor/mutex correspondence are still separate.
 - **Boundary/effort:** moderate for key/cursor comparisons; substantial for the
   cache/listener state machine. Assume collision-resistant identity hashing, correct
   authenticated inputs and mutex/watch-channel semantics where effects are modeled.
-- **Residual/next:** derive map ordering/uniqueness, capacity and generation
-  invariants from empty state through actual cache operations, then compose finite
-  histories covering replacement work and generation changes. Qualify actual-source
+- **Residual/next:** compose actual-operation equations into finite histories
+  covering replacement work and generation changes. Qualify actual-source
   semantic controls and close server-wide invalidation's translation boundary.
   The checked direct key fence does not establish reconnect
   delivery, actual client caching behavior or cross-replica notification reliability.

@@ -1,0 +1,191 @@
+{
+  "case": "discovery-cache-actual-state-invariants-20261031",
+  "evidence_class": "Implementation-linked normal-return invariant preservation and generation fence; finite-history induction and native refinement not yet established",
+  "team": {
+    "implementation": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source": {
+    "runtime_revision": "688b91a",
+    "proof_parent_revision": "6cfcb69",
+    "sdk_revision": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+    "core_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "discovery_rs": {
+      "sha256": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+      "bytes": 36053
+    },
+    "new_checked_leaf": {
+      "path": "CacheStateInvariantProof.lean",
+      "sha256": "d6033c750c81723d08676a195545710c89cc5e681408f242c75ab8e867e8bde5",
+      "bytes": 14095
+    },
+    "unchanged_source_and_configuration_map": {
+      "receipt": "key-map-invariants-20261031.json",
+      "sha256": "60bd2503723abc2c3104b910359d3b0e581af343a561c1c565af490fccbe4696",
+      "bytes": 15421,
+      "reuse": "All prior checked_file_map entries except README.md. Prior postcheck_readme equals this run's checked README. Exact 16-file packet identities are recorded with each attempt."
+    },
+    "checked_readme": {
+      "sha256": "546c1bde7a65462a165b410fe603b4b6ed1b04c9b7d7531439168fb5b02b056e",
+      "bytes": 10447
+    },
+    "postcheck_readme": {
+      "sha256": "541c53f2b1d8e1034ab3ea171bbabadb75baa22ed0694238dca8cbceb793db23",
+      "bytes": 11961
+    },
+    "postcheck_change": "Documentation only; accepted new leaf and every prior proof/model/config source remain unchanged"
+  },
+  "toolchain": {
+    "lean": "4.35.0",
+    "aeneas_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "effective_lakefile_sha256": "ec24f002e4aa4e1c4c6986b8443f4566752f2855d8cae27fa2e07115181c071b",
+    "effective_manifest_sha256": "2bbd5afa9c8e51f8033f5715cc74818997fd2640f1cff10b2dc85d165228ed23",
+    "configuration": "Reuse the qualified private dependency override and existing discriminant instance-name patch documented in the prerequisite receipt. No tool modification or dependency rebuild. Clean unpatched upstream reproduction remains unmeasured."
+  },
+  "execution": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "packet": {
+          "sha256": "cab7f92ace6e5eed700ed259d6229c652990772ffa9e259a30b60fc62a39c204",
+          "bytes": 5040
+        },
+        "runner": {
+          "sha256": "64e83063731fd6858fbe846e4133109b107c19047ac496d7462a0ea856d2bbc3",
+          "bytes": 6262
+        },
+        "source": {
+          "sha256": "c4cbb61ef6d3005ee7902d4279405d9fc3219e2f7199d23eee93b73946888ddd",
+          "bytes": 14046
+        },
+        "command": "LAKE_NO_UPDATE=1 lake env lean CacheStateInvariantProof.lean -o .lake/build/lib/lean/CacheStateInvariantProof.olean",
+        "exit_status": 1,
+        "elapsed_ms": 2654,
+        "input_postcheck_exit": 0,
+        "log": {
+          "sha256": "a888624267b671cdc4cebdf60eaef1e7434766268b53512353ef6298693cf931",
+          "bytes": 2270
+        },
+        "input_before": {
+          "sha256": "8984ef196dca4e45b5dc220aee2c8d7035149615271f4d8b2eb9868e2ed9e608",
+          "bytes": 3340
+        },
+        "input_after": {
+          "sha256": "8984ef196dca4e45b5dc220aee2c8d7035149615271f4d8b2eb9868e2ed9e608",
+          "bytes": 3340
+        }
+      },
+      {
+        "attempt": 2,
+        "packet": {
+          "sha256": "42e8a6bad7569a3004bb7de48dff1fd538c23b26259befe517b9e74514767fc2",
+          "bytes": 5005
+        },
+        "runner": {
+          "sha256": "22948a0ee60030360d90f293dd0842ffca3d040b98b927c34e8a1d244d2d225c",
+          "bytes": 6262
+        },
+        "source": {
+          "sha256": "d6033c750c81723d08676a195545710c89cc5e681408f242c75ab8e867e8bde5",
+          "bytes": 14095
+        },
+        "command": "LAKE_NO_UPDATE=1 lake env lean CacheStateInvariantProof.lean -o .lake/build/lib/lean/CacheStateInvariantProof.olean",
+        "exit_status": 0,
+        "elapsed_ms": 2776,
+        "input_postcheck_exit": 0,
+        "log": {
+          "sha256": "b6ce5e8a324bb9fe9f9a916633a0ebea3542224aea74ead039740639ae59c138",
+          "bytes": 1610
+        },
+        "input_before": {
+          "sha256": "d39e39fb0346e99b0dd3e2bfc096e7f8f5420329d090766d48e8ed8a5663d64b",
+          "bytes": 3340
+        },
+        "input_after": {
+          "sha256": "d39e39fb0346e99b0dd3e2bfc096e7f8f5420329d090766d48e8ed8a5663d64b",
+          "bytes": 3340
+        }
+      }
+    ],
+    "accepted_artifact": {
+      "path": ".lake/build/lib/lean/CacheStateInvariantProof.olean",
+      "sha256": "6d08d94c6468d5186026264ca120947c9acf9e2f2d0cfad9685075e72d0fcc13",
+      "bytes": 367544
+    },
+    "timeout_seconds": 180,
+    "environment": {
+      "LAKE_NO_UPDATE": "1"
+    },
+    "gates": "16 source/config inputs, effective private config, 11 qualified prerequisite OLeans, exact supporting source hashes and unchanged pinned Mathlib import artifacts checked before/after. Source map digests agree within both attempts. No prior model or proof was rebuilt.",
+    "repairs": "First attempt failed because omega did not reduce a constructed state generation projection and Bool.true_eq_true was unavailable. Explicit projection reduction and removal of the nonexistent lemma repaired elaboration without changing statements, runtime code or primitive models. These were proof-authoring errors, not semantic controls or production bugs.",
+    "warnings": "Three unused bind_tc_eq simp arguments in the accepted run; no compiler errors or sorryAx."
+  },
+  "contracts": {
+    "empty_ok": "Structural empty represented state satisfies StateOk for any U64 generation. This is not extraction of the native constructor.",
+    "StateOk": "All three maps are strictly ordered, length at most 4096 and contain only keys whose generation equals the state generation. Uniqueness and physical usize bounds are derived; pending/retry/cached overlap is permitted.",
+    "start_preserves": "For any StateOk input and actual start normal-return equation, the resulting StateOk and nondecreasing generation are proved. Clock/ticket observations remain arbitrary; no desired after-state invariant is assumed.",
+    "complete_preserves": "Actual normal-return completion preserves StateOk and exact generation. Matching in-flight lookup derives the fetch key generation. Generic Vec.ne, native addition and arbitrary denied counts are retained.",
+    "removal_preservation": "Actual remove_cached and discard_key normal results preserve StateOk and exact generation.",
+    "generation_stale_complete": "For any StateOk state whose generation exceeds a fetch key generation, actual complete returns false and the identical entire state, independently of ticket freshness, payload, denied count and clock."
+  },
+  "axiom_audit": {
+    "executable_guards": 17,
+    "standard_only_guards": 14,
+    "completion_related_guards": 3,
+    "permitted_standard": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "only_additional_primitive": "HubDiscoveryCacheModel.tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add",
+    "printed_closures": {
+      "CacheStateInvariantProof.empty_ok": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheStateInvariantProof.map_physical": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheStateInvariantProof.start_preserves": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheStateInvariantProof.complete_preserves": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ],
+      "CacheStateInvariantProof.remove_cached_preserves": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheStateInvariantProof.discard_key_preserves": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "CacheStateInvariantProof.generation_stale_complete": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound",
+        "tokio.time.instant.Instant.Insts.CoreOpsArithAddDurationInstant.add"
+      ]
+    },
+    "new_axioms": false,
+    "sorryAx_in_accepted_closures": false
+  },
+  "boundaries": [
+    "The normal-return relation excludes post-panic native state and makes no effect-count or liveness claim. Used observations are derived by Result bind inversion rather than separately assumed successful.",
+    "Native collection/identifier/order/clone/equality/clock correspondence, initial constructor and async mutex refinement remain explicit. Instant.add is an uninterpreted Result boundary, not assumed total or future-valued.",
+    "Finite histories of actual method equations and same-key replacement histories with scoped accepted-ticket nonreuse remain next. No global UUID freshness assumption was added.",
+    "Actual-source semantic controls, server-wide invalidation translator support, listeners and cross-replica delivery remain open.",
+    "No runtime/generated/model/tool change, native test/full Docker rerun, remote push, deployment or paid model call occurred."
+  ]
+}

@@ -78,10 +78,19 @@ room/insertion operation preserves the 4096 bound, and the named eviction victim
 the minimum key. These are contracts of the concrete external collection model;
 they do not verify Rust's standard-library `BTreeMap` implementation.
 
-State-level preservation through actual Hub operations remains next: derive ordered,
-bounded maps and generation coherence from empty state, then compose finite
-histories. The map lemmas establish preservation from ordered inputs; this checkpoint
-does not yet derive those inputs for every reachable cache state.
+`CacheStateInvariantProof` establishes those invariants for the empty represented
+state and preserves them through actual `start`, `complete`, `remove_cached` and
+`discard_key` normal-return equations. Every map stays strictly ordered, unique and
+bounded by 4096, and all stored key generations equal the state's generation.
+Start never decreases generation; the other mutations preserve it exactly. The
+physical usize premises used by earlier contracts follow from these bounds, without
+assuming a particular host width. No desired after-state invariant is assumed.
+
+Matching an in-flight ticket now derives its key's generation. Consequently any
+older-generation completion is a complete no-op, independently of ticket freshness,
+payload comparison, denied count or clock result. The initial empty representation
+is structural; native constructor and mutex correspondence remain external. Finite
+actual-operation histories and same-key replacement fencing remain next.
 
 Server-wide `discard_server` invalidation remains unsupported and unproved. The
 six-root extraction translated, but unchanged generated retain-closure dictionaries
@@ -102,6 +111,7 @@ LAKE_NO_UPDATE=1 lake env lean CacheCompleteSpecification.lean -o .lake/build/li
 LAKE_NO_UPDATE=1 lake env lean CacheCompleteProof.lean -o .lake/build/lib/lean/CacheCompleteProof.olean
 LAKE_NO_UPDATE=1 lake env lean CacheKeyOrderProof.lean -o .lake/build/lib/lean/CacheKeyOrderProof.olean
 LAKE_NO_UPDATE=1 lake env lean CacheMapInvariantProof.lean -o .lake/build/lib/lean/CacheMapInvariantProof.olean
+LAKE_NO_UPDATE=1 lake env lean CacheStateInvariantProof.lean -o .lake/build/lib/lean/CacheStateInvariantProof.olean
 ```
 
 The primitive model build passed in 10.685s. The final read/key-invalidation leaf
@@ -137,6 +147,16 @@ in the removal proof. Both proof-authoring failures are retained in the
 defect or required a changed map contract. Source/configuration and imported artifacts
 were checked around each run. No native, generated, primitive-model or tool source
 changed, and no prior proof/model dependency was rebuilt.
+
+The [state-invariant leaf](evidence/state-invariants-20261031.json) passed in 2.776s.
+Seventeen executable guards passed: fourteen allow standard logical axioms only;
+three completion-related declarations additionally allow precisely the existing
+native `Instant.add` Result boundary. Five printed closures are standard-only and
+two include that boundary, with no `sorryAx`. The first attempt failed on an
+unreduced record projection and a nonexistent library lemma name; proof-only repairs
+preserved all statements. Sixteen source/configuration entries and eleven prerequisite
+artifacts were checked around the accepted run. This is normal-return closure;
+native post-panic state, callback invocation counts and liveness are not claimed.
 
 Validation used Lean 4.35.0 and the pinned Aeneas revision with the existing
 [qualified discriminant instance-name patch](../request_composition/tooling/qualified-discriminant-instance.patch)
