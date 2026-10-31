@@ -1125,7 +1125,7 @@ async fn watching_again_replaces_the_watcher_and_its_follower() {
 
 const LINKED_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const LINKED_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-const TEAM_POLICY: &str = "version: 1\nnetwork_policies:\n  team-api:\n    endpoints:\n      - {host: api.team.example, port: 443}\n    binaries:\n      - path: /**\n";
+const TEAM_POLICY: &str = "version: 1\nnetwork_policies:\n  team-api:\n    endpoints:\n      - {host: api.team.example, port: 443}\n    binaries:\n      - path: /sandbox/src/**\n";
 
 fn linked_watched(repository: &str) -> Watched {
     Watched {
@@ -1652,6 +1652,139 @@ async fn a_revision_with_a_link_its_checkout_cannot_leave_out_is_refused_at_prep
                 .await
                 .unwrap(),
             None
+        );
+
+        // A revision without `openshell/` is still refused for a deep link.
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('6');
+            state.committers.insert(revision('6'), alice.clone());
+            state.trees.insert(
+                revision('6'),
+                vec![
+                    tree_node("docs", NodeType::Directory),
+                    tree_node("docs/lib", NodeType::Link),
+                ],
+            );
+        });
+        fixture.lore.send(Ok(pushed('1', '6', &alice)));
+        until("the refusal without openshell/", || async {
+            refused('6').await.is_some()
+        })
+        .await;
+        assert_eq!(fixture.applied("links/deep").await, Some(revision('5')));
+
+        // Without `openshell/` and without such links, nothing serves the branch and
+        // nothing failed.
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('7');
+            state.committers.insert(revision('7'), alice.clone());
+        });
+        fixture.lore.send(Ok(pushed('1', '7', &alice)));
+        until("the instance's removal", || async {
+            !fixture.serves("links/deep").await
+        })
+        .await;
+        assert_eq!(
+            store
+                .prepare_failure(&watched(), &name("links/deep"))
+                .await
+                .unwrap(),
+            None
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_linked_repositorys_rule_for_a_program_of_its_own_is_refused() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let (alice, bob, _, dave) = linked_branch(&fixture, "links/content");
+        let content_rule = |binary: &str| LinkedPrepared {
+            policy: Some(format!(
+                "version: 1\nnetwork_policies:\n  team-api:\n    endpoints:\n      - {{host: api.team.example, port: 443}}\n    binaries:\n      - path: \"{binary}\"\n"
+            )),
+            providers: None,
+        };
+        let team_b = || RepositoryId::parse(LINKED_B).unwrap();
+        fixture.lore.with(|state| {
+            state
+                .linked
+                .get_mut(&team_b())
+                .unwrap()
+                .openshell
+                .insert(revision('d'), content_rule("/sandbox/link/bin/sync"));
+        });
+        for (linked, watcher) in [(LINKED_A, &bob), (LINKED_B, &dave)] {
+            fixture
+                .watches
+                .watch(linked_watched(linked), watcher.clone())
+                .await
+                .unwrap();
+        }
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        let caller = veoveo_hub_sdk::Principal {
+            tenant: Some(TenantId::parse("tenant").unwrap()),
+            ..caller(&alice)
+        };
+        let link = LinkName::parse("team-b").unwrap();
+        let failure = || async {
+            fixture
+                .watches
+                .report(
+                    &caller,
+                    &RepositoryId::parse(REPOSITORY).unwrap(),
+                    &name("links/content"),
+                    Some(&link),
+                )
+                .await
+                .unwrap()
+                .runner_failure
+        };
+        // Team-b's rule names a program in its own checkout: its link gets no runner.
+        until("team-a's runner and team-b's refusal", || async {
+            let runners = fixture.runners("links/content").await;
+            runners.len() == 1 && runners[0].linked_revision.is_some() && failure().await.is_some()
+        })
+        .await;
+        let refused = failure().await.unwrap().message;
+        assert!(
+            refused.contains("names the program `/sandbox/link/bin/sync`, which can lie under /sandbox/link"),
+            "{refused}"
+        );
+
+        // A push that names the parent's program instead runs the link.
+        let push = |digit: char, binary: &str| {
+            fixture.lore.with(|state| {
+                let b = state.linked.get_mut(&team_b()).unwrap();
+                b.branches[0].latest = revision(digit);
+                b.committers.insert(revision(digit), dave.clone());
+                b.openshell.insert(revision(digit), content_rule(binary));
+            });
+            fixture
+                .lore
+                .send_linked(&team_b(), Ok(pushed('2', digit, &dave)));
+        };
+        push('f', "/sandbox/src/**");
+        until("team-b's runner", || async {
+            let runners = fixture.runners("links/content").await;
+            runners.len() == 2
+                && runners[1].linked_revision == Some(revision('f'))
+                && failure().await.is_none()
+        })
+        .await;
+
+        // A later push that names one again leaves the runner as it serves, and says why.
+        push('9', "/**");
+        until("the tracked push's refusal", || async { failure().await.is_some() }).await;
+        assert!(failure().await.unwrap().message.contains("names the program `/**`"));
+        assert_eq!(
+            fixture.runners("links/content").await[1].linked_revision,
+            Some(revision('f'))
         );
     })
     .await;

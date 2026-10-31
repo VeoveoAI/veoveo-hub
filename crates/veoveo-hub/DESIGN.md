@@ -514,36 +514,39 @@ watcher and why the last subscription as them failed, and `prepareFailure`, why 
 branch's latest push could not be read; without an instance its detail names those
 causes. The route exists when the installation configures a factory.
 
-The Lore contribution turns pushes into instances (`src/bin/hub/contributions/lore/factory`).
-`PUT /factory/{profile}/watch?repository=<id>` subscribes to the repository's Lore
-notifications as the caller, answers 403 when Lore or the caller's grant refuses
-them and 204 otherwise, and records the caller as the repository's watcher in
+The Lore contribution turns pushes into instances
+(`src/bin/hub/contributions/lore/factory`). `PUT
+/factory/{profile}/watch?repository=<id>` subscribes to the repository's Lore
+notifications as the caller, answers 403 when Lore or the caller's grant refuses them
+and 204 otherwise, and records the caller as the repository's watcher in
 `hub.lore_watch`; a later watch replaces the watcher and its follower, which stops
-between pushes. One follower per watched repository subscribes as its watcher, and
-again five seconds after any subscription ends, including Lore ending a lagging
-subscriber's stream with `ABORTED`; at startup the Hub resumes every recorded watch.
-A subscription is idle between pushes, and connection tracking on the way to Lore
-forgets an idle connection (Cilium's after 2 h 13 min), after which Lore's events are
-dropped without either end noticing. So every connection to Lore sends HTTP/2
-keepalive pings every 30 seconds and ends when one goes unanswered for 20 seconds:
-the pings keep the connection known, and a dead one ends its subscription, which the
-follower then subscribes again.
-Every subscription starts with a re-check of every branch: each live branch whose
-latest revision its instance has not applied is prepared as that revision's committer,
-and the instance of a deleted branch whose name no live branch took is removed.
-`BranchPushed` prepares the pushed revision as its pusher; `BranchCreated` and
-`BranchDeleted` re-check. Preparing reads `openshell/` at the revision as that person:
-the revision tree lists the files, proved by the revision's signature, and Lore's own
-command line writes `run`, `policy.yaml` and the `image/` subtree from a bare clone of
-that revision into a temporary directory, with the sizes and executable bits the tree
-names. A revision with an executable `openshell/run` is applied with `image/` as its
-image context and `policy.yaml` as its policy; one without it removes the branch's
-instance. One push is applied to an instance at a time. A failed read leaves the
-instance as it serves and is recorded in `hub.lore_prepare_failure` until the branch's
-next push is prepared. Lore checks access only when a subscription starts, so a
-watcher who lost access is noticed at the next subscription: the failure is recorded on
-the watch and the follower stops until someone with access watches again. Every Lore
-call issues a new token for its person, so each acts under that person's current grant.
+between pushes. One follower per watched repository subscribes as its watcher, and again
+five seconds after any subscription ends, including Lore ending a lagging subscriber's
+stream with `ABORTED`; at startup the Hub resumes every recorded watch. A subscription
+is idle between pushes, and connection tracking on the way to Lore forgets an idle
+connection (Cilium's after 2 h 13 min), after which Lore's events are dropped without
+either end noticing. So every connection to Lore sends HTTP/2 keepalive pings every 30
+seconds and ends when one goes unanswered for 20 seconds: the pings keep the connection
+known, and a dead one ends its subscription, which the follower then subscribes again.
+Every subscription starts with a re-check of every branch: each live branch whose latest
+revision its instance has not applied is prepared as that revision's committer, and the
+instance of a deleted branch whose name no live branch took is removed. `BranchPushed`
+prepares the pushed revision as its pusher; `BranchCreated` and `BranchDeleted`
+re-check. Preparing reads `openshell/` at the revision as that person: the revision tree
+lists the files, proved by the revision's signature, and Lore's own command line writes
+`run`, `policy.yaml` and the `image/` subtree from a bare clone of that revision into a
+temporary directory, with the sizes and executable bits the tree names. A revision with
+an executable `openshell/run` is applied with `image/` as its image context and
+`policy.yaml` as its policy; one without it removes the branch's instance, and so does
+one without `openshell/`, whose walk Lore answers, after naming the revision, with
+`NotFound` for the prefix: the Hub reads that as an empty `openshell/`, and a linked
+repository's missing `openshell/` adds nothing. One push is applied to an instance at a
+time. A failed read leaves the instance as it serves and is recorded in
+`hub.lore_prepare_failure` until the branch's next push is prepared. Lore checks access
+only when a subscription starts, so a watcher who lost access is noticed at the next
+subscription: the failure is recorded on the watch and the follower stops until someone
+with access watches again. Every Lore call issues a new token for its person, so each
+acts under that person's current grant.
 
 The Hub forwards to an instance through `nativeUpstreams`, which must name the
 factory's gateway: an instance's deployment binds to its sandbox in the factory
@@ -559,15 +562,15 @@ linked: the Hub runs one runner for each such link instead of the branch's insta
 other link would end the clone of a factory sandbox's checkout, which leaves out only
 those links, so preparing refuses a revision that holds a link below its top level, or
 one at its top level not named by a lowercase DNS label, whether or not the branch also
-has top-level links: the refusal is recorded in `hub.lore_prepare_failure` and the
-branch's instance or runners keep serving as they do. Preparing reads the links from the
-revision's own tree, its top level and then each top-level directory, without entering a
-top-level link, so every push of a branch with `openshell/run` lists that tree once. The
-parent repository decides which repositories are composed and the program that serves
-them; each linked repository decides its own content and, through its own grants, who
-reaches it. A person never needs a grant on the parent to reach a runner, and a grant on
-the parent reaches no linked repository, as Lore itself refuses a link its person may
-not read.
+has top-level links or `openshell/run`: the refusal is recorded in
+`hub.lore_prepare_failure` and the branch's instance or runners keep serving as they do.
+Preparing reads the links from the revision's own tree, its top level and then each
+top-level directory, without entering a top-level link, so every push of a branch with
+`openshell/run` lists that tree once. The parent repository decides which repositories
+are composed and the program that serves them; each linked repository decides its own
+content and, through its own grants, who reaches it. A person never needs a grant on the
+parent to reach a runner, and a grant on the parent reaches no linked repository, as
+Lore itself refuses a link its person may not read.
 
 The Hub reads a revision's links from its tree, as it reads `openshell/`: Lore's
 thin-client `RevisionTree` lists each top-level link without entering it, with the
@@ -600,31 +603,40 @@ branch's latest pusher and the revision of it last applied. Its sandbox is built
 instance's is, from the parent's revision: the image, `run` and policy of the parent's
 `openshell/`, read as the parent branch's latest pusher. Added to the parent's are the
 network rules of the linked repository's `openshell/policy.yaml`, under the same limits
-as a branch's, and the providers that the linked repository's `openshell/providers.yaml`
-requests and `factory.providers` grants to the linked repository; the parent's own
-provider requests apply to no runner. The start command checks the parent's branch out
-at `/sandbox/src` under Lore's own view, `--view` at the first clone and `.lore/view` on
-every start, which leaves out every link at the revision's top level, so Lore reaches no
-linked repository through the parent, where a refused link would end the clone. It
-clones the linked repository into `/sandbox/link` at the tracked branch's ID and runs
-`lore sync --reset <tracked>@LATEST` there, then resets the parent's checkout as an
-instance's start does, before `exec ./openshell/run`. A runner therefore serves the head
-of that branch, not the revision the parent pins: a linked repository releases by
-pushing to its tracked branch, and the parent changes only to add, retarget or remove a
-link. The command names the links it leaves out, so a parent push that changes them
-recreates the runners' sandboxes. The runner's program is the parent's, built and run
-under `/sandbox/src`; the linked repository is content, its workflows and files, which
-that program reads and never code that reaches the Hub or the database. Only the
-parent's program under `/sandbox/src` reaches the Hub's metadata and token endpoints and
-the database, whose rules in the installation's base policy admit programs under
-`/sandbox/src` alone; nothing under `/sandbox/link` reaches either through them. The
-runner's Lore provider issues the token of the tracked branch's latest pusher, for the
-linked repository, as an instance's issues its pusher's for its own repository; its
-checkout of the parent is read through the same Lore provider's token for the parent,
-issued for the parent branch's latest pusher. Lore's per-request scope picks between
-them, which the instance's client answers ([above](#factory-sandboxes)): the
-installation's factory Lore profile names the repository of each request by
-`lore-partition-bin`, as a Computer's does.
+as a branch's, none of which may name a program under `/sandbox/link`, and the providers
+that the linked repository's `openshell/providers.yaml` requests and `factory.providers`
+grants to the linked repository; the parent's own provider requests apply to no runner.
+The start command checks the parent's branch out at `/sandbox/src` under Lore's own
+view, `--view` at the first clone and `.lore/view` on every start, which leaves out
+every link at the revision's top level, so Lore reaches no linked repository through the
+parent, where a refused link would end the clone. It clones the linked repository into
+`/sandbox/link` at the tracked branch's ID and runs `lore sync --reset <tracked>@LATEST`
+there, then resets the parent's checkout as an instance's start does, before `exec
+./openshell/run`. A runner therefore serves the head of that branch, not the revision
+the parent pins: a linked repository releases by pushing to its tracked branch, and the
+parent changes only to add, retarget or remove a link. The command names the links it
+leaves out, so a parent push that changes them recreates the runners' sandboxes. The
+runner's program is the parent's, built and run under `/sandbox/src`; the linked
+repository is content, its workflows and files, which that program reads and never code
+of its own. No rule of a runner's policy names a program under `/sandbox/link`: the
+installation's base policy admits programs under `/sandbox/src` alone to the Hub's
+metadata and token endpoints and to the database, and the Hub refuses a linked
+repository's rule whose binary path or glob can match a path under `/sandbox/link`
+(`/**`, `/sandbox/**` or `/sandbox/link/…` among them), when it reads the tracked
+branch: the link gets no runner, or its runner keeps serving what it applied, and
+`hub.lore_runner_failure` says why until a push of the tracked branch, or of the parent,
+runs it. So nothing under `/sandbox/link` reaches the Hub, the database or a linked
+repository's endpoints as a program of its own. Two limits remain the parent's:
+OpenShell matches a rule against a program and the programs that started it, so a
+program the parent's program starts from `/sandbox/link` runs with the parent's rules;
+and the base policy's internet rule names every program. The runner's Lore provider
+issues the token of the tracked branch's latest pusher, for the linked repository, as an
+instance's issues its pusher's for its own repository; its checkout of the parent is
+read through the same Lore provider's token for the parent, issued for the parent
+branch's latest pusher. Lore's per-request scope picks between them, which the
+instance's client answers ([above](#factory-sandboxes)): the installation's factory Lore
+profile names the repository of each request by `lore-partition-bin`, as a Computer's
+does.
 
 The Hub follows both repositories. A push to the parent's branch reads its links again:
 it removes the branch's ordinary instance, creates the runner of a new link, removes the
@@ -1465,7 +1477,7 @@ with the caller's grant on its repository in the forwarded token's repository de
 that a name of team-b, of a link the branch lacks, or without a link, is refused as a
 tool the server did not declare; that a runner's resource reads back under its linked
 URI and another link's is refused; and that a Task completes on the runner that
-created it. Synthetic fixture data; no Lore server, sandbox or n8n is involved.
+created it. Synthetic fixture data; no Lore server or sandbox is involved.
 
 `tests/factory.rs` applies pushes against an in-process fake OpenShell gateway
 (`tests/factory/gateway.rs`), which answers the methods the factory sends with the
@@ -1529,12 +1541,15 @@ tracked branch applies to its runner alone, as its pusher. A link whose linked
 repository nobody watches gets no runner and its failure says so, until a watch of the
 linked repository runs it; a push that drops a link removes its runner, and one without
 links serves the branch from an instance again. A revision holding a link below its top
-level, of a branch with or without top-level links, or a top-level link whose name is no
-DNS label, is refused at prepare with a recorded failure that names the link, while the
-branch's instance keeps serving and no runner starts. The real Lore adapter is exercised
-only against a deployed Lore; Lore's view keeping a clone and a reset sync of the parent
-from every excluded link, and its clone and sync of a branch by ID, were probed against
-a local Lore server.
+level, of a branch with or without top-level links or `openshell/`, or a top-level link
+whose name is no DNS label, is refused at prepare with a recorded failure that names the
+link, while the branch's instance keeps serving and no runner starts. A linked
+repository's rule that names a program under `/sandbox/link` is refused when its tracked
+branch is read: its link gets no runner until a push of that branch names the parent's
+program instead, and a later push that names one again leaves the runner serving what it
+applied, with its failure. The real Lore adapter is exercised only against a deployed
+Lore; Lore's view keeping a clone and a reset sync of the parent from every excluded
+link, and its clone and sync of a branch by ID, were probed against a local Lore server.
 
 `tests/lore_catalog.rs` starts the binary with one Lore deployment whose resource IDs
 are `urc-{id}` and asks `UrcAuthApi.LookupUserPermissions` over cleartext HTTP/2 on the

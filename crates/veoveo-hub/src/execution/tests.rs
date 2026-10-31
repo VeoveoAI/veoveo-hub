@@ -248,7 +248,8 @@ fn a_linked_branch_routes_each_link_to_its_runner() {
     use veoveo_hub_sdk::hub::LinkName;
 
     let runner = |link: &str| {
-        let mut server = crate::test_catalog::registered_server("n8n", "https://runner.test/mcp");
+        let mut server =
+            crate::test_catalog::registered_server("ledger", "https://runner.test/mcp");
         server.branch = Some(branch("dev"));
         server.runner = Some(RunnerOf {
             link: LinkName::parse(link).unwrap(),
@@ -260,7 +261,7 @@ fn a_linked_branch_routes_each_link_to_its_runner() {
     let (a_id, b_id) = (team_a.deployment, team_b.deployment);
     let registrations = RegistrationSnapshot::new([team_a, team_b]);
     let admitted = selection::route(&registrations, Some(&branch("dev")), &BTreeMap::new());
-    let component = &admitted.composition.components()[&slug("n8n")];
+    let component = &admitted.composition.components()[&slug("ledger")];
     assert_eq!(
         component,
         &ResolvedComponent::Runners {
@@ -272,31 +273,32 @@ fn a_linked_branch_routes_each_link_to_its_runner() {
     );
     // The selected view holds both runners, each under its own link.
     let selected = registrations.selected(&admitted.composition);
-    assert_eq!(selected.runners(&slug("n8n")).count(), 2);
+    assert_eq!(selected.runners(&slug("ledger")).count(), 2);
     assert!(
-        selected.get(&slug("n8n")).is_none(),
+        selected.get(&slug("ledger")).is_none(),
         "no runner serves the slug alone"
     );
     assert_eq!(
         selected
-            .narrowed(&slug("n8n"), b_id)
-            .get(&slug("n8n"))
+            .narrowed(&slug("ledger"), b_id)
+            .get(&slug("ledger"))
             .unwrap()
             .deployment,
         b_id
     );
 
     // A branch with an instance beside its runners routes neither.
-    let mut instance = crate::test_catalog::registered_server("n8n", "https://instance.test/mcp");
+    let mut instance =
+        crate::test_catalog::registered_server("ledger", "https://instance.test/mcp");
     instance.branch = Some(branch("dev"));
     let registrations = RegistrationSnapshot::new([runner("team-a"), runner("team-b"), instance]);
     let admitted = selection::route(&registrations, Some(&branch("dev")), &BTreeMap::new());
     assert_eq!(
-        admitted.composition.components()[&slug("n8n")],
+        admitted.composition.components()[&slug("ledger")],
         ResolvedComponent::Unavailable {}
     );
     assert_eq!(
-        admitted.unavailable[&slug("n8n")],
+        admitted.unavailable[&slug("ledger")],
         selection::Unavailable::Ambiguous(branch("dev"))
     );
 }

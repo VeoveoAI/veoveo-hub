@@ -389,6 +389,25 @@ impl Inner {
             };
             self.reapply(linked, runner, Some(push), stop).await;
         }
+        // A link that could not run on this repository's earlier content may run now.
+        self.retry_waiting(linked, stop).await;
+    }
+
+    /// Prepare again every branch with a link that could not run on `linked`.
+    async fn retry_waiting(&self, linked: &Watched, stop: &CancellationToken) {
+        let failed = match self.store.runner_failures_naming(linked).await {
+            Ok(failed) => failed,
+            Err(error) => {
+                tracing::warn!("the links waiting for this repository are unknown: {error:#}");
+                return;
+            }
+        };
+        for (parent, branch, revision) in failed {
+            if stop.is_cancelled() {
+                return;
+            }
+            self.retry(&parent, &branch, &revision, stop).await;
+        }
     }
 
     /// Apply the runner's branch as it last applied it with the tracked branch at `linked`,
@@ -421,6 +440,7 @@ impl Inner {
             deployment: linked.deployment.clone(),
             repository: parent_repository,
         };
+        let parent_revision = revision.clone();
         let applied = async {
             let directory = tempfile::Builder::new()
                 .prefix("veoveo-factory-")
@@ -445,6 +465,9 @@ impl Inner {
                     linked_directory.path(),
                 )
                 .await?;
+            if let Some(policy) = &linked_prepared.policy {
+                veoveo_hub::factory::check_linked_policy(policy)?;
+            }
             let mut link = runner.link.clone();
             if let Ok(id) = BranchId::parse(&link.tracked.id)
                 && let Ok(tracked) = self.lore.branch(&linked_push.pusher, linked, &id).await
@@ -469,13 +492,33 @@ impl Inner {
             drop((directory, linked_directory));
             anyhow::Ok(())
         };
-        if let Err(error) = applied.await {
+        let outcome = applied.await;
+        if outcome.is_ok()
+            && let Err(error) = self
+                .store
+                .runner(&parent, &runner.branch, &runner.link.name, None)
+                .await
+        {
+            tracing::error!("failed to record the runner: {error:#}");
+        }
+        if let Err(error) = outcome {
+            let message = format!("{error:#}");
             tracing::warn!(
                 repository = %runner.repository,
                 branch = %runner.branch,
                 link = %runner.link.name,
-                "the tracked branch was not applied to the runner: {error:#}"
+                "the tracked branch was not applied to the runner: {message}"
             );
+            // The runner keeps serving what it applied; its status says why the push did
+            // not reach it.
+            let failure = (&linked.repository, &parent_revision, message.as_str());
+            if let Err(error) = self
+                .store
+                .runner(&parent, &runner.branch, &runner.link.name, Some(failure))
+                .await
+            {
+                tracing::error!("failed to record the runner's failure: {error:#}");
+            }
         }
     }
 
@@ -607,19 +650,7 @@ impl Inner {
             };
             self.reapply(watched, runner, Some(push), stop).await;
         }
-        let failed = match self.store.runner_failures_naming(watched).await {
-            Ok(failed) => failed,
-            Err(error) => {
-                tracing::warn!("the links waiting for this repository are unknown: {error:#}");
-                return;
-            }
-        };
-        for (parent, branch, revision) in failed {
-            if stop.is_cancelled() {
-                return;
-            }
-            self.retry(&parent, &branch, &revision, stop).await;
-        }
+        self.retry_waiting(watched, stop).await;
     }
 
     /// Prepare the parent's branch at `revision` again, as its committer read by the
@@ -680,16 +711,15 @@ impl Inner {
                 .read(&pusher, watched, &revision, directory.path())
                 .await
                 .map_err(|error| format!("reading openshell/ as {pusher} failed: {error:#}"))?;
-            let links = match prepared {
-                Some(_) => self
-                    .lore
-                    .links(&pusher, watched, &revision)
-                    .await
-                    .map_err(|error| {
-                        format!("reading the revision's links as {pusher} failed: {error:#}")
-                    })?,
-                None => Vec::new(),
-            };
+            // Links are checked whether or not the revision has `openshell/run`: one the
+            // factory's checkout cannot leave out is refused either way.
+            let links = self
+                .lore
+                .links(&pusher, watched, &revision)
+                .await
+                .map_err(|error| {
+                    format!("reading the revision's links as {pusher} failed: {error:#}")
+                })?;
             Ok::<_, String>((directory, prepared, links))
         };
         let (directory, prepared, links) = match read.await {
@@ -861,6 +891,10 @@ impl Inner {
             .with_context(|| {
                 format!("reading the linked repository's openshell/ as {pusher} failed")
             })?;
+        // The linked repository is content: its rules name no program of its own.
+        if let Some(policy) = &prepared.policy {
+            veoveo_hub::factory::check_linked_policy(policy)?;
+        }
         Ok((
             Link {
                 name: link.name.clone(),

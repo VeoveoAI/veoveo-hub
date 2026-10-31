@@ -32,7 +32,7 @@ use serde::Serialize;
 use veoveo_store::PlatformStore;
 use veoveo_types::{DeploymentId, PrincipalId};
 
-pub use sandbox::{LORE, sandbox_name};
+pub use sandbox::{LINKED_CHECKOUT, LORE, check_linked_policy, sandbox_name};
 pub use status::{Condition, Failure, InstanceStatus, Phase, RunnerStatus, SandboxStatus, Stage};
 use veoveo_hub_sdk::hub::LinkName;
 

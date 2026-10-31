@@ -30,7 +30,7 @@ pub(crate) fn project_upstream_resource_uri_for_hub(
 }
 
 /// `uri`, a URI or a URI template of `server`, as the Hub names it.
-fn linked_uri<'a>(server: &RegisteredServer, uri: &'a str) -> std::borrow::Cow<'a, str> {
+pub(crate) fn linked_uri<'a>(server: &RegisteredServer, uri: &'a str) -> std::borrow::Cow<'a, str> {
     let scheme = format!("{}://", server.uri_scheme);
     match (server.link(), uri.strip_prefix(&scheme)) {
         (Some(link), Some(rest)) if server.uri_scheme.as_str() != "ui" => {

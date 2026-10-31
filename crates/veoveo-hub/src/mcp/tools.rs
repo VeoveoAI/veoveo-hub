@@ -364,12 +364,22 @@ impl HubMcp {
             )
             .cloned()
         else {
-            let target = crate::control_plane::PolicyTarget::Tool {
-                server: projection.server,
-                tool: projection.tool,
+            // Named as the caller wrote it.
+            let written = match projection.link {
+                Some(link) => super::authorization::Written::LinkedTool {
+                    server: projection.server,
+                    link,
+                    tool: projection.tool,
+                },
+                None => super::authorization::Written::Target(
+                    crate::control_plane::PolicyTarget::Tool {
+                        server: projection.server,
+                        tool: projection.tool,
+                    },
+                ),
             };
             return Err(self
-                .refuse_undeclared(&subject, HubAction::ToolsCall, target)
+                .refuse_undeclared(&subject, HubAction::ToolsCall, written)
                 .await
                 .into());
         };
@@ -517,29 +527,38 @@ impl HubMcp {
             error_code: mcp_error_code,
             invocation: Some(subject.audit_invocation()),
         };
-        let draft = veoveo_hub_sdk::audit::McpTarget::Tool {
-            server: projection.server,
-            tool: projection.tool,
-        }
-        .audit_target()
-        .map_err(anyhow::Error::from)
-        .and_then(|target| Ok((target, audit.detail(&completion)?)))
-        .and_then(|(target, detail)| {
-            let draft = subject.audit_draft(
-                detail,
-                if failed {
-                    AuditOutcome::Failure
+        // A runner's tool is recorded as the caller named it, with its link.
+        let target = match projection.link {
+            Some(link) => veoveo_hub_sdk::audit::McpTarget::LinkedTool {
+                server: projection.server,
+                link,
+                tool: projection.tool,
+            },
+            None => veoveo_hub_sdk::audit::McpTarget::Tool {
+                server: projection.server,
+                tool: projection.tool,
+            },
+        };
+        let draft = target
+            .audit_target()
+            .map_err(anyhow::Error::from)
+            .and_then(|target| Ok((target, audit.detail(&completion)?)))
+            .and_then(|(target, detail)| {
+                let draft = subject.audit_draft(
+                    detail,
+                    if failed {
+                        AuditOutcome::Failure
+                    } else {
+                        AuditOutcome::Success
+                    },
+                );
+                let draft = if failed {
+                    draft.reason(crate::audit::HubReason::UpstreamFailure.into())
                 } else {
-                    AuditOutcome::Success
-                },
-            );
-            let draft = if failed {
-                draft.reason(crate::audit::HubReason::UpstreamFailure.into())
-            } else {
-                draft
-            };
-            Ok(draft.target(target).build()?)
-        });
+                    draft
+                };
+                Ok(draft.target(target).build()?)
+            });
         match draft {
             Ok(draft) => {
                 self.state

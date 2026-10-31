@@ -51,7 +51,7 @@ struct Fixture {
     http: reqwest::Client,
     team_a: Served,
     team_b: Served,
-    _db: TestDb,
+    db: TestDb,
     _directory: tempfile::TempDir,
 }
 
@@ -141,7 +141,7 @@ impl Fixture {
             http,
             team_a,
             team_b,
-            _db: db,
+            db,
             _directory: directory,
         }
     }
@@ -284,8 +284,10 @@ async fn each_link_serves_its_own_names_to_the_people_its_repository_grants() {
                 .await
                 .unwrap_err()
                 .to_string();
+            // The refusal names the tool as the caller wrote it.
             assert!(
-                error.contains("isn't available in this profile"),
+                error.contains(&format!("You don't have permission to call `{refused}`."))
+                    && error.contains("isn't available in this profile"),
                 "{refused}: {error}"
             );
         }
@@ -316,7 +318,8 @@ async fn each_link_serves_its_own_names_to_the_people_its_repository_grants() {
             .unwrap_err()
             .to_string();
         assert!(
-            refused.contains("isn't available in this profile"),
+            refused.contains("read `ledger://team-b/entries/first`")
+                && refused.contains("isn't available in this profile"),
             "{refused}"
         );
 
@@ -344,6 +347,36 @@ async fn each_link_serves_its_own_names_to_the_people_its_repository_grants() {
         };
         assert_eq!(result["structuredContent"]["entries"], 3);
         assert_eq!(fixture.team_b.bearers.snapshot().len(), calls_to_b);
+
+        // The audit records name each target as its caller wrote it: a runner's tools
+        // with their link and its resources under it, never the runner's own names.
+        let targets: Vec<String> = sqlx::query_scalar(
+            "SELECT DISTINCT draft ->> 'target' FROM audit.record \
+             WHERE draft ->> 'target' LIKE 'veoveo://servers/ledger/%' \
+             OR draft ->> 'target' LIKE 'ledger://%'",
+        )
+        .fetch_all(fixture.db.a.pool())
+        .await
+        .unwrap();
+        for written in [
+            "veoveo://servers/ledger/links/team-a/tools/inspect",
+            "veoveo://servers/ledger/links/team-b/tools/inspect",
+            "veoveo://servers/ledger/links/team-c/tools/inspect",
+            "veoveo://servers/ledger/links/team-a/tools/tally",
+            "ledger://team-a/entries/first",
+            "ledger://team-b/entries/first",
+        ] {
+            assert!(
+                targets.iter().any(|target| target == written),
+                "{written}: {targets:?}"
+            );
+        }
+        assert!(
+            !targets
+                .iter()
+                .any(|target| target.starts_with("ledger://entries/")),
+            "{targets:?}"
+        );
         member.cancel().await.unwrap();
         admin.cancel().await.unwrap();
     })

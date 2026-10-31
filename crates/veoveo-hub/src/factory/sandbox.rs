@@ -228,6 +228,9 @@ pub(super) fn policies(
         let Some(repository) = repository else {
             continue;
         };
+        if *whose == "linked repository" {
+            check_linked_policy(repository)?;
+        }
         let own = openshell_policy::parse_sandbox_policy(repository).map_err(|error| {
             anyhow::anyhow!("the {whose}'s openshell/policy.yaml is invalid: {error}")
         })?;
@@ -251,6 +254,77 @@ pub(super) fn policies(
     }
     openshell_policy::validate_and_canonicalize_sandbox_policy(policy)
         .map_err(|error| anyhow::anyhow!("the factory sandbox policy is invalid: {error}"))
+}
+
+/// Where a runner's linked repository is checked out. What lies there is content the
+/// parent's program reads, never a program of its own.
+pub const LINKED_CHECKOUT: &str = "/sandbox/link";
+
+/// Refuse a linked repository's `openshell/policy.yaml` whose network rules name any
+/// program under [`LINKED_CHECKOUT`]: a binary path or glob, as OpenShell matches it
+/// segment by segment, that can match `/sandbox/link` or a path below it. With the base
+/// policy's rules for the Hub and the database naming `/sandbox/src` alone, no rule a
+/// runner has admits a program under `/sandbox/link` as its own.
+pub fn check_linked_policy(policy: &str) -> Result<()> {
+    let own = openshell_policy::parse_sandbox_policy(policy).map_err(|error| {
+        anyhow::anyhow!("the linked repository's openshell/policy.yaml is invalid: {error}")
+    })?;
+    for (name, rule) in &own.network_policies {
+        for binary in &rule.binaries {
+            ensure!(
+                !names_linked_program(&binary.path),
+                "the linked repository's openshell/policy.yaml network policy `{name}` names \
+                 the program `{}`, which can lie under {LINKED_CHECKOUT}: a linked \
+                 repository is content, so its rules name the parent's program under \
+                 /sandbox/src",
+                binary.path
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Whether `pattern`, a binary path or a glob of `*`, `?`, `**`, classes and
+/// alternatives with `/` as its separator, can match [`LINKED_CHECKOUT`] or a path
+/// below it. A segment this cannot read exactly is taken to match.
+fn names_linked_program(pattern: &str) -> bool {
+    let checkout = LINKED_CHECKOUT.split('/').collect::<Vec<_>>();
+    let segments = pattern.split('/').collect::<Vec<_>>();
+    for (index, prefix) in checkout.iter().enumerate() {
+        let Some(segment) = segments.get(index) else {
+            // The pattern ends above the checkout: it names no path below it.
+            return false;
+        };
+        if segment.contains("**") {
+            return true;
+        }
+        if !segment_matches(segment, prefix) {
+            return false;
+        }
+    }
+    true
+}
+
+/// Whether one glob segment can match the literal segment `value`.
+fn segment_matches(segment: &str, value: &str) -> bool {
+    if segment.contains(['[', '{', '\\']) {
+        return true;
+    }
+    fn matches(pattern: &[u8], value: &[u8]) -> bool {
+        match (pattern.first(), value.first()) {
+            (None, None) => true,
+            (Some(b'*'), _) => {
+                matches(&pattern[1..], value)
+                    || (!value.is_empty() && matches(pattern, &value[1..]))
+            }
+            (Some(b'?'), Some(_)) => matches(&pattern[1..], &value[1..]),
+            (Some(expected), Some(actual)) if expected == actual => {
+                matches(&pattern[1..], &value[1..])
+            }
+            _ => false,
+        }
+    }
+    matches(segment.as_bytes(), value.as_bytes())
 }
 
 /// The create request of the instance's sandbox.
@@ -571,10 +645,11 @@ mod tests {
             openshell_policy::validate_and_canonicalize_sandbox_policy(base.clone()).unwrap()
         );
 
-        // A runner adds its parent's rules, then its linked repository's, each of its own.
+        // A runner adds its parent's rules, then its linked repository's, each of its own;
+        // a linked repository's rules name the parent's program.
         let rule = |name: &str, host: &str| {
             format!(
-                "version: 1\nnetwork_policies:\n  {name}:\n    endpoints:\n      - {{host: {host}, port: 443}}\n    binaries:\n      - path: /**\n"
+                "version: 1\nnetwork_policies:\n  {name}:\n    endpoints:\n      - {{host: {host}, port: 443}}\n    binaries:\n      - path: /sandbox/src/**\n"
             )
         };
         let parent = rule("packages", "packages.example");
@@ -606,5 +681,51 @@ mod tests {
             clash.contains("the linked repository's openshell/policy.yaml redefines the repository's network policy `packages`"),
             "{clash}"
         );
+    }
+
+    #[test]
+    fn a_linked_repository_names_no_program_under_its_checkout() {
+        let rule = |binary: &str| {
+            format!(
+                "version: 1\nnetwork_policies:\n  team-api:\n    endpoints:\n      - {{host: api.example, port: 443}}\n    binaries:\n      - path: \"{binary}\"\n"
+            )
+        };
+        // The parent's program, or a system binary, may be named.
+        for allowed in [
+            "/sandbox/src/**",
+            "/sandbox/src/target/release/server",
+            "/usr/bin/curl",
+            "/sandbox",
+            "/sandbox/linked/**",
+            "/sandbox/l?nk-other/x",
+        ] {
+            check_linked_policy(&rule(allowed))
+                .unwrap_or_else(|error| panic!("{allowed}: {error:#}"));
+        }
+        // Anything that can match a path under /sandbox/link may not.
+        for refused in [
+            "/sandbox/link/run.sh",
+            "/sandbox/link/**",
+            "/sandbox/link",
+            "/sandbox/**",
+            "/**",
+            "**",
+            "/sandbox/*/run.sh",
+            "/sandbox/l*/x",
+            "/sandbox/l?nk/x",
+            "/*/link/x",
+            "/sandbox/{link,src}/x",
+            "/sandbox/[kl]ink/x",
+        ] {
+            let error = check_linked_policy(&rule(refused)).unwrap_err().to_string();
+            assert!(
+                error.contains("which can lie under /sandbox/link"),
+                "{refused}: {error}"
+            );
+        }
+        // A runner's policies refuse it too, when its sandbox is composed.
+        let base = openshell_policy::parse_sandbox_policy("version: 1\n").unwrap();
+        assert!(policies(&base, &[("linked repository", Some(&rule("/**")))]).is_err());
+        assert!(policies(&base, &[("repository", Some(&rule("/**")))]).is_ok());
     }
 }

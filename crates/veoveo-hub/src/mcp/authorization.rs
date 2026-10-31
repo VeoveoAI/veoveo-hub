@@ -300,7 +300,9 @@ impl HubMcp {
                 reason = ?decision.reason,
                 "hub policy denied MCP request"
             );
-            Err(mcp_invalid_request(policy_denial_message(&decision)))
+            Err(mcp_invalid_request(
+                self.written(&decision.target).denial(decision.reason),
+            ))
         }
     }
 
@@ -324,7 +326,9 @@ impl HubMcp {
                 reason = ?decision.reason,
                 "hub policy denied MCP request"
             );
-            Err(mcp_invalid_request(policy_denial_message(&decision)))
+            Err(mcp_invalid_request(
+                self.written(&decision.target).denial(decision.reason),
+            ))
         }
     }
 
@@ -354,7 +358,9 @@ impl HubMcp {
         if action != HubAction::TasksGet || decision.effect != PolicyEffect::Allow {
             let detail = crate::audit::mcp_action_detail(action, subject)
                 .map_err(|_| mcp_internal("action requires its domain audit producer"))?;
-            let target = crate::audit::policy_target(&target)
+            let target = self
+                .written(&target)
+                .audit_target()
                 .map_err(|_| mcp_internal("invalid audit target"))?;
             let draft = crate::audit::policy_draft(subject, target, detail, &decision)
                 .build()
@@ -524,7 +530,9 @@ impl HubMcp {
         if decision.effect == PolicyEffect::Deny {
             self.record_policy_denial(&subject, action, target, decision.reason)
                 .await?;
-            return Err(mcp_invalid_request(policy_denial_message(&decision)));
+            return Err(mcp_invalid_request(
+                self.written(&decision.target).denial(decision.reason),
+            ));
         }
         Ok(subject)
     }
@@ -562,7 +570,20 @@ impl HubMcp {
         target: PolicyTarget,
         reason: PolicyReasonCode,
     ) -> Result<(), McpError> {
-        let target = crate::audit::policy_target(&target)
+        let written = self.written(&target);
+        self.record_written_denial(subject, action, &written, reason)
+            .await
+    }
+
+    async fn record_written_denial(
+        &self,
+        subject: &AuthenticatedSubject,
+        action: HubAction,
+        written: &Written,
+        reason: PolicyReasonCode,
+    ) -> Result<(), McpError> {
+        let target = written
+            .audit_target()
             .map_err(|_| mcp_internal("invalid audit target"))?;
         let detail = crate::audit::mcp_action_detail(action, subject)
             .map_err(|_| mcp_internal("action requires its domain audit producer"))?;
@@ -582,18 +603,75 @@ impl HubMcp {
         Ok(())
     }
 
-    /// Refuse `target` as one its server did not declare, recording the denial: a name or
-    /// URI that names a link the caller holds no grant on, or no link of the selected
-    /// branch, reaches no runner and says nothing of which links exist.
+    /// `target` as its caller wrote it, in this view: when this view's server is a
+    /// runner, its tool with the runner's link and its URIs under it.
+    pub(super) fn written(&self, target: &PolicyTarget) -> Written {
+        let catalog = self.catalog.current();
+        let runner = |server: &ServerSlug| {
+            catalog
+                .server(server)
+                .filter(|registered| registered.runner.is_some())
+        };
+        match target {
+            PolicyTarget::Tool { server, tool } => {
+                match runner(server).and_then(|registered| registered.link()) {
+                    Some(link) => Written::LinkedTool {
+                        server: server.clone(),
+                        link: link.clone(),
+                        tool: tool.clone(),
+                    },
+                    None => Written::Target(target.clone()),
+                }
+            }
+            PolicyTarget::Resource { server, uri } => {
+                let linked = runner(server).and_then(|registered| {
+                    crate::mcp_support::project_upstream_resource_uri_for_hub(
+                        registered,
+                        uri.as_str(),
+                    )
+                    .ok()
+                });
+                match linked {
+                    Some(uri) => Written::Target(PolicyTarget::Resource {
+                        server: server.clone(),
+                        uri,
+                    }),
+                    None => Written::Target(target.clone()),
+                }
+            }
+            PolicyTarget::ResourceTemplate { server, uri } => {
+                let linked = runner(server).and_then(|registered| {
+                    veoveo_types::ResourceTemplateUri::new(
+                        crate::mcp_support::linked_uri(registered, uri.as_str()).into_owned(),
+                    )
+                    .ok()
+                });
+                match linked {
+                    Some(uri) => Written::Target(PolicyTarget::ResourceTemplate {
+                        server: server.clone(),
+                        uri,
+                    }),
+                    None => Written::Target(target.clone()),
+                }
+            }
+            _ => Written::Target(target.clone()),
+        }
+    }
+
+    /// Refuse `target`, as its caller wrote it, as one its server did not declare,
+    /// recording the denial: a name or URI that names a link the caller holds no grant
+    /// on, or no link of the selected branch, reaches no runner and says nothing of
+    /// which links exist.
     pub(super) async fn refuse_undeclared(
         &self,
         subject: &AuthenticatedSubject,
         action: HubAction,
-        target: PolicyTarget,
+        written: Written,
     ) -> McpError {
-        let message = denial_message(&target, PolicyReasonCode::UndeclaredTarget);
+        let reason = PolicyReasonCode::UndeclaredTarget;
+        let message = written.denial(reason);
         match self
-            .record_policy_denial(subject, action, target, PolicyReasonCode::UndeclaredTarget)
+            .record_written_denial(subject, action, &written, reason)
             .await
         {
             Ok(()) => mcp_invalid_request(message),
@@ -615,7 +693,9 @@ impl HubMcp {
             crate::catalog::ResourceRoute::Server(server) => Ok(server.clone()),
             crate::catalog::ResourceRoute::Unreached(server) => {
                 let target = resource_policy_target(server.clone(), uri)?;
-                Err(self.refuse_undeclared(subject, action, target).await)
+                Err(self
+                    .refuse_undeclared(subject, action, Written::Target(target))
+                    .await)
             }
             crate::catalog::ResourceRoute::Unowned => Err(mcp_invalid_params(format!(
                 "resource URI is not exposed: {uri}"
@@ -708,14 +788,53 @@ fn client_surface_allows_task_projection(
     }
 }
 
-/// Caller-facing text for a policy denial. The reason code is mapped to words so
-/// callers never see a Rust variant name; the full decision stays in the audit log.
-fn policy_denial_message(decision: &PolicyDecision) -> String {
-    denial_message(&decision.target, decision.reason)
+/// A policy target as its caller wrote it. Policy decides on a server's own names,
+/// which a runner's lack its link; denials and audit records name what the caller
+/// named: a runner's tool `{server}__{link}__{tool}`, and its URIs and templates
+/// `{server}://{link}/{rest}`.
+#[derive(Debug, Clone)]
+pub(super) enum Written {
+    Target(PolicyTarget),
+    LinkedTool {
+        server: ServerSlug,
+        link: veoveo_hub_sdk::hub::LinkName,
+        tool: LocalToolName,
+    },
 }
 
+impl Written {
+    fn audit_target(&self) -> anyhow::Result<veoveo_audit_contract::AuditTarget> {
+        match self {
+            Self::Target(target) => crate::audit::policy_target(target),
+            Self::LinkedTool { server, link, tool } => {
+                Ok(veoveo_hub_sdk::audit::McpTarget::LinkedTool {
+                    server: server.clone(),
+                    link: link.clone(),
+                    tool: tool.clone(),
+                }
+                .audit_target()?)
+            }
+        }
+    }
+
+    fn denial(&self, reason: PolicyReasonCode) -> String {
+        match self {
+            Self::Target(target) => denial_message(target, reason),
+            Self::LinkedTool { server, link, tool } => {
+                denial_text(&format!("call `{server}__{link}__{tool}`"), reason)
+            }
+        }
+    }
+}
+
+/// Caller-facing text for a policy denial. The reason code is mapped to words so
+/// callers never see a Rust variant name; the full decision stays in the audit log.
 fn denial_message(target: &PolicyTarget, reason: PolicyReasonCode) -> String {
-    let action = match target {
+    denial_text(&target_action(target), reason)
+}
+
+fn target_action(target: &PolicyTarget) -> String {
+    match target {
         PolicyTarget::Tool { server, tool } => format!("call `{server}__{tool}`"),
         PolicyTarget::Resource { uri, .. } => format!("read `{uri}`"),
         PolicyTarget::ResourceTemplate { uri, .. } => format!("use resource template `{uri}`"),
@@ -727,7 +846,10 @@ fn denial_message(target: &PolicyTarget, reason: PolicyReasonCode) -> String {
         PolicyTarget::Hub | PolicyTarget::Owner(_) | PolicyTarget::Unadmitted(_) => {
             "make this request".to_owned()
         }
-    };
+    }
+}
+
+fn denial_text(action: &str, reason: PolicyReasonCode) -> String {
     let detail = match reason {
         PolicyReasonCode::MissingScope | PolicyReasonCode::UnknownScope => {
             " Your access token is missing a scope this profile requires. Ask an administrator \
@@ -833,7 +955,7 @@ mod tests {
     };
     use veoveo_hub_sdk::{HubProfileId, LocalToolName, ServerSlug};
 
-    use super::{client_surface_allows_task_projection, policy_denial_message};
+    use super::{Written, client_surface_allows_task_projection, denial_message};
 
     #[test]
     fn policy_denial_names_the_tool_and_explains_the_reason() {
@@ -847,10 +969,25 @@ mod tests {
             PolicyReasonCode::MissingScope,
             TraceId::parse("policy-denial-message").unwrap(),
         );
-        let message = policy_denial_message(&decision);
+        let message = denial_message(&decision.target, decision.reason);
         assert!(message.starts_with("You don't have permission to call `upstream-a__route`."));
         assert!(message.contains("missing a scope"));
         assert!(!message.contains("MissingScope"));
+        // A runner's tool is named as the caller wrote it, with its link.
+        let linked = Written::LinkedTool {
+            server: ServerSlug::parse("ledger").unwrap(),
+            link: veoveo_hub_sdk::hub::LinkName::parse("team-b").unwrap(),
+            tool: LocalToolName::parse("inspect").unwrap(),
+        };
+        assert!(
+            linked
+                .denial(PolicyReasonCode::UndeclaredTarget)
+                .starts_with("You don't have permission to call `ledger__team-b__inspect`.")
+        );
+        assert_eq!(
+            linked.audit_target().unwrap().as_str(),
+            "veoveo://servers/ledger/links/team-b/tools/inspect"
+        );
     }
 
     #[test]
