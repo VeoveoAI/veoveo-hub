@@ -627,6 +627,10 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   reaches the actual SDK issuer and claims bodies with Charon, but Aeneas translation
   still fails on unsupported interfaces. Partial output is not adopted as a model,
   and this investigation does not increase checked Lean coverage.
+  The later [source checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-request-composition-source-checkpoint.md)
+  records qualified Hub/SDK extraction-preparation changes and successful Hub-partition
+  translation. Generated-file adoption, namespace-helper obligations and actual SDK
+  issuer composition remain open; successful translation adds no checked theorem.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 
