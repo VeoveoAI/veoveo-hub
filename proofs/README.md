@@ -714,7 +714,13 @@ exact signing claims and source-capped expiry, plus the first foreign permission
 before an independently invalid client context. Their two manual targets pass all
 seven new audits; see the
 [issuer-examples record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-public-issuer-examples.md).
-Public-issuer source-fault qualification remains next. Native
+SDK `6afa18a` qualifies the public issuer's actual-source ownership-guard inversion:
+the unchanged theorem rejects it, an independent witness derives the wrong refusal,
+and exact same-tree source/raw restoration plus a fresh four-target baseline passes
+all eleven public audits; see the
+[issuer guard-control record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-sdk-public-issuer-guard-control.md).
+Connecting Hub's actual caller to the checked SDK issuer is next, preserving complete
+values and stating applicability to the explicitly composed source revisions. Native
 permission ownership, cryptographic signing, the verification wrapper and
 integration with Hub's pinned SDK remain open. Claims preservation is not
 JSON/cryptographic verification.
