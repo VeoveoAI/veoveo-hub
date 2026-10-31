@@ -556,8 +556,12 @@ retained execution composition, and the optional exchanged permission ceiling. N
 delegation and a delegation carrying no permissions are distinct. The principal's and
 actor's `authenticated_at` timestamps record HTTP re-verification and do not change
 cache identity; fresh request audit observations do not change it either.
-Each surface serializes its cache transitions under one mutex. A completion is
-accepted only when its key and request ticket still name the current in-flight fetch.
+Each surface serializes its cache transitions under one mutex. Its synchronous
+state methods receive lazy clock and request-ticket callbacks while the mutex is
+held. Supplying these sources does not sample them: time is sampled only in a retry
+check or failed completion, and a request ticket only after starting work passes its
+guards. A completion is accepted only when its key and request ticket still name the
+current in-flight fetch.
 A higher catalog generation clears older contents, work and retry records; full key or
 server invalidation removes their affected tickets too. A stale completion changes
 nothing. Removing only cached descriptors leaves in-flight work and retry records

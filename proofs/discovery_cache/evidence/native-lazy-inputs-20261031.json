@@ -1,0 +1,212 @@
+{
+  "source_root": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source",
+  "source_files": 1083,
+  "source_map_sha256": "54570dc18dfce26e2c34be201fe02a386f465c88df7fca2c4fd75a1a25f731ee",
+  "overlay_hashes": {
+    "crates/veoveo-hub/DESIGN.md": "a3689a3979c008c1d2a6005360a38beb705f043877fa75a00f4a77ea0b4b236b",
+    "crates/veoveo-hub/src/mcp/discovery.rs": "4413008d7edfc56559857cb184351464f707ceb7dd21972cfa501e4bd01c77f0",
+    "crates/veoveo-hub/src/mcp.rs": "860f7597fe65eba9067cb5700cd9c8ae7e8fdc0e25694f5b16bcd36f77175d3a",
+    "crates/veoveo-hub/src/mcp/authorization.rs": "58f9393d0d18d14efa4f99a2367e2e30c13c591ca9f719e9f8b842de30ca41f9"
+  },
+  "hub_head": "f81159fbb9f049422682df41e7c1eff420d80968",
+  "hub_tree": "5b39e138fbc01022898baaae74e7e4d8126297e5",
+  "warm_target": "/tmp/hub-session-family-20261030/mac-integration-run1/target",
+  "toolchain": "1.99.0-aarch64-apple-darwin",
+  "source_map_unchanged": true,
+  "complete": true,
+  "stages": [
+    {
+      "stage": "fmt-check",
+      "argv": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source",
+      "exit": 0,
+      "timed_out": false,
+      "elapsed_ms": 601,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/native-validation1/logs/fmt-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0
+    },
+    {
+      "stage": "authorization-tests",
+      "argv": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source/Cargo.toml",
+        "--lib",
+        "mcp::authorization::tests::",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source",
+      "exit": 0,
+      "timed_out": false,
+      "elapsed_ms": 33012,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/native-validation1/logs/authorization-tests.log",
+      "log_sha256": "9da9f9b643ffbc780eba7d1e047d2a747e2dd08ac5b18ad227b601dfcde10daf",
+      "log_bytes": 1238,
+      "test_counts": [
+        {
+          "passed": 8,
+          "failed": 0
+        }
+      ]
+    },
+    {
+      "stage": "discovery-tests",
+      "argv": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source/Cargo.toml",
+        "--lib",
+        "mcp::discovery::tests::",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source",
+      "exit": 0,
+      "timed_out": false,
+      "elapsed_ms": 2819,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/native-validation1/logs/discovery-tests.log",
+      "log_sha256": "bc23f6873bb63c9a4e7c30e39ce7751a5add6098c5ab8ca7e9ac4a6d1fe35227",
+      "log_bytes": 1609,
+      "test_counts": [
+        {
+          "passed": 13,
+          "failed": 0
+        }
+      ]
+    },
+    {
+      "stage": "fingerprint-test",
+      "argv": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source/Cargo.toml",
+        "--lib",
+        "mcp::tests::upstream_fingerprint_covers_actor_and_authority",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source",
+      "exit": 0,
+      "timed_out": false,
+      "elapsed_ms": 349,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/native-validation1/logs/fingerprint-test.log",
+      "log_sha256": "437ec79ea38a9c609eb043a30fac5c3b537572d48b749a12d87d44e9411f302b",
+      "log_bytes": 395,
+      "test_counts": [
+        {
+          "passed": 1,
+          "failed": 0
+        }
+      ]
+    },
+    {
+      "stage": "strict-lib-clippy",
+      "argv": [
+        "/Users/rozgo/.cargo/bin/rustup",
+        "run",
+        "1.99.0-aarch64-apple-darwin",
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "veoveo-hub",
+        "--manifest-path",
+        "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source/Cargo.toml",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/source",
+      "exit": 0,
+      "timed_out": false,
+      "elapsed_ms": 9366,
+      "log_path": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/native-validation1/logs/strict-lib-clippy.log",
+      "log_sha256": "585fac2c28f6f134050e309adf9ab72a3afc9e732e807a235869a82e219ee075",
+      "log_bytes": 191
+    }
+  ],
+  "test_binary": {
+    "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-4034085c15b13b0d",
+    "sha256": "ea7b84f25ee51bcb3830222089cc1ec2d03f5f4800af2c6c20e4da63466ee030",
+    "bytes": 168121992
+  },
+  "original_summary": {
+    "path": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/native-validation1/summary.json",
+    "sha256": "335cd55b267ba9ff11bc5c62b34acb76cd4b2bb08bcfcd4ecd828746d9bcef76"
+  },
+  "body_correspondence": {
+    "path": "/tmp/hub-discovery-cache-control-20261031/lazy-state-inputs1/correspondence.json",
+    "sha256": "eb04707463a7a7dd3783ffcc5402616c36347a3283d0426b71cb5543fcc75118",
+    "methods": {
+      "cached": {
+        "body_equal_after_only_lazy_call_substitution": true,
+        "root": "veoveo_hub::mcp::discovery::_::cached"
+      },
+      "start": {
+        "body_equal_after_only_lazy_call_substitution": true,
+        "root": "veoveo_hub::mcp::discovery::_::start"
+      },
+      "complete": {
+        "body_equal_after_only_lazy_call_substitution": true,
+        "root": "veoveo_hub::mcp::discovery::_::complete"
+      },
+      "remove_cached": {
+        "body_equal_after_only_lazy_call_substitution": true,
+        "root": "veoveo_hub::mcp::discovery::_::remove_cached"
+      },
+      "discard_key": {
+        "body_equal_after_only_lazy_call_substitution": true,
+        "root": "veoveo_hub::mcp::discovery::_::discard_key"
+      },
+      "discard_server": {
+        "body_equal_after_only_lazy_call_substitution": true,
+        "root": "veoveo_hub::mcp::discovery::_::discard_server"
+      }
+    }
+  },
+  "coordinator_review": "Complete source diff, four frozen source hashes, five log hashes, actual passed test counts and executed test binary verified.",
+  "evidence_class": "native qualification and source correspondence; extraction and formal cache contracts pending",
+  "source_change": "Six private state methods renamed; start takes lazy FnOnce clock and UUID functions and complete takes a lazy clock. Locked async wrappers pass native function items; sampling positions, guard order and state updates preserved.",
+  "setup_failure": {
+    "phase": "before Cargo",
+    "cause": "copied runner used the previous case source-identity path",
+    "observation": "Builder reported the assertion in tool output and corrected that path before starting the passing run.",
+    "retained_log": null,
+    "limitation": "No separate failure artifact was written; no failure timing or hash is claimed."
+  },
+  "formal_boundary": "Generic per-operation inputs permit distinct observations; no fixed global no-argument axiom is assumed to produce fresh UUIDs. Actual native observations, lawful collections/payload operations and mutex serialization remain refinement boundaries; no extraction or theorem has run in this checkpoint."
+}

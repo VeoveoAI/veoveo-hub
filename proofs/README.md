@@ -866,6 +866,13 @@ Prevents cross-context disclosure and stale routing represented as current disco
   their impl owner, and its generated effect model has no stateful UUID/clock
   observations. A fixed no-argument axiom must not be treated as producing a fresh
   ticket on each call. Native observation and history correspondence remain open.
+  A subsequent [native-qualified refinement](discovery_cache/evidence/native-lazy-inputs-20261031.json)
+  gives the six private state methods unique selector names and supplies lazy
+  clock/UUID function inputs from the locked wrappers. Sampling stays in the same
+  branches; the same 22 tests, formatting and strict Clippy pass. This prepares
+  generic per-operation observations without a global freshness axiom. Actual
+  extraction, complete transition/history proofs and native wrapper refinement
+  remain pending.
 - **Boundary/effort:** moderate for key/cursor comparisons; substantial for the
   cache/listener state machine. Assume collision-resistant identity hashing, correct
   authenticated inputs and mutex/watch-channel semantics where effects are modeled.

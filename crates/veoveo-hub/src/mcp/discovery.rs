@@ -88,7 +88,7 @@ struct SurfaceState<T> {
 }
 
 impl<T: Clone + PartialEq> SurfaceState<T> {
-    fn get(&self, key: &DiscoveryCacheKey) -> Option<AdmittedCatalog<T>> {
+    fn cached(&self, key: &DiscoveryCacheKey) -> Option<AdmittedCatalog<T>> {
         let entry = self.entries.get(key)?;
         Some(AdmittedCatalog {
             items: entry.items.clone(),
@@ -96,7 +96,17 @@ impl<T: Clone + PartialEq> SurfaceState<T> {
         })
     }
 
-    fn begin(&mut self, key: DiscoveryCacheKey, coalesce: bool) -> Option<DiscoveryFetch> {
+    fn start<N, R>(
+        &mut self,
+        key: DiscoveryCacheKey,
+        coalesce: bool,
+        now: N,
+        fresh: R,
+    ) -> Option<DiscoveryFetch>
+    where
+        N: FnOnce() -> Instant,
+        R: FnOnce() -> Uuid,
+    {
         if key.catalog_generation < self.generation {
             return None;
         }
@@ -110,7 +120,7 @@ impl<T: Clone + PartialEq> SurfaceState<T> {
             && self
                 .failed
                 .get(&key)
-                .is_some_and(|retry_at| *retry_at > Instant::now())
+                .is_some_and(|retry_at| *retry_at > now())
         {
             return None;
         }
@@ -119,7 +129,7 @@ impl<T: Clone + PartialEq> SurfaceState<T> {
         {
             return None;
         }
-        let request = Uuid::now_v7();
+        let request = fresh();
         self.in_flight.insert(key.clone(), request);
         Some(DiscoveryFetch {
             key,
@@ -128,7 +138,10 @@ impl<T: Clone + PartialEq> SurfaceState<T> {
         })
     }
 
-    fn finish(&mut self, fetch: &DiscoveryFetch, items: Option<Vec<T>>) -> bool {
+    fn complete<N>(&mut self, fetch: &DiscoveryFetch, items: Option<Vec<T>>, now: N) -> bool
+    where
+        N: FnOnce() -> Instant,
+    {
         if self.in_flight.get(&fetch.key) != Some(&fetch.request) {
             return false;
         }
@@ -160,23 +173,23 @@ impl<T: Clone + PartialEq> SurfaceState<T> {
             }
             self.failed.insert(
                 fetch.key.clone(),
-                Instant::now() + Duration::from_millis(veoveo_hub_sdk::PRIVATE_CATALOG_TTL_MS),
+                now() + Duration::from_millis(veoveo_hub_sdk::PRIVATE_CATALOG_TTL_MS),
             );
             false
         }
     }
 
-    fn invalidate_cached_key(&mut self, key: &DiscoveryCacheKey) {
+    fn remove_cached(&mut self, key: &DiscoveryCacheKey) {
         self.entries.remove(key);
     }
 
-    fn invalidate_key(&mut self, key: &DiscoveryCacheKey) {
+    fn discard_key(&mut self, key: &DiscoveryCacheKey) {
         self.entries.remove(key);
         self.in_flight.remove(key);
         self.failed.remove(key);
     }
 
-    fn invalidate(&mut self, server: &ServerSlug) {
+    fn discard_server(&mut self, server: &ServerSlug) {
         self.entries.retain(|key, _| &key.server != server);
         // A response captured before this event must not repopulate the cache,
         // even if a replacement request has already started for the same key.
@@ -215,25 +228,28 @@ impl<T: Clone + PartialEq> SurfaceCache<T> {
     }
 
     async fn get(&self, key: &DiscoveryCacheKey) -> Option<AdmittedCatalog<T>> {
-        self.0.lock().await.get(key)
+        self.0.lock().await.cached(key)
     }
 
     async fn begin(&self, key: DiscoveryCacheKey, coalesce: bool) -> Option<DiscoveryFetch> {
-        self.0.lock().await.begin(key, coalesce)
+        self.0
+            .lock()
+            .await
+            .start(key, coalesce, Instant::now, Uuid::now_v7)
     }
 
     async fn finish(&self, fetch: &DiscoveryFetch, items: Option<Vec<T>>) -> bool {
-        self.0.lock().await.finish(fetch, items)
+        self.0.lock().await.complete(fetch, items, Instant::now)
     }
 
     async fn invalidate_cached_key(&self, key: &DiscoveryCacheKey) {
-        self.0.lock().await.invalidate_cached_key(key)
+        self.0.lock().await.remove_cached(key)
     }
     async fn invalidate_key(&self, key: &DiscoveryCacheKey) {
-        self.0.lock().await.invalidate_key(key)
+        self.0.lock().await.discard_key(key)
     }
     async fn invalidate(&self, server: &ServerSlug) {
-        self.0.lock().await.invalidate(server)
+        self.0.lock().await.discard_server(server)
     }
 }
 
