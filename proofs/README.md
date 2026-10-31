@@ -53,11 +53,11 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-AUTH-01 | Current policy and delegated authority do not amplify access | partial | Session/issuer continuity after the qualified SDK-to-policy connection |
 | HUB-OAUTH-01 | Exact session binding and refresh-family lifecycle | partial | Refresh concurrency slice qualified; initial creation, caller/SQL refinement and cleanup composition remain |
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
-| HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Trace broader routing beyond the linked kernel |
+| HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Exact retained lookup and HTTP context are connected; qualify combined source controls and current-policy/issuer provenance |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | unproved | Trace request identity and stale-response fencing |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency qualified within model/native boundaries; connect routing identity next, with removal and broader lifecycle coverage still open |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
 
@@ -670,8 +670,28 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   ([receipt](request_composition/evidence/complete-selection-collection-checkpoint.json)).
   Collector audits are standard-only; caller audits also name the existing
   uninterpreted namespace helper. Its completion, native representation refinement,
-  constructor coherence, per-slug uniqueness, combined semantic qualification and
-  broader request/issuer composition remain open.
+  full constructor-input refinement, combined semantic qualification and broader
+  request/issuer composition remain open.
+  An [unchanged-helper probe](request_composition/evidence/namespace-helper-translation-probe.json)
+  confirms that Charon extracts the namespace algorithm but the pinned Aeneas
+  fails on its nested borrows and an indexed projection. Partial outputs are not
+  adopted; this adds no proof coverage and does not justify a runtime change.
+  The actual snapshot constructor now translates unchanged and compiles alongside
+  all six existing request-composition targets. The handwritten model adds only
+  `Arc.new` and a missing generic map-method adapter
+  ([checkpoint](request_composition/evidence/snapshot-constructor-model-checkpoint.json)).
+  This supporting checkpoint alone makes no additional operation-correctness claim.
+  The [constructed-route proof](request_composition/SnapshotConstructorProof.lean)
+  now derives key/row coherence through arbitrary overwriting insertion and the
+  actual constructor's finite cursor. It composes the actual selected getter with
+  independent captured-component resolution and the full HTTP constructor/context
+  contract ([receipt](request_composition/evidence/constructed-route-context-checkpoint.json)).
+  Present routes preserve the complete current row; unavailable, missing and
+  wrong-slug selections have no fallback. Both new targets pass all nine scoped
+  audits. Native composition-key uniqueness and collection correspondence,
+  successful namespace-helper completion, current-policy provenance, async wiring
+  and SDK issuer/recipient composition remain explicit boundaries. This is not a
+  full constructor-input presence/latest-row or unconditional completion theorem.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

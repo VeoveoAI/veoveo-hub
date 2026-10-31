@@ -251,7 +251,26 @@ qualification of this combined contract remain open. Successful-result correctne
 does not establish unconditional `selected` success. No production defect or runtime
 change is claimed by this proof-only checkpoint.
 
+The subsequent [unchanged-helper translation probe](evidence/namespace-helper-translation-probe.json)
+exposed `build_namespaces` without changing its Rust. Charon extracted all sixteen
+requested roots and the helper's closures without errors. Aeneas failed on nested
+borrowed collections and while translating `deployments[0].deployment`, producing
+a partial helper containing `sorry`. Those outputs were not adopted. This records
+a translator limitation, not a production bug or additional proof coverage; the
+namespace-helper boundary remains open.
+
 ## Intended contract
+
+The unchanged `RegistrationSnapshot::new` constructor is now included in the
+raw extraction. Its generic iterator, mapping closure and complete row allocation
+remain visible; existing generated definitions are unchanged. The
+[extraction receipt](evidence/snapshot-constructor-extraction.json) records the
+16-root probe. The [model checkpoint](evidence/snapshot-constructor-model-checkpoint.json)
+records a passing six-target build of the model and prior proofs. The handwritten
+model adds allocation-erased `Arc.new` and the missing generic `Iterator.map`
+method spelling, forwarding to the existing default. No generated code or Rust
+was patched. Constructor coherence and the connected route theorem have their
+separate qualification below; translation and compilation alone did not establish them.
 
 For an admitted request, the selected registration determines the recipient slug,
 deployment and resource. The HTTP client preserves the admitted actor, authority,
@@ -271,8 +290,49 @@ and original principal. A delegated request retains its previously admitted
 context; an explicitly supplied conflicting execution is rejected. These are
 different paths and must not be conflated in the forwarding contract.
 
-The overall connected theorem is unfinished. Successful translation alone does
-not establish any of these properties.
+The overall policy-to-issued-identity theorem is unfinished. Successful translation
+alone does not establish it.
+
+## Constructed snapshot, exact route and HTTP context
+
+`SelectedRouteContextProof.selected_get_exact` derives the actual selected getter's
+result from an independent resolver: captured slug/component, current snapshot
+deployment lookup, then slug match. Complete selected-map contents and unique
+native composition keys yield exactly zero or one matching registration. No desired
+returned server is assumed; unavailable, absent, missing and wrong-slug selections
+have no fallback.
+
+`SnapshotConstructorProof.new_success_coherent` derives map-key/row-deployment
+coherence from the actual constructor mapping and finite collection. Arbitrary
+overwriting insertion preserves that invariant without sortedness, unique input
+keys or compatible duplicate values. The theorem requires an explicit finite cursor
+law and successful input conversion; it does not assert termination for arbitrary
+native iterators or complete last-written-row contents from the constructor input.
+
+`SnapshotConstructorProof.constructed_route_context_exact` discharges that coherence
+premise and connects the exact route to the actual HTTP constructor. The client
+names the captured deployment and requested slug, keeps the current row's endpoint,
+and preserves all expected subject, context, delegation and supplied-permission
+fields. The actual request-context result is exact for both direct and delegated
+calls. Current means this supplied catalog generation, not globally latest SQL state.
+Permissions are preserved as supplied; their current-policy provenance is not yet
+connected here. The async caller's use of the same returned row is a reviewed
+source/native adapter boundary.
+
+Both direct compilations and the two nondefault targets pass with nine executable
+axiom audits and no `sorryAx`. The [receipt](evidence/constructed-route-context-checkpoint.json)
+records source identities, failed proof-local iterations, commands, timings and
+compiled artifacts. In the documented private patched-tool setup, run manually:
+
+```sh
+LAKE_NO_UPDATE=1 lake build SelectedRouteContextProof SnapshotConstructorProof
+```
+
+Successful constructor/selection remains conditional on the unresolved namespace
+helper. The native collection/allocation refinement, combined source mutation,
+current-policy provenance and SDK issuer/recipient connection remain open. Existing
+entry/getter mutation controls retain their narrower scope. No runtime change,
+native check, deployment or paid model call was part of this milestone.
 
 ## Source and model ownership
 

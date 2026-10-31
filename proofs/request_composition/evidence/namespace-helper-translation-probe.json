@@ -1,0 +1,310 @@
+{
+  "kind": "unchanged namespace helper translation feasibility",
+  "status": "Charon extraction succeeded; Aeneas translation failed; no proof coverage added",
+  "source": {
+    "hub_parent": "dac4cf7",
+    "hub_runtime_revision": "3bc2923ca1d2e0c559e532286c16ec3d6a5ceb7a",
+    "sdk_pin": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "core_pin": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "input_sha256": {
+      "hub_archive": "b602fd5d6cbeb658aa7fc9a606c45b437f823a61cdd6bdc470df9775adad34f9",
+      "hub_manifest": "e91c79ca49849e3c3b060ad40cdccfebd4a47d228df7999d6d4394a4434e6675",
+      "plan": "e132626998083a7aa6988cfd1bc9cb2296f2f00809d92ee28a791087896823d3",
+      "sdk_archive": "d503de9b88b34172eee6e3299c53417f737abe68ebbf2e724d3c26dd1edd4f77",
+      "sdk_manifest": "a1a6575c81f7b16e21ef12e98ea9c6388f03afdda6880979ea7dd89d12e3ebe7"
+    },
+    "snapshot_sha256": "aff6a2c0793c73219e1ed27f4664d6141ccc876f4407e459c8ac531bd6e2519c",
+    "canonical_extraction_receipt": "extraction-checkpoint.json",
+    "catalog_annotation_only": true,
+    "source_maps_verified": true
+  },
+  "plan": {
+    "sha256": "e132626998083a7aa6988cfd1bc9cb2296f2f00809d92ee28a791087896823d3",
+    "baseline_delta": {
+      "add_includes": [
+        "veoveo_hub::registration::snapshot::_::build_namespaces"
+      ],
+      "add_starts": [
+        "veoveo_hub::registration::snapshot::_::build_namespaces"
+      ],
+      "all_other_selectors_identical": true,
+      "no_new_primitive_opacity": true,
+      "old_counts": {
+        "includes": 50,
+        "opaques": 15,
+        "starts": 15
+      },
+      "plan_path": "/tmp/hub-request-composition-20261030/hub-partition-a-extraction-plan2.json",
+      "plan_sha256": "ed1b0f28fbec9d1f96046f3f0287e68019c12387f96ce866d7538eb057c176c1",
+      "remove_opaques": [
+        "veoveo_hub::registration::snapshot::_::build_namespaces"
+      ]
+    },
+    "counts": {
+      "includes": 51,
+      "opaques": 14,
+      "starts": 16
+    },
+    "actual_argv_difference": "The reused runner consistently named the fresh LLBC hub_current_roles.llbc rather than planned hub_request_composition.llbc in both Charon output and Aeneas input. All other argv entries match exactly; both paths are inside the fresh probe output directory."
+  },
+  "tools": {
+    "charon_sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+    "charon_version": "0.1.293",
+    "aeneas_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "aeneas_revision": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "runner_sha256": "cf31c7d1d85195e4512083cf81628c8ec64f684eaf6fbccfc1067f81aead5683"
+  },
+  "stages": [
+    {
+      "elapsed_ms": 515,
+      "exit": 0,
+      "log_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stage": "verify-source-pin-metadata",
+      "timed_out": false,
+      "timeout_seconds": 180
+    },
+    {
+      "elapsed_ms": 2,
+      "exit": 0,
+      "log_bytes": 47,
+      "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9",
+      "stage": "apply-catalog-annotation",
+      "timed_out": false,
+      "timeout_seconds": 30
+    },
+    {
+      "elapsed_ms": 164,
+      "exit": 0,
+      "log_bytes": 21,
+      "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+      "stage": "clean-hub-charon-target",
+      "timed_out": false,
+      "timeout_seconds": 120
+    },
+    {
+      "elapsed_ms": 25006,
+      "exit": 0,
+      "log_bytes": 4331,
+      "log_sha256": "d79f32af35697e2972a455a2ab7938f8dc9e3691459d45a9b4a3139cf09b0c81",
+      "stage": "charon-composition-probe",
+      "timed_out": false,
+      "timeout_seconds": 600
+    },
+    {
+      "elapsed_ms": 2173,
+      "exit": 1,
+      "log_bytes": 9024,
+      "log_sha256": "a2c143dc326b61f44217f1fd556b30cf55b9b996498c629a2c4253dd40316cbc",
+      "stage": "aeneas-composition-probe",
+      "timed_out": false,
+      "timeout_seconds": 600
+    }
+  ],
+  "llbc": {
+    "has_errors": false,
+    "error_declarations": 0,
+    "requested_transparent_functions": 16,
+    "helper": {
+      "selector": "veoveo_hub::registration::snapshot::_::build_namespaces",
+      "def_id": 42,
+      "body_present": true,
+      "opacity": "Transparent",
+      "span": {
+        "start": {
+          "col": 4,
+          "line": 98
+        },
+        "end": {
+          "col": 5,
+          "line": 128
+        }
+      }
+    },
+    "helper_and_children": [
+      {
+        "def_id": 42,
+        "body_present": true,
+        "opacity": "Transparent",
+        "span": {
+          "start": {
+            "col": 4,
+            "line": 98
+          },
+          "end": {
+            "col": 5,
+            "line": 128
+          }
+        }
+      },
+      {
+        "def_id": 129,
+        "body_present": true,
+        "opacity": "Transparent",
+        "span": {
+          "start": {
+            "col": 46,
+            "line": 102
+          },
+          "end": {
+            "col": 78,
+            "line": 102
+          }
+        }
+      },
+      {
+        "def_id": 130,
+        "body_present": true,
+        "opacity": "Transparent",
+        "span": {
+          "start": {
+            "col": 17,
+            "line": 107
+          },
+          "end": {
+            "col": 13,
+            "line": 126
+          }
+        }
+      },
+      {
+        "def_id": 353,
+        "body_present": true,
+        "opacity": "Transparent",
+        "span": {
+          "start": {
+            "col": 46,
+            "line": 102
+          },
+          "end": {
+            "col": 78,
+            "line": 102
+          }
+        }
+      },
+      {
+        "def_id": 354,
+        "body_present": true,
+        "opacity": "Transparent",
+        "span": {
+          "start": {
+            "col": 36,
+            "line": 111
+          },
+          "end": {
+            "col": 17,
+            "line": 117
+          }
+        }
+      },
+      {
+        "def_id": 355,
+        "body_present": true,
+        "opacity": "Transparent",
+        "span": {
+          "start": {
+            "col": 29,
+            "line": 122
+          },
+          "end": {
+            "col": 55,
+            "line": 122
+          }
+        }
+      },
+      {
+        "def_id": 359,
+        "body_present": true,
+        "opacity": "Transparent",
+        "span": {
+          "start": {
+            "col": 17,
+            "line": 107
+          },
+          "end": {
+            "col": 13,
+            "line": 126
+          }
+        }
+      },
+      {
+        "def_id": 459,
+        "body_present": true,
+        "opacity": "Transparent",
+        "span": {
+          "start": {
+            "col": 36,
+            "line": 111
+          },
+          "end": {
+            "col": 17,
+            "line": 117
+          }
+        }
+      },
+      {
+        "def_id": 460,
+        "body_present": true,
+        "opacity": "Transparent",
+        "span": {
+          "start": {
+            "col": 29,
+            "line": 122
+          },
+          "end": {
+            "col": 55,
+            "line": 122
+          }
+        }
+      }
+    ]
+  },
+  "translation_errors": [
+    {
+      "message": "There should be no bottoms in the value",
+      "source": "crates/veoveo-hub/src/registration/snapshot.rs:119:28-119:39",
+      "expression": "deployments[0].deployment"
+    },
+    {
+      "message": "Nested borrows are not supported yet",
+      "source": "crates/veoveo-hub/src/registration/snapshot.rs:102:8-104:9",
+      "expression": "filter loop with by_slug.entry(&server.slug).or_default().push(server)"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "RequestCompositionHub/Funs.lean",
+      "sha256": "2063331e73ddc85bfaa7f7b56cd02f007116cc78999c8342ec3a8e4c198ace46",
+      "bytes": 249840
+    },
+    {
+      "path": "RequestCompositionHub/FunsExternal_Template.lean",
+      "sha256": "41068daac080ecb611294cc5b002d69bf342f28d01fbab9ab2e132383c439dfa",
+      "bytes": 116712
+    },
+    {
+      "path": "RequestCompositionHub/Types.lean",
+      "sha256": "26637888b62fe9e4e52e56ece3b4d809d68665e0fdc5c535c12f589a3dfee6f8",
+      "bytes": 117321
+    },
+    {
+      "path": "RequestCompositionHub/TypesExternal_Template.lean",
+      "sha256": "354c3c8fea5a48e3a481978321a3298127d030b73160036b0954bbe1d257c836",
+      "bytes": 30860
+    },
+    {
+      "path": "hub_current_roles.llbc",
+      "sha256": "e1d7bd7fa39b0c998ecaf3ec9f0553dc87185b24c913ddaa022aeeea021adf34",
+      "bytes": 6512383
+    }
+  ],
+  "summary_sha256": "6056e1ffea8c4959b65884ea7bb7d23b0eec15274a85a63124e2aa77fc6b1528",
+  "temporary_evidence": "/tmp/hub-request-composition-20261030/evidence-namespace-helper-probe1",
+  "interpretation": [
+    "The helper and eight associated closure declarations have error-free transparent LLBC bodies. This is extraction evidence, not a Lean proof.",
+    "The partial generated build_namespaces body is sorry and is rejected for adoption. No partial output replaces the checked package.",
+    "Comparator closure bodies are present in partial output, but no new Lean compilation or proof was run; end-to-end sorting and helper completion remain unqualified.",
+    "The diagnostics establish translator limitations, not a production defect or evidence that native indexing can fail.",
+    "No production source, checked generated model, proof, policy, dependency pin or deployment changed. Generic new() was not included. No native tests, full gates, model calls or retries ran."
+  ]
+}
