@@ -1,0 +1,340 @@
+{
+  "agents": {
+    "execution": "/root/builder \u2014 GPT-6 Luna",
+    "implementation": "/root/coder \u2014 GPT-6.1 Sol",
+    "review": "/root \u2014 GPT-6 Astra"
+  },
+  "archive_bytes": 9472000,
+  "archive_sha256": "1303701fc9ada382923e82baffb5f47ee3950a5e8fcfb880ccec5cb25682d3c8",
+  "boundaries": [
+    "Both runs build Linux containers natively for their host architecture; the Mac run is Docker Desktop, not a native macOS application test.",
+    "Only local check-stage images were produced; no image publication, deployment or model call.",
+    "No Lean proof job ran in this Docker check; frozen proof applicability and changed linked-service domains retain their separately recorded boundaries.",
+    "No full command rerun followed this evidence-only addition; all 839 nonproof build inputs match the qualified c23d9ae snapshot."
+  ],
+  "check_dockerfile_stages": [
+    {
+      "commands": [
+        "cargo fetch --locked",
+        "core and Hub migrations in private PostgreSQL 18",
+        "cargo sqlx prepare --workspace --all --check -- --all-targets --all-features"
+      ],
+      "step": "check 1/2"
+    },
+    {
+      "commands": [
+        "cargo fmt --check",
+        "cargo clippy --locked --all-targets --all-features -- -D warnings",
+        "cargo deny --locked check",
+        "cargo hack check --each-feature --no-dev-deps",
+        "cargo nextest run --locked --profile ci"
+      ],
+      "step": "check 2/2"
+    }
+  ],
+  "clean_source_worktree": true,
+  "command": "docker build --target check .",
+  "docker_context_count": 1144,
+  "docker_context_map_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+  "dockerfile_sha256": "eb5ce9c12f5bcd0c65ac54be3c7736f86e27c5f546a6a30611333ce1e2f0165f",
+  "dockerignore_sha256": "b54a6a4c824adc374ca4fac10e0ff87c2aa6d21494faa80ec3044276c5186bda",
+  "evidence_class": "native integrated component qualification; not a Lean proof or deployed acceptance",
+  "ignored_context_files": [],
+  "junit": {
+    "captured": false,
+    "reason": "Not captured. Nextest names and aggregate counts are available in the full platform logs. A read-only copy attempt for /home/sandbox/src/junit.xml found that path absent in the Mac check image; the actual report location was not inspected."
+  },
+  "map_file_sha256": {
+    "docker_context_map.json": "1b51464e6fd06d14e9bb2558191399607ee96a48d5370aabee8a3e29fb14a93c",
+    "full_source_map.json": "1b51464e6fd06d14e9bb2558191399607ee96a48d5370aabee8a3e29fb14a93c",
+    "linux_full_source_map.before.json": "1b51464e6fd06d14e9bb2558191399607ee96a48d5370aabee8a3e29fb14a93c",
+    "linux_nonproof_map.before.json": "59557373975614bbf6c42b9292cf6cb3a8d53e571f56f368a57b0fc60e38f6f2",
+    "mac_full_source_map.before.json": "1b51464e6fd06d14e9bb2558191399607ee96a48d5370aabee8a3e29fb14a93c",
+    "mac_nonproof_map.before.json": "59557373975614bbf6c42b9292cf6cb3a8d53e571f56f368a57b0fc60e38f6f2",
+    "nonproof_build_input_map.json": "59557373975614bbf6c42b9292cf6cb3a8d53e571f56f368a57b0fc60e38f6f2"
+  },
+  "named_regressions": {
+    "mcp::discovery_watch::tests::an_unchanging_deployment_does_not_suppress_the_same_link_in_another_selection": {
+      "linux": "passed",
+      "mac": "passed"
+    },
+    "mcp::discovery_watch::tests::an_unchanging_link_does_not_suppress_another_runners_watch": {
+      "linux": "passed",
+      "mac": "passed"
+    },
+    "mcp::discovery_watch::tests::live_publication_fences_a_selected_discovery_watch": {
+      "linux": "passed",
+      "mac": "passed"
+    },
+    "mcp::discovery_watch::tests::publication_while_ensure_waits_for_watch_lock_is_rechecked": {
+      "linux": "passed",
+      "mac": "passed"
+    },
+    "mcp::discovery_watch::tests::stale_admission_cannot_remove_a_newer_discovery_watch": {
+      "linux": "passed",
+      "mac": "passed"
+    },
+    "mcp::subscriptions::tests::an_ended_catalog_source_reaches_the_downstream_reconnect_path": {
+      "linux": "passed",
+      "mac": "passed"
+    }
+  },
+  "nextest": {
+    "binaries": 31,
+    "failed": 0,
+    "passed": 454,
+    "skipped": 2,
+    "tests_run": 454
+  },
+  "nextest_profile": "ci (fail-fast=false; 60s slow timeout x 5; no exclusions for this test group)",
+  "nonproof_build_input_count": 839,
+  "nonproof_build_input_map_sha256": "db89e61f74f94f5b30b2dec30901348e9a515ae2c379ed92cdd569072baa8082",
+  "per_platform": {
+    "linux": {
+      "archive_path": "/home/rozgo/.cache/lean-pilot/hub-full-check-20261031/c23d9ae/source-snapshot.tar",
+      "archive_sha256": "1303701fc9ada382923e82baffb5f47ee3950a5e8fcfb880ccec5cb25682d3c8",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "check",
+        "."
+      ],
+      "complete": true,
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-full-check-20261031/c23d9ae/source",
+      "docker_context": "default",
+      "docker_context_file_count": 1144,
+      "docker_context_map_path": "/home/rozgo/.cache/lean-pilot/hub-full-check-20261031/c23d9ae/linux-run1/docker-context-map.before.json",
+      "docker_context_map_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+      "docker_ignored_files": [],
+      "docker_info": "29.2.1|Ubuntu 24.04.5 LTS|32|67327680512",
+      "full_source_file_count": 1144,
+      "full_source_map_path": "/home/rozgo/.cache/lean-pilot/hub-full-check-20261031/c23d9ae/linux-run1/full-source-map.before.json",
+      "full_source_map_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+      "image_id": "b60cccc4d34a22834708c09fe0f95aaa3b6393ecf2b98695365ef2972d23a28e",
+      "nextest_command": "cargo nextest run --locked --profile ci",
+      "nextest_summary": [
+        "43.341",
+        "454",
+        "454",
+        "2",
+        ""
+      ],
+      "nonfatal_warnings": [
+        "warning[unmatched-source]: allowed source was not encountered",
+        "warning[duplicate]: found 2 duplicate entries for crate 'base64'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'block-buffer'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'cpufeatures'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'crypto-common'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'darling'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'darling_core'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'darling_macro'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'digest'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'foldhash'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'getrandom'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'hashbrown'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'itertools'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'jsonwebtoken'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'linux-raw-sys'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'pem'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'petgraph'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'prost'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'prost-build'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'prost-derive'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'prost-types'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'r-efi'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'rand'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'rand_chacha'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'rand_core'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'reqwest'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'rustc-hash'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'rustix'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'sha2'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'shlex'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'signature'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'syn'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'synstructure'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'thiserror'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'thiserror-impl'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'tokio-tungstenite'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'tower-http'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'tungstenite'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'unicode-width'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'untrusted'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'windows-sys'"
+      ],
+      "nonproof_build_input_count": 839,
+      "nonproof_build_input_map_path": "/home/rozgo/.cache/lean-pilot/hub-full-check-20261031/c23d9ae/linux-run1/nonproof-build-input-map.before.json",
+      "nonproof_build_input_map_sha256": "db89e61f74f94f5b30b2dec30901348e9a515ae2c379ed92cdd569072baa8082",
+      "platform": "linux",
+      "source_commit": "c23d9ae0f9a50a2a7f2d53e8840279dcfc37090e",
+      "source_root": "/home/rozgo/.cache/lean-pilot/hub-full-check-20261031/c23d9ae/source",
+      "source_tree": "89f58221a5f2b8f0780eb044947f41587351fb03",
+      "stage_milestones_seconds": {
+        "check_sqlx_metadata_and_migrations": 26.1,
+        "image_export": 0.4,
+        "quality_and_nextest": 169.6
+      },
+      "stages": [
+        {
+          "build_input_map_after_sha256": "db89e61f74f94f5b30b2dec30901348e9a515ae2c379ed92cdd569072baa8082",
+          "build_inputs_unchanged": true,
+          "docker_context_map_after_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+          "docker_context_unchanged": true,
+          "elapsed_ms": 197801,
+          "exit": 0,
+          "full_source_map_after_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+          "full_source_unchanged": true,
+          "log_bytes": 486679,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-full-check-20261031/c23d9ae/linux-run1/docker-check.log",
+          "log_sha256": "497a11b7e9e9232a75b89259b496f7c6a05c22b3895add09decd973a23f5d41f",
+          "name": "docker-build-check",
+          "timed_out": false
+        }
+      ],
+      "timeout_seconds": 7200
+    },
+    "mac": {
+      "archive_path": "/private/tmp/hub-full-check-c23d9ae/source-snapshot.tar",
+      "archive_sha256": "1303701fc9ada382923e82baffb5f47ee3950a5e8fcfb880ccec5cb25682d3c8",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "check",
+        "."
+      ],
+      "complete": true,
+      "cwd": "/private/tmp/hub-full-check-c23d9ae/source",
+      "docker_context": "desktop-linux",
+      "docker_context_file_count": 1144,
+      "docker_context_map_path": "/private/tmp/hub-full-check-c23d9ae/mac-run1/docker-context-map.before.json",
+      "docker_context_map_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+      "docker_ignored_files": [],
+      "docker_info": "29.8.2|Docker Desktop|16|67302940672",
+      "full_source_file_count": 1144,
+      "full_source_map_path": "/private/tmp/hub-full-check-c23d9ae/mac-run1/full-source-map.before.json",
+      "full_source_map_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+      "image_id": "9a41e15191d3ab3ad696ac2767fd21450e9d5cb51ec84548e14ad6e0b676e58a",
+      "nextest_command": "cargo nextest run --locked --profile ci",
+      "nextest_summary": [
+        "35.637",
+        "454",
+        "454",
+        "2",
+        ""
+      ],
+      "nonfatal_warnings": [
+        "warning[unmatched-source]: allowed source was not encountered",
+        "warning[duplicate]: found 2 duplicate entries for crate 'base64'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'block-buffer'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'cpufeatures'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'crypto-common'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'darling'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'darling_core'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'darling_macro'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'digest'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'foldhash'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'getrandom'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'hashbrown'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'itertools'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'jsonwebtoken'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'linux-raw-sys'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'pem'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'petgraph'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'prost'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'prost-build'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'prost-derive'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'prost-types'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'r-efi'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'rand'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'rand_chacha'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'rand_core'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'reqwest'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'rustc-hash'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'rustix'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'sha2'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'shlex'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'signature'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'syn'",
+        "warning[duplicate]: found 3 duplicate entries for crate 'synstructure'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'thiserror'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'thiserror-impl'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'tokio-tungstenite'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'tower-http'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'tungstenite'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'unicode-width'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'untrusted'",
+        "warning[duplicate]: found 2 duplicate entries for crate 'windows-sys'"
+      ],
+      "nonproof_build_input_count": 839,
+      "nonproof_build_input_map_path": "/private/tmp/hub-full-check-c23d9ae/mac-run1/nonproof-build-input-map.before.json",
+      "nonproof_build_input_map_sha256": "db89e61f74f94f5b30b2dec30901348e9a515ae2c379ed92cdd569072baa8082",
+      "platform": "mac",
+      "source_commit": "c23d9ae0f9a50a2a7f2d53e8840279dcfc37090e",
+      "source_root": "/private/tmp/hub-full-check-c23d9ae/source",
+      "source_tree": "89f58221a5f2b8f0780eb044947f41587351fb03",
+      "stage_milestones_seconds": {
+        "check_sqlx_metadata_and_migrations": 18.6,
+        "image_export": 0.3,
+        "quality_and_nextest": 157.8
+      },
+      "stages": [
+        {
+          "build_input_map_after_sha256": "db89e61f74f94f5b30b2dec30901348e9a515ae2c379ed92cdd569072baa8082",
+          "build_inputs_unchanged": true,
+          "docker_context_map_after_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+          "docker_context_unchanged": true,
+          "elapsed_ms": 179237,
+          "exit": 0,
+          "full_source_map_after_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+          "full_source_unchanged": true,
+          "log_bytes": 486675,
+          "log_path": "/private/tmp/hub-full-check-c23d9ae/mac-run1/docker-check.log",
+          "log_sha256": "40114701339f4aa2902e54372571002f802b9a32bf9cd5028d68d3abc989e0ef",
+          "name": "docker-build-check",
+          "timed_out": false
+        }
+      ],
+      "timeout_seconds": 7200
+    }
+  },
+  "source_archive_file_sha256": "1303701fc9ada382923e82baffb5f47ee3950a5e8fcfb880ccec5cb25682d3c8",
+  "source_commit": "c23d9ae0f9a50a2a7f2d53e8840279dcfc37090e",
+  "source_file_count": 1144,
+  "source_map_sha256": "387b8e3f87e871b1bbcaa736b503f76302b7b5c006375dc01dbfa1eb5b50c924",
+  "source_receipt_path": "/tmp/hub-full-check-c23d9ae/source-receipt.json",
+  "source_receipt_sha256": "2ea6c151b7a956df7b5568621e9b0c32d4d05f9a64d62ac8faa602b9135b43e5",
+  "source_tree": "89f58221a5f2b8f0780eb044947f41587351fb03",
+  "summary_artifacts": {
+    "linux": {
+      "bytes": 2385,
+      "path": "/tmp/hub-full-check-c23d9ae/linux-run1-mirror/summary.json",
+      "sha256": "c891e8f13686285b2ce1352a780df0e37972b4e8908ca09f584d5ddd07a3e3bf"
+    },
+    "mac": {
+      "bytes": 2195,
+      "path": "/tmp/hub-full-check-c23d9ae/mac-run1/summary.json",
+      "sha256": "b18d3daee6991ac919faf6dde9d666026111552a68a3d655f1779bfe9703fc7e"
+    }
+  },
+  "test_names_by_platform": {
+    "linux": {
+      "mcp::discovery_watch::tests::an_unchanging_deployment_does_not_suppress_the_same_link_in_another_selection": "passed",
+      "mcp::discovery_watch::tests::an_unchanging_link_does_not_suppress_another_runners_watch": "passed",
+      "mcp::discovery_watch::tests::live_publication_fences_a_selected_discovery_watch": "passed",
+      "mcp::discovery_watch::tests::publication_while_ensure_waits_for_watch_lock_is_rechecked": "passed",
+      "mcp::discovery_watch::tests::stale_admission_cannot_remove_a_newer_discovery_watch": "passed",
+      "mcp::subscriptions::tests::an_ended_catalog_source_reaches_the_downstream_reconnect_path": "passed"
+    },
+    "mac": {
+      "mcp::discovery_watch::tests::an_unchanging_deployment_does_not_suppress_the_same_link_in_another_selection": "passed",
+      "mcp::discovery_watch::tests::an_unchanging_link_does_not_suppress_another_runners_watch": "passed",
+      "mcp::discovery_watch::tests::live_publication_fences_a_selected_discovery_watch": "passed",
+      "mcp::discovery_watch::tests::publication_while_ensure_waits_for_watch_lock_is_rechecked": "passed",
+      "mcp::discovery_watch::tests::stale_admission_cannot_remove_a_newer_discovery_watch": "passed",
+      "mcp::subscriptions::tests::an_ended_catalog_source_reaches_the_downstream_reconnect_path": "passed"
+    }
+  },
+  "worktree_head": "c23d9ae0f9a50a2a7f2d53e8840279dcfc37090e"
+}

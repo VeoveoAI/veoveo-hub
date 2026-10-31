@@ -94,6 +94,14 @@ proofs; new runner candidate assembly and deployment lookup are outside them.
 Registration's new runner persistence path is also outside the old transaction
 models. Native integration checks, when recorded, do not close these formal gaps.
 
+The [integrated native check receipt](discovery_cache/evidence/integrated-native-checks-20261031.json)
+qualifies Hub `c23d9ae`, including both discovery-watch corrections and the merged
+Computer/linked-runner changes. `docker build --target check .` passed on Mac
+Docker Desktop and Ubuntu: 454 tests passed and two were skipped on each, including
+all six watch/subscription regressions. SQL metadata, formatting, strict Clippy,
+dependency policy and feature checks also passed. These are component checks of
+Linux containers on each host architecture, not new Lean coverage or deployment.
+
 Keep two independent fields for each result:
 
 - **Formal status:** `unproved`, `partial`, or `proved-within-stated-boundary`.
