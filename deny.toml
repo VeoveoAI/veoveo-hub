@@ -12,8 +12,19 @@ all-features = true
 # them. RustSec lists no patched version. Remove this exception when the pinned SDK
 # removes the dependency. cargo-deny 0.20.2 scopes this by advisory ID only, not caller.
 # https://rustsec.org/advisories/RUSTSEC-2025-0134.html
+#
+# Reviewed informational maintenance notice, not a claim that the graph is free of
+# vulnerabilities. The locked unsafe-libyaml 0.2.11 comes through serde_yaml
+# 0.9.34+deprecated, which kube-client 0.99 uses through openshell-crypto from
+# VeoveoAI/OpenShell at c80bda2013a5656bc2421a38013463709481671f, and which the Hub uses
+# to read a branch's `openshell/providers.yaml`, a list of at most 16 provider names
+# that the factory validates after parsing. RustSec lists no vulnerability and no
+# patched version. Remove this exception when the Hub and the pinned OpenShell crates no
+# longer depend on serde_yaml.
+# https://rustsec.org/advisories/RUSTSEC-2024-0449.html
 ignore = [
     { id = "RUSTSEC-2025-0134", reason = "Reviewed unmaintained rustls-pemfile 2.2.0 via pinned openshell-core (5a7728c304b5528e954e9ae900cf21f84e1a12b1); informational maintenance notice, no patched release. Remove when the SDK drops the dependency." },
+    { id = "RUSTSEC-2024-0449", reason = "Reviewed unmaintained unsafe-libyaml 0.2.11 via serde_yaml 0.9.34, used by kube-client 0.99 through openshell-crypto (c80bda2013a5656bc2421a38013463709481671f) and by the Hub for providers.yaml; informational maintenance notice, no patched release. Remove when the Hub and OpenShell drop serde_yaml." },
 ]
 unused-ignored-advisory = "deny"
 
