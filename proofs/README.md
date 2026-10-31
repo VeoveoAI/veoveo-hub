@@ -23,6 +23,17 @@ unproved. Relative links navigate the current tree; function names and the origi
 review revisions identify the source context.
 Historical named-environment checks are not forward-looking requirements here.
 
+A later [source-only applicability audit](request_composition/evidence/source-applicability-20261031.json)
+records local Hub `f8faea5`, fetched Hub `origin/main` `0ff0819`, local SDK `6afa18a`
+and fetched SDK `origin/main` `7459481`. The Hub HTTP constructor, current-policy
+call wiring and caller deadline body match the extracted basis byte for byte in
+both Hub revisions. The remote nevertheless adds a separate non-MCP forwarder,
+`AppOrigin` policy cases and `RegisteredServer.surfaces`; the existing graph and
+complete-field theorems do not cover those additions. SDK issuer preparation and
+the remote SDK's newer Core Task-wake fix also require deliberate source integration.
+The audit adds no proof, native test or deployment result. Function-text identity
+does not establish callee, type or compilation-context equivalence.
+
 The Task-continuity qualification is a separate source boundary: changed Hub files
 based on `651390dbbb8b4e65b5b8bcd3f8714a981fac2371` and the exact sibling SDK files
 based on `7e2489dccbee6d00b377b174f68f9d5de692a68b`. Its shared-source package records
