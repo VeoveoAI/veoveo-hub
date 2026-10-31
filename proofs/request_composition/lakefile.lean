@@ -6,3 +6,6 @@ package hubRequestCompositionProof
 lean_lib RequestCompositionHub
 @[default_target]
 lean_lib SnapshotAssemblyProof
+
+-- Requires the explicit private patched-tool workflow in tooling/README.md.
+lean_lib SelectedRegistrationProof

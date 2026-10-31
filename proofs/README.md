@@ -631,6 +631,14 @@ Already captured requests/Tasks retain their exact composition rather than rerou
   successful package/audit checks and remaining semantic controls. This does not yet
   establish selected-map correctness, namespace-helper completion/order, provenance
   of supplied permissions or actual SDK issuer/recipient composition.
+  The [lookup checkpoint](request_composition/SelectedRegistrationProof.lean) now
+  proves the actual extracted slug getter accepts exactly one matching registration
+  and refuses zero or multiple matches, with the complete row preserved. Its five
+  standard-only audits and exact nondefault target pass
+  ([receipt](request_composition/evidence/registration-lookup-checkpoint.json)).
+  The companion keyed-lookup lemma covers the handwritten map model. Full selection
+  collection and actual-source semantic controls remain open; this does not prove
+  the composed request path.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 

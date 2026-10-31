@@ -55,6 +55,40 @@ their combined imports. It uses explicit private dependency overrides; the
 baseline manifests above still select the unpatched tool. It adds no new routing
 or issuer theorem.
 
+## Checked registration lookup
+
+[SelectedRegistrationProof.lean](SelectedRegistrationProof.lean) checks the actual
+extracted `RegistrationSnapshot::get` against an independent specification: filter
+the snapshot's values by slug, return the complete registration if exactly one
+matches, and return none for zero or multiple matches. The theorem covers arbitrary
+snapshot contents and uses no namespace-helper or desired-route premise.
+
+The iterator and actual slug-predicate contracts establish a finite scan. The
+separate `lookup_exact` lemma connects the handwritten comparator-driven map model
+to independent keyed list lookup. That lemma supplies a model boundary for the next
+selection proof; it does not separately verify Rust's `deployment` method or the
+native standard-library map implementation.
+
+All five declarations have executable standard-axiom-only audits. The
+[lookup receipt](evidence/registration-lookup-checkpoint.json) records a successful
+direct check in 2.869 s and exact target build in 3.171 s, with 61 effective source
+and configuration hashes unchanged. Generated outputs and the previous assembly
+proof retain their checked hashes.
+
+This target is deliberately nondefault because its combined imports require the
+explicit [private patched-tool workflow](tooling/README.md). In that prepared
+request-composition directory, run:
+
+```sh
+LAKE_NO_UPDATE=1 lake env lean SelectedRegistrationProof.lean
+LAKE_NO_UPDATE=1 lake build SelectedRegistrationProof
+```
+
+Full selection filtering/collection, uniqueness of selected routes, current-policy
+provenance and issuer/recipient composition remain open. The unfinished selection
+entry proof is excluded. Actual-source semantic controls for this lookup theorem
+are also pending; failed tactic-development attempts do not supply those controls.
+
 ## Intended contract
 
 For an admitted request, the selected registration determines the recipient slug,

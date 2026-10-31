@@ -1,0 +1,149 @@
+{
+  "kind": "actual-registration-getter-and-modeled-key-lookup",
+  "status": "checked partial request-composition milestone; full selected pipeline and semantic controls pending",
+  "source": {
+    "hub_runtime_revision": "3bc2923ca1d2e0c559e532286c16ec3d6a5ceb7a",
+    "hub_checkpoint_parent": "ed1c42d",
+    "sdk_pin": "239622d12c08b771cc5e813fe3e846385d8d04ad",
+    "extraction_receipt": "extraction-checkpoint.json",
+    "patched_tool_receipt": "discriminant-tooling-checkpoint.json"
+  },
+  "lean_toolchain": "leanprover/lean4:v4.35.0",
+  "proof": {
+    "path": "SelectedRegistrationProof.lean",
+    "bytes": 9109,
+    "sha256": "8dd2e35b7e6ac6443547737148f33b95f2597ad7921b59231573b7be1542f128",
+    "declarations": [
+      "values_cursor_law",
+      "slug_predicate_law",
+      "filter_next_law",
+      "get_exact",
+      "lookup_exact"
+    ],
+    "allowed_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "executable_audit": true
+  },
+  "validation": {
+    "summary_sha256": "4659115e67e836652c08f4139973b4c4562c7fa062778e404af63716135c98e8",
+    "summary": {
+      "case": "Actual getter and keyed lookup exact checkpoint; full selection pipeline pending",
+      "packet_sha256": "c71214a86dfd2247cfe719ca490d14e536e553705ab48b2f906497a5fe952278",
+      "private_source_map_before": {
+        "request_composition/SnapshotAssemblyProof.lean": "52d30db8e5e58b83d15d2388ef832377e91fb6bbfaa8035d82c604fcbe224fc8",
+        "request_composition/lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "request_composition/lake-manifest.json": "22c7b4a238d63b8bd5bdf30c30a04c4589f0794a3e9763b311a1736299171138",
+        "request_composition/lakefile.lean": "b05788f3150aa4112cedb19d3cad8f2a658e20be0f1000964fb8c63e610ef1be",
+        "request_composition/RequestCompositionHub.lean": "641826c672053f74d7acd8711cde9a186ab3a19504a05ebe90c757a9473eaec9",
+        "request_composition/RequestCompositionHub/Funs.lean": "b1cd794046eea1100fa621bf555126ce9e44452938d16fe32c4be7133d9656f1",
+        "request_composition/RequestCompositionHub/TypesExternal.lean": "c8280950cce73e6f1c23b66617cb50a0dc5bc29807699d21a8894e9819caaadd",
+        "request_composition/RequestCompositionHub/FunsExternal.lean": "a7b609aa8d52bde80da1007e75972d0dbaf2eb028c212ceb982aebf5dc9ea4e2",
+        "request_composition/RequestCompositionHub/Types.lean": "afc561f2a66c0f4725eba1181379ec09ec298f1aec4de12557c1aa79bb8874f2",
+        "current_roles/SessionModelAudit.lean": "112d76f569780d7d31df95d40a66843710672a9f3973ad3f25e5b45981e3c9ba",
+        "current_roles/SDKAccessProof.lean": "5d708bf9fc29c15fd7147717cb0d63987d1ca9f8326c05824b68b0e204e299b6",
+        "current_roles/HubCurrentRoles.lean": "097d0eba1287bed6e96cb1328ecf48a6c2d2f1ded5ee207f4f31f166b3e3364d",
+        "current_roles/IteratorProof.lean": "29b28849fbfb8830425373b3d0706e8d79cc8ce95502ebf17234de700c80faa4",
+        "current_roles/GrantedPermissionsProof.lean": "b5df13643b0ed92b212c5e3e38d5710ac8b880d7f31f80ec996c0994cdeb0e22",
+        "current_roles/SDKResolverAdapterProof.lean": "5cd8bd354dd30cba888ffd503fc79776e90557e742f1ccbd816cdc60a925de56",
+        "current_roles/NativePolicyModelAudit.lean": "c136277bf10c2ec3b6c3d574e8d7758d30beb88cd91b1bd33006961e736e3813",
+        "current_roles/RefreshModelAudit.lean": "91d25a6a09243433afb88325dcbb58e0649e9aa3dd4e574c12cecba9285c2257",
+        "current_roles/CurrentPermissionsModelAudit.lean": "b2333f525dc818a041675f6c60e21fc190d5e025c859dcf4fed84253b7d18275",
+        "current_roles/RegisteredServerDecisionProof.lean": "e856a9824deada8acd1036c3636cb6d4c109d12ee05377d63e62acba08177991",
+        "current_roles/CollectionProof.lean": "972247bcd30bb02e858ef36039132a95aa2d13911beea1c1ba10ae3ae2292397",
+        "current_roles/RegisteredServerPolicyProof.lean": "8af13cf6debf13d795aef04df30cc8443a08b4aa656484713a53ab8c486f4b1b",
+        "current_roles/RegisteredServerDownstreamProof.lean": "3c6d2346957480b927c0940cae008cdfc55693a9bf1d47b102b0df83217df594",
+        "current_roles/SDKAccessCorollaries.lean": "9593285ad010056c3f1a925ff4c89d5a5a5170085bfe9feb7f88957dd05951c4",
+        "current_roles/lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "current_roles/PolicyPrimitives.lean": "aafc4b8984c33817ba23034a49e637556e90c5bcb85beed3137386145a7a6b75",
+        "current_roles/ModelAudit.lean": "d2f524e13ab365b8fd4212187972d3e6834e07e476e08a59aef2b357a54de1f0",
+        "current_roles/SDKRegisteredPolicyProof.lean": "79217b603eb17caf25edd997dee5c11e47f6cd350d3e5d2d40f49c89cb1377f0",
+        "current_roles/HeldRoleProof.lean": "95ce7d4519b73da67de893d933acc54f9b5c0305409dc00563a3d8177672524c",
+        "current_roles/SessionFamilyProof.lean": "ba721cd25a0be08297fcb8f81e93688c26f6c00ec4e1d8ac4370b2358571e71e",
+        "current_roles/lake-manifest.json": "d214cb9a41ac3954a91f6e78f009e09d269057c0656fbf79f3ac5524e0a3c15b",
+        "current_roles/NativeSetProof.lean": "2d0d116f7f32a5d0ed6192c3abcd2c0f50366d0015a725d19df7ced641855a5c",
+        "current_roles/EffectiveRiskProof.lean": "50dca8815fe45015e22029df33d670218efb7c29974dd7b5f1a1aa4e16d964f2",
+        "current_roles/RefreshPredicateProof.lean": "07a0b7ff84c110b459ba2d7556b08c3891104837a6fa1605a71d6ddd25f8eded",
+        "current_roles/lakefile.lean": "615808ac06fbb52247511f7cdf8383719c74225512986e3405bbbc122fda7a40",
+        "current_roles/CurrentPermissionsProof.lean": "733eb2bf0d152ec5f369d6e1cd26afd3535ef71ac254eee5238654510f475302",
+        "current_roles/FlatMapIteratorProof.lean": "58a7202a883772ccf2270aafccf30bf09f02ac9804209bb2d4b9eb90bbaa1fa2",
+        "current_roles/RegisteredServerAdmissionProof.lean": "c1327d8060e800380440df72cf5f33228d84c6ce010fe5bbe20219ced72d0512",
+        "current_roles/RegistrationIteratorProof.lean": "b649c3a4ed744b7b6a4d5cd3b9459be9a88c35818780cba76adc933e9b468893",
+        "current_roles/HubCurrentRoles/Funs.lean": "c710121441703ae79a32c5ed79462d4b45ab429d781891a9ca1c562b3c090bbc",
+        "current_roles/HubCurrentRoles/TypesExternal.lean": "6df818e75c75be437d185ac0e786d69e648e6d24fb01c50fa450dc9fce9e6269",
+        "current_roles/HubCurrentRoles/FunsExternal.lean": "0964a04f5b5a4268a374764782b8d50e67ab47723f89bc707f540b6c3ae5e411",
+        "current_roles/HubCurrentRoles/Types.lean": "a72a8c072fd1cb422c4f2d839701cddc230d7726b85f647e5f6669f2b487a3bb",
+        "authority/HubAuthorityProof.lean": "78ad4482f468d4a6c668ef5e957c597a272e6f4e53a9eda814c7e7868589cf19",
+        "authority/lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "authority/AuthorityProof.lean": "ddab3000a0ed5ab652011dc77d3c92c979c3ea7bbd8479d59d0f829b1829d041",
+        "authority/AuthorityComposition.lean": "cb42bf31ab0dd4308ca78f43916f20004f01d0f7195e1892c0a3834d65a45a70",
+        "authority/lake-manifest.json": "0a1e9bc4ca14a3dc051ff8167534905bfff007c00ae93ee8b4560602d6b8a308",
+        "authority/lakefile.lean": "2dfdb01502e48b222dde8cd2d786db2e76047a98816b2b24f3d75b695075a77e",
+        "authority/AuthorityInterpretation.lean": "270933d81865624d4982bf89d2e0991a3048f332e55bd92967c9d78d7b1227e8",
+        "sdk_authorization/AuthorizationProof.lean": "53bf1badb6f115b1a935aff9b2883719070ef45e2004cee8aa8baa14b6ed9e05",
+        "sdk_authorization/ContractInterpretation.lean": "59e63b9e85bca0a34932a15660f5cb89ad53e02d08687c2f88ede50937fdec16",
+        "sdk_authorization/MatcherProof.lean": "c66ca529456c652a88ab47b920cc63342a56b9dc12bccc8089ef51a8b7d4066e",
+        "sdk_authorization/PathProof.lean": "fc62b83f1be8ca89366b5c53470c08ae50a4d4b074b3f9d968a83d49fa17ff25",
+        "sdk_authorization/ResolutionProof.lean": "f85b40f834b08be227dd9d9d697b6e74740838b33bde293853594d6b8ed8d852",
+        "sdk_authorization/SdkAuthorizationProof.lean": "f7c597d997b34b800578f39168924a4666426bc6d5a5dfee23bc7313708e2e0f",
+        "sdk_authorization/TemplateProof.lean": "a1c6693b597ec7eff9553cf505f54fed9f8e5d34af6e7a1910f8c6bed8fcdb2e",
+        "sdk_authorization/lake-manifest.json": "37dec17100aba22680962708c8f3a3537ad86b15d7621fae9df46819da04aac2",
+        "sdk_authorization/lakefile.lean": "6a9b23fa286f7b1c8c7b7565b1ce83b03605ef186164b8a2d5bfb723bd975b3a",
+        "sdk_authorization/lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+        "request_composition/tooling/ActualImports.lean": "f885812ef20e43aa83017f6ea0d0058140827d1d3f3f2b4b7125c28f63ca2434",
+        "request_composition/SelectedRegistrationProof.lean": "8dd2e35b7e6ac6443547737148f33b95f2597ad7921b59231573b7be1542f128"
+      },
+      "canonical_lakefile_sha256": "2aba87b99a0ea42d224685eb3e74cddd7a11bb00124430bcbf2d32e84c1c7d27",
+      "private_lakefile_sha256": "b05788f3150aa4112cedb19d3cad8f2a658e20be0f1000964fb8c63e610ef1be",
+      "stages": [
+        {
+          "stage": "direct",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "env",
+            "lean",
+            "SelectedRegistrationProof.lean"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+          "exit": 0,
+          "timed_out": false,
+          "timeout_seconds": 300,
+          "elapsed_s": 2.869,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-getter-checkpoint1/direct.log",
+          "log_sha256": "54c3351815d14f79acdbe642c65ba397408ceb8e3db6de08ec3d1a28f6bcce10",
+          "log_bytes": 6256
+        },
+        {
+          "stage": "target",
+          "command": [
+            "/home/rozgo/.cache/lean-pilot/toolchain/lean-4.35.0-linux/bin/lake",
+            "build",
+            "SelectedRegistrationProof"
+          ],
+          "cwd": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/discriminant-private1/patched/proofs/request_composition",
+          "exit": 0,
+          "timed_out": false,
+          "timeout_seconds": 300,
+          "elapsed_s": 3.171,
+          "log": "/home/rozgo/.cache/lean-pilot/hub-request-composition-20261030/selected-getter-checkpoint1/target.log",
+          "log_sha256": "b7a6e8bf45014712ad62c8b7417c06dc0686e0a07e3ab6aa3561757fd5949b48",
+          "log_bytes": 53492
+        }
+      ],
+      "source_map_unchanged": true,
+      "complete": true,
+      "olean_sha256": "83572a794c3da5a2332eaae6e66903427fdb9bc9a91717accaa65f37451352be"
+    }
+  },
+  "limits": [
+    "get_exact proves the actual untouched extracted RegistrationSnapshot::get against an independent singleton-only specification for arbitrary snapshot contents.",
+    "lookup_exact establishes the comparator-driven handwritten BTreeMap model against independent keyed list lookup; it is a native-model refinement boundary, not a separate proof of the production deployment method.",
+    "Collection/equality/clone and native map representation correspondence remain explicit assumptions. No namespace-builder or issuer result is assumed by these declarations.",
+    "Full selected collection, selected entry closure, unique route derivation and connection to current authority, HTTP construction and SDK issuance remain pending.",
+    "Prior failed proof-development checks are not semantic controls. The deliberate actual-Rust ambiguity mutant has not been run.",
+    "The nondefault target requires the explicitly documented private patched Aeneas and dependency overrides; committed baseline manifests select the stock tool.",
+    "No Rust, generated model, existing assembly proof or runtime policy changed. No native, deployed, full Docker or model-driven acceptance was run."
+  ]
+}
