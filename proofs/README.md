@@ -623,14 +623,14 @@ Already captured requests/Tasks retain their exact composition rather than rerou
 - **Residual/next:** trace the broader routing contract. Map assembly, ordinary
   deployment ordering, retention, selection storage and request dispatch remain unproved.
   Avoid more low-value corollaries of the already covered local branch scan.
-  The [request-composition extraction record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-request-composition-extraction.md)
-  reaches the actual SDK issuer and claims bodies with Charon, but Aeneas translation
-  still fails on unsupported interfaces. Partial output is not adopted as a model,
-  and this investigation does not increase checked Lean coverage.
-  The later [source checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-request-composition-source-checkpoint.md)
-  records qualified Hub/SDK extraction-preparation changes and successful Hub-partition
-  translation. Generated-file adoption, namespace-helper obligations and actual SDK
-  issuer composition remain open; successful translation adds no checked theorem.
+  The [request-composition package](request_composition/README.md) now checks exact
+  direct/delegated request-context construction and complete HTTP-client assembly
+  after successful context construction, plus conditional snapshot-map preservation.
+  Its [first proof record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-30-request-assembly-proof.md)
+  identifies the untouched extracted bodies, native-model and formatting boundaries,
+  successful package/audit checks and remaining semantic controls. This does not yet
+  establish selected-map correctness, namespace-helper completion/order, provenance
+  of supplied permissions or actual SDK issuer/recipient composition.
 
 ## HUB-CATALOG-01 — Request/catalog/cache/listen isolation
 
