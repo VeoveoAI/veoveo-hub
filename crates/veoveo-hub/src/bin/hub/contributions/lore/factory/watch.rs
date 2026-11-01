@@ -41,6 +41,12 @@ type InstanceLock = Arc<tokio::sync::Mutex<()>>;
 /// An instance: a branch's ordinary one, or the runner of one of its links.
 type InstanceKey = (RepositoryId, BranchName, Option<LinkName>);
 
+/// A saved failure triggers preparation, but native Lore decides whether its
+/// revision still owns the live named branch after immutable reads finish.
+struct RetryContext {
+    watcher: PrincipalId,
+}
+
 /// The watched repositories of this Hub and their followers.
 #[derive(Clone)]
 pub(crate) struct Watches {
@@ -383,8 +389,15 @@ impl Inner {
         if branch.deleted {
             self.remove(watched, &name, stop).await;
         } else {
-            self.prepare(watched, &branch.id, &name, revision, pusher, stop)
-                .await;
+            self.prepare(
+                watched,
+                &branch.id,
+                &name,
+                Push { revision, pusher },
+                None,
+                stop,
+            )
+            .await;
         }
     }
 
@@ -630,13 +643,28 @@ impl Inner {
                 Ok(pusher) => pusher,
                 Err(error) => {
                     let message = format!("the latest revision's committer is unknown: {error:#}");
+                    let instance = self.lock((watched.repository.clone(), name.clone(), None));
+                    let _publishing = instance.lock().await;
+                    if stop.is_cancelled() {
+                        return Ok(());
+                    }
                     self.unprepared(watched, &name, &branch.latest, watcher, &message)
                         .await;
                     continue;
                 }
             };
-            self.prepare(watched, &branch.id, &name, branch.latest, pusher, stop)
-                .await;
+            self.prepare(
+                watched,
+                &branch.id,
+                &name,
+                Push {
+                    revision: branch.latest,
+                    pusher,
+                },
+                None,
+                stop,
+            )
+            .await;
         }
         self.recheck_runners(watched, watcher, &branches, stop)
             .await;
@@ -737,12 +765,22 @@ impl Inner {
                 .revision_branch(&watcher, parent, revision)
                 .await?;
             let pusher = self.lore.committer(&watcher, parent, revision).await?;
-            anyhow::Ok((id, pusher))
+            anyhow::Ok((id, pusher, RetryContext { watcher }))
         };
         match retried.await {
-            Ok((id, pusher)) => {
-                self.prepare(parent, &id, branch, revision.clone(), pusher, stop)
-                    .await;
+            Ok((id, pusher, retry)) => {
+                self.prepare(
+                    parent,
+                    &id,
+                    branch,
+                    Push {
+                        revision: revision.clone(),
+                        pusher,
+                    },
+                    Some(retry),
+                    stop,
+                )
+                .await;
             }
             Err(error) => {
                 tracing::warn!(repository = %parent.repository, %branch, "the branch's links were not retried: {error:#}");
@@ -760,10 +798,11 @@ impl Inner {
         watched: &Watched,
         id: &BranchId,
         branch: &BranchName,
-        revision: Revision,
-        pusher: PrincipalId,
+        push: Push,
+        retry: Option<RetryContext>,
         stop: &CancellationToken,
     ) {
+        let Push { revision, pusher } = push;
         let read = async {
             let directory = tempfile::Builder::new()
                 .prefix("veoveo-factory-")
@@ -786,7 +825,38 @@ impl Inner {
                 })?;
             Ok::<_, String>((directory, prepared, tree))
         };
-        let (directory, prepared, super::ParentTree { links, own }) = match read.await {
+        // Source and membership at one immutable revision can be read without
+        // serializing network work. Every publication/effect below is guarded.
+        let read = read.await;
+        let instance = self.lock((watched.repository.clone(), branch.clone(), None));
+        let _applying = instance.lock().await;
+        if stop.is_cancelled() {
+            return;
+        }
+        if let Some(retry) = retry {
+            let current = match self.lore.branch(&retry.watcher, watched, id).await {
+                Ok(current) => current,
+                Err(error) => {
+                    tracing::warn!(repository = %watched.repository, %branch,
+                        "the saved parent retry's current branch is unknown: {error:#}");
+                    return;
+                }
+            };
+            if current.id != *id
+                || current.name != branch.as_str()
+                || current.deleted
+                || current.latest != revision
+            {
+                // A best-effort failure clear may have failed. Its old row is
+                // only a trigger, never authority to replay the obsolete head.
+                // Do not remove by an old name that another branch may now use.
+                return;
+            }
+            if stop.is_cancelled() {
+                return;
+            }
+        }
+        let (directory, prepared, super::ParentTree { links, own }) = match read {
             Ok(read) => read,
             Err(message) => {
                 self.unprepared(watched, branch, &revision, &pusher, &message)
@@ -1062,6 +1132,11 @@ impl Inner {
     }
 
     async fn remove(&self, watched: &Watched, branch: &BranchName, stop: &CancellationToken) {
+        let instance = self.lock((watched.repository.clone(), branch.clone(), None));
+        let _applying = instance.lock().await;
+        if stop.is_cancelled() {
+            return;
+        }
         self.change(watched, branch, stop, None).await;
         self.retire_runners(watched, branch, &[], stop).await;
     }
@@ -1131,9 +1206,10 @@ impl Inner {
         }
     }
 
-    /// Apply a prepared push to the branch's instance, or remove it, once no other push
-    /// to it is being applied. A follower replaced meanwhile changes nothing: its
-    /// successor re-checks the branch, so the latest revision wins.
+    /// Change the ordinary instance while the caller holds the parent guard
+    /// through preparation publication and all membership effects. Reacquiring
+    /// the same guard here would deadlock. A replaced follower changes nothing;
+    /// its successor rechecks the branch.
     async fn change(
         &self,
         watched: &Watched,
@@ -1141,8 +1217,6 @@ impl Inner {
         stop: &CancellationToken,
         push: Option<(Push, Prepared)>,
     ) {
-        let instance = self.lock((watched.repository.clone(), branch.clone(), None));
-        let _applying = instance.lock().await;
         if stop.is_cancelled() {
             return;
         }
@@ -1157,6 +1231,8 @@ impl Inner {
         }
     }
 
+    /// Publish while the caller holds the parent guard; obsolete saved reads
+    /// have already been rejected before reaching either preparation outcome.
     async fn unprepared(
         &self,
         watched: &Watched,

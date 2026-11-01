@@ -2179,6 +2179,491 @@ async fn a_captured_linked_candidate_cannot_resurrect_a_removed_runner() {
     .await;
 }
 
+/// A real missing-watch failure reaches retry_waiting before any runner exists.
+/// Pause that saved parent's read, rather than calling retry/reapply directly.
+#[tokio::test]
+async fn a_saved_parent_retry_cannot_undo_a_completed_parent_retarget() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/saved-parent-retry";
+        let (alice, bob, carol, dave) = linked_branch(&fixture, branch);
+        let a = RepositoryId::parse(LINKED_A).unwrap();
+        let b = RepositoryId::parse(LINKED_B).unwrap();
+        let team_a = LinkName::parse("team-a").unwrap();
+        fixture.lore.with(|state| {
+            state
+                .links
+                .insert(revision('1'), vec![link("team-a", LINKED_A, 'a', true)]);
+        });
+        // B is available for the later parent. A is genuinely unwatched, so the
+        // first parent records a link failure and cannot create a runner.
+        fixture
+            .watches
+            .watch(linked_watched(LINKED_B), dave.clone())
+            .await
+            .unwrap();
+        fixture.lore.drained(Some(&b)).await;
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        fixture.lore.drained(None).await;
+        let waiting_runners = fixture.runners(branch).await;
+        let waiting = fixture
+            .watches
+            .store()
+            .runner_failure(&watched(), &name(branch), &team_a)
+            .await
+            .unwrap()
+            .expect("the unwatched A link has a real saved parent failure");
+
+        // A's ordinary subscription recheck sees no runner to reapply or clear
+        // this failure. retry_waiting resolves revision1's branch and committer,
+        // then pauses in its first parent read, before individual runner locks.
+        let (entered, release) = fixture.lore.pause_read(revision('1'));
+        fixture
+            .watches
+            .watch(linked_watched(LINKED_A), bob.clone())
+            .await
+            .unwrap();
+        tokio::time::timeout(BOUND, entered)
+            .await
+            .expect("the saved-parent retry did not reach its source read")
+            .unwrap();
+        let retry_identity_read = (
+            fixture
+                .lore
+                .calls()
+                .contains(&Call::RevisionBranch(alice.clone(), revision('1'))),
+            fixture
+                .lore
+                .calls()
+                .contains(&Call::Committer(alice.clone(), revision('1'))),
+        );
+
+        // The independent parent's follower can finish the newer program and
+        // target while the old retry's linked-repository follower is paused.
+        let frank = person("frank");
+        fixture.lore.with(|state| {
+            state.granted.insert(frank.clone());
+            state.branches[0].latest = revision('2');
+            state.committers.insert(revision('2'), frank.clone());
+            state.runs.insert(revision('2'), None);
+            state
+                .links
+                .insert(revision('2'), vec![link("team-a", LINKED_B, 'b', false)]);
+            let mut tree = own_tree('2');
+            tree.push(tree_node("web", NodeType::Directory));
+            state.trees.insert(revision('2'), tree);
+        });
+        fixture.lore.send(Ok(pushed('1', '2', &frank)));
+        fixture.lore.drained(None).await;
+        let before_release = fixture.runner_output(branch, "team-a").await;
+        let before_image = fixture
+            .runner_sandbox(branch, "team-a")
+            .await
+            .spec
+            .unwrap()
+            .template
+            .unwrap()
+            .image;
+        let before_failure = fixture
+            .watches
+            .store()
+            .runner_failure(&watched(), &name(branch), &team_a)
+            .await
+            .unwrap();
+
+        release
+            .send(())
+            .expect("the saved-parent read gate ended early");
+        // This only acknowledges completion of A's subscription recheck/retry;
+        // unlike BranchCreated, it cannot repair or mask the stale result.
+        fixture.lore.drained(Some(&a)).await;
+        let after_retry = fixture.runner_output(branch, "team-a").await;
+        let after_image = fixture
+            .runner_sandbox(branch, "team-a")
+            .await
+            .spec
+            .unwrap()
+            .template
+            .unwrap()
+            .image;
+
+        // Subsequent real notifications must still route to B, not resurrect A.
+        fixture.lore.with(|state| {
+            let linked = state.linked.get_mut(&b).unwrap();
+            linked.branches[0].latest = revision('f');
+            linked.committers.insert(revision('f'), dave.clone());
+        });
+        fixture.lore.send_linked(&b, Ok(pushed('2', 'f', &dave)));
+        fixture.lore.drained(Some(&b)).await;
+        let after_new_push = fixture.runner_output(branch, "team-a").await;
+        fixture.lore.with(|state| {
+            let linked = state.linked.get_mut(&a).unwrap();
+            linked.branches[0].latest = revision('a');
+            linked.committers.insert(revision('a'), carol.clone());
+        });
+        fixture.lore.send_linked(&a, Ok(pushed('1', 'a', &carol)));
+        fixture.lore.drained(Some(&a)).await;
+        let after_old_push = fixture.runner_output(branch, "team-a").await;
+        let final_failure = fixture
+            .watches
+            .store()
+            .runner_failure(&watched(), &name(branch), &team_a)
+            .await
+            .unwrap();
+
+        let expected_runner = factory::Runner {
+            repository: REPOSITORY.into(),
+            branch: name(branch),
+            link: factory::Link {
+                name: team_a,
+                repository: LINKED_B.into(),
+                tracked: factory::TrackedBranch {
+                    id: branch_id('2').to_string(),
+                    name: "release".into(),
+                },
+            },
+            revision: Some(revision('2')),
+            pusher: Some(frank.clone()),
+            linked_revision: Some(revision('d')),
+            linked_pusher: Some(dave.clone()),
+        };
+        let expected_client = factory::InstanceClient {
+            deployment: before_release.2.deployment,
+            pusher: Some(frank),
+            repository: REPOSITORY.into(),
+            linked: Some(factory::LinkedClient {
+                repository: LINKED_B.into(),
+                pusher: Some(dave.clone()),
+            }),
+        };
+        let expected_command =
+            expected_runner_command(&before_release.1, branch, LINKED_B, '2', true);
+        let expected = (
+            expected_runner.clone(),
+            expected_command.clone(),
+            expected_client.clone(),
+        );
+        let advanced = (
+            factory::Runner {
+                linked_revision: Some(revision('f')),
+                linked_pusher: Some(dave),
+                ..expected_runner
+            },
+            expected_command,
+            expected_client,
+        );
+        let digest = hex::encode(Sha256::digest(
+            format!("FROM scratch # {}\n", revision('2')).as_bytes(),
+        ));
+        assert_eq!(
+            (
+                (
+                    waiting_runners,
+                    waiting.linked_repository.as_str(),
+                    waiting.revision,
+                    waiting
+                        .message
+                        .contains("nobody watches the linked repository"),
+                ),
+                retry_identity_read,
+                before_release,
+                before_failure,
+                after_retry,
+                (before_image.ends_with(&digest), after_image == before_image),
+                after_new_push,
+                after_old_push,
+                final_failure,
+            ),
+            (
+                (Vec::new(), LINKED_A, revision('1'), true),
+                (true, true),
+                expected.clone(),
+                None,
+                expected,
+                (true, true),
+                advanced.clone(),
+                advanced,
+                None,
+            ),
+        );
+    })
+    .await;
+}
+
+/// Establish an actual saved failure with no runner and pause the real retry
+/// reached by A's first subscription. No direct retry call or synthetic row.
+async fn paused_saved_parent_retry(
+    fixture: &Fixture,
+    branch: &str,
+) -> (oneshot::Sender<()>, super::store::RunnerFailure) {
+    let (alice, bob, _, dave) = linked_branch(fixture, branch);
+    let b = RepositoryId::parse(LINKED_B).unwrap();
+    fixture.lore.with(|state| {
+        state
+            .links
+            .insert(revision('1'), vec![link("team-a", LINKED_A, 'a', true)]);
+    });
+    fixture
+        .watches
+        .watch(linked_watched(LINKED_B), dave)
+        .await
+        .unwrap();
+    fixture.lore.drained(Some(&b)).await;
+    fixture.watches.watch(watched(), alice).await.unwrap();
+    fixture.lore.drained(None).await;
+    assert!(fixture.runners(branch).await.is_empty());
+    let failure = fixture
+        .watches
+        .store()
+        .runner_failure(
+            &watched(),
+            &name(branch),
+            &LinkName::parse("team-a").unwrap(),
+        )
+        .await
+        .unwrap()
+        .expect("the unwatched A link persisted its real revision1 failure");
+    let (entered, release) = fixture.lore.pause_read(revision('1'));
+    fixture
+        .watches
+        .watch(linked_watched(LINKED_A), bob)
+        .await
+        .unwrap();
+    tokio::time::timeout(BOUND, entered)
+        .await
+        .expect("the actual saved-parent retry did not reach read1")
+        .unwrap();
+    (release, failure)
+}
+
+/// The newer parent uses B and a different program, not just different metadata.
+async fn advance_saved_retry_parent(fixture: &Fixture, branch: &str) {
+    let frank = person("frank");
+    fixture.lore.with(|state| {
+        state.granted.insert(frank.clone());
+        state.branches[0].latest = revision('2');
+        state.committers.insert(revision('2'), frank.clone());
+        state.runs.insert(revision('2'), None);
+        state
+            .links
+            .insert(revision('2'), vec![link("team-a", LINKED_B, 'b', false)]);
+        let mut tree = own_tree('2');
+        tree.push(tree_node("web", NodeType::Directory));
+        state.trees.insert(revision('2'), tree);
+    });
+    fixture.lore.send(Ok(pushed('1', '2', &frank)));
+    fixture.lore.drained(None).await;
+    assert_eq!(fixture.runners(branch).await.len(), 1);
+}
+
+/// Independent complete typed projections and every variable submitted argument;
+/// only the source's fixed shell/script prefix comes from the observed command.
+fn expected_saved_retry_parent(
+    before: &(factory::Runner, Vec<String>, factory::InstanceClient),
+    branch: &str,
+) -> (factory::Runner, Vec<String>, factory::InstanceClient) {
+    (
+        factory::Runner {
+            repository: REPOSITORY.into(),
+            branch: name(branch),
+            link: factory::Link {
+                name: LinkName::parse("team-a").unwrap(),
+                repository: LINKED_B.into(),
+                tracked: factory::TrackedBranch {
+                    id: branch_id('2').to_string(),
+                    name: "release".into(),
+                },
+            },
+            revision: Some(revision('2')),
+            pusher: Some(person("frank")),
+            linked_revision: Some(revision('d')),
+            linked_pusher: Some(person("dave")),
+        },
+        expected_runner_command(&before.1, branch, LINKED_B, '2', true),
+        factory::InstanceClient {
+            deployment: before.2.deployment,
+            pusher: Some(person("frank")),
+            repository: REPOSITORY.into(),
+            linked: Some(factory::LinkedClient {
+                repository: LINKED_B.into(),
+                pusher: Some(person("dave")),
+            }),
+        },
+    )
+}
+
+#[tokio::test]
+async fn an_obsolete_saved_parent_read_error_preserves_the_newer_preparation_failure() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/retry-stale-error";
+        let (release, _) = paused_saved_parent_retry(&fixture, branch).await;
+        advance_saved_retry_parent(&fixture, branch).await;
+        let frank = person("frank");
+        fixture.lore.with(|state| {
+            state.unreadable.insert(revision('1'));
+            state.unreadable.insert(revision('3'));
+            state.branches[0].latest = revision('3');
+            state.committers.insert(revision('3'), frank.clone());
+        });
+        // This is a genuine newer preparation error, after B2 successfully ran.
+        fixture.lore.send(Ok(pushed('1', '3', &frank)));
+        fixture.lore.drained(None).await;
+        let before = fixture.runner_output(branch, "team-a").await;
+        let newer = fixture
+            .watches
+            .store()
+            .prepare_failure(&watched(), &name(branch))
+            .await
+            .unwrap()
+            .expect("the actual parent3 source read failed");
+        release.send(()).expect("the old saved read ended early");
+        fixture
+            .lore
+            .drained(Some(&RepositoryId::parse(LINKED_A).unwrap()))
+            .await;
+        let after = fixture.runner_output(branch, "team-a").await;
+        let retained = fixture
+            .watches
+            .store()
+            .prepare_failure(&watched(), &name(branch))
+            .await
+            .unwrap();
+        let expected = expected_saved_retry_parent(&before, branch);
+        assert_eq!(
+            (
+                before,
+                after,
+                newer.revision.clone(),
+                newer.pusher.clone(),
+                retained
+            ),
+            (
+                expected.clone(),
+                expected,
+                revision('3'),
+                frank,
+                Some(newer)
+            ),
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn an_uncleared_saved_parent_failure_cannot_authorize_an_obsolete_retry() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/retry-stale-clear";
+        let (release, waiting) = paused_saved_parent_retry(&fixture, branch).await;
+        // Refuse the actual best-effort clear, not a fabricated INSERT after it.
+        sqlx::query_file!("tests/factory/refuse_saved_runner_failure_clear.sql")
+            .execute(fixture.db.a.pool())
+            .await
+            .unwrap();
+        advance_saved_retry_parent(&fixture, branch).await;
+        let before = fixture.runner_output(branch, "team-a").await;
+        let retained_before = fixture
+            .watches
+            .store()
+            .runner_failure(
+                &watched(),
+                &name(branch),
+                &LinkName::parse("team-a").unwrap(),
+            )
+            .await
+            .unwrap();
+        release.send(()).expect("the old saved read ended early");
+        fixture
+            .lore
+            .drained(Some(&RepositoryId::parse(LINKED_A).unwrap()))
+            .await;
+        let after = fixture.runner_output(branch, "team-a").await;
+        let retained_after = fixture
+            .watches
+            .store()
+            .runner_failure(
+                &watched(),
+                &name(branch),
+                &LinkName::parse("team-a").unwrap(),
+            )
+            .await
+            .unwrap();
+        let preparation = fixture
+            .watches
+            .store()
+            .prepare_failure(&watched(), &name(branch))
+            .await
+            .unwrap();
+        let expected = expected_saved_retry_parent(&before, branch);
+        assert_eq!(
+            (before, after, retained_before, retained_after, preparation),
+            (
+                expected.clone(),
+                expected,
+                Some(waiting.clone()),
+                Some(waiting),
+                None
+            ),
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_saved_retry_of_a_deleted_branch_cannot_replace_a_live_reused_name() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/retry-reused-name";
+        let (release, _) = paused_saved_parent_retry(&fixture, branch).await;
+        let frank = person("frank");
+        fixture.lore.with(|state| {
+            state.granted.insert(frank.clone());
+            // The old ID still has head1 and this name, but is deleted. A live
+            // replacement has the same name and a different ID, as Lore permits.
+            state.branches[0].deleted = true;
+            state.branches.push(live('9', branch, '2'));
+            state.committers.insert(revision('2'), frank.clone());
+            state.runs.insert(revision('2'), None);
+            state
+                .links
+                .insert(revision('2'), vec![link("team-a", LINKED_B, 'b', false)]);
+            let mut tree = own_tree('2');
+            tree.push(tree_node("web", NodeType::Directory));
+            state.trees.insert(revision('2'), tree);
+        });
+        fixture.lore.send(Ok(Event {
+            event: Some(Notification::BranchCreated(Default::default())),
+            ..Default::default()
+        }));
+        fixture.lore.drained(None).await;
+        let before = fixture.runner_output(branch, "team-a").await;
+        release.send(()).expect("the old saved read ended early");
+        fixture
+            .lore
+            .drained(Some(&RepositoryId::parse(LINKED_A).unwrap()))
+            .await;
+        let after = fixture.runner_output(branch, "team-a").await;
+        let expected = expected_saved_retry_parent(&before, branch);
+        let failure = fixture
+            .watches
+            .store()
+            .runner_failure(
+                &watched(),
+                &name(branch),
+                &LinkName::parse("team-a").unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!((before, after, failure), (expected.clone(), expected, None));
+    })
+    .await;
+}
+
 #[tokio::test]
 async fn a_captured_linked_candidate_uses_the_current_parent_program_and_pusher() {
     bounded(async {

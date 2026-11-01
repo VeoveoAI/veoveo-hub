@@ -656,10 +656,28 @@ or clearing of the link's failure. A parent's link resolution, fallback to recor
 linked content and application use that same lock, as do runner removal and failure
 clearing. Linked continuations and parent link resolution use the runner row read
 inside their lock rather than a snapshot taken before a completed change. Cancellation
-is checked before changing it or publishing its failure. This is process-local runner serialization,
-not a cross-replica ordering guarantee. Parent failure retries still prepare a saved
-parent revision and membership outside this boundary; their freshness is separate
-from the current-runner reread and linked-notification ordering.
+is checked before changing it or publishing its failure. A parent's ordinary
+instance key, without a link, also guards all of that branch's preparation
+publication, instance changes, runner membership retirement and link application
+or status publication. Removal takes that same parent guard before touching the
+instance or its runners. Lock order is parent then runner; a linked continuation
+releases its runner guard before retrying a saved parent.
+
+A saved link failure triggers a retry; its row is not authority for which parent
+revision still owns the branch, since clearing a failure is best effort. Reading
+immutable parent source, links and temporary files stays outside the parent guard.
+After taking that guard, a saved retry asks native Lore for the saved revision's
+branch by ID and requires the same ID and name, a live branch and exactly that
+revision as its current head. A changed head/name, deletion, lookup error or
+cancellation discards both successful preparation and preparation errors without
+publishing or changing membership. It never removes by an obsolete name that
+another branch may now use. No revision ordering is inferred from hashes. A valid
+current-head first provision or retry uses the existing Factory reconciliation,
+even if the failure was already cleared. Obsolete retries yield to the parent's
+ordinary follower and its subscription/reconnect recheck; there is no new queue
+or eventual-recovery guarantee. Native Lore may move again after the observation;
+the guard serializes this Hub's effects, not Lore's head or another replica.
+These are process-local parent and runner boundaries, not distributed ordering.
 
 Changes to an instance's joined registration routing fields publish through the existing
 kernel notification channel. Every replica reloads the joined registration and compares
