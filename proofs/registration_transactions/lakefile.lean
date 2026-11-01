@@ -95,3 +95,8 @@ lean_lib RegistrationAuditedUpdateWitnessProof
 -- Populated audited UPDATE confirmed-abort/fresh-retry, manual/nondefault.
 lean_lib RegistrationAuditedUpdateRecoveryWitnesses
 lean_lib RegistrationAuditedUpdateRecoveryProof
+
+-- Populated ordinary replacement/stale UPDATE no-op,manual/nondefault.
+lean_lib RegistrationAuditedUpdateReplacementWitnesses
+lean_lib RegistrationAuditedUpdateReplacementExecution
+lean_lib RegistrationAuditedUpdateReplacementProof

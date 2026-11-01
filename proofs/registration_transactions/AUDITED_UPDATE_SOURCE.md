@@ -1,8 +1,8 @@
 # Audited UPDATE store adapter
 
-The foundation, **populated matched-update success and refused-audit recovery
-executions pass the manual Lean checks**. Replacement/no-op and the omitted-Update
-control remain pending. Native source basis is
+The foundation, **populated matched-update success, refused-audit recovery and
+actual replacement/stale-no-op executions pass the manual Lean checks**. The
+omitted-Update control remains pending. Native source basis is
 `3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33`; initial proof basis is
 `ba812e6625a1c0706bd1b8815f5b752254693aa9`. No Rust, SQL, existing Lean module,
 package pin or default target changes accompany this manual model. This is not an
@@ -85,8 +85,8 @@ composition contract, not a proof of those native register transactions.
 No desired registration audit vocabulary or nonempty batch is used to gate a
 commit. Scoped claims concern UPDATE relative to the actual precommit ledger;
 there is no full-global assertion that every registration was properly audited.
-A later replacement/noop example must explicitly provide a faithful full external
-contribution and name its existing-namespace/no-new-claim boundary.
+The checked replacement/noop example below provides a faithful full external
+contribution and names its existing-namespace/no-new-claim boundary.
 
 External contributions and foreign appends preserve committed full records and
 are disjoint from acknowledged IDs of ACTIVE update-private cursors. This is the
@@ -114,8 +114,8 @@ UPDATE effects preserve the CURRENT frame, without assuming the environment stop
 The separate populated matched execution below supplies actual acceptance with
 independently specified full outputs and an ordinary successful acknowledgment.
 The separate recovery execution below adds refusal, explicit abort and fresh retry.
-Replacement/noop remains required, with explicit external audit provenance for
-replacement. A later omission control will remove only the Update instruction
+The replacement/noop execution below includes explicit external audit provenance.
+A later omission control will remove only the Update instruction
 and require a legal modified execution plus wrong full result and rejection of the
 unchanged acceptance assertion. No control has been authored or run here.
 
@@ -216,3 +216,40 @@ closures need no axioms; the others use only `propext` and `Quot.sound`. An earl
 statement and guard. No runtime source changed and no native check was rerun.
 See the [receipt](evidence/audited-update-recovery.json) and
 [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-audited-update-recovery.md).
+
+## Checked actual replacement followed by stale UPDATE no-op
+
+ReplacementWitnesses, ReplacementExecution and ReplacementProof construct twenty
+actual wrapper steps: actor 0's preflight, fourteen ordinary replacement steps by
+actor 1, and five stale-update steps through explicit rollback and acknowledgment.
+The seed has the same two old replicas. Replacement admits client 50/login 60 with
+complete version-3 metadata and fresh credentials; its issuance and update times
+are both 501, matching `create_registration.sql`'s use of the same `now` argument.
+The old request still carries version 2 and its originally authenticated row.
+
+The actual mixed register commit has an explicit finite CoreAppend-valid batch:
+records 200/201 Replace the two captured row servers, then 202 Register names the
+candidate server. The concrete batch's multiplicity, source targets, encoding and
+local freshness are checked. All use the existing namespace's slug; no new claim
+is appropriate under the stated already-held namespace interpretation. One valid
+complete Listing order is chosen, without assuming a PostgreSQL return order.
+The generic external-registration audit vocabulary boundary remains open.
+
+After replacement acknowledges, the old update takes the deployment lock and
+privately writes version 2, then finds client 30 absent. Its explicit rollback
+preserves the complete committed version-3 database and ledger and releases the
+lock; the store returns ordinary no-op success. Independent literal outputs cover
+all rows, logins, credentials, binding, unrelated state, full records, transaction
+and cursor maps, and the sole register commit/event. No Update cursor or record is
+created. Execution is separate from output acceptance; no result oracle gates a
+transition.
+
+The final bounded `LAKE_NO_UPDATE=1 lake build
+RegistrationAuditedUpdateReplacementProof` passed in 40.282 s, with 24 declaration
+guards and eleven printed closures. The prior 37.977 s attempt failed to normalize
+an impossible empty-list membership in a freshness proof. A local case split fixed
+it without changing any statement or guard. Three closures require no axioms;
+the others use only `propext` and `Quot.sound`. The source-review timestamp correction
+preceded compilation; neither repair is a production defect. See the
+[receipt](evidence/audited-update-replacement.json) and
+[record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-audited-update-replacement.md).

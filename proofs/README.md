@@ -1538,8 +1538,15 @@ adds a correct-but-conflicting audit record, explicit failed-transaction abort,
 then a fresh successful retry. Sixteen actual steps compose; independent complete
 outputs preserve committed state through failure and retain both attempts in the
 final maps. Twenty guards and nine closures pass. This is a concrete recovery
-schedule, not liveness or native failure execution. Actual replacement/no-op and
-the omission control remain next; no new native or deployed result is claimed.
+schedule, not liveness or native failure execution.
+The [replacement/stale-no-op witness](registration_transactions/evidence/audited-update-replacement.json)
+now constructs twenty actual steps, including an explicit CoreAppend-valid batch
+with two source-mapped Replace records and one Register. Independent complete data,
+audit and transaction maps show that the stale update's rollback preserves the
+replacement and returns success without Update audit. Twenty-four guards and eleven
+closures pass. This concrete batch does not prove generic namespace/register audit
+adaptation. The omission control remains next; no new native or deployed result is
+claimed.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

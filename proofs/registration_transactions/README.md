@@ -315,4 +315,10 @@ guards and nine printed closures for refused audit, explicit abort and fresh
 successful retry. Sixteen actual steps compose with independent complete results;
 the error never substitutes for confirmed rollback. Run it manually with
 `LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateRecoveryProof`.
-Actual replacement/no-op and the omitted-Update control remain next.
+The [replacement/no-op witness](evidence/audited-update-replacement.json) now passes
+24 guards and eleven closures: twenty actual steps construct replacement with its
+explicit three-record audit contribution, then the stale update rolls back without
+altering that complete result. Both store acknowledgments succeed. Run it manually
+with `LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateReplacementProof`.
+The omitted-Update control remains next; generic external registration audit
+vocabulary and native SQL correspondence remain explicit boundaries.
