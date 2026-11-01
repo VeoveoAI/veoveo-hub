@@ -1179,8 +1179,15 @@ state, not an additional repository authorization rule.
 - **Boundary/effort:** moderate for lifecycle action selection, substantial for
   cancellation/supersession and recovery. Current code uses cancellation plus an
   instance mutex, not a pure generation-CAS activation guard. In-flight apply may finish.
-- **Residual/next:** reproduce the suspected stale linked-preparation interleaving
-  with the native fixture before deciding whether production needs a correction.
+- **Native concurrency finding:** a deterministic component regression now proves
+  that a linked preparation captured before the runner lock can undo a completed
+  parent retarget. The complete runner, command and client lookup return to the old
+  repository; later pushes follow that old target. See the
+  [reproduction](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-stale-preparation.md).
+  This exposes the sequential model's caller-freshness boundary; a correction and
+  its qualification are still pending.
+- **Residual/next:** correct the reproduced stale preparation using the existing
+  serialization, and qualify both acceptance and preservation under interleavings.
   Compose the checked two-call recovery into finite serialized histories before
   claiming the complete retarget slice qualified.
   Independent linked preparations captured before the runner lock, concurrent
