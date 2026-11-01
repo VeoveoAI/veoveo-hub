@@ -65,3 +65,8 @@ lean_lib RegistrationLifetimeHistoryProof
 lean_lib RegistrationLifetimeWitnesses
 lean_lib RegistrationLifetimeWitnessProof
 lean_lib RegistrationLifetimeWitnessConsequences
+
+-- Additive manual audited STORE layer; existing/default targets are unchanged.
+lean_lib RegistrationAuditedLifetimeModel
+lean_lib RegistrationAuditedLifetimeSpecification
+lean_lib RegistrationAuditedLifetimeProof

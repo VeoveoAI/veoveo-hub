@@ -1,0 +1,183 @@
+{
+  "kind": "manual-source-correspondence-model-proof",
+  "status": "foundation-checked-within-stated-boundary",
+  "native_source_commit": "3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33",
+  "core_commit": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+  "sdk_commit": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+  "roles": {
+    "implementation": "GPT-6.1 Sol",
+    "compilation": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source_map_at_qualification": {
+    "AUDITED_STORE_SOURCE.md": "a828a8ec0e89bae09fdf5f4dcf40322c0eed96c44a11297d868b701759590977",
+    "RegistrationAuditedLifetimeModel.lean": "6beefe9ff1eecb8b56143e3cc189e2bc6719b684c2236ea3ebb59eca9e93b4f6",
+    "RegistrationAuditedLifetimeProof.lean": "f2f96090d096ca72fa2208bc7efe8065eeab02a59cc01b428cc3597acc6eb1b5",
+    "RegistrationAuditedLifetimeSpecification.lean": "bd4fccf6ac3dbca608a8e20b0d314fd3bbd0ddf83295f7ff77f81c6fa2a431d9",
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationLifetimeHistoryProof.lean": "be50ceaa617d7317192f4dc81673c517e3b0a1cae6c8eee1111ef553e918e6ca",
+    "RegistrationLifetimeModel.lean": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954",
+    "RegistrationLifetimeProof.lean": "0520eb364656bdec153adb1de030bf15c3e5a9060e994ba0aa857c9c1c400f65",
+    "RegistrationLifetimeSpecification.lean": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "RegistrationSpecification.lean": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "d9a24e01308b3d0f3b27a21c7529462bff00a95d9ec5d50738717b317d0d937b",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "documentation_note": "AUDITED_STORE_SOURCE.md updated after compilation to report results; all Lean sources, pins and lakefile match the qualified packet.",
+  "toolchain": "Lean 4.35.0",
+  "aeneas_support_commit": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "tools": {
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "checked_targets": [
+    {
+      "artifact_bytes": 754704,
+      "artifact_exists": true,
+      "artifact_sha256": "005abac7f24193aafb66e9660117d0a6c69eb832462e440de8db20cc965148d4",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeModel",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 10183,
+      "exit": 0,
+      "log_bytes": 581,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-checkpoint2/evidence-run1/01-RegistrationAuditedLifetimeModel.log",
+      "log_sha256": "fb1c7c4b5f845d9a550341fa8c855267a8f4d76960671763dd8a6284627725e4",
+      "target": "RegistrationAuditedLifetimeModel",
+      "timed_out": false
+    },
+    {
+      "artifact_bytes": 81568,
+      "artifact_exists": true,
+      "artifact_sha256": "187f5c9f23faedd2bd18e80540a355ebd96d8bd6346493eb1d774050f52ac7ee",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeSpecification",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 5624,
+      "exit": 0,
+      "log_bytes": 593,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-checkpoint2/evidence-run1/02-RegistrationAuditedLifetimeSpecification.log",
+      "log_sha256": "a20c2ba061436d5172cc56b4318ec7a68bd7d3a6ec3237395785836e5eb552d4",
+      "target": "RegistrationAuditedLifetimeSpecification",
+      "timed_out": false
+    },
+    {
+      "artifact_bytes": 1069320,
+      "artifact_exists": true,
+      "artifact_sha256": "25e71afa9c3a21d88312fe573a7b7ec2eba71c932e294ef50646f7e3aeb808e8",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeProof",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 25962,
+      "exit": 0,
+      "log_bytes": 18317,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-checkpoint3/evidence-run1/01-RegistrationAuditedLifetimeProof.log",
+      "log_sha256": "be7a2e686fc3bdc6fa102ac100b7375c974be0daa118d6edcb5536bd160b41cf",
+      "target": "RegistrationAuditedLifetimeProof",
+      "timed_out": false
+    }
+  ],
+  "qualification_summary_sha256": "3763532614cf47411710673851d28a8eb1a0e976a093e37559dc35716b7d656a",
+  "compile_time_guard_count": 30,
+  "printed_axiom_closures": [
+    "info: RegistrationAuditedLifetimeProof.lean:379:0: 'RegistrationAuditedLifetime.core_append_identical' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeProof.lean:380:0: 'RegistrationAuditedLifetime.core_append_conflict_refused' does not depend on any axioms",
+    "info: RegistrationAuditedLifetimeProof.lean:381:0: 'RegistrationAuditedLifetime.execution_progress' depends on axioms: [propext]",
+    "info: RegistrationAuditedLifetimeProof.lean:382:0: 'RegistrationAuditedLifetime.execution_binding' depends on axioms: [propext]",
+    "info: RegistrationAuditedLifetimeProof.lean:383:0: 'RegistrationAuditedLifetime.execution_erasure' depends on axioms: [propext]",
+    "info: RegistrationAuditedLifetimeProof.lean:384:0: 'RegistrationAuditedLifetime.reached_program_complete' depends on axioms: [propext]",
+    "info: RegistrationAuditedLifetimeProof.lean:385:0: 'RegistrationAuditedLifetime.reached_atomic_store_cut' depends on axioms: [propext, Classical.choice, Quot.sound]",
+    "info: RegistrationAuditedLifetimeProof.lean:386:0: 'RegistrationAuditedLifetime.reached_store_decision' depends on axioms: [propext, Classical.choice, Quot.sound]",
+    "info: RegistrationAuditedLifetimeProof.lean:387:0: 'RegistrationAuditedLifetime.confirmed_abort_has_no_data_event' depends on axioms: [propext]",
+    "info: RegistrationAuditedLifetimeProof.lean:388:0: 'RegistrationAuditedLifetime.abort_discards_private' depends on axioms: [propext]",
+    "info: RegistrationAuditedLifetimeProof.lean:389:0: 'RegistrationAuditedLifetime.aborted_not_active' depends on axioms: [propext]"
+  ],
+  "allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "actual_prerequisite_oleans": {
+    "RegistrationEffects": "95d7bd49f80c75044524845ce01e9ccd3952d302e69c6a16c7eb74724989678d",
+    "RegistrationLifetimeHistoryProof": "42309b31ad7a6efb6b9f5bc4315b9aa518d2068b551c9e89bff4b3c59cf78926",
+    "RegistrationLifetimeModel": "85f36adc8376c83818cda80e2fa28651e63a57fb731fe02a3c33d73ffacb78b0",
+    "RegistrationLifetimeProof": "1303a8cd3ead482bf26e8c0515e3f4afc84ccd52d035fdac00f6e954a4326782",
+    "RegistrationLifetimeSpecification": "fa5ed9dcc1b8181b4102d373b428b81baed856ee35c855448242e440a52648db",
+    "RegistrationModel": "b6e320d98ca154a8e491a8dbd6cf13921cb63b9a1466acc87eaec7d70d9b8e66",
+    "RegistrationSpecification": "719b201f2d142b8d456f3d5b11810a46fdcf28dfe7a187f940a0dcc477f6bbb1"
+  },
+  "prerequisite_note": "Effects, LifetimeProof and LifetimeHistoryProof were rebuilt by Lake against unchanged sources in checkpoint2. Artifact identities here are actual post-build outputs, not an assertion that the reused binaries stayed unchanged.",
+  "source_and_tool_inputs_unchanged_during_runs": true,
+  "per_command_process_group_timeout_seconds": 180,
+  "failed_compiler_attempts": [
+    {
+      "checkpoint": 1,
+      "target": "RegistrationAuditedLifetimeModel",
+      "exit": 1,
+      "elapsed_ms": 24705,
+      "log_sha256": "2f56ab3a6fe554ade7aaa3bb967ca30f6027166b99decabea3fac801186ee761",
+      "log_bytes": 3256,
+      "artifact_exists": false,
+      "cause": "Nested record-update function application layout; corrected with explicit grouping."
+    },
+    {
+      "checkpoint": 2,
+      "artifact_exists": false,
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeProof",
+      "diagnostic_headlines": [
+        "error: RegistrationAuditedLifetimeProof.lean:44:19: Unknown constant `List.not_mem_cons.mp`",
+        "error: RegistrationAuditedLifetimeProof.lean:83:33: unsolved goals",
+        "error: RegistrationAuditedLifetimeProof.lean:93:2: Type mismatch: After simplification, term",
+        "error: RegistrationAuditedLifetimeProof.lean:106:25: unsolved goals",
+        "error: RegistrationAuditedLifetimeProof.lean:218:71: Invalid field `core`: The environment does not contain `Function.core`, so it is not possible to project the field `core` from an expression",
+        "error: RegistrationAuditedLifetimeProof.lean:220:70: Invalid field `core`: The environment does not contain `Function.core`, so it is not possible to project the field `core` from an expression",
+        "error: RegistrationAuditedLifetimeProof.lean:257:49: Invalid field `core`: The environment does not contain `Function.core`, so it is not possible to project the field `core` from an expression",
+        "error: RegistrationAuditedLifetimeProof.lean:260:48: Invalid field `core`: The environment does not contain `Function.core`, so it is not possible to project the field `core` from an expression",
+        "info: RegistrationAuditedLifetimeProof.lean:381:0: 'RegistrationAuditedLifetime.execution_binding' depends on axioms: [propext, sorryAx]",
+        "info: RegistrationAuditedLifetimeProof.lean:382:0: 'RegistrationAuditedLifetime.execution_erasure' depends on axioms: [propext, sorryAx]",
+        "info: RegistrationAuditedLifetimeProof.lean:383:0: 'RegistrationAuditedLifetime.reached_program_complete' depends on axioms: [propext, sorryAx]",
+        " sorryAx,",
+        "info: RegistrationAuditedLifetimeProof.lean:385:0: 'RegistrationAuditedLifetime.reached_store_decision' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]",
+        "info: RegistrationAuditedLifetimeProof.lean:386:0: 'RegistrationAuditedLifetime.confirmed_abort_has_no_data_event' depends on axioms: [propext, sorryAx]",
+        "error: RegistrationAuditedLifetimeProof.lean:390:0: unexpected audited lifetime axiom in RegistrationAuditedLifetime.overlay_unrelated: [sorryAx]",
+        "error: build failed"
+      ],
+      "elapsed_ms": 20051,
+      "exit": 1,
+      "log_bytes": 23851,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-checkpoint2/evidence-run1/03-RegistrationAuditedLifetimeProof.log",
+      "log_sha256": "f8d19998e577f03134bbe9e90155045a3aea1b54e9b89346fb15caa9efcf385b",
+      "target": "RegistrationAuditedLifetimeProof",
+      "timed_out": false,
+      "cause": "Library lemma names, explicit list counts/composition and constructor case inference. Corrections change proof bodies only; model, specification and statements unchanged in checkpoint3."
+    }
+  ],
+  "launcher_failures": "Private launcher preflights also encountered Path-to-json parsing and a literal manifest-status mismatch. They ended before compiler execution and produced no target artifacts. Corrected launchers were retried on the same frozen packet; these are not proof passes or production failures.",
+  "principal_claims": [
+    "Successful individual appends advance the actual source-derived program; reached exhausted cursors contain exactly that source program.",
+    "The new execution erases to the previously checked instance lifetime execution; request and captured ended rows remain bound to the audit program.",
+    "From a reached committing transaction with exhausted cursor and scoped fresh identities, the combined decision satisfies the independent complete data operation, exact activity/server multiplicities and pointwise full-record extension.",
+    "Confirmed abort leaves committed data and audit ledgers unchanged and contributes no data commit event.",
+    "Exact full-record Core retry is idempotent; conflicting reuse is refused under the stated Core append contract."
+  ],
+  "explicit_boundaries": [
+    "Handwritten transition/source-correspondence model, not Aeneas extraction or formal Rust/SQL refinement.",
+    "PostgreSQL transaction atomicity, row-lock interpretation and Core append/identity behavior are assumed native contracts.",
+    "Opaque complete drafts and stored timestamp are retained; Encoding and Source projections do not prove serialization, target construction, schema admission, UUID generation or cryptography.",
+    "Fresh distinct record identities are a scoped per-attempt precondition for new-record multiplicity, not a global freshness axiom.",
+    "Only instance register/remove are represented; namespace registration, update, expiry and ordinary deregistration require adapters.",
+    "Foreign audit appends are disjoint from active private IDs; retention/deletion and conflicting foreign writers are excluded.",
+    "No concrete populated reachability witness or semantic mutant has yet qualified this new layer.",
+    "No full service response, successful served write, postcommit service execution, listener convergence, liveness or deployed guarantee.",
+    "External environment preparation and bootstrap role/schema effects remain outside the owned transaction model."
+  ],
+  "native_checks": "No native rerun for these proof-only additions. Native fix qualification is recorded separately in native-audit-fix.json.",
+  "next": [
+    "Concrete populated replacement/removal and rollback/retry executions with independent full outputs",
+    "Anchored source-shaped postcommit refusal case",
+    "Missing-final-Register semantic mutant and exact restoration",
+    "Remaining operation adapters and composed platform coverage"
+  ]
+}

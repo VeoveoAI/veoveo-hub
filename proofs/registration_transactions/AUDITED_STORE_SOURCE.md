@@ -1,0 +1,116 @@
+# Audited instance-store lifetime layer
+
+This is a handwritten source-correspondence model, not extracted Rust or a proof
+of PostgreSQL/Core. The model, specification and foundation proof now pass Lean;
+[the receipt](evidence/audited-store-foundation.json) records exact inputs and outputs.
+The prior lifetime model, specification, proofs and pins remain unchanged. This checkpoint represents
+`register_instance` and `remove_instance` only; namespace claims, RFC 7592 updates,
+expiry and ordinary deregistration require separate adapters.
+
+## Source boundary
+
+The native implementation is the qualified transactional audit fix at Hub
+`3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33`, based on
+`e060b328ac79ad5e1870de37af30a0ec627e9d64`. Its native qualification is separate
+from this Lean checkpoint. Core is
+`422dcf268d690fcbc3fee435cf9b81e7f36ffeac`, SDK is
+`7360c0f96cb616c519d27256df214ff4f2e6e831`.
+
+In `crates/veoveo-hub/src/registration/store.rs`, `register_instance` performs
+`replace`, `admit`, one `Replace` append for each returned ended registration,
+then `Register` for the candidate, then commits. `remove_instance` captures ended
+rows, drops their logins, deletes the instance, appends `Deregister` for each
+ended row, then commits. `audit_ended` reads each **ended row's server**; it does
+not substitute the candidate server or current deployment metadata. Its loop has
+no total-list bound, and `append_audit` submits one record per Core append on the
+same caller-owned SQL transaction. Audit detail contains activity and a server
+target, not a registration client ID.
+
+The old `RegistrationLifetime.Step true` owns the complete represented data
+effects and real lock order. The new layer replaces only its commit entry/decision
+with cursor-gated entry and one atomic data-plus-audit decision. Other steps erase
+to the old transitions; audit-only steps stutter. The ordinary-step side condition
+only excludes bypassing commit entry/decision, not any desired audit result.
+Source construction reads the actual transaction's request and captured rows at
+audit entry. Cursor advancement requires an explicit successful private append.
+Program completion must be derived from these steps, never supplied as a commit
+precondition. Captured-row/source binding at commit and independent exact stored
+effects are proved in the checked leaf, not assumed by the cursor.
+A settled-phase invariant derives the request/captured-row stability needed to
+connect that cursor back to the actual commit attempt.
+
+## Core and database interpretation
+
+Core `platform/store/migrations/0500_audit.sql` lines 407–437 inserts by record ID;
+an existing ID succeeds only when both the entire JSON draft and the stored
+`occurred_at` column agree. `platform/audit` PostgreSQL conversion truncates the
+column to microseconds while the JSON draft retains its original timestamp.
+`Record` therefore retains an opaque **complete draft** and a separate stored
+timestamp. `Encoding` interprets ID, activity/server and column-time conversion;
+it is not a proof of serialization, UUID generation, target URI construction,
+schema admission or cryptography. Identical full-record retry is idempotent;
+conflicting reuse is refused. Exact *new* multiplicity needs explicit distinct,
+noncolliding record IDs, not a global freshness axiom.
+
+PostgreSQL transaction atomicity, the shared instance/deployment row-lock
+interpretation and Core's append/identity behavior are trusted native contracts.
+The audit overlay is private until the same server decision applies both it and
+the old staged data. Confirmed abort exposes neither; private staging may remain
+in the ghost trace. A service error or lost reply is not evidence of rollback.
+Foreign audit appends are permitted only at IDs disjoint from active private
+records (ready/committing/abort-pending). Retired ghost records do not reserve IDs.
+Retention/deletion and conflicting foreign writers are excluded.
+No audit sequence/sealer order is identified with wall-clock commit order.
+
+The full instance payload remains parametric. Ordinary Factory/reissue/readiness
+writers are outside this two-writer domain, not hidden in the disjoint frame.
+The first success cut is the **store return/commit cut**. It does not establish
+complete `ClientInformation`, listener convergence or that a candidate still
+exists after legal concurrent removal. External environment preparation and
+bootstrap role/schema effects retain the existing lifetime boundary.
+
+## Planned contracts and controls
+
+The independent specification counts activity/server-target **bags**, retaining
+repeated server targets, and preserves full prior/unrelated audit records. It is
+not equality to the executable cursor fold. A populated replacement uses two
+distinct old clients/logins at old server A and a candidate at B: two Replace-A
+records and one Register-B record. Seed creation is not claimed.
+
+The planned first postcommit example is a confirmed **no-write served-marker refusal**
+after store commit with no external lifetime writer in that suffix. Successful
+`served_at` writes and full successful responses are pending: they cannot erase
+to the old frame-only environmental transition, which preserves the whole
+instance. The selected later semantic fault removes only the final Register
+instruction: the faulty cursor can still finish and admit data, but the unchanged
+independent specification must reject the missing activity. No mutant is run or
+qualified yet.
+
+## Checked foundation and remaining qualification
+
+The three new nondefault targets are `RegistrationAuditedLifetimeModel`,
+`RegistrationAuditedLifetimeSpecification` and `RegistrationAuditedLifetimeProof`.
+The proof leaf has generic Core identity/refusal, private append
+progress, source binding, actual lifetime erasure, complete stored decision with
+an independent bag, exact full-record extension, and abort/disjoint-frame claims.
+All compile, including thirty declaration guards and eleven printed axiom closures.
+Guards allow only `propext`, `Classical.choice` and `Quot.sound`. The principal
+stored-decision theorem starts from a reached committing transaction with an
+exhausted cursor and scoped fresh record identities; it constructs the combined
+decision and establishes the independent contract. Concrete reachability and
+semantic fault detection remain separate, unfinished qualification work.
+
+Manual rechecks use the three named targets, with a 180-second process-group
+limit per command:
+
+```sh
+lake build RegistrationAuditedLifetimeModel
+lake build RegistrationAuditedLifetimeSpecification
+lake build RegistrationAuditedLifetimeProof
+```
+
+Only byte-identical previously checked imports may be reused. This is not a
+replay of the sixteen default targets or a new native full check. The independent
+populated replacement/rollback/store-success and served-refusal examples, then
+the missing-Register semantic control and exact restoration, remain to be authored
+and checked before this audited slice can be called complete.

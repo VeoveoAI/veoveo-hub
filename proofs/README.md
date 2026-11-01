@@ -1470,9 +1470,20 @@ full Docker checks on Mac and Ubuntu each pass 475 tests with two existing exter
 fixture skips. Qualification also corrected test-fixture SQL packaging and an
 existing factory test's premature observation; no factory runtime change follows.
 See the [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-audit-fix.md).
-This is native component evidence, not deployment or a new Lean theorem. The
-composed audit/store proof remains in progress; the existing checked model retains
-its recorded source scope and does not establish these audit/postcommit guarantees.
+This is native component evidence, not deployment or a new Lean theorem.
+The separate [audited-store foundation](registration_transactions/AUDITED_STORE_SOURCE.md)
+now passes Lean for the instance registration/removal model. Successful private
+appends consume a source-derived program; reached exhausted transactions satisfy
+independent activity/server multiplicities, the complete modeled data operation
+and pointwise full-record extension at the combined commit. Confirmed rollback
+preserves both committed stores. Record identity freshness is scoped to the
+attempt; PostgreSQL atomicity, Core append behavior and native serialization
+remain explicit interpretation boundaries. Thirty declaration guards and eleven
+printed axiom closures pass ([receipt](registration_transactions/evidence/audited-store-foundation.json)).
+This is a checked handwritten model, not extracted implementation or SQL refinement.
+Concrete populated executions, postcommit service paths and the missing-Register
+semantic fault/restoration are still pending; namespace/update/expiry adapters
+are not part of this foundation.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
