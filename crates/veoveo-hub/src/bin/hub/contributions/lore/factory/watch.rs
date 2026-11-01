@@ -120,8 +120,7 @@ impl Watches {
             branch.clone(),
             Some(link.clone()),
         ));
-        let locked = instance.try_lock().is_err();
-        locked
+        instance.try_lock().is_err()
     }
 
     /// What watching knows about a branch of the repository that the caller's tenant
