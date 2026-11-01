@@ -205,7 +205,7 @@ Rust/SQL refinement. Removal, housekeeping, service HTTP/audit/reload behavior a
 broader authority/lifecycle composition remain outside. The next approved slice
 connects registration identity to fresh/retained routing and SDK recipient checks.
 
-## Instance lifetime: native correction, proof pending
+## Instance lifetime: native correction and removal foundation
 
 The later [native instance-removal receipt](evidence/native-instance-removal.json)
 records a first registration committing after its instance was removed, with an
@@ -217,12 +217,32 @@ cleanup tests pass; full Mac and Linux Docker checks each pass 471 tests, with t
 external-fixture skips. The [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-instance-removal-fix.md)
 separates those native results from formal coverage.
 
-This changes the outer instance-registration lifetime boundary; it does not
-extend the existing retained-deployment theorems to concurrent removal. A first
-registration has no deployment row, so the pending lifecycle model must represent
-that absence explicitly, keep the original late instance DELETE lock and allow
-its unguarded registration INSERT to reproduce the old orphan. Exact instance,
-deployment, registration and login effects, commit versus response, aborts and
-both valid operation orders remain obligations of that new model. External
-database preparation, token reissue, other instance-row writers and listener
-convergence retain explicit boundaries.
+The separate [lifetime model and source mapping](LIFETIME_SOURCE.md) now represent
+the missing deployment before first registration, cached service authority, the
+original late instance DELETE lock, ordered private writes and independent server
+commit/abort versus response delivery. INSERT retains its actual deployment FK;
+neither it nor primitive commit assumes instance presence or the desired no-orphan
+property. The existing retained-deployment theorems keep their original scope.
+
+The [checked foundation](evidence/instance-lifetime-foundation.json) derives shared
+instance-lock ownership, ordered staging, current DELETE snapshots and complete
+removal programs for arbitrary finite fixed executions. At a reached removal
+commit, the full database effect equals the independently specified removal:
+delete the instance, its registrations and registered logins; retain deployment,
+unrelated logins and the current disjoint frame. Thirty declaration axiom guards
+and nine printed theorem closures pass with standard Lean logical axioms only.
+These are declarations, not thirty execution scenarios.
+
+Run this additive slice manually, without rebuilding the sixteen old default targets:
+
+```sh
+LAKE_NO_UPDATE=1 lake build RegistrationLifetimeModel RegistrationLifetimeSpecification RegistrationLifetimeProof
+```
+
+Exact optional-deployment registration effects, mixed commit histories, no-orphan
+preservation, confirmed-abort exclusion, constructive valid/original/rollback
+executions and semantic controls remain next. Responses currently carry tags,
+not complete returned credential/database/metadata payloads. External preparation,
+token reissue, other instance-row writers, listener convergence and formal
+Rust/SQL refinement remain outside this checkpoint; see the
+[qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-lifetime-foundation.md).

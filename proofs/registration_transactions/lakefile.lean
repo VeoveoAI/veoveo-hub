@@ -54,3 +54,8 @@ lean_lib RegistrationUpdateHistory
 
 @[default_target]
 lean_lib RegistrationUpdateWitnesses
+
+-- Additive manual instance-lifetime targets; existing default targets are unchanged.
+lean_lib RegistrationLifetimeModel
+lean_lib RegistrationLifetimeSpecification
+lean_lib RegistrationLifetimeProof

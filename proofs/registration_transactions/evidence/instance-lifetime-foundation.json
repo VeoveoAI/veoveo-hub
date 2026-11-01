@@ -1,0 +1,572 @@
+{
+  "date": "2026-11-01",
+  "status": "Checked lifetime ownership, staging, current snapshots and exact reached removal; mixed history and witnesses remain next",
+  "evidence_class": "Handwritten source-mapped Lean model; not Aeneas extraction or formal Rust/SQL refinement",
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "native_source_revision": "12a132dcbdddcd7fad1defcd007432385d237a76",
+  "adoption_base_commit": "64c8a0f49ca7c49bb20d80e9789e597b87823b79",
+  "native_source_sha256": {
+    "crates/veoveo-hub/src/registration/service.rs": "cde086d139188aea96d2a3e6d75e27418c0fe386ec2a5f7c9d3f429c33576d2a",
+    "crates/veoveo-hub/src/registration/store.rs": "d615bd603e34d37336bcdf15de4b988edc0b9367574205aa6770980215cb0c90",
+    "crates/veoveo-hub/migrations/0007_execution.sql": "f7c3fb189a68c7423d5865eddce72858807b7fe51f7f1cb91cf4307505428d1b",
+    "crates/veoveo-hub/migrations/0015_instance.sql": "4d950429d7b294ee4dafa5bc685ed2f1c36933a1b537536399872d56167b8462",
+    "crates/veoveo-hub/src/registration/store/lock_instance.sql": "78524a6a41fb5cabb9bda7273e12f732d8f88c8ef4ede689761541e7b4d91be7",
+    "crates/veoveo-hub/src/registration/store/replace_deployment.sql": "43f4784f66354856745954ea462e9b7f63e24c035971e3540ea961ab6433b29c",
+    "crates/veoveo-hub/src/registration/store/replace_registrations.sql": "1c26cb46a94ff434b1b32372c199308bd11c3bd4708dddbe74ee540f2726a8d5",
+    "crates/veoveo-hub/src/registration/store/drop_login.sql": "5842dcdab31900fb71febd28d5297613793bb9003396e97635d61356ff6df898",
+    "crates/veoveo-hub/src/registration/store/ensure_server.sql": "36e9cea44b71025dabff0bbd0c89198d157c14507de70dca9530bca8ad62d63e",
+    "crates/veoveo-hub/src/registration/store/create_login.sql": "4159fcd872d9f5425845f2f6053aa0cc01e99c66c71e31bbfab9fa9fd7b137bc",
+    "crates/veoveo-hub/src/registration/store/create_registration.sql": "a79ee4f4e98171712e81308a4c76cb26e0c91dd8fcdf669066e2e2687905d3cb",
+    "crates/veoveo-hub/src/registration/store/delete_instance.sql": "2437e1cf3dc4c6ec8dc94d37d162934a59668b4c76ca9540ac70ad971a815eef"
+  },
+  "native_source_unchanged": true,
+  "source_files": {
+    "RegistrationEffects.lean": {
+      "bytes": 6190,
+      "sha256": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5"
+    },
+    "RegistrationHistory.lean": {
+      "bytes": 9699,
+      "sha256": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058"
+    },
+    "RegistrationLifetimeModel.lean": {
+      "bytes": 14849,
+      "sha256": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954"
+    },
+    "RegistrationLifetimeProof.lean": {
+      "bytes": 18457,
+      "sha256": "0520eb364656bdec153adb1de030bf15c3e5a9060e994ba0aa857c9c1c400f65"
+    },
+    "RegistrationLifetimeSpecification.lean": {
+      "bytes": 4845,
+      "sha256": "21eb77012d955c9f69068f9fc0b3a877459bd2c1d918efc791444986599c4f59"
+    },
+    "RegistrationLocks.lean": {
+      "bytes": 2428,
+      "sha256": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6"
+    },
+    "RegistrationModel.lean": {
+      "bytes": 13928,
+      "sha256": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584"
+    },
+    "RegistrationObservations.lean": {
+      "bytes": 3822,
+      "sha256": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b"
+    },
+    "RegistrationProof.lean": {
+      "bytes": 4700,
+      "sha256": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87"
+    },
+    "RegistrationSpecification.lean": {
+      "bytes": 5207,
+      "sha256": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94"
+    },
+    "RegistrationUpdateEffects.lean": {
+      "bytes": 4035,
+      "sha256": "500fc10b193595c6795690005ef663f8e91a3378e4d23dd17e49392e221bfeb1"
+    },
+    "RegistrationUpdateHistory.lean": {
+      "bytes": 13270,
+      "sha256": "75e5dfad45f4d4549465f0ac61b44da9d42edbb3a48aa18c3d91cc84abb603ac"
+    },
+    "RegistrationUpdateLocks.lean": {
+      "bytes": 12530,
+      "sha256": "140c786959c1395ad979f3c8b7ae7137d5546d0c0a9c8d68b8a901614e59c2d3"
+    },
+    "RegistrationUpdateModel.lean": {
+      "bytes": 17261,
+      "sha256": "a453d6d58a17e8d08d6a31c31b2227785dac66edda8048c14d5217da1ffefcf9"
+    },
+    "RegistrationUpdateObservations.lean": {
+      "bytes": 8550,
+      "sha256": "b3c62a290c6d037829be1cb13158ae1d5cdcf71897faeff855df595ba49c9c7c"
+    },
+    "RegistrationUpdateProof.lean": {
+      "bytes": 5496,
+      "sha256": "8ed07e65b88297bd14c7edbc3978b04afb1ed77f0a72ab25de1021559fd6f26e"
+    },
+    "RegistrationUpdateSpecification.lean": {
+      "bytes": 4794,
+      "sha256": "c92157d4f92472ff09d00ecd5f0ba178f3408cbc5438378d249bab66a3580e67"
+    },
+    "RegistrationUpdateWitnesses.lean": {
+      "bytes": 56022,
+      "sha256": "b6c02c74bad205bd5f288af622558ae1a9e546afafd752e8ceff7523a1c0f36f"
+    },
+    "RegistrationWitnesses.lean": {
+      "bytes": 54230,
+      "sha256": "0c62ccf4ef064f5592fcd781e485f21ac7f107572aa208d0e7d2130c7c44726e"
+    },
+    "lake-manifest.json": {
+      "bytes": 3922,
+      "sha256": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64"
+    },
+    "lakefile.lean": {
+      "bytes": 1231,
+      "sha256": "44f9400330913e127ecb8d66f5a5327b65ea25281b7aecf5003190df98a3979b"
+    },
+    "lean-toolchain": {
+      "bytes": 25,
+      "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+    }
+  },
+  "source_mapping_document": {
+    "path": "LIFETIME_SOURCE.md",
+    "sha256": "7fd46a7c09d6a0a4b43aaead09f50484fb415a1bff0b899cdd3c7f727a207253"
+  },
+  "pins": {
+    "Aeneas": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "Lake_binary_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "Lean": "4.35.0",
+    "Lean_binary_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "Mathlib": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "Mathlib.Tactic.olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+    "Mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147"
+  },
+  "aeneas_extraction_used": false,
+  "claims": [
+    "Every finite fixed execution preserves shared-instance ownership, active-owner uniqueness and source-order staging.",
+    "Active captured DELETE snapshots equal current registrations; current instance payload stays present and unchanged in the two-writer domain.",
+    "Every reached commit request has the complete ordered program; reached removal commit has full independent removal effects.",
+    "Removal clears the instance and registered client/login state, retaining deployment, unrelated logins and current disjoint frame.",
+    "INSERT and primitive commit do not assume instance presence or a no-orphan invariant."
+  ],
+  "axiom_guards": 30,
+  "printed_lifetime_closures": {
+    "RegistrationLifetime.execution_ownership": [
+      "propext"
+    ],
+    "RegistrationLifetime.active_owner_unique": [
+      "propext"
+    ],
+    "RegistrationLifetime.execution_alignment": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationLifetime.committing_program_complete": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationLifetime.complete_removal_program": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationLifetime.execution_observations": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationLifetime.reached_current_delete_snapshot": [
+      "propext",
+      "Quot.sound"
+    ],
+    "RegistrationLifetime.removal_program_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "RegistrationLifetime.reached_removal_effect": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "old_imported_effects_guards": 2,
+  "canonical_validation": {
+    "axiom_guards": 30,
+    "canonical_lakefile_sha256": "44f9400330913e127ecb8d66f5a5327b65ea25281b7aecf5003190df98a3979b",
+    "canonical_manifest_sha256": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "canonical_toolchain_sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+    "command": "LAKE_NO_UPDATE=1 lake build RegistrationLifetimeModel RegistrationLifetimeSpecification RegistrationLifetimeProof",
+    "dependency_pins": {
+      "Aeneas": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+      "Lake_binary_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+      "Lean": "4.35.0",
+      "Lean_binary_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+      "Mathlib": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+      "Mathlib.Tactic.olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+      "Mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147"
+    },
+    "elapsed_seconds": 22.08,
+    "exit_status": 0,
+    "inputs_sha256": "ae4bd8fdba9d916cb09c9435e5ca02c4d0e75be52367b3c6466b3edd28cfc5f8",
+    "lake_reported_jobs": "3145/3145",
+    "log_bytes": 9607,
+    "log_path": "/tmp/hub-registration-instance-removal-20261101/canonical-targets1-mirror/build.log",
+    "log_sha256": "2fb370ae7e3751c1592f70d45bb81dbc22a0a4412c7d2b9c73f4c71bd9c1996f",
+    "native_source_revision": "12a132dcbdddcd7fad1defcd007432385d237a76",
+    "new_target_oleans": {
+      "RegistrationLifetimeModel": {
+        "bytes": 1645120,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-targets1-mirror/oleans/RegistrationLifetimeModel.olean",
+        "sha256": "85f36adc8376c83818cda80e2fa28651e63a57fb731fe02a3c33d73ffacb78b0"
+      },
+      "RegistrationLifetimeProof": {
+        "bytes": 2239544,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-targets1-mirror/oleans/RegistrationLifetimeProof.olean",
+        "sha256": "ca42b4c47c7062e9f045af4b184853a3dbf23c496569989a6fe819dc012fa781"
+      },
+      "RegistrationLifetimeSpecification": {
+        "bytes": 204424,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-targets1-mirror/oleans/RegistrationLifetimeSpecification.olean",
+        "sha256": "cf252d633515598d2480f59e1ea1ac55c2633c4058cda1ebf98b6534960edb18"
+      }
+    },
+    "other_package_oleans": [
+      "RegistrationModel.olean",
+      "RegistrationSpecification.olean",
+      "RegistrationEffects.olean"
+    ],
+    "printed_lifetime_closures": 9,
+    "private_source_root": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/canonical-targets1/source",
+    "project_olean_count": 6,
+    "repo_head": "64c8a0f49ca7c49bb20d80e9789e597b87823b79",
+    "sorryAx_reported": false,
+    "source_archive_sha256": "19e57be68c4479d24f57c62671e4e0460fd6f9701fb33bd8f9bcabcf9713c40a",
+    "source_file_count": 22,
+    "source_map_file": "source-map.before.json and source-map.after.json",
+    "source_map_file_sha256": "4facc89dd292caf0767c73209760d9350988a928e2955e07c203a22bc05a0030",
+    "source_map_matches_before_after": true,
+    "source_map_sha256": "3d22c4e2ef4d44c4dffa7ec9bc7d9faa3a3cba4c4cc61c9b874fc6a8c9f3e63f",
+    "source_map_unchanged": true,
+    "status": "passed",
+    "tool_import_map_files": "tool-imports.before.json and tool-imports.after.json",
+    "tool_import_map_sha256": "36852041aff02fbbe43e5a17ff29b5e25e771daf41e30085ef2bb58340de86f1",
+    "tool_imports_unchanged": true,
+    "warnings": [
+      "Existing imported modules emitted module-system/linter/deprecation warnings; no errors."
+    ]
+  },
+  "canonical_summary_sha256": "6b5328eb21b57c2637c7555af3ec9e942e36df83cbf92f848be5421b60757e6c",
+  "direct_development_checks": [
+    {
+      "checkpoint": 1,
+      "summary_sha256": "afb81328b201b91f1b91cb362defa293f2e6e7b64f2a7237375affa64582e930",
+      "source_map_sha256": "cabf807e3f4e4ed3b869d168bedbfe43594cee316f6a71b51fe0964bba8c746a",
+      "inputs_sha256": "1a8d601d46d277bc6f197f5f3d931a6929e496e5660e515bf7b6de372a47cea9",
+      "archive_sha256": "043c4dfe635f21eb11c62edcfdd00d7a77b79b863db7bbd95cf7b6bbf788c3c3",
+      "complete": false,
+      "interpretation": "Model record-update layout parser failure; imported old modules passed.",
+      "stages": [
+        {
+          "artifact": {
+            "bytes": 1329720,
+            "exists": true,
+            "sha256": "510fd877d91cf3f01dd9f166b4d8f0dcca4fdd56f50cd32585a48e389321be63"
+          },
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RegistrationModel.lean",
+            "-o",
+            ".lake/build/lib/lean/RegistrationModel.olean"
+          ],
+          "diagnostic_headlines": [],
+          "elapsed_ms": 5224,
+          "exit": 0,
+          "log_bytes": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint1/evidence-run1/01-RegistrationModel.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "module": "RegistrationModel",
+          "timed_out": false
+        },
+        {
+          "artifact": {
+            "bytes": 128968,
+            "exists": true,
+            "sha256": "578c96fee4ee2335bf4d8066cfea9192afdec227973ef73be7aa4591b2bf627e"
+          },
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RegistrationSpecification.lean",
+            "-o",
+            ".lake/build/lib/lean/RegistrationSpecification.olean"
+          ],
+          "diagnostic_headlines": [],
+          "elapsed_ms": 3170,
+          "exit": 0,
+          "log_bytes": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint1/evidence-run1/02-RegistrationSpecification.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "module": "RegistrationSpecification",
+          "timed_out": false
+        },
+        {
+          "artifact": {
+            "bytes": 283456,
+            "exists": true,
+            "sha256": "a15c9cc1895cc6517c05f5789d4433415a42be0b89fa6f1511e4eeec1a867bf7"
+          },
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RegistrationEffects.lean",
+            "-o",
+            ".lake/build/lib/lean/RegistrationEffects.olean"
+          ],
+          "diagnostic_headlines": [],
+          "elapsed_ms": 3020,
+          "exit": 0,
+          "log_bytes": 3080,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint1/evidence-run1/03-RegistrationEffects.log",
+          "log_sha256": "582442f917d95bc3b32bf46a0f95dfeee0bf286f405bc1ccf2d35fc0c7a80218",
+          "module": "RegistrationEffects",
+          "timed_out": false
+        },
+        {
+          "artifact": {
+            "exists": false
+          },
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RegistrationLifetimeModel.lean",
+            "-o",
+            ".lake/build/lib/lean/RegistrationLifetimeModel.olean"
+          ],
+          "diagnostic_headlines": [
+            "RegistrationLifetimeModel.lean:172:77: error: unexpected identifier; expected '}'"
+          ],
+          "elapsed_ms": 3070,
+          "exit": 1,
+          "log_bytes": 82,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint1/evidence-run1/04-RegistrationLifetimeModel.log",
+          "log_sha256": "abd50d78abe50db12fed96689daff2675960ff61096a63c782bde0bec8b082d2",
+          "module": "RegistrationLifetimeModel",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 2,
+      "summary_sha256": "fac5a5f3345868cf8254539059f65d717a288e5db33fe56ff283c03f32b2d39b",
+      "source_map_sha256": "d9f4d4a8dd4d167f3bbf39046208a88da7b723e0fa574126821e0bec3120f98c",
+      "inputs_sha256": "74fa7a9687d779b57074417df9293e525a24c64a5e7b75c473d78169cbc683f8",
+      "archive_sha256": "c7964c08cdd84fcd42d44bd53cede299ee8fa7a984c1fada7e6faa0939a09d4f",
+      "complete": false,
+      "interpretation": "Model passed; independent removal result type could not be inferred.",
+      "stages": [
+        {
+          "artifact": {
+            "bytes": 1645008,
+            "exists": true,
+            "sha256": "4f02385283c7b823e055f494eb5b6bfcba25b60838a9fea3540b5a0603384ecd"
+          },
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RegistrationLifetimeModel.lean",
+            "-o",
+            ".lake/build/lib/lean/RegistrationLifetimeModel.olean"
+          ],
+          "diagnostic_headlines": [],
+          "elapsed_ms": 4422,
+          "exit": 0,
+          "log_bytes": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint2/evidence-run1/01-RegistrationLifetimeModel.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "module": "RegistrationLifetimeModel",
+          "timed_out": false
+        },
+        {
+          "artifact": {
+            "exists": false
+          },
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RegistrationLifetimeSpecification.lean",
+            "-o",
+            ".lake/build/lib/lean/RegistrationLifetimeSpecification.olean"
+          ],
+          "diagnostic_headlines": [
+            "RegistrationLifetimeSpecification.lean:28:30: error: don't know how to synthesize implicit argument `\u03b1`",
+            "RegistrationLifetimeSpecification.lean:27:19: error: don't know how to synthesize implicit argument `\u03b1`"
+          ],
+          "elapsed_ms": 2869,
+          "exit": 1,
+          "log_bytes": 897,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint2/evidence-run1/02-RegistrationLifetimeSpecification.log",
+          "log_sha256": "03e5f326940ab294279045a1586d8ce82beec609d2b53973aa6ff1dd74c684c7",
+          "module": "RegistrationLifetimeSpecification",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 3,
+      "summary_sha256": "5aa477642d51c7f05033b62a2f7eb11b03b53912e5124a1cb64387db027b3cf5",
+      "source_map_sha256": "c4522287f453b10a02717c614b16f2333b0edc2a26c18a8df737d3e07be2dc5b",
+      "inputs_sha256": "3299f2e9567bf525e59a01c676fbb006a9e41654c74497f27fcaad8533dd3618",
+      "archive_sha256": "4ac760628406244ef79c3c512de81f7a3e679771e430be3204db4ab60ad0a91a",
+      "complete": false,
+      "interpretation": "Specification passed; request/phase cases and cleanup algebra proof obligations remained.",
+      "stages": [
+        {
+          "artifact": {
+            "bytes": 204312,
+            "exists": true,
+            "sha256": "b515f9f99ccb46ddf3bd69627142123d0fbacbe549e267d0bc1dae00542cc306"
+          },
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RegistrationLifetimeSpecification.lean",
+            "-o",
+            ".lake/build/lib/lean/RegistrationLifetimeSpecification.olean"
+          ],
+          "diagnostic_headlines": [],
+          "elapsed_ms": 4020,
+          "exit": 0,
+          "log_bytes": 0,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint3/evidence-run1/01-RegistrationLifetimeSpecification.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "module": "RegistrationLifetimeSpecification",
+          "timed_out": false
+        },
+        {
+          "artifact": {
+            "exists": false
+          },
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RegistrationLifetimeProof.lean",
+            "-o",
+            ".lake/build/lib/lean/RegistrationLifetimeProof.olean"
+          ],
+          "diagnostic_headlines": [
+            "RegistrationLifetimeProof.lean:114:18: error: Invalid `\u27e8...\u27e9` notation: The expected type",
+            "RegistrationLifetimeProof.lean:114:18: error: Invalid `\u27e8...\u27e9` notation: The expected type",
+            "RegistrationLifetimeProof.lean:159:100: error: unsolved goals",
+            "RegistrationLifetimeProof.lean:210:2: error: unsolved goals",
+            "RegistrationLifetimeProof.lean:260:2: error: unsolved goals",
+            "'RegistrationLifetime.execution_alignment' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "'RegistrationLifetime.committing_program_complete' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "'RegistrationLifetime.complete_removal_program' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "'RegistrationLifetime.execution_observations' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "'RegistrationLifetime.reached_current_delete_snapshot' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "'RegistrationLifetime.removal_program_exact' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]",
+            "'RegistrationLifetime.reached_removal_effect' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]",
+            "RegistrationLifetimeProof.lean:295:0: error: unexpected registration lifetime proof axiom in RegistrationLifetime.alignment_step: [sorryAx]"
+          ],
+          "elapsed_ms": 15689,
+          "exit": 1,
+          "log_bytes": 137425,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint3/evidence-run1/02-RegistrationLifetimeProof.log",
+          "log_sha256": "8faa9f8d222490f11f0d4c78aecbc812a842b3b5a141316f587c4ce823c5f2ec",
+          "module": "RegistrationLifetimeProof",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 4,
+      "summary_sha256": "94e1a43b5bfacd6f7ffaa1811adb76922614b0baa8b10f4d818a9b659894b6cd",
+      "source_map_sha256": "13a7fcd63d7a903cd4046275df27db32d3c4034e2c4a576d9eecf96ba1aeb492",
+      "inputs_sha256": "6036708aded61f60a35c96078351507071bfdc403ccb02f7020b256ec20d918f",
+      "archive_sha256": "9dc3fcc355ab4ac12f232035c2659d5da657ca10423eb4963d1caad824e0bbdd",
+      "complete": false,
+      "interpretation": "Proof helper retained opaque ignored field; reserved local identifier caused parser cascade.",
+      "stages": [
+        {
+          "artifact": {
+            "exists": false
+          },
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RegistrationLifetimeProof.lean",
+            "-o",
+            ".lake/build/lib/lean/RegistrationLifetimeProof.olean"
+          ],
+          "diagnostic_headlines": [
+            "RegistrationLifetimeProof.lean:112:6: error: Type mismatch: After simplification, term",
+            "RegistrationLifetimeProof.lean:194:4: error: unsolved goals",
+            "RegistrationLifetimeProof.lean:191:40: error: unsolved goals",
+            "RegistrationLifetimeProof.lean:181:100: error: unsolved goals",
+            "RegistrationLifetimeProof.lean:195:17: error: unexpected token ':='; expected ':'",
+            "RegistrationLifetimeProof.lean:196:42: error: unexpected token 'have'; expected ':'",
+            "RegistrationLifetimeProof.lean:199:18: error: unexpected token '.'; expected ':'",
+            "'RegistrationLifetime.execution_alignment' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "'RegistrationLifetime.committing_program_complete' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "'RegistrationLifetime.complete_removal_program' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "'RegistrationLifetime.execution_observations' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "'RegistrationLifetime.reached_current_delete_snapshot' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "'RegistrationLifetime.reached_removal_effect' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]",
+            "RegistrationLifetimeProof.lean:362:0: error: unexpected registration lifetime proof axiom in RegistrationLifetime.alignment_step: [sorryAx]"
+          ],
+          "elapsed_ms": 10183,
+          "exit": 1,
+          "log_bytes": 35567,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint4/evidence-run1/01-RegistrationLifetimeProof.log",
+          "log_sha256": "aedcd4eda5b2005ca07b3a24980a34569791e660c43404ddd7ba2938a332bf08",
+          "module": "RegistrationLifetimeProof",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 5,
+      "summary_sha256": "62dedc27609b29030540c87765e5e9cdacb9fd40435d3c17f1b33bac3ca6a9bf",
+      "source_map_sha256": "9352b1fa99c8ce0456ccaf04f25b4092bebca573fe988e8b1c22231ec1733802",
+      "inputs_sha256": "0b79140abe4313e0d3083f5ea197fe653e6b49637ecbd9f7a8d4b1eca3ba5d84",
+      "archive_sha256": "2ed0d764a3e9af9b9f2463e953e63de9934dd617cc5d98298b3590f4d436735c",
+      "complete": true,
+      "interpretation": "All proof declarations and audits passed.",
+      "stages": [
+        {
+          "artifact": {
+            "bytes": 2239328,
+            "exists": true,
+            "sha256": "069726c9c12bbf262f2dd181bc99e38190229e072bca1210e452c402570d458b"
+          },
+          "command": [
+            "lake",
+            "env",
+            "lean",
+            "RegistrationLifetimeProof.lean",
+            "-o",
+            ".lake/build/lib/lean/RegistrationLifetimeProof.olean"
+          ],
+          "diagnostic_headlines": [],
+          "elapsed_ms": 10932,
+          "exit": 0,
+          "log_bytes": 5200,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint5/evidence-run1/01-RegistrationLifetimeProof.log",
+          "log_sha256": "658a4ced65f6a968142df4b211ac691c5d8a0456d2fce6f46a4b300debeef3bf",
+          "module": "RegistrationLifetimeProof",
+          "timed_out": false
+        }
+      ]
+    }
+  ],
+  "manual_only": true,
+  "runtime_or_ci_machinery_added": false,
+  "old_sixteen_default_targets_unchanged": true,
+  "boundaries": [
+    "One selected instance lifetime with instance-authorized registration/removal writers only; first deployment absence is represented explicitly.",
+    "PostgreSQL isolation, locking, atomicity, native row/role serialization, admitted identity/crypto inputs and the Lean toolchain are trusted contracts.",
+    "Full instance stability excludes normal Factory revision/pusher/served/failure writers as well as administrative writes.",
+    "Login projection excludes shared server/group/bootstrap owner state; disjoint frame excludes PostgreSQL catalogs, external databases, NOTIFY and transport.",
+    "External schema preparation is a logical success/error observation; no multi-database rollback guarantee.",
+    "Response tags only; complete returned credential/database/metadata payloads and postcommit audit/reload behavior remain unproved.",
+    "Exact registration effects, mixed commit histories, NoOrphanRows preservation, abort exclusion, constructive valid/original/rollback executions and semantic controls remain pending.",
+    "Existing SerialHistory has no frame constructor yet; there is no all-executions serial-history theorem in this checkpoint.",
+    "No native checks, full Docker gates, deployment, paid inference or OpenCode qualification were run for this proof-only checkpoint."
+  ],
+  "warnings": "Successful checks contain unused-variable/tactic and deprecated-lemma warnings; no proof errors or sorryAx. Earlier failed drafts are compiler feedback, not semantic controls."
+}

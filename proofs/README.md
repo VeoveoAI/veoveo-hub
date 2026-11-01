@@ -1419,9 +1419,19 @@ integration tests, factory cleanup, formatting and strict library Clippy pass.
 Full Mac and Linux Docker checks each pass 471 tests with two known external
 fixture skips. See the [native receipt](registration_transactions/evidence/native-instance-removal.json)
 and [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-instance-removal-fix.md).
-The corresponding lifecycle model is in progress. The register/replace/update
-theorems above do not cover this interleaving, and these native checks do not
-establish formal SQL refinement, asynchronous listener convergence or deployment.
+The separate [lifetime foundation](registration_transactions/LIFETIME_SOURCE.md)
+now represents absent first deployment, real original lock order, cached authority,
+ordered private writes and commit/response separation. Its
+[checked removal proof](registration_transactions/evidence/instance-lifetime-foundation.json)
+derives ownership, ordered staging and current DELETE snapshots over arbitrary
+finite fixed executions. A reached removal commit has the complete independent
+instance/registration/login cleanup effect, preserving deployment and unrelated
+state. Thirty declaration guards and nine printed axiom closures pass.
+The register/replace/update theorems above do not cover this interleaving.
+Optional-deployment registration effects, mixed serial histories, no-orphan/abort
+consequences, constructive valid/original/rollback witnesses and semantic controls
+are next; complete response payloads also remain unproved. Neither checkpoint
+establishes formal SQL refinement, asynchronous listener convergence or deployment.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
