@@ -1201,9 +1201,17 @@ state, not an additional repository authorization rule.
   SQL observation consistency, mutex correspondence and native preparation remain
   explicit interpretation contracts. See the
   [foundation record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-foundation.md).
-- **Residual/next:** compose current-runner preparation and failure publication
-  with the checked complete-output/recovery contracts and finite serialized
-  histories before claiming the complete retarget slice qualified. Saved-parent
+- **Checked watcher histories:** actual modeled parent applications now compose
+  with queued linked notifications. Repository or tracked-ID retargets preserve
+  the entire resulting state against obsolete notifications; same-target parent
+  advances accept relevant notifications using the current program and complete
+  client/native/provider/request outputs. Intermediate row/key uniqueness follows
+  from actual apply identity effects. The leaf passes 23 axiom guards in 5.773 s;
+  see the [history record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-histories.md).
+  This is manual model composition, not formal refinement of async Rust or SQL.
+- **Residual/next:** complete failure/fallback/status ordering, scoped deletion
+  composition, populated witnesses and semantic controls before claiming the
+  complete retarget slice qualified. Saved-parent
   retry preparation/membership, cross-replica reconciliation, concurrent
   registration publication order, native workspace effects and eventual recovery
   remain separate obligations. Eventual successor reconciliation needs scheduling/

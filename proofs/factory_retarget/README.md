@@ -25,6 +25,13 @@ in 6.686 seconds; its exact artifact was reused for the proof retry. The compact
 the failed authoring attempts. The broader dated record is
 [Factory retarget row proof](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-retarget-row-proof.md).
 
+The watcher extension now also checks actual parent/queued-update histories:
+repository or tracked-ID retarget preservation and valid same-target acceptance
+with the current parent program. Its 23 axiom guards pass in 5.773 seconds.
+See the [history contracts and receipt](WATCHER_SOURCE.md#checked-parent-and-queued-update-histories).
+Detailed failure ordering, populated witnesses and the watcher semantic controls
+remain pending; the overall lifecycle contract is still partial.
+
 ## Checked native-output checkpoint
 
 `success_implies_capacity` derives capacity acceptance from normal modeled return;
@@ -174,14 +181,15 @@ The model built in **8.232 seconds**; the foundation proof passed in **9.383
 seconds** with **18 axiom guards** (14 lemmas and four definitions) and seven
 printed standard-only closures. Six exact accepted prerequisites were reused.
 First-attempt constructor and tactic errors are retained in the receipt. No native
-tests were repeated. Further parentLink/queued-retarget and program-advance
-compositions, status/fallback/error ordering, unrelated-key failure frames,
-populated client-facing witnesses and two selected semantic controls remain open.
+tests were repeated. The subsequent history checkpoint above adds parent/queued
+retarget and program-advance compositions and unrelated-key failure framing.
+Detailed status/fallback/error ordering, populated client-facing witnesses and
+two selected semantic controls remain open.
 
 ## Manual checks
 
 Lean 4.35.0 and Mathlib `56a005855ea17e0b0958f73ec801ae140b0a1679` are pinned.
-No Aeneas dependency or historical instance-name patch is used. All ten named
+No Aeneas dependency or historical instance-name patch is used. All eleven named
 targets are manual; no default/CI target or runtime behavior is added.
 
 ```sh
@@ -195,6 +203,7 @@ LAKE_NO_UPDATE=1 lake env lean FactoryRetargetControl.lean -o .lake/build/lib/le
 LAKE_NO_UPDATE=1 lake env lean FactoryCapacityControl.lean -o .lake/build/lib/lean/FactoryCapacityControl.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherModel.lean -o .lake/build/lib/lean/FactoryWatcherModel.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherProof.lean -o .lake/build/lib/lean/FactoryWatcherProof.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherHistoryProof.lean -o .lake/build/lib/lean/FactoryWatcherHistoryProof.olean
 ```
 
 ## Interpretation boundaries and remaining work
@@ -227,8 +236,9 @@ the native name truncates UUID text.
 The full protocol remains partial. Independent lifecycle contracts are now checked
 alongside the full output and conditional retry contracts. Two populated manual
 controls now detect specific wrong-output and wrongful-refusal faults. Further
-work includes finite serialized histories and separate native concurrency
-qualification; these controls are not exhaustive fault coverage. Modeled provider fields do not verify entire native
+work includes the remaining failure/deletion histories and watcher controls;
+the earlier native concurrency qualification is recorded separately. These
+controls are not exhaustive fault coverage. Modeled provider fields do not verify entire native
 Provider protobuf objects; their profiles, defaults and native interpretation
 remain external contracts.
 Multi-replica publication ordering, independent linked-follower supersession,

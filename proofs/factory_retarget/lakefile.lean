@@ -14,3 +14,4 @@ lean_lib FactoryRetargetControl
 lean_lib FactoryCapacityControl
 lean_lib FactoryWatcherModel
 lean_lib FactoryWatcherProof
+lean_lib FactoryWatcherHistoryProof

@@ -1,6 +1,7 @@
 # Guarded watcher composition: manual source boundary
 
-The manual model and first foundational proof leaf are checked. The model compiled
+The manual model, foundational proof leaf and parent/queued-update history leaf
+are checked. The model compiled
 in 8.232 seconds; the proof passed in 9.383 seconds with 18 executable axiom guards
 (14 lemmas and four model definitions) and seven printed standard-only closures.
 This is a current-projection/full-output foundation, not closure of the entire
@@ -63,14 +64,94 @@ can support no-resurrection composition, without claiming to prove native cleanu
 Unrelated native-object frames retain the earlier scoped no-alias condition for
 (workspace, truncated sandbox name); SQL row/key framing uses full keys.
 
-The checked proof derives independent no-op/accepted outputs, SQL projection
+The foundation derives independent no-op/accepted outputs, SQL projection
 correspondence, whole-operation capture independence, constructed current-parent
-arguments and complete Factory outputs. Finite two-operation parent retarget and
-same-target advancement, status/fallback/error ordering, unrelated-key failure
-frames and populated client-facing witnesses remain next. The two later controls change only post-relevance metadata selection (same-target
+arguments and complete Factory outputs. The checked history extension below now
+composes actual parent retarget and same-target advancement with queued updates,
+deriving intermediate key/row uniqueness from the actual first operation. Detailed
+status/fallback/error ordering and populated client-facing witnesses remain next.
+The two later controls change only post-relevance metadata selection (same-target
 program advancement) or add an overstrict captured-parent equality refusal.
 They will not mutate the actual backing Row/current SQL observation or reuse stale
 proof artifacts under a changed model.
+
+## Checked parent and queued-update histories
+
+`FactoryWatcherHistoryProof` constructs the parent's request from its source input
+and native resolution observation. `parent_full_output` derives accepted execution,
+the full row/native/provider/create-request output and complete client projection
+from no-fault/capacity facts. The next operation receives that actual resulting
+state. Row identity, key membership and `UniqueKey` preservation follow from the
+inherited `apply_identity` theorem; the desired intermediate state is not assumed.
+
+`parent_retarget_then_obsolete` proves whole-state preservation after a repository
+change **or** a tracked-branch-ID change in the same repository. It retains the
+first operation's complete client projection and allows a query error in the
+second operation. `parent_program_then_relevant` accepts an old captured candidate
+when its target still matches, uses the current applied parent's revision/pusher
+and source response, and preserves full outputs, client identity, failure-map
+effects and unrelated Factory state across both calls. No equality with captured
+parent metadata is required. Returned source contents and native observations are
+still external contracts; issued `branch@LATEST` argv does not establish checkout
+bytes at the recorded revision.
+
+The leaf also proves that parent query failure still calls resolve with `None`,
+and that status publication preserves every other complete failure key. Detailed
+recorded fallback, preparation-refusal ordering, deletion-boundary histories,
+populated constructive witnesses and semantic controls are not yet qualified.
+All earlier native/SQL/process-local interpretation limits above still apply.
+
+GPT-6.1 Sol authored the leaf, GPT-6 Astra reviewed the statements and complete
+compiler output, and GPT-6 Luna ran the manual Linux check. Lean 4.35.0 and the
+existing Mathlib pin are unchanged. The command, bounded at 180 seconds, was:
+
+```sh
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherHistoryProof.lean -o .lake/build/lib/lean/FactoryWatcherHistoryProof.olean
+```
+
+The successful check took **5.773 seconds**, with 23 executable axiom guards
+(19 lemmas and four definitions) and seven printed closures admitting only
+`propext`, `Classical.choice` and `Quot.sound`. Unused section-variable and simp
+argument warnings remain; no additional axiom or unfinished proof was accepted.
+The 12-file frozen source map and seven accepted prerequisite source/artifact
+pairs were unchanged. The new output was absent before compilation. The direct
+target remains manual and nondefault; runtime, earlier models and proofs are
+unchanged, and no native tests or deployment were repeated.
+
+The first attempt failed in 19.701 seconds with no output artifact: a reserved
+identifier, a case-rewritten row binding and a record-equality tactic failed.
+Missing helper and `sorryAx` diagnostics followed those errors. Only those three
+proof-authoring sites changed for the successful check; explicit conditions and
+conclusions did not change. These were not platform defects or semantic controls.
+
+```json
+{
+  "scope": "manual parent/queued-update histories; whole watcher slice still partial",
+  "runtime_source": "a69e3cba3f9865e06e1db5ff77d1562ac468338a",
+  "proof_main_basis": "2ea8eb8",
+  "source_sha256": "4071052dd897c4fab68c1d81dd3b12e952eef2076ec1029edebd05d91d2efb1c",
+  "source_bytes": 26424,
+  "input_sha256": "3ad782244150f39e6d9bddeebf8609c4d4a00b5fdc9c1a08d8820c83b0cf6e0d",
+  "archive_sha256": "bc363747adb75a91a63020eb32405d04c4db90ce23e577032a7d69b8c37d2201",
+  "source_map_sha256": "58e2140081e30aa1b2626d2a27843206941a90dc8ff90f536a896c64a0225bcd",
+  "elapsed_ms": 5773,
+  "exit": 0,
+  "guards": 23,
+  "printed_closures": 7,
+  "artifact_bytes": 710016,
+  "artifact_sha256": "05b0abe7dcd9e4c991f90f6fb234932c0a7e2eaca01145e6a5378cf5b025da9c",
+  "log_bytes": 4482,
+  "log_sha256": "5b5bee4a3ad6984c714bcb7381d40d8922b5b5db7e9e7c388e087aecbe28bfd2",
+  "summary_sha256": "a66b9d8f093d050bc159debc579bd414b60e3b04df2346c126e6599161cbb4a1",
+  "failed_attempt_log_sha256": "bc9088b334f84bb504c5b356a03cbca971285db77aebb0027630a01f9dc4c16c"
+}
+```
+
+Temporary evidence is under
+`/tmp/hub-factory-concurrent-preparation-20261031/watcher-history-check2-mirror/evidence-run1/`;
+the first attempt is in the corresponding `watcher-history-check1-mirror` directory.
+The [dated history record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-histories.md)
+keeps this checkpoint separate from native and deployed evidence.
 
 
 ## Model elaboration receipt
@@ -217,6 +298,7 @@ artifact. The proof check reused six source/hash-gated prerequisites; it did not
 rebuild earlier proofs or rerun native tests. GPT-6.1 Sol authored the package,
 GPT-6 Luna ran bounded Linux validation and GPT-6 Astra reviewed complete logs,
 contracts and correspondence. Guards are dependency audits, not execution cases.
-The larger watcher slice remains partial until parentLink/queued-candidate and
-status compositions, constructive witnesses and selected controls/restorations are
-qualified. This foundation does not narrow those remaining requirements.
+The parent/queued-candidate composition is now checked in the history extension
+above. The larger watcher slice remains partial until the remaining status and
+deletion compositions, constructive witnesses and selected controls/restorations
+are qualified; the intermediate checkpoints do not narrow those requirements.
