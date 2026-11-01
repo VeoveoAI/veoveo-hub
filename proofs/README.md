@@ -1184,13 +1184,18 @@ state, not an additional repository authorization rule.
   parent retarget. The complete runner, command and client lookup return to the old
   repository; later pushes follow that old target. See the
   [reproduction](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-stale-preparation.md).
-  This exposes the sequential model's caller-freshness boundary; a correction and
-  its qualification are still pending.
-- **Residual/next:** correct the reproduced stale preparation using the existing
-  serialization, and qualify both acceptance and preservation under interleavings.
-  Compose the checked two-call recovery into finite serialized histories before
-  claiming the complete retarget slice qualified.
-  Independent linked preparations captured before the runner lock, concurrent
+  This exposes the sequential model's caller-freshness boundary. `c340a2d` now
+  rereads the current runner and prepares under the existing lock, including
+  parent resolution and failure publication; `a69e3cb` fixes a test-only lint.
+  Five native regressions cover retarget/removal preservation, valid current-parent
+  acceptance, reverse ordering and failure publication. Both full Mac/Linux checks
+  pass with 465 tests passed and two skipped each; see the
+  [fix qualification](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-preparation-serialization.md).
+  This is component evidence, not a new Lean theorem or deployed qualification.
+- **Residual/next:** compose current-runner preparation and failure publication
+  with the checked complete-output/recovery contracts and finite serialized
+  histories before claiming the complete retarget slice qualified. Saved-parent
+  retry preparation/membership, cross-replica reconciliation, concurrent
   registration publication order, native workspace effects and eventual recovery
   remain separate obligations. Eventual successor reconciliation needs scheduling/
   failure assumptions; do not claim “stale completion can never publish” from a
