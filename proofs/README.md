@@ -1115,6 +1115,14 @@ does not replace the old sandbox. Image/policy changes choose replacement; uncha
 settings choose the appropriate restart/start path. Later source-build/startup failure
 does not imply automatic preservation of the previous serving worker.
 
+A linked runner's complete target must also agree across its stored repository and
+tracked branch, native start command, credential lookup and subsequent linked-push
+routing. Retargeting the same link keeps its deployment and data environment, but
+must not retain the previous target in any of those consumers. Live registration
+publication must observe its joined instance target even when registration metadata
+and client identity have not changed. This is a consistency requirement on existing
+state, not an additional repository authorization rule.
+
 - **Source:** [follow/recheck/change](../crates/veoveo-hub/src/bin/hub/contributions/lore/factory/watch.rs#L129),
   [Factory::apply/restart](../crates/veoveo-hub/src/factory.rs#L214), and
   [sandbox::runs](../crates/veoveo-hub/src/factory/sandbox.rs#L152).
