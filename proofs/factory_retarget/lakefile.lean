@@ -9,3 +9,6 @@ lean_lib FactoryRetargetProof
 lean_lib FactoryNativeOutputProof
 lean_lib FactoryRecoveryProof
 lean_lib FactoryChoiceProof
+lean_lib FactoryControlFixture
+lean_lib FactoryRetargetControl
+lean_lib FactoryCapacityControl

@@ -1,0 +1,11 @@
+--- a/FactoryRetargetModel.lean
++++ b/FactoryRetargetModel.lean
+@@ -343,7 +343,7 @@
+ def admission (a : Admission) : List Step :=
+   if !a.configured then [] else
+     [direct (.rpc .countPushed)] ++
+-    if a.count > a.limit ∧ a.enforce then
++    if a.count >= a.limit ∧ a.enforce then
+       [direct (.sql (.failed .capacity a.message)),
+        direct (.abort ⟨"capacity", a.message⟩)]
+     else [direct (.sql (.warning (if a.count > a.limit then some a.message else none)))]

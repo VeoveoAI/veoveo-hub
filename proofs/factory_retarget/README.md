@@ -115,10 +115,47 @@ failed on nested record layout, corrected without changing its statement; the
 [receipt](SOURCE.md#checked-choice-checkpoint) retains that diagnostic. See the
 [Factory choice proof record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-choice-proof.md).
 
+## Standalone semantic controls
+
+`FactoryControlFixture` and the two positive control leaves import only the model,
+without the generic row, output, recovery or choice proofs. Their populated
+execution assertions independently specify all 21 row fields, complete modeled
+provider/client/request/native outputs and ordered events. Neither assertion
+assumes success. The baseline retarget and exact-capacity assertions passed in
+22.710 and 21.644 seconds, respectively, with standard-only axiom audits.
+
+Two isolated **manual-model** faults then produced their intended wrong results.
+Omitting the repository/tracked-ID assignments leaves old stored authority while
+the new request names the new target. Changing enforced admission from `>` to
+`>=` wrongly refuses a native-absent creation at count = limit = 1. In each fresh
+mutant graph an independent populated witness first compiled, checking the whole
+wrong row/output or refusal; the unchanged corresponding standalone positive
+assertion then failed on its expected-result conjunction. Its cascading `sorryAx`
+was rejected, and no failed correctness artifact was accepted. These are not
+claims that unchanged generic Choice/Recovery theorems were tested under faults.
+The historical native retarget failure remains separate implementation evidence.
+
+The false-on-baseline witnesses and exact patches are kept under `mutations/`,
+without baseline library targets. To repeat a control, copy its witness to the
+root of an isolated scratch package, apply only its model patch, and compile
+fresh model/fixture/witness artifacts before the unchanged positive assertion.
+Reverse the patch, verify the exact baseline source map and use another fresh
+own-artifact graph for restoration. No stale proof artifacts may cross a model
+change. Both witnesses and assertions use kernel-checked `decide` with a finite,
+theorem-local recursion depth of 4096, not `native_decide` or new axioms.
+
+Both exact patch reversals restored all nine private source files. Each restored
+baseline passed fresh model, fixture and both positive assertion stages, with
+measured artifact hashes matching the baseline. The final capacity restoration
+took 6.699, 3.884, 30.345 and 20.733 seconds across those four stages. The compact
+[control receipt](SOURCE.md#standalone-controls-receipt) records timings, identities
+and the distinction between setup fixes and semantic rejection. The dated record
+is [Factory semantic controls](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-semantic-controls.md).
+
 ## Manual checks
 
 Lean 4.35.0 and Mathlib `56a005855ea17e0b0958f73ec801ae140b0a1679` are pinned.
-No Aeneas dependency or historical instance-name patch is used. All five named
+No Aeneas dependency or historical instance-name patch is used. All eight named
 targets are manual; no default/CI target or runtime behavior is added.
 
 ```sh
@@ -127,6 +164,9 @@ LAKE_NO_UPDATE=1 lake env lean FactoryRetargetProof.lean -o .lake/build/lib/lean
 LAKE_NO_UPDATE=1 lake env lean FactoryNativeOutputProof.lean -o .lake/build/lib/lean/FactoryNativeOutputProof.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryRecoveryProof.lean -o .lake/build/lib/lean/FactoryRecoveryProof.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryChoiceProof.lean -o .lake/build/lib/lean/FactoryChoiceProof.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryControlFixture.lean -o .lake/build/lib/lean/FactoryControlFixture.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryRetargetControl.lean -o .lake/build/lib/lean/FactoryRetargetControl.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryCapacityControl.lean -o .lake/build/lib/lean/FactoryCapacityControl.olean
 ```
 
 ## Interpretation boundaries and remaining work
@@ -157,9 +197,10 @@ framing additionally needs distinct scoped `(workspace, sandboxName)` keys becau
 the native name truncates UUID text.
 
 The full protocol remains partial. Independent lifecycle contracts are now checked
-alongside the full output and conditional retry contracts. Further work includes
-finite serialized histories and semantic controls for wrong outputs and wrongful
-refusals. Modeled provider fields do not verify entire native
+alongside the full output and conditional retry contracts. Two populated manual
+controls now detect specific wrong-output and wrongful-refusal faults. Further
+work includes finite serialized histories and separate native concurrency
+qualification; these controls are not exhaustive fault coverage. Modeled provider fields do not verify entire native
 Provider protobuf objects; their profiles, defaults and native interpretation
 remain external contracts.
 Multi-replica publication ordering, independent linked-follower supersession,

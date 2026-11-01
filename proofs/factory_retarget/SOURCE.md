@@ -289,3 +289,231 @@ The failed attempt was a syntax diagnostic, not a runtime finding or semantic
 control. Standalone populated wrong-output/wrong-refusal controls and finite
 histories remain subsequent work; asynchronous follower supersession remains a
 separate native hypothesis, not a consequence of these contracts.
+
+
+## Standalone controls receipt
+
+These controls mutate the **manual model** in private packages. They neither
+extract nor modify Rust. Positive populated assertions import only the model and
+a standalone data fixture, with explicit complete expected rows, provider/client,
+request/native outputs and event traces. Independent bad-outcome witnesses check
+the whole erroneous result under each identical fault. The unchanged standalone
+assertion fails only after its model/fixture/witness compiled. No generic
+Choice/Recovery/row-output proof artifact is reused against a mutated model.
+
+The target fault omits only the repository/tracked-ID assignments, while command
+and other fields proceed. The capacity fault changes enforced rejection from
+strictly above to at-or-above the cap; count = limit = 1 should be accepted. Actual
+Rust admission uses strict `instances > cap`; SQL count correspondence remains
+external. The historical native retarget failure is separate implementation
+evidence. Public fixture token/digest/script bytes are copied from the checked
+native-output witness, but no crypto, real SQL or OpenShell execution is proved.
+Native sorting and protobuf/default/formatter equality remain interpretation
+conditions; the refresh strategy string denotes the native `Oauth2ClientCredentials`
+enum under that correspondence, not a proof of the entire native provider object.
+
+False-on-baseline witnesses and patches live in `mutations/`, without ordinary
+baseline targets. In private validation they are copied unchanged to package root
+for module resolution. Both mutations preserve the model's types/interfaces;
+patch reversal and fresh own artifact graphs protect against stale proof reuse.
+The separate final record is
+[Factory semantic controls](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-semantic-controls.md).
+
+```json
+{
+  "status": "qualified two standalone manual-model semantic controls with exact source reversals and fresh passing baseline restorations; broader Factory goal partial",
+  "runtime_source": "48d7e25a564f24c9d0418fbbebeda1d5c7d4c68c",
+  "baseline_model_sha256": "52f6da22b5acc42fdff56c6f0d32c28996f1953ce3da958a23c8fe9fbce51bf0",
+  "frozen_controls_inputs_sha256": "15e2b64f0b6480417429d853dea59ee665d1b643066e0f97fcfc4e15c6c624c3",
+  "source_files": {
+    "FactoryControlFixture.lean": "7acb8a6f1fd121067d3bd63f7abe64e4df626cebe03a3aa8397c64f8a47b18fa",
+    "FactoryRetargetControl.lean": "0114680cf6adfbd2f022d2cad3e33508a6fb14bb407c1ec79d246e3376572759",
+    "FactoryCapacityControl.lean": "5344d7b3342eaedf41808c466d6ae924b9c2b61dc84286561ac2d3fe83544736",
+    "mutations/FactoryRetargetFaultWitness.lean": "2949380bc1e8d4bdac78cec9e73fff30b52b328d739775f312042985c35dd241",
+    "mutations/FactoryCapacityFaultWitness.lean": "7be541f56526904f0035976bc7bd5cd435f7fe848b2f6e45240071fb610c8d68",
+    "mutations/target-omission.patch": "f7ad4c8ded6cdd02ea72775cea44dcc922eaf817c70f8bcb4b186189935bd192",
+    "mutations/capacity-at-limit.patch": "e3200b48e9b48785e2820eba305f62e8267c8cdb6dcbc02e98de2881f39e6a74"
+  },
+  "toolchain": {
+    "lean": "4.35.0",
+    "mathlib": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "aeneas_used": false,
+    "kernel_checked_decide": true,
+    "local_execution_theorem_maxRecDepth": 4096
+  },
+  "allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "baseline": {
+    "retarget_elapsed_ms": 22710,
+    "capacity_elapsed_ms": 21644,
+    "retarget_olean_sha256": "ee9b33e303f7e3903cd4bb273f9fff70341330bbf7889530f3b9ae11856dbe5d",
+    "capacity_olean_sha256": "e09e0d8b142a8955a2426278a5c652d4462099223df836fc6829634631717b0a",
+    "each_assertion_audit_passed": true
+  },
+  "target_omission": {
+    "mutant_model_sha256": "8c6ad8f924b861f81e150011c30343cf1c476b50f7867dd011921050ac046c03",
+    "stages": [
+      {
+        "stage": 1,
+        "elapsed_ms": 7538,
+        "exit": 0,
+        "log_sha256": "306b01737e08def53600099b35a18189fed21e0340992bb82f55f76af85f7861"
+      },
+      {
+        "stage": 2,
+        "elapsed_ms": 3095,
+        "exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "stage": 3,
+        "elapsed_ms": 21736,
+        "exit": 0,
+        "log_sha256": "c63733dd96c8530f360afb5a98bf7354adc465b336c70b3e440e42b90bb59c42"
+      },
+      {
+        "stage": 4,
+        "elapsed_ms": 3044,
+        "exit": 1,
+        "log_sha256": "05a066a818bc2f1ea7a89ca20a2230e0816492c62a499c943e082853b10dc002"
+      }
+    ],
+    "witness_olean_sha256": "08921b448e50379ea94fbe347e7821f88929f164c18c1306afe66cd03e3b527b",
+    "semantic_rejection": "Standalone populated full-output assertion, not a generic theorem; independent complete wrong-output witness passed first. Cascading sorryAx rejected; no failed control OLean.",
+    "restoration": {
+      "summary_sha256": "8b7ab4cb660e68ad33917ad7fa8ad11b14180e242a143116183a30ff96136053",
+      "stage_elapsed_ms": [
+        7293,
+        3054,
+        21294,
+        21866
+      ],
+      "all_stages_exit_zero": true,
+      "baseline_source_map_exact": true,
+      "fresh_own_artifacts": true,
+      "artifacts": {
+        ".lake/build/lib/lean/FactoryCapacityControl.olean": {
+          "sha256": "e09e0d8b142a8955a2426278a5c652d4462099223df836fc6829634631717b0a",
+          "bytes": 18920
+        },
+        ".lake/build/lib/lean/FactoryControlFixture.olean": {
+          "sha256": "0a0ce32726ec75e08608ef9af2b4ed32a6f1b2769933bbd634196030bc1f78d1",
+          "bytes": 438448
+        },
+        ".lake/build/lib/lean/FactoryRetargetControl.olean": {
+          "sha256": "ee9b33e303f7e3903cd4bb273f9fff70341330bbf7889530f3b9ae11856dbe5d",
+          "bytes": 18952
+        },
+        ".lake/build/lib/lean/FactoryRetargetModel.olean": {
+          "sha256": "86d35cb19aea6b19727b3bb0fc2cfcb3c3c45674a05f063c3acbd053d1f402ee",
+          "bytes": 3832936
+        }
+      },
+      "source_file_count": 9,
+      "all_artifact_hashes_match_baseline": true
+    },
+    "mutant_model_olean_sha256": "7596ddaf030a14615bad121184b253513fa90563faf86d6aa0e73a0117ad3141"
+  },
+  "capacity_at_limit": {
+    "mutant_model_sha256": "82ad2409ab7f9e564e561094ec63a62551fdaf6c8b9453b8ed94baa737c02561",
+    "stages": [
+      {
+        "stage": 1,
+        "elapsed_ms": 8232,
+        "exit": 0,
+        "log_sha256": "96feecf1cc163410e5942acf518dbf6235383f4ecf73b80a4c711c9a3306bfda"
+      },
+      {
+        "stage": 2,
+        "elapsed_ms": 3881,
+        "exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "stage": 3,
+        "elapsed_ms": 4836,
+        "exit": 0,
+        "log_sha256": "a11720167a24e6db5f85a97b5cef9ae50c047608d1ce6012caabf1cd8edd0bd1"
+      },
+      {
+        "stage": 4,
+        "elapsed_ms": 3075,
+        "exit": 1,
+        "log_sha256": "8a5cb19c4b544a993bc55f19ca0acebb50154c69ffc50aa66359f1d0acd244cc"
+      }
+    ],
+    "semantic_rejection": "Standalone populated exact-cap accepted-output assertion, not a generic theorem; independent complete wrong-refusal witness passed first. Cascading sorryAx rejected; no failed control OLean.",
+    "witness_olean_sha256": "56fb778cf66f45bef1ddfdd2f86602785cc934b1f001f8c665bd12529a49e863",
+    "mutant_model_olean_sha256": "deabce7f391aef7758aa267c79a4b6586c36fa8db63fb40a8330d2a75049b8ff",
+    "restoration": {
+      "summary_sha256": "340e4984332dbcf03a135e5f59fa43418c2ddbbfd9e6db2603cb3af54035403c",
+      "stage_elapsed_ms": [
+        6699,
+        3884,
+        30345,
+        20733
+      ],
+      "all_stages_exit_zero": true,
+      "baseline_source_map_exact": true,
+      "source_file_count": 9,
+      "fresh_own_artifacts": true,
+      "all_artifact_hashes_match_baseline": true,
+      "artifacts": {
+        ".lake/build/lib/lean/FactoryRetargetModel.olean": {
+          "sha256": "86d35cb19aea6b19727b3bb0fc2cfcb3c3c45674a05f063c3acbd053d1f402ee",
+          "bytes": 3832936,
+          "present": true
+        },
+        ".lake/build/lib/lean/FactoryControlFixture.olean": {
+          "sha256": "0a0ce32726ec75e08608ef9af2b4ed32a6f1b2769933bbd634196030bc1f78d1",
+          "bytes": 438448,
+          "present": true
+        },
+        ".lake/build/lib/lean/FactoryRetargetControl.olean": {
+          "sha256": "ee9b33e303f7e3903cd4bb273f9fff70341330bbf7889530f3b9ae11856dbe5d",
+          "bytes": 18952,
+          "present": true
+        },
+        ".lake/build/lib/lean/FactoryCapacityControl.olean": {
+          "sha256": "e09e0d8b142a8955a2426278a5c652d4462099223df836fc6829634631717b0a",
+          "bytes": 18920,
+          "present": true
+        }
+      }
+    }
+  },
+  "initial_authoring_diagnostics": [
+    {
+      "case": "baseline1",
+      "model_elapsed_ms": 7951,
+      "fixture_elapsed_ms": 4339,
+      "cause": "ambiguous dotted Action constructors; no positive assertion ran"
+    },
+    {
+      "case": "baseline2",
+      "fixture_elapsed_ms": 3524,
+      "retarget_elapsed_ms": 3878,
+      "cause": "kernel-checked decide exceeded default recursion depth; no semantic counterexample, capacity unrun"
+    }
+  ],
+  "artifact_policy": "Own model/fixture/witness/control artifacts fresh for each mutation and restoration. Initial syntax/resource retries reused only exact gated baseline artifacts. Source exactness is recorded separately from measured artifact hashes.",
+  "qualified": true,
+  "qualification_scope": "Only these populated model execution assertions/witnesses, not mutated generic theorems or native Rust execution.",
+  "audits": "Two baseline assertions and two separate fault witnesses each have one executable standard-only axiom guard. Restored assertions pass the same guards. Failed assertion sorryAx cascades were rejected; no correctness OLean accepted.",
+  "canonical_packaging": "Validated files copied byte-exact; false-on-baseline witnesses moved under mutations without library targets. Only three positive manual targets added to existing package; no CI, source or runtime change."
+}
+```
+
+
+Both restorations were independently reviewed, including the exact nine-file
+source map and all fresh stages. The measured model, fixture and both positive
+control artifacts match their baseline hashes in these runs; no general binary
+reproducibility cause is asserted. The original constructor-inference and
+recursion-limit failures remain setup/authoring diagnostics. The finite recursion
+limit is local to each execution theorem; no heartbeat limit, evaluator bypass,
+new axiom or runtime behavior was added. Native regression and concurrency claims
+remain separate. GPT-6.1 Sol prepared the sources, GPT-6 Luna ran the bounded
+checks, and GPT-6 Astra reviewed full logs, wrong-result witnesses and restorations.

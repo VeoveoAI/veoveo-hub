@@ -1,0 +1,11 @@
+--- a/FactoryRetargetModel.lean
++++ b/FactoryRetargetModel.lean
+@@ -261,8 +261,6 @@
+   | .unserved => { r with servedAt := none }
+   | .target t => if r.link.isSome then
+       { r with
+-        linkedRepository := some t.repository,
+-        trackedBranch := some t.trackedBranch,
+         trackedName := some t.trackedName,
+         linkedPusher := some t.pusher } else r
+   | .token d => { r with tokenDigest := d }
