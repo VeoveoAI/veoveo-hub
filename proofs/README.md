@@ -1169,12 +1169,20 @@ state, not an additional repository authorization rule.
   retain provider multiplicity and identify fields native comparison ignores.
   All 15 new axiom guards pass; see the
   [choice checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-choice-proof.md).
+  Two [standalone semantic controls](factory_retarget/README.md#standalone-semantic-controls)
+  now detect omitted target assignments and erroneous refusal at the exact capacity
+  limit. Each independent complete wrong-outcome witness passes before the unchanged
+  populated acceptance assertion fails. Both exact source restorations and fresh
+  baseline artifact graphs pass. These mutate the manual model, not native Rust,
+  and exercise standalone execution assertions rather than the generic theorems;
+  see the [control record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-semantic-controls.md).
 - **Boundary/effort:** moderate for lifecycle action selection, substantial for
   cancellation/supersession and recovery. Current code uses cancellation plus an
   instance mutex, not a pure generation-CAS activation guard. In-flight apply may finish.
-- **Residual/next:** compose the checked two-call recovery into finite serialized
-  histories and add wrong-result/wrong-refusal semantic controls
-  before claiming the complete retarget slice qualified.
+- **Residual/next:** reproduce the suspected stale linked-preparation interleaving
+  with the native fixture before deciding whether production needs a correction.
+  Compose the checked two-call recovery into finite serialized histories before
+  claiming the complete retarget slice qualified.
   Independent linked preparations captured before the runner lock, concurrent
   registration publication order, native workspace effects and eventual recovery
   remain separate obligations. Eventual successor reconciliation needs scheduling/
