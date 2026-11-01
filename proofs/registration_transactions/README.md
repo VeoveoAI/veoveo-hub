@@ -274,4 +274,9 @@ The [unchanged native response probe](evidence/information-extraction-boundary.j
 passes Charon extraction and strict inventory of the real construction/validation
 graph, but Aeneas fails on unsupported nested loops, dynamic/arrow types and
 lifetime/string operations. It emitted no Lean model and establishes no response
-theorem. Native response/postcommit and audit contracts remain under source review.
+theorem. The [native audit probes](evidence/native-audit-gaps.json) then reproduce
+missing intentional-removal audit and committed admission without audit after a
+served-marker error. These are two actual component failures on unchanged runtime,
+not additional Lean results. The first fixture checks the complete typed response
+and an issued-login connection; catalog observations use explicit refresh, not a
+listener convergence test. Correction and audit/postcommit proof remain pending.

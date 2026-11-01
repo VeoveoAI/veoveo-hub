@@ -1452,6 +1452,17 @@ dynamic/arrow and lifetime/string constructs and emits no Lean model. Full nativ
 response/postcommit and audit contracts remain open; no production refactor or
 own-helper opacity was introduced to force translation.
 
+Two [native audit probes](registration_transactions/evidence/native-audit-gaps.json)
+now reproduce gaps on unchanged runtime `12a132d`: intentional instance removal
+clears its registrations and logins without an audit, and a postcommit `served_at`
+failure returns an internal error while admission persists without a Register
+audit. Both reach their intended final assertions after fresh compilation and
+real PostgreSQL fixture checks. The accepted-registration fixture also checks the
+complete typed response and connects with its issued login; this is component
+evidence, not a general response theorem or proof of password enforcement.
+Transactional audit correction and its composed proof are in progress. The
+existing store model does not establish these audit/postcommit guarantees.
+
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
 **Invariant/failure prevented.** Hub calculates the intended repository grant from

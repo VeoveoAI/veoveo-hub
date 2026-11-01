@@ -1,0 +1,193 @@
+{
+  "classification": "baseline regression reproduction; expected final audit assertions failed after fixture checks passed",
+  "compile": {
+    "binary": "target/debug/deps/veoveo_hub-b339354d3c2cf9a6",
+    "buildkit_stage_wall_seconds": 59.2,
+    "bytes": "not captured",
+    "cargo_elapsed_seconds": 53.36,
+    "cargo_exit": 0,
+    "command": "cargo test --locked -p veoveo-hub --lib --no-run",
+    "sha256": "c8fb163f804edf1ca255dba609060e0cbf710ca6f6d9637254353a54c2ecb004"
+  },
+  "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+  "effective_source": {
+    "deltas_from_frozen_packet": [
+      "crates/veoveo-hub/src/registration/store/concurrency_tests.rs (rustfmt)",
+      "two generated .sqlx query records"
+    ],
+    "files": 1234,
+    "map_file_sha256": "e79cfb1923b2e48cbd6b4d1e5b67ba7b4e576e998b3dac287f363f6adeca5384",
+    "map_sha256": "c7e3cdc1ef07d8b526aa69192c175ad66ccc1cc5d126fbe3055da34d857a87a0",
+    "runtime_guard_all_match": true,
+    "unchanged_during_tests": true
+  },
+  "expected_source_map_sha256": "fea2ef44685eea52265e4513dbc10e0f4956d450ae422ccadd2e807c6a271961",
+  "format": {
+    "after_sha256": "5431c2fa7813a7555e481912b40118aa08d848abf54192498e6e963f6d77f295",
+    "before_sha256": "9462cd6ca08bc894bf3b059842671b4fda8ac806b5ec03de0395fae75a6f00fd",
+    "diff_bytes": 13427,
+    "diff_sha256": "7015f62d6e16730c73995b7423683452b90387f4e9dcc4d18de123d7b8162e2e",
+    "formatted_tool": "rustfmt 1.10.0-stable (Rust 1.99 toolchain)",
+    "initial_check": "failed due only to formatting in new concurrency_tests.rs"
+  },
+  "hub_revision": "78d813239dab25d22ccf288fb340b0705b15dbea",
+  "manifest_sha256": "f0a720e317fc57680ac1246a10349af7f1ae652a0e227dbaece32aae98393ba2",
+  "mirror": "/tmp/hub-registration-audit-20261101/probe1-mirror",
+  "repository": "veoveo-hub",
+  "runtime_revision": "12a132dcbdddcd7fad1defcd007432385d237a76",
+  "sdk_pin": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+  "sqlx_prepare": {
+    "added": [
+      "query-99bcf27cb697c920d02e8542b7cbe991d29cf06a0decff7deda648a89693705c.json",
+      "query-8ece3f29b8c2cba92f9c56f6efa6b8d2465527424e2410d78fff579082120a56.json"
+    ],
+    "added_queries_match": [
+      "audit_observation.sql",
+      "refuse_served.sql"
+    ],
+    "baseline_metadata_count": 293,
+    "buildkit_stage_wall_seconds": 23.2,
+    "changed_existing": [],
+    "format_failure_log_sha256": "c273aee61a81b21485c1a0de4cf9e6b0a52bd58127e0e7ae14954f4f6aaac265",
+    "generated_metadata_count": 295,
+    "initial_format_stage_docker_exit": 1,
+    "metadata_map_after_sha256": "253794d18377b86f5f1b29affbb90e27e513dd6764cd38b2f783c3cccd41e0d9",
+    "metadata_map_before_sha256": "6697e082ceb1cb882f996925b2eba70f759920843e0cb9b6a0ce120f044f481c",
+    "method": "private Docker Rust 1.99 / PostgreSQL 18.6 image; migrated disposable DB; SQLX_OFFLINE=false; cargo sqlx prepare --no-dotenv --workspace --all -- --package veoveo-hub --all-targets --all-features",
+    "prepare_log_sha256": "6ad0f9f694b956b1c429afe3b4d614874c2b6b3a06734375d26297bc05aa5117",
+    "removed": [],
+    "successful_stage_docker_exit": 0
+  },
+  "test_stage": {
+    "buildkit_test_stage_wall_seconds": 5.3,
+    "docker_exit": 0,
+    "docker_exit_note": "stage records both Cargo outcomes and exits zero to ensure second test runs",
+    "dockerfile_sha256": "ee57c2dcc8f9f3dd150adf57cbbc1d1baf0d9ebf7f73db748a9e787308f06cb7",
+    "log_bytes": 19153,
+    "log_sha256": "c2d878d98897853d267d14151109f0d97a484f4f90d6324dad8ee20586cc5f31",
+    "summary_sha256": "0e48330e8e7112770786d0c3f69f8c607214ede93f369a8442d259277bb3027d"
+  },
+  "tests": [
+    {
+      "cargo_exit": 101,
+      "command": "cargo test --locked -p veoveo-hub --lib registration::store::concurrency_tests::intentional_instance_removal_records_the_ended_registration -- --exact --nocapture",
+      "final_assertion": "documented intentional removal has no audit of its ended registration",
+      "name": "registration::store::concurrency_tests::intentional_instance_removal_records_the_ended_registration",
+      "observations": "registration response accepted; removal deleted the instance and authority; post-removal registration/logins are empty; removal audit record absent",
+      "test_body_seconds": 1.86,
+      "test_result": "0 passed, 1 failed, 335 filtered out"
+    },
+    {
+      "cargo_exit": 101,
+      "command": "cargo test --locked -p veoveo-hub --lib registration::store::concurrency_tests::a_served_marker_error_cannot_leave_an_unaudited_registration -- --exact --nocapture",
+      "final_assertion": "a real served error returned after admission committed without the required registration audit",
+      "name": "registration::store::concurrency_tests::a_served_marker_error_cannot_leave_an_unaudited_registration",
+      "observations": "served marker error returned internal_error; authority, registration, and login persisted; audit_before and audit_after were empty",
+      "test_body_seconds": 0.93,
+      "test_result": "0 passed, 1 failed, 335 filtered out"
+    }
+  ],
+  "date": "2026-11-01",
+  "agents": {
+    "source_and_probe_authoring": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "frozen_packet": {
+    "directory": "/tmp/hub-registration-audit-20261101/probe1",
+    "manifest_sha256": "f0a720e317fc57680ac1246a10349af7f1ae652a0e227dbaece32aae98393ba2",
+    "handoff_sha256": "17b1f6480a62f5d3450a54427061762f50ac44a501c9e8c1cf61696090804409",
+    "test_only_patch_sha256": "e54174a19cf69d74eb22794d116c499f2be5e24cf1601b0713f716689634929c",
+    "base_tree": "26464aaa3cfe6200ae01e98721cdd951229f0c16",
+    "base_file_count": 1230,
+    "test_overlay_file_count": 1232,
+    "runtime_guard": {
+      "Cargo.toml": "61044a1397e6042c4d1fd8216ead08d063ebe62919f189bf7b72054656703588",
+      "Cargo.lock": "ae4364822a7c5f8c9847df4b1d5681fe2a68c2b1ecc56ab13df6c7037f6f1d41",
+      "crates/veoveo-hub/src/registration/service.rs": "cde086d139188aea96d2a3e6d75e27418c0fe386ec2a5f7c9d3f429c33576d2a",
+      "crates/veoveo-hub/src/registration/store.rs": "d615bd603e34d37336bcdf15de4b988edc0b9367574205aa6770980215cb0c90",
+      "crates/veoveo-hub/src/registration/store/tests/member_logins.sql": "c0edbcf4994ba215476301a41db9b42ca1176a759f35bcda8d6c7080a7aad5e6",
+      "crates/veoveo-hub/DESIGN.md": "3f420eca0d1984bb95e6e72f3627ea1a7d7b6431198e8c0798b5952c5c41dadc"
+    }
+  },
+  "artifacts": {
+    "qualification-summary.json": {
+      "sha256": "65b956bc39f26765dfa404bde215cc2b7146d4d0f48ee960979cbf475e3ff0e5",
+      "bytes": 5011
+    },
+    "focused-tests-run1.log": {
+      "sha256": "c2d878d98897853d267d14151109f0d97a484f4f90d6324dad8ee20586cc5f31",
+      "bytes": 19153
+    },
+    "sqlx-prepare-run2.log": {
+      "sha256": "6ad0f9f694b956b1c429afe3b4d614874c2b6b3a06734375d26297bc05aa5117",
+      "bytes": 11207
+    },
+    "sqlx-prepare-format-failure.log": {
+      "sha256": "c273aee61a81b21485c1a0de4cf9e6b0a52bd58127e0e7ae14954f4f6aaac265",
+      "bytes": 28592
+    },
+    "source-map.effective.json": {
+      "sha256": "e79cfb1923b2e48cbd6b4d1e5b67ba7b4e576e998b3dac287f363f6adeca5384",
+      "bytes": 162835
+    },
+    "source-map.after-tests.json": {
+      "sha256": "e79cfb1923b2e48cbd6b4d1e5b67ba7b4e576e998b3dac287f363f6adeca5384",
+      "bytes": 162835
+    },
+    "rustfmt.diff": {
+      "sha256": "7015f62d6e16730c73995b7423683452b90387f4e9dcc4d18de123d7b8162e2e",
+      "bytes": 13427
+    },
+    "Audit.Dockerfile": {
+      "sha256": "ee57c2dcc8f9f3dd150adf57cbbc1d1baf0d9ebf7f73db748a9e787308f06cb7",
+      "bytes": 11923
+    }
+  },
+  "reviewed_observations": [
+    {
+      "scenario": "intentional_removal",
+      "deployment": "01a19695-edcd-7083-806e-ed846d6f954b",
+      "client_id": "audit-01a19695edcd7083806eed846d6f954b-01a19695edd57c109b718b57d35eaf01",
+      "prior_register_audit": "01a19695-eddb-74e2-bf47-3f9e382a88dd",
+      "audit_before_count": 1,
+      "audit_after_count": 1,
+      "audit_records_identical": true,
+      "instance_after": null,
+      "authority_after": null,
+      "registration_count_after": 0,
+      "login_count_after": 0,
+      "deployment_retained": true,
+      "route_after_explicit_refresh": null,
+      "typed_response_fields_checked": true,
+      "issued_login_connection_succeeded": true
+    },
+    {
+      "scenario": "postcommit_served_error",
+      "deployment": "01a19695-f4d7-7402-8976-1f344ce705a4",
+      "client_id": "audit-01a19695f4d7740289761f344ce705a4-01a19695f4e1768080e7190ba4c00c4b",
+      "error": "internal_error; exact fixture served marker refusal in error chain",
+      "audit_before_count": 0,
+      "audit_after_count": 0,
+      "instance_unchanged": true,
+      "served_at": null,
+      "authority_retained": true,
+      "registration_count_after": 1,
+      "login_count_after": 1,
+      "deployment_retained": true,
+      "route_after_explicit_refresh": "audit-01a19695f4d7740289761f344ce705a4-01a19695f4e1768080e7190ba4c00c4b",
+      "client_information_returned": false
+    }
+  ],
+  "boundaries": [
+    "Native component reproductions, not Lean theorems or formal SQL refinement.",
+    "No production source, dependency pin or deployed service changed in these probes.",
+    "Explicit catalog refresh establishes persisted projection, not listener or replica convergence.",
+    "Typed response assertions cover this accepted fixture; they do not universally prove response assembly or wire equivalence.",
+    "The issued timestamp is compared at PostgreSQL microsecond precision; no NumericDate-second equivalence claim.",
+    "The issued login connected to fixture PostgreSQL; password enforcement is not established by this receipt.",
+    "Credentials and signed statements were not logged; snapshots contain public values and digests.",
+    "Both final assertions intentionally fail on baseline; Docker exit zero is only the wrapper collecting both Cargo failures.",
+    "Current lifetime proof excludes these audit/postcommit effects; correction and composed proof remain pending."
+  ]
+}
