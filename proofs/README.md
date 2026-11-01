@@ -1481,9 +1481,16 @@ attempt; PostgreSQL atomicity, Core append behavior and native serialization
 remain explicit interpretation boundaries. Thirty declaration guards and eleven
 printed axiom closures pass ([receipt](registration_transactions/evidence/audited-store-foundation.json)).
 This is a checked handwritten model, not extracted implementation or SQL refinement.
-Concrete populated executions, postcommit service paths and the missing-Register
-semantic fault/restoration are still pending; namespace/update/expiry adapters
-are not part of this foundation.
+The separate [populated replacement](registration_transactions/evidence/audited-store-replacement.json)
+now constructs eighteen actual modeled transitions from a valid two-row seed,
+proving the independent complete DB/ledger result, old-login cleanup, preserved
+unrelated state, lock release and store acknowledgment. Two Replace records retain
+the old server target; one Register names the new server. Fourteen declaration
+guards and seven axiom closures pass. The fixture and proof import no generic
+correctness leaf. Native creation of that seed is not claimed. Removal/rollback
+executions, postcommit service paths and the missing-Register semantic
+fault/restoration remain pending; namespace/update/expiry adapters are not part
+of this foundation.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
@@ -1572,6 +1579,16 @@ and retry behavior rather than an unsupported atomicity claim.
 - **Next:** inventory each destructive operation's protected references and commit
   boundary, then prove the necessary local decision/transaction and check interruption
   and concurrent creation against the actual implementation.
+
+The registration subcase now has a
+[native transactional audit correction](registration_transactions/evidence/native-audit-fix.json)
+and a [checked instance-store foundation](registration_transactions/AUDITED_STORE_SOURCE.md).
+Intentional removal includes its existing Deregister activity in the same native
+transaction; the model connects successful private audit appends to the combined
+data/audit decision and confirmed rollback. One populated replacement execution
+is now checked; removal/rollback examples and semantic controls remain pending.
+This does not qualify other
+cleanup paths, reference retention, external deletion or refresh-family pruning.
 
 Refresh review identified a specific composition obligation:
 [`session_compromised`](../crates/veoveo-hub/src/state/session.rs) observes replay

@@ -70,3 +70,6 @@ lean_lib RegistrationLifetimeWitnessConsequences
 lean_lib RegistrationAuditedLifetimeModel
 lean_lib RegistrationAuditedLifetimeSpecification
 lean_lib RegistrationAuditedLifetimeProof
+
+lean_lib RegistrationAuditedLifetimeWitnesses
+lean_lib RegistrationAuditedLifetimeWitnessProof

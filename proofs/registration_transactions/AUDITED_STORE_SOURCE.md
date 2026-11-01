@@ -73,9 +73,12 @@ bootstrap role/schema effects retain the existing lifetime boundary.
 
 The independent specification counts activity/server-target **bags**, retaining
 repeated server targets, and preserves full prior/unrelated audit records. It is
-not equality to the executable cursor fold. A populated replacement uses two
-distinct old clients/logins at old server A and a candidate at B: two Replace-A
-records and one Register-B record. Seed creation is not claimed.
+not equality to the executable cursor fold. The checked populated replacement
+uses two distinct old clients/logins at old server A and a candidate at B: two
+Replace-A records and one Register-B record. Its eighteen-step execution and
+independent complete database/ledger outputs are proved, including preserved
+unrelated state and released locks. The seed is explicitly a valid store-model
+input; native creation of that two-row seed is not claimed.
 
 The planned first postcommit example is a confirmed **no-write served-marker refusal**
 after store commit with no external lifetime writer in that suffix. Successful
@@ -97,8 +100,11 @@ All compile, including thirty declaration guards and eleven printed axiom closur
 Guards allow only `propext`, `Classical.choice` and `Quot.sound`. The principal
 stored-decision theorem starts from a reached committing transaction with an
 exhausted cursor and scoped fresh record identities; it constructs the combined
-decision and establishes the independent contract. Concrete reachability and
-semantic fault detection remain separate, unfinished qualification work.
+decision and establishes the independent contract. The separate
+[replacement witness receipt](evidence/audited-store-replacement.json) qualifies
+one concrete populated execution; fourteen declaration guards and seven axiom
+closures pass without importing generic correctness proofs. Further operation
+cases and semantic fault detection remain unfinished qualification work.
 
 Manual rechecks use the three named targets, with a 180-second process-group
 limit per command:
@@ -109,8 +115,9 @@ lake build RegistrationAuditedLifetimeSpecification
 lake build RegistrationAuditedLifetimeProof
 ```
 
-Only byte-identical previously checked imports may be reused. This is not a
-replay of the sixteen default targets or a new native full check. The independent
-populated replacement/rollback/store-success and served-refusal examples, then
-the missing-Register semantic control and exact restoration, remain to be authored
-and checked before this audited slice can be called complete.
+Only byte-identical previously checked imports may be reused. The populated case
+has its own nondefault targets, `RegistrationAuditedLifetimeWitnesses` and
+`RegistrationAuditedLifetimeWitnessProof`. This is not a replay of the sixteen
+default targets or a new native full check. Removal, rollback/retry and
+served-refusal examples, plus the missing-Register semantic control and exact
+restoration, remain to be qualified before this audited slice can be called complete.

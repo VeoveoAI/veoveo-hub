@@ -1,0 +1,187 @@
+{
+  "kind": "manual-constructive-store-model-witness",
+  "status": "populated-replacement-checked-within-stated-boundary",
+  "native_source_commit": "3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33",
+  "foundation_commit": "96da670cb491ab73a5cdbbb813c3fdf4eb809c2a",
+  "roles": {
+    "author": "GPT-6.1 Sol",
+    "compiler": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source_map": {
+    "RegistrationAuditedLifetimeModel.lean": "6beefe9ff1eecb8b56143e3cc189e2bc6719b684c2236ea3ebb59eca9e93b4f6",
+    "RegistrationAuditedLifetimeSpecification.lean": "bd4fccf6ac3dbca608a8e20b0d314fd3bbd0ddf83295f7ff77f81c6fa2a431d9",
+    "RegistrationAuditedLifetimeWitnessProof.lean": "628cc919ef8e60b9d2ac714e64853bf992d83d7b9107c6e2531dc33fd94230f4",
+    "RegistrationAuditedLifetimeWitnesses.lean": "eba3e835b2e21c061b8572752da7e1943f8d8d2c07254b5182146b5cd1364ce0",
+    "RegistrationLifetimeModel.lean": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954",
+    "RegistrationLifetimeSpecification.lean": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "a2055c789f7d621613a38a22450ba5e9676f18b92a5cdc5a6d2aab88d960c784",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "toolchain": "Lean 4.35.0",
+  "tools": {
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "checked_targets": [
+    {
+      "artifact_bytes": 568352,
+      "artifact_exists": true,
+      "artifact_sha256": "4e4f7edc71f15054468fc7bde3aebd2356f5ebd80d217cc713f71516db1514eb",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnesses",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 5173,
+      "exit": 0,
+      "log_bytes": 526,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-witness-checkpoint1/evidence-run1/01-RegistrationAuditedLifetimeWitnesses.log",
+      "log_sha256": "8c4f8d73d22d9770559d37aadb6f47f4df8f2e2f9f84adee21542633d21f9abb",
+      "target": "RegistrationAuditedLifetimeWitnesses",
+      "timed_out": false
+    },
+    {
+      "artifact_bytes": 624016,
+      "artifact_exists": true,
+      "artifact_sha256": "0d140095f02cfbc66938a106e8fcc6ab8650ba61da77c96623abff5505f8c3f8",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnessProof",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 7528,
+      "exit": 0,
+      "log_bytes": 1705,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-witness-checkpoint2/evidence-run1/01-RegistrationAuditedLifetimeWitnessProof.log",
+      "log_sha256": "379598e6db4031f7883b4af9d0b57876458ede9209ab6c811816f4410f5f1bcd",
+      "target": "RegistrationAuditedLifetimeWitnessProof",
+      "timed_out": false
+    }
+  ],
+  "expected_model_transition_count": 18,
+  "scenario": {
+    "initial_instance": "present, complete instance payload retained",
+    "initial_deployment": "present with old metadata and retained stable payload",
+    "old_clients": [
+      30,
+      31
+    ],
+    "old_logins": [
+      40,
+      41
+    ],
+    "old_server": "server-a-fixture",
+    "candidate_client": 10,
+    "candidate_login": 20,
+    "candidate_server": "server-b-fixture",
+    "unrelated_login": 99,
+    "prior_audit_id": 900,
+    "new_audit_ids": [
+      100,
+      101,
+      102
+    ],
+    "new_activities": [
+      "replace:server-a-fixture",
+      "replace:server-a-fixture",
+      "register:server-b-fixture"
+    ],
+    "record_envelope": "complete synthetic draft, original nanoseconds and separately stored microseconds",
+    "data_prefix": [
+      "cache authority",
+      "begin registration",
+      "acquire instance row",
+      "prepare",
+      "upsert deployment",
+      "capture/delete two old rows",
+      "drop first login",
+      "drop second login",
+      "finish drops",
+      "create candidate login",
+      "insert candidate"
+    ],
+    "audit_suffix": [
+      "capture source program",
+      "append Replace old A",
+      "append Replace old A",
+      "append Register new B",
+      "request commit",
+      "combined data/audit decision",
+      "store acknowledgment"
+    ]
+  },
+  "checked_assertions": [
+    "InitialValid for explicitly seeded modeled SQL state",
+    "Actual full Execution from start to acknowledged endpoint",
+    "Independent whole DB and audit ledger equality",
+    "Old registrations/logins absent, sole candidate registration/login present",
+    "Full unrelated audit record, unrelated role/frame and immutable deployment remainder preserved",
+    "Two Replace old-server records and one Register new-server record; no Replace new-server record",
+    "Released instance/deployment locks and exact commit event/store response tag"
+  ],
+  "guards": 14,
+  "printed_axiom_closures": [
+    "info: RegistrationAuditedLifetimeWitnessProof.lean:274:0: 'RegistrationAuditedLifetime.Witnesses.seed_valid' depends on axioms: [propext]",
+    "info: RegistrationAuditedLifetimeWitnessProof.lean:275:0: 'RegistrationAuditedLifetime.Witnesses.replacement_ready_execution' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeWitnessProof.lean:276:0: 'RegistrationAuditedLifetime.Witnesses.replacement_audit_execution' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeWitnessProof.lean:277:0: 'RegistrationAuditedLifetime.Witnesses.replacement_execution' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeWitnessProof.lean:278:0: 'RegistrationAuditedLifetime.Witnesses.replacement_database' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeWitnessProof.lean:279:0: 'RegistrationAuditedLifetime.Witnesses.replacement_audit' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeWitnessProof.lean:280:0: 'RegistrationAuditedLifetime.Witnesses.replacement_complete' depends on axioms: [propext, Quot.sound]"
+  ],
+  "allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "generic_correctness_imports": [],
+  "source_and_tool_inputs_unchanged": true,
+  "timeout_seconds_per_command": 180,
+  "qualification_review": {
+    "raw_summary_sha256": "ed350d0bc5691b411f32ed0e4751a1c784b1c7a6a9d327b3d416d8d509f8b346",
+    "raw_complete": false,
+    "reviewed_command_count": 1,
+    "actual_command_count": 1,
+    "reviewed_result": "pass",
+    "explanation": "Raw driver aggregate expected two stages although the reviewed packet prescribes one Proof command. Root independently checked the matching command, exit0, fresh output bytes/hash, clean log, seven closures and unchanged source/tool maps. No rerun was needed for this bookkeeping error.",
+    "supplement_sha256": "a8732aa259a8d0c5a38a29983c723b4acf5ec3f4b0b97181417ca5439c2ce9cb"
+  },
+  "first_proof_attempt": {
+    "artifact_exists": false,
+    "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnessProof",
+    "diagnostic_headlines": [
+      "error: RegistrationAuditedLifetimeWitnessProof.lean:34:4: No goals to be solved",
+      "error: RegistrationAuditedLifetimeWitnessProof.lean:35:2: unsolved goals",
+      "error: RegistrationAuditedLifetimeWitnessProof.lean:113:77: failed to synthesize",
+      "error: RegistrationAuditedLifetimeWitnessProof.lean:183:32: Tactic `subst` failed: invalid equality proof, it is not of the form (x = t) or (t = x)",
+      "info: RegistrationAuditedLifetimeWitnessProof.lean:268:0: 'RegistrationAuditedLifetime.Witnesses.seed_valid' depends on axioms: [propext, sorryAx]",
+      "info: RegistrationAuditedLifetimeWitnessProof.lean:269:0: 'RegistrationAuditedLifetime.Witnesses.replacement_ready_execution' depends on axioms: [propext, sorryAx, Quot.sound]",
+      "info: RegistrationAuditedLifetimeWitnessProof.lean:271:0: 'RegistrationAuditedLifetime.Witnesses.replacement_execution' depends on axioms: [propext, sorryAx, Quot.sound]",
+      "info: RegistrationAuditedLifetimeWitnessProof.lean:274:0: 'RegistrationAuditedLifetime.Witnesses.replacement_complete' depends on axioms: [propext, sorryAx, Quot.sound]",
+      "error: RegistrationAuditedLifetimeWitnessProof.lean:276:0: unexpected audited replacement witness axiom in RegistrationAuditedLifetime.Witnesses.seed_valid: [sorryAx]",
+      "error: build failed"
+    ],
+    "elapsed_ms": 3620,
+    "exit": 1,
+    "log_bytes": 7243,
+    "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-witness-checkpoint1/evidence-run1/02-RegistrationAuditedLifetimeWitnessProof.log",
+    "log_sha256": "a06d7be34b67826d979233555c839350117f428e55f8bdab45b40d2dd21a971e",
+    "target": "RegistrationAuditedLifetimeWitnessProof",
+    "timed_out": false
+  },
+  "correction": "Proof-body changes only: remove already-closed seed branch, substitute stored row equalities for distinct-login contradiction, unfold login-creation validity, and normalize final nil membership. All theorem statements, output predicates, fixture/model/spec and guard tail stayed unchanged.",
+  "setup_failures": "Before compilation, private staging/launcher attempts hit Path-to-JSON parsing, a carried-over Lakefile hash and an unstaged target directory. These are retained as setup failures, not compiler failures or passes.",
+  "boundaries": [
+    "Synthetic complete store-model fixture, not native seed creation, parser or cryptographic qualification",
+    "PostgreSQL atomicity/locks, Core append identity behavior and source encoding remain interpretation assumptions",
+    "No native runtime edits or tests in this proof-only checkpoint",
+    "No qualified mutation/restoration yet",
+    "Removal, rollback/retry, postcommit service paths, full ClientInformation, listeners and liveness remain open",
+    "The eighteen modeled transitions are not a measurement of native SQL round trips or runtime latency"
+  ],
+  "next": [
+    "Missing-final-Register model fault with independently verified actual wrong path/output and exact restoration",
+    "Removal and partial-append rollback/retry witnesses",
+    "Source-shaped postcommit refusal and remaining operation adapters"
+  ]
+}
