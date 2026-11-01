@@ -239,9 +239,17 @@ Run this additive slice manually, without rebuilding the sixteen old default tar
 LAKE_NO_UPDATE=1 lake build RegistrationLifetimeModel RegistrationLifetimeSpecification RegistrationLifetimeProof
 ```
 
-Exact optional-deployment registration effects, mixed commit histories, no-orphan
-preservation, confirmed-abort exclusion, constructive valid/original/rollback
-executions and semantic controls remain next. Responses currently carry tags,
+The [history extension](evidence/instance-lifetime-history.json) now proves exact
+registration effects for both first insertion and an existing deployment, retaining
+the latter's immutable fields. Every finite fixed execution corresponds to the
+independent operations in its actual commit order, with explicit disjoint-frame
+interference. Initial absence of orphaned registrations is preserved. Confirmed
+aborted attempts have no commit event; an error response alone proves no rollback.
+Twenty new declaration guards and nine printed closures pass. Its manual target is
+`LAKE_NO_UPDATE=1 lake build RegistrationLifetimeHistoryProof`.
+
+Constructive valid/original/rollback executions and semantic controls remain next.
+Responses currently carry tags,
 not complete returned credential/database/metadata payloads. External preparation,
 token reissue, other instance-row writers, listener convergence and formal
 Rust/SQL refinement remain outside this checkpoint; see the

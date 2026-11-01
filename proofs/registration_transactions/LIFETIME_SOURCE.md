@@ -6,10 +6,10 @@ Native source is qualified at Hub
 [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-instance-removal-fix.md).
 Those component/full-check results are separate from this handwritten Lean model.
 
-Private Model, Specification and Proof checks passed in 4.422, 4.020 and 10.932
+Initial foundation Model, Specification and Proof checks passed in 4.422, 4.020 and 10.932
 seconds respectively. Proof passed 30 declaration axiom guards and nine printed
 closures, using only `propext`, `Classical.choice` and `Quot.sound`. These are
-declarations, not execution scenarios. The canonical named-target build also passes
+declarations, not execution scenarios. That canonical named-target build also passed
 in 22.08 seconds; its [receipt](evidence/instance-lifetime-foundation.json) records
 the actual source graph, artifacts and earlier failed drafts. This is not full
 lifecycle verification or Rust/SQL extraction.
@@ -76,20 +76,28 @@ trust/endpoints and postcommit audit/reload response projections remain unproved
 Full-instance stability is scoped to these two writers. Normal Factory revision,
 pusher, served/failure updates are excluded too. Typed SQL/serialization and native
 identity/signature/digest/role correspondence remain explicit interpretation
-conditions. `SQLValid` and `NoOrphanRows` are defined for the following history slice;
-this foundation's reached-removal theorem does not assume either of them or
-establish their general preservation.
+conditions. The foundation's reached-removal theorem assumes neither `SQLValid`
+nor `NoOrphanRows`. The history extension below preserves the latter from its
+explicit initial condition; SQLValid preservation remains separate.
 
 The login map excludes shared server/group/bootstrap owner state. The disjoint frame
 excludes PostgreSQL catalogs, NOTIFY, external databases and transport. Optional
 external preparation is a logical success/error observation, not a verified executor;
 its role/schema work is not atomic with installation rollback.
 
-Next: optional-deployment exact register effects; independent mixed commit histories
-with explicit frame interference or exact owned projection; no-orphan/abort
-consequences; constructive acceptance/removal-first/rollback/original executions;
-complete response payloads and semantic controls. Current commit-only `SerialHistory`
-is not yet an all-executions theorem with `Step.frame`.
+The [history extension](evidence/instance-lifetime-history.json) adds exact
+optional-deployment registration effects and preserves each attempt's original
+request. `SerialHistory` now has an explicit frame-only environment transition;
+`execution_serial` establishes its full current database and actual commit order
+for every finite fixed execution. `execution_no_orphan` preserves the explicit
+initial no-orphan invariant. Commit events imply terminal committed phase, so a
+confirmed aborted attempt contributes no event; a response error is insufficient.
+The extended graph's canonical History target passes in 22.66 seconds, including
+fresh qualification of the changed Specification and dependent foundation Proof.
+
+Next: constructive acceptance/removal-first/rollback/original executions, complete
+response payloads and semantic controls. SQLValid preservation and native SQL
+refinement are not added by the history extension.
 
 Namespace writers, token reissue, RFC 7592 updates, housekeeping, allocation/recreation,
 ID reuse, other normal row writers, distributed ordering, listener convergence,
@@ -98,11 +106,12 @@ Old register/replace/update proofs retain their recorded retained-deployment sco
 
 ## Manual qualification
 
-All sixteen existing default targets and pins remain unchanged. Three new libraries
+All sixteen existing default targets and pins remain unchanged. Four new libraries
 are nondefault manual targets:
 
 ```sh
 LAKE_NO_UPDATE=1 lake build RegistrationLifetimeModel RegistrationLifetimeSpecification RegistrationLifetimeProof
+LAKE_NO_UPDATE=1 lake build RegistrationLifetimeHistoryProof
 ```
 
 Only actual imported old Model/Specification/Effects dependencies are required; the

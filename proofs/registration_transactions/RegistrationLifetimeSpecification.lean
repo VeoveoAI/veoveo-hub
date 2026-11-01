@@ -82,11 +82,16 @@ def Complete (tx : Transaction C L M R P I D) : Prop :=
   tx.staged = completeProgram tx.request tx.captured
 
 /-- Actual commit-event sequence, independent request operation; aborts and missing
-returns have no commit contribution. Client response timing is a separate channel. -/
+returns have no commit contribution. Frame-only environmental changes are explicit
+steps with no commit event; full final DB equality is retained. Client response
+timing is a separate channel. -/
 inductive SerialHistory (requests : Nat → Request C L M R P D) :
     Database C L M R P I D F → List (Nat × List (Write C L M R P D)) →
     Database C L M R P I D F → Prop
   | nil (db) : SerialHistory requests db [] db
+  | frame {first middle} {events} (previous : SerialHistory requests first events middle)
+      (value : F) :
+      SerialHistory requests first events { middle with frame := value }
   | snoc {first middle} {events} (previous : SerialHistory requests first events middle)
       (id : Nat) (actual : List (Write C L M R P D)) :
       SerialHistory requests first (events ++ [(id, actual)]) (sequential middle (requests id))

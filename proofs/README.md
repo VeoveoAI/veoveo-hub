@@ -1428,10 +1428,13 @@ finite fixed executions. A reached removal commit has the complete independent
 instance/registration/login cleanup effect, preserving deployment and unrelated
 state. Thirty declaration guards and nine printed axiom closures pass.
 The register/replace/update theorems above do not cover this interleaving.
-Optional-deployment registration effects, mixed serial histories, no-orphan/abort
-consequences, constructive valid/original/rollback witnesses and semantic controls
-are next; complete response payloads also remain unproved. Neither checkpoint
-establishes formal SQL refinement, asynchronous listener convergence or deployment.
+The [history extension](registration_transactions/evidence/instance-lifetime-history.json)
+now derives exact registration effects, independent actual-commit-order histories
+with explicit frame interference, no-orphan preservation from its initial invariant,
+and confirmed-abort event exclusion. Its twenty guards and nine closures pass.
+Constructive valid/original/rollback witnesses and semantic controls are next;
+complete response payloads also remain unproved. These checkpoints do not
+establish formal SQL refinement, asynchronous listener convergence or deployment.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
