@@ -172,7 +172,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and source controls checked; native watch publication defect fixed; formal listener/cursor and native refinement open |
-| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Complete failure-prefix/retry histories, then native/concurrent correspondence |
+| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Populated watcher witnesses and controls; remaining native/distributed correspondence |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
@@ -1209,8 +1209,15 @@ state, not an additional repository authorization rule.
   from actual apply identity effects. The leaf passes 23 axiom guards in 5.773 s;
   see the [history record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-histories.md).
   This is manual model composition, not formal refinement of async Rust or SQL.
-- **Residual/next:** complete failure/fallback/status ordering, scoped deletion
-  composition, populated witnesses and semantic controls before claiming the
+- **Checked watcher status/recovery:** preparation refusal now composes with an
+  actual successful parent operation, retaining exact failure payloads and
+  committed-versus-acknowledged publication. Successful recorded fallback may
+  still publish resolution failure; Factory errors remain separate from
+  preparation failure. Completed row deletion followed by a consistent reread
+  cannot resurrect the runner. Ten axiom guards pass in 5.473 s; see the
+  [status record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-status.md).
+  The deletion contract does not prove full native cleanup.
+- **Residual/next:** complete populated witnesses and semantic controls before claiming the
   complete retarget slice qualified. Saved-parent
   retry preparation/membership, cross-replica reconciliation, concurrent
   registration publication order, native workspace effects and eventual recovery

@@ -1,7 +1,7 @@
 # Guarded watcher composition: manual source boundary
 
-The manual model, foundational proof leaf and parent/queued-update history leaf
-are checked. The model compiled
+The manual model, foundation, parent/queued-update histories and status/recovery
+proof leaves are checked. The model compiled
 in 8.232 seconds; the proof passed in 9.383 seconds with 18 executable axiom guards
 (14 lemmas and four model definitions) and seven printed standard-only closures.
 This is a current-projection/full-output foundation, not closure of the entire
@@ -68,8 +68,9 @@ The foundation derives independent no-op/accepted outputs, SQL projection
 correspondence, whole-operation capture independence, constructed current-parent
 arguments and complete Factory outputs. The checked history extension below now
 composes actual parent retarget and same-target advancement with queued updates,
-deriving intermediate key/row uniqueness from the actual first operation. Detailed
-status/fallback/error ordering and populated client-facing witnesses remain next.
+deriving intermediate key/row uniqueness from the actual first operation. The
+status extension now checks failure/fallback ordering and a bounded deletion
+history. Populated client-facing witnesses and semantic controls remain next.
 The two later controls change only post-relevance metadata selection (same-target
 program advancement) or add an overstrict captured-parent equality refusal.
 They will not mutate the actual backing Row/current SQL observation or reuse stale
@@ -96,9 +97,10 @@ still external contracts; issued `branch@LATEST` argv does not establish checkou
 bytes at the recorded revision.
 
 The leaf also proves that parent query failure still calls resolve with `None`,
-and that status publication preserves every other complete failure key. Detailed
-recorded fallback, preparation-refusal ordering, deletion-boundary histories,
-populated constructive witnesses and semantic controls are not yet qualified.
+and that status publication preserves every other complete failure key. At the
+history checkpoint, recorded fallback, preparation-refusal ordering, deletion
+histories, populated witnesses and controls remained open; the status checkpoint
+below now covers the first three.
 All earlier native/SQL/process-local interpretation limits above still apply.
 
 GPT-6.1 Sol authored the leaf, GPT-6 Astra reviewed the statements and complete
@@ -298,7 +300,79 @@ artifact. The proof check reused six source/hash-gated prerequisites; it did not
 rebuild earlier proofs or rerun native tests. GPT-6.1 Sol authored the package,
 GPT-6 Luna ran bounded Linux validation and GPT-6 Astra reviewed complete logs,
 contracts and correspondence. Guards are dependency audits, not execution cases.
-The parent/queued-candidate composition is now checked in the history extension
-above. The larger watcher slice remains partial until the remaining status and
-deletion compositions, constructive witnesses and selected controls/restorations
-are qualified; the intermediate checkpoints do not narrow those requirements.
+The parent/queued-candidate and status/deletion compositions are now checked in
+the extensions. The larger watcher slice remains partial until constructive
+witnesses and selected controls/restorations are qualified; the intermediate
+checkpoints do not narrow those requirements.
+
+## Checked status, fallback and deletion boundaries
+
+`FactoryWatcherStatusProof` calls the accepted model and history contracts without
+changing them. It adds nine lemmas and the `rowDeleted` boundary definition:
+
+- `refusal_then_parent_history` derives a full preparation failure and preserved
+  Factory row from an actual first `resume`, then runs an actual `parentLink` on
+  that resulting state. Complete Factory/client outputs and both keyed status
+  effects are retained. Only a committed second publication clears the earlier
+  complete failure, and every other failure key is framed. A different watched
+  deployment is proved to be a different key even for the same runner.
+- `successful_fallback_records_resolve_failure` constructs accepted fallback
+  application from no-fault/capacity observations while retaining the original
+  resolution failure. Status names the requested linked repository; client and
+  applied row name the returned fallback target, which may differ.
+- `factory_failure_is_not_preparation_failure` characterizes an observed Factory
+  failure with the inherited exact failed-row prefix, while preparation succeeded
+  and watcher-status clearing was attempted. It does not assume that Factory
+  failure is preparation failure or that a clear attempt committed.
+- `completed_delete_then_obsolete` derives key absence after the explicit row
+  deletion, using prior uniqueness, then proves whole-state preservation by a
+  queued notification with a consistent reread. `rowDeleted` changes only the row
+  map; this is not a model of complete native sandbox/provider/database cleanup.
+
+SQL-read/native correspondence, one acquired process-local critical region,
+normal return and the previous schema and external-observation conditions remain
+explicit. The status contract retains the whole failure value (repository,
+revision, message, timestamp) and distinguishes commit from acknowledgement.
+Generic failure-prefix characterization supplies the observed Factory failure as
+a premise; constructive populated failure witnesses remain next.
+
+The first direct check passed in **5.473 seconds**, with ten executable axiom
+guards and six printed closures allowing only the three standard axioms. One
+unused-section-variable warning remains. All 13 frozen files and eight accepted
+prerequisite source/artifact pairs were unchanged; the new output was absent at
+the start. GPT-6.1 Sol authored, GPT-6 Astra reviewed statements and full logs,
+and GPT-6 Luna ran the same pinned Linux toolchain with a 180-second bound:
+
+```sh
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherStatusProof.lean -o .lake/build/lib/lean/FactoryWatcherStatusProof.olean
+```
+
+```json
+{
+  "scope": "manual status/fallback and completed row-deletion composition",
+  "runtime_source": "a69e3cba3f9865e06e1db5ff77d1562ac468338a",
+  "proof_main_basis": "dd6bd84",
+  "source_sha256": "b44a4e8a4defb755c3b2f9cbe1a85929e54596b030385ef46f40cc28d3dc694c",
+  "source_bytes": 16248,
+  "input_sha256": "7cc17bdea5fa59284e4ca649e23a5f44e0f138e38ec0ef661fa6288e6419157c",
+  "archive_sha256": "a75691311ad2759093672a2de93c6a88718f21b7eeb52b283c87e9beace7e9b9",
+  "source_map_sha256": "e0d3e1c5ec4c801a4dac232f22aa9f879ca643f9b33cd2fc4bfa083b351ef383",
+  "elapsed_ms": 5473,
+  "exit": 0,
+  "guards": 10,
+  "printed_closures": 6,
+  "artifact_bytes": 520880,
+  "artifact_sha256": "7aef310c436e570c391ca00e8873c41f80b66a4d1210d5a70182248725390865",
+  "log_bytes": 1135,
+  "log_sha256": "0f01580784fdaafff9091f15cf512010e946e48100ee4e9b0198ac2dee4ade17",
+  "summary_sha256": "db761f9a0568e3694c5da8e5afd712b4819d40eb128e246501d52774bd2bbbaa"
+}
+```
+
+Evidence mirror:
+`/tmp/hub-factory-concurrent-preparation-20261031/watcher-status-check1-mirror/evidence-run1/`.
+The [dated status record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-status.md)
+keeps this proof-only result separate from native tests and deployment. No runtime,
+dependency, accepted model or earlier proof changed, and no native check or paid
+model call ran. Populated complete outputs and both semantic controls/restorations
+remain necessary before closing the watcher slice.
