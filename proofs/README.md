@@ -172,7 +172,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and source controls checked; native watch publication defect fixed; formal listener/cursor and native refinement open |
-| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | unproved | Separate action selection from concurrency/effects |
+| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Complete failure-prefix/retry histories, then native/concurrent correspondence |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
@@ -1136,11 +1136,24 @@ state, not an additional repository authorization rule.
   Mac/Linux Docker checks each pass 460 tests, with two skipped; see the
   [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-retarget-fix.md).
   This is component evidence, not a deployed or formally verified transition.
+- **Checked manual contract:** [Factory retarget](factory_retarget/README.md) proves
+  the independent complete successful 21-column row, target/client/push-selection
+  agreement, immutable row identity and unrelated-state preservation at every
+  modeled normal return. Failed-step contracts retain both committed and
+  uncommitted SQL outcomes and preserve the original error. The direct proof and
+  24 executable axiom audits pass; see the
+  [proof checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-retarget-row-proof.md).
+  This is handwritten source correspondence to `48d7e25`, not Aeneas extraction
+  or formal refinement of the async Rust/SQL/native implementation. Success
+  requires an existing bound runner, capacity acceptance and a normal return;
+  physical native framing requires distinct scoped native names.
 - **Boundary/effort:** moderate for lifecycle action selection, substantial for
   cancellation/supersession and recovery. Current code uses cancellation plus an
   instance mutex, not a pure generation-CAS activation guard. In-flight apply may finish.
-- **Residual/next:** qualify the manual complete retarget protocol: successful outputs,
-  partial failures, uncertain SQL outcomes, retry and finite serialized histories.
+- **Residual/next:** derive capacity acceptance from success; connect full native
+  outputs and failed-step contracts to path-specific failure prefixes, successful
+  retries and finite serialized histories. Add populated valid runs and semantic
+  fault controls before claiming the complete retarget slice qualified.
   Independent linked preparations captured before the runner lock, concurrent
   registration publication order, native workspace effects and eventual recovery
   remain separate obligations. Eventual successor reconciliation needs scheduling/
