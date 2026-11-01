@@ -320,5 +320,9 @@ The [replacement/no-op witness](evidence/audited-update-replacement.json) now pa
 explicit three-record audit contribution, then the stale update rolls back without
 altering that complete result. Both store acknowledgments succeed. Run it manually
 with `LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateReplacementProof`.
-The omitted-Update control remains next; generic external registration audit
+The [omitted-Update control](evidence/audited-update-omission-control.json) also passes:
+its independent diagnostic proves legal data success with a missing Update record,
+the unchanged acceptance proof rejects that absence, and exact source restoration
+passes the original positive target. The receipt contains the private patch,
+diagnostic and manual reproduction commands. Generic external registration audit
 vocabulary and native SQL correspondence remain explicit boundaries.

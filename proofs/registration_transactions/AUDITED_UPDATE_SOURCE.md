@@ -175,8 +175,7 @@ ClientInformation construction.
 
 The executable path is importable independently of output acceptance and the
 generic audited UPDATE correctness proof. Its optional-append helper reads the
-actual cursor, enabling a later omission control to remain executable. That control
-has not run. No output specification computes its expected DB via the executor.
+actual cursor, allowing the checked omission control below to remain executable. No output specification computes its expected DB via the executor.
 
 One final named target, `LAKE_NO_UPDATE=1 lake build
 RegistrationAuditedUpdateWitnessProof`, built all three new modules and passed in
@@ -253,3 +252,33 @@ the others use only `propext` and `Quot.sound`. The source-review timestamp corr
 preceded compilation; neither repair is a production defect. See the
 [receipt](evidence/audited-update-replacement.json) and
 [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-audited-update-replacement.md).
+
+## Checked omitted-Update control
+
+A private one-line mutation replaces the singleton Update source instruction with
+an empty list. It changes no transition, commit guard, fixture or original
+acceptance statement. The unchanged optional append helper then stutters, so the
+mutant has eight actual steps rather than nine. An independently compiled diagnostic
+proves the legal execution, whole expected data result, successful store response,
+complete wrong ledger (only prior record 900), empty cursor and all transaction
+maps. It also proves the original UpdateAccepted predicate is false.
+
+The original WitnessProof then fails at line 19: `decide` establishes that
+`acknowledged.audit 100 = some updateRecord` is false. Later complete-ledger/cursor
+equality errors and dependent axiom-guard refusals are secondary diagnostics. All
+88 original package files, including the original Lake configuration, are restored;
+the temporary diagnostic is removed. Ordinary Lake invalidation rebuilds the
+affected modules and the original positive target passes. No compiled artifacts
+were manually seeded, altered or removed to influence the check.
+
+The three bounded commands took 37.927 s (diagnostic pass), 3.670 s (expected
+acceptance failure) and 12.485 s (restored positive pass). Seven diagnostic guards
+and four printed closures pass; the restored witness retains fifteen guards and
+nine closures. The observed new closures use only `propext` and `Quot.sound` or
+no axioms. A precompiler phase-list mismatch and a post-diagnostic Python reporting
+error were repaired only in temporary orchestration; the diagnostic was not rerun.
+
+This is a deliberate handwritten-model fault, not a new production bug. SQL/Core
+and source correspondence, plus generic external registration audit vocabulary,
+remain explicit boundaries. See the [receipt](evidence/audited-update-omission-control.json)
+and [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-audited-update-control.md).

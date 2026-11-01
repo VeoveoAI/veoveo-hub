@@ -1,0 +1,273 @@
+{
+  "kind": "private-handwritten-model-semantic-control-and-restoration",
+  "status": "checked-omitted-update-detected-and-original-restored",
+  "base_commit": "d24d6ae7a6842da54f40e2b35e945c482c5849cd",
+  "native_source_commit": "3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33",
+  "roles": {
+    "author": "GPT-6.1 Sol",
+    "compiler": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "fault": {
+    "description": "Only sourceProgram singleton Update intent is replaced by an empty list. Actual transitions, commit guards, fixture and acceptance remain unchanged. No production mutation.",
+    "patch": "omit-update.patch",
+    "file": "RegistrationAuditedUpdateModel.lean",
+    "patch_sha256": "124be7ff70f600c10bcd7924d6f4a44e91f1f19c4b9455a5c6c41e2423edcd85",
+    "baseline_source_sha256": "1bd5696557737d8459856d5b999ae24d6709b3edddf9ebd47163d7f84fa9bce0",
+    "fault_source_sha256": "2f3d07b0f0f1857489d1bdac46791f90b1384a494334a990a7b0d9b41948bbb9",
+    "only_instruction_change": "List (Intent S) := [\u27e8.update, source.server request.metadata\u27e9] -> List (Intent S) := []"
+  },
+  "harness": {
+    "diagnostic_source": "RegistrationAuditedUpdateOmissionDiagnostic.lean",
+    "diagnostic_sha256": "5ce2a2ef5a123c680affaa4d7d1217fb0f7cf48ad4524f26ecc7f4fb68589c08",
+    "target_patch": "diagnostic-target.patch",
+    "target_patch_sha256": "6e7cb0377f0b8d91a37e5b8b3cc4cf91027a9c14314c3758fe016d9e6ab8ca08",
+    "lake_before_sha256": "3fd9abde4daddf382adc30e748853d7809aacda4b5c1dbded085f15909d02028",
+    "lake_harness_sha256": "837b6aded3ba20a35fb396267d16ceec6139e14ffe5b8a65f0e7615e5b36f8ce",
+    "restore": "Reverse diagnostic-target.patch and remove diagnostic source so original lakefile and full canonical map restore exactly.",
+    "patch_text": "--- a/lakefile.lean\n+++ b/lakefile.lean\n@@ -100,3 +100,6 @@\n lean_lib RegistrationAuditedUpdateReplacementWitnesses\n lean_lib RegistrationAuditedUpdateReplacementExecution\n lean_lib RegistrationAuditedUpdateReplacementProof\n+\n+-- PRIVATE deliberate model-fault diagnostic;not a production/default target.\n+lean_lib RegistrationAuditedUpdateOmissionDiagnostic\n"
+  },
+  "diagnostic": {
+    "filename": "RegistrationAuditedUpdateOmissionDiagnostic.lean",
+    "sha256": "5ce2a2ef5a123c680affaa4d7d1217fb0f7cf48ad4524f26ecc7f4fb68589c08",
+    "text": "import RegistrationAuditedUpdateWitnessExecution\n\n/-! PRIVATE deliberate-model-fault diagnostic. No generic audited UPDATE\ncorrectness or successful-output proof is imported. Expected wrong output is\nindependent:full qualified data result,prior complete ledger,empty audit cursor.\nThe existing executable fixture/Step proofs are unchanged under the mutation. -/\nnamespace RegistrationAuditedUpdate.OmissionDiagnostic\nopen RegistrationAuditedUpdate\nopen RegistrationAuditedLifetime\nopen RegistrationAuditedUpdate.Witnesses\nopen RegistrationTransaction (put)\n\ndef emptyCursor : Cursor String Draft Nat := \u27e8[], [], []\u27e9\n\ndef WrongOutput : Prop :=\n  acknowledged.core.core.db = expectedDB \u2227 acknowledged.audit = priorAudit \u2227\n    acknowledged.core.core.lock = none \u2227\n    acknowledged.core.updates = put (fun _ => ({ request } : Tx)) 0 expectedTx \u2227\n    acknowledged.core.core.transactions = (fun id => ({ request := registrations id } :\n      RegistrationTransaction.Transaction Nat Nat (Metadata \u00d7 String) Payload String)) \u2227\n    acknowledged.core.core.commits = [] \u2227 acknowledged.core.events = [.update 0 expectedWrites] \u2227\n    acknowledged.cursors = put (fun _ => none) 0 (some emptyCursor)\n\n/-- No append Step exists in this concrete helper call;the modified run has\n8actual transitions,with the optional append replaced by reflexivity. -/\ntheorem append_stutters : appended = auditBegun \u2227 finalCursor.acknowledged = [] := by\n  exact \u27e8rfl, rfl\u27e9\n\ntheorem legal_execution : Execution methods metadataAccepted source encoding start acknowledged :=\n  update_execution\n\ntheorem wrong_slots : acknowledged.audit 100 = none \u2227\n    acknowledged.audit 900 = some priorRecord := by\n  exact \u27e8rfl, rfl\u27e9\n\ntheorem wrong_complete_output : WrongOutput := by\n  refine \u27e8update_database, rfl, rfl, ?_, rfl, rfl, rfl, rfl\u27e9\n  funext id\n  by_cases actor : id = 0\n  \u00b7 subst id\n    rfl\n  have otherWriting (s : World) (tx : Tx) (lock : Option Nat) :\n      (writing s tx lock).core.updates id = s.core.updates id := by\n    simp only [writing, RegistrationUpdate.updateTx, put, if_neg actor]\n  have appendedUpdates : appended.core.updates = ready.core.updates := rfl\n  have retained : acknowledged.core.updates id = start.core.updates id := by\n    calc\n      acknowledged.core.updates id = committed.core.updates id := otherWriting _ _ _\n      _ = committing.core.updates id := by\n        simp only [committed, RegistrationUpdate.committedState,\n          RegistrationUpdate.updateTx, put, if_neg actor]\n      _ = appended.core.updates id := otherWriting _ _ _\n      _ = ready.core.updates id := congrFun appendedUpdates id\n      _ = metadataWritten.core.updates id := otherWriting _ _ _\n      _ = begun.core.updates id := otherWriting _ _ _\n      _ = preflight.core.updates id := otherWriting _ _ _\n      _ = start.core.updates id := otherWriting _ _ _\n  simp only [put, if_neg actor]\n  rw [retained]\n  rfl\n\n/-- Explicit contradiction of the ORIGINAL independent output predicate. The\noperation succeeds and commits data,but its required audit100 is absent. -/\ntheorem rejects_original_acceptance : \u00acUpdateAccepted := by\n  intro accepted\n  have slot := congrFun (show acknowledged.audit = expectedAudit from accepted.2.1) 100\n  change acknowledged.audit 100 = some updateRecord at slot\n  rw [wrong_slots.1] at slot\n  cases slot\n\ntheorem actual_data_success : (acknowledged.core.updates 0).phase = .committed \u2227\n    (acknowledged.core.updates 0).response = .success \u2227 acknowledged.core.core.lock = none \u2227\n    acknowledged.core.events = [.update 0 expectedWrites] := by\n  exact \u27e8rfl, rfl, rfl, rfl\u27e9\n\ntheorem omission_detected : RegistrationTransaction.WellFormed seedDB \u2227\n    Execution methods metadataAccepted source encoding start acknowledged \u2227 WrongOutput \u2227\n    acknowledged.audit 100 = none \u2227 \u00acUpdateAccepted := by\n  exact \u27e8seed_wellFormed, legal_execution, wrong_complete_output, wrong_slots.1, rejects_original_acceptance\u27e9\n\n#print axioms legal_execution\n#print axioms wrong_complete_output\n#print axioms rejects_original_acceptance\n#print axioms omission_detected\n\nrun_cmd do\n  for declaration in [``append_stutters, ``legal_execution, ``wrong_slots,\n      ``wrong_complete_output, ``rejects_original_acceptance, ``actual_data_success,\n      ``omission_detected] do\n    let axioms \u2190 Lean.collectAxioms declaration\n    for name in axioms do\n      unless name == ``propext || name == ``Classical.choice || name == ``Quot.sound do\n        throwError \"unexpected UPDATE omission diagnostic axiom in {declaration}: {name}\"\n\nend RegistrationAuditedUpdate.OmissionDiagnostic\n",
+    "guards": [
+      "append_stutters",
+      "legal_execution",
+      "wrong_slots",
+      "wrong_complete_output",
+      "rejects_original_acceptance",
+      "actual_data_success",
+      "omission_detected"
+    ],
+    "printed_closures": [
+      "legal_execution",
+      "wrong_complete_output",
+      "rejects_original_acceptance",
+      "omission_detected"
+    ],
+    "imports_only": "RegistrationAuditedUpdateWitnessExecution",
+    "imports_original_acceptance": false
+  },
+  "scenario": {
+    "seed": "Original populated two-replica success fixture: clients30/31, logins40/41, unrelated99, complete prior audit900. Actor0 changes first replica metadata/statement/time, preserving other data.",
+    "expected_wrong_output": "Complete original expectedDB and successful update transaction/event; ledger equals priorAudit with no record100, complete prior900 retained; cursor0 contains empty source/pending/acknowledged lists; full other transaction/cursor maps and lock match independent output.",
+    "real_transitions": 8,
+    "original_real_transitions": 9,
+    "append_behavior": "The unchanged optional append helper stutters on the actually empty cursor; it is not counted as a successful append.",
+    "negative_acceptance": "Independent diagnostic proves not UpdateAccepted, while actual data commit/store success is proved."
+  },
+  "inputs": {
+    "manifest_sha256": "f35c7053a73c0af9192e52b202330d1538395bb66a64cf97f131c9de05989bdc",
+    "baseline_file_count": 88,
+    "fault_file_count": 89,
+    "baseline_map_sha256": "ce08d8f6f9d50f0f370b74429d59fb22520293150ef7b5531a87c298aec601fb",
+    "fault_map_sha256": "c7b03b1b55d3adf80b8bd521e17707bf30dd3cb12e46ac55ea84ca7f5c515e15",
+    "diagnostic_import_map_sha256": "dfd39d80407ed0a435021d970c70d39afebc94ee570abf9d0b73be00953da005",
+    "unchanged_critical_sources": {
+      "RegistrationAuditedUpdateWitnesses.lean": "8e1a79e1049621866ed472b229a729b99ea90990a9bcae7231b36eae8cae1f1f",
+      "RegistrationAuditedUpdateWitnessExecution.lean": "da16d71777c23fe12e170333f23b136b00006c00443fa255a4ec9f36529f9b70",
+      "RegistrationAuditedUpdateWitnessProof.lean": "eaaf748cb58ef3c572f63375e3bf5994f7498daf96c6956d1931de5d37445f86",
+      "RegistrationAuditedUpdateSpecification.lean": "ebba5f800a4a6e5cc224e51cea1aadb3004f5833c5d016326cc43c10e36e895a",
+      "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+      "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64"
+    },
+    "only_changed_shared_files": [
+      "RegistrationAuditedUpdateModel.lean",
+      "lakefile.lean"
+    ],
+    "only_added_file": "RegistrationAuditedUpdateOmissionDiagnostic.lean"
+  },
+  "fault_stages": [
+    {
+      "artifact_bytes": 106144,
+      "artifact_exists": true,
+      "artifact_sha256": "016ab4cb695adb3e7f09e5eaa83a918aa1c41fdafc80eae651ca4a7b47e7a16e",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateOmissionDiagnostic",
+      "elapsed_ms": 37927,
+      "exit": 0,
+      "log_bytes": 14892,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-omission-control1-run2/evidence-run1/fault/01-RegistrationAuditedUpdateOmissionDiagnostic.log",
+      "log_sha256": "72abaa4507f5bcfa3c8bfb6acebd81b139231dde512ffd1658bed33b963d7c99",
+      "phase": "fault",
+      "target": "RegistrationAuditedUpdateOmissionDiagnostic",
+      "timed_out": false
+    },
+    {
+      "artifact_exists": false,
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateWitnessProof",
+      "elapsed_ms": 3670,
+      "exit": 1,
+      "expected_semantic_rejection": true,
+      "log_bytes": 18981,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-omission-control1-run2/evidence-run1/fault/02-RegistrationAuditedUpdateWitnessProof.log",
+      "log_sha256": "cde53a5724f2378ab5314c18a6c3c2a5c3ef1e9409732a39786c06503b8f8159",
+      "phase": "fault",
+      "target": "RegistrationAuditedUpdateWitnessProof",
+      "timed_out": false
+    }
+  ],
+  "restored_stages": [
+    {
+      "artifact_bytes": 162752,
+      "artifact_exists": true,
+      "artifact_sha256": "72d8ce2f79d2f9f6d53d05eaeffe557d8aaf1bb1df0ea34469ef14b9fd8179fc",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateWitnessProof",
+      "elapsed_ms": 12485,
+      "exit": 0,
+      "log_bytes": 13859,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-omission-control1-run2/evidence-run1/restored/03-RegistrationAuditedUpdateWitnessProof.log",
+      "log_sha256": "8f8b7994094bdff71e24d08a29132b409da6023a547dac57a4a510b5feff90bd",
+      "phase": "restored",
+      "target": "RegistrationAuditedUpdateWitnessProof",
+      "timed_out": false
+    }
+  ],
+  "semantic_failure": {
+    "location": "RegistrationAuditedUpdateWitnessProof.lean:19:4",
+    "declaration": "RegistrationAuditedUpdate.Witnesses.update_audit",
+    "verbatim": "Tactic `decide` proved that the proposition\n  acknowledged.audit 100 = some updateRecord\nis false",
+    "later_failures": "Whole-ledger and cursor equalities also fail, followed by dependent sorryAx guards; these are not substitute evidence for the decisive false proposition.",
+    "fault_proof_olean_exists": false
+  },
+  "fault_artifacts": {
+    "RegistrationAuditedUpdateModel": {
+      "bytes": 529016,
+      "sha256": "4bb5b1478a2cc681fda03d5964377c29bc4f09e7dd73d9042bc094f4be384224"
+    },
+    "RegistrationAuditedUpdateOmissionDiagnostic": {
+      "bytes": 106144,
+      "sha256": "016ab4cb695adb3e7f09e5eaa83a918aa1c41fdafc80eae651ca4a7b47e7a16e"
+    },
+    "RegistrationAuditedUpdateSpecification": {
+      "bytes": 27728,
+      "sha256": "46919b3190b826e5f4d87552e0c002cbaf1de2f318b966896dd9f775787cd288"
+    },
+    "RegistrationAuditedUpdateWitnessExecution": {
+      "bytes": 271512,
+      "sha256": "7db434a94d35be1cbebaa2d17dc6c4aa5828f14e79023884c4371fcdc07fe4c4"
+    },
+    "RegistrationAuditedUpdateWitnesses": {
+      "bytes": 500824,
+      "sha256": "c2d1ca29aa8a49208e416e0a9b2516c0e0dfcbb17dd63ea89919d62454a77a36"
+    }
+  },
+  "restored_artifacts": {
+    "RegistrationAuditedUpdateModel": {
+      "bytes": 529880,
+      "sha256": "0ff97ab2422d86af0971f009f13a835ae39ced4bc725386037f0ae8fbcd11e34"
+    },
+    "RegistrationAuditedUpdateSpecification": {
+      "bytes": 27728,
+      "sha256": "46919b3190b826e5f4d87552e0c002cbaf1de2f318b966896dd9f775787cd288"
+    },
+    "RegistrationAuditedUpdateWitnessExecution": {
+      "bytes": 271224,
+      "sha256": "cc93c54a7050f966c326c88525645773ee39d082be65c7bc0070c0c51495852e"
+    },
+    "RegistrationAuditedUpdateWitnessProof": {
+      "bytes": 162752,
+      "sha256": "72d8ce2f79d2f9f6d53d05eaeffe557d8aaf1bb1df0ea34469ef14b9fd8179fc"
+    },
+    "RegistrationAuditedUpdateWitnesses": {
+      "bytes": 502752,
+      "sha256": "1a484b420cb8c9a469b749706846eee3771c3e83946b0d6fe222f68c96fff191"
+    }
+  },
+  "restoration": {
+    "all_88_original_source_files_match": true,
+    "original_lakefile_restored": true,
+    "diagnostic_source_removed": true,
+    "before_and_after_positive_maps_match_baseline": true,
+    "lake_cache": "Ordinary Lake invalidation and rebuild; no manually seeded, altered or deleted OLeans. Logs explicitly rebuild affected Model, Specification, Witnesses, Execution and original Proof."
+  },
+  "qualification": {
+    "timeout_seconds_per_command": 180,
+    "default_lean_heartbeats": true,
+    "manual_only": true,
+    "measured_total_command_ms": 54082,
+    "diagnostic_guards": 7,
+    "diagnostic_printed_closures": 4,
+    "restored_witness_guards": 15,
+    "restored_witness_printed_closures": 9,
+    "observed_new_closure_axioms": [
+      "propext",
+      "Quot.sound"
+    ],
+    "allowed_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "graph_jobs_are_not_fresh_compile_count": true
+  },
+  "tools_before": {
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "tools_after": {
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "tools_unchanged": true,
+  "execution_repairs": [
+    {
+      "failure": "Logger initially expected two command entries but manifest specifies three ordered phases.",
+      "effect": "Stopped before any compiler launch; corrected temporary orchestration only.",
+      "log": {
+        "bytes": 29,
+        "sha256": "24afab3b963c838ab65f17055c088b5ef103d2a02c1ecfad173e18ba2d30411f"
+      }
+    },
+    {
+      "failure": "After diagnostic compiler success, Python Path + str expression raised TypeError in reporting.",
+      "effect": "Preserved stage1 result, logs and outputs; corrected continuation resumed acceptance and restoration without rerunning diagnostic.",
+      "log": {
+        "bytes": 603,
+        "sha256": "ee955209b2f810bacfa621878a81ab22812edfb4f5e4043f6c920f1bcd82b0ac"
+      }
+    }
+  ],
+  "evidence": {
+    "local_root": "/tmp/hub-registration-audit-20261101/audited-update-omission-control1-mirror",
+    "source_packet": "/tmp/hub-registration-audit-20261101/audited-update-omission-control1",
+    "summary": {
+      "bytes": 16748,
+      "sha256": "c2dc8341e378f7cf5f1a55896223a0b5f6564560ed458256f1d7c6f85ca73867"
+    },
+    "logger": {
+      "bytes": 13865,
+      "sha256": "cef8cd2ce7545fc9a2e5ecfafb043136c200dfeac71c4b8c5eb3e7131d27e7cb"
+    },
+    "continuation": {
+      "bytes": 7901,
+      "sha256": "e00c73ba562ea5dc8126d59ef753f82793c2b72aced16800582008c9d5f8280f"
+    }
+  },
+  "reviewer_checks": [
+    "Compared all88 canonical package source files with frozen map before documentation changes.",
+    "Compared fault and all restored source maps; checked original acceptance source unchanged.",
+    "Verified bytes and SHA256 for all three logs and fifteen copied artifact files (five fault artifacts before and after negative, five restored).",
+    "Read the actual line19 false-proposition rejection and all diagnostic/restored closure outputs; confirmed affected rebuild lines.",
+    "Read independent whole wrong-output/negated-acceptance diagnostic and temporary logger continuation.",
+    "Native nonproof source remains byte-identical to qualified3d1b0b9."
+  ],
+  "manual_reproduction": [
+    "Use a private package copy at base_commit and pinned Lean4.35.0/package inputs.",
+    "Apply fault.patch, write diagnostic.text and apply harness.patch_text. Run fault_stages in order with LAKE_NO_UPDATE=1 and180s external bounds. Require successful independent diagnostic before original acceptance false-proposition failure.",
+    "Reverse both patches and remove only diagnostic source; compare entire source map with baseline before executing restored_stages. Let Lake invalidate and rebuild normally.",
+    "No permanent runner or CI trigger is added."
+  ],
+  "boundaries": [
+    "Handwritten source-mapped model sensitivity, not extracted Rust/SQL correctness or a newly found runtime bug.",
+    "PostgreSQL atomicity/locks, Core append/encoding and native source correspondence remain explicit contracts.",
+    "Generic external registration audit vocabulary, namespace/deregistration/expiry adapters and broader Hub coverage remain open.",
+    "No runtime, authorization, dependency, native-test, deployment or model-call change."
+  ]
+}

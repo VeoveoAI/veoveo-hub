@@ -1545,8 +1545,13 @@ with two source-mapped Replace records and one Register. Independent complete da
 audit and transaction maps show that the stale update's rollback preserves the
 replacement and returns success without Update audit. Twenty-four guards and eleven
 closures pass. This concrete batch does not prove generic namespace/register audit
-adaptation. The omission control remains next; no new native or deployed result is
-claimed.
+adaptation. The [omitted-Update control](registration_transactions/evidence/audited-update-omission-control.json)
+now proves the mutated operation still commits its complete data result and returns
+success while audit record 100 is absent. The unchanged acceptance proof rejects
+that exact false slot assertion. All 88 original source files are restored, and
+the original positive target passes after ordinary Lake rebuilding. Seven diagnostic
+guards and four closures pass; this is model sensitivity, not a new native defect.
+Generic audit adapters and broader Computer/Lore coverage remain open.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
