@@ -24,11 +24,12 @@ dependency was `a41c9cc6c81f6c0305dd41165defb142740ed6b1`; the qualification did
 claim that this historical pin contained the private SDK refactor. No wire contract,
 dependency pin or protected SDK hosting/Task implementation changes here.
 
-## Current request-routing native coverage
+## Recorded request-routing native coverage
 
-Hub `eb099bb` pins SDK `239622d`. Its Task decision source and that pinned SDK's
-recipient source match the qualified proof inputs byte for byte; the older dependency
-caveat above does not describe this current pin. This source applicability check
+The recorded run used Hub `eb099bb`, SDK `239622d` and Core `120306e`.
+Its Task decision source and that pinned SDK's recipient source matched the
+qualified proof inputs byte for byte; the older dependency caveat above did not
+describe that pin. This source applicability check
 does not extend the old theorem to the intervening routing and token assembly.
 
 The [native routing regression](../../crates/veoveo-hub/tests/routing.rs) now verifies
@@ -46,6 +47,12 @@ The [native receipt](evidence/request-routing-native-receipt.json) records sourc
 both test/Hub executable identities, the deliberate policy-bypass control and exact
 restoration. Endpoint changes within the same captured deployment, full claims
 assembly, live snapshot timing and other lifecycle operations remain separate work.
+
+A [later source-applicability audit](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-task-source-applicability.md)
+compares Hub `bdbaa51`, SDK `e9105ca` and Hub's Core `422dcf2` / SDK `7360c0f`
+pins. Both extracted Rust inputs still match the receipt exactly. Core's newer
+park/deliver/wake SQL and slug parsing are outside this extraction. Unchanged
+pure-function bytes do not requalify the historical native run on the newer stack.
 
 ## Properties and assumptions
 
