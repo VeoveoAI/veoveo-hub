@@ -1152,6 +1152,38 @@ impl Fixture {
             .unwrap()
     }
 
+    /// Resolve the current native provider through the actual instance-client query.
+    async fn runner_client(&self, branch: &str, link: &str) -> factory::InstanceClient {
+        let deployment = self
+            .factory
+            .runner_status(
+                REPOSITORY,
+                &name(branch),
+                &LinkName::parse(link).unwrap(),
+                Duration::ZERO,
+            )
+            .await
+            .unwrap()
+            .unwrap()
+            .deployment;
+        let material = self
+            .gateway
+            .refresh_material(
+                WORKSPACE,
+                &format!("{}-lore", sandbox_name(deployment)),
+                "LORE_ACCESS_TOKEN",
+            )
+            .unwrap();
+        factory::instance_client(
+            &self.db.a,
+            &material["client_id"],
+            &material["client_secret"],
+        )
+        .await
+        .unwrap()
+        .unwrap()
+    }
+
     /// The runner's sandbox, as OpenShell holds it.
     async fn runner_sandbox(&self, branch: &str, link: &str) -> openshell_sdk::raw::proto::Sandbox {
         let deployment = self
@@ -1402,6 +1434,358 @@ async fn a_linked_branch_runs_one_runner_per_link_serving_the_branch_each_link_t
         let runners = fixture.runners("links/main").await;
         assert_eq!(runners[0].linked_pusher, Some(erin));
         assert_eq!(runners[1].linked_revision, Some(revision('d')));
+    })
+    .await;
+}
+
+/// A branch-created event starts a recheck only after all earlier events on this
+/// subscription have finished. The call count is an observation barrier, not a delay.
+async fn drain_linked_events(fixture: &Fixture, repository: &str, watcher: &PrincipalId) {
+    let repository = RepositoryId::parse(repository).unwrap();
+    let listed = || {
+        fixture
+            .lore
+            .linked_calls(&repository)
+            .iter()
+            .filter(|call| **call == Call::Branches(watcher.clone()))
+            .count()
+    };
+    let next = listed().max(1) + 1;
+    fixture.lore.send_linked(
+        &repository,
+        Ok(Event {
+            event: Some(Notification::BranchCreated(Default::default())),
+            ..Default::default()
+        }),
+    );
+    eventually("the linked event queue's recheck", || listed() >= next).await;
+}
+
+#[tokio::test]
+async fn retargeting_a_link_updates_its_runner_identity_client_and_push_routing() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/retarget";
+        let (alice, bob, carol, dave) = linked_branch(&fixture, branch);
+        fixture.lore.with(|state| {
+            state
+                .links
+                .insert(revision('1'), vec![link("team-a", LINKED_A, 'a', true)]);
+        });
+        for (repository, watcher) in [(LINKED_A, &bob), (LINKED_B, &dave)] {
+            fixture
+                .watches
+                .store()
+                .watch(&linked_watched(repository), watcher)
+                .await
+                .unwrap();
+        }
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        until("the original runner", || async {
+            let runners = fixture.runners(branch).await;
+            runners.len() == 1 && runners[0].revision == Some(revision('1'))
+        })
+        .await;
+        let original = fixture.runners(branch).await.remove(0);
+        assert_eq!(original.link.repository, LINKED_A);
+        assert_eq!(original.link.tracked.id, branch_id('1').as_str());
+        assert_eq!(original.linked_revision, Some(revision('c')));
+
+        // The link name and parent's own tree stay the same, but its repository and
+        // tracked branch both change. The existing design explicitly permits this.
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('2');
+            state.committers.insert(revision('2'), alice.clone());
+            state.runs.insert(revision('2'), None);
+            state
+                .links
+                .insert(revision('2'), vec![link("team-a", LINKED_B, 'b', false)]);
+            state.trees.insert(revision('2'), own_tree('1'));
+        });
+        fixture.lore.send(Ok(pushed('1', '2', &alice)));
+        until("the retargeted parent revision", || async {
+            let runners = fixture.runners(branch).await;
+            runners.len() == 1 && runners[0].revision == Some(revision('2'))
+        })
+        .await;
+        let retargeted = fixture.runners(branch).await.remove(0);
+        let command = fixture
+            .runner_sandbox(branch, "team-a")
+            .await
+            .spec
+            .unwrap()
+            .command;
+        let deployment = fixture
+            .factory
+            .runner_status(
+                REPOSITORY,
+                &name(branch),
+                &LinkName::parse("team-a").unwrap(),
+                Duration::ZERO,
+            )
+            .await
+            .unwrap()
+            .unwrap()
+            .deployment;
+        let material = fixture
+            .gateway
+            .refresh_material(
+                WORKSPACE,
+                &format!("{}-lore", sandbox_name(deployment)),
+                "LORE_ACCESS_TOKEN",
+            )
+            .unwrap();
+        let client = factory::instance_client(
+            &fixture.db.a,
+            &material["client_id"],
+            &material["client_secret"],
+        )
+        .await
+        .unwrap();
+
+        // Real independent followers receive both repositories' later pushes. A
+        // queued recheck observes each preceding push's completed routing decision.
+        fixture
+            .watches
+            .watch(linked_watched(LINKED_B), dave.clone())
+            .await
+            .unwrap();
+        drain_linked_events(&fixture, LINKED_B, &dave).await;
+        fixture.lore.with(|state| {
+            let linked = state
+                .linked
+                .get_mut(&RepositoryId::parse(LINKED_B).unwrap())
+                .unwrap();
+            linked.branches[0].latest = revision('e');
+            linked.committers.insert(revision('e'), dave.clone());
+        });
+        fixture.lore.send_linked(
+            &RepositoryId::parse(LINKED_B).unwrap(),
+            Ok(pushed('2', 'e', &dave)),
+        );
+        drain_linked_events(&fixture, LINKED_B, &dave).await;
+        let after_new_repository_push = fixture.runners(branch).await.remove(0);
+
+        fixture
+            .watches
+            .watch(linked_watched(LINKED_A), bob.clone())
+            .await
+            .unwrap();
+        drain_linked_events(&fixture, LINKED_A, &bob).await;
+        fixture.lore.with(|state| {
+            let linked = state
+                .linked
+                .get_mut(&RepositoryId::parse(LINKED_A).unwrap())
+                .unwrap();
+            linked.branches[0].latest = revision('f');
+            linked.committers.insert(revision('f'), carol.clone());
+        });
+        fixture.lore.send_linked(
+            &RepositoryId::parse(LINKED_A).unwrap(),
+            Ok(pushed('1', 'f', &carol)),
+        );
+        drain_linked_events(&fixture, LINKED_A, &bob).await;
+        let after_old_repository_push = fixture.runners(branch).await.remove(0);
+        let final_command = fixture
+            .runner_sandbox(branch, "team-a")
+            .await
+            .spec
+            .unwrap()
+            .command;
+
+        let expected_runner = factory::Runner {
+            repository: REPOSITORY.into(),
+            branch: name(branch),
+            link: factory::Link {
+                name: LinkName::parse("team-a").unwrap(),
+                repository: LINKED_B.into(),
+                tracked: factory::TrackedBranch {
+                    id: branch_id('2').to_string(),
+                    name: "release".into(),
+                },
+            },
+            revision: Some(revision('2')),
+            pusher: Some(alice.clone()),
+            linked_revision: Some(revision('d')),
+            linked_pusher: Some(dave.clone()),
+        };
+        let expected_command = vec![
+            "runner".to_owned(),
+            format!("grpcs://lore.internal:41337/{REPOSITORY}"),
+            branch.to_owned(),
+            format!("grpcs://lore.internal:41337/{LINKED_B}"),
+            branch_id('2').to_string(),
+            "crates".to_owned(),
+            "openshell".to_owned(),
+        ];
+        let expected_client = Some(factory::InstanceClient {
+            deployment,
+            pusher: Some(alice),
+            repository: REPOSITORY.into(),
+            linked: Some(factory::LinkedClient {
+                repository: LINKED_B.into(),
+                pusher: Some(dave.clone()),
+            }),
+        });
+        let advanced = factory::Runner {
+            linked_revision: Some(revision('e')),
+            linked_pusher: Some(dave),
+            ..expected_runner.clone()
+        };
+        // Observe every effect before asserting: a bad stored target must not mask
+        // whether the native command changed or how subsequent pushes were routed.
+        assert_eq!(
+            (
+                retargeted,
+                command[3..].to_vec(),
+                client,
+                after_new_repository_push,
+                after_old_repository_push,
+                final_command[3..].to_vec(),
+            ),
+            (
+                expected_runner,
+                expected_command.clone(),
+                expected_client,
+                advanced.clone(),
+                advanced,
+                expected_command,
+            )
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_refused_retarget_delete_preserves_the_old_target_until_retry() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/retarget-retry";
+        let (alice, bob, _, dave) = linked_branch(&fixture, branch);
+        fixture.lore.with(|state| {
+            state
+                .links
+                .insert(revision('1'), vec![link("team-a", LINKED_A, 'a', true)]);
+        });
+        for (repository, watcher) in [(LINKED_A, &bob), (LINKED_B, &dave)] {
+            fixture
+                .watches
+                .store()
+                .watch(&linked_watched(repository), watcher)
+                .await
+                .unwrap();
+        }
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        until("the original retry fixture runner", || async {
+            let runners = fixture.runners(branch).await;
+            runners.len() == 1 && runners[0].revision == Some(revision('1'))
+        })
+        .await;
+        let original = fixture.runners(branch).await.remove(0);
+        let original_client = fixture.runner_client(branch, "team-a").await;
+        let original_command = fixture
+            .runner_sandbox(branch, "team-a")
+            .await
+            .spec
+            .unwrap()
+            .command;
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('2');
+            state.committers.insert(revision('2'), alice.clone());
+            state.runs.insert(revision('2'), None);
+            state
+                .links
+                .insert(revision('2'), vec![link("team-a", LINKED_B, 'b', false)]);
+            state.trees.insert(revision('2'), own_tree('1'));
+        });
+        fixture.gateway.refuse_next(
+            "DeleteSandbox",
+            tonic::Status::unavailable("fixture refuses the retarget deletion"),
+        );
+        fixture.lore.send(Ok(pushed('1', '2', &alice)));
+        until("the refused retarget deletion", || async {
+            fixture
+                .factory
+                .runner_status(
+                    REPOSITORY,
+                    &name(branch),
+                    &LinkName::parse("team-a").unwrap(),
+                    Duration::ZERO,
+                )
+                .await
+                .unwrap()
+                .is_some_and(|status| {
+                    status.failed.is_some_and(|failure| {
+                        failure.stage == factory::Stage::Create
+                            && failure
+                                .message
+                                .contains("fixture refuses the retarget deletion")
+                    })
+                })
+        })
+        .await;
+        let failed = fixture.runners(branch).await.remove(0);
+        let failed_client = fixture.runner_client(branch, "team-a").await;
+        let failed_command = fixture
+            .runner_sandbox(branch, "team-a")
+            .await
+            .spec
+            .unwrap()
+            .command;
+
+        // Retry the same requested revision after the ordinary native refusal clears.
+        fixture.lore.send(Ok(pushed('1', '2', &alice)));
+        until("the retarget retry", || async {
+            fixture.runners(branch).await[0].revision == Some(revision('2'))
+        })
+        .await;
+        let retried = fixture.runners(branch).await.remove(0);
+        let retried_client = fixture.runner_client(branch, "team-a").await;
+        let expected = factory::Runner {
+            link: factory::Link {
+                name: LinkName::parse("team-a").unwrap(),
+                repository: LINKED_B.into(),
+                tracked: factory::TrackedBranch {
+                    id: branch_id('2').to_string(),
+                    name: "release".into(),
+                },
+            },
+            revision: Some(revision('2')),
+            linked_revision: Some(revision('d')),
+            linked_pusher: Some(dave.clone()),
+            ..original.clone()
+        };
+        let expected_client = factory::InstanceClient {
+            linked: Some(factory::LinkedClient {
+                repository: LINKED_B.into(),
+                pusher: Some(dave),
+            }),
+            ..original_client.clone()
+        };
+        assert_eq!(
+            (
+                failed,
+                failed_client,
+                failed_command,
+                retried,
+                retried_client
+            ),
+            (
+                original,
+                original_client,
+                original_command,
+                expected,
+                expected_client
+            ),
+        );
     })
     .await;
 }

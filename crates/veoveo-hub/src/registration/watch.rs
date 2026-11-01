@@ -30,9 +30,9 @@ const REGISTRATION_TABLE: &str = "registration";
 #[derive(Default)]
 pub(crate) struct LiveRegistrations {
     rows: BTreeMap<OAuthClientId, StoredRegistration>,
-    /// The client, metadata and liveness of every routed server, to replace the catalog
-    /// only when routing changes.
-    routed: Vec<(OAuthClientId, ClientMetadata, bool)>,
+    /// Complete registered output; joined instance fields matter even when the
+    /// process registration and metadata stay unchanged.
+    routed: Vec<RegisteredServer>,
     /// The slugs with deployments set aside, as last logged.
     set_aside: BTreeMap<ServerSlug, Namespace>,
 }
@@ -89,6 +89,7 @@ impl RegistrationService {
                     None => self.refresh().await,
                 }
             }
+            ChangeSignal::Changed(change) if change.table == "instance" => self.refresh().await,
             ChangeSignal::Changed(_) => Ok(()),
             ChangeSignal::Reconcile => self.refresh().await,
         }
@@ -112,20 +113,11 @@ impl RegistrationService {
                 }
             }
         }
-        let routed: Vec<(OAuthClientId, ClientMetadata, bool)> = chosen
-            .values()
-            .map(|row| {
-                (
-                    row.client_id.clone(),
-                    row.metadata.clone(),
-                    row.orphaned_at.is_some(),
-                )
-            })
-            .collect();
+        let routed: Vec<RegisteredServer> = chosen.values().map(|row| registered(row)).collect();
         if routed == live.routed {
             return;
         }
-        let snapshot = RegistrationSnapshot::new(chosen.values().map(|row| registered(row)));
+        let snapshot = RegistrationSnapshot::new(routed.iter().cloned());
         tracing::info!(
             servers = ?snapshot.iter().map(|server| server.slug.as_str()).collect::<Vec<_>>(),
             "registered servers changed"
@@ -186,7 +178,7 @@ impl RegistrationService {
             .read()
             .routed
             .iter()
-            .map(|(client_id, _, _)| client_id.clone())
+            .map(|server| server.client_id.clone())
             .collect::<Vec<_>>();
         let now = Utc::now();
         Ok(self

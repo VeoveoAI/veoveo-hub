@@ -417,3 +417,138 @@ async fn stale_update_cannot_overwrite_a_replaced_registration_deployment() {
     .await
     .expect("bounded stale registration update schedule");
 }
+
+/// A joined instance target changes while its process registration stays exactly the
+/// same. Only the real kernel notification and watcher may publish the new route.
+#[tokio::test]
+async fn a_retargeted_instance_publishes_its_complete_live_registration() {
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let db = crate::test_store::TestDb::new().await;
+        let directory = tempfile::tempdir().unwrap();
+        let installation = crate::local::generate(directory.path(), "https://hub.test").unwrap();
+        let catalog = crate::HubCatalogHandle::new(std::sync::Arc::new(
+            crate::HubCatalog::load_json(&installation.config, crate::catalog_fixture::binding())
+                .unwrap(),
+        ));
+        let signing = ServerKeyPair::generate().unwrap();
+        let service = crate::registration::RegistrationService::new(
+            db.a.clone(),
+            catalog.clone(),
+            crate::HubState::new(db.a.clone()),
+            crate::registration::RegistrationIdentity {
+                issuer: veoveo_hub_sdk::TokenIssuer::parse("https://hub.test").unwrap(),
+                signing_key: veoveo_hub_sdk::HubInternalSigningKey::new(signing.pkcs8_der())
+                    .unwrap(),
+                verification_key: None,
+            },
+            crate::registration::ServerDatabase {
+                url: veoveo_hub_sdk::registration::DatabaseUrl::new(
+                    "postgres://127.0.0.1/unused".parse().unwrap(),
+                )
+                .unwrap(),
+            },
+            Duration::from_secs(60),
+            None,
+        )
+        .unwrap();
+        let original_link = crate::factory::Link {
+            name: veoveo_hub_sdk::hub::LinkName::parse("team-a").unwrap(),
+            repository: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+            tracked: crate::factory::TrackedBranch {
+                id: "11111111111111111111111111111111".into(),
+                name: "first".into(),
+            },
+        };
+        let instance = crate::registration::create_runner(
+            &db.a,
+            "0123456789abcdef0123456789abcdef",
+            &DatabaseName::installation(&db.a).unwrap(),
+            &BranchName::parse("retarget-publication").unwrap(),
+            &original_link,
+        )
+        .await
+        .unwrap();
+        let store = RegistrationStore::new(db.a.clone());
+        let candidate = Candidate::new(
+            &signing,
+            instance.deployment,
+            "00000000000021",
+            1,
+            Utc::now().trunc_subsecs(6),
+        );
+        candidate.register(&store).await.unwrap();
+        let stop = tokio_util::sync::CancellationToken::new();
+        let _cancel_on_drop = stop.clone().drop_guard();
+        let watcher = service.spawn_watcher(stop.clone());
+        let mut changes = catalog.subscribe();
+        let before = loop {
+            let snapshot = catalog.snapshot();
+            if let Some(server) = snapshot
+                .catalog()
+                .registrations()
+                .deployment(&instance.deployment)
+            {
+                break (snapshot.generation(), server.clone());
+            }
+            changes.changed().await.unwrap();
+        };
+        assert_eq!(
+            before.1.runner.as_ref().unwrap().repository.as_str(),
+            original_link.repository
+        );
+
+        // Use the production target statement, with no register/read/refresh call.
+        // A fresh process registration must not be necessary to observe the target.
+        let target = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        sqlx::query_file!(
+            "src/factory/record/linked.sql",
+            instance.deployment.as_uuid(),
+            target,
+            "22222222222222222222222222222222",
+            "release",
+            "https://identity.example#new-pusher",
+        )
+        .execute(db.a.pool())
+        .await
+        .unwrap();
+        let after = loop {
+            let snapshot = catalog.snapshot();
+            let server = snapshot
+                .catalog()
+                .registrations()
+                .deployment(&instance.deployment)
+                .cloned();
+            if let Some(server) = server
+                && server
+                    .runner
+                    .as_ref()
+                    .is_some_and(|runner| runner.repository.as_str() == target)
+            {
+                break (snapshot.generation(), server);
+            }
+            changes.changed().await.unwrap();
+        };
+        let row = store
+            .registration(&candidate.client)
+            .await
+            .unwrap()
+            .unwrap();
+        stop.cancel();
+        watcher.await.unwrap();
+
+        let mut expected = before.1;
+        expected.runner.as_mut().unwrap().repository =
+            veoveo_hub_sdk::registration::RepositoryId::parse(target).unwrap();
+        assert!(after.0 > before.0, "the live generation must advance");
+        assert_eq!(
+            after.1, expected,
+            "all other registered fields must be preserved"
+        );
+        assert_eq!(after.1.client_id, candidate.client);
+        assert_eq!(after.1.deployment, instance.deployment);
+        assert_eq!(row.metadata, candidate.metadata);
+        assert_eq!(row.issued_at, candidate.now);
+    })
+    .await
+    .expect("bounded joined-instance routing publication");
+}

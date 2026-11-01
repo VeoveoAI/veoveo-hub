@@ -409,12 +409,24 @@ impl Factory {
         runner: Option<RunnerPush>,
     ) -> Result<()> {
         repository_id(repository)?;
-        let found = match &runner {
-            None => record::instance(&self.store, repository, branch).await?,
+        let (found, retargeted) = match &runner {
+            None => (
+                record::instance(&self.store, repository, branch).await?,
+                false,
+            ),
             Some(runner) => {
                 repository_id(&runner.link.repository)?;
                 repository_id(&runner.link.tracked.id)?;
-                record::runner(&self.store, repository, branch, &runner.link.name).await?
+                let found =
+                    record::runner(&self.store, repository, branch, &runner.link.name).await?;
+                let retargeted = found.as_ref().is_some_and(|(_, _, previous)| {
+                    previous.repository != runner.link.repository
+                        || previous.tracked.id != runner.link.tracked.id
+                });
+                (
+                    found.map(|(deployment, database, _)| (deployment, database)),
+                    retargeted,
+                )
             }
         };
         let (deployment, database) = match found {
@@ -521,14 +533,8 @@ impl Factory {
             runner: runner_source,
         };
         let branch = record::push(&self.store, deployment, &push.pusher).await?;
-        if let Some(runner) = &runner {
-            record::linked(
-                &self.store,
-                deployment,
-                &runner.link.tracked.name,
-                &runner.linked.pusher,
-            )
-            .await?;
+        if !retargeted && let Some(runner) = &runner {
+            record::linked(&self.store, deployment, &runner.link, &runner.linked.pusher).await?;
         }
         let current = self
             .recorded(deployment, Stage::Create, self.sandbox(&name))
@@ -549,11 +555,13 @@ impl Factory {
         // since serves the revision the Hub applied.
         match current {
             Some(sandbox)
-                if unchanged && sandbox::runs_beside_image(&name, &sandbox, &source, &branch) =>
+                if !retargeted
+                    && unchanged
+                    && sandbox::runs_beside_image(&name, &sandbox, &source, &branch) =>
             {
                 tracing::info!(%deployment, "the runner's own tree and tracked revision are unchanged: its sandbox keeps serving");
             }
-            Some(sandbox) if sandbox::runs(&name, &sandbox, &source, &branch) => {
+            Some(sandbox) if !retargeted && sandbox::runs(&name, &sandbox, &source, &branch) => {
                 record::unserved(&self.store, deployment).await?;
                 self.recorded(deployment, Stage::Restart, self.restart(&name, &sandbox))
                     .await?;
@@ -562,6 +570,15 @@ impl Factory {
                 record::unserved(&self.store, deployment).await?;
                 self.recorded(deployment, Stage::Create, async {
                     self.delete_sandbox(&name).await?;
+                    if retargeted && let Some(runner) = &runner {
+                        record::linked(
+                            &self.store,
+                            deployment,
+                            &runner.link,
+                            &runner.linked.pusher,
+                        )
+                        .await?;
+                    }
                     self.create(deployment, &branch, &source).await
                 })
                 .await?;
@@ -569,11 +586,18 @@ impl Factory {
             None => {
                 record::unserved(&self.store, deployment).await?;
                 self.admit(deployment, &push.pusher).await?;
-                self.recorded(
-                    deployment,
-                    Stage::Create,
-                    self.create(deployment, &branch, &source),
-                )
+                self.recorded(deployment, Stage::Create, async {
+                    if retargeted && let Some(runner) = &runner {
+                        record::linked(
+                            &self.store,
+                            deployment,
+                            &runner.link,
+                            &runner.linked.pusher,
+                        )
+                        .await?;
+                    }
+                    self.create(deployment, &branch, &source).await
+                })
                 .await?;
             }
         }
@@ -605,7 +629,7 @@ impl Factory {
     ) -> Result<()> {
         repository_id(repository)?;
         match record::runner(&self.store, repository, branch, link).await? {
-            Some((deployment, _)) => self.delete(deployment).await,
+            Some((deployment, _, _)) => self.delete(deployment).await,
             None => Ok(()),
         }
     }
@@ -648,7 +672,8 @@ impl Factory {
         wait: Duration,
     ) -> Result<Option<InstanceStatus>> {
         repository_id(repository)?;
-        let Some((deployment, _)) = record::runner(&self.store, repository, branch, link).await?
+        let Some((deployment, _, _)) =
+            record::runner(&self.store, repository, branch, link).await?
         else {
             return Ok(None);
         };

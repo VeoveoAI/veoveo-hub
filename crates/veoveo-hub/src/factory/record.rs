@@ -43,7 +43,7 @@ pub(super) async fn runner(
     repository: &str,
     branch: &BranchName,
     link: &LinkName,
-) -> Result<Option<(DeploymentId, DatabaseName)>> {
+) -> Result<Option<(DeploymentId, DatabaseName, Link)>> {
     sqlx::query_file!(
         "src/factory/record/runner.sql",
         repository,
@@ -58,6 +58,18 @@ pub(super) async fn runner(
             DeploymentId::try_from(row.deployment)
                 .context("stored runner deployment is invalid")?,
             DatabaseName::parse(row.database).context("stored runner database is invalid")?,
+            Link {
+                name: link.clone(),
+                repository: row
+                    .linked_repository
+                    .context("runner has no linked repository")?,
+                tracked: TrackedBranch {
+                    id: row.tracked_branch.context("runner has no tracked branch")?,
+                    name: row
+                        .tracked_branch_name
+                        .context("runner has no tracked branch name")?,
+                },
+            },
         ))
     })
     .transpose()
@@ -154,18 +166,20 @@ pub(super) async fn tracking(
     .collect()
 }
 
-/// Record the runner's tracked branch's name and its latest pusher, whose token the
-/// runner's client issues for the linked repository.
+/// Record the runner's complete linked target and its latest pusher. A retarget is
+/// recorded only after the old sandbox is absent, before its replacement gets credentials.
 pub(super) async fn linked(
     store: &PlatformStore,
     deployment: DeploymentId,
-    tracked_name: &str,
+    link: &Link,
     pusher: &PrincipalId,
 ) -> Result<()> {
     sqlx::query_file!(
         "src/factory/record/linked.sql",
         deployment.as_uuid(),
-        tracked_name,
+        link.repository,
+        link.tracked.id,
+        link.tracked.name,
         pusher.as_str()
     )
     .execute(store.pool())

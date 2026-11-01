@@ -636,7 +636,25 @@ push that changes the own tree applies the new program to every runner, restarti
 one, or recreating it when its command, image, policy, shape or providers changed. A
 recreation deletes the runner's sandbox before it creates the new one under the same
 name, since a sandbox's name is fixed by its deployment and unique in its workspace, so
-the runner serves nothing in between. It gives
+the runner serves nothing in between. Retargeting a link to another repository or
+tracked branch keeps that deployment and its database. The Hub prepares the image,
+policy, providers and template before changing the old sandbox. It then waits for the
+old sandbox to be absent before atomically recording the complete new linked repository,
+tracked branch ID and name, and linked pusher. Creation renews the registration token
+and client secret and refreshes Lore credentials against that new target. A failed
+preparation or deletion does not record the new target; deletion may already be in
+progress. After confirmed deletion, a failed target write or creation can leave no
+sandbox; it does not restore the previous serving worker. A later reconciliation or
+push retries according to the recorded applied revision.
+
+Changes to an instance's joined registration routing fields publish through the existing
+kernel notification channel. Every replica reloads the joined registration and compares
+the complete registered-server output, including branch, linked repository, declaration,
+surfaces, issue time and liveness, before publishing a new catalog generation. Unchanged
+complete output does not publish another generation. This is not an atomic ordering
+guarantee between concurrent reloads and catalog publication.
+
+It gives
 the parent's program the tracked branch's Lore ID as `VEOVEO_TRACKED_BRANCH`, so the
 program can name where a change to the linked repository is pushed; the program never
 learns its link's name. The runner's program is the parent's, built and run under `/sandbox/src`; the linked

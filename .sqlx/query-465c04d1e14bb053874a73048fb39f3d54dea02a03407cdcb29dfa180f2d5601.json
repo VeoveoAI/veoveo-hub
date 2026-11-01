@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The runner's complete linked target and latest pusher. Retargeting records this\n-- only after the previous sandbox is absent, before creating new credentials.\nUPDATE hub.instance\nSET linked_repository = $2, tracked_branch = $3, tracked_branch_name = $4, linked_pusher = $5\nWHERE deployment = $1 AND link IS NOT NULL\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "465c04d1e14bb053874a73048fb39f3d54dea02a03407cdcb29dfa180f2d5601"
+}

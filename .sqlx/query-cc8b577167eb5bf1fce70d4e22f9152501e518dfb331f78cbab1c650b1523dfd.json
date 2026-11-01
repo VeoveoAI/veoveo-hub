@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The runner of one link of a branch.\nSELECT deployment, database, linked_repository, tracked_branch, tracked_branch_name\nFROM hub.instance\nWHERE repository = $1 AND branch = $2 AND link = $3\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deployment",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "deployment"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "database",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "database"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "linked_repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "linked_repository"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "tracked_branch",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "tracked_branch"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "tracked_branch_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "tracked_branch_name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "cc8b577167eb5bf1fce70d4e22f9152501e518dfb331f78cbab1c650b1523dfd"
+}

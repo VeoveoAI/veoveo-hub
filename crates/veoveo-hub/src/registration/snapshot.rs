@@ -36,7 +36,7 @@ impl ServerCapabilities {
 
 /// One registered server, as its newest registration declared it when the snapshot
 /// was built.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RegisteredServer {
     pub deployment: DeploymentId,
     pub slug: ServerSlug,
