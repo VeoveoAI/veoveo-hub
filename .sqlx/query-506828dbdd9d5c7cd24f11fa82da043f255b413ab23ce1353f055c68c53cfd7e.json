@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Test-only selection of one existing activity. Each test owns its database;\n-- null disables refusal. No production field, schema migration or hook is used.\nDO $fixture$\nBEGIN\n    CREATE TABLE hub.registration_fixture_audit_fault (\n        singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),\n        activity text\n    );\n    INSERT INTO hub.registration_fixture_audit_fault (singleton) VALUES (true);\n    CREATE FUNCTION hub.registration_fixture_refuse_audit() RETURNS trigger\n        LANGUAGE plpgsql AS $refuse$\n        BEGIN\n            IF NEW.draft ->> 'class' = 'hub.registration' AND EXISTS (\n                SELECT FROM hub.registration_fixture_audit_fault AS fault\n                WHERE fault.activity = NEW.draft #>> '{detail,activity}'\n            ) THEN\n                RAISE EXCEPTION 'fixture refuses registration audit %', NEW.draft #>> '{detail,activity}';\n            END IF;\n            RETURN NEW;\n        END;\n        $refuse$;\n    CREATE TRIGGER registration_fixture_refuse_audit\n        BEFORE INSERT ON audit.record\n        FOR EACH ROW EXECUTE FUNCTION hub.registration_fixture_refuse_audit();\nEND;\n$fixture$;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "506828dbdd9d5c7cd24f11fa82da043f255b413ab23ce1353f055c68c53cfd7e"
+}

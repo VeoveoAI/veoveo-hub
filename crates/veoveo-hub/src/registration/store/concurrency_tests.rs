@@ -1,6 +1,6 @@
-//! Actual registration-store overlaps with test-only INSERT gates in disposable
-//! databases. The first probes exercise the store; the instance/removal probe also
-//! executes real service authority, signature, audit and final catalog reload paths.
+//! Registration-store overlaps and service/audit probes in disposable databases.
+//! Store probes use test-only gates; service probes exercise real authority,
+//! signatures, typed responses, audit and explicit persisted-state catalog reloads.
 use super::*;
 use chrono::{SubsecRound, TimeDelta};
 use serde_json::{Value, json};
@@ -444,7 +444,6 @@ async fn a_retargeted_instance_publishes_its_complete_live_registration() {
         let service = crate::registration::RegistrationService::new(
             db.a.clone(),
             catalog.clone(),
-            crate::HubState::new(db.a.clone()),
             crate::registration::RegistrationIdentity {
                 issuer: veoveo_hub_sdk::TokenIssuer::parse("https://hub.test").unwrap(),
                 signing_key: veoveo_hub_sdk::HubInternalSigningKey::new(signing.pkcs8_der())
@@ -618,7 +617,7 @@ async fn an_authorized_first_registration_cannot_survive_instance_removal() {
         ));
         let signing = ServerKeyPair::generate().unwrap();
         let service = crate::registration::RegistrationService::new(
-            db.a.clone(), catalog.clone(), crate::HubState::new(db.a.clone()),
+            db.a.clone(), catalog.clone(),
             crate::registration::RegistrationIdentity {
                 issuer: veoveo_hub_sdk::TokenIssuer::parse("https://hub.test").unwrap(),
                 signing_key: veoveo_hub_sdk::HubInternalSigningKey::new(signing.pkcs8_der()).unwrap(),
@@ -760,7 +759,7 @@ async fn an_instance_registration_waiting_for_removal_uses_the_invalid_token_out
         ));
         let signing = ServerKeyPair::generate().unwrap();
         let service = crate::registration::RegistrationService::new(
-            db.a.clone(), catalog.clone(), crate::HubState::new(db.a.clone()),
+            db.a.clone(), catalog.clone(),
             crate::registration::RegistrationIdentity {
                 issuer: veoveo_hub_sdk::TokenIssuer::parse("https://hub.test").unwrap(),
                 signing_key: veoveo_hub_sdk::HubInternalSigningKey::new(signing.pkcs8_der()).unwrap(),
@@ -874,4 +873,802 @@ async fn an_instance_registration_waiting_for_removal_uses_the_invalid_token_out
             "removal-first registration did not refuse without admission; service outcome={outcome}, snapshot={final_snapshot}"
         );
     }).await.expect("bounded removal-first registration overlap");
+}
+
+/// Test-only signed-service setup shared by the audit probes. No watcher or
+/// Factory runs: explicit refresh below observes persisted catalog contents only.
+struct AuditRegistrationFixture {
+    db: crate::test_store::TestDb,
+    store: RegistrationStore,
+    service: crate::registration::RegistrationService,
+    catalog: crate::HubCatalogHandle,
+    instance: crate::registration::NewInstance,
+    database: DatabaseName,
+    request: veoveo_hub_sdk::registration::ClientRegistrationRequest,
+    expected_keys: veoveo_hub_sdk::registration::Ed25519JwkSet,
+    signing: ServerKeyPair,
+    _directory: tempfile::TempDir,
+}
+
+impl AuditRegistrationFixture {
+    async fn new(branch: &str) -> Self {
+        let db = crate::test_store::TestDb::new().await;
+        let store = RegistrationStore::new(db.a.clone());
+        let directory = tempfile::tempdir().unwrap();
+        let installation = crate::local::generate(directory.path(), "https://hub.test").unwrap();
+        let catalog = crate::HubCatalogHandle::new(std::sync::Arc::new(
+            crate::HubCatalog::load_json(&installation.config, crate::catalog_fixture::binding())
+                .unwrap(),
+        ));
+        let signing = ServerKeyPair::generate().unwrap();
+        let signing_key = veoveo_hub_sdk::HubInternalSigningKey::new(signing.pkcs8_der()).unwrap();
+        let expected_keys =
+            veoveo_hub_sdk::registration::Ed25519JwkSet::new(vec![signing_key.verification_key()])
+                .unwrap();
+        let service = crate::registration::RegistrationService::new(
+            db.a.clone(),
+            catalog.clone(),
+            crate::registration::RegistrationIdentity {
+                issuer: veoveo_hub_sdk::TokenIssuer::parse("https://hub.test").unwrap(),
+                signing_key,
+                verification_key: None,
+            },
+            crate::registration::ServerDatabase {
+                url: veoveo_hub_sdk::registration::DatabaseUrl::new(db.a.config().url().clone())
+                    .unwrap(),
+            },
+            Duration::from_secs(60),
+            None,
+        )
+        .unwrap();
+        let database = DatabaseName::installation(&db.a).unwrap();
+        let instance = crate::registration::create_instance(
+            &db.a,
+            "0123456789abcdef0123456789abcdef",
+            &database,
+            &BranchName::parse(branch).unwrap(),
+        )
+        .await
+        .unwrap();
+        // Roles are cluster-wide, so frame this probe with its own valid slug.
+        let slug =
+            ServerSlug::parse(format!("audit-{}", instance.deployment.as_uuid().simple())).unwrap();
+        let mut metadata = Candidate::new(
+            &signing,
+            instance.deployment,
+            "00000000000051",
+            1,
+            Utc::now(),
+        )
+        .metadata;
+        metadata.registration.slug = slug.clone();
+        metadata.registration.uri_scheme = ResourceScheme::parse(slug.as_str()).unwrap();
+        metadata.registration.endpoint = ServerEndpoint::new(
+            format!("https://fixture.invalid/{slug}/mcp")
+                .parse()
+                .unwrap(),
+        )
+        .unwrap();
+        metadata.check().unwrap();
+        let request = veoveo_hub_sdk::registration::ClientRegistrationRequest {
+            software_statement: signing
+                .sign_statement(&metadata, service.registration_endpoint(), Utc::now())
+                .unwrap(),
+            metadata,
+        };
+        let fixture = Self {
+            db,
+            store,
+            service,
+            catalog,
+            instance,
+            database,
+            request,
+            expected_keys,
+            signing,
+            _directory: directory,
+        };
+        assert!(fixture.store.registrations().await.unwrap().is_empty());
+        assert!(fixture.logins().await.is_empty());
+        assert!(fixture.audit_observation().await.1.is_empty());
+        fixture
+    }
+
+    async fn register(
+        &self,
+    ) -> std::result::Result<
+        veoveo_hub_sdk::registration::ClientInformation,
+        crate::registration::RegistrationError,
+    > {
+        self.service
+            .register(
+                super::super::service::Bearer::Presented(
+                    self.instance.registration_token.expose_secret(),
+                ),
+                &serde_json::to_vec(&self.request).unwrap(),
+            )
+            .await
+    }
+
+    async fn logins(&self) -> Vec<String> {
+        let group = ServerSchema::new(self.request.metadata.slug())
+            .unwrap()
+            .group_role();
+        member_logins(&self.db.a, &group).await
+    }
+
+    async fn audit_observation(&self) -> (Option<Value>, Vec<Value>) {
+        let target = format!("veoveo://servers/{}", self.request.metadata.slug());
+        let observed = sqlx::query_file!(
+            "src/registration/store/tests/audit_observation.sql",
+            self.instance.deployment.as_uuid(),
+            target,
+        )
+        .fetch_one(self.db.a.pool())
+        .await
+        .unwrap();
+        (
+            observed.instance,
+            observed.records.as_array().unwrap().clone(),
+        )
+    }
+
+    /// Check every ClientInformation field against supplied inputs/native persisted
+    /// values. Secrets are checked in memory or by real PG auth, never printed.
+    async fn assert_information(
+        &self,
+        information: &veoveo_hub_sdk::registration::ClientInformation,
+        before: DateTime<Utc>,
+        after: DateTime<Utc>,
+    ) {
+        information.check().unwrap();
+        assert_eq!(information.metadata, self.request.metadata);
+        assert_eq!(
+            information.software_statement,
+            self.request.software_statement
+        );
+        assert!(
+            before <= information.client_id_issued_at && information.client_id_issued_at <= after
+        );
+        let prefix = format!("{}-", self.request.metadata.slug());
+        let random_id = information
+            .client_id
+            .as_str()
+            .strip_prefix(&prefix)
+            .unwrap();
+        assert!(
+            random_id.len() == 32
+                && random_id
+                    .bytes()
+                    .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+        );
+        assert_eq!(
+            information.registration_client_uri.as_str(),
+            format!("https://hub.test/oauth/register/{}", information.client_id)
+        );
+        assert_eq!(
+            information.access_tokens.deployment,
+            self.instance.deployment
+        );
+        assert_eq!(
+            information.access_tokens.issuer.as_str(),
+            "https://hub.test"
+        );
+        assert_eq!(information.access_tokens.jwks, self.expected_keys);
+        assert_eq!(
+            information.access_tokens.resource.as_str(),
+            self.request.metadata.registration.endpoint.url().as_str()
+        );
+        assert!(information.public_base.is_none() && information.app_origin.is_none());
+        let grant = information
+            .database
+            .as_ref()
+            .expect("initial response grants a login");
+        assert_eq!(grant.url.as_str(), self.db.a.config().url().as_str());
+        let veoveo_hub_sdk::registration::StorageBinding::SharedLogicalSchema { server } =
+            &grant.binding;
+        assert_eq!(server, self.request.metadata.slug());
+        let schema = ServerSchema::new(self.request.metadata.slug()).unwrap();
+        let suffix = &information.client_id.as_str()[information.client_id.as_str().len() - 14..];
+        assert_eq!(
+            grant.username.as_str(),
+            format!("{}_{suffix}", schema.schema())
+        );
+        for secret in [
+            information.registration_access_token.expose_secret(),
+            grant.password.expose_secret(),
+        ] {
+            assert!(
+                secret.len() == 43
+                    && secret
+                        .bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+            );
+        }
+        let logins = self.logins().await;
+        assert_eq!(logins, vec![grant.username.as_str().to_owned()]);
+        let snapshot = snapshot_for_server(
+            &self.db.a,
+            self.instance.deployment,
+            self.request.metadata.slug().as_str(),
+            &logins,
+        )
+        .await;
+        let rows = snapshot["registrations"].as_array().unwrap();
+        assert_eq!(rows.len(), 1);
+        let row = &rows[0];
+        assert_eq!(row["client_id"], information.client_id.as_str());
+        assert_eq!(row["metadata"], json!(information.metadata));
+        assert_eq!(row["login"], grant.username.as_str());
+        assert_eq!(
+            row["software_statement_digest"],
+            crate::registration::digest(self.request.software_statement.as_str()).as_str()
+        );
+        assert_eq!(
+            row["access_token_digest"],
+            crate::registration::digest(information.registration_access_token.expose_secret())
+                .as_str()
+        );
+        assert_eq!(
+            timestamp(&row["issued_at"]),
+            information.client_id_issued_at.trunc_subsecs(6)
+        );
+        let config = veoveo_store::StoreConfig::builder(grant.url.as_str(), grant.password.clone())
+            .username(grant.username.as_str())
+            .max_connections(1)
+            .build()
+            .unwrap();
+        let connected = PlatformStore::connect(config)
+            .await
+            .expect("issued grant authenticates against the real fixture PG");
+        connected.close().await;
+    }
+}
+
+/// Intentional removal must retain a successful audit of the ended registration
+/// alongside its earlier Register record.
+#[tokio::test]
+async fn intentional_instance_removal_records_the_ended_registration() {
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let fixture = AuditRegistrationFixture::new("registration-removal-audit").await;
+        let before = Utc::now();
+        let registration = fixture.register().await;
+        let after = Utc::now();
+        let outcome = registration_outcome(&registration);
+        assert!(registration.is_ok(), "signed service registration setup failed: {outcome}");
+        let information = registration.unwrap();
+        fixture.assert_information(&information, before, after).await;
+        let before_removal = fixture.audit_observation().await;
+        assert_eq!(before_removal.1.len(), 1, "Register audit must be acknowledged before a successful response");
+        assert_eq!(before_removal.1[0]["detail"]["activity"], "register");
+        assert_eq!(before_removal.1[0]["outcome"], "success");
+        let removed = crate::registration::remove_instance(&fixture.db.a, fixture.instance.deployment).await.unwrap();
+        let logins = fixture.logins().await;
+        let state = snapshot_for_server(&fixture.db.a, fixture.instance.deployment, fixture.request.metadata.slug().as_str(), &[information.database.as_ref().unwrap().username.as_str().to_owned()]).await;
+        let after_removal = fixture.audit_observation().await;
+        let authority = fixture.store.instance(&crate::registration::digest(fixture.instance.registration_token.expose_secret())).await.unwrap();
+        fixture.service.refresh().await.unwrap();
+        let route = fixture.catalog.snapshot().catalog().registrations().deployment(&fixture.instance.deployment)
+            .map(|server| server.client_id.as_str().to_owned());
+        eprintln!("phase=removal-audit response={outcome} removed={removed:?} authority={authority:?} instance_before={:?} instance_after={:?} state={state} logins={logins:?} route={route:?} audit_before={} audit_after={}", before_removal.0, after_removal.0, json!(before_removal.1), json!(after_removal.1));
+        assert_eq!(removed, Some(fixture.database));
+        assert!(after_removal.0.is_none() && authority.is_none() && logins.is_empty() && route.is_none());
+        assert!(state["registrations"].as_array().unwrap().is_empty() && state["logins"].as_array().unwrap().is_empty());
+        assert!(!state["deployment"].is_null(), "retained deployment identity is allowed");
+        assert!(after_removal.1.starts_with(&before_removal.1));
+        assert!(after_removal.1[before_removal.1.len()..].iter().any(|record|
+            record["detail"]["activity"] == "deregister" && record["outcome"] == "success"),
+            "documented intentional removal has no audit of its ended registration");
+    }).await.expect("bounded intentional-instance-removal audit probe");
+}
+
+/// Refusing only the post-admission served marker must not leave a committed
+/// registration without its required Register audit. Rollback OR atomic audit is
+/// allowed by this probe; it does not require unaudited persistence.
+#[tokio::test]
+async fn a_served_marker_error_cannot_leave_an_unaudited_registration() {
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let fixture = AuditRegistrationFixture::new("registration-served-audit").await;
+        let before = fixture.audit_observation().await;
+        sqlx::query_file!("src/registration/store/tests/refuse_served.sql")
+            .execute(fixture.db.a.pool()).await.unwrap();
+        let registration = fixture.register().await;
+        let outcome = registration_outcome(&registration);
+        let served_error = matches!(&registration, Err(crate::registration::RegistrationError::Internal(error))
+            if error.chain().any(|cause| cause.to_string().contains("fixture refuses postcommit served marker")));
+        let logins = fixture.logins().await;
+        let state = snapshot_for_server(&fixture.db.a, fixture.instance.deployment, fixture.request.metadata.slug().as_str(), &logins).await;
+        let after = fixture.audit_observation().await;
+        let authority = fixture.store.instance(&crate::registration::digest(fixture.instance.registration_token.expose_secret())).await.unwrap();
+        // Explicit refresh observes persisted rows, not notification convergence;
+        // the service reload/information path was never reached. The store's
+        // Register audit must already be committed before the served marker.
+        fixture.service.refresh().await.unwrap();
+        let route = fixture.catalog.snapshot().catalog().registrations().deployment(&fixture.instance.deployment)
+            .map(|server| server.client_id.as_str().to_owned());
+        let rows = state["registrations"].as_array().unwrap();
+        let register_audited = after.1.iter().any(|record|
+            record["detail"]["activity"] == "register" && record["outcome"] == "success");
+        eprintln!("phase=served-error response={outcome} served_error={served_error} authority={authority:?} instance_before={:?} instance_after={:?} state={state} logins={logins:?} route={route:?} audit_before={} audit_after={}", before.0, after.0, json!(before.1), json!(after.1));
+        assert!(served_error, "probe did not reach the real served marker refusal: {outcome}");
+        assert_eq!(before.0, after.0, "refused marker changes no instance fields");
+        assert_eq!(authority, Some((fixture.instance.deployment, fixture.database)));
+        for row in rows {
+            assert_eq!(row["metadata"], json!(fixture.request.metadata));
+            assert_eq!(row["software_statement_digest"], crate::registration::digest(fixture.request.software_statement.as_str()).as_str());
+        }
+        assert!(rows.is_empty() || register_audited,
+            "a real served error returned after admission committed without the required registration audit");
+    }).await.expect("bounded postcommit-served audit probe");
+}
+
+async fn audit_records(
+    store: &PlatformStore,
+    deployment: DeploymentId,
+    server: &ServerSlug,
+) -> Vec<Value> {
+    let target = format!("veoveo://servers/{server}");
+    sqlx::query_file!(
+        "src/registration/store/tests/audit_observation.sql",
+        deployment.as_uuid(),
+        target
+    )
+    .fetch_one(store.pool())
+    .await
+    .unwrap()
+    .records
+    .as_array()
+    .unwrap()
+    .clone()
+}
+
+fn audit_activities(records: &[Value]) -> Vec<&str> {
+    records
+        .iter()
+        .map(|record| record["detail"]["activity"].as_str().unwrap())
+        .collect()
+}
+
+async fn audit_fault(store: &PlatformStore, activity: Option<&str>) {
+    // Utility statements defer fixture-table lookup until execution, after this
+    // test has installed refuse_audit.sql. Ordinary SQLx/conformance databases
+    // need only the real Core and Hub migrations.
+    let query = match activity {
+        None => sqlx::query_file!("src/registration/store/tests/audit_fault_off.sql"),
+        Some("claim_namespace") => {
+            sqlx::query_file!("src/registration/store/tests/audit_fault_claim_namespace.sql")
+        }
+        Some("register") => {
+            sqlx::query_file!("src/registration/store/tests/audit_fault_register.sql")
+        }
+        Some("replace") => {
+            sqlx::query_file!("src/registration/store/tests/audit_fault_replace.sql")
+        }
+        Some("update") => sqlx::query_file!("src/registration/store/tests/audit_fault_update.sql"),
+        Some("deregister") => {
+            sqlx::query_file!("src/registration/store/tests/audit_fault_deregister.sql")
+        }
+        Some("expire") => sqlx::query_file!("src/registration/store/tests/audit_fault_expire.sql"),
+        Some(other) => panic!("unsupported fixture audit activity: {other}"),
+    };
+    query.execute(store.pool()).await.unwrap();
+}
+
+fn assert_audit_failure(error: &anyhow::Error) {
+    assert!(
+        error.chain().any(|cause| cause
+            .to_string()
+            .contains("fixture refuses registration audit")),
+        "operation must reach the actual audit refusal: {error:#}"
+    );
+}
+
+/// A valid typed namespace candidate with unique cluster-wide role names. These
+/// store-level probes exercise SQL/audit effects; real service signature/token and
+/// issued-material behavior is separately exercised by the service regressions.
+fn audited_candidate(
+    key: &ServerKeyPair,
+    deployment: DeploymentId,
+    revision: u8,
+    now: DateTime<Utc>,
+) -> Candidate {
+    let suffix = format!("{revision:014x}");
+    let mut candidate = Candidate::new(key, deployment, &suffix, revision, now);
+    let slug = ServerSlug::parse(format!("audit-{}", deployment.as_uuid().simple())).unwrap();
+    candidate.metadata.registration.slug = slug.clone();
+    candidate.metadata.registration.uri_scheme = ResourceScheme::parse(slug.as_str()).unwrap();
+    candidate.metadata.check().unwrap();
+    candidate.client = OAuthClientId::parse(format!("{slug}-{suffix}")).unwrap();
+    candidate.login = ServerSchema::new(&slug).unwrap().login(&suffix).unwrap();
+    candidate.statement = key
+        .sign_statement(
+            &candidate.metadata,
+            &"https://registration-probe.example/register"
+                .parse()
+                .unwrap(),
+            now,
+        )
+        .unwrap();
+    candidate
+}
+
+/// Audit failure at each actual domain boundary must leave its earlier domain
+/// writes and earlier audits uncommitted. Clearing the fault permits a real retry;
+/// missing updates/deletes and separate orphan-marker maintenance retain their scope.
+#[tokio::test]
+async fn namespace_registration_audit_failures_roll_back_and_retry() {
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let db = crate::test_store::TestDb::new().await;
+        let store = RegistrationStore::new(db.a.clone());
+        let key = ServerKeyPair::generate().unwrap();
+        let deployment = DeploymentId::new();
+        let now = Utc::now().trunc_subsecs(6);
+        let first = audited_candidate(&key, deployment, 1, now);
+        let second = audited_candidate(&key, deployment, 2, now + TimeDelta::seconds(1));
+        let third = audited_candidate(&key, deployment, 3, now + TimeDelta::seconds(2));
+        let fourth = audited_candidate(&key, deployment, 4, now + TimeDelta::seconds(3));
+        let slug = first.metadata.slug();
+        let logins = vec![
+            first.login.as_str().to_owned(),
+            second.login.as_str().to_owned(),
+            fourth.login.as_str().to_owned(),
+        ];
+        sqlx::query_file!("src/registration/store/tests/refuse_audit.sql")
+            .execute(db.a.pool())
+            .await
+            .unwrap();
+        let before = snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await;
+        // Register refusal happens AFTER ClaimNamespace was already appended
+        // privately, proving both that earlier audit and namespace/role writes roll back.
+        for activity in ["claim_namespace", "register"] {
+            audit_fault(&db.a, Some(activity)).await;
+            assert_audit_failure(&first.register(&store).await.unwrap_err());
+            assert_eq!(
+                snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await,
+                before
+            );
+            assert!(audit_records(&db.a, deployment, slug).await.is_empty());
+        }
+        audit_fault(&db.a, None).await;
+        assert_eq!(first.register(&store).await.unwrap().0, Pin::Claimed);
+        assert_eq!(
+            audit_activities(&audit_records(&db.a, deployment, slug).await),
+            ["claim_namespace", "register"]
+        );
+
+        let before_replace = snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await;
+        let prior_audits = audit_records(&db.a, deployment, slug).await;
+        audit_fault(&db.a, Some("register")).await;
+        assert_audit_failure(&second.register(&store).await.unwrap_err());
+        assert_eq!(
+            snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await,
+            before_replace
+        );
+        assert_eq!(audit_records(&db.a, deployment, slug).await, prior_audits);
+        audit_fault(&db.a, None).await;
+        let (pin, ended) = second.register(&store).await.unwrap();
+        assert_eq!(pin, Pin::Held);
+        assert_eq!(ended.len(), 1);
+        assert_eq!(ended[0].client_id, first.client);
+        assert_eq!(
+            audit_activities(&audit_records(&db.a, deployment, slug).await),
+            ["claim_namespace", "register", "replace", "register"]
+        );
+
+        let before_update = snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await;
+        let prior_audits = audit_records(&db.a, deployment, slug).await;
+        audit_fault(&db.a, Some("update")).await;
+        assert_audit_failure(
+            &store
+                .update(&second.client, &third.metadata, &third.statement, third.now)
+                .await
+                .unwrap_err(),
+        );
+        assert_eq!(
+            snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await,
+            before_update
+        );
+        assert_eq!(audit_records(&db.a, deployment, slug).await, prior_audits);
+        audit_fault(&db.a, None).await;
+        store
+            .update(&second.client, &third.metadata, &third.statement, third.now)
+            .await
+            .unwrap();
+        let updated = store.registration(&second.client).await.unwrap().unwrap();
+        assert_eq!(updated.metadata, third.metadata);
+        assert_eq!(updated.software_statement, third.statement);
+        assert_eq!(updated.issued_at, second.now);
+        let before_missing = snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await;
+        let prior_audits = audit_records(&db.a, deployment, slug).await;
+        // Fourth's client has never been admitted. Its pending deployment update
+        // must roll back with no audit, retaining the established no-op contract.
+        store
+            .update(
+                &fourth.client,
+                &fourth.metadata,
+                &fourth.statement,
+                fourth.now,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await,
+            before_missing
+        );
+        assert_eq!(audit_records(&db.a, deployment, slug).await, prior_audits);
+
+        audit_fault(&db.a, Some("deregister")).await;
+        assert_audit_failure(&store.deregister(&second.client).await.unwrap_err());
+        assert_eq!(
+            snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await,
+            before_missing
+        );
+        assert_eq!(audit_records(&db.a, deployment, slug).await, prior_audits);
+        audit_fault(&db.a, None).await;
+        assert_eq!(
+            store
+                .deregister(&second.client)
+                .await
+                .unwrap()
+                .unwrap()
+                .client_id,
+            second.client
+        );
+        let deregistered_audits = audit_records(&db.a, deployment, slug).await;
+        assert!(store.deregister(&second.client).await.unwrap().is_none());
+        assert_eq!(
+            audit_records(&db.a, deployment, slug).await,
+            deregistered_audits
+        );
+
+        fourth.register(&store).await.unwrap();
+        let before_expiry = snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await;
+        let prior_audits = audit_records(&db.a, deployment, slug).await;
+        let marked = now + TimeDelta::seconds(10);
+        audit_fault(&db.a, Some("expire")).await;
+        assert_audit_failure(
+            &store
+                .collect(marked, marked + TimeDelta::seconds(1))
+                .await
+                .unwrap_err(),
+        );
+        let mut expiry_failed =
+            snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await;
+        assert_eq!(
+            timestamp(&expiry_failed["registrations"][0]["orphaned_at"]),
+            marked
+        );
+        // Marking is intentionally outside the expired-row removal transaction.
+        expiry_failed["registrations"][0]["orphaned_at"] = Value::Null;
+        assert_eq!(expiry_failed, before_expiry);
+        assert_eq!(audit_records(&db.a, deployment, slug).await, prior_audits);
+        audit_fault(&db.a, None).await;
+        let expired = store
+            .collect(marked, marked + TimeDelta::seconds(1))
+            .await
+            .unwrap();
+        assert_eq!(expired.len(), 1);
+        assert_eq!(expired[0].client_id, fourth.client);
+        assert!(store.registrations().await.unwrap().is_empty());
+        let final_audits = audit_records(&db.a, deployment, slug).await;
+        assert_eq!(
+            audit_activities(&final_audits),
+            [
+                "claim_namespace",
+                "register",
+                "replace",
+                "register",
+                "update",
+                "deregister",
+                "register",
+                "expire"
+            ]
+        );
+        assert!(
+            store
+                .collect(marked, marked + TimeDelta::seconds(1))
+                .await
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(audit_records(&db.a, deployment, slug).await, final_audits);
+        eprintln!(
+            "phase=namespace-audit-rollback-retry activities={:?} final={}",
+            audit_activities(&final_audits),
+            snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await
+        );
+    })
+    .await
+    .expect("bounded namespace registration audit rollback/retry");
+}
+
+#[tokio::test]
+async fn instance_registration_and_removal_audit_failures_roll_back_and_retry() {
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let mut fixture = AuditRegistrationFixture::new("registration-atomic-audit").await;
+        sqlx::query_file!("src/registration/store/tests/refuse_audit.sql")
+            .execute(fixture.db.a.pool())
+            .await
+            .unwrap();
+        let before_instance = fixture.audit_observation().await;
+        let before = snapshot_for_server(
+            &fixture.db.a,
+            fixture.instance.deployment,
+            fixture.request.metadata.slug().as_str(),
+            &[],
+        )
+        .await;
+        audit_fault(&fixture.db.a, Some("register")).await;
+        let refused = fixture.register().await;
+        let outcome = registration_outcome(&refused);
+        match refused {
+            Err(crate::registration::RegistrationError::Internal(error)) => {
+                assert_audit_failure(&error)
+            }
+            _ => panic!("first instance admission did not reach the audit refusal: {outcome}"),
+        }
+        assert_eq!(
+            snapshot_for_server(
+                &fixture.db.a,
+                fixture.instance.deployment,
+                fixture.request.metadata.slug().as_str(),
+                &[]
+            )
+            .await,
+            before
+        );
+        assert!(fixture.logins().await.is_empty());
+        assert_eq!(fixture.audit_observation().await, before_instance);
+        audit_fault(&fixture.db.a, None).await;
+        let before_time = Utc::now();
+        let first = fixture.register().await.unwrap();
+        fixture
+            .assert_information(&first, before_time, Utc::now())
+            .await;
+
+        let prior_audits = fixture.audit_observation().await;
+        let old_logins = fixture.logins().await;
+        let before_noop = snapshot_for_server(
+            &fixture.db.a,
+            fixture.instance.deployment,
+            fixture.request.metadata.slug().as_str(),
+            &old_logins,
+        )
+        .await;
+        let update = veoveo_hub_sdk::registration::ClientUpdateRequest {
+            client_id: first.client_id.clone(),
+            metadata: fixture.request.metadata.clone(),
+            software_statement: fixture
+                .signing
+                .sign_statement(
+                    &fixture.request.metadata,
+                    &first.registration_client_uri,
+                    Utc::now(),
+                )
+                .unwrap(),
+        };
+        let unchanged = fixture
+            .service
+            .update(
+                first.client_id.as_str(),
+                super::super::service::Bearer::Presented(
+                    first.registration_access_token.expose_secret(),
+                ),
+                &serde_json::to_vec(&update).unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(unchanged.client_id, first.client_id);
+        assert!(unchanged.database.is_none());
+        assert_eq!(
+            snapshot_for_server(
+                &fixture.db.a,
+                fixture.instance.deployment,
+                fixture.request.metadata.slug().as_str(),
+                &old_logins
+            )
+            .await,
+            before_noop
+        );
+        assert_eq!(fixture.audit_observation().await, prior_audits);
+
+        fixture.request.metadata.registration.version = ServerVersion::new("2.0.0").unwrap();
+        fixture.request.software_statement = fixture
+            .signing
+            .sign_statement(
+                &fixture.request.metadata,
+                fixture.service.registration_endpoint(),
+                Utc::now(),
+            )
+            .unwrap();
+        audit_fault(&fixture.db.a, Some("replace")).await;
+        let refused = fixture.register().await;
+        let outcome = registration_outcome(&refused);
+        match refused {
+            Err(crate::registration::RegistrationError::Internal(error)) => {
+                assert_audit_failure(&error)
+            }
+            _ => panic!("instance replacement did not reach audit refusal: {outcome}"),
+        }
+        assert_eq!(
+            snapshot_for_server(
+                &fixture.db.a,
+                fixture.instance.deployment,
+                fixture.request.metadata.slug().as_str(),
+                &old_logins
+            )
+            .await,
+            before_noop
+        );
+        assert_eq!(fixture.logins().await, old_logins);
+        assert_eq!(fixture.audit_observation().await, prior_audits);
+        audit_fault(&fixture.db.a, None).await;
+        let before_time = Utc::now();
+        let second = fixture.register().await.unwrap();
+        fixture
+            .assert_information(&second, before_time, Utc::now())
+            .await;
+        assert_ne!(second.client_id, first.client_id);
+        let mut all_logins = old_logins;
+        all_logins.extend(fixture.logins().await);
+        let before_remove = snapshot_for_server(
+            &fixture.db.a,
+            fixture.instance.deployment,
+            fixture.request.metadata.slug().as_str(),
+            &all_logins,
+        )
+        .await;
+        let prior_audits = fixture.audit_observation().await;
+        audit_fault(&fixture.db.a, Some("deregister")).await;
+        assert_audit_failure(
+            &crate::registration::remove_instance(&fixture.db.a, fixture.instance.deployment)
+                .await
+                .unwrap_err(),
+        );
+        assert_eq!(
+            snapshot_for_server(
+                &fixture.db.a,
+                fixture.instance.deployment,
+                fixture.request.metadata.slug().as_str(),
+                &all_logins
+            )
+            .await,
+            before_remove
+        );
+        assert_eq!(fixture.audit_observation().await, prior_audits);
+        audit_fault(&fixture.db.a, None).await;
+        assert_eq!(
+            crate::registration::remove_instance(&fixture.db.a, fixture.instance.deployment)
+                .await
+                .unwrap(),
+            Some(fixture.database.clone())
+        );
+        assert!(fixture.logins().await.is_empty());
+        let final_audits = fixture.audit_observation().await;
+        assert!(final_audits.0.is_none());
+        assert_eq!(
+            audit_activities(&final_audits.1),
+            ["register", "replace", "register", "deregister"]
+        );
+        assert!(
+            crate::registration::remove_instance(&fixture.db.a, fixture.instance.deployment)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(fixture.audit_observation().await, final_audits);
+        eprintln!(
+            "phase=instance-audit-rollback-retry activities={:?} final={}",
+            audit_activities(&final_audits.1),
+            snapshot_for_server(
+                &fixture.db.a,
+                fixture.instance.deployment,
+                fixture.request.metadata.slug().as_str(),
+                &all_logins
+            )
+            .await
+        );
+    })
+    .await
+    .expect("bounded instance registration/removal audit rollback/retry");
 }

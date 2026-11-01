@@ -123,8 +123,9 @@ These are deliberate model faults, not additional native defects or SQL faults.
 
 The scoped store-model qualification includes its original-race witness, valid
 executions and semantic controls. Next are complete native response payloads and
-postcommit service effects, followed by broader lifecycle composition. The store
-commit precedes service audits, catalog reloads, `served_at` and response construction;
+postcommit service effects, followed by broader lifecycle composition. At the
+pinned native revision `12a132d`, store commit precedes service audits, catalog
+reloads, `served_at` and response construction;
 an error in those steps cannot be interpreted as rollback. SQLValid preservation
 and native SQL refinement remain separate obligations.
 
@@ -136,6 +137,15 @@ nested-loop returns, dynamic/arrow types and string/iterator lifetime constructs
 No Lean response model was emitted. Production code and own helper transparency
 were unchanged; no additional response proof follows from that extraction attempt.
 Native response/postcommit and audit contracts are the next source-review boundary.
+
+The subsequent [native audit correction](evidence/native-audit-fix.json) moves
+registration audits into their owning transactions and records intentional
+instance removal. Fault/rollback/retry probes and full Mac/Linux checks pass.
+Served markers, reloads and response construction remain postcommit. The seven
+checked lifetime modules are unchanged; their earlier model does not thereby
+acquire audit coverage. A separate audited store extension must establish its
+projection and combined contract before claiming applicability to those effects.
+Complete service payloads, successful served writes and liveness remain separate.
 
 Namespace writers, token reissue, RFC 7592 updates, housekeeping, allocation/recreation,
 ID reuse, other normal row writers, distributed ordering, listener convergence,

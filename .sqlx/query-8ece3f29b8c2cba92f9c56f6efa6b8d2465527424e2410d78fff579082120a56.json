@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Only the service's post-admission UPDATE names served_at. Installation fixture\n-- has one instance and no Factory/watcher; admission's store transaction does not\n-- execute this UPDATE. The trigger exists only in this disposable test database.\nDO $fixture$\nBEGIN\n    CREATE FUNCTION hub.registration_fixture_refuse_served() RETURNS trigger\n        LANGUAGE plpgsql AS $refuse$\n        BEGIN\n            RAISE EXCEPTION 'fixture refuses postcommit served marker';\n        END;\n        $refuse$;\n    CREATE TRIGGER registration_fixture_refuse_served\n        BEFORE UPDATE OF served_at ON hub.instance\n        FOR EACH ROW EXECUTE FUNCTION hub.registration_fixture_refuse_served();\nEND;\n$fixture$;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "8ece3f29b8c2cba92f9c56f6efa6b8d2465527424e2410d78fff579082120a56"
+}

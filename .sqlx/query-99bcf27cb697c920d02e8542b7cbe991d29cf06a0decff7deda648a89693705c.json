@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    (SELECT to_jsonb(i) FROM hub.instance AS i WHERE i.deployment = $1) AS \"instance\",\n    (SELECT coalesce(jsonb_agg(r.draft ORDER BY r.sequence), '[]'::jsonb)\n       FROM audit.record AS r\n      WHERE r.class = 'hub.registration' AND r.target = $2) AS \"records!\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "instance",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "records!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "99bcf27cb697c920d02e8542b7cbe991d29cf06a0decff7deda648a89693705c"
+}

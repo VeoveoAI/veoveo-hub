@@ -161,7 +161,6 @@ fn profile_authentication(
     let registrations = crate::registration::RegistrationService::new(
         hub.platform_store().clone(),
         catalog.clone(),
-        hub.clone(),
         crate::registration::RegistrationIdentity {
             issuer: issuer.clone(),
             signing_key: key(),

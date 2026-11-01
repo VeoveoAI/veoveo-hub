@@ -161,7 +161,7 @@ impl RegistrationService {
         let now = Utc::now();
         let grace = TimeDelta::from_std(self.inner.grace)?;
         for ended in self.inner.store.collect(now, now - grace).await? {
-            self.ended(&ended, RegistrationActivity::Expire).await?;
+            self.ended(&ended, RegistrationActivity::Expire);
         }
         Ok(())
     }

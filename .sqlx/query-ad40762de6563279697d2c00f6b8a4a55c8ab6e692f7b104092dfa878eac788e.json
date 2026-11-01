@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Test-only utility statement: the selector exists only after refuse_audit.sql.\n-- Preparing/planning this DO needs no fixture relation in the migrated schema.\nDO $fixture$\nDECLARE\n    changed bigint;\nBEGIN\n    UPDATE hub.registration_fixture_audit_fault\n    SET activity = 'update'\n    WHERE singleton;\n    GET DIAGNOSTICS changed = ROW_COUNT;\n    IF changed <> 1 THEN\n        RAISE EXCEPTION 'expected exactly one fixture audit selector, changed %', changed;\n    END IF;\nEND;\n$fixture$;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "ad40762de6563279697d2c00f6b8a4a55c8ab6e692f7b104092dfa878eac788e"
+}

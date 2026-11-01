@@ -3,14 +3,13 @@
 
 use std::{sync::Arc, time::Duration};
 
-use crate::audit::{Registration, RegistrationActivity, hub_audit};
+use crate::audit::RegistrationActivity;
 use crate::contract::SecretPurpose;
 use anyhow::Context;
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
 use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
-use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditRequest};
 use veoveo_hub_sdk::registration::{
     AccessTokenTrust, AppOrigin, ClientInformation, ClientMetadata, ClientRegistrationRequest,
     ClientUpdateRequest, DatabaseGrant, DatabaseIdentifier, DatabaseUrl, Ed25519Jwk, Ed25519JwkSet,
@@ -27,7 +26,7 @@ use super::{
     watch::LiveRegistrations,
 };
 use crate::data_environment::{self, DatabaseName};
-use crate::{HubCatalogHandle, HubSecretResolver, HubState};
+use crate::{HubCatalogHandle, HubSecretResolver};
 
 /// The database a registered server reaches, as its registration grant names it.
 /// Servers and the Hub may reach the same database at different addresses.
@@ -85,7 +84,6 @@ pub struct RegistrationService {
 pub(super) struct Inner {
     pub(super) store: RegistrationStore,
     pub(super) catalog: HubCatalogHandle,
-    pub(super) hub: HubState,
     pub(super) issuer: TokenIssuer,
     pub(super) registration_endpoint: url::Url,
     pub(super) jwks_uri: url::Url,
@@ -228,7 +226,6 @@ impl RegistrationService {
     pub fn new(
         store: veoveo_store::PlatformStore,
         catalog: HubCatalogHandle,
-        hub: HubState,
         identity: RegistrationIdentity,
         database: ServerDatabase,
         grace: Duration,
@@ -247,7 +244,6 @@ impl RegistrationService {
             inner: Arc::new(Inner {
                 store: RegistrationStore::new(store),
                 catalog,
-                hub,
                 issuer: identity.issuer,
                 registration_endpoint,
                 jwks_uri,
@@ -392,14 +388,10 @@ impl RegistrationService {
                             "the namespace is pinned to another key",
                         ));
                     }
-                    Pin::Claimed => {
-                        self.audit(&slug, RegistrationActivity::ClaimNamespace)
-                            .await?;
-                    }
-                    Pin::Held => {}
+                    Pin::Claimed | Pin::Held => {}
                 }
                 for replaced in replaced {
-                    self.ended(&replaced, RegistrationActivity::Replace).await?;
+                    self.ended(&replaced, RegistrationActivity::Replace);
                     self.reload(&replaced.client_id).await?;
                 }
             }
@@ -417,7 +409,7 @@ impl RegistrationService {
                     .await?
                     .ok_or(RegistrationError::Unauthorized { token_sent: true })?
                 {
-                    self.ended(&replaced, RegistrationActivity::Replace).await?;
+                    self.ended(&replaced, RegistrationActivity::Replace);
                     self.reload(&replaced.client_id).await?;
                 }
                 self.inner
@@ -426,7 +418,6 @@ impl RegistrationService {
                     .await?;
             }
         }
-        self.audit(&slug, RegistrationActivity::Register).await?;
         self.reload(&client_id).await?;
         tracing::info!(server = %slug, client_id = %client_id, %login, "server registered");
         let database = DatabaseGrant {
@@ -539,7 +530,6 @@ impl RegistrationService {
                     now,
                 )
                 .await?;
-            self.audit(slug, RegistrationActivity::Update).await?;
             self.reload(&registration.client_id).await?;
         }
         self.information(
@@ -560,19 +550,14 @@ impl RegistrationService {
     ) -> Result<(), RegistrationError> {
         let (registration, _) = self.authenticate(client_id, bearer).await?;
         if let Some(ended) = self.inner.store.deregister(&registration.client_id).await? {
-            self.ended(&ended, RegistrationActivity::Deregister).await?;
+            self.ended(&ended, RegistrationActivity::Deregister);
         }
         self.reload(&registration.client_id).await?;
         Ok(())
     }
 
-    /// Record why a registration ended.
-    pub(super) async fn ended(
-        &self,
-        registration: &EndedRegistration,
-        activity: RegistrationActivity,
-    ) -> anyhow::Result<()> {
-        self.audit(&registration.server, activity).await?;
+    /// Log an ended registration after its domain and audit transaction committed.
+    pub(super) fn ended(&self, registration: &EndedRegistration, activity: RegistrationActivity) {
         tracing::info!(
             server = %registration.server,
             client_id = %registration.client_id,
@@ -580,7 +565,6 @@ impl RegistrationService {
             ?activity,
             "server registration ended"
         );
-        Ok(())
     }
 
     /// The authority of an initial access token: an instance's registration token is
@@ -720,21 +704,6 @@ impl RegistrationService {
             None
         };
         Ok((public_base, app_origin))
-    }
-
-    pub(super) async fn audit(
-        &self,
-        server: &veoveo_types::ServerSlug,
-        activity: RegistrationActivity,
-    ) -> anyhow::Result<()> {
-        let draft = AuditDraft::builder(
-            AuditRequest::background(),
-            hub_audit().detail(&Registration { activity })?,
-            AuditOutcome::Success,
-        )
-        .target(crate::audit::server_target(server)?)
-        .build()?;
-        self.inner.hub.record_audit(draft).await
     }
 }
 

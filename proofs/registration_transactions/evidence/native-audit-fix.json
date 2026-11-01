@@ -1,0 +1,681 @@
+{
+  "scope": "Native PostgreSQL component qualification of transactional registration audit; no Lean theorem, deployment or model-driven acceptance.",
+  "source": {
+    "hub_base_commit": "e060b328ac79ad5e1870de37af30a0ec627e9d64",
+    "hub_runtime_basis": "12a132dcbdddcd7fad1defcd007432385d237a76",
+    "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "sdk_pin": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+    "final_file_count": 1251,
+    "final_source_map_sha256": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+    "pre_post_source_equal": true,
+    "post_focused_changes": [
+      {
+        "scope": "Fixed utility DO selectors replace direct UPDATE of fixture table; production queries/runtime unchanged.",
+        "formatted_concurrency_tests_sha256": "08e882e50a3ea2aa409b8bee20e3711a3781b2d046a49176ccfaec3d598d7cc5"
+      },
+      {
+        "scope": "Existing factory test bounded wait includes the parent revision it already asserts; final assertions and factory runtime unchanged.",
+        "factory_tests_sha256": "36d09ef31bae338de7feab3ee4a8156ca4d8f87fc8ab02567614008d08e0ed5e"
+      },
+      {
+        "scope": "Temporary Dockerfile fixture setup reverted exactly; final Dockerfile unchanged from base."
+      }
+    ],
+    "initial_focused_source_map_sha256": "e55564b42712e4fdc3213f08d5c5d640992133c6866e7c5ba465c638e96cdc89",
+    "initial_focused_file_count": 1239,
+    "initial_packet_manifest_sha256": "7deb09d5c2bbf82123c34d0c4e798ce040e8ed5c7e6e8606b4756c8eb1b57dfb",
+    "initial_formatted_source_map_sha256": "1ff8d1e36fb9d158dd55b3e5e58776720db196336776cbcd5b99a73dd647f0f7",
+    "initial_rustfmt_diff_bytes": 26579,
+    "initial_rustfmt_diff_sha256": "e4b1049a5ddb9e10208b9e4e450030d15867c55948c36b6f980154a0fff10afd",
+    "initial_formatted_files": [
+      "crates/veoveo-hub/src/registration/service.rs",
+      "crates/veoveo-hub/src/registration/store.rs",
+      "crates/veoveo-hub/src/registration/store/concurrency_tests.rs"
+    ],
+    "initial_rustfmt_replay": "Reformatting the three frozen original files with rustfmt.toml reproduced each final formatted file byte-for-byte; formatting-only.",
+    "initial_formatted_file_sha256": {
+      "crates/veoveo-hub/src/registration/service.rs": "a41f551a7f628fa4d18d1eb79ea1ba7a8ff0b1cd0a90b18cdbf13069c4447457",
+      "crates/veoveo-hub/src/registration/store.rs": "a962491ea7d2df2c047950654920ea61d5444950d4fae3942625986e5899d1a5",
+      "crates/veoveo-hub/src/registration/store/concurrency_tests.rs": "06db288f89f89aeabdd06bfe61df1a45ad7cc03ccee6cf9f340d960c6f7872cc"
+    },
+    "current_nonproof_bytes_match_qualified_snapshot": true
+  },
+  "implementation": {
+    "mechanism": "Existing Core AuditTransactionWrite::append on the same connection and transaction as domain writes; one record per append.",
+    "paths": [
+      "register",
+      "register_instance",
+      "update",
+      "deregister",
+      "collect",
+      "remove_instance"
+    ],
+    "unchanged": [
+      "native token/signature/namespace admission",
+      "lock order",
+      "missing and unchanged operation semantics",
+      "separate external environment preparation",
+      "postcommit served marker, catalog reload and response assembly"
+    ]
+  },
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "builds_checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "sqlx_prepare": {
+    "exit": 0,
+    "command": "SQLX_OFFLINE=false cargo sqlx prepare --no-dotenv --workspace --all -- --package veoveo-hub --all-targets --all-features",
+    "fixture_sql_executed_once": "crates/veoveo-hub/src/registration/store/tests/refuse_audit.sql",
+    "records_before": 295,
+    "records_after": 297,
+    "added_records": [
+      {
+        "file": "query-243db4379d23076ed90c0e600763d7d663eb6f7f5010303f7bdd7ceaee3f5c9b.json",
+        "sha256": "f0115e7d783501d720a683062e2b1566121c4cf88152490f0ea41bedf44d257e"
+      },
+      {
+        "file": "query-506828dbdd9d5c7cd24f11fa82da043f255b413ab23ce1353f055c68c53cfd7e.json",
+        "sha256": "b3f6193a7889af68b484768dba7d1b15b97dba9d75caf7f7ced644156bcd428b"
+      }
+    ],
+    "changed_or_removed_records": 0,
+    "metadata_map_before_sha256": "253794d18377b86f5f1b29affbb90e27e513dd6764cd38b2f783c3cccd41e0d9",
+    "metadata_map_after_sha256": "5ce4bd65d810b8301b6f09e24ae6649eaaf821a6cf3ff3c91dbb965992a8b23a",
+    "log": "sqlx-prepare.log",
+    "log_sha256": "0b980677449296d2b8056884715ca576b1acd3d7edc4e966c6ae0292bedffa96"
+  },
+  "focused_validation": {
+    "command": "docker build --progress=plain --target registration-audit-clippy -t hub-registration-audit:fix1 -f Audit.Dockerfile source",
+    "docker_exit": 0,
+    "outer_timeout_seconds": 5400,
+    "dockerfile_sha256": "614a3a359b0465b37f95ecf3e6d273b895bfb3bc3e491ffe4b4c99b79a29a030",
+    "buildkit_stages_seconds": {
+      "compile": 112.6,
+      "focused_tests": 54.0,
+      "strict_clippy": 18.8
+    },
+    "test_commands": [
+      {
+        "filter": "registration::store::concurrency_tests::",
+        "passed": 9,
+        "failed": 0,
+        "filtered": 329,
+        "test_body_seconds": 2.04,
+        "cargo_exit": 0
+      },
+      {
+        "filter": "registration::service::tests::",
+        "passed": 3,
+        "failed": 0,
+        "filtered": 335,
+        "test_body_seconds": 0.03,
+        "cargo_exit": 0
+      },
+      {
+        "target": "--test registration",
+        "passed": 1,
+        "failed": 0,
+        "filtered": 0,
+        "test_body_seconds": 26.37,
+        "cargo_exit": 0
+      },
+      {
+        "target": "--test instance_registration",
+        "passed": 7,
+        "failed": 0,
+        "filtered": 0,
+        "test_body_seconds": 22.74,
+        "cargo_exit": 0
+      }
+    ],
+    "total_tests_passed": 20,
+    "total_tests_failed": 0,
+    "strict_library_clippy": "passed (-D warnings)",
+    "test_binaries": [
+      {
+        "path": "target/debug/deps/veoveo_hub-b339354d3c2cf9a6",
+        "bytes": 841433416,
+        "sha256": "33ca48efdbe5234d46dcd31dab7fbac74040314badcebef534a478b7e2666e10"
+      },
+      {
+        "path": "target/debug/deps/registration-11d14e8c9bde5fb2",
+        "bytes": 672029560,
+        "sha256": "c3cc520fbbae5f186c56111457e2912aef64754763cb7520acb2627b2d4735be"
+      },
+      {
+        "path": "target/debug/deps/instance_registration-1a74511c7fbe1013",
+        "bytes": 583079120,
+        "sha256": "39626a36af2048b15ce8b35a3bc0be1122d563be3998dff20ee4a04545919b72"
+      }
+    ],
+    "build_log": "focused-final.log",
+    "build_log_bytes": 42514,
+    "build_log_sha256": "9efb5fe355a9fd7f7edf823936086cca007a586340a01b3f33bd26ea66bde2e3",
+    "summary_file": "focused-final.summary.json",
+    "summary_sha256": "404946b8ea30ab3a2fd33096c2c330728f457093edf54152dc72e21dd503cd94",
+    "host": "Ubuntu Linux x86_64, private Docker component checks",
+    "source_map_sha256": "e55564b42712e4fdc3213f08d5c5d640992133c6866e7c5ba465c638e96cdc89"
+  },
+  "observations": {
+    "intentional_removal": {
+      "deployment": "01a196ac-d325-7850-a7e6-4814af2c5fa5",
+      "before_activity": [
+        "register"
+      ],
+      "after_activities": [
+        "register",
+        "deregister"
+      ],
+      "new_audit_id": "01a196ac-d366-79c2-b4da-b0278ee350c4",
+      "instance_authority_registration_login_route": "absent after successful removal",
+      "deployment_retained": true
+    },
+    "served_refusal": {
+      "deployment": "01a196ac-d3aa-71d0-b44e-5024261c1bee",
+      "response": "internal_error from test-only served marker trigger",
+      "admission": "persisted",
+      "instance_served_at": "null and unchanged",
+      "audit_id": "01a196ac-d3bc-7982-8385-f83fa5b86368",
+      "activities": [
+        "register"
+      ]
+    },
+    "namespace_rollback_retry": {
+      "activities": [
+        "claim_namespace",
+        "register",
+        "replace",
+        "register",
+        "update",
+        "deregister",
+        "register",
+        "expire"
+      ],
+      "assertions": "Audit refusal rolls back owned rows/logins and earlier private audits; real retry succeeds; missing update/deregister and empty collect append nothing. Orphan marking remains separate."
+    },
+    "instance_rollback_retry": {
+      "activities": [
+        "register",
+        "replace",
+        "register",
+        "deregister"
+      ],
+      "assertions": "First admission, replacement and removal refusal roll back; real retries succeed; unchanged service update and missing removal append nothing."
+    }
+  },
+  "full_checks": {
+    "status": "passed on both hosts",
+    "first_attempt_receipt_sha256": "c4035516700849fabf6b9bfef0686b4947f98949d25e9bdda2fc3169545e5363",
+    "first_attempts": {
+      "source": {
+        "base_commit": "e060b328ac79ad5e1870de37af30a0ec627e9d64",
+        "effective_file_count": 1239,
+        "effective_map_sha256": "7b588e5e3ef9d5315318eef9f3aa72934c18baea085fd54dd5c84e63ca5b41b6",
+        "build_input_count": 867,
+        "build_input_map_sha256": "ce852b46e2979b5f8d3c74982e14715bb6f5fb1a13b9985c2c32613d9fdd9b78",
+        "archive_sha256": "d6c35005bdb7db79e48e460ae565af0f23c41290079adfea2e093347aa149c12"
+      },
+      "mac": {
+        "host": "macOS native Docker Desktop",
+        "runner": "/tmp/hub-registration-audit-20261101/full-check/run-docker-check.py",
+        "runner_sha256": "19f84f0fe456338e9852a3f2c6743f61ca6197ebe9011904b1e8dafcf0ee6d97",
+        "command": "docker build --target check .",
+        "runner_exit": 1,
+        "elapsed_ms": 18181,
+        "timed_out": false,
+        "source_unchanged": true,
+        "log": "mac-final1/docker-check.log",
+        "log_bytes": 19701,
+        "log_sha256": "5b48ffec42e923e0ea32f82b08f88fbac4722d75c8eda98200a983171e13f3bf",
+        "failure_stage": "Dockerfile check stage SQLx metadata check; Clippy, cargo-deny, cargo-hack and nextest were not reached.",
+        "diagnostic": "SQLx macro query_file! for set_audit_fault.sql failed because hub.registration_fixture_audit_fault does not exist in the Dockerfile migration-only database (concurrency_tests.rs:1233).",
+        "source_map_sha256": "7b588e5e3ef9d5315318eef9f3aa72934c18baea085fd54dd5c84e63ca5b41b6",
+        "summary_sha256": "ee896048ec49f3d209f69b83b1bd81bf4eb6d5dcc7d74c18f8edc6222459851e"
+      },
+      "linux": {
+        "host": "Linux native Docker on Ubuntu over SSH tunnel",
+        "runner_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/full-check/linux/run-docker-check.py",
+        "command": "python3 run-docker-check.py --platform linux --source source --evidence evidence --archive source.tar",
+        "runner_reached": false,
+        "preflight_failure": "Transferred tar extracted macOS AppleDouble entries (including ._. and ._.cargo); source map had 2611 files with map digest d7b8d9cac7e48bc872c08b0d21bb77d5602d840edc9fcec8e0571301679a9cf9, so the runner refused before Docker build.",
+        "docker_build_started": false,
+        "no_linux_build_log_created": true
+      },
+      "scope": "No application deployment, native test reruns, or repository edits occurred during full-check attempts."
+    },
+    "second_attempts": {
+      "source": {
+        "base_commit": "e060b328ac79ad5e1870de37af30a0ec627e9d64",
+        "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "sdk_pin": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+        "effective_files": 1239,
+        "effective_source_map_sha256": "b135673cae3a93707007b057612e81d29fb1136b12e9a345c45290507a2a03ac",
+        "nonproof_build_inputs": 867,
+        "nonproof_build_map_sha256": "4b19b86bce10a815eb6e37c0cac595275dcc01aca3fa1dd095e51bbd3e9de163",
+        "archive_sha256": "a28c672bf7274f7bb4f8d98b46638b9686317da72d5db86912678dd7058eb8f4",
+        "dockerfile_sha256": "b88a8160235e738694547da6af357c749809f5fd9df6745df72d5832d56f221f",
+        "dockerfile_delta": "Installs existing refuse_audit.sql into the disposable SQLx compile database after migrations; no runtime/query changes and no SQLx metadata changes."
+      },
+      "command": "docker build --target check .",
+      "timeout_seconds": 7200,
+      "mac": {
+        "docker_version": "29.8.2",
+        "runner": "run-docker-check-final.py",
+        "runner_sha256": "ebff483f36b7b2a98da931003f22c7b8f084925dbbf612002894e85742c18433",
+        "elapsed_seconds": 156.965,
+        "exit": 1,
+        "timed_out": false,
+        "sqlx_check_stage_seconds": 28.1,
+        "nextest_tests": 475,
+        "passed": 474,
+        "failed": 1,
+        "skipped": 2,
+        "failure": "database_conformance::hub_queries_follow_the_database_rules: conformance fixture does not contain hub.registration_fixture_audit_fault for set_audit_fault.sql.",
+        "other_check_commands_before_nextest": "cargo fmt, strict cargo clippy, cargo deny, cargo hack completed sufficiently for Nextest to run.",
+        "source_unchanged": true,
+        "source_map_sha256": "b135673cae3a93707007b057612e81d29fb1136b12e9a345c45290507a2a03ac",
+        "log_path": "mac-final3/docker-check.log",
+        "log_bytes": 500598,
+        "log_sha256": "001cc5011c805976e90c663fba3d8fc2c747f8f0ed72e9df02105045da7da387",
+        "summary_sha256": "468e5cb12f815ac4f88ce331472a23a393d6f983aaa2116f53c80f2932c689c3"
+      },
+      "linux": {
+        "docker_version": "29.2.1",
+        "runner": "run-docker-check-final.py",
+        "runner_sha256": "ebff483f36b7b2a98da931003f22c7b8f084925dbbf612002894e85742c18433",
+        "elapsed_seconds": 333.79,
+        "exit": 1,
+        "timed_out": false,
+        "sqlx_check_stage_seconds": 28.1,
+        "nextest_tests": 475,
+        "passed": 473,
+        "failed": 2,
+        "skipped": 2,
+        "failures": [
+          "database_conformance::hub_queries_follow_the_database_rules: conformance fixture does not contain hub.registration_fixture_audit_fault for set_audit_fault.sql.",
+          "contributions::lore::factory::tests::a_linked_branch_runs_one_runner_per_link_serving_the_branch_each_link_tracks at factory/tests.rs:1482; actual parent revision None, expected revision 111111...; principal was alice in both."
+        ],
+        "other_check_commands_before_nextest": "cargo fmt, strict cargo clippy, cargo deny, cargo hack completed sufficiently for Nextest to run.",
+        "source_unchanged": true,
+        "source_map_sha256": "b135673cae3a93707007b057612e81d29fb1136b12e9a345c45290507a2a03ac",
+        "log_path": "linux-final1/docker-check.log",
+        "log_bytes": 502091,
+        "log_sha256": "9e0709159f196c090622fc337caa6386a45cd2c6a5831ed71ccda3734d19c794",
+        "summary_sha256": "1ea9ad7e3f8ae811c26713741fad460f6aea2418793da5a550abd8d89e94a479"
+      },
+      "images_or_deployment": "Only check target was built. No release/runtime image identity, push, or deployment.",
+      "initial_attempts": {
+        "mac_final1": "Stopped in SQLx compile metadata stage because test fixture table was absent; source map matched.",
+        "linux_initial": "Runner rejected macOS tar AppleDouble artifacts before Docker; corrected portable archive had zero AppleDouble entries and exact source map."
+      }
+    },
+    "skipped_tests": [
+      {
+        "test": "mcp::native_upstreams::tests::native_requests_streaming_cancellation_and_new_connections",
+        "reason": "requires an approved native fixture and private operator configuration"
+      },
+      {
+        "test": "factory::image::tests::an_unchanged_image_builds_again_with_the_same_digest",
+        "reason": "requires a BuildKit daemon and its registry"
+      }
+    ],
+    "final_mac": {
+      "archive_path": "/private/tmp/hub-registration-audit-20261101/check-packaging3/full-check/source-snapshot.tar",
+      "archive_sha256": "4981436c92a9d2eb0acd64b07cc145e45e78d51fa784a1f81151579ad00466f2",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "check",
+        "."
+      ],
+      "complete": true,
+      "cwd": "/private/tmp/hub-registration-audit-20261101/check-packaging3/full-check/mac-source",
+      "docker_context": "desktop-linux",
+      "docker_context_file_count": 1251,
+      "docker_context_map_path": "/private/tmp/hub-registration-audit-20261101/check-packaging3/full-check/mac-run1/docker-context-map.before.json",
+      "docker_context_map_sha256": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+      "docker_ignored_files": [],
+      "docker_info": "29.8.2|Docker Desktop|16|67302940672",
+      "full_source_file_count": 1251,
+      "full_source_map_path": "/private/tmp/hub-registration-audit-20261101/check-packaging3/full-check/mac-run1/full-source-map.before.json",
+      "full_source_map_sha256": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+      "nonproof_build_input_count": 879,
+      "nonproof_build_input_map_path": "/private/tmp/hub-registration-audit-20261101/check-packaging3/full-check/mac-run1/nonproof-build-input-map.before.json",
+      "nonproof_build_input_map_sha256": "f249287c8f085fc90ca5de0488d611c74a08e5b2ebdd9cfa2fec0329b77164aa",
+      "platform": "mac",
+      "source_commit": "e060b328ac79ad5e1870de37af30a0ec627e9d64+check-packaging3",
+      "source_root": "/private/tmp/hub-registration-audit-20261101/check-packaging3/full-check/mac-source",
+      "source_tree": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+      "stages": [
+        {
+          "build_input_map_after_sha256": "f249287c8f085fc90ca5de0488d611c74a08e5b2ebdd9cfa2fec0329b77164aa",
+          "build_inputs_unchanged": true,
+          "docker_context_map_after_sha256": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+          "docker_context_unchanged": true,
+          "elapsed_ms": 129017,
+          "exit": 0,
+          "full_source_map_after_sha256": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+          "full_source_unchanged": true,
+          "log_bytes": 490277,
+          "log_path": "/private/tmp/hub-registration-audit-20261101/check-packaging3/full-check/mac-run1/docker-check.log",
+          "log_sha256": "357e1780913a71bf7850331073fc5fbeda8340f94c299d694dd24ef1c0f5c7f7",
+          "name": "docker-build-check",
+          "timed_out": false
+        }
+      ],
+      "timeout_seconds": 7200,
+      "tests": {
+        "passed": 475,
+        "failed": 0,
+        "skipped": 2,
+        "nextest_seconds": 40.818
+      }
+    },
+    "final_linux": {
+      "archive_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/check-packaging3/full-check1/source-snapshot.tar",
+      "archive_sha256": "4981436c92a9d2eb0acd64b07cc145e45e78d51fa784a1f81151579ad00466f2",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "check",
+        "."
+      ],
+      "complete": true,
+      "cwd": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/check-packaging3/full-check1/source",
+      "docker_context": "default",
+      "docker_context_file_count": 1251,
+      "docker_context_map_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/check-packaging3/full-check1/evidence/docker-context-map.before.json",
+      "docker_context_map_sha256": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+      "docker_ignored_files": [],
+      "docker_info": "29.2.1|Ubuntu 24.04.5 LTS|32|67327680512",
+      "full_source_file_count": 1251,
+      "full_source_map_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/check-packaging3/full-check1/evidence/full-source-map.before.json",
+      "full_source_map_sha256": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+      "nonproof_build_input_count": 879,
+      "nonproof_build_input_map_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/check-packaging3/full-check1/evidence/nonproof-build-input-map.before.json",
+      "nonproof_build_input_map_sha256": "f249287c8f085fc90ca5de0488d611c74a08e5b2ebdd9cfa2fec0329b77164aa",
+      "platform": "linux",
+      "source_commit": "e060b328ac79ad5e1870de37af30a0ec627e9d64+check-packaging3",
+      "source_root": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/check-packaging3/full-check1/source",
+      "source_tree": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+      "stages": [
+        {
+          "build_input_map_after_sha256": "f249287c8f085fc90ca5de0488d611c74a08e5b2ebdd9cfa2fec0329b77164aa",
+          "build_inputs_unchanged": true,
+          "docker_context_map_after_sha256": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+          "docker_context_unchanged": true,
+          "elapsed_ms": 261231,
+          "exit": 0,
+          "full_source_map_after_sha256": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+          "full_source_unchanged": true,
+          "log_bytes": 490167,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/check-packaging3/full-check1/evidence/docker-check.log",
+          "log_sha256": "10c42c4ee08176f8d6ada0ae7abb6d3388beee90523821670f20f0dcbd86093c",
+          "name": "docker-build-check",
+          "timed_out": false
+        }
+      ],
+      "timeout_seconds": 7200,
+      "tests": {
+        "passed": 475,
+        "failed": 0,
+        "skipped": 2,
+        "nextest_seconds": 55.282
+      }
+    },
+    "interpretation": "Full Docker checks execute Linux containers on Mac ARM64 and Ubuntu x86_64; final focused validation is native macOS ARM64.",
+    "final_linux_staging_notes": [
+      "GNU tar reported Unexpected EOF before Docker; matching archive hashes observed on both hosts. Python tarfile extraction followed by full source/context map equality accepted the input; no claim of a diagnosed tar bug.",
+      "A pre-created empty evidence directory was rejected before Docker. Removing that empty private directory permitted the recorded final run."
+    ]
+  },
+  "boundaries": [
+    "PostgreSQL transaction, role and locking semantics assumed, observed through real fixtures; database internals not proved.",
+    "No native SQL/async refinement theorem.",
+    "No separate bootstrap group/schema rollback observation.",
+    "Issued login connected; no independent bad-password/runtime pg_hba test.",
+    "Explicit catalog refresh does not establish listener convergence.",
+    "Complete typed response checks cover the accepted fixture only.",
+    "Focused temporary Dockerfile duplicate stage-name warnings preserved; stage outputs and identities reviewed.",
+    "Formatter diff excerpt was initially incomplete; complete three-file pinned-rustfmt replay matched final bytes."
+  ],
+  "final_sqlx_prepare": {
+    "core_migration_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "rust_toolchain": "1.99.0-aarch64-apple-darwin",
+    "sqlx_cli": "sqlx-cli 0.9.0",
+    "sqlx_baseline_count": 297,
+    "sqlx_after_count": 303,
+    "sqlx_added": [
+      "query-25c6d43b0fe05ef04c4ee64ea70b769732f6feedb34ab83852825d2a8e044ca4.json",
+      "query-4816821daa672aaec652e7f19c50f677e13a12c1b3cfe8e81ed5618a1328eed1.json",
+      "query-4ae1e159ef36caf3cb6425b2947211aacb1ab67900b75ebd257a63efb9caf5bf.json",
+      "query-869fa05aaec4a61e58864734dac576a91d2df30ce2009da25e5537d4e3a0c887.json",
+      "query-97d42c5e295cad01df566601eccbd36f450887b05aaab9f577db08bce22a1336.json",
+      "query-ad40762de6563279697d2c00f6b8a4a55c8ab6e692f7b104092dfa878eac788e.json",
+      "query-dd2b0f935a1767e9f5187e3a73b21b5d9016d31babee328a0d62f9ddbfaaeaba.json"
+    ],
+    "sqlx_removed": [
+      "query-243db4379d23076ed90c0e600763d7d663eb6f7f5010303f7bdd7ceaee3f5c9b.json"
+    ],
+    "sqlx_changed": [],
+    "sqlx_unexpected_records": [],
+    "sqlx_after_map_sha256": "6a0b0345d85123716b866f3adf0fff6aa7af93bd0cc45bf2931ecefcab5092b2",
+    "postgres_stopped": true,
+    "normal_migrations_only": true,
+    "command_seconds": 22.264,
+    "log_sha256": "4fb5f324b5fa40ebd1ed8e263cdcfd45d8e661bf6858d279c8496e3265e69045"
+  },
+  "final_focused_validation": {
+    "host": "native macOS ARM64",
+    "rust_toolchain": "1.99.0-aarch64-apple-darwin",
+    "source_map_sha256": "ee81b223cec4229cd7efc8041c3572fbeda3eb5463b5e9766c98e3cb8500301e",
+    "sqlx_map_sha256": "6a0b0345d85123716b866f3adf0fff6aa7af93bd0cc45bf2931ecefcab5092b2",
+    "source_unchanged": true,
+    "sqlx_unchanged": true,
+    "total_passed": 11,
+    "total_failed": 0,
+    "stages": [
+      {
+        "stage": "test-1-database-conformance",
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-registration-audit-20261101/check-packaging3/sqlx-adapt/sqlx-prepare-run1/source/Cargo.toml",
+          "--test",
+          "database_conformance",
+          "hub_queries_follow_the_database_rules",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-registration-audit-20261101/check-packaging3/sqlx-adapt/sqlx-prepare-run1/source",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 45910,
+        "test_run_counts": [
+          1
+        ],
+        "test_result_lines": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0",
+            "0",
+            "0",
+            "1.01"
+          ]
+        ],
+        "named_tests": [
+          [
+            "hub_queries_follow_the_database_rules",
+            "ok"
+          ]
+        ],
+        "test_binary": {
+          "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/database_conformance-dc5c485f2a57bb32",
+          "sha256": "32a841658555476f2bb4c63aaf8129c8ad538717230dcd01eb42ba4d573f4e72",
+          "bytes": 28281176,
+          "mtime_ns": 1793531068836261178
+        },
+        "log": "/tmp/hub-registration-audit-20261101/check-packaging3/focused-check1/logs/test-1-database-conformance.log",
+        "log_sha256": "80bf0ac301dfb32fe01b046596df543e051042f068561a1287d8edb2ed7aa407",
+        "log_bytes": 7821,
+        "test_label": "database-conformance",
+        "expected_count": 1
+      },
+      {
+        "stage": "test-2-registration-concurrency",
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-registration-audit-20261101/check-packaging3/sqlx-adapt/sqlx-prepare-run1/source/Cargo.toml",
+          "--lib",
+          "registration::store::concurrency_tests::",
+          "--",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-registration-audit-20261101/check-packaging3/sqlx-adapt/sqlx-prepare-run1/source",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 34415,
+        "test_run_counts": [
+          9
+        ],
+        "test_result_lines": [
+          [
+            "ok",
+            "9",
+            "0",
+            "0",
+            "0",
+            "329",
+            "1.98"
+          ]
+        ],
+        "named_tests": [
+          [
+            "registration::store::concurrency_tests::a_served_marker_error_cannot_leave_an_unaudited_registration",
+            "ok"
+          ],
+          [
+            "registration::store::concurrency_tests::namespace_registration_audit_failures_roll_back_and_retry",
+            "ok"
+          ],
+          [
+            "registration::store::concurrency_tests::stale_update_cannot_overwrite_a_replaced_registration_deployment",
+            "ok"
+          ],
+          [
+            "registration::store::concurrency_tests::ordinary_replica_and_replacement_have_a_serial_registration_outcome",
+            "ok"
+          ],
+          [
+            "registration::store::concurrency_tests::an_instance_registration_waiting_for_removal_uses_the_invalid_token_outcome",
+            "ok"
+          ],
+          [
+            "registration::store::concurrency_tests::an_authorized_first_registration_cannot_survive_instance_removal",
+            "ok"
+          ],
+          [
+            "registration::store::concurrency_tests::a_retargeted_instance_publishes_its_complete_live_registration",
+            "ok"
+          ],
+          [
+            "registration::store::concurrency_tests::intentional_instance_removal_records_the_ended_registration",
+            "ok"
+          ],
+          [
+            "registration::store::concurrency_tests::instance_registration_and_removal_audit_failures_roll_back_and_retry",
+            "ok"
+          ]
+        ],
+        "test_binary": {
+          "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-b10e884bd78a5830",
+          "sha256": "91da9f71d6cef4acd66460dc60a95449a98ac29fb1d949dd3c36b2ea09e279ee",
+          "bytes": 181078488,
+          "mtime_ns": 1793531116642855686
+        },
+        "log": "/tmp/hub-registration-audit-20261101/check-packaging3/focused-check1/logs/test-2-registration-concurrency.log",
+        "log_sha256": "c3ab7ff2bd5534bc33aee2640269723cbcb333d10e7dcc7b4c7912128337faaf",
+        "log_bytes": 26472,
+        "test_label": "registration-concurrency",
+        "expected_count": 9
+      },
+      {
+        "stage": "test-3-linked-runner",
+        "command": [
+          "/Users/rozgo/.cargo/bin/rustup",
+          "run",
+          "1.99.0-aarch64-apple-darwin",
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/tmp/hub-registration-audit-20261101/check-packaging3/sqlx-adapt/sqlx-prepare-run1/source/Cargo.toml",
+          "--bin",
+          "veoveo-hub",
+          "contributions::lore::factory::tests::a_linked_branch_runs_one_runner_per_link_serving_the_branch_each_link_tracks",
+          "--",
+          "--exact",
+          "--nocapture"
+        ],
+        "cwd": "/tmp/hub-registration-audit-20261101/check-packaging3/sqlx-adapt/sqlx-prepare-run1/source",
+        "exit": 0,
+        "timed_out": false,
+        "elapsed_ms": 12778,
+        "test_run_counts": [
+          1
+        ],
+        "test_result_lines": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0",
+            "0",
+            "71",
+            "1.53"
+          ]
+        ],
+        "named_tests": [
+          [
+            "contributions::lore::factory::tests::a_linked_branch_runs_one_runner_per_link_serving_the_branch_each_link_tracks",
+            "ok"
+          ]
+        ],
+        "test_binary": {
+          "path": "/tmp/hub-session-family-20261030/mac-integration-run1/target/debug/deps/veoveo_hub-35a9f6b88aadf693",
+          "sha256": "70a69ff2bb682c886ae2681a04d49412589b63433d1b74c8c9dc401895058a54",
+          "bytes": 98506904,
+          "mtime_ns": 1793531130688905056
+        },
+        "log": "/tmp/hub-registration-audit-20261101/check-packaging3/focused-check1/logs/test-3-linked-runner.log",
+        "log_sha256": "0670640427a9da3d1ef353183f358be87eab84fbd8e30cea0eed7982ed66c703",
+        "log_bytes": 594,
+        "test_label": "linked-runner",
+        "expected_count": 1
+      }
+    ]
+  }
+}

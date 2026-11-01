@@ -1443,9 +1443,9 @@ async fn a_linked_branch_runs_one_runner_per_link_serving_the_branch_each_link_t
         until("both runners", || async {
             let runners = fixture.runners("links/main").await;
             runners.len() == 2
-                && runners
-                    .iter()
-                    .all(|runner| runner.linked_revision.is_some())
+                && runners.iter().all(|runner| {
+                    runner.linked_revision.is_some() && runner.revision == Some(revision('1'))
+                })
         })
         .await;
 

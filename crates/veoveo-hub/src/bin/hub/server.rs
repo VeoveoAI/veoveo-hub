@@ -170,7 +170,6 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     let registrations = RegistrationService::new(
         control_store.platform_store().clone(),
         catalog.clone(),
-        hub_state.clone(),
         RegistrationIdentity {
             issuer,
             signing_key,

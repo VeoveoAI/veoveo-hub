@@ -337,8 +337,10 @@ registration's deployment and slug, and with them its login; another deployment 
 slug is refused with `invalid_client_metadata`. Its software statement is verified
 against the key the slug's namespace is pinned to, or for an instance against the key
 the metadata presents. Changed metadata replaces the registration's and the
-deployment's in one transaction, an update audit record follows, and an unchanged
-update writes nothing; it never extends anything.
+deployment's together with its update audit record in one transaction; an unchanged
+update writes nothing and records no change; it never extends the registration's
+issuance or lifetime. A superseded update whose client row is
+already gone rolls back its pending deployment write and records no update.
 Reads return the stored statement. A `DELETE` removes the row and drops the login in
 one transaction, and the registration access token then answers HTTP 401.
 
@@ -350,8 +352,21 @@ an instance appears again, and removes the registrations orphaned for longer tha
 never marks or removes an instance's registration: OpenShell restarts the instance's
 process, and its next registration replaces the previous one. An
 installation whose servers keep their instances writes nothing while idle. Each claim,
-registration, declaration update, deregistration, removal and replacement writes an
-audit record.
+registration, declaration update, deregistration, removal and replacement appends its
+existing `hub.registration` success audit in the same installation transaction as
+its domain writes, through core's transactional append. Refused or missing operations
+and unchanged updates record no change. Intentional instance removal records
+`Deregister` for each registration it ends; expiry records `Expire`, and replacement
+records `Replace`. All ended registrations are audited without imposing a count
+limit: individual appends or bounded batches use the same transaction. An append
+failure rolls back that transaction's registration, namespace, deployment and login
+changes; the external data-environment preparation above remains non-atomic.
+
+The served marker, local registration reload and response construction follow the
+registration commit. Their failure may return an error after the registration and
+its audit committed. Neither that error nor a response sent after concurrent removal
+asserts that the registration is still live. Orphan-marker maintenance remains
+separate from the transaction that removes expired registrations and audits them.
 
 Every replica listens on the `hub` channel. A row inserted or deleted, or a
 metadata change, wakes it to reload the one registration the notification names by

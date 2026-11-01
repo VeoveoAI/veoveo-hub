@@ -1460,8 +1460,19 @@ audit. Both reach their intended final assertions after fresh compilation and
 real PostgreSQL fixture checks. The accepted-registration fixture also checks the
 complete typed response and connects with its issued login; this is component
 evidence, not a general response theorem or proof of password enforcement.
-Transactional audit correction and its composed proof are in progress. The
-existing store model does not establish these audit/postcommit guarantees.
+The [native audit correction](registration_transactions/evidence/native-audit-fix.json)
+now appends existing registration activities inside their owning transactions,
+including Deregister for intentional instance removal. Real audit-insert failures
+roll back owned rows/logins and earlier private appends; retries succeed, while
+unchanged or missing operations append nothing. Both original regressions pass.
+Twenty initial Linux focused tests and eleven final native Mac focused tests pass;
+full Docker checks on Mac and Ubuntu each pass 475 tests with two existing external
+fixture skips. Qualification also corrected test-fixture SQL packaging and an
+existing factory test's premature observation; no factory runtime change follows.
+See the [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-audit-fix.md).
+This is native component evidence, not deployment or a new Lean theorem. The
+composed audit/store proof remains in progress; the existing checked model retains
+its recorded source scope and does not establish these audit/postcommit guarantees.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

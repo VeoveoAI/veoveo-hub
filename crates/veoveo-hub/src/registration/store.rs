@@ -5,10 +5,12 @@
 #[cfg(test)]
 mod concurrency_tests;
 
+use crate::audit::{Registration, RegistrationActivity, hub_audit};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use secrecy::{ExposeSecret, SecretString};
 use sqlx::types::Json;
+use veoveo_audit_contract::{AuditDraft, AuditOutcome, AuditRequest, AuditTransactionWrite};
 use veoveo_hub_sdk::registration::StorageBinding;
 use veoveo_hub_sdk::registration::{ClientMetadata, SoftwareStatement};
 use veoveo_store::{LoginName, PlatformStore};
@@ -231,6 +233,16 @@ impl RegistrationStore {
             replaced = replace(&mut transaction, &registration, &binding).await?;
         }
         admit(&mut transaction, &registration).await?;
+        if matches!(pin, Pin::Claimed) {
+            append_audit(
+                &mut transaction,
+                server,
+                RegistrationActivity::ClaimNamespace,
+            )
+            .await?;
+        }
+        audit_ended(&mut transaction, &replaced, RegistrationActivity::Replace).await?;
+        append_audit(&mut transaction, server, RegistrationActivity::Register).await?;
         transaction.commit().await?;
         Ok((pin, replaced))
     }
@@ -381,6 +393,8 @@ impl RegistrationStore {
         }
         let replaced = replace(&mut transaction, &registration, &binding).await?;
         admit(&mut transaction, &registration).await?;
+        audit_ended(&mut transaction, &replaced, RegistrationActivity::Replace).await?;
+        append_audit(&mut transaction, server, RegistrationActivity::Register).await?;
         transaction.commit().await?;
         Ok(Some(replaced))
     }
@@ -430,6 +444,7 @@ impl RegistrationStore {
         else {
             return Ok(None);
         };
+        audit_ended(&mut transaction, &ended, RegistrationActivity::Deregister).await?;
         transaction.commit().await?;
         Ok(Some((
             DatabaseName::parse(database).context("stored instance database is invalid")?,
@@ -487,6 +502,12 @@ impl RegistrationStore {
                 .context("failed to discard the superseded registration update")?;
             return Ok(());
         }
+        append_audit(
+            &mut transaction,
+            metadata.slug(),
+            RegistrationActivity::Update,
+        )
+        .await?;
         transaction.commit().await?;
         Ok(())
     }
@@ -533,6 +554,12 @@ impl RegistrationStore {
         };
         let ended = EndedRegistration::try_from(ended)?;
         drop_login(&mut transaction, &ended.login).await?;
+        append_audit(
+            &mut transaction,
+            &ended.server,
+            RegistrationActivity::Deregister,
+        )
+        .await?;
         transaction.commit().await?;
         Ok(Some(ended))
     }
@@ -566,6 +593,7 @@ impl RegistrationStore {
         for registration in &ended {
             drop_login(&mut transaction, &registration.login).await?;
         }
+        audit_ended(&mut transaction, &ended, RegistrationActivity::Expire).await?;
         transaction.commit().await?;
         Ok(ended)
     }
@@ -667,4 +695,37 @@ async fn drop_login(connection: &mut sqlx::PgConnection, login: &LoginName) -> R
         .await
         .context("failed to drop the registration's login")?;
     Ok(())
+}
+
+/// One record per append preserves the existing unbounded ended-registration
+/// lists without exceeding Core's per-append limit. Every append uses the SAME
+/// caller-owned transaction; this helper starts or commits no transaction.
+async fn audit_ended(
+    connection: &mut sqlx::PgConnection,
+    ended: &[EndedRegistration],
+    activity: RegistrationActivity,
+) -> Result<()> {
+    for registration in ended {
+        append_audit(connection, &registration.server, activity).await?;
+    }
+    Ok(())
+}
+
+async fn append_audit(
+    connection: &mut sqlx::PgConnection,
+    server: &ServerSlug,
+    activity: RegistrationActivity,
+) -> Result<()> {
+    let draft = AuditDraft::builder(
+        AuditRequest::background(),
+        hub_audit().detail(&Registration { activity })?,
+        AuditOutcome::Success,
+    )
+    .target(crate::audit::server_target(server)?)
+    .build()?;
+    let registry = crate::audit_registry();
+    AuditTransactionWrite::new(&registry, draft)?
+        .append(connection)
+        .await
+        .context("failed to append the registration audit")
 }
