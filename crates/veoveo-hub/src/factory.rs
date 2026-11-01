@@ -496,7 +496,7 @@ impl Factory {
                 sandbox::requested_providers(providers_file)
             })
             .await?;
-        let (providers, ungranted) = self.config.granted_providers(granted_to, &requested);
+        let (providers, ungranted) = self.granted_providers(granted_to, &requested);
         if !ungranted.is_empty() {
             tracing::warn!(%deployment, ?ungranted, "the revision requests providers its repository is not granted");
         }
@@ -721,6 +721,23 @@ impl Factory {
             ungranted_providers: record.ungranted_providers,
             runner: record.runner,
         }))
+    }
+
+    /// The providers among `requested` that the active control plane's `factory.providers`
+    /// grants to `repository`, and those it does not. Grants change while the Hub runs, as
+    /// teams do, so each push reads them; a control plane without `factory` grants none.
+    fn granted_providers(
+        &self,
+        repository: &str,
+        requested: &[String],
+    ) -> (Vec<String>, Vec<String>) {
+        let catalog = self.catalog.current();
+        let grants = catalog
+            .control_plane()
+            .factory
+            .as_ref()
+            .map_or(&[][..], |factory| factory.providers.as_slice());
+        crate::control_plane::granted_providers(grants, repository, requested)
     }
 
     /// The database of `branch`'s data environment: the installation database for the

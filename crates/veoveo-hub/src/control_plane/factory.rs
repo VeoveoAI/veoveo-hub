@@ -47,7 +47,9 @@ pub struct FactoryConfiguration {
     pub caps: Option<FactoryCaps>,
     /// The installation's providers a branch may request in `openshell/providers.yaml`,
     /// each with the repositories granted it. An instance gets only those it requests
-    /// that are granted to its repository.
+    /// that are granted to its repository. Unlike the rest of `factory`, which the Hub
+    /// reads when it starts, the Hub reads these from the active control plane at each
+    /// push it applies.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub providers: Vec<FactoryProviderGrant>,
 }
@@ -70,22 +72,32 @@ impl FactoryConfiguration {
         repository: &str,
         requested: &[String],
     ) -> (Vec<String>, Vec<String>) {
-        let requested: std::collections::BTreeSet<&String> = requested.iter().collect();
-        let (granted, ungranted): (Vec<&String>, Vec<&String>) =
-            requested.into_iter().partition(|name| {
-                self.providers.iter().any(|grant| {
-                    &&grant.provider == name
-                        && grant
-                            .repositories
-                            .iter()
-                            .any(|granted| granted == repository)
-                })
-            });
-        (
-            granted.into_iter().cloned().collect(),
-            ungranted.into_iter().cloned().collect(),
-        )
+        granted_providers(&self.providers, repository, requested)
     }
+}
+
+/// The providers among `requested` that `grants` grant to `repository`, and those they
+/// do not, each sorted and once.
+pub fn granted_providers(
+    grants: &[FactoryProviderGrant],
+    repository: &str,
+    requested: &[String],
+) -> (Vec<String>, Vec<String>) {
+    let requested: std::collections::BTreeSet<&String> = requested.iter().collect();
+    let (granted, ungranted): (Vec<&String>, Vec<&String>) =
+        requested.into_iter().partition(|name| {
+            grants.iter().any(|grant| {
+                &&grant.provider == name
+                    && grant
+                        .repositories
+                        .iter()
+                        .any(|granted| granted == repository)
+            })
+        });
+    (
+        granted.into_iter().cloned().collect(),
+        ungranted.into_iter().cloned().collect(),
+    )
 }
 
 /// Soft caps: exceeding one warns in the instance's status, unless `enforce` refuses it.

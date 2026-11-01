@@ -212,23 +212,53 @@ impl Fixture {
         .with_builder(self.builder.clone())
     }
 
-    /// Another factory on the same gateway, database and builder, granting `providers`.
-    fn with_providers(&self, providers: serde_json::Value) -> Factory {
-        let mut configuration = configuration_json(
+    /// Another factory on the same gateway, database and builder, whose live control plane
+    /// grants `providers`; its configuration at start grants none. The test publishes
+    /// other grants through the returned handle, as an installation does while the Hub
+    /// runs.
+    fn with_providers(&self, providers: serde_json::Value) -> (Factory, HubCatalogHandle) {
+        let live = HubCatalogHandle::new(self.granting(providers));
+        let factory = Factory::new(
+            configuration(self.directory.path(), json!(null)),
+            live.clone(),
+            self.client.clone(),
+            self.db.a.clone(),
+        )
+        .unwrap()
+        .with_builder(self.builder.clone());
+        (factory, live)
+    }
+
+    /// A control plane like `catalog()`'s, with the factory section, whose
+    /// `factory.providers` are `providers`, and the native gateway it names.
+    fn granting(&self, providers: serde_json::Value) -> Arc<HubCatalog> {
+        let directory = tempfile::tempdir().unwrap();
+        let installation =
+            veoveo_hub::local::generate(directory.path(), "http://127.0.0.1:1").unwrap();
+        let mut config: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&installation.config).unwrap()).unwrap();
+        config["execution"]["baseBranch"] = json!(BASE);
+        config["nativeUpstreams"] = json!({
+            "gateway": "https://gateway.example/",
+            "certificateAuthority": "/unused/ca.pem",
+            "bearerEnvironment": GATEWAY_BEARER,
+            "bindings": [],
+        });
+        let mut factory = configuration_json(
             self.directory.path(),
             "https://gateway.example/",
             Path::new("/unused/ca.pem"),
             json!(null),
         );
-        configuration["providers"] = providers;
-        Factory::new(
-            serde_json::from_value(configuration).unwrap(),
-            self.catalog.clone(),
-            self.client.clone(),
-            self.db.a.clone(),
+        factory["providers"] = providers;
+        config["factory"] = factory;
+        Arc::new(
+            HubCatalog::from_control_plane(
+                serde_json::from_value(config).unwrap(),
+                catalog_admission::binding(),
+            )
+            .unwrap(),
         )
-        .unwrap()
-        .with_builder(self.builder.clone())
     }
 
     /// A revision's `openshell/` whose image `Dockerfile` is `dockerfile`.
@@ -2313,7 +2343,7 @@ async fn an_instance_gets_only_the_requested_providers_granted_to_its_repository
         // The installation's providers exist in the factory workspace; a branch only
         // requests them.
         fixture.gateway.add_provider(WORKSPACE, "vv-factory-model");
-        let factory = fixture.with_providers(json!([
+        let (factory, _live) = fixture.with_providers(json!([
             {"provider": "vv-factory-model", "repositories": [REPOSITORY]},
             {"provider": "vv-factory-mail", "repositories": ["fedcba9876543210fedcba9876543210"]},
         ]));
@@ -2424,6 +2454,64 @@ async fn an_instance_gets_only_the_requested_providers_granted_to_its_repository
             fixture.status(BASE).await.unwrap().failed.unwrap().stage,
             Stage::Create
         );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_grant_published_while_the_hub_runs_applies_at_the_next_push() {
+    bounded(async {
+        let fixture = Fixture::start(json!(null)).await;
+        fixture.gateway.add_provider(WORKSPACE, "vv-factory-model");
+        let (factory, live) = fixture.with_providers(json!([]));
+        let base = branch_name(BASE);
+        let push_requesting = |revision: char| {
+            let mut prepared = fixture.prepared("FROM a", None);
+            prepared.providers = Some("providers: [vv-factory-model]\n".to_owned());
+            factory.apply(REPOSITORY, &base, push(revision, "alice"), prepared)
+        };
+        let attached = |deployment| {
+            fixture
+                .sandbox(deployment)
+                .unwrap()
+                .spec
+                .unwrap()
+                .providers
+                .contains(&"vv-factory-model".to_owned())
+        };
+
+        // Nothing grants the provider yet: the instance runs without it.
+        push_requesting('1').await.unwrap();
+        let status = fixture.status(BASE).await.unwrap();
+        let deployment = status.deployment;
+        assert_eq!(status.ungranted_providers, ["vv-factory-model"]);
+        assert!(!attached(deployment));
+
+        // The installation publishes a grant to the repository: the next push attaches
+        // the provider, with the same Hub.
+        live.replace(fixture.granting(json!([
+            {"provider": "vv-factory-model", "repositories": [REPOSITORY]},
+        ])))
+        .unwrap();
+        push_requesting('2').await.unwrap();
+        assert!(
+            fixture
+                .status(BASE)
+                .await
+                .unwrap()
+                .ungranted_providers
+                .is_empty()
+        );
+        assert!(attached(deployment));
+
+        // Withdrawn, the grant leaves the next push without it.
+        live.replace(fixture.granting(json!([]))).unwrap();
+        push_requesting('3').await.unwrap();
+        assert_eq!(
+            fixture.status(BASE).await.unwrap().ungranted_providers,
+            ["vv-factory-model"]
+        );
+        assert!(!attached(deployment));
     })
     .await;
 }

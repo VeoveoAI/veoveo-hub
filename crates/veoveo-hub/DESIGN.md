@@ -391,7 +391,11 @@ installation's providers that the revision requests in `openshell/providers.yaml
 `providers:` and a list of at most 16 provider names, each a lowercase DNS label, once,
 and that the control plane's `factory.providers` grants to the instance's repository:
 each grant names a provider the installation created in the factory workspace, such as
-`vv-factory-model`, and the Lore repository IDs it is granted to. A request never adds a
+`vv-factory-model`, and the Lore repository IDs it is granted to. Grants change while
+the Hub runs, as teams do: the Hub reads `factory.providers` from the active control
+plane at each push it applies, as it reads the live control plane's other sections, so a
+published grant, or a withdrawn one, takes effect at the instance's next push without a
+restart; `factory`'s other members are read when the Hub starts. A request never adds a
 policy rule, so a branch gains only what the provider's own endpoints allow. The
 instance's status names each requested provider its repository is not granted, as
 `ungrantedProviders`, and the sandbox runs without it; a file that is not that form fails
@@ -1555,7 +1559,9 @@ failed creation and changes nothing else; that no push updates a
 sandbox's configuration, which the fake gateway refuses as `PermissionDenied` like
 OpenShell for the Hub's identity; that a failed build or a refused repository policy
 is recorded and changes nothing else; that a
-refused provider creation is followed by a new token; that status reports phase, exit
+refused provider creation is followed by a new token; that a provider grant published
+to the live control plane is attached at the instance's next push and a withdrawn one is
+left out, with the same factory; that status reports phase, exit
 code, restart count and a scheduling condition; and that caps warn above the cap and,
 enforced, refuse. Against the binary, removing an instance whose Ledger fixture
 registered into a data environment, and so served the applied revision, removes its
