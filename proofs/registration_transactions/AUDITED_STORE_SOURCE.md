@@ -69,7 +69,7 @@ complete `ClientInformation`, listener convergence or that a candidate still
 exists after legal concurrent removal. External environment preparation and
 bootstrap role/schema effects retain the existing lifetime boundary.
 
-## Planned contracts and controls
+## Contracts and semantic control
 
 The independent specification counts activity/server-target **bags**, retaining
 repeated server targets, and preserves full prior/unrelated audit records. It is
@@ -84,10 +84,16 @@ The planned first postcommit example is a confirmed **no-write served-marker ref
 after store commit with no external lifetime writer in that suffix. Successful
 `served_at` writes and full successful responses are pending: they cannot erase
 to the old frame-only environmental transition, which preserves the whole
-instance. The selected later semantic fault removes only the final Register
-instruction: the faulty cursor can still finish and admit data, but the unchanged
-independent specification must reject the missing activity. No mutant is run or
-qualified yet.
+instance.
+
+The [checked semantic control](evidence/audited-store-register-control.json)
+removes only the final Register instruction in a private model copy. Its actual
+execution and complete wrong ledger are independently proved: both Replace-A
+records and the prior unrelated record remain, while Register-B is absent; the
+complete replacement data, lock release and successful store tag are unchanged.
+The unchanged acceptance proof rejects the missing full record and the shorter
+cursor. Exact source reversal and a fresh affected compilation graph pass. This
+tests the proof's sensitivity to a model fault, not a new native bug.
 
 ## Checked foundation and remaining qualification
 
@@ -103,8 +109,11 @@ exhausted cursor and scoped fresh record identities; it constructs the combined
 decision and establishes the independent contract. The separate
 [replacement witness receipt](evidence/audited-store-replacement.json) qualifies
 one concrete populated execution; fourteen declaration guards and seven axiom
-closures pass without importing generic correctness proofs. Further operation
-cases and semantic fault detection remain unfinished qualification work.
+closures pass without importing generic correctness proofs. Execution and whole
+database proofs now live in `RegistrationAuditedLifetimeWitnessExecution`; the
+independent ledger and combined acceptance assertions remain in WitnessProof.
+Their theorem statements are unchanged. The private wrong-output diagnostic adds
+five guards and three closures. Further operation cases remain unfinished.
 
 Manual rechecks use the three named targets, with a 180-second process-group
 limit per command:
@@ -116,8 +125,12 @@ lake build RegistrationAuditedLifetimeProof
 ```
 
 Only byte-identical previously checked imports may be reused. The populated case
-has its own nondefault targets, `RegistrationAuditedLifetimeWitnesses` and
+has its own nondefault targets, `RegistrationAuditedLifetimeWitnesses`,
+`RegistrationAuditedLifetimeWitnessExecution` and
 `RegistrationAuditedLifetimeWitnessProof`. This is not a replay of the sixteen
-default targets or a new native full check. Removal, rollback/retry and
-served-refusal examples, plus the missing-Register semantic control and exact
-restoration, remain to be qualified before this audited slice can be called complete.
+default targets or a new native full check. The control receipt retains the exact
+private patch and diagnostic, source/tool identities, commands, failures and
+restoration results; its launcher and compiled artifacts remain temporary.
+Removal with partial-append failure, confirmed rollback and retry, followed by
+served-refusal examples and the remaining operation adapters, is still required
+before this audited slice can be called complete.

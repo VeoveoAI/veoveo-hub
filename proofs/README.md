@@ -1487,10 +1487,14 @@ proving the independent complete DB/ledger result, old-login cleanup, preserved
 unrelated state, lock release and store acknowledgment. Two Replace records retain
 the old server target; one Register names the new server. Fourteen declaration
 guards and seven axiom closures pass. The fixture and proof import no generic
-correctness leaf. Native creation of that seed is not claimed. Removal/rollback
-executions, postcommit service paths and the missing-Register semantic
-fault/restoration remain pending; namespace/update/expiry adapters are not part
-of this foundation.
+correctness leaf. Native creation of that seed is not claimed.
+The [missing-Register control](registration_transactions/evidence/audited-store-register-control.json)
+now proves the deliberately faulty path is executable and its complete wrong
+ledger lacks Register-B while replacement data and success remain. The unchanged
+acceptance assertions reject that absence; exact restoration and fresh positive
+compilation pass. This is model sensitivity evidence, not a new native defect.
+Removal with partial-append failure/confirmed abort/retry and postcommit service
+paths remain pending; namespace/update/expiry adapters are not part of this foundation.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
@@ -1586,7 +1590,9 @@ and a [checked instance-store foundation](registration_transactions/AUDITED_STOR
 Intentional removal includes its existing Deregister activity in the same native
 transaction; the model connects successful private audit appends to the combined
 data/audit decision and confirmed rollback. One populated replacement execution
-is now checked; removal/rollback examples and semantic controls remain pending.
+is now checked, including an independently diagnosed missing-Register model fault
+rejected by unchanged acceptance and an exact freshly checked restoration.
+Removal/rollback examples remain pending.
 This does not qualify other
 cleanup paths, reference retention, external deletion or refresh-family pruning.
 

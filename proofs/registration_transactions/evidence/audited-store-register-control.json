@@ -1,0 +1,309 @@
+{
+  "kind": "manual-model-semantic-control",
+  "status": "missing-final-Register-detected-and-restored-positive-checked",
+  "source_commit": "803912a7d40c6f6aa3c471bc4c6e9c2213e2d320",
+  "native_source_commit": "3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33",
+  "agents": {
+    "author": "GPT-6.1 Sol",
+    "compiler": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source_map": {
+    "RegistrationAuditedLifetimeModel.lean": "6beefe9ff1eecb8b56143e3cc189e2bc6719b684c2236ea3ebb59eca9e93b4f6",
+    "RegistrationAuditedLifetimeSpecification.lean": "bd4fccf6ac3dbca608a8e20b0d314fd3bbd0ddf83295f7ff77f81c6fa2a431d9",
+    "RegistrationAuditedLifetimeWitnesses.lean": "eba3e835b2e21c061b8572752da7e1943f8d8d2c07254b5182146b5cd1364ce0",
+    "RegistrationAuditedLifetimeWitnessExecution.lean": "8037c6b4d73b0d4c5cb2728709e8a14cb85903159eb04ca149472d2d2f7919d3",
+    "RegistrationAuditedLifetimeWitnessProof.lean": "6cbbcdda15b9024ac2e65b8b4243df5dcc26b321ef5ff66f4189314b39fe7f4e",
+    "RegistrationLifetimeModel.lean": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954",
+    "RegistrationLifetimeSpecification.lean": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "lakefile.lean": "baad2ad5c9ee92a986d17b9632ca5fdf1d3333feae8559bb4cc3061465f17c52",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "split": {
+    "description": "Move unchanged execution and whole-database proofs into Execution; retain the independent complete ledger and acceptance statements in WitnessProof. All14 prior public theorem statements retained. The ledger proof uses full Record structural equality for the Register slot.",
+    "summary_sha256": "324b2d958835e0d895c54601710059840414063eeb7f694481410f7249d3ce9a",
+    "stages": [
+      {
+        "artifact_bytes": 599816,
+        "artifact_exists": true,
+        "artifact_sha256": "8f2050a017d7d5e1d988cb53935669559882a15ec38f89c91b5380f689844e83",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnessExecution",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 7627,
+        "exit": 0,
+        "log_bytes": 1412,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-control-split1/evidence-run1/01-RegistrationAuditedLifetimeWitnessExecution.log",
+        "log_sha256": "b59b5b9d4ee727ac8a1cbd7387d23bb0bb23a56dd7188216fd6910bdeb2275ec",
+        "target": "RegistrationAuditedLifetimeWitnessExecution",
+        "timed_out": false
+      },
+      {
+        "artifact_bytes": 234608,
+        "artifact_exists": true,
+        "artifact_sha256": "c926a27aa9579c99a51aab163e67d8d2d876e729180b07d31ad0c229e8cf8693",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnessProof",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 4121,
+        "exit": 0,
+        "log_bytes": 2091,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-control-split1/evidence-run1/02-RegistrationAuditedLifetimeWitnessProof.log",
+        "log_sha256": "47af4fdd3871353d248c5745f58c56213ab1dd1640e50b823d7e8e758f2b552c",
+        "target": "RegistrationAuditedLifetimeWitnessProof",
+        "timed_out": false
+      }
+    ],
+    "guards": {
+      "execution": 12,
+      "acceptance": 2
+    },
+    "printed_closures": {
+      "execution": 5,
+      "acceptance": 2
+    }
+  },
+  "control": {
+    "manifest_sha256": "4642ee0e203836eaa6a421b2ce1d8d85cbf8a88659edf80f23eed77e4667b6f5",
+    "summary_sha256": "a5d34bbda5bb1987edb4466d61dbbded0eac2d47e164fcc0890e9d82da17208d",
+    "changed_files": [
+      "RegistrationAuditedLifetimeModel.lean"
+    ],
+    "baseline_model_sha256": "6beefe9ff1eecb8b56143e3cc189e2bc6719b684c2236ea3ebb59eca9e93b4f6",
+    "fault_model_sha256": "f34afceccfce429c85db388c5a9b8cf57614b27b0e97c010da87524c35ae8e4b",
+    "baseline_source_map_file_sha256": "207cb5a59c723b5c08fecf1474cd9ab82292b97049c050a62aa5853b317a0bda",
+    "fault_source_map_file_sha256": "16bc5087900e925ac0d7eb0086ad51db8b0844551d6c22b2497cba845c98b86b",
+    "source_file_count": 65,
+    "patch_sha256": "1ca31917b8e375976804bbc528b9eeeaf68ba04ac02e7e490fe0b0e6820b65ce",
+    "patch": "--- a/RegistrationAuditedLifetimeModel.lean\n+++ b/RegistrationAuditedLifetimeModel.lean\n@@ -63,8 +63,7 @@\n     (ended : List (RegistrationTransaction.Registration C L M R)) : List (Intent S) :=\n   match request with\n   | .register proposal =>\n-      ended.map (fun row => \u27e8.replace, source.endedServer row.payload\u27e9) ++\n-        [\u27e8.register, source.candidateServer proposal.candidate.metadata\u27e9]\n+      ended.map (fun row => \u27e8.replace, source.endedServer row.payload\u27e9)\n   | .remove => ended.map (fun row => \u27e8.deregister, source.endedServer row.payload\u27e9)\n \n structure Cursor (Server Draft StoredTime : Type) where\n",
+    "diagnostic_sha256": "11dc091a50af917b65f58bc9612a9b10d79a2e1fc791c5c2b78c45c3c85bddac",
+    "diagnostic_source": "import RegistrationAuditedLifetimeWitnessExecution\n\n/-! Intentionally false on the baseline. This private diagnostic is compiled only\nagainst the final-Register omission, after its fresh legal execution module. The\nmutation is handwritten-model fault injection, not a production Rust defect. -/\nnamespace RegistrationAuditedLifetime.Witnesses\nopen RegistrationAuditedLifetime\nopen RegistrationTransaction (put)\n\n/-- Independently spelled complete wrong ledger: both ended records and the\nunrelated prior record remain, but no candidate Register record exists. -/\ndef missingRegisterAudit : Audit := fun id =>\n  if id = 100 then some replaceFirst else if id = 101 then some replaceSecond\n  else if id = 900 then some priorRecord else none\ndef missingRegisterCursor : Cursor String Draft Nat :=\n  \u27e8[\u27e8.replace, oldServer\u27e9, \u27e8.replace, oldServer\u27e9], [], [replaceFirst, replaceSecond]\u27e9\n\ntheorem missing_register_ledger : acknowledged.audit = missingRegisterAudit := by\n  change overlay encoding priorAudit [replaceFirst, replaceSecond] = missingRegisterAudit\n  funext id\n  by_cases first : id = 100\n  \u00b7 subst id\n    rfl\n  by_cases second : id = 101\n  \u00b7 subst id\n    rfl\n  simp [overlay, encoding, replaceFirst, replaceSecond, priorAudit, missingRegisterAudit,\n    put, first, second]\n\ntheorem missing_register_slot : acknowledged.audit 102 = none := by\n  rfl\n\n/-- The same unchanged complete acceptance predicate is refuted by its ledger\nclause, using actual absence versus its independently specified complete record. -/\ntheorem missing_register_refutes_acceptance : \u00acReplacementAccepted := by\n  intro accepted\n  have slot := congrFun accepted.2.1 102\n  rw [missing_register_slot] at slot\n  change none = some registerRecord at slot\n  cases slot\n\ndef MissingRegisterOutcome : Prop :=\n  acknowledged.core.db = expectedDB \u2227 acknowledged.audit = missingRegisterAudit \u2227\n    (acknowledged.core.transactions 0).request = .register proposal \u2227\n    (acknowledged.core.transactions 0).phase = .committed \u2227\n    (acknowledged.core.transactions 0).response = .registered \u2227\n    acknowledged.core.instanceOwner = none \u2227 acknowledged.core.deploymentOwner = none \u2227\n    acknowledged.core.commits =\n      [(0, [.upsertDeployment newMetadata \"unused-first-deployment-value\",\n        .registration (.deleteRows [30, 31]), .registration (.dropLogin 40), .registration (.dropLogin 41),\n        .registration (.createLogin 20 \"new-registration-role\"), .registration (.insert candidate)])] \u2227\n    acknowledged.cursors 0 = some missingRegisterCursor \u2227\n    acknowledged.audit 102 = none \u2227\n    (cursor3.acknowledged.map (recordIntent encoding)).count \u27e8.replace, oldServer\u27e9 = 2 \u2227\n    (cursor3.acknowledged.map (recordIntent encoding)).count \u27e8.register, newServer\u27e9 = 0 \u2227\n    \u00acReplacementAccepted\n\n/-- Legal modified execution, unchanged complete admitted data and store success,\nplus the complete wrong audit output. No assumed desired after-state or success\nis used: execution/data are proved in the freshly compiled mutated path module. -/\ntheorem missing_register_complete :\n    Execution source encoding start acknowledged \u2227 MissingRegisterOutcome := by\n  refine \u27e8replacement_execution, replacement_database, missing_register_ledger,\n    rfl, rfl, rfl, rfl, rfl, rfl, rfl, missing_register_slot,\n    ?_, ?_, missing_register_refutes_acceptance\u27e9\n  all_goals decide\n\n#print axioms missing_register_ledger\n#print axioms missing_register_refutes_acceptance\n#print axioms missing_register_complete\n\nrun_cmd do\n  let allowed := #[``propext, ``Classical.choice, ``Quot.sound]\n  for declaration in #[``missing_register_ledger, ``missing_register_slot,\n      ``missing_register_refutes_acceptance, ``MissingRegisterOutcome, ``missing_register_complete] do\n    let found \u2190 Lean.collectAxioms declaration\n    let unexpected := found.filter (fun name => !allowed.contains name)\n    unless unexpected.isEmpty do\n      throwError \"unexpected missing-Register diagnostic axiom in {declaration}: {unexpected}\"\n\nend RegistrationAuditedLifetime.Witnesses\n",
+    "diagnostic_guards": 5,
+    "diagnostic_printed_closures": 3,
+    "fault_stages": [
+      {
+        "artifact_bytes": 752288,
+        "artifact_exists": true,
+        "artifact_sha256": "9b41c9aaaebffed74d048ec536a6343467ae37a807f4f5cb881e59d27c4a0f2b",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeModel",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 10635,
+        "exit": 0,
+        "log_bytes": 938,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/fault/01-RegistrationAuditedLifetimeModel.log",
+        "log_sha256": "e74a6baa492793d4ebded023ddf3b62fad9c13814e6dbd16518045ea04865b92",
+        "target": "RegistrationAuditedLifetimeModel",
+        "timed_out": false
+      },
+      {
+        "artifact_bytes": 81568,
+        "artifact_exists": true,
+        "artifact_sha256": "187f5c9f23faedd2bd18e80540a355ebd96d8bd6346493eb1d774050f52ac7ee",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeSpecification",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 5676,
+        "exit": 0,
+        "log_bytes": 1008,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/fault/02-RegistrationAuditedLifetimeSpecification.log",
+        "log_sha256": "dd4e9d50d8fd34d5a54d383aa856d9a81f2a90fa30aee421abfe7ad096f60fb8",
+        "target": "RegistrationAuditedLifetimeSpecification",
+        "timed_out": false
+      },
+      {
+        "artifact_bytes": 568432,
+        "artifact_exists": true,
+        "artifact_sha256": "e262949de16a1973a5bbcde482d2ca9fc20efc5541592fd9fcb49bd6a9992b01",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnesses",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 3872,
+        "exit": 0,
+        "log_bytes": 941,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/fault/03-RegistrationAuditedLifetimeWitnesses.log",
+        "log_sha256": "94702f0418b5a25850713e38c794cc8687217530ec50ff3d514b1d2fa7e3a517",
+        "target": "RegistrationAuditedLifetimeWitnesses",
+        "timed_out": false
+      },
+      {
+        "artifact_bytes": 598944,
+        "artifact_exists": true,
+        "artifact_sha256": "e4e6405a68bf3b77b3d52ea158371b487da0872af808e83c915c751a90317a90",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnessExecution",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 3871,
+        "exit": 0,
+        "log_bytes": 1761,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/fault/04-RegistrationAuditedLifetimeWitnessExecution.log",
+        "log_sha256": "b92ca9a693c1bbf816df7c0f36269559a419fcf90fee85b05e65db528b21387a",
+        "target": "RegistrationAuditedLifetimeWitnessExecution",
+        "timed_out": false
+      },
+      {
+        "artifact_bytes": 84496,
+        "artifact_exists": true,
+        "artifact_sha256": "f006913f765548b006ae39080137cb94b6743a8907626b938cb424f1b39b8124",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRegisterFault",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 3620,
+        "exit": 0,
+        "log_bytes": 2318,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/fault/05-RegistrationAuditedLifetimeRegisterFault.log",
+        "log_sha256": "32d78bb3fbcfa24d2b5a37ca0620f52311efeb293ffaa01e18dc61d0e55ef445",
+        "target": "RegistrationAuditedLifetimeRegisterFault",
+        "timed_out": false
+      },
+      {
+        "artifact_exists": false,
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnessProof",
+        "diagnostic_headlines": [
+          "error: RegistrationAuditedLifetimeWitnessProof.lean:16:4: Tactic `decide` proved that the proposition",
+          "error: RegistrationAuditedLifetimeWitnessProof.lean:39:29: Application type mismatch: The argument",
+          "info: RegistrationAuditedLifetimeWitnessProof.lean:42:0: 'RegistrationAuditedLifetime.Witnesses.replacement_audit' depends on axioms: [propext, sorryAx, Quot.sound]",
+          "info: RegistrationAuditedLifetimeWitnessProof.lean:43:0: 'RegistrationAuditedLifetime.Witnesses.replacement_complete' depends on axioms: [propext, sorryAx]",
+          "error: RegistrationAuditedLifetimeWitnessProof.lean:45:0: unexpected audited replacement assertion axiom in RegistrationAuditedLifetime.Witnesses.replacement_audit: [sorryAx]",
+          "error: build failed"
+        ],
+        "elapsed_ms": 3621,
+        "exit": 1,
+        "expected_negative_match": true,
+        "log_bytes": 6570,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/fault/06-RegistrationAuditedLifetimeWitnessProof.log",
+        "log_sha256": "9e8095add00b08bb99d3089676f045ab6c1e952513b4bcfd076d5de2b6d75516",
+        "target": "RegistrationAuditedLifetimeWitnessProof",
+        "timed_out": false
+      }
+    ],
+    "restored_stages": [
+      {
+        "artifact_bytes": 754704,
+        "artifact_exists": true,
+        "artifact_sha256": "005abac7f24193aafb66e9660117d0a6c69eb832462e440de8db20cc965148d4",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeModel",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 10483,
+        "exit": 0,
+        "log_bytes": 581,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/restored/01-RegistrationAuditedLifetimeModel.log",
+        "log_sha256": "7f275a90323da98d706f456561ec368bc11a9796bef3ea81af58f77ab2d520fc",
+        "target": "RegistrationAuditedLifetimeModel",
+        "timed_out": false
+      },
+      {
+        "artifact_bytes": 81568,
+        "artifact_exists": true,
+        "artifact_sha256": "187f5c9f23faedd2bd18e80540a355ebd96d8bd6346493eb1d774050f52ac7ee",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeSpecification",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 5425,
+        "exit": 0,
+        "log_bytes": 593,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/restored/02-RegistrationAuditedLifetimeSpecification.log",
+        "log_sha256": "a8df1bdac859ced65cfb33dfa8c029e4095153517c07e3f7677d72ee0514b077",
+        "target": "RegistrationAuditedLifetimeSpecification",
+        "timed_out": false
+      },
+      {
+        "artifact_bytes": 568352,
+        "artifact_exists": true,
+        "artifact_sha256": "4e4f7edc71f15054468fc7bde3aebd2356f5ebd80d217cc713f71516db1514eb",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnesses",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 3721,
+        "exit": 0,
+        "log_bytes": 526,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/restored/03-RegistrationAuditedLifetimeWitnesses.log",
+        "log_sha256": "7787fa69712c96ac9e46d35b9e8336229f6ea5685d5c83633d6e9c61b6aa619f",
+        "target": "RegistrationAuditedLifetimeWitnesses",
+        "timed_out": false
+      },
+      {
+        "artifact_bytes": 599816,
+        "artifact_exists": true,
+        "artifact_sha256": "8f2050a017d7d5e1d988cb53935669559882a15ec38f89c91b5380f689844e83",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnessExecution",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 3971,
+        "exit": 0,
+        "log_bytes": 1346,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/restored/04-RegistrationAuditedLifetimeWitnessExecution.log",
+        "log_sha256": "11b59a27aadd5fbd1dadc8c457874826b38aee0aa2ba82ede6ddb3f26a0f002b",
+        "target": "RegistrationAuditedLifetimeWitnessExecution",
+        "timed_out": false
+      },
+      {
+        "artifact_bytes": 234624,
+        "artifact_exists": true,
+        "artifact_sha256": "5faebe4ca5f553c075740961a10037fb8b7793daffc31b7c61c87474249356f2",
+        "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeWitnessProof",
+        "diagnostic_headlines": [],
+        "elapsed_ms": 4021,
+        "exit": 0,
+        "log_bytes": 2091,
+        "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-register-control1/evidence/restored/05-RegistrationAuditedLifetimeWitnessProof.log",
+        "log_sha256": "47af4fdd3871353d248c5745f58c56213ab1dd1640e50b823d7e8e758f2b552c",
+        "target": "RegistrationAuditedLifetimeWitnessProof",
+        "timed_out": false
+      }
+    ],
+    "source_restored_exactly": true,
+    "restored_source_map_sha256": "cdfe016261d408d640022ec1cea39b8e1f8ab339290b488aac574fd01d373501",
+    "positive_artifact_byte_equality_claimed": false,
+    "expected_negative_review": "Independent complete wrong output and legal execution pass. Unchanged acceptance fails at line16: acknowledged.audit102=some registerRecord is false; line39 also cannot equate actual two-record cursor with expected three-record cursor. Downstream sorryAx guard refuses incomplete proofs; no acceptance OLean is emitted. No earlier parser/import/inference failure is counted as semantic detection."
+  },
+  "checked_behavior": [
+    "Faulty source still admits complete replacement data, releases both locks and acknowledges registration with the exact commit event.",
+    "Complete wrong ledger has Replace-A100,Replace-A101 and retained unrelated900, with no102 and no Register-B; independent ReplacementAccepted is false.",
+    "Exact baseline source restored, fresh affected output graph passes complete original DB/ledger/cursor/response acceptance."
+  ],
+  "axioms": {
+    "allowed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "observed_in_accepted_closures": [
+      "propext",
+      "Quot.sound"
+    ],
+    "sorryAx_in_accepted_outputs": false
+  },
+  "graph": {
+    "unaffected_source_hashes": {
+      "RegistrationLifetimeModel": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954",
+      "RegistrationLifetimeSpecification": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2",
+      "RegistrationModel": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584"
+    },
+    "unaffected_olean_hashes": {
+      "RegistrationLifetimeModel": "85f36adc8376c83818cda80e2fa28651e63a57fb731fe02a3c33d73ffacb78b0",
+      "RegistrationLifetimeSpecification": "fa5ed9dcc1b8181b4102d373b428b81baed856ee35c855448242e440a52648db",
+      "RegistrationModel": "b6e320d98ca154a8e491a8dbd6cf13921cb63b9a1466acc87eaec7d70d9b8e66"
+    },
+    "affected_artifacts_seeded": [],
+    "fresh_fault_and_restored_graphs": true,
+    "generic_correctness_leaves_imported": false
+  },
+  "tools": {
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "tool_imports_unchanged": true,
+  "timeout_seconds_per_command": 180,
+  "setup_failure": {
+    "kind": "FileExistsError before first Lake command; make_graph tried to create an already copied directory",
+    "correction": "Make that root mkdir tolerate its already copied source; exact untouched baseline verified before compilation.",
+    "log_sha256": "6bc53f4e22a90e255e3a89ed0dfb54b98458208df656f3bcf4200dfc2becc2ca",
+    "log_bytes": 605
+  },
+  "manual_driver_sha256": "9a551d56c17f6592561498f47a808940b618b6439a823a78f71a1ec254d65012",
+  "root_review": "Read full diagnostic, patch, acceptance errors and restored logs; independently matched all11 stage log hashes/sizes and10 output hashes/sizes, full65-file maps after reversal and fresh compilation, and canonical source hashes.",
+  "boundaries": [
+    "Deliberate handwritten-model omission, not a newly discovered native bug.",
+    "Same seeded model inputs and admitted-input/PostgreSQL/Core/serialization boundaries as audited-store-replacement.json.",
+    "No production Rust/SQL, native dependencies, deployment, CI or paid model calls changed or ran in this checkpoint.",
+    "No full ClientInformation, listener convergence, universal service acceptance or formal Rust/SQL refinement claim.",
+    "Removal with partial-append failure, confirmed abort and retry, postcommit service paths and remaining operation adapters are still open."
+  ],
+  "temporary_artifacts": "/tmp/hub-registration-audit-20261101/audited-store-register-control1-mirror"
+}

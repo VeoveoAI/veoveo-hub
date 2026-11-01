@@ -279,4 +279,20 @@ missing intentional-removal audit and committed admission without audit after a
 served-marker error. These are two actual component failures on unchanged runtime,
 not additional Lean results. The first fixture checks the complete typed response
 and an issued-login connection; catalog observations use explicit refresh, not a
-listener convergence test. Correction and audit/postcommit proof remain pending.
+listener convergence test. The subsequent
+[native correction](evidence/native-audit-fix.json) commits registration audits
+with their owning data changes. The
+[audited-store source boundary](AUDITED_STORE_SOURCE.md) describes the separately
+checked model foundation and populated replacement execution; postcommit service
+coverage remains pending.
+
+The [missing-Register semantic control](evidence/audited-store-register-control.json)
+now qualifies the replacement assertion against a deliberately faulty model.
+Execution and whole-data results are separated from complete audit acceptance,
+retaining all fourteen theorem statements. Omitting only the final Register
+instruction still admits the complete replacement and returns success; an
+independent diagnostic proves the whole wrong ledger and refutes acceptance.
+The unchanged positive proof fails on the missing full record, and exact source
+restoration with a fresh affected graph passes. This is a manual model control,
+not a new production failure or a CI job. Removal/partial-append rollback/retry
+and postcommit service coverage remain next.
