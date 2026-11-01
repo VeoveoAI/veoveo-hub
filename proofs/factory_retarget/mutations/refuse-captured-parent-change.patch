@@ -1,0 +1,11 @@
+--- a/FactoryWatcherModel.lean
++++ b/FactoryWatcherModel.lean
+@@ -238,6 +238,8 @@
+   | .ok none => finish ⟨s, .skipped, none, queried⟩
+   | .ok (some current) =>
+       if current.linkedRepository ≠ notice.repository ∨ current.trackedId ≠ candidate.trackedId then
++        finish ⟨s, .skipped, none, queried⟩ else
++      if candidate.parentRevision ≠ current.parentRevision ∨ candidate.parentPusher ≠ current.parentPusher then
+         finish ⟨s, .skipped, none, queried⟩ else
+       let metadata := current
+       match metadata.parentRevision, metadata.parentPusher with

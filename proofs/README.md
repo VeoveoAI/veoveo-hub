@@ -172,7 +172,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and source controls checked; native watch publication defect fixed; formal listener/cursor and native refinement open |
-| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Watcher semantic controls/restoration; remaining native/distributed correspondence |
+| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Saved-parent retry freshness; remaining native/distributed correspondence |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
@@ -1224,8 +1224,18 @@ state, not an additional repository authorization rule.
   its resolution error. Ten guards pass; the proof stage took 92.718 s.
   See the [fixture record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-fixtures.md).
   These are synthetic modeled executions, not deployed/native probes.
-- **Residual/next:** complete semantic controls and exact restoration before claiming the
-  complete retarget slice qualified. Saved-parent
+- **Checked watcher controls:** two deliberately faulty manual models now produce
+  independently proved wrong outcomes: stale captured parent metadata replaces
+  current program/identity, or an overstrict equality guard refuses a valid
+  same-target update. The unchanged standalone populated acceptance assertion
+  rejects both. Exact patch reversals restore the full source maps, and fresh
+  model/fixture/positive checks pass; the final six-history proof passes again
+  in 92.624 s with its original artifact hash. See the
+  [control record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-controls.md).
+  These controls exercise the executable model and standalone assertion, not
+  native Rust faults or the generic history/status proof artifacts.
+- **Residual/next:** the bounded watcher slice now includes its semantic controls
+  and restoration. The complete Factory lifecycle remains partial. Saved-parent
   retry preparation/membership, cross-replica reconciliation, concurrent
   registration publication order, native workspace effects and eventual recovery
   remain separate obligations. Eventual successor reconciliation needs scheduling/

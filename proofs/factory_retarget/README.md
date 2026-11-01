@@ -33,7 +33,9 @@ Failure/status ordering and scoped deletion now also pass, with ten axiom guards
 in 5.473 seconds; see the [status contracts](WATCHER_SOURCE.md#checked-status-fallback-and-deletion-boundaries).
 Six populated watcher histories now pass, with ten guards and a 92.718-second
 proof check; see the [fixture receipt](WATCHER_SOURCE.md#checked-populated-watcher-histories).
-Watcher semantic controls remain pending; the overall lifecycle contract is partial.
+Both selected watcher model controls and exact restorations are checked; see the
+[watcher control receipt](WATCHER_SOURCE.md#checked-watcher-semantic-controls).
+The overall native lifecycle contract remains partial.
 
 ## Checked native-output checkpoint
 
@@ -189,12 +191,46 @@ retarget and program-advance compositions and unrelated-key failure framing.
 The subsequent status checkpoint composes preparation refusal with parent
 success, proves fallback/error distinctions and frames completed row deletion.
 Six populated client-facing histories now pass with independently specified
-outputs. Two selected semantic controls and their exact restorations remain open.
+outputs. The two selected watcher controls and their exact restorations now also
+pass, as scoped below; native interpretation and the excluded concurrency domains
+remain separate obligations.
+
+## Checked watcher semantic controls
+
+`FactoryWatcherAdvanceControl` imports only the populated fixture/model graph.
+Its unchanged `ProgramAdvanceHistory` assertion requires successful current-parent
+acceptance and complete row, client, provider, native observation, request-list and
+argv results. A fresh standalone baseline passed in 35.894 seconds, including the
+20.666-second positive assertion and its standard-only axiom guard.
+
+Two isolated handwritten-model faults were then checked. Selecting captured
+metadata after the intact target-relevance check writes parent1/Alice's old
+program instead of current parent2/Frank's program. An independent witness proves
+the complete wrong row/client/provider/native/request/argv result and preparation
+arguments while the real backing row/current query remain current. The second
+fault adds a captured-parent equality requirement and wrongly skips that usable
+current-target update; its witness proves the complete refusal and whole modeled
+state preservation. These are deliberate model controls, not newly discovered
+runtime bugs or native Rust extraction/refinement evidence.
+
+Each private graph freshly built WatcherModel, Fixture and its wrong-outcome
+witness before the unchanged positive assertion failed specifically because
+`decide` proved the required conjunction false. Its cascading `sorryAx` was
+rejected; no failed positive artifact was accepted. No generic History/Status
+proof artifact was imported or tested under either fault. Both exact patch
+reversals restored the full ten-file source map and rebuilt the graph. Restored
+model, fixture and positive artifacts match their qualified baseline hashes.
+The final restoration also passed all six populated histories: **11 guards and
+seven prints across the two positive leaves**, comprising one guard/print for
+AdvanceControl plus ten guards/six prints for FixtureProof. These are axiom audits,
+not eleven scenarios. The [receipt and isolated reproduction steps](WATCHER_SOURCE.md#checked-watcher-semantic-controls)
+retain exact timings, outputs and logs. The dated record is
+[Factory watcher controls](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-controls.md).
 
 ## Manual checks
 
 Lean 4.35.0 and Mathlib `56a005855ea17e0b0958f73ec801ae140b0a1679` are pinned.
-No Aeneas dependency or historical instance-name patch is used. All fourteen named
+No Aeneas dependency or historical instance-name patch is used. All fifteen named
 targets are manual; no default/CI target or runtime behavior is added.
 
 ```sh
@@ -212,6 +248,7 @@ LAKE_NO_UPDATE=1 lake env lean FactoryWatcherHistoryProof.lean -o .lake/build/li
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherStatusProof.lean -o .lake/build/lib/lean/FactoryWatcherStatusProof.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherFixture.lean -o .lake/build/lib/lean/FactoryWatcherFixture.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherFixtureProof.lean -o .lake/build/lib/lean/FactoryWatcherFixtureProof.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherAdvanceControl.lean -o .lake/build/lib/lean/FactoryWatcherAdvanceControl.olean
 ```
 
 ## Interpretation boundaries and remaining work
@@ -242,13 +279,12 @@ framing additionally needs distinct scoped `(workspace, sandboxName)` keys becau
 the native name truncates UUID text.
 
 The full protocol remains partial. Independent lifecycle contracts are now checked
-alongside the full output and conditional retry contracts. Two populated manual
-controls now detect specific wrong-output and wrongful-refusal faults. Further
-work includes the two watcher semantic controls and exact restoration;
-the earlier native concurrency qualification is recorded separately. These
-controls are not exhaustive fault coverage. Modeled provider fields do not verify entire native
-Provider protobuf objects; their profiles, defaults and native interpretation
-remain external contracts.
-Multi-replica publication ordering, independent linked-follower supersession,
+alongside the full output and conditional retry contracts. The earlier populated
+Factory controls and the two watcher controls now detect
+specific wrong-output and wrongful-refusal faults, with exact restoration. The
+earlier native concurrency qualification is separate evidence; these controls
+are not exhaustive fault coverage. Modeled provider fields do not verify entire
+native Provider protobuf objects; their profiles, defaults and native interpretation
+remain external contracts. Multi-replica publication ordering, independent linked-follower supersession,
 removal interleavings, nonreturn/crash and eventual liveness remain outside this
 checkpoint. Runtime/native regression evidence is separate from these model proofs.

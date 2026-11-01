@@ -1,7 +1,8 @@
 # Guarded watcher composition: manual source boundary
 
 The manual model, foundation, parent/queued-update histories, status/recovery
-proofs and populated examples are checked. The model compiled
+proofs, populated examples and both selected semantic controls/restorations are
+checked within the stated manual-model scope. The model compiled
 in 8.232 seconds; the proof passed in 9.383 seconds with 18 executable axiom guards
 (14 lemmas and four model definitions) and seven printed standard-only closures.
 This is a current-projection/full-output foundation, not closure of the entire
@@ -70,12 +71,11 @@ arguments and complete Factory outputs. The checked history extension below now
 composes actual parent retarget and same-target advancement with queued updates,
 deriving intermediate key/row uniqueness from the actual first operation. The
 status extension now checks failure/fallback ordering and a bounded deletion
-history. Six populated client-facing histories are now checked below; semantic
-controls and exact restoration remain next.
-The two later controls change only post-relevance metadata selection (same-target
-program advancement) or add an overstrict captured-parent equality refusal.
-They will not mutate the actual backing Row/current SQL observation or reuse stale
-proof artifacts under a changed model.
+history. Six populated client-facing histories and the two selected controls
+are checked below. The controls change only post-relevance metadata selection
+(same-target program advancement) or add an overstrict captured-parent equality
+refusal. They preserve the actual backing Row/current SQL observation and use
+fresh derived artifacts for each model change and exact restoration.
 
 ## Checked parent and queued-update histories
 
@@ -302,9 +302,9 @@ rebuild earlier proofs or rerun native tests. GPT-6.1 Sol authored the package,
 GPT-6 Luna ran bounded Linux validation and GPT-6 Astra reviewed complete logs,
 contracts and correspondence. Guards are dependency audits, not execution cases.
 The parent/queued-candidate and status/deletion compositions are now checked in
-the extensions. The larger watcher slice remains partial until the selected
-controls/restorations are qualified; the intermediate
-checkpoints do not narrow those requirements.
+the extensions. At this foundation checkpoint the selected controls/restorations
+were still required; their later qualification is recorded below. The native and
+concurrency boundaries remain unchanged.
 
 ## Checked status, fallback and deletion boundaries
 
@@ -375,8 +375,9 @@ Evidence mirror:
 The [dated status record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-status.md)
 keeps this proof-only result separate from native tests and deployment. No runtime,
 dependency, accepted model or earlier proof changed, and no native check or paid
-model call ran. Populated complete outputs are now checked below; both semantic
-controls/restorations remain necessary before closing the watcher slice.
+model call ran. Populated complete outputs and both semantic controls/restorations
+were subsequent obligations at this status checkpoint; both are now recorded
+below within the same explicit native interpretation boundary.
 
 ## Checked populated watcher histories
 
@@ -460,5 +461,180 @@ LAKE_NO_UPDATE=1 lake env lean FactoryWatcherFixtureProof.lean -o .lake/build/li
 Temporary mirror:
 `/tmp/hub-factory-concurrent-preparation-20261031/watcher-fixture-check1-mirror/evidence-run1/`.
 The fixture log is empty. The [dated record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-fixtures.md)
-retains this qualified baseline separately from the two still-pending deliberately
-faulty model variants and their independent witnesses/restorations.
+retains this qualified baseline. Its receipt above preserves the then-pending
+control status; the next section supersedes that historical status without
+changing the baseline source or proof bytes.
+
+## Checked watcher semantic controls
+
+Both deliberate handwritten-model controls and exact restorations are qualified;
+this supersedes the historical pending-control statuses above. GPT-6.1 Sol authored,
+GPT-6 Luna ran the pinned Linux checks, and GPT-6 Astra reviewed every full witness,
+rejection and restoration log/map. The positive declaration is
+`FactoryRetarget.Watcher.Fixture.current_parent_program_accepts` in module
+`FactoryWatcherAdvanceControl`. It imports only Fixture/Models, never generic
+History/Status proofs. No runtime/model/prior-proof
+bytes changed; packaging adds only its nondefault target and exact control files.
+
+- **Lost metadata:** selecting the candidate after the intact same-target relevance
+  check leaves the real backing/current SQL data intact, but writes old1/Alice's
+  program. The independent witness checks the complete wrong row, client,
+  providers, native observation, request/argv and actual preparation arguments.
+- **Wrong refusal:** the extra captured-parent equality guard skips an event with
+  usable current target/source. Its independent witness checks the full refusal,
+  exact skipped trace and whole modeled state preservation.
+
+Fresh Model/Fixture/witness stages passed before each unchanged positive assertion
+reported `decide` false. Its cascading `sorryAx` was rejected and no positive
+artifact was emitted. No parser/import/type/resource failure counted as detection.
+The rejection logs are identical, but the independently proved wrong outcomes
+differ. Accepted witness closures use only the three standard axioms (one guard
+for lost metadata, two for refusal). These are manual-model faults, not native
+Rust extraction/refinement or new runtime bugs; the prior native race/fix is
+separate evidence.
+
+Each exact reverse patch restored all ten private sources. The whole local build
+graph was removed except the hash-gated immutable RetargetModel; WatcherModel,
+Fixture and positive assertion were rebuilt. Restored baseline artifact hashes
+match. The final restoration also rebuilt all six FixtureProof scenarios: the
+combined positive chain has **11 guards/seven prints**, comprising AdvanceControl
+one/one and FixtureProof ten/six. These are dependency audits, not eleven scenarios.
+The finite local recursion bound remains 4096. Lean/Mathlib/tool/shared-model
+identities and native interpretation boundaries are unchanged from the earlier
+receipts; no native test, deployment or paid call ran.
+
+### Isolated reproduction
+
+Use a scratch copy and require a fresh positive baseline first. Only the exact
+RetargetModel artifact may be reused; after every model change, remove all local
+derived artifacts for WatcherModel, Fixture, witnesses and controls. Recorded
+commands had 180-second process-group bounds (patch application: 30 seconds).
+
+```sh
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherModel.lean -o .lake/build/lib/lean/FactoryWatcherModel.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherFixture.lean -o .lake/build/lib/lean/FactoryWatcherFixture.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherAdvanceControl.lean -o .lake/build/lib/lean/FactoryWatcherAdvanceControl.olean
+```
+
+Copy `mutations/FactoryWatcherLostMetadataWitness.lean` to the scratch root, apply
+`patch --batch --fuzz=0 -p1 < mutations/lost-current-metadata.patch`, clear derived
+artifacts and rebuild Model/Fixture. Then run:
+
+```sh
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherLostMetadataWitness.lean -o .lake/build/lib/lean/FactoryWatcherLostMetadataWitness.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherAdvanceControl.lean -o .lake/build/lib/lean/FactoryWatcherAdvanceControl.olean
+```
+
+Require witness success then specifically `decide`-false rejection/audit, not a
+setup failure. Reverse the exact patch using `patch --batch --fuzz=0 -R -p1`, verify
+the complete baseline source map, clear derived artifacts and rerun the positive
+commands. Repeat independently using `refuse-captured-parent-change.patch` and
+copied `FactoryWatcherFalseRefusalWitness.lean`. Both files live in `mutations/`
+and have no baseline targets. After the final restoration, also run the full
+`FactoryWatcherFixtureProof.lean` command given above. No generic proof artifact
+crosses a model mutation.
+
+### Compact receipt
+
+Durations are compilation/check times, not native operation latency. Artifact/log
+aliases below mean `[bytes, sha256]`; `none` means no artifact. Each mutant's last
+exit 1 is the reviewed intended rejection, following successful witness stages.
+
+| Run | Stage | Exit | Seconds | Artifact | Log |
+| --- | --- | --- | --- | --- | --- |
+| baseline | Model | 0 | 10.547 | model | empty |
+| baseline | Fixture | 0 | 4.677 | fixture | empty |
+| baseline | AdvanceControl | 0 | 20.666 | positive | positive |
+| lost | Model | 0 | 8.429 | lost-model | empty |
+| lost | Fixture | 0 | 4.822 | lost-fixture | empty |
+| lost | LostMetadataWitness | 0 | 22.912 | lost-witness | lost-witness |
+| lost | AdvanceControl | 1 | 9.933 | none | rejection |
+| lost-restored | Model | 0 | 5.523 | model | empty |
+| lost-restored | Fixture | 0 | 3.770 | fixture | empty |
+| lost-restored | AdvanceControl | 0 | 22.504 | positive | positive |
+| refusal | Model | 0 | 6.976 | refusal-model | empty |
+| refusal | Fixture | 0 | 3.771 | refusal-fixture | empty |
+| refusal | FalseRefusalWitness | 0 | 36.687 | refusal-witness | refusal-witness |
+| refusal | AdvanceControl | 1 | 10.840 | none | rejection |
+| final-restored | Model | 0 | 6.778 | model | empty |
+| final-restored | Fixture | 0 | 4.573 | fixture | empty |
+| final-restored | AdvanceControl | 0 | 25.919 | positive | positive |
+| final-restored | FixtureProof | 0 | 92.624 | fixture-proof | fixture-proof |
+
+```json
+{
+  "runtime_source": "a69e3cba3f9865e06e1db5ff77d1562ac468338a",
+  "published_fixture_basis": "980bef64e9550ef68ef27e8272a572b7e46a50d3",
+  "shared_private_archive_sha256": "fd68f99c910dd5dd3311373140798e4711bd37683bda4739a0478eb5c88ac7ef",
+  "source_maps_sha256": {
+    "baseline_and_both_restorations": "31667665f3e29b9003f189bfcbc9d659763f3bb1926f2fd7e2a006d2c4f3515c",
+    "lost": "4894951e002cf396c5e650d3a482c8506fc894e761cf568c13745b12279a22e8",
+    "refusal": "8254b5285c3e3f5b94fdbf739d0d8aad5301d9a24e211ab2e345be01e9b29d25"
+  },
+  "mutant_model_source_sha256": {
+    "lost": "be5f598beb1bcfc3faa2514325768665ae072736b5512e7b3f40a74157d92937",
+    "refusal": "3d0aee00e0e6d6ce0f3719880b349f2392bc6e02650298490cfe6e23f982b654"
+  },
+  "shared_patch_log_sha256": "4d35d1f3c43531897ea4c6b03373be65fa49078a59a14be0fe9338a76c95d325"
+}
+```
+
+New source/patch identities; unchanged model/fixture sources retain the hashes in the earlier receipts:
+
+```json
+{
+  "FactoryWatcherAdvanceControl.lean": "9c91c685286a065e40c8577825215a5f66cc30296fc4b2d35a129b12f887b514",
+  "mutations/FactoryWatcherLostMetadataWitness.lean": "fc2ffc054df8e85f706d16455f60dd887f0ebc479feadf07e53596597681805a",
+  "mutations/FactoryWatcherFalseRefusalWitness.lean": "65450bff84bcdee037a3f1be67226744d8d95686fec9ead8c829bb8148f7eb8c",
+  "mutations/lost-current-metadata.patch": "7ac7eb4af011cf8392c93b70b4f55a5f8615b45bbee3ba7fff60444a17deb455",
+  "mutations/refuse-captured-parent-change.patch": "fad27543fc265772883b5787512dc6adfae15e026f765b4da6344a60075c900d"
+}
+```
+
+Deduplicated artifact and log identities:
+
+```json
+{
+  "artifacts": {
+    "model": [2450168, "f0dc55f6804747bf83d40aadf572cfeaee9413162ee0907d5f7c8cc51aa5cbef"],
+    "fixture": [929656, "a95c2fd70cad74f7dc156ef8786796691259b8fef0479420be6b43236070e553"],
+    "positive": [35112, "d14b1106f7d84738cc49c700f4fdd30830dcebc2c6975ccd0ac01d1fae937e3d"],
+    "lost-model": [2450136, "368d6862408966c6d622b17480db6b508f0d0cff584e3d6ec2caa21dc8599215"],
+    "lost-fixture": [929712, "481170817ace62c8fcddd0f5c96367caa7824e1177a4c9745b567edba56858a5"],
+    "lost-witness": [75824, "68342b3858b49e62ae71b533721d99f990612239fdafbc406c9e7bce508c2bb4"],
+    "refusal-model": [2456328, "9e1fe53c65cb6c92beb82276e4fafbd5226897759e1c2b8a4e6d234a59a5d7c7"],
+    "refusal-fixture": [935408, "0cfe72ec7c83ce2376600b7c559e8620fa4bffb13e46c556509b85603d4dafcd"],
+    "refusal-witness": [62416, "e27ae3d17f55bc5f7638803f0b43ada3f6cfc9f05d182e0be71aee9fec575e35"],
+    "fixture-proof": [240368, "c3c7f44334e16a525c61aa92214ecb0d3c5047635f27c70b6f959f7addf3bab5"]
+  },
+  "logs": {
+    "empty": [0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+    "positive": [126, "6fa4998cf1d8a309527052480c628017ae2e224cef05fdac1f34e66da8899eca"],
+    "lost-witness": [130, "5c58750c0cbab327d96329eaef7501ba9e8f8b0ef8c22c63a52c08bf3744eea6"],
+    "rejection": [2190, "6b0b6cd5015c423d694ec197b7d21691483cd5e07796551dda9f46a3bb7f4d73"],
+    "refusal-witness": [265, "04d540703f0572c60b16670b3b195c2ca3a9ffdcff55d860cdd94e4be718f221"],
+    "fixture-proof": [778, "0e5dfbe1beadb535f0b1985eb784ec7b84c9f1778a50ae207d9c4127fdd1f820"]
+  }
+}
+```
+
+Run totals and summary/input/runner identities:
+
+```json
+{
+  "baseline": {"elapsed_ms": 35894, "last_stage_exit": 0, "summary_sha256": "1917302343a0b0924310fcb7dac209917e19a451466df0cf50beb0e8e7920922", "inputs_sha256": "2098e91288a0154346ff7254e7a683d474ae8e9e8b8a088093d542fd8eef62ff", "runner_sha256": "99596b4f9958e6262e3599b37798ef12076927fae2a4f3cd1b8b22faa18c7a41"},
+  "lost": {"elapsed_ms": 46100, "last_stage_exit": 1, "summary_sha256": "a7cd6a12a8c84b90d1bbaeff84c8d2ce5d3300159ca474fd1f9632591a3527a7", "inputs_sha256": "17c83968506e5d785996eb690faf8bbf68e85933e72e3d04b0fd31b7771c009e", "runner_sha256": "985db04e9732d42189adfddc66871251bd2f79ff3266fee8c2b6ea20244c45d9"},
+  "lost-restored": {"elapsed_ms": 31801, "last_stage_exit": 0, "summary_sha256": "6b1ec504b08fbe35f4e90888fc1bffdff8ab52faf4154301a0eb7c491c8588d6", "inputs_sha256": "220a99d9a439ab66688c8c7d94621a0cbfbc24466e116e21f3c0e82e19c164f2", "runner_sha256": "ea4f5aaffdfcf2945b1e58a8048e922043011013614e3d0e37632f48f9fcd4e6"},
+  "refusal": {"elapsed_ms": 58278, "last_stage_exit": 1, "summary_sha256": "8fc54c872ea29163e6897a65087c5eddbaeb3791497054dfa4e5e67e1c5a02fd", "inputs_sha256": "8fbdead07ad98aa5f4b702097242d7149cfb69bb457b2cf86d83c66b52a10f0a", "runner_sha256": "4cc75294cd3aa877cc633443be6a4cddea0bc3d272db73e70f1606b0a9417fdb"},
+  "final-restored": {"elapsed_ms": 129899, "last_stage_exit": 0, "summary_sha256": "06cfa18115840306fae4296177a4897bd411bcc702bc6b843880af3e2639d5ef", "inputs_sha256": "4fb84c50258b70fbdc7b97c5008c41cc362857fe19acfbc84d10320335167d2d", "runner_sha256": "f7b822083ffa2361759d0e544fa4ec8233db8eaff925ba31572a669fa3b865e3"}
+}
+```
+
+Mirrors: `/tmp/hub-factory-concurrent-preparation-20261031/watcher-controls-baseline1-mirror/evidence-run1/`
+and, under the same base, `watcher-controls1/{lost-current-metadata,refuse-captured-parent-change}/{mutant,restored}-mirror/evidence-run1/`.
+Frozen runners/inputs remain in the corresponding non-mirror directories; no
+runner, OLean or full log binary is committed. The
+[dated controls record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-controls.md)
+keeps this evidence separate from native qualification. These two controls do not
+establish exhaustive fault coverage, parent-retry freshness, replicas, registration
+writer ordering, cleanup, liveness or full native implementation correctness.
