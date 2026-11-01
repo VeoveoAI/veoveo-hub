@@ -62,9 +62,13 @@ types. No Lean output is produced. Current verifier continuity remains unproved.
 The subsequent [repository-grant extraction](request_composition/evidence/repository-grant-translation-20261031.json)
 retains all producer fields and reaches 38 transparent own functions, but the pinned
 backend rejects a required associated-type equality in `Iterator::cloned` before
-generating Lean. The independent SDK detail construction/projection extracts into
-a model; its proofs are the next contribution. Neither result replaces the open
-producer or verifier requirement.
+generating Lean. The independent SDK
+[detail contract](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/proofs/repository_grants/README.md)
+now has checked construction, projection and complete roundtrip proofs, including
+valid empty-action read grants. An actual Rust action-dropping fault is caught by
+both the unchanged proof and the existing native test; an independent witness
+establishes the wrong output. Standard collection/clone correspondence remains an
+explicit boundary. This does not replace the open producer or verifier requirement.
 
 Hub merge `1ccb868` subsequently integrates upstream `0ff0819`, retaining all local
 proof work. Its runtime/configuration bytes match that upstream parent exactly;
@@ -1291,8 +1295,16 @@ checks passing. Aeneas stops at the required `Iterator::cloned` associated-type
 equality, before emitting Lean. An additional empty default trait method is recorded
 as extra extraction scope; it is not the cause of that required dependency's failure.
 No runtime or backend rewrite was made, and this is not a producer proof. The separate
-SDK detail extraction succeeds through model generation; its own Lean checks and
-semantic control remain pending at this checkpoint.
+SDK [detail qualification](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/proofs/repository_grants/evidence/qualification-20261031.json)
+checks complete construction/projection and roundtrip preservation over the actual
+extracted functions, including exact repository text, action membership and valid
+empty-action reads. Thirteen closure guards admit only standard Lean axioms.
+The source fault drops nonempty actions: the unchanged projection proof fails at
+that exact mismatch, while an independent Funs-only witness proves the wrong result
+and retained empty-read behavior. The existing native test separately catches the
+same fault and passes after exact source restoration. Native library value models,
+parser/serde/signature correspondence and the complete issuer/verifier path remain
+outside this dependency proof; HUB-LORE-01 remains open.
 
 ## HUB-CLEANUP-01 — Cleanup, references and transactional audit
 
