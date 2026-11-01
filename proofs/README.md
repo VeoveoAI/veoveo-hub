@@ -1124,8 +1124,8 @@ and client identity have not changed. This is a consistency requirement on exist
 state, not an additional repository authorization rule.
 
 - **Source:** [follow/recheck/change](../crates/veoveo-hub/src/bin/hub/contributions/lore/factory/watch.rs#L129),
-  [Factory::apply/restart](../crates/veoveo-hub/src/factory.rs#L214), and
-  [sandbox::runs](../crates/veoveo-hub/src/factory/sandbox.rs#L152).
+  [Factory::apply_to](../crates/veoveo-hub/src/factory.rs#L403), and
+  [sandbox::runs](../crates/veoveo-hub/src/factory/sandbox.rs#L380).
 - **Tests:** [watch fixture](../crates/veoveo-hub/src/bin/hub/contributions/lore/factory/tests.rs#L493)
   covers resubscription and replaced watchers; [factory scenarios](../crates/veoveo-hub/tests/factory.rs#L532)
   cover changed image/policy, crash loops and failed builds.
@@ -1162,12 +1162,18 @@ state, not an additional repository authorization rule.
   not assumed. All 21 new axiom guards pass; see the
   [recovery checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-recovery-proof.md).
   This does not prove that a retry is scheduled or that the remote worker becomes ready.
+  [Independent lifecycle contracts](factory_retarget/FactoryChoiceProof.lean)
+  characterize all four choices with necessary-and-sufficient conditions written
+  without the implementation's comparison/choice helpers. They preserve keep
+  precedence across rebuilt image changes, require replacement on target changes,
+  retain provider multiplicity and identify fields native comparison ignores.
+  All 15 new axiom guards pass; see the
+  [choice checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-choice-proof.md).
 - **Boundary/effort:** moderate for lifecycle action selection, substantial for
   cancellation/supersession and recovery. Current code uses cancellation plus an
   instance mutex, not a pure generation-CAS activation guard. In-flight apply may finish.
 - **Residual/next:** compose the checked two-call recovery into finite serialized
-  histories. Independently
-  characterize lifecycle choices and add wrong-result/wrong-refusal semantic controls
+  histories and add wrong-result/wrong-refusal semantic controls
   before claiming the complete retarget slice qualified.
   Independent linked preparations captured before the runner lock, concurrent
   registration publication order, native workspace effects and eventual recovery
