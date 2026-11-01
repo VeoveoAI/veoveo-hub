@@ -56,7 +56,8 @@ Original-protocol comparison retains registration's actual deployment-upsert loc
 and removal's actual later DELETE-instance lock. INSERT validity has native
 client/login/deployment-FK constraints, deliberately no instance-existence guard.
 Primitive commit applies staged deltas without a desired no-orphan condition.
-A constructive historical orphan execution remains a following obligation.
+The constructive witnesses below reproduce that historical orphan through actual
+primitive steps, retaining both original locks.
 
 Independent `replacement`, `removal` and `sequential` specify complete owned effects
 without replaying staged writes. The checked foundation derives shared ownership,
@@ -95,9 +96,24 @@ confirmed aborted attempt contributes no event; a response error is insufficient
 The extended graph's canonical History target passes in 22.66 seconds, including
 fresh qualification of the changed Specification and dependent foundation Proof.
 
-Next: constructive acceptance/removal-first/rollback/original executions, complete
-response payloads and semantic controls. SQLValid preservation and native SQL
-refinement are not added by the history extension.
+The [constructive witnesses](evidence/instance-lifetime-witnesses.json) establish
+six concrete executions and independently written complete model outputs: the
+original orphan, fixed registration then removal, removal before admission despite
+cached authority, aborted removal then successful registration, lost reply after
+commit, and replacement of an existing registration. The replacement preserves
+the old immutable deployment value while removing its prior row and login. Each
+case specifies stored state, response tags, released locks and actual commit order.
+These witnesses use synthetic inputs; they do not prove native input validation.
+
+Their execution leaf imports only Model and Specification. A separate consequence
+leaf then imports History: the original concrete execution cannot satisfy the same
+independent serial-history contract, while the fixed execution does. Generic
+correctness is not used to manufacture either execution's existence. Thirty-six
+new declaration guards and eight printed closures pass.
+
+Next: semantic controls with exact restoration, complete response payloads and
+broader lifecycle composition. SQLValid preservation and native SQL refinement
+are not added by these witnesses.
 
 Namespace writers, token reissue, RFC 7592 updates, housekeeping, allocation/recreation,
 ID reuse, other normal row writers, distributed ordering, listener convergence,
@@ -106,12 +122,13 @@ Old register/replace/update proofs retain their recorded retained-deployment sco
 
 ## Manual qualification
 
-All sixteen existing default targets and pins remain unchanged. Four new libraries
+All sixteen existing default targets and pins remain unchanged. Seven new libraries
 are nondefault manual targets:
 
 ```sh
 LAKE_NO_UPDATE=1 lake build RegistrationLifetimeModel RegistrationLifetimeSpecification RegistrationLifetimeProof
 LAKE_NO_UPDATE=1 lake build RegistrationLifetimeHistoryProof
+LAKE_NO_UPDATE=1 lake build RegistrationLifetimeWitnessConsequences
 ```
 
 Only actual imported old Model/Specification/Effects dependencies are required; the

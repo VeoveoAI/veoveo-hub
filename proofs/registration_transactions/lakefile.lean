@@ -61,3 +61,7 @@ lean_lib RegistrationLifetimeSpecification
 lean_lib RegistrationLifetimeProof
 
 lean_lib RegistrationLifetimeHistoryProof
+
+lean_lib RegistrationLifetimeWitnesses
+lean_lib RegistrationLifetimeWitnessProof
+lean_lib RegistrationLifetimeWitnessConsequences

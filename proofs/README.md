@@ -1432,8 +1432,13 @@ The [history extension](registration_transactions/evidence/instance-lifetime-his
 now derives exact registration effects, independent actual-commit-order histories
 with explicit frame interference, no-orphan preservation from its initial invariant,
 and confirmed-abort event exclusion. Its twenty guards and nine closures pass.
-Constructive valid/original/rollback witnesses and semantic controls are next;
-complete response payloads also remain unproved. These checkpoints do not
+The [constructive witnesses](registration_transactions/evidence/instance-lifetime-witnesses.json)
+establish six actual execution chains with independent complete model outputs:
+the original orphan, fixed acceptance/removal, removal-first, abort/retry, lost
+commit reply and existing-deployment replacement. The original execution refutes
+the same serial-history contract satisfied by the fixed execution. Thirty-six
+new guards and eight printed closures pass. Semantic controls and exact
+restoration are next; complete response payloads also remain unproved. These checkpoints do not
 establish formal SQL refinement, asynchronous listener convergence or deployment.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance

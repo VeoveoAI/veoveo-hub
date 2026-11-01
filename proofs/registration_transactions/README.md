@@ -248,8 +248,17 @@ aborted attempts have no commit event; an error response alone proves no rollbac
 Twenty new declaration guards and nine printed closures pass. Its manual target is
 `LAKE_NO_UPDATE=1 lake build RegistrationLifetimeHistoryProof`.
 
-Constructive valid/original/rollback executions and semantic controls remain next.
-Responses currently carry tags,
+The [constructive checkpoint](evidence/instance-lifetime-witnesses.json) adds six
+actual execution chains with independently specified complete stored outputs:
+original orphan, fixed registration/removal, removal-first with cached authority,
+abort/retry, lost commit reply, and existing-deployment replacement. It proves
+valid acceptance and complete cleanup, including preserved immutable deployment
+values and unrelated roles. A separate consequence module proves the original
+execution violates the same serial-history contract the fixed execution satisfies.
+Thirty-six new declaration guards and eight printed closures pass. Its manual
+target is `LAKE_NO_UPDATE=1 lake build RegistrationLifetimeWitnessConsequences`.
+
+Semantic controls and exact restoration remain next. Responses currently carry tags,
 not complete returned credential/database/metadata payloads. External preparation,
 token reissue, other instance-row writers, listener convergence and formal
 Rust/SQL refinement remain outside this checkpoint; see the

@@ -1,0 +1,499 @@
+{
+  "date": "2026-11-01",
+  "status": "Six constructive executions and independent full model outputs checked; original violates same history contract satisfied by fixed execution. Additional semantic controls remain next.",
+  "evidence_class": "Manual source-mapped Lean model; not formal Rust/SQL refinement",
+  "native_source_revision": "12a132dcbdddcd7fad1defcd007432385d237a76",
+  "adoption_base_commit": "66ef172297824eb870830eb4af08ea1756196cc9",
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "previous_history": "instance-lifetime-history.json",
+  "source_files": {
+    "RegistrationEffects.lean": {
+      "bytes": 6190,
+      "sha256": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5"
+    },
+    "RegistrationHistory.lean": {
+      "bytes": 9699,
+      "sha256": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058"
+    },
+    "RegistrationLifetimeHistoryProof.lean": {
+      "bytes": 13914,
+      "sha256": "be50ceaa617d7317192f4dc81673c517e3b0a1cae6c8eee1111ef553e918e6ca"
+    },
+    "RegistrationLifetimeModel.lean": {
+      "bytes": 14849,
+      "sha256": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954"
+    },
+    "RegistrationLifetimeProof.lean": {
+      "bytes": 18457,
+      "sha256": "0520eb364656bdec153adb1de030bf15c3e5a9060e994ba0aa857c9c1c400f65"
+    },
+    "RegistrationLifetimeSpecification.lean": {
+      "bytes": 5138,
+      "sha256": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2"
+    },
+    "RegistrationLifetimeWitnessConsequences.lean": {
+      "bytes": 1943,
+      "sha256": "bce9db1291465c8655ae58c52ac99884565e48cd4ebbc1fcd4df4578caeebe3c"
+    },
+    "RegistrationLifetimeWitnessProof.lean": {
+      "bytes": 24986,
+      "sha256": "cf3cf467eb0fa2316da678a761b214b7f731a84031f1daf2861273f15c3d0765"
+    },
+    "RegistrationLifetimeWitnesses.lean": {
+      "bytes": 13877,
+      "sha256": "db607aa503416f90bf6e3be541b6a51c4776f8700b5c3406d0f9cee808cb64e0"
+    },
+    "RegistrationLocks.lean": {
+      "bytes": 2428,
+      "sha256": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6"
+    },
+    "RegistrationModel.lean": {
+      "bytes": 13928,
+      "sha256": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584"
+    },
+    "RegistrationObservations.lean": {
+      "bytes": 3822,
+      "sha256": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b"
+    },
+    "RegistrationProof.lean": {
+      "bytes": 4700,
+      "sha256": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87"
+    },
+    "RegistrationSpecification.lean": {
+      "bytes": 5207,
+      "sha256": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94"
+    },
+    "RegistrationUpdateEffects.lean": {
+      "bytes": 4035,
+      "sha256": "500fc10b193595c6795690005ef663f8e91a3378e4d23dd17e49392e221bfeb1"
+    },
+    "RegistrationUpdateHistory.lean": {
+      "bytes": 13270,
+      "sha256": "75e5dfad45f4d4549465f0ac61b44da9d42edbb3a48aa18c3d91cc84abb603ac"
+    },
+    "RegistrationUpdateLocks.lean": {
+      "bytes": 12530,
+      "sha256": "140c786959c1395ad979f3c8b7ae7137d5546d0c0a9c8d68b8a901614e59c2d3"
+    },
+    "RegistrationUpdateModel.lean": {
+      "bytes": 17261,
+      "sha256": "a453d6d58a17e8d08d6a31c31b2227785dac66edda8048c14d5217da1ffefcf9"
+    },
+    "RegistrationUpdateObservations.lean": {
+      "bytes": 8550,
+      "sha256": "b3c62a290c6d037829be1cb13158ae1d5cdcf71897faeff855df595ba49c9c7c"
+    },
+    "RegistrationUpdateProof.lean": {
+      "bytes": 5496,
+      "sha256": "8ed07e65b88297bd14c7edbc3978b04afb1ed77f0a72ab25de1021559fd6f26e"
+    },
+    "RegistrationUpdateSpecification.lean": {
+      "bytes": 4794,
+      "sha256": "c92157d4f92472ff09d00ecd5f0ba178f3408cbc5438378d249bab66a3580e67"
+    },
+    "RegistrationUpdateWitnesses.lean": {
+      "bytes": 56022,
+      "sha256": "b6c02c74bad205bd5f288af622558ae1a9e546afafd752e8ceff7523a1c0f36f"
+    },
+    "RegistrationWitnesses.lean": {
+      "bytes": 54230,
+      "sha256": "0c62ccf4ef064f5592fcd781e485f21ac7f107572aa208d0e7d2130c7c44726e"
+    },
+    "lake-manifest.json": {
+      "bytes": 3922,
+      "sha256": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64"
+    },
+    "lakefile.lean": {
+      "bytes": 1405,
+      "sha256": "0f9bd0d71f90bb6d2e8de4f6623fd153895e412062685f1ef84ba0d7329a90cc"
+    },
+    "lean-toolchain": {
+      "bytes": 25,
+      "sha256": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+    }
+  },
+  "source_mapping_sha256": "65e034641b0daa6f013e9f88ca72b8c1f64fda5ecc84f8dfa9e48f9dd9f73f35",
+  "pins": {
+    "Aeneas": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "Lake_binary_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "Lean": "4.35.0",
+    "Lean_binary_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "Mathlib": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "Mathlib.Tactic.olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+    "Mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147"
+  },
+  "scenarios": {
+    "original_complete": "Original deployment-upsert/late instance DELETE locks allow orphaned registration and login after both commits.",
+    "fixed_complete": "Actual valid registration then complete removal, with delayed successful registration reply.",
+    "absent_complete": "Cached authority cannot admit after removal; invalid-token response, no staged writes or registration commit.",
+    "rollback_complete": "Staged removal abort restores database and releases locks; registration then succeeds.",
+    "lost_reply_complete": "Committed registration survives delivery error with committed phase and event.",
+    "replacement_complete": "Existing deployment stable data retained, old row/login removed, new candidate accepted, unrelated state preserved."
+  },
+  "consequences": [
+    "original_has_no_serial_history",
+    "fixed_has_serial_history"
+  ],
+  "proof_structure": "Concrete Step chains import only Model/Specification. History is imported in a separate consequence module after independent reachability and expected outputs are established.",
+  "axiom_audit": {
+    "new_guard_count": 36,
+    "printed_closures": 8,
+    "execution_axioms": [
+      "propext",
+      "Quot.sound"
+    ],
+    "consequence_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "sorryAx_accepted": false
+  },
+  "canonical_validation": {
+    "all_guard_count": 86,
+    "all_lifetime_printed_closure_count": 26,
+    "artifacts": {
+      "RegistrationEffects": {
+        "bytes": 283672,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/oleans/RegistrationEffects.olean",
+        "sha256": "73924da7b332decd115a4ef4bab02cde43059baa47c7b4d508276c457d8ff6b6"
+      },
+      "RegistrationLifetimeHistoryProof": {
+        "bytes": 1071768,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/oleans/RegistrationLifetimeHistoryProof.olean",
+        "sha256": "b2be3deaf4a8a26f98150f7a3230e1f12927736934e8f30b545d74c581f7f925"
+      },
+      "RegistrationLifetimeModel": {
+        "bytes": 1645120,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/oleans/RegistrationLifetimeModel.olean",
+        "sha256": "85f36adc8376c83818cda80e2fa28651e63a57fb731fe02a3c33d73ffacb78b0"
+      },
+      "RegistrationLifetimeProof": {
+        "bytes": 2239552,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/oleans/RegistrationLifetimeProof.olean",
+        "sha256": "1db7f22d161351f1dc68b01c2a829aa311f7228b59974016b2ddc691b6eebd27"
+      },
+      "RegistrationLifetimeSpecification": {
+        "bytes": 230960,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/oleans/RegistrationLifetimeSpecification.olean",
+        "sha256": "fa5ed9dcc1b8181b4102d373b428b81baed856ee35c855448242e440a52648db"
+      },
+      "RegistrationLifetimeWitnessConsequences": {
+        "bytes": 17728,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/oleans/RegistrationLifetimeWitnessConsequences.olean",
+        "sha256": "558084172de3700d905eeefdd831471321fa7786113cb5901833e6e112762b99"
+      },
+      "RegistrationLifetimeWitnessProof": {
+        "bytes": 1798760,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/oleans/RegistrationLifetimeWitnessProof.olean",
+        "sha256": "332ba8ab9cffd213df829c60eb4c8bc549901f8f0f3ca0bcbe3819b6e731e3fd"
+      },
+      "RegistrationLifetimeWitnesses": {
+        "bytes": 465264,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/oleans/RegistrationLifetimeWitnesses.olean",
+        "sha256": "e68cbb22d7a1943220cc212ae772774f4455bfb390e0d14213c778b5f685a865"
+      },
+      "RegistrationModel": {
+        "bytes": 1329832,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/oleans/RegistrationModel.olean",
+        "sha256": "b6e320d98ca154a8e491a8dbd6cf13921cb63b9a1466acc87eaec7d70d9b8e66"
+      },
+      "RegistrationSpecification": {
+        "bytes": 129080,
+        "path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/oleans/RegistrationSpecification.olean",
+        "sha256": "719b201f2d142b8d456f3d5b11810a46fdcf28dfe7a187f940a0dcc477f6bbb1"
+      }
+    },
+    "command": "LAKE_NO_UPDATE=1 lake build RegistrationLifetimeWitnessConsequences",
+    "dependency_pins": {
+      "Aeneas": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+      "Lake_binary_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+      "Lean": "4.35.0",
+      "Lean_binary_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+      "Mathlib": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+      "Mathlib.Tactic.olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+      "Mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147"
+    },
+    "elapsed_seconds": 25.54,
+    "exit_status": 0,
+    "inputs_sha256": "773238d76c218f4b3df748baf41132c3322b570a58e390f90284d522edb3632b",
+    "lake_reported_jobs": "3147/3147",
+    "log_bytes": 15503,
+    "log_path": "/tmp/hub-registration-instance-removal-20261101/canonical-witness-target1-mirror/build.log",
+    "log_sha256": "ce2dfc352ed8cfe586243fce8cfc6a3acdac0cbe95982961aa2a3f4352b48373",
+    "native_source_revision": "12a132dcbdddcd7fad1defcd007432385d237a76",
+    "new_guard_count": 36,
+    "new_printed_closure_count": 8,
+    "old_effects_audit_count": 2,
+    "package_olean_count": 10,
+    "prior_lifetime_guard_count": 50,
+    "prior_lifetime_printed_closure_count": 18,
+    "private_source_root": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/canonical-witness-target1/source",
+    "repo_head": "66ef172297824eb870830eb4af08ea1756196cc9",
+    "sorryAx_reported": false,
+    "source_archive_sha256": "9fb56c61c1095689f44e4adebffb2e8f947c2e1395665f47273d7cc38a35f6c8",
+    "source_file_count": 26,
+    "source_map_file_sha256": "4d5814752d8e4ddb9dd84379aca24702bf80d3e6539953063f53f16f7c3afac1",
+    "source_map_sha256": "5acab702073fd04d5f22d9c35a5b9d94516049995e31aaa862fce827a3fa4a86",
+    "source_map_unchanged": true,
+    "status": "passed",
+    "tool_imports_sha256": "b85d788f679cd8116d4f4b235f3039a0d73756636e294d0275cf5183fd177104",
+    "tool_imports_unchanged": true,
+    "warnings": [
+      "Existing unused-simp and linter warnings in proof dependencies; no errors."
+    ]
+  },
+  "canonical_summary_sha256": "e5f13c37dfddffd3161b9a4d9c3d5474f36cd84e5e6a6654a5218867da9fa51e",
+  "direct_validation": [
+    {
+      "checkpoint": 1,
+      "summary_sha256": "a61fb6af3a899657edfa6e55da36ad9246e721fbe35876fb1aefc95e6e2c8934",
+      "summary": {
+        "aeneas_used": false,
+        "complete": false,
+        "inputs_sha256": "c2e13c5c6c81763c2159a2b3a34b3ca3da50c0838e9f6f2702d1567d3e50902b",
+        "lake_binary_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+        "lean_binary_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+        "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+        "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+        "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+        "new_guard_count": 36,
+        "new_printed_closure_count": 8,
+        "reused_checkpoint1_oleans": {
+          "RegistrationEffects.olean": "a15c9cc1895cc6517c05f5789d4433415a42be0b89fa6f1511e4eeec1a867bf7",
+          "RegistrationModel.olean": "510fd877d91cf3f01dd9f166b4d8f0dcca4fdd56f50cd32585a48e389321be63",
+          "RegistrationSpecification.olean": "578c96fee4ee2335bf4d8066cfea9192afdec227973ef73be7aa4591b2bf627e"
+        },
+        "reused_history_imports": {
+          "RegistrationLifetimeHistoryProof": {
+            "sha256": "714ea393b995156a97d7ebcc99c3e642c876ae228481a966c4bc4ae78da29214",
+            "task": "lifetime-history-checkpoint2"
+          },
+          "RegistrationLifetimeProof": {
+            "sha256": "069726c9c12bbf262f2dd181bc99e38190229e072bca1210e452c402570d458b",
+            "task": "lifetime-history-checkpoint1"
+          },
+          "RegistrationLifetimeSpecification": {
+            "sha256": "cd654019fd170bc422402d53c90e737f00664f28633b725e7e5034d71a05ad2e",
+            "task": "lifetime-history-checkpoint1"
+          }
+        },
+        "reused_lifetime_model": {
+          "artifact_source": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint2/source/.lake/build/lib/lean/RegistrationLifetimeModel.olean",
+          "olean_sha256": "4f02385283c7b823e055f494eb5b6bfcba25b60838a9fea3540b5a0603384ecd",
+          "source_sha256": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954"
+        },
+        "shared_package_cache": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions/.lake/packages",
+        "source_archive_sha256": "5ef8836455827a3457409b3180466d916f70003d99db3d19aea3a7d86f55224b",
+        "source_file_count": 13,
+        "source_map_after_sha256": "ae53ba35b7074bd312ea53d710513cc460325ad1f3ea49d9b9143b4da29f3987",
+        "source_map_sha256": "ae53ba35b7074bd312ea53d710513cc460325ad1f3ea49d9b9143b4da29f3987",
+        "source_root": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-witness-checkpoint1/source",
+        "source_unchanged": true,
+        "stages": [
+          {
+            "artifact": {
+              "bytes": 465152,
+              "exists": true,
+              "sha256": "a11b65da9368f54bfa0c70597902029c9f217a8cef4964b86eb1957528df3995"
+            },
+            "command": [
+              "lake",
+              "env",
+              "lean",
+              "RegistrationLifetimeWitnesses.lean",
+              "-o",
+              ".lake/build/lib/lean/RegistrationLifetimeWitnesses.olean"
+            ],
+            "diagnostic_headlines": [],
+            "elapsed_ms": 4020,
+            "exit": 0,
+            "log_bytes": 0,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-witness-checkpoint1/evidence-run1/01-RegistrationLifetimeWitnesses.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "module": "RegistrationLifetimeWitnesses",
+            "timed_out": false
+          },
+          {
+            "artifact": {
+              "exists": false
+            },
+            "command": [
+              "lake",
+              "env",
+              "lean",
+              "RegistrationLifetimeWitnessProof.lean",
+              "-o",
+              ".lake/build/lib/lean/RegistrationLifetimeWitnessProof.olean"
+            ],
+            "diagnostic_headlines": [
+              "RegistrationLifetimeWitnessProof.lean:23:78: error: `simp` made no progress",
+              "'RegistrationLifetime.Witnesses.original_complete' depends on axioms: [propext, sorryAx, Quot.sound]",
+              "'RegistrationLifetime.Witnesses.fixed_complete' depends on axioms: [propext, sorryAx, Quot.sound]",
+              "'RegistrationLifetime.Witnesses.rollback_complete' depends on axioms: [propext, sorryAx, Quot.sound]",
+              "'RegistrationLifetime.Witnesses.lost_reply_complete' depends on axioms: [propext, sorryAx, Quot.sound]",
+              "RegistrationLifetimeWitnessProof.lean:353:0: error: unexpected registration lifetime witness axiom in RegistrationLifetime.Witnesses.before_insert_execution: [sorryAx]"
+            ],
+            "elapsed_ms": 3370,
+            "exit": 1,
+            "log_bytes": 2002,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-witness-checkpoint1/evidence-run1/02-RegistrationLifetimeWitnessProof.log",
+            "log_sha256": "5ab859fe6f0855404478f314f0f9b5b7ac1bf366ca1615e5465ee714b030581d",
+            "module": "RegistrationLifetimeWitnessProof",
+            "timed_out": false
+          }
+        ],
+        "timeout_seconds_per_command": 180,
+        "tool_imports_after": {
+          "Lake.binary": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+          "Lean.binary": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+          "Mathlib.Tactic.olean": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+          "Mathlib.manifest": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+          "Mathlib.revision": "56a005855ea17e0b0958f73ec801ae140b0a1679"
+        },
+        "tool_imports_before": {
+          "Lake.binary": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+          "Lean.binary": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+          "Mathlib.Tactic.olean": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+          "Mathlib.manifest": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+          "Mathlib.revision": "56a005855ea17e0b0958f73ec801ae140b0a1679"
+        },
+        "tool_imports_unchanged": true
+      }
+    },
+    {
+      "checkpoint": 2,
+      "summary_sha256": "f4f4671dc7ed07f41734454f3b0d0fa07722daf474cb9aa2519a65daf74fff50",
+      "summary": {
+        "aeneas_used": false,
+        "complete": true,
+        "inputs_sha256": "a34822e1cba002145b15153822f82ec06a1ebf18979ee89190602dbf8fd91360",
+        "lake_binary_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+        "lean_binary_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+        "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+        "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+        "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+        "new_guard_count": 36,
+        "new_printed_closure_count": 8,
+        "reused_checkpoint1_oleans": {
+          "RegistrationEffects.olean": "a15c9cc1895cc6517c05f5789d4433415a42be0b89fa6f1511e4eeec1a867bf7",
+          "RegistrationModel.olean": "510fd877d91cf3f01dd9f166b4d8f0dcca4fdd56f50cd32585a48e389321be63",
+          "RegistrationSpecification.olean": "578c96fee4ee2335bf4d8066cfea9192afdec227973ef73be7aa4591b2bf627e"
+        },
+        "reused_history_imports": {
+          "RegistrationLifetimeHistoryProof": {
+            "sha256": "714ea393b995156a97d7ebcc99c3e642c876ae228481a966c4bc4ae78da29214",
+            "task": "lifetime-history-checkpoint2"
+          },
+          "RegistrationLifetimeProof": {
+            "sha256": "069726c9c12bbf262f2dd181bc99e38190229e072bca1210e452c402570d458b",
+            "task": "lifetime-history-checkpoint1"
+          },
+          "RegistrationLifetimeSpecification": {
+            "sha256": "cd654019fd170bc422402d53c90e737f00664f28633b725e7e5034d71a05ad2e",
+            "task": "lifetime-history-checkpoint1"
+          },
+          "RegistrationLifetimeWitnesses": {
+            "sha256": "a11b65da9368f54bfa0c70597902029c9f217a8cef4964b86eb1957528df3995",
+            "task": "lifetime-witness-checkpoint1"
+          }
+        },
+        "reused_lifetime_model": {
+          "artifact_source": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-checkpoint2/source/.lake/build/lib/lean/RegistrationLifetimeModel.olean",
+          "olean_sha256": "4f02385283c7b823e055f494eb5b6bfcba25b60838a9fea3540b5a0603384ecd",
+          "source_sha256": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954"
+        },
+        "shared_package_cache": "/home/rozgo/.cache/lean-pilot/hub-refresh-concurrency-20261030/refresh-models-run1/source/proofs/registration_transactions/.lake/packages",
+        "source_archive_sha256": "420358d529f1e1a2d1ea029e070f92287baa61ba138ff5d606049349e11609da",
+        "source_file_count": 13,
+        "source_map_after_sha256": "25f09443235a7a2081bc76554e92b4b2f71cea0c78fd71b1abe8594d57752f69",
+        "source_map_sha256": "25f09443235a7a2081bc76554e92b4b2f71cea0c78fd71b1abe8594d57752f69",
+        "source_root": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-witness-checkpoint2/source",
+        "source_unchanged": true,
+        "stages": [
+          {
+            "artifact": {
+              "bytes": 1798544,
+              "exists": true,
+              "sha256": "6ad2c9166df5d95ac971cc3085cc7f8367dedbf000bbc44d751a7bb45fe6bbb0"
+            },
+            "command": [
+              "lake",
+              "env",
+              "lean",
+              "RegistrationLifetimeWitnessProof.lean",
+              "-o",
+              ".lake/build/lib/lean/RegistrationLifetimeWitnessProof.olean"
+            ],
+            "diagnostic_headlines": [],
+            "elapsed_ms": 4522,
+            "exit": 0,
+            "log_bytes": 1722,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-witness-checkpoint2/evidence-run1/01-RegistrationLifetimeWitnessProof.log",
+            "log_sha256": "d4f29b5799d4ffa3e89131a831920f7911a5898882952f0bbe52e3ae02645ae2",
+            "module": "RegistrationLifetimeWitnessProof",
+            "timed_out": false
+          },
+          {
+            "artifact": {
+              "bytes": 17616,
+              "exists": true,
+              "sha256": "3c8e2161350efd0d59626b18729e26829fb29216bef03f1a8c766f9bcc1aadd3"
+            },
+            "command": [
+              "lake",
+              "env",
+              "lean",
+              "RegistrationLifetimeWitnessConsequences.lean",
+              "-o",
+              ".lake/build/lib/lean/RegistrationLifetimeWitnessConsequences.olean"
+            ],
+            "diagnostic_headlines": [],
+            "elapsed_ms": 2819,
+            "exit": 0,
+            "log_bytes": 242,
+            "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/lifetime-witness-checkpoint2/evidence-run1/02-RegistrationLifetimeWitnessConsequences.log",
+            "log_sha256": "1b3f7849eaaa9050517a3b139455f1d223ec41b11b063be070d5ed5487a259e4",
+            "module": "RegistrationLifetimeWitnessConsequences",
+            "timed_out": false
+          }
+        ],
+        "timeout_seconds_per_command": 180,
+        "tool_imports_after": {
+          "Lake.binary": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+          "Lean.binary": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+          "Mathlib.Tactic.olean": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+          "Mathlib.manifest": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+          "Mathlib.revision": "56a005855ea17e0b0958f73ec801ae140b0a1679"
+        },
+        "tool_imports_before": {
+          "Lake.binary": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+          "Lean.binary": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+          "Mathlib.Tactic.olean": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+          "Mathlib.manifest": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+          "Mathlib.revision": "56a005855ea17e0b0958f73ec801ae140b0a1679"
+        },
+        "tool_imports_unchanged": true
+      }
+    }
+  ],
+  "authoring_failure": "Checkpoint1 Step.acquire presence tactic made no progress; one proof-body change exposed the original database projection, rewrote the seed equality and closed by reflexivity. No model/spec/predicate/public statement changed. Failure is not a semantic control.",
+  "boundaries": [
+    "Synthetic fixture inputs do not establish native identity, parser, signature, credential or role-schema validity.",
+    "One selected instance registration/removal lifetime; other native writers, recreation, distributed ordering, listener convergence and liveness remain outside.",
+    "PostgreSQL/SQLx/compiler/async behavior is an interpretation assumption; no Aeneas extraction or formal SQL refinement.",
+    "Complete stored model outputs and response tags are proved, not complete native API response payloads or postcommit service behavior.",
+    "External preparation and shared server/group/bootstrap state are outside the owned map; no external atomicity claim."
+  ],
+  "not_run": [
+    "Additional semantic mutants/restoration",
+    "Unrelated sixteen default proof targets",
+    "Native Rust/full Docker tests in this proof-only checkpoint",
+    "Deployment probes",
+    "OpenCode/paid model calls"
+  ]
+}
