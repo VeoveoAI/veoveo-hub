@@ -1,0 +1,268 @@
+{
+  "baseline": {
+    "base_commit": "a8fa0bcd27d76fac78216e496b6351cddfd77945",
+    "build_results": {
+      "cargo_clean": "Removed 129586 files, 293.9 GiB total",
+      "cargo_test_exit": 101,
+      "cargo_test_profile_seconds": 40.44,
+      "docker_exit": 1,
+      "elapsed_ms": 59933,
+      "hub_recompiled": true,
+      "timeout_seconds": 600
+    },
+    "classification": "native concurrency defect reproduced after verified package recompilation with corrected test SQL; registration created after completed instance removal leaves registration/client-login/catalog state",
+    "command": [
+      "docker",
+      "build",
+      "--progress=plain",
+      "--file",
+      "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/test-only3/hub-registration-concurrency-focused-clean.Dockerfile",
+      "--target",
+      "focused-registration-test",
+      "--build-arg",
+      "TEST_FILTER=registration::store::concurrency_tests::an_authorized_first_registration_cannot_survive_instance_removal",
+      "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/test-only3/source"
+    ],
+    "evidence": {
+      "binary_and_evidence_hashes_path": "/tmp/hub-registration-instance-removal-20261101/test-only3-mirror/evidence-baseline4/docker-build.log",
+      "log_path": "/tmp/hub-registration-instance-removal-20261101/test-only3-mirror/evidence-baseline4/docker-build.log",
+      "log_sha256": "92251f33ea9faa5543eaea499a1538a5a28bd30ddfb2fec29d8441e0025784d8",
+      "map_file_sha256": "fe6e9772024b1ec444bcb72ebf8886a182365241c0730cda7c0a09b28d9bbfae",
+      "map_post_path": "/tmp/hub-registration-instance-removal-20261101/test-only3-mirror/evidence-baseline4/source-map.post.json",
+      "map_pre_path": "/tmp/hub-registration-instance-removal-20261101/test-only3-mirror/evidence-baseline4/source-map.pre.json",
+      "source_file_hashes_post_path": "/tmp/hub-registration-instance-removal-20261101/test-only3-mirror/evidence-baseline4/source-post.sha256",
+      "source_file_hashes_pre_path": "/tmp/hub-registration-instance-removal-20261101/test-only3-mirror/evidence-baseline4/source-pre.sha256",
+      "status_path": "/tmp/hub-registration-instance-removal-20261101/test-only3-mirror/evidence-baseline4/runner-status.txt",
+      "status_sha256": "15ba5a83cd299692e3e592fd6d07ba3d13ae58088f9fdcefde264c25c80f268c"
+    },
+    "frozen_input": {
+      "effective_source_count": 1206,
+      "insert_gate_sql_sha256": "f10fddf3c2891481642cc62ec340000bfd7a5603eeae364a728fa74d4affe836",
+      "manifest_sha256": "c0d9c4c9ad218d6cbea32fa413d6f8d0b4d858a9c4cc197b458df46957c47052",
+      "map_entry_digest": "297de2f31ff9db98b3fcfb804cc080f4bc836aee684d241603a6935a3dd563e7",
+      "member_logins_sql_sha256": "c0edbcf4994ba215476301a41db9b42ca1176a759f35bcda8d6c7080a7aad5e6",
+      "rust_test_sha256": "963284e3caf4163cc698740043c5c4b48aa017e2b97b43f00a65b2f7c40a253f",
+      "source_map_matches_pre_and_post": true,
+      "source_map_sha256": "fe6e9772024b1ec444bcb72ebf8886a182365241c0730cda7c0a09b28d9bbfae"
+    },
+    "receipt_sha256": "f31828fb3cbea194b3a1715078b48d917e32b209933810e604f4f7a18942d834",
+    "sqlx": {
+      "all_289_sqlx_entries_unchanged": true,
+      "metadata_changed": false,
+      "mode": "SQLX_OFFLINE=false with temporary PostgreSQL 18 migrated compile database"
+    },
+    "temporary_dockerfile": {
+      "delta": "Added cargo clean -p veoveo-hub before focused test and executable candidate path/size/SHA capture after it; no canonical Dockerfile changes.",
+      "path": "/tmp/hub-registration-instance-removal-20261101/test-only3-mirror/hub-registration-concurrency-focused-clean.Dockerfile",
+      "sha256": "ad00a2a0899dfd86dd76ec93cc302d2cdf4b45a2316dc1e02d012ef227ca5671"
+    },
+    "test": {
+      "body_seconds": 1.79,
+      "executed": 1,
+      "failed": 1,
+      "failure": "Aggregate assertion at concurrency_tests.rs:738:9 reports completed registration/removal left an orphan.",
+      "filter": "registration::store::concurrency_tests::an_authorized_first_registration_cannot_survive_instance_removal",
+      "gate_reached": true,
+      "interpretation": "This run occurred after cargo clean and explicit Compiling veoveo-hub, so it is measured on the test-only3 SQL rather than the previously cached test binary.",
+      "ordering": [
+        "The actual hub.registration INSERT was blocked at BEFORE INSERT.",
+        "Removal completed while registration remained held; pre-release snapshot had no registration/login.",
+        "After release, register returned accepted."
+      ],
+      "passed": 0,
+      "state": "Instance and authority absent, one registration row with orphaned_at null persisted, generated registration-client login persisted, and catalog route remained. Corrected role query yields the generated login only; no bootstrap owner memberships appear in its login list."
+    },
+    "test_binary": {
+      "bytes": 838157648,
+      "candidate_count": 1,
+      "path": "target/debug/deps/veoveo_hub-b339354d3c2cf9a6",
+      "sha256": "275a57c68377d1d0132c14044f0b9504030650bf8151ff12bd67c5974320c7fb"
+    }
+  },
+  "boundaries": [
+    "Native PostgreSQL fixtures and full Docker check both executed against frozen source; no deployment occurred.",
+    "No deployed environment or production PostgreSQL was touched.",
+    "Full check target was built on Mac Docker Desktop and native Ubuntu Docker; no published image digest or OpenShell readiness result exists because this task did not deploy.",
+    "Two nextest skips are recorded above; those cases were not exercised."
+  ],
+  "date": "2026-11-01",
+  "evidence_class": "Native component and full repository checks; not a Lean theorem, formal SQL refinement or deployed qualification",
+  "format_and_strict_library_clippy": {
+    "clippy_command": "cargo clippy --locked -p veoveo-hub --lib -- -D warnings",
+    "clippy_elapsed_ms": 15597,
+    "clippy_exit": 0,
+    "fmt_command": "cargo fmt --all -- --check",
+    "fmt_elapsed_ms": 724,
+    "fmt_exit": 0,
+    "source_unchanged": true,
+    "summary_path": "/tmp/hub-registration-instance-removal-20261101/fix1/format-clippy1/evidence1/summary.json",
+    "summary_sha256": "885f7e96a39879df5b880a03e57af15c19c5297a2e8923b4aa2811e3577d0ac8"
+  },
+  "full_docker_check": {
+    "both_full_source_maps_unchanged": true,
+    "command": "docker build --target check .",
+    "linux": {
+      "build_input_map_sha256": "7384abd51d675dea860023cf15dc90050e9dcf1e30e213f9e054920ac55e6db3",
+      "docker_info": "29.2.1|Ubuntu 24.04.5 LTS|32|67327680512",
+      "elapsed_ms": 338489,
+      "exit": 0,
+      "log_bytes": 489472,
+      "log_sha256": "345d403e290c4cc134e8f4b20732e88ddfb4aadbb9b2d9a1fba2bea55865323c",
+      "source_map_sha256": "cd33fd36fe3c4de11f76375eeb65d46cff813f9f1afdfd54545099fa9f7d7901",
+      "summary_sha256": "a9d7a7ca3eb5da29e359ed3894b9d532821eca9ebe9c8587c046928fdbb9a8a0",
+      "tests_passed": 471,
+      "tests_skipped": 2
+    },
+    "mac": {
+      "build_input_map_sha256": "7384abd51d675dea860023cf15dc90050e9dcf1e30e213f9e054920ac55e6db3",
+      "docker_info": "29.8.2|Docker Desktop|16|67302940672",
+      "elapsed_ms": 155629,
+      "exit": 0,
+      "log_bytes": 489648,
+      "log_sha256": "9d74d30eab97a7c89e7514ebd982422517098bc3b63e2fa6c669e338abe66e32",
+      "source_map_sha256": "cd33fd36fe3c4de11f76375eeb65d46cff813f9f1afdfd54545099fa9f7d7901",
+      "summary_sha256": "d60a1433318ea1db982bcdea08d3da6426f17777a9643c74fc6f80b23ce96f11",
+      "tests_passed": 471,
+      "tests_skipped": 2
+    },
+    "skips": [
+      "factory/image.rs requires BuildKit daemon and registry",
+      "mcp/native_upstreams.rs requires approved native fixture and private operator config"
+    ]
+  },
+  "linux_focused_concurrency": {
+    "binary_bytes": null,
+    "binary_path": "target/debug/deps/veoveo_hub-b339354d3c2cf9a6",
+    "binary_sha256": "bfef9989c2f1c89ba0741c3e8d2ade9ab54d7204fe505cf300ab9b4a7e4c4bd7",
+    "binary_size_instrumentation": "hash emitted in raw BuildKit log; byte size was not captured, no rerun made",
+    "cargo_command": "cargo test --locked -p veoveo-hub --lib registration::store::concurrency_tests -- --nocapture",
+    "cargo_test_exit": 0,
+    "command": "docker build --progress=plain --target registration-removal-focused -f Focused.Dockerfile -t hub-registration-instance-removal:focused-linux1 <frozen-source>",
+    "docker_build_exit": 0,
+    "dockerfile_sha256": "bea5d142e292c711533e110ae7c2f4314531fc215dac4588f650bb257732bbd1",
+    "elapsed_ms": 46554,
+    "log_path": "/tmp/hub-registration-instance-removal-20261101/fix1/focused-linux1/linux-docker-build.log",
+    "log_sha256": "1142d8850f719f594218e5b780c503267911ecef408afdd0c2136603c204e50a",
+    "runner_reporting_caveat": "BuildKit prefixes lines; runner JSON parser missed cargo status/binary markers, but the raw log contains cargo_test_exit=0 and the binary hash above.",
+    "selected_tests": [
+      "stale_update_cannot_overwrite_a_replaced_registration_deployment",
+      "ordinary_replica_and_replacement_have_a_serial_registration_outcome",
+      "a_retargeted_instance_publishes_its_complete_live_registration",
+      "an_instance_registration_waiting_for_removal_uses_the_invalid_token_outcome",
+      "an_authorized_first_registration_cannot_survive_instance_removal"
+    ],
+    "source_unchanged": true,
+    "summary_path": "/tmp/hub-registration-instance-removal-20261101/fix1/focused-linux1/linux-summary.json",
+    "summary_sha256": "3eb426b5865648af5aa7396f89c2c4788fcf8d9f4d2de352fd38f041688fce51",
+    "test_body_seconds": 2.11,
+    "tests_failed": 0,
+    "tests_filtered": 329,
+    "tests_ignored": 0,
+    "tests_passed": 5
+  },
+  "mac_focused_neighbors": {
+    "cargo_clean_elapsed_ms": 2906,
+    "cargo_clean_exit": 0,
+    "factory_cleanup": {
+      "binary_bytes": 120599544,
+      "binary_path": "target/debug/deps/factory-a529f9a229e0dbb7",
+      "binary_sha256": "2b02d7677439d83bcb94a55f4b40ebe279273ba0f30b41298c081e008e54c25c",
+      "command": "cargo test --locked -p veoveo-hub --test factory removing_an_instance_deletes_its_sandbox_providers_registrations_and_database -- --exact --nocapture",
+      "elapsed_ms": 12214,
+      "exit": 0,
+      "log_sha256": "9e152d7a8132b531526f6b56e981800368aa25da5ef7c279f883629e27e20ca5",
+      "test_body_seconds": 4.45,
+      "tests_failed": 0,
+      "tests_passed": 1
+    },
+    "instance_registration": {
+      "binary_bytes": 44576360,
+      "binary_path": "target/debug/deps/instance_registration-38adace36b83d284",
+      "binary_sha256": "ab70949bbcee0eec86d5a273bf5dfb26b81c71a811ea9406b88fa54009ccef2c",
+      "command": "cargo test --locked -p veoveo-hub --test instance_registration -- --nocapture",
+      "elapsed_ms": 70652,
+      "exit": 0,
+      "log_sha256": "86fef72acf35e744afd5aaf2b1ae0b5db54ce8ff37cd0539113ac8390eacf981",
+      "test_body_seconds": 25.42,
+      "tests_failed": 0,
+      "tests_passed": 7
+    },
+    "runner_reporting_caveat": "Runner JSON binary parser returned null; paths were read from logs and binary SHA/size were measured directly from named target files. No rerun.",
+    "source_map_sha256": "cd33fd36fe3c4de11f76375eeb65d46cff813f9f1afdfd54545099fa9f7d7901",
+    "sqlx_map_sha256": "6697e082ceb1cb882f996925b2eba70f759920843e0cb9b6a0ce120f044f481c",
+    "summary_path": "/tmp/hub-registration-instance-removal-20261101/fix1/focused-mac1/evidence1/summary.json",
+    "summary_sha256": "fc3dbacad4974d81619ea1eca25273a082ee043a6cd9c2bc7bcc27fc7dc236d2",
+    "target_dir": "/tmp/hub-session-family-20261030/mac-integration-run1/target",
+    "toolchain": "Rust 1.99.0-aarch64-apple-darwin"
+  },
+  "measured_fixed_orderings": [
+    {
+      "observed": "Actual registration INSERT held; removal blocked on the registration backend at the shared instance-row query; release yields accepted registration followed by removal. Instance/token authority/registration logins/rows/refreshed catalog entry absent. Deployment retained.",
+      "order": "registration first"
+    },
+    {
+      "observed": "Actual instance DELETE held; old authority remains readable; actual service registration waits on removal at SELECT FOR UPDATE; release yields existing Unauthorized(token_sent=true). No instance/token authority/deployment/registration/login/refreshed catalog entry.",
+      "order": "removal first"
+    }
+  ],
+  "qualification_supplement_sha256": "dfcd2e64ea1359fdac3dda903ec032e85ac6e666e1e96b7578c3e4a9d2fca98c",
+  "scope": "Focused validation and required Docker check for instance registration/removal lock fix; no deployment performed.",
+  "source": {
+    "base_revision": "a8fa0bcd27d76fac78216e496b6351cddfd77945",
+    "changed_runtime_test_design_sha256": {
+      "crates/veoveo-hub/DESIGN.md": "3f420eca0d1984bb95e6e72f3627ea1a7d7b6431198e8c0798b5952c5c41dadc",
+      "crates/veoveo-hub/src/registration/service.rs": "cde086d139188aea96d2a3e6d75e27418c0fe386ec2a5f7c9d3f429c33576d2a",
+      "crates/veoveo-hub/src/registration/store.rs": "d615bd603e34d37336bcdf15de4b988edc0b9367574205aa6770980215cb0c90",
+      "crates/veoveo-hub/src/registration/store/concurrency_tests.rs": "0ab6df4bf85f5e9c2f037747ecdaee2ec40bef72b8a2bb58b5d7665c4bf570b5",
+      "crates/veoveo-hub/src/registration/store/lock_instance.sql": "78524a6a41fb5cabb9bda7273e12f732d8f88c8ef4ede689761541e7b4d91be7",
+      "crates/veoveo-hub/src/registration/store/tests/instance_delete_gate.sql": "5b1219f74c4b9d6a63cf1630be205614eaf85a3f78a727eac51216f31ba02a6d",
+      "crates/veoveo-hub/src/registration/store/tests/instance_insert_gate.sql": "f10fddf3c2891481642cc62ec340000bfd7a5603eeae364a728fa74d4affe836",
+      "crates/veoveo-hub/src/registration/store/tests/member_logins.sql": "c0edbcf4994ba215476301a41db9b42ca1176a759f35bcda8d6c7080a7aad5e6"
+    },
+    "dockerfile_sha256": "eb5ce9c12f5bcd0c65ac54be3c7736f86e27c5f546a6a30611333ce1e2f0165f",
+    "dockerignore_sha256": "b54a6a4c824adc374ca4fac10e0ff87c2aa6d21494faa80ec3044276c5186bda",
+    "frozen_effective_file_count": 1212,
+    "frozen_effective_source_map_sha256": "cd33fd36fe3c4de11f76375eeb65d46cff813f9f1afdfd54545099fa9f7d7901",
+    "locally_committed_revision": "12a132dcbdddcd7fad1defcd007432385d237a76",
+    "nonproof_build_input_count": 859,
+    "nonproof_build_input_map_sha256": "7384abd51d675dea860023cf15dc90050e9dcf1e30e213f9e054920ac55e6db3",
+    "source_archive_sha256": "6ac687f509a1e0f78f09768d17331c1489ce5423e72465ec7dd5c4f11b93df3f"
+  },
+  "sqlx_generation": {
+    "added_only": {
+      "query-5b1219f74c4b9d6a63cf1630be205614eaf85a3f78a727eac51216f31ba02a6d.json": "f93b142478831dc6ce55b299698b631155afb71e40a76c226ba43952c08fc871",
+      "query-78524a6a41fb5cabb9bda7273e12f732d8f88c8ef4ede689761541e7b4d91be7.json": "7f0e4f6c80e15cf84eb93bdb7b06d64218827b0cd3c6c170971e69591bbc3e12",
+      "query-c0edbcf4994ba215476301a41db9b42ca1176a759f35bcda8d6c7080a7aad5e6.json": "40e3941c36f182a1e7edab507cbfa888fc97c6e98f352e908f487966c9a3dec5",
+      "query-f10fddf3c2891481642cc62ec340000bfd7a5603eeae364a728fa74d4affe836.json": "63a6af517b97ca2c9ac52db450a4e60adb80f8efd1b0db3448f4468dae9c02f8"
+    },
+    "changed": [],
+    "generated_metadata_count_after": 293,
+    "generated_metadata_count_before": 289,
+    "pg18_ephemeral_cluster": "started, migrated Core 422 and Hub schema, stopped successfully",
+    "queries_uniquely_matched_to_frozen_sql": true,
+    "receipt_path": "/tmp/hub-registration-instance-removal-20261101/fix1/sqlx-prepare-run1/sqlx-preparation-receipt.json",
+    "receipt_sha256": "360ee9ffcca4a55f0390622608835877737ed8d0a0c9fa2f1e12103a7b5f6f75",
+    "removed": [],
+    "setup_harness_issue": "Post-stage receipt code raised NameError for undefined query after all listed stages exited 0; independent read-only SQL/query/map reconciliation produced this result. Preserved raw launcher log.",
+    "source_files_after": 1212,
+    "source_files_before": 1208,
+    "successful_stage_elapsed_ms": {
+      "core_migrations": 127,
+      "createdb": 190,
+      "hub_migrations": 133,
+      "initdb": 614,
+      "sqlx_prepare": 23261,
+      "start": 189,
+      "stop": 120
+    },
+    "toolchain": "Rust 1.99.0, SQLx CLI 0.9.0"
+  },
+  "test_changes_from_failing_baseline": "The existing forward schedule and cleanup aggregate are retained; the fixed test additionally requires actual accepted service response. Reverse-order fixture is new. Final rustfmt-only change is recorded separately; this is not a byte-identical regression claim.",
+  "unproved_boundaries": [
+    "Arbitrary interleavings (lifecycle Lean model remains uncompiled at this native checkpoint)",
+    "Token reissue and namespace-authorized writer composition",
+    "HTTP transport and asynchronous listener/replica convergence",
+    "External environment database preparation atomicity and actual sandbox deletion",
+    "Formal extraction/refinement of asynchronous Rust and SQL; PostgreSQL behavior is assumed and tested, not proved"
+  ]
+}

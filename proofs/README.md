@@ -1411,8 +1411,17 @@ reproduces first registration committing after removal has completed, leaving a
 registration login and refreshed catalog entry although the instance and its
 authority are absent. A fresh Linux compilation executes the corrected fixture;
 the earlier cached-binary run is not accepted as its qualification. Shared
-instance-row serialization and the corresponding lifecycle model are in progress.
-The register/replace/update theorems above do not cover this interleaving.
+instance-row serialization is implemented in `12a132d`. The fixed native probe
+now requires valid registration-first acceptance followed by complete cleanup;
+a second probe observes removal-first waiting and the existing invalid-token
+outcome without admission. Five Linux concurrency tests, seven Mac instance
+integration tests, factory cleanup, formatting and strict library Clippy pass.
+Full Mac and Linux Docker checks each pass 471 tests with two known external
+fixture skips. See the [native receipt](registration_transactions/evidence/native-instance-removal.json)
+and [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-instance-removal-fix.md).
+The corresponding lifecycle model is in progress. The register/replace/update
+theorems above do not cover this interleaving, and these native checks do not
+establish formal SQL refinement, asynchronous listener convergence or deployment.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

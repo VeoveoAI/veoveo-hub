@@ -204,3 +204,25 @@ freeze later writers. Neither these models nor the earlier native tests are form
 Rust/SQL refinement. Removal, housekeeping, service HTTP/audit/reload behavior and
 broader authority/lifecycle composition remain outside. The next approved slice
 connects registration identity to fresh/retained routing and SDK recipient checks.
+
+## Instance lifetime: native correction, proof pending
+
+The later [native instance-removal receipt](evidence/native-instance-removal.json)
+records a first registration committing after its instance was removed, with an
+orphaned login and catalog entry. Commit `12a132d` acquires the existing instance
+row in both admission and removal before their writes or deletion snapshot.
+Registration-first acceptance and removal-first invalid-token behavior now pass
+deterministic actual-service/PostgreSQL probes. Neighboring instance and factory
+cleanup tests pass; full Mac and Linux Docker checks each pass 471 tests, with two
+external-fixture skips. The [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-instance-removal-fix.md)
+separates those native results from formal coverage.
+
+This changes the outer instance-registration lifetime boundary; it does not
+extend the existing retained-deployment theorems to concurrent removal. A first
+registration has no deployment row, so the pending lifecycle model must represent
+that absence explicitly, keep the original late instance DELETE lock and allow
+its unguarded registration INSERT to reproduce the old orphan. Exact instance,
+deployment, registration and login effects, commit versus response, aborts and
+both valid operation orders remain obligations of that new model. External
+database preparation, token reissue, other instance-row writers and listener
+convergence retain explicit boundaries.
