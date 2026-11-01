@@ -1192,6 +1192,15 @@ state, not an additional repository authorization rule.
   pass with 465 tests passed and two skipped each; see the
   [fix qualification](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-preparation-serialization.md).
   This is component evidence, not a new Lean theorem or deployed qualification.
+- **Checked watcher foundation:** the separate
+  [manual watcher layer](factory_retarget/WATCHER_SOURCE.md) now composes the
+  current-row projection and internally constructed request with the existing
+  Factory outputs. Fourteen lemmas and 18 axiom guards pass: full obsolete/absent
+  no-op preservation, captured-metadata independence, exact preparation/Factory
+  result channels and valid current-parent acceptance with complete state outputs.
+  SQL observation consistency, mutex correspondence and native preparation remain
+  explicit interpretation contracts. See the
+  [foundation record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-foundation.md).
 - **Residual/next:** compose current-runner preparation and failure publication
   with the checked complete-output/recovery contracts and finite serialized
   histories before claiming the complete retarget slice qualified. Saved-parent
