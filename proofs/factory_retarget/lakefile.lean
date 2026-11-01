@@ -19,3 +19,4 @@ lean_lib FactoryWatcherStatusProof
 lean_lib FactoryWatcherFixture
 lean_lib FactoryWatcherFixtureProof
 lean_lib FactoryWatcherAdvanceControl
+lean_lib FactorySavedParentModel

@@ -1244,6 +1244,12 @@ state, not an additional repository authorization rule.
   with two skipped; see the
   [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-retry-fix.md).
   This adds native evidence, not a Lean theorem or distributed freshness guarantee.
+- **Saved-parent model:** a new two-phase layer now elaborates in 18.699 s.
+  It constructs accepted child inputs and preserves separate full preparation and
+  link-failure maps. Discard and source-error paths need no runner row; only the
+  accepted existing-runner continuation requires one. No correctness theorem is
+  claimed from elaboration; see the
+  [model checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-model.md).
 - **Residual/next:** the bounded watcher slice now includes its semantic controls
   and restoration. The complete Factory lifecycle remains partial. Saved-parent
   retry preparation/membership, cross-replica reconciliation, concurrent
