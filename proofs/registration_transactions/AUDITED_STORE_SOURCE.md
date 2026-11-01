@@ -131,9 +131,9 @@ has its own nondefault targets, `RegistrationAuditedLifetimeWitnesses`,
 default targets or a new native full check. The control receipt retains the exact
 private patch and diagnostic, source/tool identities, commands, failures and
 restoration results; its launcher and compiled artifacts remain temporary.
-The removal recovery layer below now qualifies partial-append failure, confirmed
-rollback and retry. Served-refusal examples and the remaining operation adapters
-are still required before this audited slice can be called complete.
+The layers below now qualify removal recovery and a source-shaped postcommit
+refusal. Remaining operation adapters, native response construction and the
+stated correspondence obligations are still required before this slice is complete.
 
 ## Checked removal recovery layer
 
@@ -180,5 +180,70 @@ The final Proof command passed in 21.754 seconds under a 180-second process boun
 Three declarations scope `maxHeartbeats` to 800000; the rest retain the default
 200000. The final repair uses restricted projection rewriting without changing
 the scenario, specifications or public theorem statements. This adds no runtime
-runner, automatic proof trigger or production check. Postcommit service behavior,
-full native response payloads and other registration operation adapters remain open.
+runner, automatic proof trigger or production check. Full native postcommit
+behavior, response payloads and other registration operation adapters remain open.
+
+## Checked postcommit service continuation
+
+`RegistrationPostcommitContinuation` models the control flow after successful
+instance-store return, not another SQL protocol. Native `service.rs` 398–439 first
+logs each returned ended registration (`ended`, 560–567) and reloads its client,
+then attempts `served`, reloads the new client, emits registered telemetry, builds
+the database grant and calls `information`. The marker's deployment and telemetry
+server are projected from the supplied metadata. Issued/configuration inputs and
+native metadata projections remain explicit source-interpretation boundaries.
+
+The definition consumes Result-valued observations, preserves exact logical call
+arguments/order, and stops at the first error. Old/new reload, marker and database
+errors become Internal, matching `RegistrationError::from(anyhow::Error)`;
+`information` already returns the whole typed RegistrationError, which is preserved
+without rewrapping Rejected. Opaque successful Output is passed through, not
+constructed as a proved native ClientInformation. The prior unchanged-source
+extraction failure still applies. Internal payload preservation is at the service
+Result boundary; the HTTP Problem response deliberately hides the cause.
+
+`knownSnapshot : Option Snapshot` is modeled **knowledge**. None means no durable
+preservation claim, never deleted state. A confirmed-no-write marker refusal is
+an observed-effect contract justified by `refuse_served.sql`'s BEFORE UPDATE
+exception, not a production check or a rule for all marker errors. Every general
+marker outcome, including success and uncertain error, discards snapshot knowledge
+because `served.sql` changes instance.served_at outside the admitted transaction.
+Interpreting a retained snapshot requires faithful read/no-write observations and
+no external durable writer (including audit append) during this suffix.
+
+`watch.rs` 65–75 reads the stored registration, changes in-memory live rows and
+routes, and publishes catalog state; those cache effects are separate, not hidden
+SQL/audit writes. The no-write composition uses the already-checked populated
+two-row store prefix, while the separately qualified native served-refusal probe
+is a first-registration fixture. Its test permits rollback or atomic audit; the
+measured persisted admission is evidence for that one run, not a universal native
+theorem. Successful served writes, concurrent durable interference, complete
+response construction, wire serialization and listener convergence remain open.
+
+The [continuation receipt](evidence/postcommit-continuation.json) qualifies the
+definition and proof leaf. It records the initial proof-authoring failure, its
+three-line repair, two setup-only failures, and the final 23.605-second Proof
+command. Nineteen declaration guards cover fifteen public theorems and four
+definitions; eight printed closures contain only `propext` and `Quot.sound`.
+
+The generic theorems establish the exact old-reload prefix through the first
+failure, marker refusal and short-circuit behavior, later-observation irrelevance,
+typed information-error passthrough and complete opaque successful-output
+passthrough. Constructive examples include second-old-reload failure and success.
+The closed store composition starts with the checked actual replacement execution,
+retains its independent whole expected database and audit, and attempts two old
+reloads followed by the refused marker. Its inner store response is `registered`
+while its outer response is Internal. Every latent later observation succeeds;
+ignoring the marker error would not accidentally satisfy this example.
+
+```sh
+LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuation
+LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuationProof
+```
+
+These are manual nondefault targets. The 180-second command limit and default
+200000 heartbeats suffice. The accepted prior WitnessProof artifact and Lake's
+rebuilt artifact differ in bytes despite identical source; the receipt distinguishes
+them rather than claiming compiled-byte reproducibility. No native source or test
+was changed or rerun. The next control deliberately ignores the marker refusal;
+the remaining registration adapters and native construction/refinement remain open.

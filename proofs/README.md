@@ -174,7 +174,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and source controls checked; native watch publication defect fixed; formal listener/cursor and native refinement open |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Allocation, retirement and native/distributed correspondence |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
-| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
+| HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Registration/removal concurrency, audit recovery and a postcommit continuation have scoped qualification; remaining operation adapters, native continuation and full snapshot-input refinement remain open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | partial | Registration audit has scoped model and native evidence; broader reference retention, expiry and deletion races remain |
 
@@ -1502,7 +1502,15 @@ constructs a lost reply followed by commit: the error preserves the committed
 removal and audit, explicitly disproving error-implies-rollback. Nineteen guards
 and seven printed closures pass. This two-row model schedule is distinct from
 the prior one-row native refusal fixture; PostgreSQL/Core/source correspondence
-remains assumed. Postcommit service paths and full native response payloads remain
+remains assumed. The [source-shaped postcommit continuation](registration_transactions/evidence/postcommit-continuation.json)
+now preserves the exact first error and ordered call prefix, typed response errors
+and successful opaque output. Its closed two-row store composition reaches a
+confirmed no-write marker refusal after admission and audit commit, preserving
+the known whole store result while returning Internal and skipping later calls.
+General marker outcomes make no whole-database preservation claim. Nineteen
+declaration guards and eight printed closures pass; callback behavior, metadata
+projections, no external durable writer and native correspondence remain explicit
+boundaries. An ignore-refusal control and full native response payloads remain
 pending; namespace/update/expiry adapters are not part of this foundation.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
@@ -1601,9 +1609,11 @@ transaction; the model connects successful private audit appends to the combined
 data/audit decision and confirmed rollback. One populated replacement execution
 is now checked, including an independently diagnosed missing-Register model fault
 rejected by unchanged acceptance and an exact freshly checked restoration.
-Removal/rollback examples remain pending.
-This does not qualify other
-cleanup paths, reference retention, external deletion or refresh-family pruning.
+The [removal recovery example](registration_transactions/evidence/audited-store-recovery.json)
+now establishes confirmed rollback after a partial append, a fresh successful
+retry, and a lost-reply commit with complete independent data/audit outputs.
+This does not qualify other cleanup paths, reference retention, external deletion
+or refresh-family pruning.
 
 Refresh review identified a specific composition obligation:
 [`session_compromised`](../crates/veoveo-hub/src/state/session.rs) observes replay

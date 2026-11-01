@@ -78,3 +78,6 @@ lean_lib RegistrationAuditedLifetimeWitnessExecution
 
 lean_lib RegistrationAuditedLifetimeRecoveryWitnesses
 lean_lib RegistrationAuditedLifetimeRecoveryProof
+
+lean_lib RegistrationPostcommitContinuation
+lean_lib RegistrationPostcommitContinuationProof

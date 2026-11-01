@@ -1,0 +1,323 @@
+{
+  "kind": "manual-source-shaped-postcommit-control-flow-and-store-composition",
+  "status": "checked-within-stated-model-and-native-observation-boundaries",
+  "base_commit": "1e0a44d67417d224a8366d2f84434a42cf76c71c",
+  "native_source_commit": "3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33",
+  "roles": {
+    "author": "GPT-6.1 Sol",
+    "compiler": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "qualification_source_map": {
+    "AUDITED_STORE_SOURCE.md": "28405c7dbfe7f4c67400ba1b592e9c91e0a929bdc17fa7b9a5be3d2a64d32e43",
+    "RegistrationAuditedLifetimeModel.lean": "6beefe9ff1eecb8b56143e3cc189e2bc6719b684c2236ea3ebb59eca9e93b4f6",
+    "RegistrationAuditedLifetimeSpecification.lean": "bd4fccf6ac3dbca608a8e20b0d314fd3bbd0ddf83295f7ff77f81c6fa2a431d9",
+    "RegistrationAuditedLifetimeWitnessExecution.lean": "8037c6b4d73b0d4c5cb2728709e8a14cb85903159eb04ca149472d2d2f7919d3",
+    "RegistrationAuditedLifetimeWitnessProof.lean": "6cbbcdda15b9024ac2e65b8b4243df5dcc26b321ef5ff66f4189314b39fe7f4e",
+    "RegistrationAuditedLifetimeWitnesses.lean": "eba3e835b2e21c061b8572752da7e1943f8d8d2c07254b5182146b5cd1364ce0",
+    "RegistrationLifetimeModel.lean": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954",
+    "RegistrationLifetimeSpecification.lean": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "RegistrationPostcommitContinuation.lean": "56abecd11b368c157452383cccbfa562f4bc862e78de6da5682a83602abc6d75",
+    "RegistrationPostcommitContinuationProof.lean": "08b69079bcb443b728389b1c905a982f88a73a4c3bfe46c2fe917b323f628625",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "99c1dcb5e437c2311c6ee1dd63e3e71b7e68759971d6d45fa27da1de699f89d8",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "source_map_note": "The source note was marked authoring at compile time. Qualification status and links were edited afterward; Lean/package bytes are unchanged.",
+  "native_source_review": {
+    "base_commit": "1e0a44d67417d224a8366d2f84434a42cf76c71c",
+    "native_source_commit": "3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33",
+    "files": {
+      "crates/veoveo-hub/src/registration/service.rs": {
+        "sha256": "a41f551a7f628fa4d18d1eb79ea1ba7a8ff0b1cd0a90b18cdbf13069c4447457",
+        "bytes": 33517,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/store.rs": {
+        "sha256": "a962491ea7d2df2c047950654920ea61d5444950d4fae3942625986e5899d1a5",
+        "bytes": 27518,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/watch.rs": {
+        "sha256": "5b7529daec15e6fe1c8e09210d0dac97c18cc177d2eca40cd36094420fdbab4a",
+        "bytes": 11317,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/mod.rs": {
+        "sha256": "897915ca7bec4a1c5674c501b070385ddfd6d83c0d0e265548201be6f027ed26",
+        "bytes": 2840,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/store/served.sql": {
+        "sha256": "fb91eb44e1b7d4746a0aff054c01f7806ebbdd226b9132b5078080b3686ea22d",
+        "bytes": 120,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/store/tests/refuse_served.sql": {
+        "sha256": "8ece3f29b8c2cba92f9c56f6efa6b8d2465527424e2410d78fff579082120a56",
+        "bytes": 698,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/store/concurrency_tests.rs": {
+        "sha256": "08e882e50a3ea2aa409b8bee20e3711a3781b2d046a49176ccfaec3d598d7cc5",
+        "bytes": 75000,
+        "unchanged_since_native_qualification": true
+      }
+    }
+  },
+  "lean_version": "4.35.0",
+  "tools": {
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "checked_targets": [
+    {
+      "artifact_bytes": 1302736,
+      "artifact_exists": true,
+      "artifact_sha256": "dc5be598620a8edad3904ea5b9533991c9c48d94e4e91c7e44f5c36c4428a17a",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuation",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 12938,
+      "exit": 0,
+      "log_bytes": 645,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/postcommit-continuation-checkpoint2/evidence-run1/01-RegistrationPostcommitContinuation.log",
+      "log_sha256": "b5a357a91aeb4ec68e9cb52936a96c2365edf4d092e843d67b86672a9adf6e77",
+      "target": "RegistrationPostcommitContinuation",
+      "timed_out": false
+    },
+    {
+      "artifact_bytes": 630472,
+      "artifact_exists": true,
+      "artifact_sha256": "47a338226e5e1b3a4744b9de1eb86989cb832790f8ae692ff536cb1f38d224ee",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuationProof",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 23605,
+      "exit": 0,
+      "log_bytes": 4026,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/postcommit-continuation-checkpoint3/evidence-run1/01-RegistrationPostcommitContinuationProof.log",
+      "log_sha256": "3abeb94d045d2f4943b4d374993ca61eefc432a9ea24341f47fa8575c4041964",
+      "target": "RegistrationPostcommitContinuationProof",
+      "timed_out": false
+    }
+  ],
+  "runs": [
+    {
+      "checkpoint": 2,
+      "manifest_sha256": "d2563a52d65b1f14856359865ca500f7a1099263555ae6e28c42562cbe091b75",
+      "source_map_file_sha256": "0b22724b0468e7a307bd19376916aaa9de818c0e82327140ad094d043172d08e",
+      "summary_sha256": "cab7871d35c9c044173b108e76c4d348457cd5d2de675097066f4ca80d652f7e",
+      "supplement_sha256": "43673020ded5fa6fa5981ecb4f7ef105cef7f446b3acdef929f6a01c828af84a",
+      "source_map_before_after_sha256": "fc0933b0ec17983742a6cbea4d834f382cda2ee639ce0a99862c79a1f4cd57c4",
+      "package_map_before_after_sha256": "12ba4295478f4bd24f263e2285355fc31742274b0b00d815fd03b23cb51a5885",
+      "setup_attempt": {
+        "exit": 1,
+        "failure": "source base mismatch",
+        "classification": "preflight/setup only; no Lake process or compiler stage ran",
+        "log_path": "setup-source-base-mismatch.log",
+        "log_sha256": "2f4d3b807ac57c14f2dd768991cc28085a96ff85589900bc42bcc90e335b06eb"
+      },
+      "stages": [
+        {
+          "artifact_bytes": 1302736,
+          "artifact_exists": true,
+          "artifact_sha256": "dc5be598620a8edad3904ea5b9533991c9c48d94e4e91c7e44f5c36c4428a17a",
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuation",
+          "diagnostic_headlines": [],
+          "elapsed_ms": 12938,
+          "exit": 0,
+          "log_bytes": 645,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/postcommit-continuation-checkpoint2/evidence-run1/01-RegistrationPostcommitContinuation.log",
+          "log_sha256": "b5a357a91aeb4ec68e9cb52936a96c2365edf4d092e843d67b86672a9adf6e77",
+          "target": "RegistrationPostcommitContinuation",
+          "timed_out": false
+        },
+        {
+          "artifact_exists": false,
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuationProof",
+          "diagnostic_headlines": [
+            "error: RegistrationPostcommitContinuationProof.lean:32:21: unsolved goals",
+            "error: RegistrationPostcommitContinuationProof.lean:52:31: Invalid dotted identifier notation: The expected type of `.ended` could not be determined",
+            "error: RegistrationPostcommitContinuationProof.lean:52:55: Invalid dotted identifier notation: The expected type of `.reload` could not be determined",
+            "error: RegistrationPostcommitContinuationProof.lean:53:37: unsolved goals",
+            "error: RegistrationPostcommitContinuationProof.lean:277:2: Type mismatch: After simplification, term",
+            "info: RegistrationPostcommitContinuationProof.lean:281:0: 'RegistrationPostcommit.reload_old_first_error' depends on axioms: [propext, sorryAx]",
+            "info: RegistrationPostcommitContinuationProof.lean:282:0: 'RegistrationPostcommit.old_reload_short_circuit' depends on axioms: [propext, sorryAx]",
+            "info: RegistrationPostcommitContinuationProof.lean:288:0: 'RegistrationPostcommit.closed_store_marker_refusal' depends on axioms: [propext, sorryAx]",
+            "error: RegistrationPostcommitContinuationProof.lean:290:0: unexpected registration postcommit continuation axiom in RegistrationPostcommit.reload_old_first_error: [sorryAx]",
+            "error: build failed"
+          ],
+          "elapsed_ms": 16347,
+          "exit": 1,
+          "log_bytes": 11319,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/postcommit-continuation-checkpoint2/evidence-run1/02-RegistrationPostcommitContinuationProof.log",
+          "log_sha256": "cda6d3520b40ae3aef92b5fc4817341c2e7964e91700998d57ef7e954b41973c",
+          "target": "RegistrationPostcommitContinuationProof",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 3,
+      "manifest_sha256": "6a7cbdb77c2784e907f168b60146bafdd2d8046d8946e473cbaf87ed069c61e8",
+      "source_map_file_sha256": "7fb81050623356671df80689fc4ff7d9920570b41c5bdc50c89a24d65a8a2e78",
+      "summary_sha256": "d1333349e198b855f7aa23c8fb562917e0681b78b0f73d316a7a4d4c5d1f4195",
+      "supplement_sha256": "31620ce9520509330661c3aa1cb2ded1232f95f627259318e045c9f3689fad75",
+      "source_map_before_after_sha256": "9ae4deb9df4917cd9347e94ddaa26d4e286b38a7bb4b5b5c6431e060aed5ca5f",
+      "package_map_before_after_sha256": "04c6b7cd57b1b418afa7c288184bc17664703c03febdae1d4b17608e7b8dbce3",
+      "setup_attempt": {
+        "exit": 1,
+        "failure": "accepted prerequisite OLean mismatch: RegistrationAuditedLifetimeWitnessProof",
+        "classification": "preflight/setup only; no Lake process started",
+        "log_path": "setup-witness-proof-artifact-mismatch.log",
+        "log_sha256": "28e284d9d8508888a80adbb15859ef88774e12f714d2e6a1e75af5e4105eaef3"
+      },
+      "stages": [
+        {
+          "artifact_bytes": 630472,
+          "artifact_exists": true,
+          "artifact_sha256": "47a338226e5e1b3a4744b9de1eb86989cb832790f8ae692ff536cb1f38d224ee",
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuationProof",
+          "diagnostic_headlines": [],
+          "elapsed_ms": 23605,
+          "exit": 0,
+          "log_bytes": 4026,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/postcommit-continuation-checkpoint3/evidence-run1/01-RegistrationPostcommitContinuationProof.log",
+          "log_sha256": "3abeb94d045d2f4943b4d374993ca61eefc432a9ea24341f47fa8575c4041964",
+          "target": "RegistrationPostcommitContinuationProof",
+          "timed_out": false
+        }
+      ]
+    }
+  ],
+  "review_correction_before_compilation": "Checkpoint1 was not compiled. Review added a closed two-row store-plus-refusal witness to the conditional composition; all latent later results succeed, so ignoring the marker error cannot accidentally satisfy the expected error.",
+  "compiler_failure_and_repair": "Checkpoint2 Definition passed; Proof failed on list append normalization, ambiguous dotted constructors and the closed trace normalization. Checkpoint3 changes only three proof lines: explicit OldCall constructor names and nil/cons append/zero-add rewrites. No intended statement, expectation, definition, native source, dependency or resource limit changed. This was authoring failure, not a semantic control.",
+  "reused_seed_sources": {
+    "RegistrationAuditedLifetimeModel": "6beefe9ff1eecb8b56143e3cc189e2bc6719b684c2236ea3ebb59eca9e93b4f6",
+    "RegistrationAuditedLifetimeSpecification": "bd4fccf6ac3dbca608a8e20b0d314fd3bbd0ddf83295f7ff77f81c6fa2a431d9",
+    "RegistrationAuditedLifetimeWitnessExecution": "8037c6b4d73b0d4c5cb2728709e8a14cb85903159eb04ca149472d2d2f7919d3",
+    "RegistrationAuditedLifetimeWitnessProof": "6cbbcdda15b9024ac2e65b8b4243df5dcc26b321ef5ff66f4189314b39fe7f4e",
+    "RegistrationAuditedLifetimeWitnesses": "eba3e835b2e21c061b8572752da7e1943f8d8d2c07254b5182146b5cd1364ce0",
+    "RegistrationLifetimeModel": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954",
+    "RegistrationLifetimeSpecification": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2",
+    "RegistrationModel": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584"
+  },
+  "reused_seed_artifacts": {
+    "RegistrationAuditedLifetimeModel": "005abac7f24193aafb66e9660117d0a6c69eb832462e440de8db20cc965148d4",
+    "RegistrationAuditedLifetimeSpecification": "187f5c9f23faedd2bd18e80540a355ebd96d8bd6346493eb1d774050f52ac7ee",
+    "RegistrationAuditedLifetimeWitnessExecution": "8f2050a017d7d5e1d988cb53935669559882a15ec38f89c91b5380f689844e83",
+    "RegistrationAuditedLifetimeWitnessProof": "5faebe4ca5f553c075740961a10037fb8b7793daffc31b7c61c87474249356f2",
+    "RegistrationAuditedLifetimeWitnesses": "4e4f7edc71f15054468fc7bde3aebd2356f5ebd80d217cc713f71516db1514eb",
+    "RegistrationLifetimeModel": "85f36adc8376c83818cda80e2fa28651e63a57fb731fe02a3c33d73ffacb78b0",
+    "RegistrationLifetimeSpecification": "fa5ed9dcc1b8181b4102d373b428b81baed856ee35c855448242e440a52648db",
+    "RegistrationModel": "b6e320d98ca154a8e491a8dbd6cf13921cb63b9a1466acc87eaec7d70d9b8e66"
+  },
+  "artifact_reproducibility": {
+    "accepted_witness_proof_seed": {
+      "source_sha256": "6cbbcdda15b9024ac2e65b8b4243df5dcc26b321ef5ff66f4189314b39fe7f4e",
+      "olean_bytes": 234624,
+      "olean_sha256": "5faebe4ca5f553c075740961a10037fb8b7793daffc31b7c61c87474249356f2"
+    },
+    "rejected_checkpoint2_postbuild_artifact_builder_observation": {
+      "path": "postcommit-continuation-checkpoint2/source/.lake/build/lib/lean/RegistrationAuditedLifetimeWitnessProof.olean",
+      "bytes": 234616,
+      "sha256": "e1b2e8e19990a631b65dc5f1103b749eb0e3258ea928eab6f4ed20184b447cfd",
+      "note": "This differed from the reviewed accepted restored seed and was not used for the checkpoint3 source/artifact gate."
+    },
+    "checkpoint3_actual_rebuilt_witness_proof": {
+      "bytes": 234616,
+      "sha256": "baeb01a3bdc0b517a24f447375561b7fbfa63172dbbbc2482977fd9a3db2b464",
+      "note": "Lake rebuilt the same source in the checkpoint3 package; this actual build output differs from the 234624-byte accepted seed. The source hash remained exact."
+    },
+    "note": "The gate used the reviewed accepted seed. Lake then rebuilt the identical source and checked its closures. Output bytes differ; no byte reproducibility claim. Root independently hashed the accepted seed and final rebuilt artifact; the rejected prior artifact identity was reported by builder."
+  },
+  "scenario": {
+    "prefix": "Qualified actual populated store-model execution: two old registrations/logins30/40 and31/41 at serverA, new10/20 at serverB; complete expected database/audit and inner registered acknowledgement.",
+    "outer_observations": "Both old reloads succeed. Marker for synthetic projected deployment7 reports confirmed no-write refusal. New reload, grant and information observations would all succeed if reached.",
+    "expected_outer_error": "Internal(synthetic confirmed no-write served refusal)",
+    "expected_suffix_trace": [
+      "ended(30,serverA,40,Replace)",
+      "reloadOld(position0,client30)",
+      "ended(31,serverA,41,Replace)",
+      "reloadOld(position1,client31)",
+      "served(deployment7)"
+    ],
+    "expected_preserved_knowledge": "The exact acknowledged World and its independent complete expectedDB and expectedAudit; this is known snapshot preservation subject to observation/no-external-writer interpretation, not native SQL refinement.",
+    "additional_constructive_cases": [
+      "second old reload refusal with first reload successful",
+      "all observations successful with exact opaque output and ten-event trace"
+    ]
+  },
+  "generic_properties": [
+    "Exact ordered prefix and first error for any finite list of old registrations",
+    "Confirmed no-write marker refusal preserves known snapshot and exact Internal payload; no later call occurs and later results are irrelevant",
+    "General marker success or error produces no durable snapshot preservation claim",
+    "First new-reload/database failure propagates as Internal with exact prefix",
+    "information preserves its whole typed error, including Rejected, without Internal rewrapping",
+    "Successful opaque complete output and exact context/argument trace pass through unchanged"
+  ],
+  "guard_count": 19,
+  "public_theorem_count": 15,
+  "declaration_guards": [
+    "reload_old_ok",
+    "reload_old_first_error",
+    "old_reload_short_circuit",
+    "marker_refusal",
+    "EarlyOnly",
+    "marker_refusal_no_later",
+    "marker_refusal_later_irrelevant",
+    "marker_general_error",
+    "new_reload_error",
+    "database_error",
+    "information_error_passthrough",
+    "success_passthrough",
+    "old_refusal_example",
+    "successful_observation_example",
+    "replacementEnded",
+    "replacementContext",
+    "replacementProjection",
+    "populated_store_then_marker_refusal",
+    "closed_store_marker_refusal"
+  ],
+  "printed_axiom_closures": [
+    "info: RegistrationPostcommitContinuationProof.lean:281:0: 'RegistrationPostcommit.reload_old_first_error' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationPostcommitContinuationProof.lean:282:0: 'RegistrationPostcommit.old_reload_short_circuit' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationPostcommitContinuationProof.lean:283:0: 'RegistrationPostcommit.marker_refusal' depends on axioms: [propext]",
+    "info: RegistrationPostcommitContinuationProof.lean:284:0: 'RegistrationPostcommit.marker_refusal_no_later' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationPostcommitContinuationProof.lean:285:0: 'RegistrationPostcommit.information_error_passthrough' depends on axioms: [propext]",
+    "info: RegistrationPostcommitContinuationProof.lean:286:0: 'RegistrationPostcommit.successful_observation_example' depends on axioms: [propext]",
+    "info: RegistrationPostcommitContinuationProof.lean:287:0: 'RegistrationPostcommit.populated_store_then_marker_refusal' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationPostcommitContinuationProof.lean:288:0: 'RegistrationPostcommit.closed_store_marker_refusal' depends on axioms: [propext, Quot.sound]"
+  ],
+  "allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "resource_limits": {
+    "seconds_per_command": 180,
+    "heartbeats": "default200000; no overrides"
+  },
+  "review": "Root checked all14 final mapped inputs, seven native file hashes against the prior qualified implementation, all three command log hashes/sizes, both successful new outputs, accepted/final rebuilt WitnessProof artifacts, exact19-guard/8-print tail, and full negative/positive diagnostics. Known non-failing unused-simp and preexisting style/module warnings remain.",
+  "boundaries": [
+    "Handwritten source-shaped control flow, not extracted native Rust",
+    "Observations and metadata/issued-input projections are explicit native interpretation inputs",
+    "knownSnapshot=None means unknown, never deletion; general served errors are not assumed no-write",
+    "Preserved snapshot requires faithful read/no-write observations and no external durable or audit writer during suffix",
+    "Reload cache/catalog effects and notification convergence are not modeled by the durable snapshot",
+    "Successful served updates may change full instance state; no full durable state preservation is claimed there",
+    "Opaque successful Output is passed through, not a proof of native ClientInformation construction, validation or wire serialization",
+    "Internal error payload preservation is at service Result boundary; HTTP intentionally hides its cause",
+    "Closed two-row composition is synthetic and differs from prior first-registration native refusal test",
+    "No new native test/deployment/model call; prior native qualification and extraction failure retain their own scope",
+    "No new semantic mutation has yet been qualified for this continuation"
+  ],
+  "next": [
+    "Ignore-confirmed-marker-refusal model control with independent wrong output and restored acceptance",
+    "Remaining namespace/update/expiry/ordinary deregistration adapters",
+    "Native response construction and asynchronous/SQL correspondence"
+  ]
+}
