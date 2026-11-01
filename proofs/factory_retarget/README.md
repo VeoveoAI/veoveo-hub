@@ -1,4 +1,4 @@
-# Factory retarget row, output and recovery contracts (manual)
+# Factory lifecycle, retarget and recovery contracts (manual)
 
 These checkpoints prove the complete successful instance row and path-sensitive
 modeled outputs for the manual Factory retarget model corresponding to Hub
@@ -88,10 +88,37 @@ is local to `no_fault_capacity_accepts`. Tactic/heartbeat authoring failures are
 retained in the [receipt](SOURCE.md#checked-recovery-checkpoint). The dated record
 is [Factory recovery proof](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-recovery-proof.md).
 
+## Checked independent lifecycle contracts
+
+`FactoryChoiceProof` imports only the model and proves necessary-and-sufficient
+contracts for all four outcomes. The contract predicates independently spell the
+linked repository/tracked-ID identity, own-tree/linked-revision content and exact
+resources, driver, policy, command and provider comparisons. They call none of
+`choice`, `changed`, `runs` or `besideImage`. Creation is exactly native absence;
+missing spec/template or changed target forces replacement. Keep takes precedence
+when content and compared fields match, even if a rebuilt image differs. Restart
+requires the same target, compatible image/fields and changed content. The
+replacement contract covers the remaining present-worker cases.
+
+Corollaries show provider permutation preserves the decision while duplicate
+multiplicity matters, and that environment, restart policy and unspecified
+configuration/template remainders are ignored by the source comparisons. These
+are manual model contracts; native sorted-list/`Perm`, URL/UUID, canonical policy
+and protobuf equality correspondence remain interpretation boundaries. They do
+not establish a concurrent request's freshness or selection under new inputs.
+
+The direct check passed in **5.066 seconds** with **15 executable axiom guards**
+and eight printed closures allowing only the standard three axioms. The exact
+model artifact was reused; earlier proof leaves are not imports. Three finite
+600,000-heartbeat settings apply only to lifecycle iff proofs. The first attempt
+failed on nested record layout, corrected without changing its statement; the
+[receipt](SOURCE.md#checked-choice-checkpoint) retains that diagnostic. See the
+[Factory choice proof record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-choice-proof.md).
+
 ## Manual checks
 
 Lean 4.35.0 and Mathlib `56a005855ea17e0b0958f73ec801ae140b0a1679` are pinned.
-No Aeneas dependency or historical instance-name patch is used. All four named
+No Aeneas dependency or historical instance-name patch is used. All five named
 targets are manual; no default/CI target or runtime behavior is added.
 
 ```sh
@@ -99,6 +126,7 @@ LAKE_NO_UPDATE=1 lake build FactoryRetargetModel
 LAKE_NO_UPDATE=1 lake env lean FactoryRetargetProof.lean -o .lake/build/lib/lean/FactoryRetargetProof.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryNativeOutputProof.lean -o .lake/build/lib/lean/FactoryNativeOutputProof.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryRecoveryProof.lean -o .lake/build/lib/lean/FactoryRecoveryProof.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryChoiceProof.lean -o .lake/build/lib/lean/FactoryChoiceProof.olean
 ```
 
 ## Interpretation boundaries and remaining work
@@ -128,10 +156,10 @@ phase/spec. Native maps use complete deployment keys; physical unrelated-object
 framing additionally needs distinct scoped `(workspace, sandboxName)` keys because
 the native name truncates UUID text.
 
-The full protocol remains partial. The output specifications and modeled program
-share `choice`; independent contracts for every lifecycle selection condition
-remain to be checked. Further work includes finite serialized histories and
-semantic controls for wrong outputs and wrongful refusals. Modeled provider fields do not verify entire native
+The full protocol remains partial. Independent lifecycle contracts are now checked
+alongside the full output and conditional retry contracts. Further work includes
+finite serialized histories and semantic controls for wrong outputs and wrongful
+refusals. Modeled provider fields do not verify entire native
 Provider protobuf objects; their profiles, defaults and native interpretation
 remain external contracts.
 Multi-replica publication ordering, independent linked-follower supersession,

@@ -8,3 +8,4 @@ lean_lib FactoryRetargetModel
 lean_lib FactoryRetargetProof
 lean_lib FactoryNativeOutputProof
 lean_lib FactoryRecoveryProof
+lean_lib FactoryChoiceProof

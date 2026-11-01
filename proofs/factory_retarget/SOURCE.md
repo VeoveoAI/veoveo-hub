@@ -229,3 +229,63 @@ produced no accepted Recovery artifact; they are proof-authoring diagnostics,
 not runtime findings or semantic-control results. Guards count dependency audits,
 not execution scenarios. Independent lifecycle choice contracts, finite histories
 and wrong-output/wrong-refusal controls remain next obligations.
+
+
+## Checked choice checkpoint
+
+`FactoryChoiceProof` imports the unchanged model alone, without prior proof leaves.
+Its independent predicates spell actual target/content/configuration conditions
+and establish all four iff decisions, keep precedence, rebuilt-image allowance,
+provider permutation with multiplicity and ignored-field invariance. The source
+mapping is `factory.rs` lifecycle dispatch (403–617) and `factory/sandbox.rs`
+`runs`/`runs_beside_image` (379–418), at the recorded runtime revision. Native
+sorting/permutation, protobuf/URL/UUID/script interpretation remain explicit;
+this is not Aeneas extraction or concurrent-preparation freshness verification.
+
+```json
+{
+  "status": "checked independent manual lifecycle contracts; broader Factory goal partial",
+  "runtime_source": "48d7e25a564f24c9d0418fbbebeda1d5c7d4c68c",
+  "proof_source_sha256": "81198160608ac4d811d679e3ee4e94facd4ffd5c9be3a4e1ce70f4077bb3181a",
+  "lakefile_sha256": "b687daa6627dd7b2ff8fdb5a5d7caf0032f1f48df4e83bdc6364a5714d9bbccb",
+  "inputs_sha256": "dd027db7f9120296725363d524a3e5a071970a5c34702ac12af6a8dd85c8186a",
+  "elapsed_ms": 5066,
+  "exit": 0,
+  "olean_bytes": 967736,
+  "olean_sha256": "682c649e911d0e42225397aa882ace22d7905ff5c82686c3496b276d8e0b663f",
+  "log_bytes": 1766,
+  "log_sha256": "682838f5c94fedd9e129cdadd0f8b4ef7ed314d6417384b96569096b56f3bf13",
+  "axiom_guards": 15,
+  "printed_closures": 8,
+  "allowed_axioms": ["propext", "Classical.choice", "Quot.sound"],
+  "sorryAx": false,
+  "source_pre_post_unchanged": true,
+  "model_source_sha256": "52f6da22b5acc42fdff56c6f0d32c28996f1953ce3da958a23c8fe9fbce51bf0",
+  "model_olean_sha256": "86d35cb19aea6b19727b3bb0fc2cfcb3c3c45674a05f063c3acbd053d1f402ee",
+  "prior_model_reused_after_hash_gates": true,
+  "prior_proof_imports": false,
+  "local_heartbeat_limits": {
+    "choice_keep_iff": 600000,
+    "choice_restart_iff": 600000,
+    "choice_replace_iff": 600000
+  },
+  "logs_root": "/tmp/hub-factory-retarget-20261031/choice-check2-mirror/run1/",
+  "authoring_diagnostics": [
+    {
+      "case": "check1", "elapsed_ms": 4878, "exit": 1,
+      "log_bytes": 1960,
+      "log_sha256": "72bb1c68681cc1a8f941415f5f00686e553cc974bda93ff9ce489f8ecc205f70",
+      "cause": "nested record-update layout parser error; later unknown names were cascades; no accepted leaf artifact"
+    }
+  ],
+  "publication_note": "Only README/SOURCE prose changed after the checked ten-file packet; all Lean/config bytes equal check2. No native/model/prior-proof rebuild was repeated."
+}
+```
+
+GPT-6.1 Sol authored the leaf, GPT-6 Luna ran the bounded Linux direct check and
+GPT-6 Astra reviewed the complete log, source interpretation and contracts.
+The accepted result has no custom own-logic axioms or accepted unfinished proofs.
+The failed attempt was a syntax diagnostic, not a runtime finding or semantic
+control. Standalone populated wrong-output/wrong-refusal controls and finite
+histories remain subsequent work; asynchronous follower supersession remains a
+separate native hypothesis, not a consequence of these contracts.
