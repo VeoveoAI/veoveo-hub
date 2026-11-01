@@ -190,6 +190,47 @@ pub(super) async fn linked_applied(
     Ok(())
 }
 
+/// The own tree of its branch and the tracked revision the runner last applied.
+pub(super) async fn runner_applied(
+    store: &PlatformStore,
+    deployment: DeploymentId,
+) -> Result<(Option<String>, Option<Revision>)> {
+    let row = sqlx::query_file!(
+        "src/factory/record/runner_applied.sql",
+        deployment.as_uuid()
+    )
+    .fetch_optional(store.pool())
+    .await
+    .context("failed to read what the runner applied")?;
+    let Some(row) = row else {
+        return Ok((None, None));
+    };
+    Ok((
+        row.own_tree,
+        row.linked_revision
+            .map(Revision::parse)
+            .transpose()
+            .context("the stored linked revision is malformed")?,
+    ))
+}
+
+/// Record the own tree of its branch that the Hub applied to the runner's sandbox.
+pub(super) async fn own_tree(
+    store: &PlatformStore,
+    deployment: DeploymentId,
+    digest: &str,
+) -> Result<()> {
+    sqlx::query_file!(
+        "src/factory/record/own_tree.sql",
+        deployment.as_uuid(),
+        digest
+    )
+    .execute(store.pool())
+    .await
+    .context("failed to record the runner's own tree")?;
+    Ok(())
+}
+
 /// Record `pusher` as the instance's latest pusher, before the Hub restarts or creates
 /// its sandbox; until its server registers or resumes again, the instance serves no
 /// revision. Returns the branch the instance serves.

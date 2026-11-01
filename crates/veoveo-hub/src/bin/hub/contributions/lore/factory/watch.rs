@@ -451,7 +451,7 @@ impl Inner {
                 .read(&pusher, &parent, &revision, directory.path())
                 .await?
                 .context("the branch's revision the runner applied has no openshell/run")?;
-            let links = self.lore.links(&pusher, &parent, &revision).await?;
+            let tree = self.lore.links(&pusher, &parent, &revision).await?;
             let linked_directory = tempfile::Builder::new()
                 .prefix("veoveo-linked-")
                 .tempdir()
@@ -478,7 +478,7 @@ impl Inner {
                 link,
                 linked: linked_push,
                 prepared: linked_prepared,
-                links: links.into_iter().map(|link| link.name).collect(),
+                own: tree.own,
             };
             self.change_runner(
                 &parent,
@@ -713,16 +713,16 @@ impl Inner {
                 .map_err(|error| format!("reading openshell/ as {pusher} failed: {error:#}"))?;
             // Links are checked whether or not the revision has `openshell/run`: one the
             // factory's checkout cannot leave out is refused either way.
-            let links = self
+            let tree = self
                 .lore
                 .links(&pusher, watched, &revision)
                 .await
                 .map_err(|error| {
                     format!("reading the revision's links as {pusher} failed: {error:#}")
                 })?;
-            Ok::<_, String>((directory, prepared, links))
+            Ok::<_, String>((directory, prepared, tree))
         };
-        let (directory, prepared, links) = match read.await {
+        let (directory, prepared, super::ParentTree { links, own }) = match read.await {
             Ok(read) => read,
             Err(message) => {
                 self.unprepared(watched, branch, &revision, &pusher, &message)
@@ -738,7 +738,7 @@ impl Inner {
             Some(prepared) if !links.is_empty() => {
                 // A linked branch: its runners serve it, not an instance.
                 self.change(watched, branch, stop, None).await;
-                self.run_links(watched, id, branch, &push, &prepared, &links, stop)
+                self.run_links(watched, id, branch, &push, &prepared, &links, &own, stop)
                     .await;
             }
             prepared => {
@@ -761,6 +761,7 @@ impl Inner {
         push: &Push,
         prepared: &Prepared,
         links: &[LinkNode],
+        own: &veoveo_hub::factory::OwnTree,
         stop: &CancellationToken,
     ) {
         self.retire_runners(watched, branch, links, stop).await;
@@ -772,10 +773,6 @@ impl Inner {
                 tracing::warn!(%branch, "the branch's runners are unknown: {error:#}");
                 Vec::new()
             });
-        let names = links
-            .iter()
-            .map(|link| link.name.clone())
-            .collect::<Vec<_>>();
         for link in links {
             if stop.is_cancelled() {
                 return;
@@ -801,7 +798,7 @@ impl Inner {
                     link: link_record,
                     linked: linked_push,
                     prepared: linked_prepared,
-                    links: names.clone(),
+                    own: own.clone(),
                 };
                 self.change_runner(
                     watched,

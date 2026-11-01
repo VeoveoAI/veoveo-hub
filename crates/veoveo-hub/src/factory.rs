@@ -179,14 +179,24 @@ pub struct LinkedPrepared {
 }
 
 /// What a runner serves beside its branch's push: its link, the head of the tracked branch
-/// with its pusher and what it holds, and every link at the top level of the branch's
-/// revision, which the runner's checkout of the branch leaves out.
+/// with its pusher and what it holds, and the branch's own tree, without its links.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunnerPush {
     pub link: Link,
     pub linked: Push,
     pub prepared: LinkedPrepared,
-    pub links: Vec<LinkName>,
+    pub own: OwnTree,
+}
+
+/// A branch revision's own tree, without the links at its top level: the SHA-256 of
+/// every entry Lore lists of it, which a link's addition or removal leaves as it is, and
+/// its top-level entries, which a runner's checkout of the branch includes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OwnTree {
+    /// 64 lowercase hexadecimal digits.
+    pub digest: String,
+    /// The names at the top level that are no links, sorted.
+    pub entries: Vec<String>,
 }
 
 /// A runner as the Hub records it.
@@ -244,8 +254,8 @@ struct RunnerSource {
     linked: url::Url,
     /// The tracked branch's ID.
     tracked: String,
-    /// Every link at the top level of the branch's revision.
-    links: Vec<LinkName>,
+    /// The top-level entries of the branch's own tree, which its checkout includes.
+    entries: Vec<String>,
 }
 
 impl Source {
@@ -258,7 +268,7 @@ impl Source {
                 branch,
                 &runner.linked,
                 &runner.tracked,
-                &runner.links,
+                &runner.entries,
             ),
         }
     }
@@ -499,7 +509,7 @@ impl Factory {
             RunnerSource {
                 linked,
                 tracked: runner.link.tracked.id.clone(),
-                links: runner.links.clone(),
+                entries: runner.own.entries.clone(),
             }
         });
         let source = Source {
@@ -523,7 +533,23 @@ impl Factory {
         let current = self
             .recorded(deployment, Stage::Create, self.sandbox(&name))
             .await?;
+        // A runner whose branch's own tree and tracked revision are the ones it applied
+        // serves the same program and content: a link added to or removed from the branch
+        // changes nothing for it, neither its sandbox nor its program.
+        let unchanged = match &runner {
+            Some(runner) => {
+                let (own, linked) = record::runner_applied(&self.store, deployment).await?;
+                own.as_deref() == Some(runner.own.digest.as_str())
+                    && linked.as_ref() == Some(&runner.linked.revision)
+            }
+            None => false,
+        };
         match current {
+            Some(sandbox)
+                if unchanged && sandbox::runs_beside_image(&name, &sandbox, &source, &branch) =>
+            {
+                tracing::info!(%deployment, "the runner's own tree and tracked revision are unchanged: its sandbox keeps serving");
+            }
             Some(sandbox) if sandbox::runs(&name, &sandbox, &source, &branch) => {
                 self.recorded(deployment, Stage::Restart, self.restart(&name, &sandbox))
                     .await?;
@@ -547,6 +573,7 @@ impl Factory {
         }
         if let Some(runner) = &runner {
             record::linked_applied(&self.store, deployment, &runner.linked.revision).await?;
+            record::own_tree(&self.store, deployment, &runner.own.digest).await?;
         }
         record::applied(&self.store, deployment, &push.revision).await
     }
