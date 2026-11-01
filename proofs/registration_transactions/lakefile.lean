@@ -75,3 +75,6 @@ lean_lib RegistrationAuditedLifetimeWitnesses
 lean_lib RegistrationAuditedLifetimeWitnessProof
 
 lean_lib RegistrationAuditedLifetimeWitnessExecution
+
+lean_lib RegistrationAuditedLifetimeRecoveryWitnesses
+lean_lib RegistrationAuditedLifetimeRecoveryProof

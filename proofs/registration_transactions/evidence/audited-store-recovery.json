@@ -1,0 +1,384 @@
+{
+  "kind": "manual-constructive-store-model-recovery",
+  "status": "partial-append-confirmed-abort-retry-and-lost-reply-checked-within-stated-boundary",
+  "base_commit": "04dc3bd37310fd921d2712ba78af4cdc324e9492",
+  "native_source_commit": "3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33",
+  "roles": {
+    "author": "GPT-6.1 Sol",
+    "compiler": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "qualification_source_map": {
+    "AUDITED_STORE_SOURCE.md": "e3ab7c741130633a82655ed2ee06a23e049362e34a0a117b0134f6573e9c2c00",
+    "RegistrationAuditedLifetimeModel.lean": "6beefe9ff1eecb8b56143e3cc189e2bc6719b684c2236ea3ebb59eca9e93b4f6",
+    "RegistrationAuditedLifetimeRecoveryProof.lean": "77a2d2a4c32442ff7a2c5603c82d36f7e375bd2c2d4efed02cf781f19a825f62",
+    "RegistrationAuditedLifetimeRecoveryWitnesses.lean": "2c1017b437d074d747e845ba41a037222d9d6871228187685a64ad009d7e1462",
+    "RegistrationAuditedLifetimeSpecification.lean": "bd4fccf6ac3dbca608a8e20b0d314fd3bbd0ddf83295f7ff77f81c6fa2a431d9",
+    "RegistrationAuditedLifetimeWitnessExecution.lean": "8037c6b4d73b0d4c5cb2728709e8a14cb85903159eb04ca149472d2d2f7919d3",
+    "RegistrationAuditedLifetimeWitnesses.lean": "eba3e835b2e21c061b8572752da7e1943f8d8d2c07254b5182146b5cd1364ce0",
+    "RegistrationLifetimeModel.lean": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954",
+    "RegistrationLifetimeSpecification.lean": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "5322a3a43caad2dba8026b77dbd5065d68d9e0f6a26001b2defb8232a7cb5568",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "source_map_note": "The source note was marked authoring during compilation. Its status and links were updated afterward; Lean and package inputs did not change.",
+  "lean_version": "4.35.0",
+  "tools": {
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "checked_targets": [
+    {
+      "artifact_bytes": 286888,
+      "artifact_exists": true,
+      "artifact_sha256": "be17c46691d30c0acf21dddd97f6bb5f8f6369475513e5dbd8dc37d27c128273",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRecoveryWitnesses",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 16544,
+      "exit": 0,
+      "log_bytes": 854,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-recovery-checkpoint2/evidence-run1/01-RegistrationAuditedLifetimeRecoveryWitnesses.log",
+      "log_sha256": "4b3b56905b56336c076c8fa7b2b2ab2583bf79e3567a3e11007225cb73cd2510",
+      "target": "RegistrationAuditedLifetimeRecoveryWitnesses",
+      "timed_out": false
+    },
+    {
+      "artifact_bytes": 475080,
+      "artifact_exists": true,
+      "artifact_sha256": "44a646fd6d021366b01df1977ff31ab13bc40138b53d1741c6426322e437367b",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRecoveryProof",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 21754,
+      "exit": 0,
+      "log_bytes": 3919,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-recovery-checkpoint5/evidence-run1/01-RegistrationAuditedLifetimeRecoveryProof.log",
+      "log_sha256": "d23ecc76cd4d71ee3b775d5d23da174be0971d2dbd078cd76fb4f15ff9d01f30",
+      "target": "RegistrationAuditedLifetimeRecoveryProof",
+      "timed_out": false
+    }
+  ],
+  "attempts": [
+    {
+      "checkpoint": 1,
+      "manifest_sha256": "7c0bdadd6a0e837dd88d50dfc29f1a183e15ec0e2d3c8f38246a67964b44d2f8",
+      "source_map_file_sha256": "b5e8befe1353bae92c4eb5fae5d5dedf2561e9a075644cdcb047b25394da310a",
+      "raw_summary_sha256": "809edc328d104f4be3f0f0265fd3836de278403a43d5db02d73b5b0b4e2b5ff9",
+      "supplement_sha256": "a8704b397db376d621fdd521b782f65f56715495d2073151368ba867621bc44c",
+      "source_map_before_after_sha256": "5c547edb992ad495d54fa84bd7217fb7f21586d0e54e0e78f27be0d69c35a93d",
+      "package_map_before_after_sha256": "fdc5035ea1803df00a95dbc0b21e577bdd70e06c544127a4cb1b383fdc30624b",
+      "stages": [
+        {
+          "artifact_exists": false,
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRecoveryWitnesses",
+          "diagnostic_headlines": [
+            "error: RegistrationAuditedLifetimeRecoveryWitnesses.lean:82:3: unexpected token 'partial'; expected identifier",
+            "error: RegistrationAuditedLifetimeRecoveryWitnesses.lean:84:3: unexpected token 'partial'; expected '_', '}', identifier or term",
+            "error: RegistrationAuditedLifetimeRecoveryWitnesses.lean:84:11: unexpected token 'with'; expected 'lemma'",
+            "error: build failed"
+          ],
+          "elapsed_ms": 16496,
+          "exit": 1,
+          "log_bytes": 3914,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-recovery-checkpoint1/evidence-run1/01-RegistrationAuditedLifetimeRecoveryWitnesses.log",
+          "log_sha256": "358e0c4cacf3895d4d946c80ff235721d95235a8b41b70f44f5a4c1bbc84f49f",
+          "target": "RegistrationAuditedLifetimeRecoveryWitnesses",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 2,
+      "manifest_sha256": "4887fee4e830c38b20965eb6a1b25d44e1cf410717ea941bca98376ea0b9e350",
+      "source_map_file_sha256": "f4ff14762d4912f8da69cfe40713e9f4a980c9a1e2f33ba402fe8e562d68f615",
+      "raw_summary_sha256": "681fe9b2447ba869205824e79188929410fb099310b682ca3c963db728e54254",
+      "supplement_sha256": "966b87f3d88ac33fc2a69f279087b36dec458c0596d3610a89ae4f87548ccd1d",
+      "source_map_before_after_sha256": "1372e1a1e98776b6108efb50f466482e66821158e90edc870a720290bd7ce61e",
+      "package_map_before_after_sha256": "f2a826cb017dcb6c2978a27e2c87bbc0ed314027160072851c16ede396621135",
+      "stages": [
+        {
+          "artifact_bytes": 286888,
+          "artifact_exists": true,
+          "artifact_sha256": "be17c46691d30c0acf21dddd97f6bb5f8f6369475513e5dbd8dc37d27c128273",
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRecoveryWitnesses",
+          "diagnostic_headlines": [],
+          "elapsed_ms": 16544,
+          "exit": 0,
+          "log_bytes": 854,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-recovery-checkpoint2/evidence-run1/01-RegistrationAuditedLifetimeRecoveryWitnesses.log",
+          "log_sha256": "4b3b56905b56336c076c8fa7b2b2ab2583bf79e3567a3e11007225cb73cd2510",
+          "target": "RegistrationAuditedLifetimeRecoveryWitnesses",
+          "timed_out": false
+        },
+        {
+          "artifact_exists": false,
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRecoveryProof",
+          "diagnostic_headlines": [
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:29:42: Expected type must not contain free variables",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:66:42: Expected type must not contain free variables",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:92:42: Expected type must not contain free variables",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:105:42: Expected type must not contain free variables",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:220:7: (deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:273:12: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:281:2: (deterministic) timeout at `\u00abtactic execution\u00bb`, maximum number of heartbeats (200000) has been reached",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:287:10: (deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:285:51: (deterministic) timeout at `\u00abtactic execution\u00bb`, maximum number of heartbeats (200000) has been reached",
+            "info: RegistrationAuditedLifetimeRecoveryProof.lean:302:0: 'RegistrationAuditedLifetime.RemovalRecovery.partial_execution' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "info: RegistrationAuditedLifetimeRecoveryProof.lean:304:0: 'RegistrationAuditedLifetime.RemovalRecovery.rollback_complete' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "info: RegistrationAuditedLifetimeRecoveryProof.lean:305:0: 'RegistrationAuditedLifetime.RemovalRecovery.retry_execution' depends on axioms: [propext, sorryAx]",
+            " sorryAx,",
+            "info: RegistrationAuditedLifetimeRecoveryProof.lean:307:0: 'RegistrationAuditedLifetime.RemovalRecovery.lost_reply_execution' depends on axioms: [propext, sorryAx]",
+            "info: RegistrationAuditedLifetimeRecoveryProof.lean:308:0: 'RegistrationAuditedLifetime.RemovalRecovery.error_does_not_imply_rollback' depends on axioms: [propext, sorryAx]",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:310:0: unexpected audited removal recovery axiom in RegistrationAuditedLifetime.RemovalRecovery.removal_prefix_execution: [sorryAx]",
+            "error: build failed"
+          ],
+          "elapsed_ms": 19044,
+          "exit": 1,
+          "log_bytes": 14311,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-recovery-checkpoint2/evidence-run1/02-RegistrationAuditedLifetimeRecoveryProof.log",
+          "log_sha256": "7cff89b24ad5857534ec5f5a71996bfe0c230c0843791833ef92b551021e9787",
+          "target": "RegistrationAuditedLifetimeRecoveryProof",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 3,
+      "manifest_sha256": "da077eb07bfbea0220aa65e415c2e807c47a26dd93c00675e66602bcd24a9ce1",
+      "source_map_file_sha256": "648119a83c0543b0e895c6b633332ab0b6b05013a643fb65d12ee48ffaaf717e",
+      "raw_summary_sha256": "3f30ab00e3a4af3c1a6fbde2c285855887c800f462dc7a219be05e7a6d1a9762",
+      "supplement_sha256": "a3e0fee714050150cc1d1cc061e44b031a244d08db15b781301be221c8e647f8",
+      "source_map_before_after_sha256": "e9d50a1b18218432e276124f788a85c869b3193a184e7f1b270cfb40ab677ab4",
+      "package_map_before_after_sha256": "a9b3497663b474fcc0e54b99333b7664587f081c96b24ad94e291ad619cdefc7",
+      "stages": [
+        {
+          "artifact_exists": false,
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRecoveryProof",
+          "diagnostic_headlines": [
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:17:4: Type mismatch: After simplification, term",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:24:40: unsolved goals",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:31:60: unsolved goals",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:247:91: unsolved goals",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:264:83: unsolved goals",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:267:4: (deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:273:2: (deterministic) timeout at `\u00abtactic execution\u00bb`, maximum number of heartbeats (200000) has been reached",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:331:71: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:345:73: (deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached",
+            "info: RegistrationAuditedLifetimeRecoveryProof.lean:364:0: 'RegistrationAuditedLifetime.RemovalRecovery.retry_execution' depends on axioms: [propext, sorryAx]",
+            " sorryAx,",
+            "info: RegistrationAuditedLifetimeRecoveryProof.lean:366:0: 'RegistrationAuditedLifetime.RemovalRecovery.lost_reply_execution' depends on axioms: [propext, sorryAx]",
+            "info: RegistrationAuditedLifetimeRecoveryProof.lean:367:0: 'RegistrationAuditedLifetime.RemovalRecovery.error_does_not_imply_rollback' depends on axioms: [propext, sorryAx]",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:369:0: unexpected audited removal recovery axiom in RegistrationAuditedLifetime.RemovalRecovery.retry_execution: [sorryAx]",
+            "error: build failed"
+          ],
+          "elapsed_ms": 31975,
+          "exit": 1,
+          "log_bytes": 14399,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-recovery-checkpoint3/evidence-run1/01-RegistrationAuditedLifetimeRecoveryProof.log",
+          "log_sha256": "b836519f31fb9e6fbc59c66e0ab2e49609f7d6facb2ca83c05e0623d66682a5e",
+          "target": "RegistrationAuditedLifetimeRecoveryProof",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 4,
+      "manifest_sha256": "d5f1b761c20a54c323b1d164e3b8c909990fe47ce837f664fc0049ed6f32d367",
+      "source_map_file_sha256": "81c30e4cbdb56140d256abb9c8c68d33ca035dc01e37c143a61f11eabe4a8c5d",
+      "raw_summary_sha256": "55184416296385e2c54b183ea4ae70542c25dd0afd44c9d1e9d622282a549b47",
+      "supplement_sha256": "176c15d74ba9df35a9a1dba4be6959b6ccbd10d5de6dd61284f3f498a65dfa25",
+      "source_map_before_after_sha256": "fce9ad4f2f8f4ca320cb09b5d3ca016f101e2623a2e4723795183db2822d8ce9",
+      "package_map_before_after_sha256": "d426425a88377b1e3220fcdfd3d207a9d77816d1be0a1d81f40eeb9d1a2bcf72",
+      "stages": [
+        {
+          "artifact_exists": false,
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRecoveryProof",
+          "diagnostic_headlines": [
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:333:71: (deterministic) timeout at `whnf`, maximum number of heartbeats (800000) has been reached",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:348:73: (deterministic) timeout at `whnf`, maximum number of heartbeats (800000) has been reached",
+            "info: RegistrationAuditedLifetimeRecoveryProof.lean:369:0: 'RegistrationAuditedLifetime.RemovalRecovery.lost_reply_execution' depends on axioms: [propext, sorryAx]",
+            "info: RegistrationAuditedLifetimeRecoveryProof.lean:370:0: 'RegistrationAuditedLifetime.RemovalRecovery.error_does_not_imply_rollback' depends on axioms: [propext, sorryAx]",
+            "error: RegistrationAuditedLifetimeRecoveryProof.lean:372:0: unexpected audited removal recovery axiom in RegistrationAuditedLifetime.RemovalRecovery.lost_reply_execution: [sorryAx]",
+            "error: build failed"
+          ],
+          "elapsed_ms": 68287,
+          "exit": 1,
+          "log_bytes": 7423,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-recovery-checkpoint4/evidence-run1/01-RegistrationAuditedLifetimeRecoveryProof.log",
+          "log_sha256": "97afceda9f84d9b69336ac45a8112eca1a54d009af5c1a40f1da609ae4a58331",
+          "target": "RegistrationAuditedLifetimeRecoveryProof",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 5,
+      "manifest_sha256": "9ff559a39599c074988bef3f1c23d51e85d13388d287c2b2372bc27060558ae3",
+      "source_map_file_sha256": "39ded6850794b6d10dea50c0b6ad0159fb246edbdb591feb553294ec4af3d891",
+      "raw_summary_sha256": "68ec9047d730841ae0c4cae4fb6360cc53c4aca12c9857998daf5ad20f1d6b33",
+      "supplement_sha256": "d5b347c95dfd5b76f9dcd3cb3ae66f9c8cdee15373ca8d05022df4f81c73e44a",
+      "source_map_before_after_sha256": "99ce8fecdc070702230512c514efce39fa84beb800b02c817b7cd59c8c81da2e",
+      "package_map_before_after_sha256": "fe2a1e5577fe4d4c6ec5979a0b6dc88af2a77454a8f515f84f1d3c443bfcb464",
+      "stages": [
+        {
+          "artifact_bytes": 475080,
+          "artifact_exists": true,
+          "artifact_sha256": "44a646fd6d021366b01df1977ff31ab13bc40138b53d1741c6426322e437367b",
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRecoveryProof",
+          "diagnostic_headlines": [],
+          "elapsed_ms": 21754,
+          "exit": 0,
+          "log_bytes": 3919,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-store-recovery-checkpoint5/evidence-run1/01-RegistrationAuditedLifetimeRecoveryProof.log",
+          "log_sha256": "d23ecc76cd4d71ee3b775d5d23da174be0971d2dbd078cd76fb4f15ff9d01f30",
+          "target": "RegistrationAuditedLifetimeRecoveryProof",
+          "timed_out": false
+        }
+      ]
+    }
+  ],
+  "authoring_failures": [
+    "Checkpoint1: reserved identifier partial prevented Fixture parsing; Proof unrun. Rename only to partialRemoval in the two new modules.",
+    "Checkpoint2: Fixture passed. Proof failed on four phase inequalities with free variables and five 200000-heartbeat reductions. Assertions and expected outputs retained.",
+    "Checkpoint3: explicit phase projection and small abstract response-update lemmas removed the free-variable failures; remaining if True reductions and four 200000-heartbeat timeouts prevented qualification.",
+    "Checkpoint4: explicit ite_true and local 800000-heartbeat scopes on retry_execution, lost_reply_execution, lost_reply_output. Two lost-reply projection comparisons still timed out; no Proof artifact.",
+    "Checkpoint5: restricted unfolding of unchanged cursor/audit fields resolved the two remaining reductions without increasing limits or changing public theorem statements. Full module and axiom guards passed."
+  ],
+  "scenario": {
+    "initial_model": "Valid two-row seed from checked replacement witness: complete instance/deployment, clients30/31, logins40/41, unrelated role99/frame, full prior audit900",
+    "first_attempt_actor": 1,
+    "second_attempt_actor": 2,
+    "first_private_audit_id": 100,
+    "conflicting_audit_id": 900,
+    "successful_retry_audit_ids": [
+      200,
+      201
+    ],
+    "conflict": "Second Deregister-A candidate reuses committed ID900 with different full draft and stored timestamp; successful CoreAppend is impossible.",
+    "refusal_message": "synthetic append refusal: Core VV501 conflicting record",
+    "lost_reply_message": "synthetic removal commit reply lost",
+    "sequence": [
+      "actor1 seven-step removal prefix",
+      "begin source-derived audit program",
+      "append private100",
+      "observe explicit failure",
+      "confirm server abort",
+      "actor2 seven-step fresh removal prefix",
+      "begin audit program",
+      "append200",
+      "append201",
+      "request commit",
+      "server commit then acknowledgment; alternate delivery error then server commit"
+    ],
+    "expected_modeled_transition_count_per_full_path": 24,
+    "count_boundary": "Static Step-constructor count, not native SQL round trips or runtime latency."
+  },
+  "checked_assertions": [
+    "Actual legal Execution for partial append, confirmed abort, successful retry and alternate lost-reply commit",
+    "Conflicting record is the required next source instruction and is refused for full draft/time conflict",
+    "Confirmed abort preserves entire initial committed DB and audit, publishes no100, commits nothing, releases locks and preserves exact error",
+    "Retry deletes both registrations/logins and instance; retains full deployment, unrelated role/frame, prior900; whole ledger adds200/201 only",
+    "Sole commit event contains complete removal writes from actor2; original aborted transaction and other actors retained",
+    "Lost reply leaves the same complete removed DB/audit with exact error response; explicitly refutes error-implies-rollback"
+  ],
+  "declaration_guards": [
+    "write_attempt_ordinary",
+    "removal_prefix_execution",
+    "append_at_execution",
+    "partial_execution",
+    "conflicting_second_append_refused",
+    "abort_execution",
+    "confirmed_rollback_output",
+    "aborted_not_live",
+    "rollback_complete",
+    "retry_pending_execution",
+    "retry_records_compatible",
+    "retry_execution",
+    "removed_database",
+    "removed_audit",
+    "retry_output",
+    "removal_recovery_complete",
+    "lost_reply_execution",
+    "lost_reply_output",
+    "error_does_not_imply_rollback"
+  ],
+  "guard_count": 19,
+  "printed_axiom_closures": [
+    "info: RegistrationAuditedLifetimeRecoveryProof.lean:367:0: 'RegistrationAuditedLifetime.RemovalRecovery.partial_execution' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeRecoveryProof.lean:368:0: 'RegistrationAuditedLifetime.RemovalRecovery.conflicting_second_append_refused' does not depend on any axioms",
+    "info: RegistrationAuditedLifetimeRecoveryProof.lean:369:0: 'RegistrationAuditedLifetime.RemovalRecovery.rollback_complete' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeRecoveryProof.lean:370:0: 'RegistrationAuditedLifetime.RemovalRecovery.retry_execution' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeRecoveryProof.lean:371:0: 'RegistrationAuditedLifetime.RemovalRecovery.removal_recovery_complete' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeRecoveryProof.lean:372:0: 'RegistrationAuditedLifetime.RemovalRecovery.lost_reply_execution' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedLifetimeRecoveryProof.lean:373:0: 'RegistrationAuditedLifetime.RemovalRecovery.error_does_not_imply_rollback' depends on axioms: [propext, Quot.sound]"
+  ],
+  "allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "fixture_imports": [
+    "RegistrationAuditedLifetimeWitnesses"
+  ],
+  "proof_imports": [
+    "RegistrationAuditedLifetimeRecoveryWitnesses",
+    "RegistrationAuditedLifetimeWitnessExecution"
+  ],
+  "generic_audited_correctness_leaf_imported": false,
+  "reused_source_hashes": {
+    "RegistrationAuditedLifetimeModel": "6beefe9ff1eecb8b56143e3cc189e2bc6719b684c2236ea3ebb59eca9e93b4f6",
+    "RegistrationAuditedLifetimeRecoveryWitnesses": "2c1017b437d074d747e845ba41a037222d9d6871228187685a64ad009d7e1462",
+    "RegistrationAuditedLifetimeSpecification": "bd4fccf6ac3dbca608a8e20b0d314fd3bbd0ddf83295f7ff77f81c6fa2a431d9",
+    "RegistrationAuditedLifetimeWitnessExecution": "8037c6b4d73b0d4c5cb2728709e8a14cb85903159eb04ca149472d2d2f7919d3",
+    "RegistrationAuditedLifetimeWitnesses": "eba3e835b2e21c061b8572752da7e1943f8d8d2c07254b5182146b5cd1364ce0",
+    "RegistrationLifetimeModel": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954",
+    "RegistrationLifetimeSpecification": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2",
+    "RegistrationModel": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584"
+  },
+  "reused_olean_hashes": {
+    "RegistrationAuditedLifetimeModel": "005abac7f24193aafb66e9660117d0a6c69eb832462e440de8db20cc965148d4",
+    "RegistrationAuditedLifetimeRecoveryWitnesses": "be17c46691d30c0acf21dddd97f6bb5f8f6369475513e5dbd8dc37d27c128273",
+    "RegistrationAuditedLifetimeSpecification": "187f5c9f23faedd2bd18e80540a355ebd96d8bd6346493eb1d774050f52ac7ee",
+    "RegistrationAuditedLifetimeWitnessExecution": "8f2050a017d7d5e1d988cb53935669559882a15ec38f89c91b5380f689844e83",
+    "RegistrationAuditedLifetimeWitnesses": "4e4f7edc71f15054468fc7bde3aebd2356f5ebd80d217cc713f71516db1514eb",
+    "RegistrationLifetimeModel": "85f36adc8376c83818cda80e2fa28651e63a57fb731fe02a3c33d73ffacb78b0",
+    "RegistrationLifetimeSpecification": "fa5ed9dcc1b8181b4102d373b428b81baed856ee35c855448242e440a52648db",
+    "RegistrationModel": "b6e320d98ca154a8e491a8dbd6cf13921cb63b9a1466acc87eaec7d70d9b8e66"
+  },
+  "reuse_note": "Lake rebuilt named prerequisites despite seeding; post-build OLean identities matched accepted inputs. No default target suite requested.",
+  "resource_limits": {
+    "seconds_per_command": 180,
+    "default_heartbeats": 200000,
+    "scoped_heartbeats": {
+      "retry_execution": 800000,
+      "lost_reply_execution": 800000,
+      "lost_reply_output": 800000
+    }
+  },
+  "qualification_review": "Root matched six command logs and two successful artifacts to actual SHA256/byte counts, checked all input maps and seven final closures. All19public declarations are covered by compiled axiom guards. Four failed commands are authoring failures, not semantic fault detection. Non-failing Lean deprecation/unused-tactic warnings remain in the log.",
+  "native_correspondence": {
+    "store": "crates/veoveo-hub/src/registration/store.rs:405-448,703-730",
+    "core_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "core_contract": "0500_audit.sql:407-430",
+    "core_sql_sha256": "3fddf2f3cd4b8fade5cce03de8f3200a74bf2fb5787f78fd345bb4a8833dcd2d"
+  },
+  "boundaries": [
+    "Handwritten source-shaped model, not extracted Rust or formal SQL refinement",
+    "Two-row partial-append schedule is synthetic; qualified native refusal fixture removes one row",
+    "Observed error to Lifetime.fail/serverAbort is explicit Core/SQLx correspondence; absence of append does not create a failure event",
+    "PostgreSQL atomicity/locking and Core append/encoding remain interpretation assumptions",
+    "No native runtime/test/deployment changes or paid model calls here; prior full native qualification remains separate",
+    "No automatic retry after unknown commit outcome, liveness, foreign lifetime interleavings or successful served-marker claim",
+    "Store response tags and full modeled payloads, not native ClientInformation/parser/cryptography proof",
+    "No new semantic mutation control for this removal leaf; prior missing-Register control retains its own scope"
+  ],
+  "next": [
+    "Postcommit service refusal example",
+    "Remaining namespace/update/expiry and ordinary deregistration adapters",
+    "Composed full response and interleaving coverage"
+  ]
+}

@@ -176,7 +176,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
-| HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | unproved | Trace expiry, deletion races and transactional audit boundaries |
+| HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | partial | Registration audit has scoped model and native evidence; broader reference retention, expiry and deletion races remain |
 
 The invariant IDs remain stable. Routing and Tasks form one connected workstream;
 the shared extension-contract foundation connects the ten approved coverage areas.
@@ -1493,8 +1493,17 @@ now proves the deliberately faulty path is executable and its complete wrong
 ledger lacks Register-B while replacement data and success remain. The unchanged
 acceptance assertions reject that absence; exact restoration and fresh positive
 compilation pass. This is model sensitivity evidence, not a new native defect.
-Removal with partial-append failure/confirmed abort/retry and postcommit service
-paths remain pending; namespace/update/expiry adapters are not part of this foundation.
+The [removal recovery witness](registration_transactions/evidence/audited-store-recovery.json)
+now constructs a partial private audit append, an explicitly observed refusal,
+confirmed abort, and a new successful removal attempt. Independent complete
+database/ledger equalities establish rollback preservation and the retry's exact
+two Deregister records with no leaked first-attempt record. A second suffix
+constructs a lost reply followed by commit: the error preserves the committed
+removal and audit, explicitly disproving error-implies-rollback. Nineteen guards
+and seven printed closures pass. This two-row model schedule is distinct from
+the prior one-row native refusal fixture; PostgreSQL/Core/source correspondence
+remains assumed. Postcommit service paths and full native response payloads remain
+pending; namespace/update/expiry adapters are not part of this foundation.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

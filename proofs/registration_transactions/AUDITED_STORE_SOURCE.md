@@ -131,6 +131,54 @@ has its own nondefault targets, `RegistrationAuditedLifetimeWitnesses`,
 default targets or a new native full check. The control receipt retains the exact
 private patch and diagnostic, source/tool identities, commands, failures and
 restoration results; its launcher and compiled artifacts remain temporary.
-Removal with partial-append failure, confirmed rollback and retry, followed by
-served-refusal examples and the remaining operation adapters, is still required
-before this audited slice can be called complete.
+The removal recovery layer below now qualifies partial-append failure, confirmed
+rollback and retry. Served-refusal examples and the remaining operation adapters
+are still required before this audited slice can be called complete.
+
+## Checked removal recovery layer
+
+`RegistrationAuditedLifetimeRecoveryWitnesses` and its proof leaf extend the
+synthetic two-row seed with actor 1's partial removal audit, confirmed abort, and
+actor 2's new removal attempt. No existing model, specification or primitive is
+changed. The qualified native refusal fixture removes one registration; this
+two-row partial-append schedule is additional model coverage, not a claim that
+the native fixture executed it.
+
+Native `store.rs` 405–448 stages the row/login/instance deletion, then calls
+`audit_ended` before commit. Its loop at 703–730 propagates each append error on
+the same caller transaction. The fixture's later record conflicts with committed
+ID 900 in both complete draft and stored time, matching pinned Core revision
+`422dcf268d690fcbc3fee435cf9b81e7f36ffeac`'s
+`0500_audit.sql` 407–430 refusal contract. CoreAppend refusal is proved in the
+checked leaf; converting that observed native error into `Lifetime.fail`, then
+confirmed `serverAbort`, remains explicit Core/SQLx source correspondence.
+Absence of a successful append is not a failed-call event or automatic rollback.
+
+The lost-reply branch forks at retry commit-pending: an error reply can precede
+the actual server commit, retaining committed data and audit. It is not a retry
+after an unknown outcome, a precommit append error, or a served-marker operation.
+Both branches retain exact synthetic error strings, full prior/unrelated state,
+and the existing store-response-tag boundary.
+
+The [recovery receipt](evidence/audited-store-recovery.json) records the successful
+Fixture and Proof commands, four earlier authoring failures, input/output hashes
+and interpretation assumptions. Nineteen declaration guards and seven printed
+closures pass; only `propext` and `Quot.sound` occur, and the explicit append
+conflict theorem has no axioms. Each complete path constructs 24 modeled steps;
+this is not a measurement of native calls. No generic audited correctness leaf
+is imported. The independent expected database and ledger are full equalities,
+including prior record 900 and unrelated state, rather than only record counts.
+
+Run manually with the existing pinned package:
+
+```sh
+LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRecoveryWitnesses
+LAKE_NO_UPDATE=1 lake build RegistrationAuditedLifetimeRecoveryProof
+```
+
+The final Proof command passed in 21.754 seconds under a 180-second process bound.
+Three declarations scope `maxHeartbeats` to 800000; the rest retain the default
+200000. The final repair uses restricted projection rewriting without changing
+the scenario, specifications or public theorem statements. This adds no runtime
+runner, automatic proof trigger or production check. Postcommit service behavior,
+full native response payloads and other registration operation adapters remain open.
