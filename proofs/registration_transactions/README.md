@@ -283,8 +283,8 @@ listener convergence test. The subsequent
 [native correction](evidence/native-audit-fix.json) commits registration audits
 with their owning data changes. The
 [audited-store source boundary](AUDITED_STORE_SOURCE.md) describes the separately
-checked model foundation and populated replacement execution; postcommit service
-coverage remains pending.
+checked model foundation and populated replacement execution, with scoped
+removal recovery and postcommit continuation coverage.
 
 The [missing-Register semantic control](evidence/audited-store-register-control.json)
 now qualifies the replacement assertion against a deliberately faulty model.
@@ -294,5 +294,15 @@ instruction still admits the complete replacement and returns success; an
 independent diagnostic proves the whole wrong ledger and refutes acceptance.
 The unchanged positive proof fails on the missing full record, and exact source
 restoration with a fresh affected graph passes. This is a manual model control,
-not a new production failure or a CI job. Removal/partial-append rollback/retry
-and postcommit service coverage remain next.
+not a new production failure or a CI job. The subsequent removal recovery and
+postcommit continuation checkpoints are recorded in that source boundary.
+
+The [audited UPDATE foundation](AUDITED_UPDATE_SOURCE.md) now passes its separate
+nondefault Model, Specification and Proof targets. It reuses the existing mixed
+data execution, derives the required singleton Update record, constructs the
+complete data/audit commit under stated freshness premises, and proves current
+no-op cursor absence and own rollback preservation. Twenty-seven declaration
+guards and ten printed closures pass. Other registration audit programs remain
+an explicit external contribution. Populated success/refusal/retry/replacement
+executions and the omitted-Update control are next; native SQL and Core
+correspondence remain assumptions ([receipt](evidence/audited-update-foundation.json)).

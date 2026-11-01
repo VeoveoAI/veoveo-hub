@@ -1515,7 +1515,19 @@ now independently proves the complete wrong ten-call success after the refused
 marker, then the unchanged acceptance proof rejects its full-outcome equality.
 Exact restoration and fresh positive compilation pass. This is handwritten-model
 sensitivity evidence; full native response payloads and the remaining
-namespace/update/deregistration/expiry adapters remain open.
+namespace/deregistration/expiry adapters remain open.
+
+The [audited UPDATE foundation](registration_transactions/AUDITED_UPDATE_SOURCE.md)
+now passes 27 declaration guards and ten printed closures. Its single-deployment
+wrapper erases to the existing mixed register/update execution; reached cursor
+progress derives exactly one Update for the original requested server. Under
+fresh-record premises, its actual commit has the independent complete data and
+full-record audit result. Reached no-op states have no cursor, and confirmed own
+rollback preserves committed state. Other registrations' atomic audit contributions
+are explicitly constrained by Core append but their vocabulary remains unproved.
+Populated update/refusal/retry/replacement schedules and an omission control are
+next; this is handwritten-model evidence with explicit PostgreSQL/Core/source
+assumptions ([receipt](registration_transactions/evidence/audited-update-foundation.json)).
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
@@ -1618,6 +1630,9 @@ now establishes confirmed rollback after a partial append, a fresh successful
 retry, and a lost-reply commit with complete independent data/audit outputs.
 This does not qualify other cleanup paths, reference retention, external deletion
 or refresh-family pruning.
+The separate [UPDATE foundation](registration_transactions/AUDITED_UPDATE_SOURCE.md)
+adds scoped complete-record preservation and atomic changed-metadata/audit
+publication; its populated recovery schedules remain pending.
 
 Refresh review identified a specific composition obligation:
 [`session_compromised`](../crates/veoveo-hub/src/state/session.rs) observes replay

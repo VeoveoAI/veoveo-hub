@@ -1,0 +1,416 @@
+{
+  "kind": "manual-source-correspondence-model-proof",
+  "status": "audited-update-foundation-checked; populated schedules and semantic control pending",
+  "base_commit": "ba812e6625a1c0706bd1b8815f5b752254693aa9",
+  "native_source_commit": "3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33",
+  "core_commit": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+  "sdk_commit": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+  "roles": {
+    "implementation": "GPT-6.1 Sol",
+    "compilation": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source_map_at_qualification": {
+    "AUDITED_UPDATE_SOURCE.md": "b8b31fee86a42bdd1b5af372693d53a07aab77045d6da31f058282ef3cdc0020",
+    "RegistrationAuditedLifetimeModel.lean": "6beefe9ff1eecb8b56143e3cc189e2bc6719b684c2236ea3ebb59eca9e93b4f6",
+    "RegistrationAuditedLifetimeProof.lean": "f2f96090d096ca72fa2208bc7efe8065eeab02a59cc01b428cc3597acc6eb1b5",
+    "RegistrationAuditedLifetimeRecoveryProof.lean": "77a2d2a4c32442ff7a2c5603c82d36f7e375bd2c2d4efed02cf781f19a825f62",
+    "RegistrationAuditedLifetimeRecoveryWitnesses.lean": "2c1017b437d074d747e845ba41a037222d9d6871228187685a64ad009d7e1462",
+    "RegistrationAuditedLifetimeSpecification.lean": "bd4fccf6ac3dbca608a8e20b0d314fd3bbd0ddf83295f7ff77f81c6fa2a431d9",
+    "RegistrationAuditedLifetimeWitnessExecution.lean": "8037c6b4d73b0d4c5cb2728709e8a14cb85903159eb04ca149472d2d2f7919d3",
+    "RegistrationAuditedLifetimeWitnessProof.lean": "6cbbcdda15b9024ac2e65b8b4243df5dcc26b321ef5ff66f4189314b39fe7f4e",
+    "RegistrationAuditedLifetimeWitnesses.lean": "eba3e835b2e21c061b8572752da7e1943f8d8d2c07254b5182146b5cd1364ce0",
+    "RegistrationAuditedUpdateModel.lean": "1bd5696557737d8459856d5b999ae24d6709b3edddf9ebd47163d7f84fa9bce0",
+    "RegistrationAuditedUpdateProof.lean": "9b2be79153a2884128f08b0ed4af393aca5c60fd3690b81762c16d092c43b139",
+    "RegistrationAuditedUpdateSpecification.lean": "ebba5f800a4a6e5cc224e51cea1aadb3004f5833c5d016326cc43c10e36e895a",
+    "RegistrationEffects.lean": "32261a7e8a3b1ed33b8981d63bc3fd24b74c32607c36fb4b5f398430ab8b0eb5",
+    "RegistrationHistory.lean": "9e4c76780444531fb1d1096eab36b9c61fceecc07b95f2ccd66015e6c5212058",
+    "RegistrationLifetimeHistoryProof.lean": "be50ceaa617d7317192f4dc81673c517e3b0a1cae6c8eee1111ef553e918e6ca",
+    "RegistrationLifetimeModel.lean": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954",
+    "RegistrationLifetimeProof.lean": "0520eb364656bdec153adb1de030bf15c3e5a9060e994ba0aa857c9c1c400f65",
+    "RegistrationLifetimeSpecification.lean": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2",
+    "RegistrationLifetimeWitnessConsequences.lean": "bce9db1291465c8655ae58c52ac99884565e48cd4ebbc1fcd4df4578caeebe3c",
+    "RegistrationLifetimeWitnessProof.lean": "cf3cf467eb0fa2316da678a761b214b7f731a84031f1daf2861273f15c3d0765",
+    "RegistrationLifetimeWitnesses.lean": "db607aa503416f90bf6e3be541b6a51c4776f8700b5c3406d0f9cee808cb64e0",
+    "RegistrationLocks.lean": "658ad78ab9457f5221f3932d024bf867cd48045bebae3b27463c0aec00effbf6",
+    "RegistrationModel.lean": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584",
+    "RegistrationObservations.lean": "26328229bc3071f11dab496d918621c218910cc6c4f37d59241b153c34b2f59b",
+    "RegistrationPostcommitContinuation.lean": "56abecd11b368c157452383cccbfa562f4bc862e78de6da5682a83602abc6d75",
+    "RegistrationPostcommitContinuationProof.lean": "08b69079bcb443b728389b1c905a982f88a73a4c3bfe46c2fe917b323f628625",
+    "RegistrationProof.lean": "124ce2bdd64bf164e113b6d98e86400ad92bed888db1b5f04f2f646a708dea87",
+    "RegistrationSpecification.lean": "8861de05736d2be8196e52938a3b4262b990cbe5b36fe61ced05d4f7d1f6aa94",
+    "RegistrationUpdateEffects.lean": "500fc10b193595c6795690005ef663f8e91a3378e4d23dd17e49392e221bfeb1",
+    "RegistrationUpdateHistory.lean": "75e5dfad45f4d4549465f0ac61b44da9d42edbb3a48aa18c3d91cc84abb603ac",
+    "RegistrationUpdateLocks.lean": "140c786959c1395ad979f3c8b7ae7137d5546d0c0a9c8d68b8a901614e59c2d3",
+    "RegistrationUpdateModel.lean": "a453d6d58a17e8d08d6a31c31b2227785dac66edda8048c14d5217da1ffefcf9",
+    "RegistrationUpdateObservations.lean": "b3c62a290c6d037829be1cb13158ae1d5cdcf71897faeff855df595ba49c9c7c",
+    "RegistrationUpdateProof.lean": "8ed07e65b88297bd14c7edbc3978b04afb1ed77f0a72ab25de1021559fd6f26e",
+    "RegistrationUpdateSpecification.lean": "c92157d4f92472ff09d00ecd5f0ba178f3408cbc5438378d249bab66a3580e67",
+    "RegistrationUpdateWitnesses.lean": "b6c02c74bad205bd5f288af622558ae1a9e546afafd752e8ceff7523a1c0f36f",
+    "RegistrationWitnesses.lean": "0c62ccf4ef064f5592fcd781e485f21ac7f107572aa208d0e7d2130c7c44726e",
+    "lake-manifest.json": "2098ba56c9482b360251cb28a7d1a3115db6f4fd089d52937593e36bf2dbaf64",
+    "lakefile.lean": "3a2cdad009df7b971ebc1d51f130e50591d7222cd8b034a7e38df0cd3a23e6e4",
+    "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+  },
+  "native_source_review": {
+    "base_commit": "ba812e6625a1c0706bd1b8815f5b752254693aa9",
+    "native_source_commit": "3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33",
+    "files": {
+      "crates/veoveo-hub/src/registration/service.rs": {
+        "sha256": "a41f551a7f628fa4d18d1eb79ea1ba7a8ff0b1cd0a90b18cdbf13069c4447457",
+        "bytes": 33517,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/store.rs": {
+        "sha256": "a962491ea7d2df2c047950654920ea61d5444950d4fae3942625986e5899d1a5",
+        "bytes": 27518,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/store/update_deployment.sql": {
+        "sha256": "75cde302d6efb54ae93419d1f5e9d296f686390b0c828470a3cbcfc8731a3e91",
+        "bytes": 54,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/store/update_registration.sql": {
+        "sha256": "9fcdbe13bebb786285b9e61095340c72d3bf2a10cbfcb122709e06762872df74",
+        "bytes": 105,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/store/concurrency_tests.rs": {
+        "sha256": "08e882e50a3ea2aa409b8bee20e3711a3781b2d046a49176ccfaec3d598d7cc5",
+        "bytes": 75000,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/store/tests/refuse_audit.sql": {
+        "sha256": "506828dbdd9d5c7cd24f11fa82da043f255b413ab23ce1353f055c68c53cfd7e",
+        "bytes": 1145,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/registration/store/tests/audit_fault_update.sql": {
+        "sha256": "ad40762de6563279697d2c00f6b8a4a55c8ab6e692f7b104092dfa878eac788e",
+        "bytes": 490,
+        "unchanged_since_native_qualification": true
+      },
+      "crates/veoveo-hub/src/audit/vocabulary.rs": {
+        "sha256": "ca4d36968fb2e7f3a52f330220216d0ceef8f562305b97d5ad12d98b57924018",
+        "bytes": 13689,
+        "unchanged_since_native_qualification": true
+      }
+    },
+    "review": [
+      "Changed metadata service admission fixes deployment and slug; identical metadata bypasses store.update.",
+      "Store update: private deployment metadata write/lock, current keyed row update, affected0 explicit rollback and Ok; otherwise append Update for requested metadata slug on same transaction then commit.",
+      "Native refusal test is BEFORE INSERT trigger refusal, distinct from a Core identity-conflict model case; source test fixtures have not been rerun.",
+      "Audit detail is activity and server target, not client identity; full JSON and stored timestamp interpretation remain native contracts."
+    ]
+  },
+  "documentation_note": "AUDITED_UPDATE_SOURCE.md and coverage documentation updated after compilation. All Lean sources, pins and lakefile retain qualified bytes.",
+  "toolchain": "Lean 4.35.0",
+  "aeneas_support_commit": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+  "tools": {
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "commands": [
+    {
+      "artifact_bytes": 529880,
+      "artifact_exists": true,
+      "artifact_sha256": "0ff97ab2422d86af0971f009f13a835ae39ced4bc725386037f0ae8fbcd11e34",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateModel",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 30465,
+      "exit": 0,
+      "log_bytes": 10881,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-foundation-checkpoint2/evidence-run1/01-RegistrationAuditedUpdateModel.log",
+      "log_sha256": "0900b5e8e4242cbd03414b745912b42ecfbb3d1ba3154f417566d9b7580a35f0",
+      "target": "RegistrationAuditedUpdateModel",
+      "timed_out": false
+    },
+    {
+      "artifact_bytes": 27728,
+      "artifact_exists": true,
+      "artifact_sha256": "46919b3190b826e5f4d87552e0c002cbaf1de2f318b966896dd9f775787cd288",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateSpecification",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 7778,
+      "exit": 0,
+      "log_bytes": 10834,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-foundation-checkpoint2/evidence-run1/02-RegistrationAuditedUpdateSpecification.log",
+      "log_sha256": "816884a7f2aeccbb29abe8d542c3fc54c7781f9fea833ce0ee531e9e093ac07d",
+      "target": "RegistrationAuditedUpdateSpecification",
+      "timed_out": false
+    },
+    {
+      "artifact_bytes": 982064,
+      "artifact_exists": true,
+      "artifact_sha256": "2fb52c451c3d79f12de8e95dbe4782c48e1dd12b213290af0ac4a2c4cec4f717",
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateProof",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 45943,
+      "exit": 0,
+      "log_bytes": 46661,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-foundation-checkpoint4/evidence-run1/01-RegistrationAuditedUpdateProof.log",
+      "log_sha256": "4ae66951db9b9433b503ec8ecf0ea80b913522bd9492be528a2f8a77fc2d17ae",
+      "target": "RegistrationAuditedUpdateProof",
+      "timed_out": false
+    }
+  ],
+  "successful_command_time_ms": 84186,
+  "compile_time_guard_count": 27,
+  "guarded_declarations": [
+    "core_append_preserves",
+    "batch_preserves",
+    "overlay_preserves",
+    "batch_private_unchanged",
+    "data_trans",
+    "step_erasure",
+    "execution_erasure",
+    "progress_setCursor",
+    "progress_step",
+    "execution_progress",
+    "binding_core",
+    "binding_setCursor",
+    "binding_step",
+    "execution_binding",
+    "settled_data_step",
+    "settled_core",
+    "settled_setCursor",
+    "settled_step",
+    "reached_cursor_settled",
+    "reached_noop_no_cursor",
+    "reached_singleton_program",
+    "reached_update_decision",
+    "reached_data_history",
+    "reached_noop_absence",
+    "noop_discards",
+    "abort_discards",
+    "aborted_not_active"
+  ],
+  "printed_axiom_closures": [
+    "info: RegistrationAuditedUpdateProof.lean:396:0: 'RegistrationAuditedUpdate.batch_preserves' depends on axioms: [propext]",
+    "info: RegistrationAuditedUpdateProof.lean:397:0: 'RegistrationAuditedUpdate.batch_private_unchanged' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedUpdateProof.lean:398:0: 'RegistrationAuditedUpdate.execution_erasure' depends on axioms: [propext]",
+    "info: RegistrationAuditedUpdateProof.lean:399:0: 'RegistrationAuditedUpdate.reached_singleton_program' depends on axioms: [propext]",
+    "info: RegistrationAuditedUpdateProof.lean:400:0: 'RegistrationAuditedUpdate.reached_update_decision' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedUpdateProof.lean:401:0: 'RegistrationAuditedUpdate.reached_data_history' depends on axioms: [propext, Classical.choice, Quot.sound]",
+    "info: RegistrationAuditedUpdateProof.lean:402:0: 'RegistrationAuditedUpdate.reached_noop_no_cursor' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedUpdateProof.lean:403:0: 'RegistrationAuditedUpdate.reached_noop_absence' depends on axioms: [propext, Quot.sound]",
+    "info: RegistrationAuditedUpdateProof.lean:404:0: 'RegistrationAuditedUpdate.noop_discards' depends on axioms: [propext]",
+    "info: RegistrationAuditedUpdateProof.lean:405:0: 'RegistrationAuditedUpdate.abort_discards' depends on axioms: [propext]"
+  ],
+  "allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "checked_contracts": [
+    "Every wrapper execution erases to the unchanged actual mixed register/update data transition relation.",
+    "Reached cursor progress and binding derive exactly one Update intent for the original requested metadata server.",
+    "Under per-attempt fresh-record premises, a reached committing transaction has an actual serverCommit with independently specified sequentialUpdate data and full-record audit extension, preserving prior full records.",
+    "A reached no-op outcome has no cursor; actual pre-rollback missing-row absence and sequential no-op are derived from the current data state.",
+    "Own confirmed no-op and failure rollback transitions preserve committed data, audit, cursors and commit history; aborted cursors are not active reservations.",
+    "Finite CoreAppend-valid external contributions preserve prior full records and disjoint active-private IDs.",
+    "Existing data serial history is retained with its owned-frame projection."
+  ],
+  "scope_and_assumptions": [
+    "Handwritten single-admitted-deployment model; not Aeneas-extracted Rust, SQLx, PostgreSQL or Core refinement.",
+    "Actual native service admission, fixed deployment/slug, metadata projection, serialization, SQL atomicity, row locks and Core append interpretation remain explicit source contracts.",
+    "Other registration commits use actual old data steps and finite atomic external CoreAppend contributions. Their ClaimNamespace/Register/Replace vocabulary is not proved by this adapter.",
+    "Native unique-key exclusion is represented by disjoint external IDs while a private cursor is active; expired/aborted cursors do not reserve IDs. Audit deletion and conflicting foreign writers are outside this relation.",
+    "Own rollback preservation is per transition, not a frozen ledger across foreign writers. reached_noop_no_cursor directly states absence at reached no-op states, not a separate temporal trace theorem.",
+    "Fresh new-record identities are local premises; exact same-ID retry semantics remain in CoreAppend.",
+    "Service unchanged-metadata bypass, ClientInformation construction, reload/postcommit callbacks, native ordinary instance writers, namespace auditing, removal/expiry and deployed behavior remain outside this foundation."
+  ],
+  "attempts": [
+    {
+      "checkpoint": 1,
+      "summary_sha256": "052ffb953caa1839ba594c7a911bfb0ae4df2e9f0275487241475d2d0536bb2e",
+      "manifest_sha256": "b80f146a0d120fd5913e5bc734f715e7e85af65fca650a293a4a526ec9db3079",
+      "source_map_file_sha256": "3beddcb37bc6dd9f36fde96a47af0647c584e1a18b4262bb55885baf087e86f3",
+      "source_unchanged": true,
+      "tool_imports_unchanged": true,
+      "commands": [
+        {
+          "artifact_exists": false,
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateModel",
+          "diagnostic_headlines": [
+            "error: RegistrationAuditedUpdateModel.lean:84:62: unexpected token '{'; expected '}'",
+            "error: RegistrationAuditedUpdateModel.lean:95:82: unexpected token '|'; expected 'lemma'",
+            "error: build failed"
+          ],
+          "elapsed_ms": 29970,
+          "exit": 1,
+          "log_bytes": 13703,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-foundation-checkpoint1/evidence-run1/01-RegistrationAuditedUpdateModel.log",
+          "log_sha256": "8d2a0c9f059d79b179a034f81850990b6b1eefc00044aad78aeeb3c78d4c83b2",
+          "target": "RegistrationAuditedUpdateModel",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 2,
+      "summary_sha256": "cc4d3d01fe387613e72a77314cdf6374de144e3aa184930205048337b83cfae1",
+      "manifest_sha256": "e1d29f201f6e2e304fd4ab65f3e1f481a1a7e04cde94e224194d1a52e617d83c",
+      "source_map_file_sha256": "9c1fb6ce5d2f9cce8bcab5868cd2d670795ae381a79ee517a40db3da405b2b31",
+      "source_unchanged": true,
+      "tool_imports_unchanged": true,
+      "commands": [
+        {
+          "artifact_bytes": 529880,
+          "artifact_exists": true,
+          "artifact_sha256": "0ff97ab2422d86af0971f009f13a835ae39ced4bc725386037f0ae8fbcd11e34",
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateModel",
+          "diagnostic_headlines": [],
+          "elapsed_ms": 30465,
+          "exit": 0,
+          "log_bytes": 10881,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-foundation-checkpoint2/evidence-run1/01-RegistrationAuditedUpdateModel.log",
+          "log_sha256": "0900b5e8e4242cbd03414b745912b42ecfbb3d1ba3154f417566d9b7580a35f0",
+          "target": "RegistrationAuditedUpdateModel",
+          "timed_out": false
+        },
+        {
+          "artifact_bytes": 27728,
+          "artifact_exists": true,
+          "artifact_sha256": "46919b3190b826e5f4d87552e0c002cbaf1de2f318b966896dd9f775787cd288",
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateSpecification",
+          "diagnostic_headlines": [],
+          "elapsed_ms": 7778,
+          "exit": 0,
+          "log_bytes": 10834,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-foundation-checkpoint2/evidence-run1/02-RegistrationAuditedUpdateSpecification.log",
+          "log_sha256": "816884a7f2aeccbb29abe8d542c3fc54c7781f9fea833ce0ee531e9e093ac07d",
+          "target": "RegistrationAuditedUpdateSpecification",
+          "timed_out": false
+        },
+        {
+          "artifact_exists": false,
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateProof",
+          "diagnostic_headlines": [
+            "error: RegistrationAuditedUpdateProof.lean:174:60: Application type mismatch: The argument",
+            "error: RegistrationAuditedUpdateProof.lean:175:63: Application type mismatch: The argument",
+            "error: RegistrationAuditedUpdateProof.lean:177:28: Application type mismatch: The argument",
+            "error: RegistrationAuditedUpdateProof.lean:181:23: Application type mismatch: The argument",
+            "error: RegistrationAuditedUpdateProof.lean:231:60: Application type mismatch: The argument",
+            "error: RegistrationAuditedUpdateProof.lean:233:51: Invalid field `core`: The environment does not contain `Function.core`, so it is not possible to project the field `core` from an expression",
+            "error: RegistrationAuditedUpdateProof.lean:239:28: Application type mismatch: The argument",
+            "error: RegistrationAuditedUpdateProof.lean:243:23: Application type mismatch: The argument",
+            "error: RegistrationAuditedUpdateProof.lean:296:27: Application type mismatch: The argument",
+            "info: RegistrationAuditedUpdateProof.lean:391:0: 'RegistrationAuditedUpdate.reached_singleton_program' depends on axioms: [propext, sorryAx]",
+            "info: RegistrationAuditedUpdateProof.lean:392:0: 'RegistrationAuditedUpdate.reached_update_decision' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "info: RegistrationAuditedUpdateProof.lean:394:0: 'RegistrationAuditedUpdate.reached_noop_no_cursor' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "error: RegistrationAuditedUpdateProof.lean:399:0: unreviewed audited UPDATE axiom: sorryAx",
+            "error: build failed"
+          ],
+          "elapsed_ms": 19948,
+          "exit": 1,
+          "log_bytes": 51377,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-foundation-checkpoint2/evidence-run1/03-RegistrationAuditedUpdateProof.log",
+          "log_sha256": "50d48515998eb9b6ae8ffd750a2ec2afeb38af5f6fbb644a4d49e352958ae5a1",
+          "target": "RegistrationAuditedUpdateProof",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 3,
+      "summary_sha256": "1c21774a9975297c07920c6d7f778f79ceda785917ed377faf0eeee4d8b8fa69",
+      "manifest_sha256": "9e290491bf326cc1b54792f4971f2dc955364f7c6ddcc33c1fd5aa6cd746ea68",
+      "source_map_file_sha256": "e221f448ac5e69b115eef98303e119d5cf6dd75f773122dd85815dc975490afc",
+      "source_unchanged": true,
+      "tool_imports_unchanged": true,
+      "commands": [
+        {
+          "artifact_exists": false,
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateProof",
+          "diagnostic_headlines": [
+            "error: RegistrationAuditedUpdateProof.lean:178:30: don't know how to synthesize implicit argument `accepted`",
+            "error: RegistrationAuditedUpdateProof.lean:178:30: don't know how to synthesize implicit argument `methods`",
+            "error: RegistrationAuditedUpdateProof.lean:178:48: don't know how to synthesize implicit argument `accepted`",
+            "error: RegistrationAuditedUpdateProof.lean:178:48: don't know how to synthesize implicit argument `methods`",
+            "error: RegistrationAuditedUpdateProof.lean:240:30: don't know how to synthesize implicit argument `accepted`",
+            "error: RegistrationAuditedUpdateProof.lean:240:30: don't know how to synthesize implicit argument `methods`",
+            "error: RegistrationAuditedUpdateProof.lean:240:48: don't know how to synthesize implicit argument `accepted`",
+            "error: RegistrationAuditedUpdateProof.lean:240:48: don't know how to synthesize implicit argument `methods`",
+            "info: RegistrationAuditedUpdateProof.lean:391:0: 'RegistrationAuditedUpdate.reached_singleton_program' depends on axioms: [propext, sorryAx]",
+            "info: RegistrationAuditedUpdateProof.lean:392:0: 'RegistrationAuditedUpdate.reached_update_decision' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "info: RegistrationAuditedUpdateProof.lean:394:0: 'RegistrationAuditedUpdate.reached_noop_no_cursor' depends on axioms: [propext, sorryAx, Quot.sound]",
+            "error: RegistrationAuditedUpdateProof.lean:399:0: unreviewed audited UPDATE axiom: sorryAx",
+            "error: build failed"
+          ],
+          "elapsed_ms": 46091,
+          "exit": 1,
+          "log_bytes": 58585,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-foundation-checkpoint3/evidence-run1/01-RegistrationAuditedUpdateProof.log",
+          "log_sha256": "b2c38ac3fe0759175f12e0c2eae480d2531983923e9b67166f8a587795ca21b7",
+          "target": "RegistrationAuditedUpdateProof",
+          "timed_out": false
+        }
+      ]
+    },
+    {
+      "checkpoint": 4,
+      "summary_sha256": "11f9bd4640eed2e7ac209e32d154c965373fc74d6c00db31f30192df1e6242ed",
+      "manifest_sha256": "eca8a058a430b9dd4166d29b3216ebbc6867aa3758d3275012e2d80b527f12c5",
+      "source_map_file_sha256": "51aec3a63f6758d7e85ef1a4ed31462b5577ed1ca9731c816167fbf2f603758f",
+      "source_unchanged": true,
+      "tool_imports_unchanged": true,
+      "commands": [
+        {
+          "artifact_bytes": 982064,
+          "artifact_exists": true,
+          "artifact_sha256": "2fb52c451c3d79f12de8e95dbe4782c48e1dd12b213290af0ac4a2c4cec4f717",
+          "command": "LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateProof",
+          "diagnostic_headlines": [],
+          "elapsed_ms": 45943,
+          "exit": 0,
+          "log_bytes": 46661,
+          "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/audited-update-foundation-checkpoint4/evidence-run1/01-RegistrationAuditedUpdateProof.log",
+          "log_sha256": "4ae66951db9b9433b503ec8ecf0ea80b913522bd9492be528a2f8a77fc2d17ae",
+          "target": "RegistrationAuditedUpdateProof",
+          "timed_out": false
+        }
+      ]
+    }
+  ],
+  "authoring_repairs": [
+    "cp1: record-update syntax and constructor doc-comment syntax; Model failed, later targets not attempted.",
+    "cp2: Model/Spec passed; incorrect case-bound variable names and a previously simplified list equality failed Proof; guard rejected dependent sorryAx.",
+    "cp3: missing implicit methods/accepted at two helper calls failed Proof; guard rejected dependent sorryAx.",
+    "cp4: explicit existing parameters, including adjacent commit calls; Proof passed. No contracts, guards, pins or resource limits weakened."
+  ],
+  "setup_only_observations": [
+    "cp1 logger .lake.mkdir hit FileExistsError after cache setup before compiler; corrected exist_ok. Private file is named setup-failure-run2.log, but there was one setup failure for this packet.",
+    "cp3 established SSH route briefly timed out during banner exchange. Same route recovered, then the one approved compiler command ran. No cp4 setup failure."
+  ],
+  "validation_boundary": {
+    "external_timeout_seconds_per_command": 180,
+    "heartbeats": "unchanged defaults",
+    "compiled_bytes_reproducible": false,
+    "native_checks": "Previously qualified native 3d1b0b9; byte-identical nonproof tracked files; not rerun",
+    "deployed_probes": false,
+    "model_calls": false,
+    "runtime_changes": false,
+    "ci_or_persistent_runner": false
+  },
+  "next": [
+    "Populated matched update and ordinary store acknowledgment",
+    "Observed audit refusal, confirmed abort and fresh retry",
+    "Actual replacement then stale no-op with explicit source-faithful external audit contribution",
+    "Private omitted-Update control, independent executable wrong-result proof, unchanged acceptance rejection and exact fresh restoration"
+  ],
+  "private_evidence_root": "/tmp/hub-registration-audit-20261101",
+  "reviewer_checks": [
+    "Read Model/Specification/Proof and explicit native correspondence",
+    "Verified all six command log sizes/hashes and all four before/after source/import/tool maps",
+    "Verified all forty current packet input files",
+    "Read all three authoring failures and repair diffs",
+    "Verified actual copied Model, Specification and Proof artifact bytes",
+    "Read ten printed closure reports and twenty-seven guarded declaration names",
+    "Confirmed no tracked nonproof diff from native 3d1b0b9"
+  ]
+}

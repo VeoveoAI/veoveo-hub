@@ -81,3 +81,8 @@ lean_lib RegistrationAuditedLifetimeRecoveryProof
 
 lean_lib RegistrationPostcommitContinuation
 lean_lib RegistrationPostcommitContinuationProof
+
+-- Additive manual UPDATE audit adapter; existing/default targets are unchanged.
+lean_lib RegistrationAuditedUpdateModel
+lean_lib RegistrationAuditedUpdateSpecification
+lean_lib RegistrationAuditedUpdateProof
