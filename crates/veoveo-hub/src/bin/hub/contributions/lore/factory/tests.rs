@@ -1604,6 +1604,48 @@ async fn a_link_added_or_removed_leaves_the_other_runners_serving() {
             }
         };
         let (a, b) = (sandbox("team-a").await, sandbox("team-b").await);
+        // Both runners serve: their sandboxes are ready and their servers registered.
+        let serving = |link: &'static str| {
+            let fixture = &fixture;
+            async move {
+                fixture
+                    .factory
+                    .runner_status(
+                        REPOSITORY,
+                        &name("links/many"),
+                        &LinkName::parse(link).unwrap(),
+                        Duration::ZERO,
+                    )
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .serving_revision
+            }
+        };
+        for (link, sandbox) in [("team-a", &a), ("team-b", &b)] {
+            fixture.gateway.set_phase(
+                WORKSPACE,
+                sandbox,
+                openshell_sdk::raw::proto::SandboxPhase::Ready,
+            );
+            let deployment = fixture
+                .factory
+                .runner_status(
+                    REPOSITORY,
+                    &name("links/many"),
+                    &LinkName::parse(link).unwrap(),
+                    Duration::ZERO,
+                )
+                .await
+                .unwrap()
+                .unwrap()
+                .deployment;
+            sqlx::query_file!("tests/factory/served.sql", deployment.as_uuid())
+                .execute(fixture.db.a.pool())
+                .await
+                .unwrap();
+            assert_eq!(serving(link).await, Some(revision('1')), "{link}");
+        }
         // The runner's checkout includes the branch's own top-level entries; its links
         // are left out by the view's first rule.
         let spec = fixture
@@ -1648,6 +1690,11 @@ async fn a_link_added_or_removed_leaves_the_other_runners_serving() {
                 "{unchanged}: {calls:?}"
             );
         }
+        // The runners left serving serve the push's revision, the same program and linked
+        // revision; the new runner serves nothing until its server registers.
+        assert_eq!(serving("team-a").await, Some(revision('2')));
+        assert_eq!(serving("team-b").await, Some(revision('2')));
+        assert_eq!(serving("team-c").await, None);
         assert_eq!(
             fixture
                 .runner_sandbox("links/many", "team-a")
@@ -1719,6 +1766,9 @@ async fn a_link_added_or_removed_leaves_the_other_runners_serving() {
                 "{changed}: {calls:?}"
             );
         }
+        // A runner given the new program serves nothing until its server registers again.
+        assert_eq!(serving("team-a").await, None);
+        assert_eq!(serving("team-b").await, None);
     })
     .await;
 }

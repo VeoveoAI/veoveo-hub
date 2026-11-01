@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The Hub restarts or creates the instance's sandbox, which ends what its server served.\nUPDATE hub.instance\nSET served_at = NULL\nWHERE deployment = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "038181393a13b64f7f3eac606b0c60b2c5f9fe09f8fb10f18dec39a8f51136c4"
+}

@@ -231,9 +231,8 @@ pub(super) async fn own_tree(
     Ok(())
 }
 
-/// Record `pusher` as the instance's latest pusher, before the Hub restarts or creates
-/// its sandbox; until its server registers or resumes again, the instance serves no
-/// revision. Returns the branch the instance serves.
+/// Record `pusher` as the instance's latest pusher. Returns the branch the instance
+/// serves.
 pub(super) async fn push(
     store: &PlatformStore,
     deployment: DeploymentId,
@@ -249,6 +248,17 @@ pub(super) async fn push(
     .context("failed to record the instance's pusher")?
     .with_context(|| format!("no instance has deployment {deployment}"))?;
     BranchName::parse(branch).context("the stored instance branch is malformed")
+}
+
+/// Record that the Hub restarts or creates the instance's sandbox: until its server
+/// registers or resumes again, the instance serves no revision. A runner whose sandbox
+/// keeps serving keeps what it served.
+pub(super) async fn unserved(store: &PlatformStore, deployment: DeploymentId) -> Result<()> {
+    sqlx::query_file!("src/factory/record/unserved.sql", deployment.as_uuid())
+        .execute(store.pool())
+        .await
+        .context("failed to record that the instance's server stopped serving")?;
+    Ok(())
 }
 
 /// Record the digest of the secret of the instance's client.

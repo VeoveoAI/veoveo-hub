@@ -481,8 +481,9 @@ Deleting an instance deletes its sandbox and providers, then removes the instanc
 its registrations with their logins in one transaction, then drops its database when
 no other instance names it.
 
-Every push that built records its pusher as the instance's latest pusher and clears
-when its server last registered or resumed. A registration with the instance's token,
+Every push that built records its pusher as the instance's latest pusher, and clears
+when its server last registered or resumed before it restarts or creates the sandbox; a
+runner whose sandbox keeps serving keeps it. A registration with the instance's token,
 and an RFC 7592 read of an instance's registration, which is how the SDK resumes,
 record that time. A step that succeeds records the pushed revision and clears the last
 failure; a failed step records `failed{stage, message}` with stage `database`,
@@ -495,7 +496,7 @@ removes a sandbox that never becomes ready, so an instance whose sandbox OpenShe
 longer has, while no push or removal is being applied to it, reports
 `failed{stage: create}` saying so; the branch's next push creates it again. The applied
 revision serves while the sandbox is ready and its server registered or resumed since
-the push. An instance is healthy while its sandbox is ready and its last step
+the Hub last restarted or created the sandbox. An instance is healthy while its sandbox is ready and its last step
 succeeded, degraded while the sandbox is on its way to ready or still serves after a
 failed step, and offline otherwise. With `caps.instancesPerUser`, creating a sandbox
 for an instance whose latest pusher is the latest pusher of more instances records a
@@ -624,7 +625,9 @@ without the links, by path, kind, mode, size and content address. A parent push 
 tree and tracked revision are the ones a runner applied changes nothing for it: its
 sandbox is neither recreated nor restarted, even when the rebuilt image names another
 digest, as long as its command, policy, shape and providers are the same; the push is
-recorded as applied. So adding or removing a link touches only that link's runner. A
+recorded as applied, and the runner, serving the same program and linked revision, keeps
+serving it: its status names the push's revision as serving. So adding or removing a
+link touches only that link's runner. A
 push that changes the own tree applies the new program to every runner, restarting each
 one, or recreating it when its command, image, policy, shape or providers changed. A
 recreation deletes the runner's sandbox before it creates the new one under the same
@@ -1598,7 +1601,9 @@ linked repository's network rules, and its status names the tracked branch; a pu
 tracked branch applies to its runner alone, as its pusher. A link whose linked
 repository nobody watches gets no runner and its failure says so, until a watch of the
 linked repository runs it; a push that drops a link removes its runner, and one without
-links serves the branch from an instance again. A revision holding a link below its top
+links serves the branch from an instance again. A push that adds or removes a link, the
+parent's own tree unchanged, creates or deletes that link's runner alone, and the other
+runners keep their sandboxes and their serving revision, now the push's. A revision holding a link below its top
 level, of a branch with or without top-level links or `openshell/`, or a top-level link
 whose name is no DNS label, is refused at prepare with a recorded failure that names the
 link, while the branch's instance keeps serving and no runner starts. A linked

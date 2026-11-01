@@ -544,6 +544,9 @@ impl Factory {
             }
             None => false,
         };
+        // A runner that keeps serving keeps what its server served; a restart or creation
+        // ends it until the server registers or resumes again, so a server that registered
+        // since serves the revision the Hub applied.
         match current {
             Some(sandbox)
                 if unchanged && sandbox::runs_beside_image(&name, &sandbox, &source, &branch) =>
@@ -551,10 +554,12 @@ impl Factory {
                 tracing::info!(%deployment, "the runner's own tree and tracked revision are unchanged: its sandbox keeps serving");
             }
             Some(sandbox) if sandbox::runs(&name, &sandbox, &source, &branch) => {
+                record::unserved(&self.store, deployment).await?;
                 self.recorded(deployment, Stage::Restart, self.restart(&name, &sandbox))
                     .await?;
             }
             Some(_) => {
+                record::unserved(&self.store, deployment).await?;
                 self.recorded(deployment, Stage::Create, async {
                     self.delete_sandbox(&name).await?;
                     self.create(deployment, &branch, &source).await
@@ -562,6 +567,7 @@ impl Factory {
                 .await?;
             }
             None => {
+                record::unserved(&self.store, deployment).await?;
                 self.admit(deployment, &push.pusher).await?;
                 self.recorded(
                     deployment,
