@@ -124,30 +124,33 @@ exec ./openshell/run"#
 }
 
 /// The fixed start command of a runner's sandbox. It checks the parent repository's branch
-/// out at `/sandbox/src` under a view that leaves out every link at the revision's top
-/// level, so Lore reaches none of the linked repositories through the parent; every start
-/// writes the view again, as the links stand. The first start clones the linked repository
+/// out at `/sandbox/src` under a view that includes only the revision's own top-level
+/// entries and leaves out everything else at the top level, its links among them, so Lore
+/// reaches none of the linked repositories through the parent and a link added later is
+/// left out without changing the command; every start writes the view again. The first start clones the linked repository
 /// at the branch the runner's link tracks into `/sandbox/link`; every start then resets that
 /// checkout to the tracked branch's latest revision and the parent's to its branch's, and
 /// replaces itself with the parent's program, which reads the linked repository from
-/// `/sandbox/link`. `$1` is the parent repository, `$2` the branch, `$3` the linked
-/// repository, `$4` the tracked branch's ID, and the rest the links to leave out.
+/// `/sandbox/link` and finds the tracked branch's ID in `VEOVEO_TRACKED_BRANCH`, where a
+/// person pushes a change. `$1` is the parent repository, `$2` the branch, `$3` the linked
+/// repository, `$4` the tracked branch's ID, and the rest the own top-level entries to
+/// include.
 pub(super) fn runner_start_command(
     repository: &url::Url,
     branch: &BranchName,
     linked: &url::Url,
     tracked: &str,
-    links: &[veoveo_hub_sdk::hub::LinkName],
+    entries: &[String],
 ) -> Vec<String> {
     let script = format!(
         r#"set -e
 parent=$1 branch=$2 linked=$3 tracked=$4
 shift 4
-exclude() {{ for link in "$@"; do printf '/%s\n' "$link"; done; }}
+view() {{ printf '/*\n'; for entry in "$@"; do printf '!/%s\n' "$entry"; done; }}
 if [ -d /sandbox/src/.lore ]; then
-  exclude "$@" > /sandbox/src/.lore/view
+  view "$@" > /sandbox/src/.lore/view
 else
-  exclude "$@" > /sandbox/.view
+  view "$@" > /sandbox/.view
   {LORE} clone "$parent" /sandbox/src --branch "$branch" --view /sandbox/.view
 fi
 [ -d /sandbox/link/.lore ] || {LORE} clone "$linked" /sandbox/link --branch "$tracked"
@@ -155,6 +158,7 @@ cd /sandbox/link
 {LORE} sync --reset "$tracked@LATEST"
 cd /sandbox/src
 {LORE} sync --reset "$branch@LATEST"
+export VEOVEO_TRACKED_BRANCH="$tracked"
 exec ./openshell/run"#
     );
     let mut command = vec![
@@ -167,7 +171,7 @@ exec ./openshell/run"#
         linked.to_string(),
         tracked.to_owned(),
     ];
-    command.extend(links.iter().map(ToString::to_string));
+    command.extend(entries.iter().cloned());
     command
 }
 
@@ -368,12 +372,29 @@ pub(super) fn create_request(
 
 /// Whether the sandbox `name` runs this source: its image, under its policy, with its
 /// shape, its providers and its start command, as OpenShell recorded its create request.
-/// A runner's command names the links its checkout of the parent leaves out, so a parent
-/// push that changes them recreates the runner. OpenShell records a
+/// A runner's command names the own top-level entries its checkout includes, so a parent
+/// push that changes them recreates the runner; one that adds or removes a link does not. OpenShell records a
 /// created sandbox's policy in its canonical form, which [`policy`] returns, so an
 /// unchanged policy compares equal, and its size, driver configuration and providers as
 /// they were sent.
 pub(super) fn runs(name: &str, sandbox: &p::Sandbox, source: &Source, branch: &BranchName) -> bool {
+    runs_beside_image(name, sandbox, source, branch)
+        && sandbox
+            .spec
+            .as_ref()
+            .and_then(|spec| spec.template.as_ref())
+            .is_some_and(|template| template.image == source.image.as_str())
+}
+
+/// [`runs`] but for the image: a runner whose own tree and tracked revision are the ones
+/// it applied runs the image built from that same content, whatever digest a rebuild of
+/// it names.
+pub(super) fn runs_beside_image(
+    name: &str,
+    sandbox: &p::Sandbox,
+    source: &Source,
+    branch: &BranchName,
+) -> bool {
     let mut attached = attached(name, source);
     attached.sort();
     sandbox.spec.as_ref().is_some_and(|spec| {
@@ -382,8 +403,7 @@ pub(super) fn runs(name: &str, sandbox: &p::Sandbox, source: &Source, branch: &B
         providers == attached
             && spec.command == source.command(branch)
             && spec.template.as_ref().is_some_and(|template| {
-                template.image == source.image.as_str()
-                    && template.resources == source.shape.resources
+                template.resources == source.shape.resources
                     && template.driver_config == source.shape.driver_config
             })
             && spec.policy.as_ref() == Some(&source.policy)
@@ -489,18 +509,17 @@ mod tests {
     }
 
     #[test]
-    fn a_runners_start_command_leaves_out_the_parents_links_and_serves_the_tracked_branch() {
+    fn a_runners_start_command_includes_the_parents_own_entries_and_serves_the_tracked_branch() {
         let parent = url::Url::parse("grpcs://lore.internal:41337/parent").unwrap();
         let linked = url::Url::parse("grpcs://lore.internal:41337/linked").unwrap();
         let branch = BranchName::parse("main").unwrap();
-        let links =
-            ["team-a", "team-b"].map(|name| veoveo_hub_sdk::hub::LinkName::parse(name).unwrap());
+        let entries = ["Cargo.toml", "openshell"].map(str::to_owned);
         let command = runner_start_command(
             &parent,
             &branch,
             &linked,
             "e726318bbc3fd75ac8733a7e030cc35b",
-            &links,
+            &entries,
         );
         assert_eq!(command[..2], ["/bin/sh", "-c"]);
         assert_eq!(
@@ -508,11 +527,11 @@ mod tests {
             "set -e\n\
              parent=$1 branch=$2 linked=$3 tracked=$4\n\
              shift 4\n\
-             exclude() { for link in \"$@\"; do printf '/%s\\n' \"$link\"; done; }\n\
+             view() { printf '/*\\n'; for entry in \"$@\"; do printf '!/%s\\n' \"$entry\"; done; }\n\
              if [ -d /sandbox/src/.lore ]; then\n\
-             \x20 exclude \"$@\" > /sandbox/src/.lore/view\n\
+             \x20 view \"$@\" > /sandbox/src/.lore/view\n\
              else\n\
-             \x20 exclude \"$@\" > /sandbox/.view\n\
+             \x20 view \"$@\" > /sandbox/.view\n\
              \x20 /opt/veoveo/lore/usr/local/bin/lore clone \"$parent\" /sandbox/src --branch \"$branch\" --view /sandbox/.view\n\
              fi\n\
              [ -d /sandbox/link/.lore ] || /opt/veoveo/lore/usr/local/bin/lore clone \"$linked\" /sandbox/link --branch \"$tracked\"\n\
@@ -520,6 +539,7 @@ mod tests {
              /opt/veoveo/lore/usr/local/bin/lore sync --reset \"$tracked@LATEST\"\n\
              cd /sandbox/src\n\
              /opt/veoveo/lore/usr/local/bin/lore sync --reset \"$branch@LATEST\"\n\
+             export VEOVEO_TRACKED_BRANCH=\"$tracked\"\n\
              exec ./openshell/run"
         );
         assert_eq!(
@@ -530,8 +550,8 @@ mod tests {
                 "main",
                 "grpcs://lore.internal:41337/linked",
                 "e726318bbc3fd75ac8733a7e030cc35b",
-                "team-a",
-                "team-b"
+                "Cargo.toml",
+                "openshell"
             ]
         );
     }

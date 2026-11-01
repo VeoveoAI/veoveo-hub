@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The Hub applied the branch's own tree, without its links, to the runner's sandbox.\nUPDATE hub.instance\nSET own_tree = $2\nWHERE deployment = $1 AND link IS NOT NULL\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0bf68963cd3418b36d7071c774118d9d95be9138306be764e7d74e8b750cdd63"
+}

@@ -173,6 +173,58 @@ pub(super) fn links(nodes: &[TreeNode]) -> Result<Vec<super::LinkNode>> {
     Ok(links)
 }
 
+/// The links of a revision whose own tree `nodes` lists, as [`links`] reads them, and its
+/// own tree without them: the SHA-256 of every other entry Lore lists, by path, kind,
+/// mode, size and content address, and the names at its top level. A runner's view
+/// includes each top-level name as a literal path, so a name that holds a character
+/// Lore's view reads as part of a pattern is refused.
+pub(super) fn parent_tree(nodes: &[TreeNode]) -> Result<super::ParentTree> {
+    use sha2::{Digest, Sha256};
+    let links = links(nodes)?;
+    let mut own: Vec<&TreeNode> = nodes
+        .iter()
+        .filter(|node| node.node_type != NodeType::Link as i32)
+        .collect();
+    own.sort_by(|a, b| a.path.cmp(&b.path));
+    own.dedup_by(|a, b| a.path == b.path);
+    let mut digest = Sha256::new();
+    for node in &own {
+        let (context, hash) = node
+            .address
+            .as_ref()
+            .map(|address| (hex::encode(&address.context), hex::encode(&address.hash)))
+            .unwrap_or_default();
+        digest.update(
+            format!(
+                "{}\0{}\0{}\0{}\0{context}\0{hash}\n",
+                node.path, node.node_type, node.mode, node.size
+            )
+            .as_bytes(),
+        );
+    }
+    let mut entries = Vec::new();
+    for node in own.iter().filter(|node| !node.path.contains('/')) {
+        ensure!(
+            !node.path.is_empty()
+                && !node
+                    .path
+                    .chars()
+                    .any(|c| c.is_control() || "*?[]{}!\\#".contains(c)),
+            "the revision's top-level entry {:?} holds a character a runner's view of the \
+             branch reads as a pattern: rename it",
+            node.path
+        );
+        entries.push(node.path.clone());
+    }
+    Ok(super::ParentTree {
+        links,
+        own: veoveo_hub::factory::OwnTree {
+            digest: hex::encode(digest.finalize()),
+            entries,
+        },
+    })
+}
+
 /// The files to read of a linked repository's revision: `openshell/policy.yaml` and
 /// `openshell/providers.yaml`, when present.
 pub(super) fn linked_plan(nodes: &[TreeNode]) -> Vec<File> {
@@ -530,6 +582,51 @@ mod tests {
                 .to_string()
                 .contains("the revision's link Team_A is not named by a lowercase DNS label"),
             "{named:#}"
+        );
+    }
+
+    #[test]
+    fn a_branchs_own_tree_leaves_its_links_out_and_follows_its_content() {
+        let link = |path: &str| TreeNode {
+            path: path.into(),
+            node_type: NodeType::Link as i32,
+            address: Some(lore_proto::lore::model::v1::Address {
+                hash: vec![0xab; 32].into(),
+                context: vec![0x0c; 16].into(),
+            }),
+            tracking: true,
+            ..Default::default()
+        };
+        let file = |path: &str, hash: u8| TreeNode {
+            address: Some(lore_proto::lore::model::v1::Address {
+                hash: vec![hash; 32].into(),
+                context: vec![0x01; 16].into(),
+            }),
+            ..node(path, NodeType::File, FileMode::None, 10)
+        };
+        let own = |hash: u8| {
+            vec![
+                node("openshell", NodeType::Directory, FileMode::None, 10),
+                file("openshell/run", hash),
+                file("Cargo.toml", 1),
+            ]
+        };
+        let with = |links: &[&str], hash: u8| {
+            let mut nodes: Vec<TreeNode> = links.iter().map(|name| link(name)).collect();
+            nodes.extend(own(hash));
+            parent_tree(&nodes).unwrap()
+        };
+        let one = with(&["team-a"], 1);
+        let two = with(&["team-a", "team-b"], 1);
+        assert_eq!(one.own, two.own);
+        assert_eq!(two.links.len(), 2);
+        assert_eq!(one.own.entries, ["Cargo.toml", "openshell"]);
+        assert_eq!(one.own.digest.len(), 64);
+        assert_ne!(with(&["team-a"], 2).own.digest, one.own.digest);
+        let pattern = parent_tree(&[file("a*b", 1)]).unwrap_err();
+        assert!(
+            pattern.to_string().contains("reads as a pattern"),
+            "{pattern:#}"
         );
     }
 

@@ -362,7 +362,7 @@ impl Lore for FakeLore {
         person: &'a PrincipalId,
         _: &'a Watched,
         revision: &'a Revision,
-    ) -> BoxFuture<'a, Result<Vec<LinkNode>>> {
+    ) -> BoxFuture<'a, Result<super::ParentTree>> {
         Box::pin(async move {
             let mut state = self.0.lock().unwrap();
             state.link_reads.push((person.clone(), revision.clone()));
@@ -378,7 +378,7 @@ impl Lore for FakeLore {
                 .map(link_node)
                 .collect::<Vec<_>>();
             nodes.extend(state.trees.get(revision).into_iter().flatten().cloned());
-            super::read::links(&nodes)
+            super::read::parent_tree(&nodes)
         })
     }
 
@@ -1196,6 +1196,7 @@ fn linked_branch(
                 link("team-b", LINKED_B, 'b', false),
             ],
         );
+        state.trees.insert(revision('1'), own_tree('1'));
         let a = state
             .linked
             .entry(RepositoryId::parse(LINKED_A).unwrap())
@@ -1330,8 +1331,8 @@ async fn a_linked_branch_runs_one_runner_per_link_serving_the_branch_each_link_t
                 "links/main",
                 &format!("grpcs://lore.internal:41337/{LINKED_A}"),
                 branch_id('1').as_str(),
-                "team-a",
-                "team-b",
+                "crates",
+                "openshell",
             ]
         );
         assert!(
@@ -1518,6 +1519,206 @@ async fn a_link_runs_once_its_linked_repository_is_watched_and_goes_with_the_lin
         })
         .await;
         assert!(fixture.runners("links/second").await.is_empty());
+    })
+    .await;
+}
+
+/// A branch's own tree beside its links: `crates/` and `openshell/` with one file each,
+/// whose content `content` names.
+fn own_tree(content: char) -> Vec<TreeNode> {
+    let file = |path: &str| TreeNode {
+        path: path.into(),
+        node_type: NodeType::File as i32,
+        address: Some(Address {
+            context: hex::decode(REPOSITORY).unwrap().into(),
+            hash: hex::decode(content.to_string().repeat(64)).unwrap().into(),
+        }),
+        size: 10,
+        ..Default::default()
+    };
+    vec![
+        tree_node("crates", NodeType::Directory),
+        file("crates/server.rs"),
+        tree_node("openshell", NodeType::Directory),
+        file("openshell/run"),
+    ]
+}
+
+/// The sandbox calls that name the sandbox `name`, by kind.
+fn calls_naming(calls: &[gateway::Call], name: &str) -> Vec<&'static str> {
+    calls
+        .iter()
+        .filter_map(|call| match call {
+            gateway::Call::CreateSandbox(request) if request.name == name => Some("create"),
+            gateway::Call::DeleteSandbox(request) if request.name == name => Some("delete"),
+            gateway::Call::StopSandbox(request) if request.name == name => Some("stop"),
+            gateway::Call::StartSandbox(request) if request.name == name => Some("start"),
+            _ => None,
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn a_link_added_or_removed_leaves_the_other_runners_serving() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let (alice, bob, _, dave) = linked_branch(&fixture, "links/many");
+        for (linked, watcher) in [(LINKED_A, &bob), (LINKED_B, &dave)] {
+            fixture
+                .watches
+                .store()
+                .watch(&linked_watched(linked), watcher)
+                .await
+                .unwrap();
+        }
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        until("both runners", || async {
+            let runners = fixture.runners("links/many").await;
+            runners.len() == 2
+                && runners
+                    .iter()
+                    .all(|runner| runner.linked_revision.is_some())
+        })
+        .await;
+        let sandbox = |link: &'static str| {
+            let fixture = &fixture;
+            async move {
+                sandbox_name(
+                    fixture
+                        .factory
+                        .runner_status(
+                            REPOSITORY,
+                            &name("links/many"),
+                            &LinkName::parse(link).unwrap(),
+                            Duration::ZERO,
+                        )
+                        .await
+                        .unwrap()
+                        .unwrap()
+                        .deployment,
+                )
+            }
+        };
+        let (a, b) = (sandbox("team-a").await, sandbox("team-b").await);
+        // The runner's checkout includes the branch's own top-level entries; its links
+        // are left out by the view's first rule.
+        let spec = fixture
+            .runner_sandbox("links/many", "team-a")
+            .await
+            .spec
+            .unwrap();
+        assert_eq!(spec.command[8..], ["crates", "openshell"]);
+        fixture.gateway.take_calls();
+
+        // A push that adds a link, its own tree unchanged: the new link's runner is created
+        // and the others' sandboxes are neither recreated nor restarted.
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('2');
+            state.committers.insert(revision('2'), alice.clone());
+            state.runs.insert(revision('2'), None);
+            state.links.insert(
+                revision('2'),
+                vec![
+                    link("team-a", LINKED_A, 'a', true),
+                    link("team-b", LINKED_B, 'b', false),
+                    link("team-c", LINKED_A, 'a', true),
+                ],
+            );
+            state.trees.insert(revision('2'), own_tree('1'));
+        });
+        fixture.lore.send(Ok(pushed('1', '2', &alice)));
+        until("team-c's runner", || async {
+            let runners = fixture.runners("links/many").await;
+            runners.len() == 3
+                && runners
+                    .iter()
+                    .all(|runner| runner.revision == Some(revision('2')))
+        })
+        .await;
+        let calls = fixture.gateway.take_calls();
+        let c = sandbox("team-c").await;
+        assert_eq!(calls_naming(&calls, &c), ["create"]);
+        for unchanged in [&a, &b] {
+            assert!(
+                calls_naming(&calls, unchanged).is_empty(),
+                "{unchanged}: {calls:?}"
+            );
+        }
+        assert_eq!(
+            fixture
+                .runner_sandbox("links/many", "team-a")
+                .await
+                .spec
+                .unwrap()
+                .command,
+            spec.command
+        );
+
+        // Removing the link deletes its runner alone.
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('3');
+            state.committers.insert(revision('3'), alice.clone());
+            state.runs.insert(revision('3'), None);
+            state.links.insert(
+                revision('3'),
+                vec![
+                    link("team-a", LINKED_A, 'a', true),
+                    link("team-b", LINKED_B, 'b', false),
+                ],
+            );
+            state.trees.insert(revision('3'), own_tree('1'));
+        });
+        fixture.lore.send(Ok(pushed('1', '3', &alice)));
+        until("team-c's runner removed", || async {
+            let runners = fixture.runners("links/many").await;
+            runners.len() == 2
+                && runners
+                    .iter()
+                    .all(|runner| runner.revision == Some(revision('3')))
+        })
+        .await;
+        let calls = fixture.gateway.take_calls();
+        assert_eq!(calls_naming(&calls, &c), ["delete"]);
+        for unchanged in [&a, &b] {
+            assert!(
+                calls_naming(&calls, unchanged).is_empty(),
+                "{unchanged}: {calls:?}"
+            );
+        }
+
+        // A change of the branch's own content applies the new program to every runner.
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('4');
+            state.committers.insert(revision('4'), alice.clone());
+            state.runs.insert(revision('4'), None);
+            state.links.insert(
+                revision('4'),
+                vec![
+                    link("team-a", LINKED_A, 'a', true),
+                    link("team-b", LINKED_B, 'b', false),
+                ],
+            );
+            state.trees.insert(revision('4'), own_tree('9'));
+        });
+        fixture.lore.send(Ok(pushed('1', '4', &alice)));
+        until("the new program", || async {
+            let runners = fixture.runners("links/many").await;
+            runners
+                .iter()
+                .all(|runner| runner.revision == Some(revision('4')))
+        })
+        .await;
+        let calls = fixture.gateway.take_calls();
+        for changed in [&a, &b] {
+            assert!(
+                !calls_naming(&calls, changed).is_empty(),
+                "{changed}: {calls:?}"
+            );
+        }
     })
     .await;
 }

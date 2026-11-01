@@ -607,16 +607,32 @@ as a branch's, none of which may name a program under `/sandbox/link`, and the p
 that the linked repository's `openshell/providers.yaml` requests and `factory.providers`
 grants to the linked repository; the parent's own provider requests apply to no runner.
 The start command checks the parent's branch out at `/sandbox/src` under Lore's own
-view, `--view` at the first clone and `.lore/view` on every start, which leaves out
-every link at the revision's top level, so Lore reaches no linked repository through the
-parent, where a refused link would end the clone. It clones the linked repository into
+view, `--view` at the first clone and `.lore/view` on every start: `/*` leaves out every
+entry at the revision's top level and `!/{entry}` brings back each of the parent's own
+top-level entries, its files and directories, so every link, one added later included,
+stays out without the view naming it, and Lore reaches no linked repository through the
+parent, where a refused link would end the clone. An own top-level entry whose name
+holds a character the view reads as a pattern is refused at prepare. It clones the linked repository into
 `/sandbox/link` at the tracked branch's ID and runs `lore sync --reset <tracked>@LATEST`
 there, then resets the parent's checkout as an instance's start does, before `exec
 ./openshell/run`. A runner therefore serves the head of that branch, not the revision
 the parent pins: a linked repository releases by pushing to its tracked branch, and the
-parent changes only to add, retarget or remove a link. The command names the links it
-leaves out, so a parent push that changes them recreates the runners' sandboxes. The
-runner's program is the parent's, built and run under `/sandbox/src`; the linked
+parent changes only to add, retarget or remove a link. The command names the parent's
+own top-level entries, never its links. Each runner records, beside the revisions it
+applied, the SHA-256 of the parent revision's own tree, every entry Lore lists of it
+without the links, by path, kind, mode, size and content address. A parent push whose own
+tree and tracked revision are the ones a runner applied changes nothing for it: its
+sandbox is neither recreated nor restarted, even when the rebuilt image names another
+digest, as long as its command, policy, shape and providers are the same; the push is
+recorded as applied. So adding or removing a link touches only that link's runner. A
+push that changes the own tree applies the new program to every runner, restarting each
+one, or recreating it when its command, image, policy, shape or providers changed. A
+recreation deletes the runner's sandbox before it creates the new one under the same
+name, since a sandbox's name is fixed by its deployment and unique in its workspace, so
+the runner serves nothing in between. It gives
+the parent's program the tracked branch's Lore ID as `VEOVEO_TRACKED_BRANCH`, so the
+program can name where a change to the linked repository is pushed; the program never
+learns its link's name. The runner's program is the parent's, built and run under `/sandbox/src`; the linked
 repository is content, its workflows and files, which that program reads and never code
 of its own. No rule of a runner's policy names a program under `/sandbox/link`: the
 installation's base policy admits programs under `/sandbox/src` alone to the Hub's

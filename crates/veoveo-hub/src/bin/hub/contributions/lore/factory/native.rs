@@ -28,7 +28,7 @@ use veoveo_hub::{
 };
 use veoveo_types::{PrincipalId, TenantId};
 
-use super::{BoxFuture, Branch, Events, LinkNode, Lore as LoreProtocol, Refused, Watched};
+use super::{BoxFuture, Branch, Events, Lore as LoreProtocol, Refused, Watched};
 use crate::contributions::lore::{
     BranchId, Deployment, DeploymentId, Lore, RepositoryId, person::issue,
 };
@@ -298,7 +298,7 @@ impl LoreProtocol for NativeLore {
         person: &'a PrincipalId,
         watched: &'a Watched,
         revision: &'a Revision,
-    ) -> BoxFuture<'a, Result<Vec<LinkNode>>> {
+    ) -> BoxFuture<'a, Result<super::ParentTree>> {
         Box::pin(async move {
             let (deployment, token) = self.token(person, watched).await?;
             let client = ThinClientServiceClient::new(connect(&deployment).await?);
@@ -325,7 +325,7 @@ impl LoreProtocol for NativeLore {
                     .await?,
                 );
             }
-            super::read::links(&nodes)
+            super::read::parent_tree(&nodes)
         })
     }
 

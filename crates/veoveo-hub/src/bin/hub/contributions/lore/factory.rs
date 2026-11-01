@@ -59,6 +59,13 @@ pub(crate) struct LinkNode {
     pub follows: bool,
 }
 
+/// A branch revision's links and its own tree without them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ParentTree {
+    pub links: Vec<LinkNode>,
+    pub own: veoveo_hub::factory::OwnTree,
+}
+
 /// Lore refused the person, or the Hub issues the person no Lore token for the
 /// repository: they hold no grant on it.
 #[derive(Debug, thiserror::Error)]
@@ -107,15 +114,16 @@ pub(crate) trait Lore: Send + Sync + 'static {
         revision: &'a Revision,
         directory: &'a Path,
     ) -> BoxFuture<'a, Result<Option<Prepared>>>;
-    /// The links at the top level of the revision, read from its own tree without entering
-    /// them; a revision that holds a link the factory's checkout cannot leave out, below its
-    /// top level or not named by a lowercase DNS label, is refused.
+    /// The links at the top level of the revision and its own tree without them, read
+    /// without entering the links; a revision that holds a link the factory's checkout
+    /// cannot leave out, below its top level or not named by a lowercase DNS label, is
+    /// refused, as is one whose own top-level entry a runner's view cannot include.
     fn links<'a>(
         &'a self,
         person: &'a PrincipalId,
         watched: &'a Watched,
         revision: &'a Revision,
-    ) -> BoxFuture<'a, Result<Vec<LinkNode>>>;
+    ) -> BoxFuture<'a, Result<ParentTree>>;
     /// The branch the revision lives on.
     fn revision_branch<'a>(
         &'a self,
