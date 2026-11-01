@@ -1154,11 +1154,19 @@ state, not an additional repository authorization rule.
   exact runner-script correspondence were independently checked. See the
   [output checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-native-output-proof.md).
   This establishes model outputs, not remote receipt/readiness or complete token issuance.
+  The [recovery extension](factory_retarget/FactoryRecoveryProof.lean) now proves
+  exact first-error prefixes, surviving row/runner identity, old-target preservation
+  before target SQL, and conditional two-call retry with complete modeled outputs.
+  It permits an absent sandbox after a failed deletion and uncertain target commits;
+  retry acceptance is derived from no-error external observations and capacity facts,
+  not assumed. All 21 new axiom guards pass; see the
+  [recovery checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-recovery-proof.md).
+  This does not prove that a retry is scheduled or that the remote worker becomes ready.
 - **Boundary/effort:** moderate for lifecycle action selection, substantial for
   cancellation/supersession and recovery. Current code uses cancellation plus an
   instance mutex, not a pure generation-CAS activation guard. In-flight apply may finish.
-- **Residual/next:** connect the output and failed-step contracts to path-specific
-  failure prefixes, successful retries and finite serialized histories. Independently
+- **Residual/next:** compose the checked two-call recovery into finite serialized
+  histories. Independently
   characterize lifecycle choices and add wrong-result/wrong-refusal semantic controls
   before claiming the complete retarget slice qualified.
   Independent linked preparations captured before the runner lock, concurrent
