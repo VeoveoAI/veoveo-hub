@@ -1145,15 +1145,22 @@ state, not an additional repository authorization rule.
   [proof checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-retarget-row-proof.md).
   This is handwritten source correspondence to `48d7e25`, not Aeneas extraction
   or formal refinement of the async Rust/SQL/native implementation. Success
-  requires an existing bound runner, capacity acceptance and a normal return;
+  requires an existing bound runner and a normal return;
   physical native framing requires distinct scoped native names.
+  The [modeled output extension](factory_retarget/FactoryNativeOutputProof.lean)
+  now derives capacity acceptance, connects the row to independent path-sensitive
+  provider/native-observation/request outputs and proves a populated constructive
+  retarget. All 14 new axiom guards pass; the four synthetic credential digests and
+  exact runner-script correspondence were independently checked. See the
+  [output checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-native-output-proof.md).
+  This establishes model outputs, not remote receipt/readiness or complete token issuance.
 - **Boundary/effort:** moderate for lifecycle action selection, substantial for
   cancellation/supersession and recovery. Current code uses cancellation plus an
   instance mutex, not a pure generation-CAS activation guard. In-flight apply may finish.
-- **Residual/next:** derive capacity acceptance from success; connect full native
-  outputs and failed-step contracts to path-specific failure prefixes, successful
-  retries and finite serialized histories. Add populated valid runs and semantic
-  fault controls before claiming the complete retarget slice qualified.
+- **Residual/next:** connect the output and failed-step contracts to path-specific
+  failure prefixes, successful retries and finite serialized histories. Independently
+  characterize lifecycle choices and add wrong-result/wrong-refusal semantic controls
+  before claiming the complete retarget slice qualified.
   Independent linked preparations captured before the runner lock, concurrent
   registration publication order, native workspace effects and eventual recovery
   remain separate obligations. Eventual successor reconciliation needs scheduling/
