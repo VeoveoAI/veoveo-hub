@@ -1,0 +1,308 @@
+{
+  "kind": "private-handwritten-model-semantic-control-and-restoration",
+  "status": "checked-ignored-marker-refusal-detected-and-original-restored",
+  "base_commit": "e8e7081af04426fc42645bfc78610018baa3e8cd",
+  "native_source_commit": "3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33",
+  "roles": {
+    "author": "GPT-6.1 Sol",
+    "compiler": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "fault": "Only confirmedNoWriteRefusal takes afterMarker instead of returning Internal with the known snapshot. No production change.",
+  "expected_wrong_output": "Actual committed populated replacement, full expected data/audit, same refused marker; ten ordered calls instead of five, opaque successful output instead of Internal, knownSnapshot=None (lost preservation knowledge, not deleted data). All later observations succeed.",
+  "input_correspondence": {
+    "source": "RegistrationPostcommitContinuationProof.lean",
+    "source_sha256": "08b69079bcb443b728389b1c905a982f88a73a4c3bfe46c2fe917b323f628625",
+    "namespace": "RegistrationPostcommit.SwallowedMarkerFault",
+    "declarations": {
+      "replacementEnded": {
+        "sha256": "a5583498157153c52968c3feb9f1e88e933f6b095ea9fe77166422a6324912e4",
+        "bytes": 169,
+        "start_line": 200,
+        "text": "def replacementEnded : List (Ended Nat String Nat) :=\n  (acknowledged.core.transactions 0).captured.map\n    (fun row => ⟨row.client, row.payload.server, row.login⟩)\n"
+      },
+      "replacementContext": {
+        "sha256": "ee5431bd7a4bb9195cc32a655a696267b0223868526565ea05f5cbceea2857f7",
+        "bytes": 165,
+        "start_line": 203,
+        "text": "def replacementContext (issued : U) : Context Nat Nat Metadata U :=\n  ⟨proposal.candidate.client, proposal.candidate.login, proposal.candidate.metadata, issued⟩\n"
+      },
+      "replacementProjection": {
+        "sha256": "68108de2af79204d6ddf2ccb6921d9b518144711ae08dd627bc6a372b8af831e",
+        "bytes": 127,
+        "start_line": 205,
+        "text": "def replacementProjection (deployment : Metadata → D) : Projection Metadata String D :=\n  ⟨Metadata.server, deployment⟩\n\n"
+      },
+      "closedMarkerObservations": {
+        "sha256": "1072e5f8f7249149e8b100867af2a2c84ca85f8925375fada6647cdf0eee41f3",
+        "bytes": 439,
+        "start_line": 240,
+        "text": "def closedMarkerObservations :\n    Observations Nat Nat (Context Nat Nat Metadata String) String String String String :=\n  { oldReload := fun _ _ => .ok ()\n    marker := fun _ => .confirmedNoWriteRefusal \"synthetic confirmed no-write served refusal\"\n    newReload := fun _ => .ok ()\n    database := fun _ => .ok \"opaque successful database-grant observation\"\n    information := fun _ _ => .ok \"opaque successful full-output observation\" }\n"
+      },
+      "closedMarkerOutcome": {
+        "sha256": "68e3abc87fa3698ceed4bb88fbf0eafebf6b4aa744309b068b4e7cf763d13164",
+        "bytes": 227,
+        "start_line": 247,
+        "text": "def closedMarkerOutcome :=\n  finishRegistration acknowledged replacementEnded\n    (replacementProjection (fun _ => (7 : Nat)))\n    (replacementContext \"opaque synthetic issuance/configuration inputs\") closedMarkerObservations\n\n"
+      },
+      "EarlyOnly": {
+        "sha256": "a2f4988ac467399600067a35f62bd5186b53f5dc0006a1fc19932196e23a5151",
+        "bytes": 91,
+        "start_line": 67,
+        "text": "def EarlyOnly : Call C S L M U D G → Prop\n  | .old _ | .served _ => True\n  | _ => False\n\n"
+      }
+    },
+    "note": "Exact source declaration bodies/types copied; generic variable scope/open namespaces reproduced. No input callback/result was weakened."
+  },
+  "patch": {
+    "sha256": "e8fe88d85382c50660baae978fc10b361a54fb42fcd85290d76ad3038160fff6",
+    "text": "--- a/RegistrationPostcommitContinuation.lean\n+++ b/RegistrationPostcommitContinuation.lean\n@@ -133,7 +133,7 @@\n   | .ok () =>\n       let withMarker := completed ++ [.served (projection.deployment context.metadata)]\n       match observe.marker (projection.deployment context.metadata) with\n-      | .confirmedNoWriteRefusal error => ⟨some snapshot, withMarker, .error (.internal error)⟩\n+      | .confirmedNoWriteRefusal error => afterMarker projection context observe withMarker\n       | .generalOutcome (.error error) => ⟨none, withMarker, .error (.internal error)⟩\n       | .generalOutcome (.ok ()) => afterMarker projection context observe withMarker\n \n"
+  },
+  "diagnostic": {
+    "filename": "RegistrationPostcommitSwallowedMarkerFault.lean",
+    "sha256": "0c7366b45f3998190fbf41fc9e1bcb66c1aa866a22f2ef8bc3aa6661eb4d9fe7",
+    "text": "import RegistrationPostcommitContinuation\nimport RegistrationAuditedLifetimeWitnessProof\n\n/-! Private fault diagnostic. The copied inputs below are byte-identical declaration\ntexts from the qualified acceptance proof, recorded in fixture-correspondence.json.\nNo affected continuation correctness leaf is imported. This is model-only fault\ninjection, not a production service bug or native response-construction proof. -/\nnamespace RegistrationPostcommit.SwallowedMarkerFault\nopen RegistrationAuditedLifetime\nopen RegistrationAuditedLifetime.Witnesses\nvariable {C S L M U D G : Type}\n\ndef replacementEnded : List (Ended Nat String Nat) :=\n  (acknowledged.core.transactions 0).captured.map\n    (fun row => ⟨row.client, row.payload.server, row.login⟩)\n\ndef replacementContext (issued : U) : Context Nat Nat Metadata U :=\n  ⟨proposal.candidate.client, proposal.candidate.login, proposal.candidate.metadata, issued⟩\n\ndef replacementProjection (deployment : Metadata → D) : Projection Metadata String D :=\n  ⟨Metadata.server, deployment⟩\n\n\ndef closedMarkerObservations :\n    Observations Nat Nat (Context Nat Nat Metadata String) String String String String :=\n  { oldReload := fun _ _ => .ok ()\n    marker := fun _ => .confirmedNoWriteRefusal \"synthetic confirmed no-write served refusal\"\n    newReload := fun _ => .ok ()\n    database := fun _ => .ok \"opaque successful database-grant observation\"\n    information := fun _ _ => .ok \"opaque successful full-output observation\" }\n\ndef closedMarkerOutcome :=\n  finishRegistration acknowledged replacementEnded\n    (replacementProjection (fun _ => (7 : Nat)))\n    (replacementContext \"opaque synthetic issuance/configuration inputs\") closedMarkerObservations\n\n\ndef EarlyOnly : Call C S L M U D G → Prop\n  | .old _ | .served _ => True\n  | _ => False\n\n\n/-- Independent full argument record in the expected calls, not an execution fold. -/\ndef expectedContext : Context Nat Nat Metadata String :=\n  ⟨10, 20, ⟨newServer, \"full-new-metadata:key=new;binding=shared;version=2\"⟩,\n    \"opaque synthetic issuance/configuration inputs\"⟩\ndef expectedWrongOutcome :\n    Result (K := World) (C := Nat) (S := String) (L := Nat) (M := Metadata)\n      (U := String) (D := Nat) (G := String) (E := String) (R := String) (O := String) :=\n  ⟨none,\n    [.old (.ended ⟨30, oldServer, 40⟩ .replace), .old (.reload 0 30),\n      .old (.ended ⟨31, oldServer, 41⟩ .replace), .old (.reload 1 31),\n      .served 7, .reloadNew 10, .registeredLog newServer 10 20,\n      .database expectedContext,\n      .information expectedContext \"opaque successful database-grant observation\", .returnSuccess],\n    .ok \"opaque successful full-output observation\"⟩\ndef expectedEarlyCalls : Calls (C := Nat) (S := String) (L := Nat) (M := Metadata)\n    (U := String) (D := Nat) (G := String) :=\n  [.old (.ended ⟨30, oldServer, 40⟩ .replace), .old (.reload 0 30),\n    .old (.ended ⟨31, oldServer, 41⟩ .replace), .old (.reload 1 31), .served 7]\n\n/-- Independent evaluation of the FULL wrong result, including all ten ordered\ncalls and knowledge loss. None here is not deletion of the admitted database. -/\ntheorem wrong_whole_outcome : closedMarkerOutcome = expectedWrongOutcome := by\n  rfl\n\ntheorem observed_refusal_still_present :\n    closedMarkerObservations.marker 7 =\n      .confirmedNoWriteRefusal \"synthetic confirmed no-write served refusal\" := by\n  rfl\n\ntheorem wrong_result_not_internal :\n    closedMarkerOutcome.result ≠ .error (.internal \"synthetic confirmed no-write served refusal\") := by\n  rw [wrong_whole_outcome]\n  intro impossible\n  cases impossible\n\ntheorem wrong_trace_not_early : closedMarkerOutcome.calls ≠ expectedEarlyCalls := by\n  rw [wrong_whole_outcome]\n  intro equal\n  have lengthEqual := congrArg List.length equal\n  change 10 = 5 at lengthEqual\n  omega\n\ntheorem wrong_trace_reaches_later :\n    Call.reloadNew 10 ∈ closedMarkerOutcome.calls ∧\n      ¬(∀ call ∈ closedMarkerOutcome.calls, EarlyOnly call) := by\n  have reached : Call.reloadNew 10 ∈ closedMarkerOutcome.calls := by\n    rw [wrong_whole_outcome]\n    simp [expectedWrongOutcome]\n  refine ⟨reached, ?_⟩\n  intro onlyEarly\n  have impossible := onlyEarly (Call.reloadNew 10) reached\n  exact impossible\n\n/-- The unchanged actual store proof still holds. The fault is entirely in the\nsource-shaped suffix and cannot be credited through broken store imports. -/\ntheorem actual_store_and_wrong_suffix :\n    Execution source encoding start acknowledged ∧\n      acknowledged.core.db = expectedDB ∧ acknowledged.audit = expectedAudit ∧\n      (acknowledged.core.transactions 0).response = .registered ∧\n      closedMarkerObservations.marker 7 =\n        .confirmedNoWriteRefusal \"synthetic confirmed no-write served refusal\" ∧\n      closedMarkerOutcome = expectedWrongOutcome ∧\n      closedMarkerOutcome.calls.length = 10 ∧\n      closedMarkerOutcome.result = .ok \"opaque successful full-output observation\" ∧\n      closedMarkerOutcome.knownSnapshot = none ∧\n      closedMarkerOutcome.result ≠ .error (.internal \"synthetic confirmed no-write served refusal\") ∧\n      closedMarkerOutcome.calls ≠ expectedEarlyCalls ∧\n      ¬(∀ call ∈ closedMarkerOutcome.calls, EarlyOnly call) := by\n  rcases replacement_complete with ⟨run, database, audit, original, storeReply, rest⟩\n  refine ⟨run, database, audit, storeReply, observed_refusal_still_present, wrong_whole_outcome,\n    ?_, ?_, ?_, wrong_result_not_internal, wrong_trace_not_early, wrong_trace_reaches_later.2⟩\n  all_goals rw [wrong_whole_outcome]; rfl\n\n#print axioms wrong_whole_outcome\n#print axioms wrong_result_not_internal\n#print axioms wrong_trace_not_early\n#print axioms actual_store_and_wrong_suffix\n\nrun_cmd do\n  let allowed := #[``propext, ``Classical.choice, ``Quot.sound]\n  for declaration in #[``wrong_whole_outcome, ``observed_refusal_still_present,\n      ``wrong_result_not_internal, ``wrong_trace_not_early, ``wrong_trace_reaches_later,\n      ``actual_store_and_wrong_suffix] do\n    let found ← Lean.collectAxioms declaration\n    let unexpected := found.filter (fun name => !allowed.contains name)\n    unless unexpected.isEmpty do\n      throwError \"unexpected swallowed-marker diagnostic axiom in {declaration}: {unexpected}\"\n\nend RegistrationPostcommit.SwallowedMarkerFault\n",
+    "guards": 6,
+    "printed_closures": 4,
+    "imports_affected_correctness_leaf": false
+  },
+  "source": {
+    "manifest_sha256": "76880f8ced983d5c9d4ca04944cc5fb4c809e72572d25f8cf974e2aedbc51b7a",
+    "baseline_map_file_sha256": "3183f4260a6f3756d9ab1f7f45c99607d6c3d639e09d41006f99d8b26d2e127e",
+    "fault_map_file_sha256": "c545af36a53049dc3564f70d16d281c9a27d6c2268bb88c895bf1b8c7a9ec9ef",
+    "file_count": 72,
+    "changed_files": [
+      "RegistrationPostcommitContinuation.lean"
+    ],
+    "definition_baseline_sha256": "56abecd11b368c157452383cccbfa562f4bc862e78de6da5682a83602abc6d75",
+    "definition_fault_sha256": "f486db4455578d398efb9153af82c4c0a75a78055a38179e29843caf55fbe6f7",
+    "acceptance_unchanged_sha256": "08b69079bcb443b728389b1c905a982f88a73a4c3bfe46c2fe917b323f628625",
+    "held_sources": {
+      "RegistrationPostcommitContinuation.lean": "56abecd11b368c157452383cccbfa562f4bc862e78de6da5682a83602abc6d75",
+      "RegistrationPostcommitContinuationProof.lean": "08b69079bcb443b728389b1c905a982f88a73a4c3bfe46c2fe917b323f628625",
+      "RegistrationAuditedLifetimeWitnesses.lean": "eba3e835b2e21c061b8572752da7e1943f8d8d2c07254b5182146b5cd1364ce0",
+      "RegistrationAuditedLifetimeWitnessExecution.lean": "8037c6b4d73b0d4c5cb2728709e8a14cb85903159eb04ca149472d2d2f7919d3",
+      "RegistrationAuditedLifetimeWitnessProof.lean": "6cbbcdda15b9024ac2e65b8b4243df5dcc26b321ef5ff66f4189314b39fe7f4e"
+    }
+  },
+  "commands": {
+    "fault_commands": [
+      "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuation",
+      "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitSwallowedMarkerFault",
+      "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuationProof"
+    ],
+    "restored_commands": [
+      "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuation",
+      "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuationProof"
+    ],
+    "timeout_seconds_per_command": 180
+  },
+  "fault_stages": [
+    {
+      "artifact_bytes": 1301120,
+      "artifact_exists": true,
+      "artifact_sha256": "76bacae1d9871da5f203f5818f13e100a83b2d005318b9e864c12b0b3a4812cc",
+      "axiom_closure_lines": [],
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuation",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 13036,
+      "exit": 0,
+      "log_bytes": 999,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/postcommit-swallowed-marker-control1/evidence/fault/01-RegistrationPostcommitContinuation.log",
+      "log_sha256": "04a56ae3aab5b9b2660773fce501286deb046fef6ccab4328e443d736d3cf4af",
+      "target": "RegistrationPostcommitContinuation",
+      "timed_out": false
+    },
+    {
+      "artifact_bytes": 225200,
+      "artifact_exists": true,
+      "artifact_sha256": "b8637282401b3fdcc925280b33da46176ac3a22eced85d8fde1b727540005245",
+      "axiom_closure_lines": [
+        "info: RegistrationPostcommitSwallowedMarkerFault.lean:116:0: 'RegistrationPostcommit.SwallowedMarkerFault.wrong_whole_outcome' depends on axioms: [propext]",
+        "info: RegistrationPostcommitSwallowedMarkerFault.lean:117:0: 'RegistrationPostcommit.SwallowedMarkerFault.wrong_result_not_internal' depends on axioms: [propext]",
+        "info: RegistrationPostcommitSwallowedMarkerFault.lean:118:0: 'RegistrationPostcommit.SwallowedMarkerFault.wrong_trace_not_early' depends on axioms: [propext, Quot.sound]",
+        "info: RegistrationPostcommitSwallowedMarkerFault.lean:119:0: 'RegistrationPostcommit.SwallowedMarkerFault.actual_store_and_wrong_suffix' depends on axioms: [propext, Quot.sound]"
+      ],
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitSwallowedMarkerFault",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 13840,
+      "exit": 0,
+      "log_bytes": 3446,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/postcommit-swallowed-marker-control1/evidence/fault/02-RegistrationPostcommitSwallowedMarkerFault.log",
+      "log_sha256": "32ac53d040b1b795a541cf2c5df3f95db03104f44f4fc8ffb188ddddb76410f2",
+      "target": "RegistrationPostcommitSwallowedMarkerFault",
+      "timed_out": false
+    },
+    {
+      "artifact_exists": false,
+      "axiom_closure_lines": [
+        "info: RegistrationPostcommitContinuationProof.lean:281:0: 'RegistrationPostcommit.reload_old_first_error' depends on axioms: [propext, Quot.sound]",
+        "info: RegistrationPostcommitContinuationProof.lean:282:0: 'RegistrationPostcommit.old_reload_short_circuit' depends on axioms: [propext, Quot.sound]",
+        "info: RegistrationPostcommitContinuationProof.lean:283:0: 'RegistrationPostcommit.marker_refusal' depends on axioms: [sorryAx]",
+        "info: RegistrationPostcommitContinuationProof.lean:284:0: 'RegistrationPostcommit.marker_refusal_no_later' depends on axioms: [propext, sorryAx, Quot.sound]",
+        "info: RegistrationPostcommitContinuationProof.lean:285:0: 'RegistrationPostcommit.information_error_passthrough' depends on axioms: [propext]",
+        "info: RegistrationPostcommitContinuationProof.lean:286:0: 'RegistrationPostcommit.successful_observation_example' depends on axioms: [propext]",
+        "info: RegistrationPostcommitContinuationProof.lean:287:0: 'RegistrationPostcommit.populated_store_then_marker_refusal' depends on axioms: [propext, sorryAx, Quot.sound]",
+        "info: RegistrationPostcommitContinuationProof.lean:288:0: 'RegistrationPostcommit.closed_store_marker_refusal' depends on axioms: [propext, sorryAx, Quot.sound]"
+      ],
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuationProof",
+      "diagnostic_headlines": [
+        "error: RegistrationPostcommitContinuationProof.lean:62:89: unsolved goals",
+        "info: RegistrationPostcommitContinuationProof.lean:283:0: 'RegistrationPostcommit.marker_refusal' depends on axioms: [sorryAx]",
+        "info: RegistrationPostcommitContinuationProof.lean:284:0: 'RegistrationPostcommit.marker_refusal_no_later' depends on axioms: [propext, sorryAx, Quot.sound]",
+        "info: RegistrationPostcommitContinuationProof.lean:287:0: 'RegistrationPostcommit.populated_store_then_marker_refusal' depends on axioms: [propext, sorryAx, Quot.sound]",
+        "info: RegistrationPostcommitContinuationProof.lean:288:0: 'RegistrationPostcommit.closed_store_marker_refusal' depends on axioms: [propext, sorryAx, Quot.sound]",
+        "error: RegistrationPostcommitContinuationProof.lean:290:0: unexpected registration postcommit continuation axiom in RegistrationPostcommit.marker_refusal: [sorryAx]",
+        "error: build failed"
+      ],
+      "elapsed_ms": 5925,
+      "exit": 1,
+      "expected_negative_match": true,
+      "log_bytes": 7778,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/postcommit-swallowed-marker-control1/evidence/fault/03-RegistrationPostcommitContinuationProof.log",
+      "log_sha256": "cca18a4e0e2b028500b44ad8d063292f0d088d221e86cb09131d854dc2224c2c",
+      "target": "RegistrationPostcommitContinuationProof",
+      "timed_out": false
+    }
+  ],
+  "restored_stages": [
+    {
+      "artifact_bytes": 1302736,
+      "artifact_exists": true,
+      "artifact_sha256": "dc5be598620a8edad3904ea5b9533991c9c48d94e4e91c7e44f5c36c4428a17a",
+      "axiom_closure_lines": [],
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuation",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 12939,
+      "exit": 0,
+      "log_bytes": 645,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/postcommit-swallowed-marker-control1/evidence/restored/01-RegistrationPostcommitContinuation.log",
+      "log_sha256": "b5a357a91aeb4ec68e9cb52936a96c2365edf4d092e843d67b86672a9adf6e77",
+      "target": "RegistrationPostcommitContinuation",
+      "timed_out": false
+    },
+    {
+      "artifact_bytes": 630480,
+      "artifact_exists": true,
+      "artifact_sha256": "3c2b2c2764adbf978aa219444a6abaaf232c92276f5caf7fe4b5f435adc62c57",
+      "axiom_closure_lines": [
+        "info: RegistrationPostcommitContinuationProof.lean:281:0: 'RegistrationPostcommit.reload_old_first_error' depends on axioms: [propext, Quot.sound]",
+        "info: RegistrationPostcommitContinuationProof.lean:282:0: 'RegistrationPostcommit.old_reload_short_circuit' depends on axioms: [propext, Quot.sound]",
+        "info: RegistrationPostcommitContinuationProof.lean:283:0: 'RegistrationPostcommit.marker_refusal' depends on axioms: [propext]",
+        "info: RegistrationPostcommitContinuationProof.lean:284:0: 'RegistrationPostcommit.marker_refusal_no_later' depends on axioms: [propext, Quot.sound]",
+        "info: RegistrationPostcommitContinuationProof.lean:285:0: 'RegistrationPostcommit.information_error_passthrough' depends on axioms: [propext]",
+        "info: RegistrationPostcommitContinuationProof.lean:286:0: 'RegistrationPostcommit.successful_observation_example' depends on axioms: [propext]",
+        "info: RegistrationPostcommitContinuationProof.lean:287:0: 'RegistrationPostcommit.populated_store_then_marker_refusal' depends on axioms: [propext, Quot.sound]",
+        "info: RegistrationPostcommitContinuationProof.lean:288:0: 'RegistrationPostcommit.closed_store_marker_refusal' depends on axioms: [propext, Quot.sound]"
+      ],
+      "command": "LAKE_NO_UPDATE=1 lake build RegistrationPostcommitContinuationProof",
+      "diagnostic_headlines": [],
+      "elapsed_ms": 16446,
+      "exit": 0,
+      "log_bytes": 3841,
+      "log_path": "/home/rozgo/.cache/lean-pilot/hub-registration-audit-20261101/postcommit-swallowed-marker-control1/evidence/restored/02-RegistrationPostcommitContinuationProof.log",
+      "log_sha256": "f23755c937f5d8eaf7410f152666223f6be5c0193013cee118fa1e23bb8f7b3c",
+      "target": "RegistrationPostcommitContinuationProof",
+      "timed_out": false
+    }
+  ],
+  "freshness": "Only unchanged accepted prerequisites seeded. Neither affected continuation Proof nor diagnostic imported by an independent diagnostic. Affected Definition/Proof built fresh in separate fault/restored graphs.",
+  "restoration": {
+    "exact_patch_reverse": true,
+    "all_source_entries_restored": 72,
+    "fresh_definition_and_original_proof_pass": true,
+    "original_proof_guards": 19,
+    "original_proof_printed_closures": 8,
+    "source_restored_exactly": true,
+    "positive_sorryAx": false,
+    "allowed_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "observed_axioms": [
+      "propext",
+      "Quot.sound"
+    ],
+    "byte_note": "Restored Definition equals prior accepted bytes. Restored Proof is 630480 bytes, not prior 630472; no compiled-byte reproducibility claim."
+  },
+  "setup": {
+    "first_attempt": {
+      "classification": "pre-compiler staging failure; macOS tar transfer added AppleDouble files",
+      "lake_started": false,
+      "observed_output_file": "setup-failure-run1.log",
+      "observed_output_sha256": "aeea0a6a94f6e7122437f5f1d19d95cb5f845f1bc43c0442b265042a5702450d",
+      "remote_runner_pid": 2238200
+    },
+    "captured_output_note": "One-line observed setup output is retained; not represented as a complete raw process transcript. No Lake command ran.",
+    "correction": "removed only transfer-added ._* files under private baseline-source; 72/72 source map entries then matched; corrected accepted-source hash literal and allowed empty axiom closures",
+    "source_or_proof_repair_during_control": false
+  },
+  "lean_version": "4.35.0",
+  "tools_before": {
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "tools_after": {
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "tools_unchanged": true,
+  "prerequisite_sources": {
+    "RegistrationAuditedLifetimeModel": "6beefe9ff1eecb8b56143e3cc189e2bc6719b684c2236ea3ebb59eca9e93b4f6",
+    "RegistrationAuditedLifetimeSpecification": "bd4fccf6ac3dbca608a8e20b0d314fd3bbd0ddf83295f7ff77f81c6fa2a431d9",
+    "RegistrationAuditedLifetimeWitnessExecution": "8037c6b4d73b0d4c5cb2728709e8a14cb85903159eb04ca149472d2d2f7919d3",
+    "RegistrationAuditedLifetimeWitnessProof": "6cbbcdda15b9024ac2e65b8b4243df5dcc26b321ef5ff66f4189314b39fe7f4e",
+    "RegistrationAuditedLifetimeWitnesses": "eba3e835b2e21c061b8572752da7e1943f8d8d2c07254b5182146b5cd1364ce0",
+    "RegistrationLifetimeModel": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954",
+    "RegistrationLifetimeSpecification": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2",
+    "RegistrationModel": "753b94eac6017cca0c4c6dc666426443b5601d3d26c2cf4a48979b03c174f584"
+  },
+  "accepted_prerequisite_artifacts": {
+    "RegistrationAuditedLifetimeModel": "005abac7f24193aafb66e9660117d0a6c69eb832462e440de8db20cc965148d4",
+    "RegistrationAuditedLifetimeSpecification": "187f5c9f23faedd2bd18e80540a355ebd96d8bd6346493eb1d774050f52ac7ee",
+    "RegistrationAuditedLifetimeWitnessExecution": "8f2050a017d7d5e1d988cb53935669559882a15ec38f89c91b5380f689844e83",
+    "RegistrationAuditedLifetimeWitnessProof": "5faebe4ca5f553c075740961a10037fb8b7793daffc31b7c61c87474249356f2",
+    "RegistrationAuditedLifetimeWitnesses": "4e4f7edc71f15054468fc7bde3aebd2356f5ebd80d217cc713f71516db1514eb",
+    "RegistrationLifetimeModel": "85f36adc8376c83818cda80e2fa28651e63a57fb731fe02a3c33d73ffacb78b0",
+    "RegistrationLifetimeSpecification": "fa5ed9dcc1b8181b4102d373b428b81baed856ee35c855448242e440a52648db",
+    "RegistrationModel": "b6e320d98ca154a8e491a8dbd6cf13921cb63b9a1466acc87eaec7d70d9b8e66"
+  },
+  "measured_total_command_ms": 62186,
+  "evidence": {
+    "local_root": "/tmp/hub-registration-audit-20261101/postcommit-swallowed-marker-control1-mirror",
+    "summary_sha256": "40fda545bc9996d9894cedb20da591e3458f3e7761cec1e711d83e93ffa92326",
+    "supplement_sha256": "c6940e83c465b7c8a335b5fa38ae64cd8290c893f15fc0094bffce1cdc8c22b0",
+    "private_logger_sha256": "1e3a7e142e1b7e4a28bc9d5a98cfa8ddaec7ebd1a439d7e82350c2c2d0519587",
+    "source_packet_root": "/tmp/hub-registration-audit-20261101/postcommit-swallowed-marker-control1"
+  },
+  "reviewer_checks": [
+    "Read independent diagnostic and original failure residual; verified literal wrong whole Outcome and exact copied inputs.",
+    "Verified all five log hashes/lengths and four successful OLean hashes/lengths against mirrored bytes.",
+    "Compared three recorded whole baseline source maps, checked exact canonical held source bytes and unchanged nonproof source since native qualification.",
+    "Read all target diagnostics, six diagnostic declaration guards and nineteen restored guards; failure is semantic equality, not setup/import/type/timeout."
+  ],
+  "manual_reproduction": [
+    "Start a private copy of proofs/registration_transactions at base_commit; write diagnostic.text as diagnostic.filename and add a nondefault lean_lib target of that module name.",
+    "Apply patch.text to that private Definition; execute fault_commands sequentially with clean affected outputs. Require diagnostic success before unchanged acceptance semantic failure.",
+    "Reverse patch exactly and compare all inputs. In a fresh affected graph execute restored_commands; diagnostic is intentionally not a restored-positive target."
+  ],
+  "boundaries": [
+    "Handwritten source-shaped model fault, not a new native bug or Rust/SQL refinement.",
+    "Full native response construction, callback implementations, concurrent durable interference, and cache convergence remain unproved.",
+    "No production, dependency, native-test, deployment, CI, model-call, or persistent-runner changes. Existing native qualification remains separate."
+  ],
+  "semantic_failure": {
+    "declaration": "RegistrationPostcommit.marker_refusal",
+    "primary_location": "RegistrationPostcommitContinuationProof.lean:62:89",
+    "residual": "afterMarker projection context observe (old calls ++ [served deployment]) = { knownSnapshot := some snapshot, calls := old calls ++ [served deployment], result := Except.error (ServiceError.internal error) }",
+    "independent_counterexample": "wrong_whole_outcome and actual_store_and_wrong_suffix establish the full ten-call opaque Ok result while marker observation remains a confirmedNoWriteRefusal.",
+    "dependent_failures": "marker_refusal_no_later, populated_store_then_marker_refusal and closed_store_marker_refusal depend on the failed generic theorem; not counted as independent counterexamples."
+  }
+}

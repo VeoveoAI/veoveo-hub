@@ -1510,8 +1510,12 @@ the known whole store result while returning Internal and skipping later calls.
 General marker outcomes make no whole-database preservation claim. Nineteen
 declaration guards and eight printed closures pass; callback behavior, metadata
 projections, no external durable writer and native correspondence remain explicit
-boundaries. An ignore-refusal control and full native response payloads remain
-pending; namespace/update/expiry adapters are not part of this foundation.
+boundaries. The [ignore-refusal control](registration_transactions/evidence/postcommit-swallowed-marker-control.json)
+now independently proves the complete wrong ten-call success after the refused
+marker, then the unchanged acceptance proof rejects its full-outcome equality.
+Exact restoration and fresh positive compilation pass. This is handwritten-model
+sensitivity evidence; full native response payloads and the remaining
+namespace/update/deregistration/expiry adapters remain open.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

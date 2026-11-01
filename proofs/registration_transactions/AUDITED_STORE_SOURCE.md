@@ -245,5 +245,31 @@ These are manual nondefault targets. The 180-second command limit and default
 200000 heartbeats suffice. The accepted prior WitnessProof artifact and Lake's
 rebuilt artifact differ in bytes despite identical source; the receipt distinguishes
 them rather than claiming compiled-byte reproducibility. No native source or test
-was changed or rerun. The next control deliberately ignores the marker refusal;
-the remaining registration adapters and native construction/refinement remain open.
+was changed or rerun. The remaining registration adapters and native
+construction/refinement remain open.
+
+## Checked ignored-marker control
+
+The [private semantic control](evidence/postcommit-swallowed-marker-control.json)
+changes only the confirmed-no-write refusal branch to continue through
+`afterMarker`. Its independent diagnostic imports the definition and the unaffected
+store proof, never the affected continuation correctness proof. Six fixture/helper
+declarations are copied exactly from the accepted source into a private namespace.
+It proves the actual store execution and whole expected data/audit, then the complete
+wrong ten-call result: five extra calls, opaque success, and unknown preservation
+knowledge despite the unchanged refused marker. None means unknown, not deletion.
+
+The definition and independent diagnostic pass. The unchanged acceptance proof
+fails at `marker_refusal`'s full outcome equality, then its axiom guard rejects
+`sorryAx`. This is a semantic failure, not a parser/import or timeout failure.
+Reversing the one-line patch restores all 72 private source entries; fresh definition
+and original proof builds pass with 19 guards and eight standard-only closures.
+The five bounded manual commands total 62.186 seconds. The diagnostic has six guards
+and four printed closures. Exact patch/diagnostic text, copied-input correspondence,
+commands, log identities and output bytes are retained in the receipt; scripts,
+compiled artifacts and full logs remain temporary. Its staging-only AppleDouble
+failure and wrapper corrections are recorded separately from compiler evidence.
+
+This qualifies sensitivity of the handwritten model contract. It neither finds a
+new production defect nor proves native response construction. Next is the Update
+audit adapter; namespace, deregistration/expiry and broader composition remain open.
