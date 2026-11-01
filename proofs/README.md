@@ -1257,10 +1257,18 @@ state, not an additional repository authorization rule.
   execution model; no desired Request/after-state or present diagnostic is assumed.
   See the [foundation record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-foundation.md).
   Successful application retains the explicit existing-row/quiescent-prefix domain.
-  Composed newer-parent/old-retry histories, populated examples and controls remain.
+- **Saved-parent histories:** actual newer-parent application followed by an old
+  prepared retry now preserves the complete newer state, including pre-existing
+  diagnostics after a noncommitted clear. Current source-error publication survives
+  obsolete work. Valid same-head retry after both successful clears derives its
+  next runner/domain from the first operation and produces complete child outputs.
+  Seven guards and closure audits pass in 4.873 s; see the
+  [history record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-histories.md).
+  Deleted-ID/name-reuse rejection preserves arbitrary replacement state; its actual
+  creation, other independently populated sequences and semantic controls remain.
 - **Residual/next:** the bounded watcher slice now includes its semantic controls
   and restoration. The complete Factory lifecycle remains partial. Saved-parent
-  retry preparation/membership, cross-replica reconciliation, concurrent
+  initial allocation/general membership effects, cross-replica reconciliation, concurrent
   registration publication order, native workspace effects and eventual recovery
   remain separate obligations. Eventual successor reconciliation needs scheduling/
   failure assumptions; do not claim “stale completion can never publish” from a

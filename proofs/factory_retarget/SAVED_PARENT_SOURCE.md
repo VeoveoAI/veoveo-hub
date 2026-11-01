@@ -1,10 +1,10 @@
 # Saved-parent preparation and guarded publication
 
-Status: the model and foundation correctness theorems are checked. Composed
-update/retry histories, independent populated examples and semantic controls remain
-pending. The
+Status: the model, foundation and composed update/retry histories are checked.
+Independent populated examples and semantic controls remain pending. The
 [model checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-model.md)
-and [foundation checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-foundation.md)
+and [foundation checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-foundation.md),
+followed by the [history checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-histories.md),
 keep definition elaboration, theorem checks and native evidence separate. Runtime basis
 is Hub `77b258ae10837a01ca7c7464e7c4245c94cd4105`; the package source starts on
 coverage main `e1101a7ab5b1f44b69d46592c8067d561cfa65d4`. The prior Factory and
@@ -97,9 +97,35 @@ capacity observations. It does not assume a desired Request or successful
 after-state, or require a diagnostic row to be present.
 
 These theorems are under the native interpretation and existing-runner successful-
-application domain stated above. They do not yet compose a newer successful parent
-operation with an old prepared retry. That history and the populated/semantic
-checks remain part of the complete slice below.
+application domain stated above.
+
+## Checked histories
+
+`FactorySavedParentHistoryProof.newer_parent_then_saved` first executes the normal
+parent preparation and existing-runner child, deriving its exact child/Factory
+outcome, complete output values, client and both status maps. A subsequent saved
+attempt observes that newer native head and discards its old source success or
+error, preserving the first complete state. With an uncommitted status clear,
+every pre-existing full link-failure payload survives too. This theorem does not
+create that initial diagnostic or order revision hashes.
+
+`current_error_then_obsolete` composes actual current source-error publication with
+an obsolete success/error discard. The new full preparation payload follows the
+observed commit even if its acknowledgement is lost. `deleted_name_reuse_rejects`
+preserves arbitrary state when the old ID is deleted despite the same name and
+head; it does not itself construct a live replacement at that name.
+
+`normal_then_current_duplicate` derives the first successful row, Runner shape and
+structural prefix domain from actual child effects. Both committed diagnostic clears
+establish absent records. A current-head retry on that resulting state still enters
+and derives complete successful child outputs. Neither the second operation's
+valid state nor a present failure row is a premise. A second native resolution may
+legitimately observe newer linked content; the theorem does not require a no-op.
+
+All seven history declarations pass standard-axiom guards. These remain scoped
+manual model compositions under the same native interpretation, not extraction or
+formal refinement of async Rust, SQL or external services. Independently populated
+complete sequences and deliberate semantic faults/restorations remain to check.
 
 ## Contracts for the complete slice
 
@@ -120,4 +146,4 @@ checks remain part of the complete slice below.
 Theorems assume truthful native snapshots and the stated serialized/no-external-
 write domain, not desired Requests or successful after-states. Dated records above
 retain exact artifacts and commands for completed checks; no receipt is claimed
-for the pending compositions or controls.
+for the pending populated examples or controls.
