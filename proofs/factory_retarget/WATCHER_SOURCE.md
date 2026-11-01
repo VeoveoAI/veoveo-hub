@@ -19,6 +19,15 @@ stored state is unchanged. Logical preparation/resolve/fallback events represent
 native steps, not a proof of every parser/tempdir/read/authorization operation.
 Revision strings are opaque values and are never ordered.
 
+The additional native correction `77b258a` guards parent publication/membership
+and checks saved retries against native Lore's live branch identity and head.
+Its five focused tests and full Mac/Linux checks are recorded in the
+[saved-parent qualification](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-retry-fix.md).
+It leaves this layer's `reapply` and existing-runner `run_links` bodies unchanged;
+the parent guard is an added enclosing boundary. The accepted model/proof source
+files remain unchanged. This native fix does not extend their formal scope to
+saved-parent preparation, full membership retirement or initial allocation.
+
 | Model | Runtime responsibility |
 | --- | --- |
 | RunnerKey | Mutex/current_runner SQL key `(repository, branch, link)` |

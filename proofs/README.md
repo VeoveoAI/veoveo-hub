@@ -172,7 +172,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and source controls checked; native watch publication defect fixed; formal listener/cursor and native refinement open |
-| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Saved-parent retry freshness; remaining native/distributed correspondence |
+| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Saved-parent formal composition after native fix; remaining lifecycle/distributed correspondence |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
@@ -1234,6 +1234,16 @@ state, not an additional repository authorization rule.
   [control record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-controls.md).
   These controls exercise the executable model and standalone assertion, not
   native Rust faults or the generic history/status proof artifacts.
+- **Saved-parent native correction:** a deterministic regression exposed a retry
+  restoring an obsolete parent program, target and identity after a newer update
+  completed. Hub `77b258a` now serializes parent publication/membership with the
+  existing parent guard and checks the saved revision against native Lore's live
+  branch identity and head before publishing either success or error. Five focused
+  component tests pass, including an uncleared diagnostic failure, deleted-ID/name
+  reuse and valid first provisioning. Full Mac/Linux checks each pass 469 tests
+  with two skipped; see the
+  [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-retry-fix.md).
+  This adds native evidence, not a Lean theorem or distributed freshness guarantee.
 - **Residual/next:** the bounded watcher slice now includes its semantic controls
   and restoration. The complete Factory lifecycle remains partial. Saved-parent
   retry preparation/membership, cross-replica reconciliation, concurrent
