@@ -58,9 +58,13 @@ The subsequent SDK
 [translation investigation](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/proofs/internal_auth/evidence/current-linked-translation-20261031.json),
 committed in `ce85c3d`, extracts all four issuer/recipient/verifier roots and passes
 the own-graph inventory, but Aeneas rejects unsupported loop exits and function-pointer
-types. No Lean output is produced. Current verifier continuity remains unproved;
-actual repository-grant calculation is the next candidate implementation-linked
-foundation, without replacing that outstanding verifier requirement.
+types. No Lean output is produced. Current verifier continuity remains unproved.
+The subsequent [repository-grant extraction](request_composition/evidence/repository-grant-translation-20261031.json)
+retains all producer fields and reaches 38 transparent own functions, but the pinned
+backend rejects a required associated-type equality in `Iterator::cloned` before
+generating Lean. The independent SDK detail construction/projection extracts into
+a model; its proofs are the next contribution. Neither result replaces the open
+producer or verifier requirement.
 
 Hub merge `1ccb868` subsequently integrates upstream `0ff0819`, retaining all local
 proof work. Its runtime/configuration bytes match that upstream parent exactly;
@@ -1255,6 +1259,40 @@ semantics, including legitimate access; there is no second Lore authorization la
   describing the resulting grant as authorized.
 - **Next:** establish production-linked assignment/group and token-assembly decisions,
   then connect sharing publication to HUB-CONFIG-01 and native protocol tests.
+
+The immediate implementation-linked target is the unchanged
+[`AdmittedCatalogSections::repository_grant`](../crates/veoveo-hub/src/contract/catalog.rs)
+and its `group_memberships` dependency. This target is **not yet proved**. Its
+specification is a relation over the admitted inputs, independent of the iterator
+implementation:
+
+- A matching assignment is in the exact `(tenant, repository)` entry and names
+  either the requested principal or a group in that principal's memberships in
+  that tenant. Memberships are taken from the admitted sections, not assumed from
+  an identity provider's group strings.
+- The result is absent exactly when no such assignment exists. A matching
+  assignment with no actions still returns a grant: this is legitimate read access.
+- A returned grant preserves the requested repository and contains exactly the
+  union of all matching assignments' actions. Both inclusion directions matter:
+  no extra authority and no loss of legitimate authority.
+- Projecting group membership ignores its role and deduplicates the group. The
+  proof must not introduce a role threshold, require nonempty actions, or invent
+  a repository delegation ceiling.
+
+Native map/set/iterator correspondence remains explicit. Admitted-input provenance,
+catalog publication, SDK detail construction and verification, and the native Lore
+contribution are separate composition obligations; proving this calculation alone
+does not discharge them.
+
+The [translation receipt](request_composition/evidence/repository-grant-translation-20261031.json)
+records two source extractions and a backend continuation. The producer graph has
+38 transparent own functions and 37 transparent own types, with all retained field
+checks passing. Aeneas stops at the required `Iterator::cloned` associated-type
+equality, before emitting Lean. An additional empty default trait method is recorded
+as extra extraction scope; it is not the cause of that required dependency's failure.
+No runtime or backend rewrite was made, and this is not a producer proof. The separate
+SDK detail extraction succeeds through model generation; its own Lean checks and
+semantic control remain pending at this checkpoint.
 
 ## HUB-CLEANUP-01 — Cleanup, references and transactional audit
 

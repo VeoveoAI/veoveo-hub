@@ -1,0 +1,928 @@
+{
+  "case": "repository-grant-production-translation-20261031",
+  "status": "production producer proof remains open; no generated Lean or theorem",
+  "source": {
+    "hub_revision": "bfd390d141a2911ca8c2836106ad00b9ed557509",
+    "hub_tree": "a39b998453dd61aa9e8ed4068b7f1fe85f85560f",
+    "file_count": 1156,
+    "source_map_sha256": "48549f88a5dbf9991938667174c7f674151c64047b115a048eb6765efa287092",
+    "worktree_changes": {},
+    "unchanged_guard_files": {
+      "Cargo.toml": "61044a1397e6042c4d1fd8216ead08d063ebe62919f189bf7b72054656703588",
+      "Cargo.lock": "ae4364822a7c5f8c9847df4b1d5681fe2a68c2b1ecc56ab13df6c7037f6f1d41",
+      "crates/veoveo-hub/src/contract/catalog.rs": "4c3c3b6369e8ee9fef8ccbdd679b0e03a0a4b12beb5dd7cb7c15abb3315a0b2d",
+      "crates/veoveo-hub/src/contract/identity.rs": "d4c4819203406e55ef132332fd14a546782d575c897d7bf1e01604ef4afe8aa6",
+      "crates/veoveo-hub/src/contract/oauth.rs": "f144af3ddee526f3a0f61fa240b8d6830e106a50f99cf2be4a23f0da461a8d88"
+    },
+    "archive": {
+      "local_path": "/tmp/hub-linked-request-current-20261031/grant-production-probe1/hub-bfd390d.tar",
+      "remote_path": "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe2/hub-bfd390d.tar",
+      "sha256": "b928215e9c8979507aacbd059098b58ec23b05762d8038d92b4f226089a5d042"
+    },
+    "manifest": {
+      "local_path": "/tmp/hub-linked-request-current-20261031/grant-production-probe1/hub-bfd390d.manifest.json",
+      "remote_path": "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe2/hub-bfd390d.manifest.json",
+      "sha256": "734a4363cd492ba0c8a9077c85c754607843d1686d462dae8a3efb568da1dfc7"
+    }
+  },
+  "sdk": {
+    "revision": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+    "tree": "12fc6d9fd0d7a4c915a9a37be98b543e85f1749d",
+    "file_count": 178,
+    "source_map_sha256": "5358717ca6677785072c1c91b18aa8566f34e9e8fe946eecbb7be3ad5147af51",
+    "archive": {
+      "local_path": "/tmp/hub-discovery-cache-current-20261031/sdk-7360c0f.tar",
+      "remote_path": "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe2/sdk-7360c0f.tar",
+      "sha256": "f60c20c32d8a80d78a3ffb3d0066d9228012e7a5c8bdae19e45cd80cdeb93877"
+    },
+    "manifest": {
+      "local_path": "/tmp/hub-discovery-cache-current-20261031/sdk-7360c0f.manifest.json",
+      "remote_path": "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe2/sdk-7360c0f.manifest.json",
+      "sha256": "88f673efc8c7c7397cab96d76797583065ba8e1303b43f0960a92eb8fec09f5d"
+    }
+  },
+  "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+  "tools": {
+    "charon": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+    "charon_sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+    "aeneas": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+    "aeneas_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "rust_toolchain": "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+    "charon_target": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target"
+  },
+  "agents": {
+    "coordination": "root, configured GPT-6 Astra",
+    "diagnosis_and_packet": "coder, GPT-6.1 Sol",
+    "execution": "builder, GPT-6 Luna"
+  },
+  "attempts": [
+    {
+      "case": "current-hub-repository-grant-production-feasibility1",
+      "command": "timeout --signal=TERM --kill-after=15s 1600s python3 /home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe1/run-extraction.py",
+      "remote_task": "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe1",
+      "runner_sha256": "672820e130a44e621ed3f6c6affdc08f49597f90534d812d02b6872d7870d351",
+      "plan_sha256": "0a9d5deaf81890efe2b999c3ab054c3934cd60b01d9a2e1aa8a9fda7584c804f",
+      "control_sha256": "b06d8b19d974a74c59abc0b2861c012a68b17e4bd854138851bfd1a1489274f6",
+      "source": {
+        "hub_revision": "bfd390d141a2911ca8c2836106ad00b9ed557509",
+        "hub_tree": "a39b998453dd61aa9e8ed4068b7f1fe85f85560f",
+        "hub_files": 1156,
+        "hub_archive_sha256": "b928215e9c8979507aacbd059098b58ec23b05762d8038d92b4f226089a5d042",
+        "hub_manifest_sha256": "734a4363cd492ba0c8a9077c85c754607843d1686d462dae8a3efb568da1dfc7",
+        "sdk_revision": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+        "sdk_files": 178,
+        "sdk_archive_sha256": "f60c20c32d8a80d78a3ffb3d0066d9228012e7a5c8bdae19e45cd80cdeb93877",
+        "sdk_manifest_sha256": "88f673efc8c7c7397cab96d76797583065ba8e1303b43f0960a92eb8fec09f5d",
+        "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "source_maps_verified": true
+      },
+      "selectors": {
+        "start_patterns": 4,
+        "expected_actual_root_functions": 5,
+        "includes": 6,
+        "explicit_opaques": 0,
+        "inventory_reached": false
+      },
+      "stages": [
+        {
+          "stage": "verify-source-pin-metadata",
+          "exit": 0,
+          "elapsed_ms": 966,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "stage": "clean-hub-charon-target",
+          "exit": 0,
+          "elapsed_ms": 164,
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+        },
+        {
+          "stage": "charon-actual-repository-grants",
+          "exit": 101,
+          "elapsed_ms": 10434,
+          "log_bytes": 86308,
+          "log_sha256": "bd3b20f5e8900876b5123ef487f38f88536b5d23162d2566ed2e19b048f131ed"
+        }
+      ],
+      "result": {
+        "runner_exit": 1,
+        "complete": false,
+        "failure": "Charon emitted no LLBC; logs retained",
+        "aeneas_ran": false,
+        "llbc_emitted": false,
+        "outputs": [],
+        "diagnostic": "Rust compiler process panicked in rustc_metadata::rmeta::decoder::cstore_impl::provide_extern::fn_sig while resolving an external function signature; Charon reported ERROR Compilation panicked. Earlier warning reports overflow evaluating MaybeSendFuture for HubMcp::list_tools, through RequestObservation::scope and handle_list_tools. This is a compiler panic, not an observed Charon translation diagnostic."
+      },
+      "mirror": {
+        "summary.json": {
+          "bytes": 9234,
+          "sha256": "f06bef86d77154f0384f99d2b616f9823cb855a0993ba89903b6cfd1cf196ac1"
+        },
+        "charon-actual-repository-grants.log": {
+          "bytes": 86308,
+          "sha256": "bd3b20f5e8900876b5123ef487f38f88536b5d23162d2566ed2e19b048f131ed"
+        },
+        "runner.log": {
+          "bytes": 509,
+          "sha256": "bfbc804efeeb9bbbf3f120e81f5af0b4bb487d54fc03f5f0f2673d7f56fcf3e1"
+        },
+        "cargo-metadata.json": {
+          "bytes": 3042940,
+          "sha256": "4574f04b2d14c50e1a13789aae32919cd22de23aee8404190c6ab4f9029a6596"
+        },
+        "clean-hub-charon-target.log": {
+          "bytes": 21,
+          "sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+        },
+        "verify-source-pin-metadata.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "case": "current-hub-repository-grant-production-feasibility2",
+      "command": "timeout --signal=TERM --kill-after=15s 1600s python3 /home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe2/run-extraction.py",
+      "remote_session": 83551,
+      "runner_exit": 1,
+      "runner_sha256": "c0d26284b53f9dccca40eb90300f61bdd332b55a189072e09bc297384f586b84",
+      "plan_sha256": "d1ee5a7be5d2bf7028cf2908d0f383f6d66719ccad68f516ac6396fdbfc54630",
+      "control_sha256": "8b6e6ec85edddbe27e9e98ea31614f9c23d02ba690db422a00acc44a108c65d5",
+      "source": {
+        "hub_revision": "bfd390d141a2911ca8c2836106ad00b9ed557509",
+        "hub_tree": "a39b998453dd61aa9e8ed4068b7f1fe85f85560f",
+        "hub_files": 1156,
+        "hub_archive_sha256": "b928215e9c8979507aacbd059098b58ec23b05762d8038d92b4f226089a5d042",
+        "hub_manifest_sha256": "734a4363cd492ba0c8a9077c85c754607843d1686d462dae8a3efb568da1dfc7",
+        "sdk_revision": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+        "sdk_files": 178,
+        "sdk_archive_sha256": "f60c20c32d8a80d78a3ffb3d0066d9228012e7a5c8bdae19e45cd80cdeb93877",
+        "sdk_manifest_sha256": "88f673efc8c7c7397cab96d76797583065ba8e1303b43f0960a92eb8fec09f5d",
+        "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "source_maps_verified": true
+      },
+      "selectors": {
+        "configured_start_patterns": 2,
+        "expected_roots": 2,
+        "actual_started_declarations": 3,
+        "includes": 6,
+        "opaques": 0
+      },
+      "stages": [
+        {
+          "stage": "verify-source-pin-metadata",
+          "exit": 0,
+          "elapsed_ms": 716,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "stage": "clean-hub-charon-target",
+          "exit": 0,
+          "elapsed_ms": 215,
+          "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+        },
+        {
+          "stage": "charon-actual-repository-grants",
+          "exit": 0,
+          "elapsed_ms": 40258,
+          "log_bytes": 4868,
+          "log_sha256": "7dfdb0b77bf3bf21bb4f322e605fb2eb2310a44f11f70367e8c6111740d00679"
+        }
+      ],
+      "inventory": {
+        "passed": false,
+        "gate_failure": "root inventory must include exactly the two Hub producer functions",
+        "root_matches": [
+          {
+            "ident": "veoveo_hub::contract::catalog::<impl>::repository_grant",
+            "owner": "AdmittedCatalogSections",
+            "span": "crates/veoveo-hub/src/contract/catalog.rs:581-607",
+            "opacity": "Transparent",
+            "has_errors": false
+          },
+          {
+            "ident": "veoveo_hub::contract::catalog::<impl>::group_memberships",
+            "owner": "AdmittedCatalogSections",
+            "span": "crates/veoveo-hub/src/contract/catalog.rs:567-577",
+            "opacity": "Transparent",
+            "has_errors": false
+          }
+        ],
+        "unexpected_started_declaration": {
+          "ident": "veoveo_hub::contract::catalog::CatalogSection::group_memberships",
+          "owner_resolution": "unresolved: expected one impl segment",
+          "span": "crates/veoveo-hub/src/contract/catalog.rs:144-146",
+          "opacity": "Transparent",
+          "has_errors": false
+        },
+        "own_function_declarations": 38,
+        "own_functions_opacity": "all Transparent",
+        "own_function_errors": 0,
+        "own_type_declarations": 37,
+        "own_types_opacity": "all Transparent",
+        "own_type_errors": 0,
+        "full_fields_match": 5
+      },
+      "result": {
+        "failure": "strict actual-source inventory rejected; no Aeneas",
+        "llbc_emitted": true,
+        "aeneas_ran": false,
+        "qualification_boundary": "Extraction and LLBC inventory only; no Lean/proof qualification."
+      },
+      "artifacts": {
+        "runner_log": {
+          "bytes": 535,
+          "sha256": "57e629e7ab42534c212bebcba8abbb6a0213a45bcdfe212a02d9702d785a26fb"
+        },
+        "summary": {
+          "bytes": 10289,
+          "sha256": "b0c14b6e98c61914151a3f14d084fc3ef71185aa24345667ff4b1a062f7d79a8"
+        },
+        "inventory": {
+          "bytes": 1859855,
+          "sha256": "a9c2ca3623e3b09fd7897550d8a5b0f0f835d423edb1e3a137ec9c18073225ca"
+        },
+        "llbc": {
+          "bytes": 1859041,
+          "sha256": "391887bda0c2505e4e9d9c6e5f74303ed19d19fa7e5c71552eda81f0f5ae3203"
+        },
+        "charon_log": {
+          "bytes": 4868,
+          "sha256": "7dfdb0b77bf3bf21bb4f322e605fb2eb2310a44f11f70367e8c6111740d00679"
+        },
+        "cargo_metadata": {
+          "bytes": 3042940,
+          "sha256": "7a232e8d9a6b5eff98714ad650aabb4df994522524f5d7a88bd64ae53f91c07d"
+        }
+      }
+    }
+  ],
+  "backend_continuation": {
+    "case": "grant-production-probe2-aeneas-backend-only",
+    "argv": [
+      "/usr/bin/time",
+      "-v",
+      "timeout",
+      "--signal=TERM",
+      "--kill-after=15s",
+      "600s",
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+      "-backend",
+      "lean",
+      "-filter-trait-methods",
+      "-split-files",
+      "-namespace",
+      "HubRepositoryGrantModel",
+      "-subdir",
+      "HubRepositoryGrantModel",
+      "-dest",
+      "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe2/backend1/outputs",
+      "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe2/run1/outputs/repository_grants.llbc"
+    ],
+    "cwd": "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe2/run1/source",
+    "exit": 2,
+    "elapsed_ms": 459,
+    "timed_out": false,
+    "llbc_sha256_before": "391887bda0c2505e4e9d9c6e5f74303ed19d19fa7e5c71552eda81f0f5ae3203",
+    "llbc_sha256_after": "391887bda0c2505e4e9d9c6e5f74303ed19d19fa7e5c71552eda81f0f5ae3203",
+    "aeneas_sha256_before": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "aeneas_sha256_after": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "log": "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe2/backend1/aeneas.log",
+    "log_bytes": 3228,
+    "log_sha256": "9a692be9539c6ebf2740ea1d2d3fad9b853c362b57869553e592458c8dd1299e",
+    "outputs": []
+  },
+  "backend_scope_review": {
+    "decision": "Retain failed exact-two-root inventory; accept the three explicitly identified roots for backend feasibility only.",
+    "additional_root": "veoveo_hub::contract::catalog::CatalogSection::group_memberships",
+    "source": "crates/veoveo-hub/src/contract/catalog.rs:144-146",
+    "body": "Ok(Vec::new())",
+    "no_reextraction": true,
+    "no_generated_or_native_edits": true,
+    "not_a_proof_gate_pass": true
+  },
+  "required_iterator_boundary": {
+    "classification": "required producer iterator signature unsupported by inspected pinned backend; not extra CatalogSection default-root failure",
+    "llbc_sha256": "391887bda0c2505e4e9d9c6e5f74303ed19d19fa7e5c71552eda81f0f5ae3203",
+    "trait": {
+      "def_id": 5,
+      "name": "core::iter::traits::iterator::Iterator",
+      "method_index": 57,
+      "method_name": "cloned",
+      "method_params": {
+        "regions": [
+          {
+            "index": 0,
+            "name": "'a",
+            "variance": "Invariant",
+            "mutability": "Unknown",
+            "late_bound": false
+          }
+        ],
+        "types": [
+          {
+            "index": 0,
+            "name": "T",
+            "variance": "Invariant"
+          },
+          {
+            "index": 1,
+            "name": "Clause1_Item",
+            "variance": "Invariant"
+          }
+        ],
+        "const_generics": [],
+        "trait_clauses": [
+          {
+            "clause_id": 0,
+            "span": {
+              "Deduplicated": 163
+            },
+            "origin": "WhereClauseOnFn",
+            "trait_": {
+              "regions": [],
+              "regions_outlive": [],
+              "types_outlive": [],
+              "skip_binder": {
+                "id": 0,
+                "generics": {
+                  "regions": [],
+                  "types": [
+                    {
+                      "Deduplicated": 9
+                    }
+                  ],
+                  "const_generics": [],
+                  "trait_refs": []
+                }
+              }
+            }
+          },
+          {
+            "clause_id": 1,
+            "span": {
+              "Deduplicated": 164
+            },
+            "origin": "WhereClauseOnFn",
+            "trait_": {
+              "regions": [],
+              "regions_outlive": [],
+              "types_outlive": [],
+              "skip_binder": {
+                "id": 5,
+                "generics": {
+                  "regions": [],
+                  "types": [
+                    {
+                      "Deduplicated": 35
+                    },
+                    {
+                      "Deduplicated": 13
+                    }
+                  ],
+                  "const_generics": [],
+                  "trait_refs": []
+                }
+              }
+            }
+          }
+        ],
+        "regions_outlive": [],
+        "types_outlive": [
+          {
+            "regions": [],
+            "regions_outlive": [],
+            "types_outlive": [],
+            "skip_binder": [
+              {
+                "Deduplicated": 9
+              },
+              {
+                "Var": {
+                  "Bound": [
+                    1,
+                    0
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "trait_type_constraints": [
+          {
+            "regions": [],
+            "regions_outlive": [],
+            "types_outlive": [],
+            "skip_binder": {
+              "trait_ref": {
+                "Deduplicated": 87
+              },
+              "type_id": 0,
+              "ty": {
+                "Value": [
+                  534,
+                  {
+                    "Ref": [
+                      {
+                        "Var": {
+                          "Bound": [
+                            1,
+                            0
+                          ]
+                        }
+                      },
+                      {
+                        "Deduplicated": 9
+                      },
+                      "Shared"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "trait_span": {
+        "Untagged": {
+          "data": {
+            "file_id": 40,
+            "beg": {
+              "line": 42,
+              "col": 0
+            },
+            "end": {
+              "line": 42,
+              "col": 24
+            }
+          },
+          "generated_from_span": null
+        }
+      },
+      "method_span": {
+        "Untagged": {
+          "data": {
+            "file_id": 40,
+            "beg": {
+              "line": 3579,
+              "col": 4
+            },
+            "end": {
+              "line": 3582,
+              "col": 45
+            }
+          },
+          "generated_from_span": null
+        }
+      }
+    },
+    "producer_dependency": {
+      "repository_grant_def_id": 27,
+      "flat_map_closure_def_id": 40,
+      "closure_span": {
+        "Untagged": {
+          "data": {
+            "file_id": 13,
+            "beg": {
+              "line": 604,
+              "col": 26
+            },
+            "end": {
+              "line": 604,
+              "col": 64
+            }
+          },
+          "generated_from_span": null
+        }
+      },
+      "cloned_function_def_id": 110,
+      "actual_closure_calls": [
+        {
+          "func": {
+            "Regular": {
+              "kind": {
+                "Fun": 110
+              },
+              "generics": {
+                "regions": [
+                  {
+                    "Body": 15
+                  }
+                ],
+                "types": [
+                  {
+                    "Value": [
+                      387,
+                      {
+                        "Adt": {
+                          "id": 41,
+                          "generics": {
+                            "regions": [
+                              {
+                                "Body": 15
+                              }
+                            ],
+                            "types": [
+                              {
+                                "Deduplicated": 34
+                              }
+                            ],
+                            "const_generics": [],
+                            "trait_refs": []
+                          },
+                          "builtin": null
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "Deduplicated": 34
+                  },
+                  {
+                    "Value": [
+                      388,
+                      {
+                        "Ref": [
+                          {
+                            "Body": 15
+                          },
+                          {
+                            "Deduplicated": 34
+                          },
+                          "Shared"
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "const_generics": [],
+                "trait_refs": [
+                  {
+                    "regions": [],
+                    "regions_outlive": [],
+                    "types_outlive": [],
+                    "skip_binder": {
+                      "Value": [
+                        61,
+                        {
+                          "kind": {
+                            "TraitImpl": {
+                              "id": 35,
+                              "generics": {
+                                "regions": [
+                                  {
+                                    "Body": 15
+                                  }
+                                ],
+                                "types": [
+                                  {
+                                    "Deduplicated": 34
+                                  }
+                                ],
+                                "const_generics": [],
+                                "trait_refs": []
+                              }
+                            }
+                          },
+                          "trait_decl_ref": {
+                            "id": 5,
+                            "generics": {
+                              "regions": [],
+                              "types": [
+                                {
+                                  "Deduplicated": 387
+                                },
+                                {
+                                  "Deduplicated": 388
+                                }
+                              ],
+                              "const_generics": [],
+                              "trait_refs": []
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "regions": [],
+                    "regions_outlive": [],
+                    "types_outlive": [],
+                    "skip_binder": {
+                      "Deduplicated": 40
+                    }
+                  },
+                  {
+                    "regions": [],
+                    "regions_outlive": [],
+                    "types_outlive": [],
+                    "skip_binder": {
+                      "Deduplicated": 61
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "args": [
+            {
+              "Move": {
+                "kind": {
+                  "Local": 5
+                },
+                "ty": {
+                  "Deduplicated": 385
+                }
+              }
+            }
+          ],
+          "dest": {
+            "kind": {
+              "Local": 0
+            },
+            "ty": {
+              "Deduplicated": 381
+            }
+          },
+          "safety": "Inherit"
+        }
+      ]
+    },
+    "source_assertion": "SymbolicToPureTypes.translate_fun_sigs lines1004\u20131005 requires sg.item_binder_params.trait_type_constraints=[]; translate_flat_trait_method_sigs1055\u20131075 passes flattened Iterator method with trait span",
+    "already_used_options": {
+      "charon_lift_associated_types": [
+        "*"
+      ],
+      "aeneas_filter_trait_methods": true
+    },
+    "extra_default": {
+      "def_id": 28,
+      "source": "fn group_memberships(&self) -> Result<Vec<GroupMembershipDescriptor>, ExtensionError> { Ok(Vec::new()) }",
+      "trait_type_constraints": [],
+      "not_cause": "It does not call Iterator::cloned. Required repository_grant itself retains that dependency under root narrowing."
+    },
+    "recommendation": "No repository_grant-only retry to address this failure. Retain backend boundary, progress independent actual detail constructors/projection proofs after successful raw interface review. General associated-type-constraint normalization/tool support requires separately reviewed tool work; never drop the equality or replace cloned/producer with an own opaque oracle.",
+    "source_binary_provenance": "Available source checkout fdebf20; build correspondence to executed binary hash unestablished. Stack exactly identifies the same assertion; source interpretation is explicit."
+  },
+  "diagnosis": {
+    "root_resolution": "First panic names the external RepositoryIds unit-marker constructor during path resolution. Removing external SDK starts avoids that panic; the individual offending selector was not isolated.",
+    "iterator": "The required producer flat_map closure calls Iterator::cloned. Its residual associated-type equality Self::Item = &T is rejected during trait-signature translation.",
+    "extra_default_root": "The extra empty CatalogSection default has no such constraint or Iterator::cloned call. Removing it cannot remove the required producer dependency.",
+    "source_binary_correspondence": "Available Aeneas source fdebf20 corroborates the assertion and stack; build provenance tying that checkout to the executed binary is not established.",
+    "decision": "No further root-only retry, constraint erasure, native rewrite or backend patch. Retain producer and full issuer/verifier obligations."
+  },
+  "command_inputs": {
+    "probe1_charon_argv": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+      "cargo",
+      "--sysroot",
+      "default",
+      "--preset=aeneas",
+      "--start-from",
+      "veoveo_hub::contract::catalog::_::repository_grant",
+      "--start-from",
+      "veoveo_hub::contract::catalog::_::group_memberships",
+      "--start-from",
+      "veoveo_hub_sdk::registration::grants::_::new",
+      "--start-from",
+      "veoveo_hub_sdk::registration::grants::_::grant",
+      "--include",
+      "veoveo_hub::contract::catalog",
+      "--include",
+      "veoveo_hub::contract::identity",
+      "--include",
+      "veoveo_hub::contract::oauth",
+      "--include",
+      "veoveo_hub_sdk::registration::grants",
+      "--include",
+      "veoveo_hub_sdk::identity",
+      "--include",
+      "veoveo_types",
+      "--dest-file",
+      "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe1/run1/outputs/repository_grants.llbc",
+      "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+      "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+      "--",
+      "--manifest-path",
+      "crates/veoveo-hub/Cargo.toml",
+      "--lib",
+      "--locked"
+    ],
+    "probe2_charon_argv": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+      "cargo",
+      "--sysroot",
+      "default",
+      "--preset=aeneas",
+      "--start-from",
+      "veoveo_hub::contract::catalog::_::repository_grant",
+      "--start-from",
+      "veoveo_hub::contract::catalog::_::group_memberships",
+      "--include",
+      "veoveo_hub::contract::catalog",
+      "--include",
+      "veoveo_hub::contract::identity",
+      "--include",
+      "veoveo_hub::contract::oauth",
+      "--include",
+      "veoveo_hub_sdk::registration::grants",
+      "--include",
+      "veoveo_hub_sdk::identity",
+      "--include",
+      "veoveo_types",
+      "--dest-file",
+      "/home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/grant-production-probe2/run1/outputs/repository_grants.llbc",
+      "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+      "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+      "--",
+      "--manifest-path",
+      "crates/veoveo-hub/Cargo.toml",
+      "--lib",
+      "--locked"
+    ],
+    "explicit_opaques": [],
+    "retained_source_fields": {
+      "veoveo_hub::contract::catalog::AdmittedCatalogSections": [
+        "sections",
+        "resources",
+        "objects",
+        "memberships",
+        "repository_grants"
+      ],
+      "veoveo_types::extensions::AdmittedExtensions": [
+        "identity",
+        "values"
+      ],
+      "veoveo_types::extensions::AdmittedPayload": [
+        "wire"
+      ],
+      "veoveo_hub_sdk::registration::grants::RepositoryGrant": [
+        "repository",
+        "actions"
+      ],
+      "veoveo_hub_sdk::identity::GroupMembership": [
+        "group",
+        "role"
+      ]
+    }
+  },
+  "artifact_digests": {
+    "grant-production-probe1/run-extraction.py": {
+      "bytes": 25178,
+      "sha256": "672820e130a44e621ed3f6c6affdc08f49597f90534d812d02b6872d7870d351"
+    },
+    "grant-production-probe1/extraction-plan.json": {
+      "bytes": 10472,
+      "sha256": "0a9d5deaf81890efe2b999c3ab054c3934cd60b01d9a2e1aa8a9fda7584c804f"
+    },
+    "grant-production-probe2/run-extraction.py": {
+      "bytes": 25158,
+      "sha256": "c0d26284b53f9dccca40eb90300f61bdd332b55a189072e09bc297384f586b84"
+    },
+    "grant-production-probe2/extraction-plan.json": {
+      "bytes": 11270,
+      "sha256": "d1ee5a7be5d2bf7028cf2908d0f383f6d66719ccad68f516ac6396fdbfc54630"
+    },
+    "grant-production-probe2/DIAGNOSIS.md": {
+      "bytes": 2855,
+      "sha256": "2f10e87ad2371dc14459e65d14aef09e2c423b9a2cf76a56be09af94362d3df7"
+    },
+    "grant-production-probe2-backend-diagnosis/DIAGNOSIS.md": {
+      "bytes": 3033,
+      "sha256": "a5dd0bb4de59acf81b42e47cb612958302eb03b5ad2011267bb92ba740fa8423"
+    },
+    "grant-production-probe2-backend-diagnosis/constraint-evidence.json": {
+      "bytes": 10078,
+      "sha256": "d2c6d8a342755c8c2ed33859c07561928fcb60c6bfd2e889b53d4f7df0765897"
+    },
+    "grant-production-probe2-mirror/backend1/summary.json": {
+      "bytes": 1464,
+      "sha256": "bef26525e3ed782681273be1c304a4d9ce256304eafa21159d9e2739ac3e5d66"
+    }
+  },
+  "next_dependency": {
+    "operation": "actual SDK RepositoryDetail construction/projection",
+    "extraction_summary": {
+      "case": "sdk736-local-grant-detail-construction-feasibility1",
+      "command": "timeout --signal=TERM --kill-after=15s 1600s python3 /home/rozgo/.cache/lean-pilot/hub-linked-request-current-20261031/sdk-grant-detail-probe1/run-extraction.py",
+      "runner_exit": 0,
+      "complete": true,
+      "source": {
+        "sdk_revision": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+        "tree": "12fc6d9fd0d7a4c915a9a37be98b543e85f1749d",
+        "file_count": 178,
+        "source_map_sha256": "5358717ca6677785072c1c91b18aa8566f34e9e8fe946eecbb7be3ad5147af51",
+        "sdk_archive_sha256": "f60c20c32d8a80d78a3ffb3d0066d9228012e7a5c8bdae19e45cd80cdeb93877",
+        "manifest_sha256": "88f673efc8c7c7397cab96d76797583065ba8e1303b43f0960a92eb8fec09f5d",
+        "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "core_sources_verified": true
+      },
+      "selectors": {
+        "patterns": 2,
+        "includes": 3,
+        "explicit_opaques": 0,
+        "expected_actual_root_functions": 3
+      },
+      "roots": [
+        {
+          "name": "PermissionsDetail::new",
+          "source": "crates/veoveo-hub-sdk/src/registration/grants.rs:32-37",
+          "opacity": "Transparent",
+          "errors": false
+        },
+        {
+          "name": "RepositoryDetail::new",
+          "source": "crates/veoveo-hub-sdk/src/registration/grants.rs:147-153",
+          "opacity": "Transparent",
+          "errors": false
+        },
+        {
+          "name": "RepositoryDetail::grant",
+          "source": "crates/veoveo-hub-sdk/src/registration/grants.rs:156-161",
+          "opacity": "Transparent",
+          "errors": false
+        }
+      ],
+      "inventory": {
+        "passed": true,
+        "own_functions": 7,
+        "own_functions_transparent": 7,
+        "own_function_errors": 0,
+        "own_types": 8,
+        "own_types_transparent": 8,
+        "own_type_errors": 0,
+        "core_types": 1,
+        "core_type_transparent": [
+          "veoveo_types::permission_names::PermissionName"
+        ],
+        "field_sets": {
+          "RepositoryGrant": [
+            "repository",
+            "actions"
+          ],
+          "RepositoryDetail": [
+            "kind",
+            "identifier",
+            "actions"
+          ],
+          "PermissionsDetail": [
+            "kind",
+            "actions"
+          ]
+        },
+        "typed_fields_checked": true,
+        "native_string_payload_types": [
+          "RepositoryId",
+          "RepositoryAction",
+          "PermissionName"
+        ],
+        "detail_kind_variants_checked": true,
+        "charon_version": "0.1.293"
+      },
+      "timings_time_v": {
+        "source_metadata_wall_seconds": 0.23,
+        "sdk_package_clean_wall_seconds": 0.09,
+        "charon_wall_seconds": 16.19,
+        "aeneas_wall_seconds": 0.62
+      },
+      "artifacts": {
+        "llbc": {
+          "bytes": 317098,
+          "sha256": "a584e81f0f3ddf4f7fb99cd10af209e39823e00aceda92eae24b18093062e0ab"
+        },
+        "Funs.lean": {
+          "bytes": 4581,
+          "sha256": "40c0e1be9dbe30221421189fb02b4a21afc458343bf6bff18fc9335e83dbdf45"
+        },
+        "FunsExternal_Template.lean": {
+          "bytes": 2061,
+          "sha256": "2300e46b90c248bc25b0c42a9fe18fddbb7880a27230b993f6ca4c0c1c1bf1b1"
+        },
+        "Types.lean": {
+          "bytes": 3858,
+          "sha256": "dcbc7b67427da67d9e5a14ca054e49c8a0a061e5f88eddd9f3f3e875bcdf4e0d"
+        },
+        "TypesExternal_Template.lean": {
+          "bytes": 1121,
+          "sha256": "a825ae292e353a8c0f02ee398ebfbd7077b085334c2f58767d9498af6a601a81"
+        }
+      },
+      "log_hashes": {
+        "runner.log": "c555dcd2805066c327cd33fc9eed73d157956f3c26d270f7b18c8a01dcb79908",
+        "source-metadata.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "clean-sdk-package-only.log": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+        "charon.log": "861034c5b1fd0388570a1151e61906b1e24529c5fc0485ac5083d8afd22db6e5",
+        "aeneas.log": "1dfe004d391462b9cf1c777a2036c7bdbe3cf8d26c31395aa42d0ff4f86e0f3a",
+        "inventory.json": "3b0435402924691b577d578622c96472bb8f734c55c5db6ae31b6332fbccb64e",
+        "summary.json": "52a016f46368123cbc4d44cb5ad037c7ebf350a2beb195cb679acaedd1f0b089"
+      },
+      "qualification_boundary": "Successful SDK source metadata, strict LLBC inventory, and Lean model generation. No Lean compilation/proof or full issuer/verifier equivalence was run."
+    },
+    "formal_status": "Model generated; no Lean compile/proof at this checkpoint. This does not substitute for producer or verifier coverage."
+  },
+  "limitations": [
+    "No native or deployed qualification in these extraction attempts.",
+    "No parser, JSON, signature, caller, SQL or native Lore equivalence proved.",
+    "No change to Hub/SDK runtime, policy, dependencies or CI."
+  ]
+}
