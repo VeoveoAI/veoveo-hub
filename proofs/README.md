@@ -1445,6 +1445,13 @@ each. This qualifies the scoped store-model slice. Complete native response
 payloads and postcommit service effects are next and remain unproved. These checkpoints do not
 establish formal SQL refinement, asynchronous listener convergence or deployment.
 
+The [native response extraction attempt](registration_transactions/evidence/information-extraction-boundary.json)
+retains the actual `information` constructor, surface/URI helpers and SDK validators.
+Charon and strict own inventory pass; Aeneas fails on unsupported nested-loop,
+dynamic/arrow and lifetime/string constructs and emits no Lean model. Full native
+response/postcommit and audit contracts remain open; no production refactor or
+own-helper opacity was introduced to force translation.
+
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
 **Invariant/failure prevented.** Hub calculates the intended repository grant from

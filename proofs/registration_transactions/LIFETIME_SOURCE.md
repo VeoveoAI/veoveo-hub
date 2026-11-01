@@ -128,6 +128,15 @@ commit precedes service audits, catalog reloads, `served_at` and response constr
 an error in those steps cannot be interpreted as rollback. SQLValid preservation
 and native SQL refinement remain separate obligations.
 
+One [unchanged-source extraction probe](evidence/information-extraction-boundary.json)
+of `RegistrationService::information` reached its real URI/surface construction,
+SDK response validation and endpoint-to-resource conversion. Charon and strict
+own-body/type/field inventory passed, but the pinned Aeneas backend failed on
+nested-loop returns, dynamic/arrow types and string/iterator lifetime constructs.
+No Lean response model was emitted. Production code and own helper transparency
+were unchanged; no additional response proof follows from that extraction attempt.
+Native response/postcommit and audit contracts are the next source-review boundary.
+
 Namespace writers, token reissue, RFC 7592 updates, housekeeping, allocation/recreation,
 ID reuse, other normal row writers, distributed ordering, listener convergence,
 HTTP cancellation, native sandbox cleanup and liveness are outside this checkpoint.

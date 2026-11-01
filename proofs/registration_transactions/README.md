@@ -269,3 +269,9 @@ not complete returned credential/database/metadata payloads. External preparatio
 token reissue, other instance-row writers, listener convergence and formal
 Rust/SQL refinement remain outside this checkpoint; see the
 [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-lifetime-foundation.md).
+
+The [unchanged native response probe](evidence/information-extraction-boundary.json)
+passes Charon extraction and strict inventory of the real construction/validation
+graph, but Aeneas fails on unsupported nested loops, dynamic/arrow types and
+lifetime/string operations. It emitted no Lean model and establishes no response
+theorem. Native response/postcommit and audit contracts remain under source review.

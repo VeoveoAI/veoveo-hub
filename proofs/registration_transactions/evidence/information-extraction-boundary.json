@@ -1,0 +1,453 @@
+{
+  "date": "2026-11-01",
+  "status": "Unchanged native registration information graph passes Charon inventory; pinned Aeneas backend fails. No Lean output or response theorem.",
+  "agents": {
+    "source_audit": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source": {
+    "hub_revision": "af953f6207a1fcfe592ad7328a6a74b6375c7905",
+    "hub_tree": "3861d02d59ce421f93e26e2d29ad2312e4920ed5",
+    "file_count": 1224,
+    "source_map_sha256": "46a5300b10ebd6a3b34ae92bb79319a24ac7cea10a116d105444080974e51fad",
+    "worktree_changes": {},
+    "unchanged_guard_files": {
+      "Cargo.toml": "61044a1397e6042c4d1fd8216ead08d063ebe62919f189bf7b72054656703588",
+      "Cargo.lock": "ae4364822a7c5f8c9847df4b1d5681fe2a68c2b1ecc56ab13df6c7037f6f1d41",
+      "crates/veoveo-hub/src/registration/service.rs": "cde086d139188aea96d2a3e6d75e27418c0fe386ec2a5f7c9d3f429c33576d2a",
+      "crates/veoveo-hub/src/registration/store.rs": "d615bd603e34d37336bcdf15de4b988edc0b9367574205aa6770980215cb0c90",
+      "crates/veoveo-hub/src/registration/mod.rs": "897915ca7bec4a1c5674c501b070385ddfd6d83c0d0e265548201be6f027ed26",
+      "crates/veoveo-hub/src/apps/origins.rs": "54cd03076a0dc43ed5ab5df0e84e33865a48c15c14923c422d45ae8b87a18554"
+    },
+    "archive": {
+      "local_path": "/tmp/hub-registration-instance-removal-20261101/information-probe1/hub-af953f6.tar",
+      "remote_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/hub-af953f6.tar",
+      "sha256": "d52d96776962b9f86be1018c6ac08551a6fe0aa7eacca80030ce5be2e8db9f2a"
+    },
+    "manifest": {
+      "local_path": "/tmp/hub-registration-instance-removal-20261101/information-probe1/hub-af953f6.manifest.json",
+      "remote_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/hub-af953f6.manifest.json",
+      "sha256": "0cfe8090df3def677f442f33c148db068dd1ae26cb4b402f5a734185326d9151"
+    }
+  },
+  "sdk": {
+    "revision": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+    "tree": "12fc6d9fd0d7a4c915a9a37be98b543e85f1749d",
+    "file_count": 178,
+    "source_map_sha256": "5358717ca6677785072c1c91b18aa8566f34e9e8fe946eecbb7be3ad5147af51",
+    "archive": {
+      "local_path": "/tmp/hub-discovery-cache-current-20261031/sdk-7360c0f.tar",
+      "remote_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/sdk-7360c0f.tar",
+      "sha256": "f60c20c32d8a80d78a3ffb3d0066d9228012e7a5c8bdae19e45cd80cdeb93877"
+    },
+    "manifest": {
+      "local_path": "/tmp/hub-discovery-cache-current-20261031/sdk-7360c0f.manifest.json",
+      "remote_path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/sdk-7360c0f.manifest.json",
+      "sha256": "88f673efc8c7c7397cab96d76797583065ba8e1303b43f0960a92eb8fec09f5d"
+    }
+  },
+  "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+  "toolchain": {
+    "charon": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+    "charon_sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+    "aeneas": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+    "aeneas_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "rust_toolchain": "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+    "charon_target": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target"
+  },
+  "scope": {
+    "starts": [
+      "veoveo_hub::registration::service::_::information"
+    ],
+    "includes": [
+      "veoveo_hub",
+      "veoveo_hub_sdk",
+      "veoveo_types"
+    ],
+    "opaque": [],
+    "required_functions": [
+      {
+        "selector": "veoveo_hub::registration::service::_::registration_client_uri",
+        "owner": "RegistrationService",
+        "source_suffix": "crates/veoveo-hub/src/registration/service.rs",
+        "source_start_line": 294
+      },
+      {
+        "selector": "veoveo_hub::registration::service::_::surfaces",
+        "owner": "RegistrationService",
+        "source_suffix": "crates/veoveo-hub/src/registration/service.rs",
+        "source_start_line": 688
+      },
+      {
+        "selector": "veoveo_hub_sdk::registration::oauth::_::check",
+        "owner": "ClientInformation",
+        "source_suffix": "crates/veoveo-hub-sdk/src/registration/oauth.rs",
+        "source_start_line": 305
+      },
+      {
+        "selector": null,
+        "method": "from",
+        "ident_prefix": [
+          "veoveo_hub_sdk",
+          "registration",
+          "declaration"
+        ],
+        "source_suffix": "crates/veoveo-hub-sdk/src/registration/declaration.rs",
+        "source_start_line": 165,
+        "meaning": "actual From<&ServerEndpoint> for ResourceIndicator, not From<ResourceIndicator> for Url; exact source span identifies this trait method and retained signature is audited"
+      }
+    ],
+    "required_struct_fields": {
+      "veoveo_hub::registration::service::RegistrationService": [
+        "inner"
+      ],
+      "veoveo_hub::registration::service::Inner": [
+        "store",
+        "catalog",
+        "hub",
+        "issuer",
+        "registration_endpoint",
+        "jwks_uri",
+        "access_token_keys",
+        "database",
+        "grace",
+        "live",
+        "public_origin",
+        "app_origins"
+      ],
+      "veoveo_hub_sdk::registration::oauth::ClientInformation": [
+        "client_id",
+        "client_id_issued_at",
+        "registration_access_token",
+        "registration_client_uri",
+        "metadata",
+        "software_statement",
+        "access_tokens",
+        "database",
+        "public_base",
+        "app_origin"
+      ],
+      "veoveo_hub_sdk::registration::oauth::ClientMetadata": [
+        "jwks",
+        "token_endpoint_auth_method",
+        "grant_types",
+        "response_types",
+        "registration",
+        "authorization"
+      ],
+      "veoveo_hub_sdk::registration::declaration::RegistrationDeclaration": [
+        "deployment",
+        "slug",
+        "uri_scheme",
+        "version",
+        "endpoint",
+        "surfaces"
+      ],
+      "veoveo_hub_sdk::registration::oauth::AccessTokenTrust": [
+        "deployment",
+        "issuer",
+        "jwks",
+        "resource"
+      ],
+      "veoveo_hub_sdk::registration::oauth::DatabaseGrant": [
+        "binding",
+        "url",
+        "username",
+        "password"
+      ],
+      "veoveo_hub_sdk::registration::declaration::ResourceIndicator": [
+        "_0"
+      ],
+      "veoveo_hub_sdk::registration::declaration::ServerEndpoint": [
+        "_0"
+      ]
+    }
+  },
+  "qualification": {
+    "aeneas_binary_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "aeneas_diagnostics": [
+      {
+        "line": 9,
+        "message": "Returns inside of nested loops are not supported yet",
+        "source": "Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 162:4-166:37"
+      },
+      {
+        "line": 11,
+        "message": "Ignoring the body of 'veoveo_hub_sdk::registration::authorization::{veoveo_hub_sdk::registration::authorization::AuthorizationDeclaration}::check' because of previous error",
+        "source": "Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/registration/authorization.rs', lines 162:4-166:37"
+      },
+      {
+        "line": 17,
+        "message": "Returns inside of nested loops are not supported yet",
+        "source": "Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/registration/authorization_template.rs', lines 19:4-19:74"
+      },
+      {
+        "line": 19,
+        "message": "Ignoring the body of 'veoveo_hub_sdk::registration::authorization_template::{veoveo_hub_sdk::registration::authorization_template::AuthorizationTemplate<'a>}::parse' because of previous error",
+        "source": "Source: '/cargo/git/checkouts/veoveo-hub-sdk-bce286867adf89df/7360c0f/crates/veoveo-hub-sdk/src/registration/authorization_template.rs', lines 19:4-19:74"
+      },
+      {
+        "line": 23,
+        "message": "Returns inside of nested loops are not supported yet",
+        "source": "Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/resource_components.rs', lines 68:4-68:63"
+      },
+      {
+        "line": 25,
+        "message": "Ignoring the body of 'veoveo_types::resource_components::{veoveo_types::resource_components::ResourceUriParts}::parse' because of previous error",
+        "source": "Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/resource_components.rs', lines 68:4-68:63"
+      },
+      {
+        "line": 30,
+        "message": "Dynamic trait types are not supported yet",
+        "source": "Source: 'crates/veoveo-hub/src/state.rs', lines 28:0-39:1"
+      },
+      {
+        "line": 37,
+        "message": "Dynamic trait types are not supported yet",
+        "source": "Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/extensions.rs', lines 41:0-41:12"
+      },
+      {
+        "line": 52,
+        "message": "Dynamic trait types are not supported yet",
+        "source": "Source: 'crates/veoveo-hub/src/oauth_clients.rs', lines 111:0-115:1"
+      },
+      {
+        "line": 59,
+        "message": "Arrow types are not supported yet",
+        "source": "Source: 'crates/veoveo-hub/src/mcp/upstream_http.rs', lines 25:0-30:1"
+      },
+      {
+        "line": 66,
+        "message": "Dynamic trait types are not supported yet",
+        "source": "Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 172:0-175:1"
+      },
+      {
+        "line": 73,
+        "message": "Arrow types are not supported yet",
+        "source": "Source: 'crates/veoveo-hub/src/contract/catalog.rs', lines 177:0-181:1"
+      },
+      {
+        "line": 80,
+        "message": "Dynamic trait types are not supported yet",
+        "source": "Source: '/cargo/git/checkouts/openshell-f2a3eacab63ae477/c80bda2/crates/openshell-sdk/src/config.rs', lines 26:0-26:19"
+      },
+      {
+        "line": 92,
+        "message": "Arrow types are not supported yet",
+        "source": "Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/id_profile.rs', lines 30:0-30:27"
+      },
+      {
+        "line": 99,
+        "message": "Arrow types are not supported yet",
+        "source": "Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/id_profile.rs', lines 89:0-89:21"
+      },
+      {
+        "line": 106,
+        "message": "Arrow types are not supported yet",
+        "source": "Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/id_profile.rs', lines 163:0-163:17"
+      },
+      {
+        "line": 115,
+        "message": "Unimplemented",
+        "source": "Source: '/rustc/library/core/src/str/mod.rs', lines 1445:4-1447:53"
+      },
+      {
+        "line": 130,
+        "message": "Arrow types are not supported yet",
+        "source": "Source: 'crates/veoveo-hub/src/registration/service.rs', lines 784:0-789:1"
+      },
+      {
+        "line": 138,
+        "message": "Unimplemented: found an occurrence of a lifetime constraint relating",
+        "source": "Source: '/rustc/library/core/src/str/mod.rs', lines 175:4-175:40"
+      },
+      {
+        "line": 151,
+        "message": "Unimplemented",
+        "source": "Source: '/rustc/library/core/src/str/mod.rs', lines 175:4-175:40"
+      },
+      {
+        "line": 165,
+        "message": "Unimplemented: found an occurrence of a lifetime constraint relating",
+        "source": "Source: '/rustc/library/core/src/slice/iter/macros.rs', lines 338:12-341:46; this code is generated from a macro invocation at: '/rustc/library/core/src/slice/iter.rs', lines 140:0-148:2"
+      },
+      {
+        "line": 178,
+        "message": "Unimplemented",
+        "source": "Source: '/rustc/library/core/src/str/mod.rs', lines 2486:4-2488:53"
+      },
+      {
+        "line": 186,
+        "message": "We don't support arrow types with locally quantified regions",
+        "source": "Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/422dcf2/platform/types/src/id_profile.rs', lines 40:4-40:78"
+      },
+      {
+        "line": 194,
+        "message": "Unimplemented",
+        "source": "Source: '/rustc/library/core/src/str/pattern.rs', lines 99:0-99:24"
+      }
+    ],
+    "aeneas_error_count": 24,
+    "aeneas_log_sha256": "304e18a22ecabb6d405b4d9a5a96a24558af75380c6f589fb3ca461e82aa89f9",
+    "cargo_metadata_sha256": "171d5799371a7dcf822ff7d4da40d58dc626ab6e666a8c5b6dc62c0632552ab1",
+    "case": "unchanged-native-registration-information-feasibility1",
+    "charon_binary_sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+    "charon_target_package_clean": "passed; only veoveo-hub package was cleaned from shared target",
+    "core_pin": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "hub_revision": "af953f6207a1fcfe592ad7328a6a74b6375c7905",
+    "hub_source_file_count": 1224,
+    "hub_source_map_sha256": "46a5300b10ebd6a3b34ae92bb79319a24ac7cea10a116d105444080974e51fad",
+    "hub_source_map_verified_before_and_after": true,
+    "include_count": 3,
+    "llbc": {
+      "bytes": 10400686,
+      "path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/outputs/registration_information.llbc",
+      "relative_path": "registration_information.llbc",
+      "sha256": "a1e0e7b5a4d13b724d3aa45c05f8ebf33b1c364b4ee1ba1fa0faafe41b5a58f6"
+    },
+    "llbc_inventory": {
+      "counts": {
+        "fun_decls": 507,
+        "global_decls": 17,
+        "trait_decls": 64,
+        "trait_impls": 284,
+        "type_decls": 502
+      },
+      "gate_failures": [],
+      "own_functions": 203,
+      "own_types": 300,
+      "passed": true,
+      "path": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/llbc-inventory.json",
+      "sha256": "af37fcdc3453e47f66fc66283d1459b177128d25407a0a5aea4c1f7b7227a646"
+    },
+    "mirror_root": "/tmp/hub-registration-instance-removal-20261101/information-probe1-mirror",
+    "native_runtime_revision": "12a132dcbdddcd7fad1defcd007432385d237a76",
+    "opaque_count": 0,
+    "own_function_count": 203,
+    "own_inventory_gate_failures": [],
+    "own_type_count": 300,
+    "proof_qualification": false,
+    "root_inventory_passed": true,
+    "runner_log_sha256": "c15fd07e3ab5873be087eb50e6cc5220e1ab45c0de6eb5ace67028521950a47f",
+    "scope_note": "Aeneas emitted no raw Lean Funs/Types/templates. These errors describe current pinned translator/type boundaries for this broad unchanged-source graph; they do not establish a theorem counterexample.",
+    "sdk_file_count": 178,
+    "sdk_map_verified_before_and_after": true,
+    "sdk_pin": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+    "sdk_source_map_sha256": "5358717ca6677785072c1c91b18aa8566f34e9e8fe946eecbb7be3ad5147af51",
+    "stages": [
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "metadata",
+          "--locked",
+          "--offline",
+          "--format-version",
+          "1",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "elapsed_ms": 916,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/logs/verify-source-pin-metadata.log",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "verify-source-pin-metadata",
+        "timed_out": false,
+        "timeout_seconds": 180
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "clean",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "elapsed_ms": 164,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/logs/clean-hub-charon-target.log",
+        "log_bytes": 21,
+        "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+        "stage": "clean-hub-charon-target",
+        "timed_out": false,
+        "timeout_seconds": 120
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+          "cargo",
+          "--sysroot",
+          "default",
+          "--preset=aeneas",
+          "--start-from",
+          "veoveo_hub::registration::service::_::information",
+          "--include",
+          "veoveo_hub",
+          "--include",
+          "veoveo_hub_sdk",
+          "--include",
+          "veoveo_types",
+          "--dest-file",
+          "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/outputs/registration_information.llbc",
+          "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+          "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+          "--",
+          "--manifest-path",
+          "crates/veoveo-hub/Cargo.toml",
+          "--lib",
+          "--locked"
+        ],
+        "elapsed_ms": 31672,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/logs/charon-actual-registration-information.log",
+        "log_bytes": 4870,
+        "log_sha256": "08ac54825fa7916c2d8b55c237a092bebddb2960ef0559cb254aeef9b3b92bed",
+        "stage": "charon-actual-registration-information",
+        "timed_out": false,
+        "timeout_seconds": 600
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+          "-backend",
+          "lean",
+          "-filter-trait-methods",
+          "-split-files",
+          "-namespace",
+          "HubRegistrationInformation",
+          "-subdir",
+          "HubRegistrationInformation",
+          "-dest",
+          "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/outputs",
+          "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/outputs/registration_information.llbc"
+        ],
+        "elapsed_ms": 916,
+        "exit": 2,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-registration-instance-removal-20261101/information-probe1/run1/logs/aeneas-actual-registration-information.log",
+        "log_bytes": 15318,
+        "log_sha256": "304e18a22ecabb6d405b4d9a5a96a24558af75380c6f589fb3ca461e82aa89f9",
+        "stage": "aeneas-actual-registration-information",
+        "timed_out": false,
+        "timeout_seconds": 600
+      }
+    ],
+    "start_count": 1,
+    "status": "translation-failed-at-aeneas",
+    "summary_sha256": "928f3ed93a95a740d13ff3532bd77483e1065a81254d7609df04b4c70ffbea4b"
+  },
+  "qualification_summary_sha256": "2c03694813ec35dfcaf6862bf456b671cda27c709aa48c5b3a61970da5c088c4",
+  "raw_summary_sha256": "928f3ed93a95a740d13ff3532bd77483e1065a81254d7609df04b4c70ffbea4b",
+  "plan_sha256": "6211e1dc37ae5b179a19341d4f5c7273d44dabf81221323bd1ab510d839cb320",
+  "runner_sha256": "9d59a2bb34f2d23e54502d12dfebefcc242349275dfdff5f11fb8f06248ed66e",
+  "review": "Complete Aeneas log and strict LLBC inventory reviewed. Nested-loop returns, dynamic/arrow types, higher-ranked/free lifetime relations and string pattern/iterator signatures are unsupported in this reached graph. Ignored-body diagnostics are cascading failures, not accepted opaque assumptions. No retry, source rewrite, translator patch or handwritten generated output.",
+  "result_class": "Measured translation feasibility limitation, not a Lean counterexample, source bug, native test or formal-refinement result",
+  "next": "Review native response/postcommit and audit contracts before extending the existing store model or proposing source fixes. Response data and service effects remain unproved."
+}
