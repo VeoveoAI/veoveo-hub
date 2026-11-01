@@ -54,6 +54,13 @@ and three were skipped on each host. SDK `db64f9ee` differs from `7360c0f` only 
 the Apps design document. Current issuer/claims/verifier qualification remains open;
 the unmodified `7360c0f`/Core `422dcf2` extraction includes repository grants and
 decoded-claims identity reconstruction. This publication does not change Hub's pin.
+The subsequent SDK
+[translation investigation](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/proofs/internal_auth/evidence/current-linked-translation-20261031.json),
+committed in `ce85c3d`, extracts all four issuer/recipient/verifier roots and passes
+the own-graph inventory, but Aeneas rejects unsupported loop exits and function-pointer
+types. No Lean output is produced. Current verifier continuity remains unproved;
+actual repository-grant calculation is the next candidate implementation-linked
+foundation, without replacing that outstanding verifier requirement.
 
 Hub merge `1ccb868` subsequently integrates upstream `0ff0819`, retaining all local
 proof work. Its runtime/configuration bytes match that upstream parent exactly;
