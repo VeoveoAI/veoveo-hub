@@ -303,6 +303,12 @@ data execution, derives the required singleton Update record, constructs the
 complete data/audit commit under stated freshness premises, and proves current
 no-op cursor absence and own rollback preservation. Twenty-seven declaration
 guards and ten printed closures pass. Other registration audit programs remain
-an explicit external contribution. Populated success/refusal/retry/replacement
-executions and the omitted-Update control are next; native SQL and Core
+an explicit external contribution. Native SQL and Core
 correspondence remain assumptions ([receipt](evidence/audited-update-foundation.json)).
+The [populated success witness](evidence/audited-update-success.json) now passes
+15 guards and nine printed closures for nine actual transitions, independent full
+data/audit outputs, retained fields, precommit privacy, lock release and successful
+store acknowledgment. Run it manually with
+`LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateWitnessProof`.
+Refusal/confirmed-abort/retry, actual replacement/no-op and the omitted-Update
+control remain next.

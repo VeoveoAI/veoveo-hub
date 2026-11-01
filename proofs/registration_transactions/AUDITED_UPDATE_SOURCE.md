@@ -1,7 +1,8 @@
 # Audited UPDATE store adapter
 
-The foundation **passes the manual Lean checks**; populated execution witnesses
-and the omitted-Update control remain pending. Native source basis is
+The foundation and a **populated matched-update success execution pass the manual
+Lean checks**. Recovery, replacement/no-op and the omitted-Update control remain
+pending. Native source basis is
 `3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33`; initial proof basis is
 `ba812e6625a1c0706bd1b8815f5b752254693aa9`. No Rust, SQL, existing Lean module,
 package pin or default target changes accompany this manual model. This is not an
@@ -110,10 +111,10 @@ foreign writes before/after it or freeze the entire ledger through a mixed histo
 The inherited data history has its existing `owned` frame projection; individual
 UPDATE effects preserve the CURRENT frame, without assuming the environment stops.
 
-This foundation does not yet include populated actual acceptance, refusal/abort/
-retry or replacement/noop executions. Those are required next with independently
-specified full outputs, explicit external audit provenance and ordinary successful
-acknowledgements. A later omission control will remove only the Update instruction
+The separate populated matched execution below supplies actual acceptance with
+independently specified full outputs and an ordinary successful acknowledgment.
+Refusal/abort/retry and replacement/noop executions remain required, with explicit
+external audit provenance for replacement. A later omission control will remove only the Update instruction
 and require a legal modified execution plus wrong full result and rejection of the
 unchanged acceptance assertion. No control has been authored or run here.
 
@@ -152,3 +153,37 @@ are recorded separately. No native checks were rerun: the native source remains
 byte-identical to the previously qualified implementation. No deployed result is
 claimed. See the
 [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-audited-update-foundation.md).
+
+## Checked populated matched-update success
+
+The separate Witnesses, WitnessExecution and WitnessProof modules construct nine
+actual model steps for actor 0 updating client 30/login 40. The initial database
+contains another complete replica (31/41), unrelated login 99, retained binding and
+unrelated state. Its inherited key/login constraints and selected admission facts
+are proved; a native history creating this synthetic seed is not claimed.
+
+Only the first replica's metadata, statement and update time change. Independent
+literal expected maps preserve its identity, digest, issuance time and full stable
+payload, the other replica, all roles and unrelated state. Complete prior audit
+record 900 remains, and locally fresh record 100 is exactly Update for the original
+requested server. Draft and stored timestamps remain distinct. Before commit,
+both data writes and the full acknowledged audit record are private, with actor 0
+holding the lock. Final acceptance includes all transaction/cursor maps, the sole
+update event, released lock and ordinary store success; it does not claim native
+ClientInformation construction.
+
+The executable path is importable independently of output acceptance and the
+generic audited UPDATE correctness proof. Its optional-append helper reads the
+actual cursor, enabling a later omission control to remain executable. That control
+has not run. No output specification computes its expected DB via the executor.
+
+One final named target, `LAKE_NO_UPDATE=1 lake build
+RegistrationAuditedUpdateWitnessProof`, built all three new modules and passed in
+37.729 s with 15 declaration guards and nine printed closures. The first two
+authoring attempts failed at missing decidability and unfinished projection
+equalities; narrow proof-body repairs retained every assertion. The final compiler
+exited 0. A later wrapper reporting bug looked for `.lean.olean` filenames and
+exited 1; all three actual `.olean` outputs, logs and maps were independently
+verified without rerunning the compiler. The raw summary and corrective supplement
+are preserved in the [receipt](evidence/audited-update-success.json) and explained in
+the [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-audited-update-success.md).

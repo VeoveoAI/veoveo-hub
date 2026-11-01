@@ -86,3 +86,8 @@ lean_lib RegistrationPostcommitContinuationProof
 lean_lib RegistrationAuditedUpdateModel
 lean_lib RegistrationAuditedUpdateSpecification
 lean_lib RegistrationAuditedUpdateProof
+
+-- Populated audited UPDATE success, manual/nondefault.
+lean_lib RegistrationAuditedUpdateWitnesses
+lean_lib RegistrationAuditedUpdateWitnessExecution
+lean_lib RegistrationAuditedUpdateWitnessProof
