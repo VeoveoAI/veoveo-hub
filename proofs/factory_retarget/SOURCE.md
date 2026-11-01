@@ -160,3 +160,72 @@ GPT-6.1 Sol authored the leaf, GPT-6 Luna ran bounded Linux validation and GPT-6
 Astra reviewed complete logs and correspondence. No additional native checks were
 run for this proof-only checkpoint. Remaining obligations include independent
 choice contracts, failure-prefix/retry composition and finite sequential histories.
+
+
+## Checked recovery checkpoint
+
+`FactoryRecoveryProof` adds exact first-error prefix/trace/state results and
+conditional repeated-application recovery to the same manual model. Full row,
+Runner and immutable identity survive all modeled returns. The precommit segment
+is proved equal to the actual changed-target program prefix before target SQL;
+it includes preparation, direct reads, unserved/delete and absent-native
+admission. Its errors preserve the old four-field linked target, without implying
+that a native worker survived. Generic retry constructs acceptance from new
+no-fault and capacity observations, including absent-native retry and unknown
+prior SQL/native outcomes, then reuses the independent complete-output contract.
+The failure premise on the generic retry theorem is intentionally stronger than
+needed: survival holds after every return. Neither fairness nor liveness follows.
+Native read/SQL/RPC interpretation and the existing sequential execution domain
+remain explicit; no extracted Rust or automatic recovery claim is added.
+
+```json
+{
+  "status": "checked manual first-error and conditional two-call retry checkpoint; finite histories and broader Factory protocol remain partial",
+  "runtime_source": "48d7e25a564f24c9d0418fbbebeda1d5c7d4c68c",
+  "proof_source_sha256": "80f34ec4401428dbabf13e8dac061e2546974377ffc08dc0b92f695c1ebabc35",
+  "lakefile_sha256": "92f2f1455d7391b3b6ded37865a4546e1e62971bfcc3fbd14230cebddf613c12",
+  "inputs_sha256": "44fb74e65040c5122885533e4ab048fa16e3406956ad4d86404717017fa99335",
+  "elapsed_ms": 14984,
+  "exit": 0,
+  "olean_bytes": 1555040,
+  "olean_sha256": "30c0ee7c55eebba0d377adf80d6d3c0169d13ac22479ea553b2208424aa01e43",
+  "log_bytes": 5914,
+  "log_sha256": "dcf9e3e903e8ffb8278a9c688e6a823fb3fefba9513fdc2a15ba13902b19ba1a",
+  "axiom_guards": 21,
+  "printed_closures": 8,
+  "allowed_axioms": ["propext", "Classical.choice", "Quot.sound"],
+  "sorryAx": false,
+  "source_pre_post_unchanged": true,
+  "accepted_prerequisites": {
+    "FactoryRetargetModel.olean": "86d35cb19aea6b19727b3bb0fc2cfcb3c3c45674a05f063c3acbd053d1f402ee",
+    "FactoryRetargetProof.olean": "7a72412270c42a64c968935a531750770bb3456f7eaa92c7deb1613711aa7564",
+    "FactoryNativeOutputProof.olean": "e2c9136699ef0cc9ea71096bce41a458f0068bd9c2cc17fa42b38df0bbef04de"
+  },
+  "prerequisite_sources_unchanged": true,
+  "prerequisite_oleans_reused_after_hash_gates": true,
+  "local_heartbeat_limit": {"theorem": "no_fault_capacity_accepts", "limit": 600000},
+  "logs_root": "/tmp/hub-factory-retarget-20261031/recovery-check3-mirror/run1/",
+  "authoring_diagnostics": [
+    {
+      "case": "check1", "elapsed_ms": 16641, "exit": 1,
+      "log_bytes": 15751,
+      "log_sha256": "91fcb6767e32d92b7ddabfc5facc7a607a7050445e5eb8afc867be4e58f0308a",
+      "cause": "identity binding, conditional row projections, no-ifs tactic, append association and broad no-abort simplifier heartbeat limit; cascading incomplete-dependency audit rejected"
+    },
+    {
+      "case": "check2", "elapsed_ms": 15511, "exit": 1,
+      "log_bytes": 8998,
+      "log_sha256": "c553032eaecc1e600f633e241f1f3021379883fa628626f9df1b1561b16bd26d",
+      "cause": "six admission membership/constructor disjunctions left in no-target helper; cascading incomplete-dependency audit rejected"
+    }
+  ],
+  "publication_note": "Only README/SOURCE prose changed after the checked nine-file packet; all Lean/config bytes equal check3. No native tests or prior proof rebuilds were repeated."
+}
+```
+
+GPT-6.1 Sol authored the leaf, GPT-6 Luna ran the bounded Linux direct check and
+GPT-6 Astra reviewed the complete logs and source correspondence. Failed attempts
+produced no accepted Recovery artifact; they are proof-authoring diagnostics,
+not runtime findings or semantic-control results. Guards count dependency audits,
+not execution scenarios. Independent lifecycle choice contracts, finite histories
+and wrong-output/wrong-refusal controls remain next obligations.

@@ -1,9 +1,9 @@
-# Factory retarget row and native-output contracts (manual)
+# Factory retarget row, output and recovery contracts (manual)
 
 These checkpoints prove the complete successful instance row and path-sensitive
 modeled outputs for the manual Factory retarget model corresponding to Hub
-`48d7e25`. It is not an Aeneas
-translation or a proof of the entire native Factory protocol. The model retains
+`48d7e25`. It is not an Aeneas translation or a proof of the entire native
+Factory protocol. The model retains
 all 21 instance columns, staged SQL/native effects, direct versus recorded errors,
 unknown SQL commit outcomes and separately observed RPC results.
 
@@ -54,16 +54,51 @@ the [source receipt](SOURCE.md#checked-native-output-checkpoint), rather than
 classified as native defects. The dated record is
 [Factory native-output proof](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-native-output-proof.md).
 
+## Checked failure-prefix and conditional retry checkpoint
+
+`failed_run_prefix` derives the exact successful prefix, first refused
+observation, complete stopped state and ordered event trace from any failed
+modeled return. `failed_row_prefix` retains all 21 row fields through successful
+writes, uncertain commit of the failed SQL statement and independently committed
+failure logging. The original error remains the returned error.
+
+`retarget_precommit_failure` checks the changed-target program's ordering against
+its preparation/read/delete/admission prefix. A failure there preserves the old
+repository, tracked ID, tracked name and linked pusher. This includes the direct
+`runner_applied` query error. Other row fields may have changed, and a deletion
+error may already have left the worker absent; no rollback or last-good-worker
+claim is made. The same-target path's earlier name/pusher refresh is outside this
+old-target preservation statement.
+
+`retry_after_failure` derives an existing Runner and immutable identity from the
+actual intermediate state, constructs acceptance from new no-fault and capacity
+observations, and obtains the independent full row/native/provider/request output
+contract. Both present and absent native observations are allowed, including
+retry after uncertain target commit or failed creation. The precommit
+specialization additionally preserves the old target and derives that the request
+still changes it. Each call supplies its own native-read observation. The generic
+failure premise is unused because row/Runner survival holds after every returned
+apply; this is a conditional repeated-application result, not automatic recovery,
+eventual retry or liveness.
+
+The recovery leaf passed in **14.984 seconds** with **21 executable axiom guards**
+and eight printed closures permitting only the three standard axioms. All three
+prior artifacts were hash-verified and reused. The finite 600,000-heartbeat limit
+is local to `no_fault_capacity_accepts`. Tactic/heartbeat authoring failures are
+retained in the [receipt](SOURCE.md#checked-recovery-checkpoint). The dated record
+is [Factory recovery proof](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-recovery-proof.md).
+
 ## Manual checks
 
 Lean 4.35.0 and Mathlib `56a005855ea17e0b0958f73ec801ae140b0a1679` are pinned.
-No Aeneas dependency or historical instance-name patch is used. All three named
+No Aeneas dependency or historical instance-name patch is used. All four named
 targets are manual; no default/CI target or runtime behavior is added.
 
 ```sh
 LAKE_NO_UPDATE=1 lake build FactoryRetargetModel
 LAKE_NO_UPDATE=1 lake env lean FactoryRetargetProof.lean -o .lake/build/lib/lean/FactoryRetargetProof.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryNativeOutputProof.lean -o .lake/build/lib/lean/FactoryNativeOutputProof.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryRecoveryProof.lean -o .lake/build/lib/lean/FactoryRecoveryProof.olean
 ```
 
 ## Interpretation boundaries and remaining work
@@ -95,9 +130,8 @@ the native name truncates UUID text.
 
 The full protocol remains partial. The output specifications and modeled program
 share `choice`; independent contracts for every lifecycle selection condition
-remain to be checked. Further work includes exact failure-prefix and conditional
-retry connections, finite serialized histories and semantic controls for wrong
-outputs and wrongful refusals. Modeled provider fields do not verify entire native
+remain to be checked. Further work includes finite serialized histories and
+semantic controls for wrong outputs and wrongful refusals. Modeled provider fields do not verify entire native
 Provider protobuf objects; their profiles, defaults and native interpretation
 remain external contracts.
 Multi-replica publication ordering, independent linked-follower supersession,
