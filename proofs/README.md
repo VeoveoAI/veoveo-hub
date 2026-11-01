@@ -1311,9 +1311,18 @@ sandbox; it must not claim the new version succeeded.
 - **Boundary/effort:** moderate for identity/version decisions; substantial for detached
   operations and SQL/native refinement. Assume fresh authoritative records, valid
   signed claims, time and native observations—not merely a cached success flag.
-- **Residual/next:** follow one replacement failure/retry transition before modeling
-  the lifecycle. Actual browser recovery, OpenShell termination/readiness, credential
-  custody and persistent home survival need native/deployed evidence, not only fixtures.
+- **Native checkpoint:** the existing real-PostgreSQL store test now invokes an old
+  operation's finish and failure after a newer claim, then repeats both after the
+  newer completion. All four return false and preserve every exposed Computer field,
+  including complete operation/provision snapshots, custody and notices. The focused
+  test passes in 1.41 s; full Mac/Linux checks each pass 475 tests with two existing
+  skips. No runtime fix was needed. See the [receipt](computer_lifecycle/evidence/native-stale-completion.json).
+- **Residual/next:** qualify the source-mapped replacement protocol model: actual
+  acceptance and full output, failure/retry and stale completion histories. This
+  native checkpoint establishes no Lean theorem or formal SQL refinement. Browser
+  recovery, OpenShell termination/readiness, credential custody and persistent home
+  survival need native/deployed evidence. SQL fencing alone does not prevent an old
+  native request from affecting a newer sandbox.
 
 ## HUB-REGISTER-01 — Registration and deployment identity
 

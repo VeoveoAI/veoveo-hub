@@ -1045,10 +1045,45 @@ mod tests {
                 to: second.version().unwrap(),
                 whats_new: Default::default(),
             };
+            // Every field of the exposed Computer projection, including custody and
+            // the complete operation/provision snapshots. Storage-only columns such
+            // as created_at are outside this projection.
+            let snapshot = |row: &Computer| {
+                (
+                    (
+                        row.id.clone(), row.tenant.clone(), row.principal.clone(),
+                        row.workspace_request, row.model_provider_request, row.hub_provider_request,
+                        row.handoff, row.configure_request, row.rotate_request, row.family.clone(), row.ready,
+                    ),
+                    (
+                        row.provisioning.clone(),
+                        row.operation.as_ref().map(|running| (
+                            running.id, running.started_at, running.provisioning.clone(), running.notice_shown,
+                        )),
+                        row.failure.clone(), row.update_notice.clone(), row.collected_at, row.keep_on,
+                    ),
+                )
+            };
+            let obsolete_failure = ComputerFailure {
+                cause: "obsolete worker completion".into(),
+                at: now,
+                version: second.version().unwrap(),
+            };
+            let pending = snapshot(&read(store.clone()).await);
+            assert!(!store.finish_computer_operation(&computer, abandoned, Some(&notice)).await.unwrap());
+            assert_eq!(snapshot(&read(store.clone()).await), pending, "old success preserves the entire newer running Computer");
+            assert!(!store.fail_computer_operation(&computer, abandoned, &obsolete_failure).await.unwrap());
+            assert_eq!(snapshot(&read(store.clone()).await), pending, "old failure preserves the entire newer running Computer");
+
             assert!(store.finish_computer_operation(&computer, operation, Some(&notice)).await.unwrap());
             let updated = read(store.clone()).await;
             assert!(updated.operation.is_none());
             assert_eq!(updated.provisioning, second);
+            let completed = snapshot(&updated);
+            assert!(!store.finish_computer_operation(&computer, abandoned, Some(&notice)).await.unwrap());
+            assert_eq!(snapshot(&read(store.clone()).await), completed, "old success preserves the entire newer completed Computer");
+            assert!(!store.fail_computer_operation(&computer, abandoned, &obsolete_failure).await.unwrap());
+            assert_eq!(snapshot(&read(store.clone()).await), completed, "old failure preserves the entire newer completed Computer");
             assert_eq!(store.take_computer_update_notice(&computer).await.unwrap(), Some(notice.clone()));
             assert_eq!(store.take_computer_update_notice(&computer).await.unwrap(), None, "told once");
 

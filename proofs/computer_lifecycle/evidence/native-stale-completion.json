@@ -1,0 +1,116 @@
+{
+  "evidence_paths": {
+    "focused": "/tmp/hub-computer-lifecycle-20261101/native-stale-completion1/run1-mirror/",
+    "linux": "/tmp/hub-computer-lifecycle-20261101/native-stale-completion1/full-linux-mirror/",
+    "mac": "/tmp/hub-computer-lifecycle-20261101/native-stale-completion1/full-mac/"
+  },
+  "focused_native": {
+    "cargo_test_exit_observed_in_log": 0,
+    "command": "docker build --target computer-stale-completion-focused -f Focused.Dockerfile <frozen-source>",
+    "docker_exit": 0,
+    "elapsed_ms": 25406,
+    "hub_compile_seconds": 20.84,
+    "inner_command": "cargo test --locked -p veoveo-hub --lib store::computers::tests::one_replacement_runs_at_a_time_and_its_notice_is_told_once -- --exact --nocapture",
+    "platform": "Linux x86_64, Docker default context, disposable PostgreSQL TestDb fixture",
+    "runner_summary_note": "summary parser missed cargo marker and binary because BuildKit prefixes log lines with #20; full log contains cargo_test_exit=0 and the binary hash above",
+    "test_binary_path": "target/debug/deps/veoveo_hub-b339354d3c2cf9a6",
+    "test_binary_sha256": "86f8f6aeda9170fd65207dd9452e6965a1c1413760b6da4ed3983375399d3a93",
+    "test_body_seconds": 1.41,
+    "test_image_digest": "sha256:68fe89568408bc0f9996b416edc81133e19c56a49a6eed805b961eb2860e45a8",
+    "test_log_bytes": 5201,
+    "test_log_sha256": "b7569cb6751db836037c0271dba88d873eda60f93c61fdc4d996df7c223c3600",
+    "test_result": "1 passed, 0 failed, 337 filtered out"
+  },
+  "prechecks": {
+    "git_diff_check": "passed",
+    "rustfmt": "rustfmt --edition 2024 --check crates/veoveo-hub/src/store/computers.rs passed; no formatting diff",
+    "rustfmt_version": "rustfmt 1.10.0-stable (b940084d7e 2026-09-28)"
+  },
+  "required_full_checks": {
+    "Linux": {
+      "command": "docker build --target check .",
+      "context": "default",
+      "docker_info": "29.2.1|Ubuntu 24.04.5 LTS|32|67327680512",
+      "elapsed_ms": 165814,
+      "exit": 0,
+      "log_bytes": 490111,
+      "log_sha256": "51d95ec2e2049a1b5dc0945a482fc81a3cb5a82db588a55fef459c6a1c70ab6c",
+      "new_focused_test": "PASS",
+      "source_unchanged": true,
+      "test_line": "Summary [ 44.488s] 475 tests run: 475 passed, 2 skipped",
+      "tests": "475 passed, 2 skipped"
+    },
+    "Mac": {
+      "command": "docker build --target check .",
+      "context": "desktop-linux",
+      "docker_info": "29.8.2|Docker Desktop|16|67302940672",
+      "elapsed_ms": 155107,
+      "exit": 0,
+      "log_bytes": 490279,
+      "log_sha256": "585f98015f0bb9a5b36f367f24487f799f9a592eace6b2a51351961284ad91e0",
+      "new_focused_test": "PASS",
+      "source_unchanged": true,
+      "test_line": "Summary [ 41.204s] 475 tests run: 475 passed, 2 skipped",
+      "tests": "475 passed, 2 skipped"
+    }
+  },
+  "skip_boundary": "Nextest reported 2 skipped. The frozen tree marks the BuildKit+registry image build test and native-upstream private-fixture test ignored; they were not executed.",
+  "source": {
+    "base_commit": "ef3c25dc79efa8fab080a62c804a6ad410edb6fc",
+    "canonical_production_files_modified_by_builder": false,
+    "frozen_file_map_count": 1286,
+    "frozen_file_map_sha256": "258e3c9a38a4d2936f08f92909e753334b3b92befc69e9b109a738d3acc7bd61",
+    "frozen_overlay": "crates/veoveo-hub/src/store/computers.rs",
+    "overlay_sha256": "38c658e0984fdb0c44edaae6b8bbb57850bf2eccf121b0665cf993f1ade34cd7",
+    "production_prefix_unchanged": true,
+    "source_map_before_after_match": true
+  },
+  "staging_attempt1": {
+    "cause": "BSD tar archive emitted AppleDouble ._* entries, remote GNU tar extracted 2705 files rather than 1286; source map gate rejected it",
+    "initial_archive_sha256": "3d7aafe9e100f638ef57b9c2371ca123eb719bab11a39d72c205bffeaafd42a3",
+    "observed_mismatched_remote_map_sha256": "b5f56a9fa7427502f6ed8ae32220dc0a4f64ad69901103672349a8c4ef023654",
+    "portable_archive_sha256": "e3c29d5d287e730d9fcd59bb47f713b89f50356675f99b5db93dfec6982ef1db",
+    "recovery": "removed only task-owned extraction and re-staged with Python tarfile; exact 1286-file map then matched",
+    "status": "staging failure; no compiler launched"
+  },
+  "task": "computer lifecycle stale completion test-only qualification",
+  "kind": "native-postgresql-component-regression",
+  "status": "checked-stale-completion-preserves-newer-computer-projection",
+  "roles": {
+    "author": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "scenario": {
+    "existing_test": "store::computers::tests::one_replacement_runs_at_a_time_and_its_notice_is_told_once",
+    "history": "Existing ready Computer: claim A with stale start; claim distinct B; attempt A finish and failure while B active; finish B; attempt A finish and failure after B completion.",
+    "assertions": "All four obsolete writes return false, and all17 exposed Computer fields remain equal after each attempt, including complete operation/provision snapshots, custody, failure, notice and collection state.",
+    "scope": "Real PostgreSQL through unchanged store methods and SQL; no OpenShell invocation."
+  },
+  "production_prefix_sha256": "a3f056aa0f94ca2db750596e6e7dc800a09b78f32ee5870827400cf04342cd63",
+  "reviewer_checks": [
+    "Read exact35-line test-only diff; confirmed all production bytes before cfg(test) unchanged.",
+    "Compared all1286 frozen source files to canonical before coverage edits.",
+    "Verified actual bytes/hashes of all three logs; read precise focused test result, cargo exit marker and full-suite summaries.",
+    "Confirmed the new assertions ran inside the exact existing test, including its successful current completion and notice behavior."
+  ],
+  "boundaries": [
+    "This is native component evidence, not a Lean theorem or formal SQL refinement.",
+    "The test compares the complete exposed Computer projection; storage-only columns such as created_at are not observed.",
+    "Operation-ID SQL fencing does not prove cancellation of accepted native requests or prevent old same-name sandbox side effects.",
+    "No runtime behavior, authorization, infrastructure, CI or deployment changed."
+  ],
+  "instrumentation": {
+    "test_binary_digest": "Measured inside the focused image and retained in its build log; byte length and independent binary copy were not recorded.",
+    "raw_focused_summary": "Retained unchanged: prefix parser left cargo marker null and binary marker list empty; root checked the actual prefixed log entries.",
+    "full_test_timings_seconds": {
+      "Mac": 41.204,
+      "Linux": 44.488
+    },
+    "specific_test_in_full_seconds": {
+      "Mac": 0.526,
+      "Linux": 3.452
+    }
+  },
+  "consolidated_builder_receipt_sha256": "1b9eb1cfdc37bd9cadbd88d68a84d73fef823fce857088dd66c7416e3b107a70"
+}
