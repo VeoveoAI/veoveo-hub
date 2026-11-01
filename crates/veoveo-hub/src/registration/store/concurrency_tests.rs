@@ -1,5 +1,6 @@
-//! Actual ordinary-store overlap; the only injected behavior is an INSERT gate in
-//! this disposable database. No service preflight, audit or reload is simulated.
+//! Actual registration-store overlaps with test-only INSERT gates in disposable
+//! databases. The first probes exercise the store; the instance/removal probe also
+//! executes real service authority, signature, audit and final catalog reload paths.
 use super::*;
 use chrono::{SubsecRound, TimeDelta};
 use serde_json::{Value, json};
@@ -90,10 +91,19 @@ impl Candidate {
 
 /// Hash signed fixture statements before any snapshot can enter panic/log output.
 async fn snapshot(store: &PlatformStore, deployment: DeploymentId, logins: &[String]) -> Value {
+    snapshot_for_server(store, deployment, "registration-probe", logins).await
+}
+
+async fn snapshot_for_server(
+    store: &PlatformStore,
+    deployment: DeploymentId,
+    server: &str,
+    logins: &[String],
+) -> Value {
     let mut value = sqlx::query_file!(
         "src/registration/store/tests/snapshot.sql",
         deployment.as_uuid(),
-        "registration-probe",
+        server,
         logins,
     )
     .fetch_one(store.pool())
@@ -551,4 +561,317 @@ async fn a_retargeted_instance_publishes_its_complete_live_registration() {
     })
     .await
     .expect("bounded joined-instance routing publication");
+}
+
+/// Only public identifiers/metadata and a statement digest enter diagnostics; a
+/// successful service response also carries secrets which must never be printed.
+fn registration_outcome(
+    result: &std::result::Result<
+        veoveo_hub_sdk::registration::ClientInformation,
+        crate::registration::RegistrationError,
+    >,
+) -> Value {
+    match result {
+        Ok(information) => json!({
+            "kind": "accepted",
+            "client": information.client_id.as_str(),
+            "deployment": information.metadata.registration.deployment,
+            "metadata": information.metadata,
+            "issued_at": information.client_id_issued_at,
+            "login": information.database.as_ref().map(|grant| grant.username.as_str()),
+            "statement_digest": crate::registration::digest(information.software_statement.as_str()).as_str(),
+        }),
+        Err(crate::registration::RegistrationError::Unauthorized { token_sent }) => {
+            json!({"kind": "unauthorized", "token_sent": token_sent})
+        }
+        Err(crate::registration::RegistrationError::Rejected { code, .. }) => {
+            json!({"kind": "rejected", "code": code})
+        }
+        Err(crate::registration::RegistrationError::Internal(_)) => {
+            json!({"kind": "internal_error"})
+        }
+    }
+}
+
+async fn member_logins(store: &PlatformStore, group: &str) -> Vec<String> {
+    sqlx::query_file_scalar!("src/registration/store/tests/member_logins.sql", group)
+        .fetch_all(store.pool())
+        .await
+        .unwrap()
+}
+
+/// A first registration has already passed real service authority/signature
+/// checks and reached INSERT when removal starts. This admission-first case must
+/// accept the registration, then remove its row/login without leaving an orphan.
+/// The final explicit refresh checks persisted catalog contents;
+/// this test makes no notification-delivery or native sandbox-deletion claim.
+#[tokio::test]
+async fn an_authorized_first_registration_cannot_survive_instance_removal() {
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let db = crate::test_store::TestDb::new().await;
+        let store = RegistrationStore::new(db.a.clone());
+        let directory = tempfile::tempdir().unwrap();
+        let installation = crate::local::generate(directory.path(), "https://hub.test").unwrap();
+        let catalog = crate::HubCatalogHandle::new(std::sync::Arc::new(
+            crate::HubCatalog::load_json(&installation.config, crate::catalog_fixture::binding())
+                .unwrap(),
+        ));
+        let signing = ServerKeyPair::generate().unwrap();
+        let service = crate::registration::RegistrationService::new(
+            db.a.clone(), catalog.clone(), crate::HubState::new(db.a.clone()),
+            crate::registration::RegistrationIdentity {
+                issuer: veoveo_hub_sdk::TokenIssuer::parse("https://hub.test").unwrap(),
+                signing_key: veoveo_hub_sdk::HubInternalSigningKey::new(signing.pkcs8_der()).unwrap(),
+                verification_key: None,
+            },
+            crate::registration::ServerDatabase {
+                url: veoveo_hub_sdk::registration::DatabaseUrl::new(
+                    "postgres://127.0.0.1/unused".parse().unwrap(),
+                ).unwrap(),
+            }, Duration::from_secs(60), None,
+        ).unwrap();
+        let database = DatabaseName::installation(&db.a).unwrap();
+        let instance = crate::registration::create_instance(
+            &db.a, "0123456789abcdef0123456789abcdef", &database,
+            &BranchName::parse("registration-removal").unwrap(),
+        ).await.unwrap();
+        let deployment = instance.deployment;
+        let token_digest = crate::registration::digest(instance.registration_token.expose_secret());
+        assert_eq!(store.instance(&token_digest).await.unwrap(), Some((deployment, database.clone())));
+        assert!(store.registrations().await.unwrap().is_empty());
+
+        // TestDb databases share a process-local cluster and therefore roles. A
+        // deployment-derived fixture slug isolates this test's role enumeration;
+        // its initially empty membership is verified rather than presumed.
+        let slug = ServerSlug::parse(format!("removal-{}", deployment.as_uuid().simple())).unwrap();
+        let group = ServerSchema::new(&slug).unwrap().group_role();
+        let before_logins = member_logins(&db.a, &group).await;
+        assert!(before_logins.is_empty(), "fixture server already has login roles");
+        let candidate = Candidate::new(&signing, deployment, "00000000000031", 1, Utc::now());
+        let mut metadata = candidate.metadata;
+        metadata.registration.slug = slug.clone();
+        metadata.registration.uri_scheme = ResourceScheme::parse(slug.as_str()).unwrap();
+        metadata.check().unwrap();
+        let request = veoveo_hub_sdk::registration::ClientRegistrationRequest {
+            software_statement: signing.sign_statement(&metadata, service.registration_endpoint(), Utc::now()).unwrap(),
+            metadata,
+        };
+        let body = serde_json::to_vec(&request).unwrap();
+        sqlx::query_file!("src/registration/store/tests/instance_insert_gate.sql")
+            .execute(db.a.pool()).await.unwrap();
+        let mut gate = db.a.pool().begin().await.unwrap();
+        let connection = sqlx::query_file!("src/registration/store/tests/connection.sql")
+            .fetch_one(&mut *gate).await.unwrap();
+        assert_eq!(connection.isolation, "read committed");
+        sqlx::query_file!("src/registration/store/tests/hold_gate.sql")
+            .execute(&mut *gate).await.unwrap();
+        let registering = {
+            let service = service.clone();
+            tokio::spawn(async move {
+                service.register(
+                    super::super::service::Bearer::Presented(instance.registration_token.expose_secret()),
+                    &body,
+                ).await
+            })
+        };
+        let registration_pid = loop {
+            let waiters = sqlx::query_file!("src/registration/store/tests/blocked.sql", connection.pid)
+                .fetch_all(db.a.pool()).await.unwrap();
+            if let Some(waiter) = waiters.into_iter().find(|waiter| waiter.query.contains("INSERT INTO hub.registration")) {
+                eprintln!("phase=authorized-first-registration-at-insert pid={} event={} statement={}", waiter.pid, waiter.event, waiter.query);
+                break waiter.pid;
+            }
+            if registering.is_finished() {
+                let result = registering.await.unwrap();
+                panic!("registration ended before the actual INSERT gate: {}", registration_outcome(&result));
+            }
+            tokio::task::yield_now().await;
+        };
+        let mut removing = {
+            let store = db.b.clone();
+            tokio::spawn(async move { crate::registration::remove_instance(&store, deployment).await })
+        };
+        // A corrected shared lock may legitimately make removal wait. Observe
+        // completion OR the real dependency on the registration backend; no time
+        // delay stands in for either ordering fact.
+        let completed_before_release = tokio::select! {
+            result = &mut removing => {
+                let removed = result.unwrap().unwrap();
+                eprintln!("phase=removal-completed-before-release database={removed:?}");
+                Some(removed)
+            },
+            waiter = async {
+                loop {
+                    let waiters = sqlx::query_file!("src/registration/store/tests/blocked.sql", registration_pid)
+                        .fetch_all(db.a.pool()).await.unwrap();
+                    if let Some(waiter) = waiters.into_iter().next() { break waiter; }
+                    tokio::task::yield_now().await;
+                }
+            } => {
+                eprintln!("phase=removal-blocked-before-release pid={} owner={} event={} statement={}", waiter.pid, registration_pid, waiter.event, waiter.query);
+                None
+            }
+        };
+        let before_release = (
+            store.is_instance(deployment).await.unwrap(),
+            store.instance(&token_digest).await.unwrap().is_some(),
+            snapshot_for_server(&db.a, deployment, slug.as_str(), &before_logins).await,
+        );
+        eprintln!("phase=before-release removal_completed={} state={before_release:?}", completed_before_release.is_some());
+        gate.commit().await.unwrap();
+        let registration = registering.await.unwrap();
+        let removed = match completed_before_release {
+            Some(removed) => removed,
+            None => removing.await.unwrap().unwrap(),
+        };
+        let outcome = registration_outcome(&registration);
+        let accepted = registration.is_ok();
+        let logins = member_logins(&db.a, &group).await;
+        let final_snapshot = snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await;
+        let present = store.is_instance(deployment).await.unwrap();
+        let authority = store.instance(&token_digest).await.unwrap().is_some();
+        // Explicit persisted-state observation, not a claim that the asynchronous
+        // registration listener has drained or published in a particular order.
+        service.refresh().await.unwrap();
+        let routed = catalog.snapshot().catalog().registrations().deployment(&deployment)
+            .map(|server| (server.client_id.as_str().to_owned(), server.deployment));
+        eprintln!("phase=completed registration={outcome} removed={removed:?} instance={present} authority={authority} snapshot={final_snapshot} routed={routed:?}");
+        assert_eq!(
+            (removed, accepted, present, authority, final_snapshot["registrations"].clone(), logins, routed),
+            (Some(database), true, false, false, json!([]), before_logins, None),
+            "completed registration/removal left an orphan; service outcome={outcome}, snapshot={final_snapshot}"
+        );
+    }).await.expect("bounded first-instance-registration/removal overlap");
+}
+
+/// Removal owns the live instance row while preflight can still read its old
+/// committed authority. The already-authorized service call must wait for that
+/// removal, then return its existing invalid-token result with no admission.
+#[tokio::test]
+async fn an_instance_registration_waiting_for_removal_uses_the_invalid_token_outcome() {
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let db = crate::test_store::TestDb::new().await;
+        let store = RegistrationStore::new(db.a.clone());
+        let directory = tempfile::tempdir().unwrap();
+        let installation = crate::local::generate(directory.path(), "https://hub.test").unwrap();
+        let catalog = crate::HubCatalogHandle::new(std::sync::Arc::new(
+            crate::HubCatalog::load_json(&installation.config, crate::catalog_fixture::binding())
+                .unwrap(),
+        ));
+        let signing = ServerKeyPair::generate().unwrap();
+        let service = crate::registration::RegistrationService::new(
+            db.a.clone(), catalog.clone(), crate::HubState::new(db.a.clone()),
+            crate::registration::RegistrationIdentity {
+                issuer: veoveo_hub_sdk::TokenIssuer::parse("https://hub.test").unwrap(),
+                signing_key: veoveo_hub_sdk::HubInternalSigningKey::new(signing.pkcs8_der()).unwrap(),
+                verification_key: None,
+            },
+            crate::registration::ServerDatabase {
+                url: veoveo_hub_sdk::registration::DatabaseUrl::new(
+                    "postgres://127.0.0.1/unused".parse().unwrap(),
+                ).unwrap(),
+            }, Duration::from_secs(60), None,
+        ).unwrap();
+        let database = DatabaseName::installation(&db.a).unwrap();
+        let instance = crate::registration::create_instance(
+            &db.a, "0123456789abcdef0123456789abcdef", &database,
+            &BranchName::parse("registration-removal-reverse").unwrap(),
+        ).await.unwrap();
+        let deployment = instance.deployment;
+        let token_digest = crate::registration::digest(instance.registration_token.expose_secret());
+        assert_eq!(store.instance(&token_digest).await.unwrap(), Some((deployment, database.clone())));
+        assert!(store.registrations().await.unwrap().is_empty());
+
+        // TestDb databases share a process-local cluster and therefore roles. A
+        // deployment-derived fixture slug isolates this test's role enumeration;
+        // its initially empty membership is verified rather than presumed.
+        let slug = ServerSlug::parse(format!("removal-{}", deployment.as_uuid().simple())).unwrap();
+        let group = ServerSchema::new(&slug).unwrap().group_role();
+        let before_logins = member_logins(&db.a, &group).await;
+        assert!(before_logins.is_empty(), "fixture server already has login roles");
+        let candidate = Candidate::new(&signing, deployment, "00000000000032", 1, Utc::now());
+        let mut metadata = candidate.metadata;
+        metadata.registration.slug = slug.clone();
+        metadata.registration.uri_scheme = ResourceScheme::parse(slug.as_str()).unwrap();
+        metadata.check().unwrap();
+        let request = veoveo_hub_sdk::registration::ClientRegistrationRequest {
+            software_statement: signing.sign_statement(&metadata, service.registration_endpoint(), Utc::now()).unwrap(),
+            metadata,
+        };
+        let body = serde_json::to_vec(&request).unwrap();
+        sqlx::query_file!("src/registration/store/tests/instance_delete_gate.sql")
+            .execute(db.a.pool()).await.unwrap();
+        let mut gate = db.a.pool().begin().await.unwrap();
+        let connection = sqlx::query_file!("src/registration/store/tests/connection.sql")
+            .fetch_one(&mut *gate).await.unwrap();
+        assert_eq!(connection.isolation, "read committed");
+        sqlx::query_file!("src/registration/store/tests/hold_gate.sql")
+            .execute(&mut *gate).await.unwrap();
+        let removing = {
+            let store = db.b.clone();
+            tokio::spawn(async move { crate::registration::remove_instance(&store, deployment).await })
+        };
+        let removal_pid = loop {
+            let waiters = sqlx::query_file!("src/registration/store/tests/blocked.sql", connection.pid)
+                .fetch_all(db.a.pool()).await.unwrap();
+            if let Some(waiter) = waiters.into_iter().find(|waiter| waiter.query.contains("DELETE FROM hub.instance")) {
+                eprintln!("phase=removal-owns-instance-at-delete pid={} event={} statement={}", waiter.pid, waiter.event, waiter.query);
+                break waiter.pid;
+            }
+            if removing.is_finished() {
+                panic!("removal ended before the actual DELETE gate");
+            }
+            tokio::task::yield_now().await;
+        };
+        // A plain authority SELECT remains readable before the gated DELETE.
+        assert_eq!(store.instance(&token_digest).await.unwrap(), Some((deployment, database.clone())));
+        let registering = {
+            let service = service.clone();
+            tokio::spawn(async move {
+                service.register(
+                    super::super::service::Bearer::Presented(instance.registration_token.expose_secret()),
+                    &body,
+                ).await
+            })
+        };
+        loop {
+            let waiters = sqlx::query_file!("src/registration/store/tests/blocked.sql", removal_pid)
+                .fetch_all(db.a.pool()).await.unwrap();
+            if let Some(waiter) = waiters.into_iter().find(|waiter|
+                waiter.query.contains("FROM hub.instance") && waiter.query.contains("FOR UPDATE")) {
+                eprintln!("phase=authorized-registration-waits-for-removal pid={} owner={} event={} statement={}", waiter.pid, removal_pid, waiter.event, waiter.query);
+                break;
+            }
+            if registering.is_finished() {
+                let result = registering.await.unwrap();
+                panic!("registration ended before waiting on removal's instance row: {}", registration_outcome(&result));
+            }
+            tokio::task::yield_now().await;
+        }
+        let before_release = (
+            store.is_instance(deployment).await.unwrap(),
+            store.instance(&token_digest).await.unwrap().is_some(),
+            snapshot_for_server(&db.a, deployment, slug.as_str(), &before_logins).await,
+        );
+        eprintln!("phase=reverse-before-release state={before_release:?}");
+        gate.commit().await.unwrap();
+        let removed = removing.await.unwrap().unwrap();
+        let registration = registering.await.unwrap();
+        let outcome = registration_outcome(&registration);
+        let refused = matches!(&registration,
+            Err(crate::registration::RegistrationError::Unauthorized { token_sent: true }));
+        let logins = member_logins(&db.a, &group).await;
+        let final_snapshot = snapshot_for_server(&db.a, deployment, slug.as_str(), &logins).await;
+        let present = store.is_instance(deployment).await.unwrap();
+        let authority = store.instance(&token_digest).await.unwrap().is_some();
+        service.refresh().await.unwrap();
+        let routed = catalog.snapshot().catalog().registrations().deployment(&deployment)
+            .map(|server| (server.client_id.as_str().to_owned(), server.deployment));
+        eprintln!("phase=reverse-completed registration={outcome} removed={removed:?} instance={present} authority={authority} snapshot={final_snapshot} routed={routed:?}");
+        assert_eq!(
+            (removed, refused, present, authority, final_snapshot["registrations"].clone(), logins, routed),
+            (Some(database), true, false, false, json!([]), before_logins, None),
+            "removal-first registration did not refuse without admission; service outcome={outcome}, snapshot={final_snapshot}"
+        );
+    }).await.expect("bounded removal-first registration overlap");
 }

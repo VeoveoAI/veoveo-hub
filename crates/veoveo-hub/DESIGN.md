@@ -48,8 +48,17 @@ Ordinary registration locks its deployment row before reading and comparing the
 stored metadata; instance replacement obtains the same row lock through its
 upsert. Both retain the lock through replacement or replica admission and commit,
 serializing their effects per deployment, including a same-metadata replica's
-admission. This registration ordering does not impose global metadata equality on
-RFC 7592 per-client updates or specify concurrent removal behavior.
+admission. Instance registration and removal first lock the existing instance row,
+including before the first registration creates a deployment row. Registration holds
+that lock through admission and commit; removal holds it before taking the snapshot
+of registrations to delete and through instance deletion and commit. An initial token
+read does not keep a removed instance alive: when registration reaches that lock after
+deletion, it returns the existing invalid-token outcome. A registration which commits
+first may succeed even when removal subsequently deletes its row and login before the
+response arrives. Lock order is instance, then deployment when written, then
+registration. Ordinary registration and per-client updates retain their deployment
+then registration order and do not take an instance lock inside those transactions.
+This ordering does not impose global equality on RFC 7592 per-client metadata.
 
 An RFC 7592 metadata update takes the deployment lock before updating its client
 registration, matching registration replacement's lock order. If the registration
@@ -276,7 +285,12 @@ another repository serves is refused with `invalid_client_metadata`, saying so, 
 the server that already serves it keeps serving. Every registration with the token replaces the instance's previous
 one in one transaction: it writes the deployment's slug, metadata and storage
 binding, removes the deployment's registrations and drops their logins, then calls
-`kernel.ensure_server`, creates the new login and inserts its row.
+`kernel.ensure_server`, creates the new login and inserts its row. The existing
+instance row is locked before any of these writes, and before creating its server's
+role and schema in an external data environment. That external preparation still uses
+a separate connection/database: the held installation transaction prevents concurrent
+instance removal, but does not make the two databases atomic or roll back external
+role/schema work if registration later fails.
 
 ### Data Environments
 

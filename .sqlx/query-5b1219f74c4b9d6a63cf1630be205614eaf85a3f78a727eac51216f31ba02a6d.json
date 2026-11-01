@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The first unregistered instance is removed in this disposable database. Its\n-- BEFORE DELETE gate observes the real removal after its shared instance lock.\nDO $fixture$\nBEGIN\n    CREATE FUNCTION hub.instance_removal_fixture_gate() RETURNS trigger\n        LANGUAGE plpgsql AS $gate$\n        BEGIN\n            PERFORM pg_advisory_xact_lock(17031, 1);\n            RETURN OLD;\n        END;\n        $gate$;\n    CREATE TRIGGER instance_removal_fixture_gate BEFORE DELETE ON hub.instance\n        FOR EACH ROW EXECUTE FUNCTION hub.instance_removal_fixture_gate();\nEND;\n$fixture$;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "5b1219f74c4b9d6a63cf1630be205614eaf85a3f78a727eac51216f31ba02a6d"
+}

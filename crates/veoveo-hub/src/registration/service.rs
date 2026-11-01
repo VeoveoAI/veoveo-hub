@@ -415,6 +415,7 @@ impl RegistrationService {
                     .store
                     .register_instance(registration, environment.as_ref())
                     .await?
+                    .ok_or(RegistrationError::Unauthorized { token_sent: true })?
                 {
                     self.ended(&replaced, RegistrationActivity::Replace).await?;
                     self.reload(&replaced.client_id).await?;

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Serialize instance lifetime before registration admission or removal's DELETE\n-- snapshot. The deployment row may not exist before the first registration.\nSELECT deployment\nFROM hub.instance\nWHERE deployment = $1\nFOR UPDATE\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deployment",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "deployment"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "78524a6a41fb5cabb9bda7273e12f732d8f88c8ef4ede689761541e7b4d91be7"
+}

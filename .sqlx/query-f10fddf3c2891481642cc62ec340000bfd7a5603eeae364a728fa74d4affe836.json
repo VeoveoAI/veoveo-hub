@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The service generates the client identifier. This disposable test database has\n-- exactly one registration attempt, so its actual INSERT is the gate identity.\nDO $fixture$\nBEGIN\n    CREATE FUNCTION hub.instance_registration_fixture_gate() RETURNS trigger\n        LANGUAGE plpgsql AS $gate$\n        BEGIN\n            PERFORM pg_advisory_xact_lock(17031, 1);\n            RETURN NEW;\n        END;\n        $gate$;\n    CREATE TRIGGER instance_registration_fixture_gate BEFORE INSERT ON hub.registration\n        FOR EACH ROW EXECUTE FUNCTION hub.instance_registration_fixture_gate();\nEND;\n$fixture$;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "f10fddf3c2891481642cc62ec340000bfd7a5603eeae364a728fa74d4affe836"
+}

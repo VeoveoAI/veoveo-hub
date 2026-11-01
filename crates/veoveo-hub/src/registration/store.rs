@@ -342,12 +342,28 @@ impl RegistrationStore {
     /// previous registrations and drop their logins, then create the server's group
     /// role and schema, the new login and its row. An instance in a data environment
     /// first gets the server's group role and schema in that database, on a connection
-    /// of its own. Returns the replaced registrations.
+    /// of its own, while holding the instance row lock in the installation transaction.
+    /// External role/schema preparation is not rolled back by that transaction.
+    /// Returns the replaced registrations, or none when removal already won.
     pub async fn register_instance(
         &self,
         registration: NewRegistration<'_>,
         environment: Option<&DatabaseName>,
-    ) -> Result<Vec<EndedRegistration>> {
+    ) -> Result<Option<Vec<EndedRegistration>>> {
+        let mut transaction = self.store.pool().begin().await?;
+        // First registration has no deployment row yet. Share the instance lock
+        // with removal before any admission writes or external preparation.
+        if sqlx::query_file_scalar!(
+            "src/registration/store/lock_instance.sql",
+            registration.metadata.registration.deployment.as_uuid(),
+        )
+        .fetch_optional(&mut *transaction)
+        .await
+        .context("failed to lock the instance for registration")?
+        .is_none()
+        {
+            return Ok(None);
+        }
         let server = registration.metadata.slug();
         let binding = StorageBinding::SharedLogicalSchema {
             server: server.clone(),
@@ -363,11 +379,10 @@ impl RegistrationStore {
                 format!("failed to create the server's role and schema in {environment}")
             })?;
         }
-        let mut transaction = self.store.pool().begin().await?;
         let replaced = replace(&mut transaction, &registration, &binding).await?;
         admit(&mut transaction, &registration).await?;
         transaction.commit().await?;
-        Ok(replaced)
+        Ok(Some(replaced))
     }
 
     /// Remove an instance and its registrations, dropping their logins, in one
@@ -378,6 +393,19 @@ impl RegistrationStore {
         deployment: DeploymentId,
     ) -> Result<Option<(DatabaseName, Vec<EndedRegistration>)>> {
         let mut transaction = self.store.pool().begin().await?;
+        // Acquire before the DELETE snapshot so an earlier admission's complete
+        // committed registration/login is included, including first registration.
+        if sqlx::query_file_scalar!(
+            "src/registration/store/lock_instance.sql",
+            deployment.as_uuid(),
+        )
+        .fetch_optional(&mut *transaction)
+        .await
+        .context("failed to lock the instance for removal")?
+        .is_none()
+        {
+            return Ok(None);
+        }
         let ended = sqlx::query_file_as!(
             EndedRow,
             "src/registration/store/replace_registrations.sql",

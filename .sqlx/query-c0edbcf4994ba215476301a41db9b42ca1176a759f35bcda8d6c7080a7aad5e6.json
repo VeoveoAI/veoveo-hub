@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- Bootstrap memberships of the fixture connection owner are shared server state,\n-- not registration logins. Multiple grantors can repeat a membership.\n-- veoveo: unbounded (a unit test enumerates login roles in its own unique fixture server group)\nSELECT DISTINCT login.rolname::text AS \"login!\"\nFROM pg_roles AS login\nJOIN pg_auth_members AS membership ON membership.member = login.oid\nJOIN pg_roles AS server ON server.oid = membership.roleid\nWHERE server.rolname = $1 AND login.rolcanlogin AND login.rolname <> current_user\nORDER BY login.rolname::text\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "login!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Name"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c0edbcf4994ba215476301a41db9b42ca1176a759f35bcda8d6c7080a7aad5e6"
+}

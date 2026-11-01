@@ -1406,6 +1406,14 @@ native regressions, this qualifies register/replace/update concurrency within th
 stated boundaries. It is not formal Rust/SQL refinement or complete registration
 lifecycle coverage.
 
+The subsequent [native instance-removal probe](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-instance-removal-race.md)
+reproduces first registration committing after removal has completed, leaving a
+registration login and refreshed catalog entry although the instance and its
+authority are absent. A fresh Linux compilation executes the corrected fixture;
+the earlier cached-binary run is not accepted as its qualification. Shared
+instance-row serialization and the corresponding lifecycle model are in progress.
+The register/replace/update theorems above do not cover this interleaving.
+
 ## HUB-LORE-01 — Native grants and contributed token issuance
 
 **Invariant/failure prevented.** Hub calculates the intended repository grant from
