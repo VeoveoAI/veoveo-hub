@@ -1129,12 +1129,23 @@ state, not an additional repository authorization rule.
 - **Tests:** [watch fixture](../crates/veoveo-hub/src/bin/hub/contributions/lore/factory/tests.rs#L493)
   covers resubscription and replaced watchers; [factory scenarios](../crates/veoveo-hub/tests/factory.rs#L532)
   cover changed image/policy, crash loops and failed builds.
+- **Native retarget correction:** `48d7e25` repairs a reproduced mismatch between
+  native command, stored target, credential lookup and later linked-push routing.
+  Three new regressions cover complete retargeting, refused deletion/retry and
+  joined registration publication without a new process registration. The integrated
+  Mac/Linux Docker checks each pass 460 tests, with two skipped; see the
+  [qualification record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-retarget-fix.md).
+  This is component evidence, not a deployed or formally verified transition.
 - **Boundary/effort:** moderate for lifecycle action selection, substantial for
   cancellation/supersession and recovery. Current code uses cancellation plus an
   instance mutex, not a pure generation-CAS activation guard. In-flight apply may finish.
-- **Residual/next:** choose a meaningful action decision only after Task work. Eventual
-  successor reconciliation needs scheduling/failure assumptions; do not claim “stale
-  completion can never publish” from a cancelled-token helper or fake native fixture.
+- **Residual/next:** qualify the manual complete retarget protocol: successful outputs,
+  partial failures, uncertain SQL outcomes, retry and finite serialized histories.
+  Independent linked preparations captured before the runner lock, concurrent
+  registration publication order, native workspace effects and eventual recovery
+  remain separate obligations. Eventual successor reconciliation needs scheduling/
+  failure assumptions; do not claim “stale completion can never publish” from a
+  cancelled-token helper or fake native fixture.
 
 ## HUB-COMPUTER-01 — Owner/session identity and version recovery
 
