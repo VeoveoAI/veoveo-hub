@@ -43,6 +43,18 @@ proofs retain their scope and assumptions. See the
 This does not update Hub's dependency pin or qualify its newer App-origin path,
 changed registration record, or the unfinished caller control.
 
+SDK `4e84876` subsequently publishes that historical proof history together with
+upstream `db64f9ee`. Its nonproof source matches that upstream exactly; the older
+private binder and formatted-identity preparation are not reapplied. The historical
+proofs and receipts retain their original applicability, rather than becoming
+proofs of the newer repository-grant flow. The
+[publication receipt](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/proofs/internal_auth/evidence/published-history-integration-20261031.json)
+records matching native inputs and full Mac/Linux Docker checks: 328 tests passed
+and three were skipped on each host. SDK `db64f9ee` differs from `7360c0f` only in
+the Apps design document. Current issuer/claims/verifier qualification remains open;
+the unmodified `7360c0f`/Core `422dcf2` extraction includes repository grants and
+decoded-claims identity reconstruction. This publication does not change Hub's pin.
+
 Hub merge `1ccb868` subsequently integrates upstream `0ff0819`, retaining all local
 proof work. Its runtime/configuration bytes match that upstream parent exactly;
 the published SDK pin is now `154a473`, with Core still `120306e`. Thirteen focused
