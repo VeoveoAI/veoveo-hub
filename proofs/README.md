@@ -172,7 +172,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and source controls checked; native watch publication defect fixed; formal listener/cursor and native refinement open |
-| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Saved-parent formal composition after native fix; remaining lifecycle/distributed correspondence |
+| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Saved-parent histories/controls; allocation, retirement and native/distributed correspondence |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
@@ -1250,6 +1250,14 @@ state, not an additional repository authorization rule.
   accepted existing-runner continuation requires one. No correctness theorem is
   claimed from elaboration; see the
   [model checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-model.md).
+- **Saved-parent foundation:** arbitrary-state obsolete/native-error/cancellation
+  outcomes, exact preparation-error publication and complete current-head existing-
+  runner acceptance now pass 28 axiom guards in 5.426 s. Accepted inputs and exact
+  child/Factory outputs are derived by composing admission with the unchanged
+  execution model; no desired Request/after-state or present diagnostic is assumed.
+  See the [foundation record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-foundation.md).
+  Successful application retains the explicit existing-row/quiescent-prefix domain.
+  Composed newer-parent/old-retry histories, populated examples and controls remain.
 - **Residual/next:** the bounded watcher slice now includes its semantic controls
   and restoration. The complete Factory lifecycle remains partial. Saved-parent
   retry preparation/membership, cross-replica reconciliation, concurrent

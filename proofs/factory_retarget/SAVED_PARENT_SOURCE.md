@@ -1,9 +1,11 @@
-# Saved-parent preparation and guarded commit (manual proof design)
+# Saved-parent preparation and guarded publication
 
-Status: the model elaborates; correctness theorems are still being authored and
-are not yet qualified. The
+Status: the model and foundation correctness theorems are checked. Composed
+update/retry histories, independent populated examples and semantic controls remain
+pending. The
 [model checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-model.md)
-records the manual check separately from theorem and native evidence. Runtime basis
+and [foundation checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-foundation.md)
+keep definition elaboration, theorem checks and native evidence separate. Runtime basis
 is Hub `77b258ae10837a01ca7c7464e7c4245c94cd4105`; the package source starts on
 coverage main `e1101a7ab5b1f44b69d46592c8067d561cfa65d4`. The prior Factory and
 watcher models/proofs are reused byte-identically. This is manual source
@@ -83,7 +85,23 @@ conditions remain those of the inherited package. A configured client projection
 is not a proof of full token issuance; exact submitted argv uses branch@LATEST,
 not proof of checkout bytes, remote receipt/readiness or native cleanup.
 
-## First substantive checkpoint
+## Checked foundation
+
+`FactorySavedParentProof` proves arbitrary-state obsolete/native-error/cancellation
+outcomes, exact current source-error publication and unrelated-key preservation.
+Its accepted path derives concrete Ready fields from admission and calls the
+unchanged child operation. `current_head_full` derives the exact child outcome,
+actual Factory result with no error, complete stored/native/provider/request
+values, client projection and both status-map effects from external no-fault and
+capacity observations. It does not assume a desired Request or successful
+after-state, or require a diagnostic row to be present.
+
+These theorems are under the native interpretation and existing-runner successful-
+application domain stated above. They do not yet compose a newer successful parent
+operation with an old prepared retry. That history and the populated/semantic
+checks remain part of the complete slice below.
+
+## Contracts for the complete slice
 
 - Whole-state discard for stale source success AND source error, lookup error,
   deletion/name reuse or cancellation, retaining read/query/log trace attempts.
@@ -99,6 +117,7 @@ not proof of checkout bytes, remote receipt/readiness or native cleanup.
 - Independent populated accepted and stale-output witnesses with valid public
   fixture data, full client/request/argv and executable standard-axiom audits.
 
-Theorems will assume truthful native snapshots and the stated serialized/no-external-
-write domain, not desired Requests or successful after-states. Exact artifacts,
-commands and receipts will be recorded only after Luna runs frozen source.
+Theorems assume truthful native snapshots and the stated serialized/no-external-
+write domain, not desired Requests or successful after-states. Dated records above
+retain exact artifacts and commands for completed checks; no receipt is claimed
+for the pending compositions or controls.
