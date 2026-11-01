@@ -517,3 +517,14 @@ limit is local to each execution theorem; no heartbeat limit, evaluator bypass,
 new axiom or runtime behavior was added. Native regression and concurrency claims
 remain separate. GPT-6.1 Sol prepared the sources, GPT-6 Luna ran the bounded
 checks, and GPT-6 Astra reviewed full logs, wrong-result witnesses and restorations.
+
+
+## Checked guarded-watcher foundation
+
+The current watcher composition model/proof, exact source/artifact/dependency
+identities, model and proof authoring diagnostics, manual commands and remaining
+obligations are recorded in [WATCHER_SOURCE.md](WATCHER_SOURCE.md). The inherited
+Factory model and prior checked leaves remain unchanged. This foundation checks
+current projection and complete accepted/no-op outputs under explicit native
+mutex/SQL interpretation; it does not close the queued parent/status compositions,
+constructive witnesses or selected control/restoration requirements.

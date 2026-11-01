@@ -152,10 +152,36 @@ took 6.699, 3.884, 30.345 and 20.733 seconds across those four stages. The compa
 and the distinction between setup fixes and semantic rejection. The dated record
 is [Factory semantic controls](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-semantic-controls.md).
 
+## Checked current-runner watcher foundation
+
+The [watcher model and source receipt](WATCHER_SOURCE.md) add a manual composition
+layer over the unchanged Factory operation. Current SQL selection is related to
+the complete backing row; source arguments and Requests are constructed from the
+current **applied** parent metadata and native preparation observations.
+`relevant_full_output` derives valid acceptance and complete Factory outputs.
+Obsolete/absent candidates preserve the whole stored state, and
+`capture_independent` makes stale captured parent metadata irrelevant when key and
+event target agree. Query/log attempts remain visible even on state no-ops.
+
+Failure storage has its full watched-deployment/parent/branch/link key and complete
+timestamped payload, distinct from the mutex/query key. Preparation success,
+swallowed Factory error and status publication remain separate channels. Native
+SQL consistency, mutex serialization, callback/formatting and existing backing-row
+conditions are explicit. This is neither async Rust extraction nor proof of new
+allocation, native cleanup, parent-retry freshness or distributed ordering.
+
+The model built in **8.232 seconds**; the foundation proof passed in **9.383
+seconds** with **18 axiom guards** (14 lemmas and four definitions) and seven
+printed standard-only closures. Six exact accepted prerequisites were reused.
+First-attempt constructor and tactic errors are retained in the receipt. No native
+tests were repeated. Further parentLink/queued-retarget and program-advance
+compositions, status/fallback/error ordering, unrelated-key failure frames,
+populated client-facing witnesses and two selected semantic controls remain open.
+
 ## Manual checks
 
 Lean 4.35.0 and Mathlib `56a005855ea17e0b0958f73ec801ae140b0a1679` are pinned.
-No Aeneas dependency or historical instance-name patch is used. All eight named
+No Aeneas dependency or historical instance-name patch is used. All ten named
 targets are manual; no default/CI target or runtime behavior is added.
 
 ```sh
@@ -167,6 +193,8 @@ LAKE_NO_UPDATE=1 lake env lean FactoryChoiceProof.lean -o .lake/build/lib/lean/F
 LAKE_NO_UPDATE=1 lake env lean FactoryControlFixture.lean -o .lake/build/lib/lean/FactoryControlFixture.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryRetargetControl.lean -o .lake/build/lib/lean/FactoryRetargetControl.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryCapacityControl.lean -o .lake/build/lib/lean/FactoryCapacityControl.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherModel.lean -o .lake/build/lib/lean/FactoryWatcherModel.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherProof.lean -o .lake/build/lib/lean/FactoryWatcherProof.olean
 ```
 
 ## Interpretation boundaries and remaining work

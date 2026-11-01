@@ -12,3 +12,5 @@ lean_lib FactoryChoiceProof
 lean_lib FactoryControlFixture
 lean_lib FactoryRetargetControl
 lean_lib FactoryCapacityControl
+lean_lib FactoryWatcherModel
+lean_lib FactoryWatcherProof
