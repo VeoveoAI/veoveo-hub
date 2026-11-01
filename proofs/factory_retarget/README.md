@@ -31,8 +31,9 @@ with the current parent program. Its 23 axiom guards pass in 5.773 seconds.
 See the [history contracts and receipt](WATCHER_SOURCE.md#checked-parent-and-queued-update-histories).
 Failure/status ordering and scoped deletion now also pass, with ten axiom guards
 in 5.473 seconds; see the [status contracts](WATCHER_SOURCE.md#checked-status-fallback-and-deletion-boundaries).
-Populated watcher witnesses and semantic controls remain pending; the overall
-lifecycle contract is still partial.
+Six populated watcher histories now pass, with ten guards and a 92.718-second
+proof check; see the [fixture receipt](WATCHER_SOURCE.md#checked-populated-watcher-histories).
+Watcher semantic controls remain pending; the overall lifecycle contract is partial.
 
 ## Checked native-output checkpoint
 
@@ -187,12 +188,13 @@ tests were repeated. The subsequent history checkpoint above adds parent/queued
 retarget and program-advance compositions and unrelated-key failure framing.
 The subsequent status checkpoint composes preparation refusal with parent
 success, proves fallback/error distinctions and frames completed row deletion.
-Populated client-facing witnesses and two selected semantic controls remain open.
+Six populated client-facing histories now pass with independently specified
+outputs. Two selected semantic controls and their exact restorations remain open.
 
 ## Manual checks
 
 Lean 4.35.0 and Mathlib `56a005855ea17e0b0958f73ec801ae140b0a1679` are pinned.
-No Aeneas dependency or historical instance-name patch is used. All twelve named
+No Aeneas dependency or historical instance-name patch is used. All fourteen named
 targets are manual; no default/CI target or runtime behavior is added.
 
 ```sh
@@ -208,6 +210,8 @@ LAKE_NO_UPDATE=1 lake env lean FactoryWatcherModel.lean -o .lake/build/lib/lean/
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherProof.lean -o .lake/build/lib/lean/FactoryWatcherProof.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherHistoryProof.lean -o .lake/build/lib/lean/FactoryWatcherHistoryProof.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherStatusProof.lean -o .lake/build/lib/lean/FactoryWatcherStatusProof.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherFixture.lean -o .lake/build/lib/lean/FactoryWatcherFixture.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherFixtureProof.lean -o .lake/build/lib/lean/FactoryWatcherFixtureProof.olean
 ```
 
 ## Interpretation boundaries and remaining work
@@ -240,7 +244,7 @@ the native name truncates UUID text.
 The full protocol remains partial. Independent lifecycle contracts are now checked
 alongside the full output and conditional retry contracts. Two populated manual
 controls now detect specific wrong-output and wrongful-refusal faults. Further
-work includes populated watcher histories and semantic controls;
+work includes the two watcher semantic controls and exact restoration;
 the earlier native concurrency qualification is recorded separately. These
 controls are not exhaustive fault coverage. Modeled provider fields do not verify entire native
 Provider protobuf objects; their profiles, defaults and native interpretation

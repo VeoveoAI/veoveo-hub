@@ -16,3 +16,5 @@ lean_lib FactoryWatcherModel
 lean_lib FactoryWatcherProof
 lean_lib FactoryWatcherHistoryProof
 lean_lib FactoryWatcherStatusProof
+lean_lib FactoryWatcherFixture
+lean_lib FactoryWatcherFixtureProof

@@ -1,7 +1,7 @@
 # Guarded watcher composition: manual source boundary
 
-The manual model, foundation, parent/queued-update histories and status/recovery
-proof leaves are checked. The model compiled
+The manual model, foundation, parent/queued-update histories, status/recovery
+proofs and populated examples are checked. The model compiled
 in 8.232 seconds; the proof passed in 9.383 seconds with 18 executable axiom guards
 (14 lemmas and four model definitions) and seven printed standard-only closures.
 This is a current-projection/full-output foundation, not closure of the entire
@@ -70,7 +70,8 @@ arguments and complete Factory outputs. The checked history extension below now
 composes actual parent retarget and same-target advancement with queued updates,
 deriving intermediate key/row uniqueness from the actual first operation. The
 status extension now checks failure/fallback ordering and a bounded deletion
-history. Populated client-facing witnesses and semantic controls remain next.
+history. Six populated client-facing histories are now checked below; semantic
+controls and exact restoration remain next.
 The two later controls change only post-relevance metadata selection (same-target
 program advancement) or add an overstrict captured-parent equality refusal.
 They will not mutate the actual backing Row/current SQL observation or reuse stale
@@ -301,8 +302,8 @@ rebuild earlier proofs or rerun native tests. GPT-6.1 Sol authored the package,
 GPT-6 Luna ran bounded Linux validation and GPT-6 Astra reviewed complete logs,
 contracts and correspondence. Guards are dependency audits, not execution cases.
 The parent/queued-candidate and status/deletion compositions are now checked in
-the extensions. The larger watcher slice remains partial until constructive
-witnesses and selected controls/restorations are qualified; the intermediate
+the extensions. The larger watcher slice remains partial until the selected
+controls/restorations are qualified; the intermediate
 checkpoints do not narrow those requirements.
 
 ## Checked status, fallback and deletion boundaries
@@ -374,5 +375,90 @@ Evidence mirror:
 The [dated status record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-status.md)
 keeps this proof-only result separate from native tests and deployment. No runtime,
 dependency, accepted model or earlier proof changed, and no native check or paid
-model call ran. Populated complete outputs and both semantic controls/restorations
-remain necessary before closing the watcher slice.
+model call ran. Populated complete outputs are now checked below; both semantic
+controls/restorations remain necessary before closing the watcher slice.
+
+## Checked populated watcher histories
+
+`FactoryWatcherFixture` imports only `FactoryWatcherModel`, which imports only
+`FactoryRetargetModel`. Its separate proof leaf imports no generic correctness
+proof. Six closed execution assertions construct actual operations and compare
+independent full rows, client identities, native/provider observations, request
+lists and argv, plus complete status values at the affected and unrelated keys:
+
+1. A parent retarget from repository A to B, followed by the captured A event.
+2. A retarget from A/branchA to A/branchB, followed by the old branchA event.
+3. Parent2/Frank replaces parent1/Alice while still targeting A; the captured
+   candidate accepts the incoming linked update using current own entries and
+   image observations, with both issued requests and the complete client visible.
+4. A selected native delete error constructs the exact failed row/event prefix
+   while logical preparation succeeds and its watcher failure is cleared.
+5. Preparation refusal commits the full timestamped failure despite a lost reply;
+   an actual later parent operation clears it and preserves another deployment's
+   status for the same runner.
+6. Resolution of requested B fails, recorded A applies successfully, and the
+   timestamped B error remains even though its publication reply is lost.
+
+The initial projection, runner shape, singleton-key uniqueness and source-oracle
+indexing also pass. The oracle indexes BOTH parent revision and pusher, with
+different old/current tree, entries, image and native observations; crossed
+coordinates refuse. The second operation's backing row and SQL projection come
+from the first actual result, not an expected intermediate row premise.
+
+Before freezing, review corrected an inconsistent following-link input to pinned
+links with coherent pinned revisions/returned branch IDs. This was a fixture
+correction, not a production change. Schema, parsed-identity, digest, URL/protobuf
+and native-observation correspondence remain explicit. Separate create/provisioning
+and later ready observations do not prove a native readiness transition. The
+696-byte runner script exactly matches current Rust formatting (SHA-256
+`dd5d553375a987f734834cacf6dd72c8eddb7f15c9b41c29bf05f284b952b9d1`);
+all four public synthetic raw-token/digest pairs were independently checked.
+Neither this data audit nor the issued branch@LATEST argv establishes checkout
+bytes or native execution.
+
+GPT-6.1 Sol authored, GPT-6 Astra reviewed source/data and full logs, and GPT-6 Luna
+ran the pinned Linux manual check. Fresh fixture compilation took **5.474 s**;
+the six-execution proof took **92.718 s** (98.193 s combined), each bounded at
+180 seconds. Ten guards and six printed closures pass with only the standard
+three axioms. Local `maxRecDepth 4096` applies to the six execution assertions;
+no global limit or runtime behavior changed. The seven-file source map and two
+accepted model import pairs stayed unchanged. No native/application tests,
+deployment or paid calls ran.
+
+```sh
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherFixture.lean -o .lake/build/lib/lean/FactoryWatcherFixture.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryWatcherFixtureProof.lean -o .lake/build/lib/lean/FactoryWatcherFixtureProof.olean
+```
+
+```json
+{
+  "scope": "six synthetic populated watcher histories; semantic controls pending",
+  "runtime_source": "a69e3cba3f9865e06e1db5ff77d1562ac468338a",
+  "proof_main_basis": "abfb89b",
+  "fixture_source_sha256": "95d51027444224916177170887fc645466f5cfaf72cefc647b88f4258d7077ca",
+  "fixture_source_bytes": 24962,
+  "proof_source_sha256": "e66abae0f8ba792c3dee725648fc2fa69ecd17fc8a81878cc2750be488bd3a6f",
+  "proof_source_bytes": 4925,
+  "input_sha256": "b75d802924c4b67cee11ddfb94c723c8cdcc8f16b96e3b2bd2878289627c63fc",
+  "archive_sha256": "4c5dda56936fde62c8a97014af7428c0044a215d64f06e75ea82935a3731fef4",
+  "source_map_sha256": "38792a044940d74ff78a5dc0879d91ade28ca7ceb01730c080e2a6d5a82bae7c",
+  "fixture_elapsed_ms": 5474,
+  "proof_elapsed_ms": 92718,
+  "combined_elapsed_ms": 98193,
+  "guards": 10,
+  "printed_closures": 6,
+  "fixture_artifact_bytes": 929656,
+  "fixture_artifact_sha256": "a95c2fd70cad74f7dc156ef8786796691259b8fef0479420be6b43236070e553",
+  "proof_artifact_bytes": 240368,
+  "proof_artifact_sha256": "c3c7f44334e16a525c61aa92214ecb0d3c5047635f27c70b6f959f7addf3bab5",
+  "proof_log_bytes": 778,
+  "proof_log_sha256": "0e5dfbe1beadb535f0b1985eb784ec7b84c9f1778a50ae207d9c4127fdd1f820",
+  "summary_sha256": "27ace507de8ba6859b7adf863a43174ad621dd9d792d293b9647acfcc476d97c"
+}
+```
+
+Temporary mirror:
+`/tmp/hub-factory-concurrent-preparation-20261031/watcher-fixture-check1-mirror/evidence-run1/`.
+The fixture log is empty. The [dated record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-watcher-fixtures.md)
+retains this qualified baseline separately from the two still-pending deliberately
+faulty model variants and their independent witnesses/restorations.
