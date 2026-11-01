@@ -108,3 +108,55 @@ and are not semantic findings. No native tests were repeated for proof-only edit
   "publication_note": "Only README/SOURCE prose changed after the exact checked seven-file snapshot; all Lean/config bytes remain validated. Native tests and runtime qualification are recorded separately."
 }
 ```
+
+
+## Checked native-output checkpoint
+
+This extends the checked manual model without changing its source, prior row
+proof or dependency pins. The independent output contracts cover the complete
+modeled result and preserve path-specific retained values. They do not separately
+verify every condition inside the shared lifecycle choice. The credential value
+is a modeled client-query projection, not a proof of issuer/token execution.
+The populated witness uses native-form raw tokens, actual SHA-256 fixture pairs,
+valid IDs and explicit schema/native interpretation premises. The coordinator
+independently confirmed all four digest pairs and exact source-script bytes.
+
+```json
+{
+  "status": "checked manual complete-output checkpoint; broader Factory protocol partial",
+  "runtime_source": "48d7e25a564f24c9d0418fbbebeda1d5c7d4c68c",
+  "proof_source_sha256": "0165725f865ae28f1d4e7e3530bec9c0d7fa088bf4a3246c83e9335c4b3bba23",
+  "lakefile_sha256": "29169396ec2f0653d2098c44bf06a0eed30809b1ec6095f0beb1f9672845e196",
+  "inputs_sha256": "4b4b9f9cbbf0f7966cc3c215f92115e54666503dd4b39c74a60e61de7e2e2796",
+  "elapsed_ms": 6945,
+  "exit": 0,
+  "olean_bytes": 2460512,
+  "olean_sha256": "e2c9136699ef0cc9ea71096bce41a458f0068bd9c2cc17fa42b38df0bbef04de",
+  "log_bytes": 6425,
+  "log_sha256": "2a24923175b3a66950c516c39c419bf4c681c523cd554474104d57e95cf9a4b0",
+  "axiom_guards": 14,
+  "printed_closures": 8,
+  "allowed_axioms": ["propext", "Classical.choice", "Quot.sound"],
+  "sorryAx": false,
+  "source_pre_post_unchanged": true,
+  "model_and_row_proof_oleans": "exact artifacts recorded above, verified before and after; not rebuilt",
+  "local_heartbeat_limit": {"theorem": "complete_output_algebra", "limit": 800000},
+  "logs_root": "/tmp/hub-factory-retarget-20261031/native-output-check5-mirror/run1/",
+  "authoring_diagnostics": [
+    {"case": "check1 initial launch", "exit": 127, "cause": "missing PATH; setup only"},
+    {"case": "check1 actual Lean", "elapsed_ms": 30954, "exit": 1, "cause": "output algebra normalization, opaque Runner decidability and overexpanded witness projection"},
+    {"case": "check2", "elapsed_ms": 19169, "exit": 1, "cause": "deterministic 200000-heartbeat timeout in broad record simplification; later missing declaration/audit failures were cascades"},
+    {"case": "check3", "elapsed_ms": 7854, "exit": 1, "cause": "local option/doc-comment placement and residual restart phase-match implications"},
+    {"case": "check4", "elapsed_ms": 6860, "exit": 1, "cause": "two restart implications required introducing contradictory phase/count premises"}
+  ],
+  "qualification_boundary": "manual SQL/async/native correspondence; no Aeneas extraction, native execution or full issuer proof",
+  "publication_note": "Only README/SOURCE prose changed after the checked snapshot; Lean/config bytes unchanged. Native runtime qualification remains separate."
+}
+```
+
+All failed leaf attempts emitted no accepted output artifact; executable guards
+rejected incomplete dependencies. None is counted as a semantic-control result.
+GPT-6.1 Sol authored the leaf, GPT-6 Luna ran bounded Linux validation and GPT-6
+Astra reviewed complete logs and correspondence. No additional native checks were
+run for this proof-only checkpoint. Remaining obligations include independent
+choice contracts, failure-prefix/retry composition and finite sequential histories.

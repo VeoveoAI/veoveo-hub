@@ -6,3 +6,4 @@ require mathlib from git
 package hubFactoryRetargetProof
 lean_lib FactoryRetargetModel
 lean_lib FactoryRetargetProof
+lean_lib FactoryNativeOutputProof

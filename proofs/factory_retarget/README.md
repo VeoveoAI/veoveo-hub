@@ -1,7 +1,8 @@
-# Factory retarget row contract (manual)
+# Factory retarget row and native-output contracts (manual)
 
-This checkpoint proves the complete successful instance row for the manual
-Factory retarget model corresponding to Hub `48d7e25`. It is not an Aeneas
+These checkpoints prove the complete successful instance row and path-sensitive
+modeled outputs for the manual Factory retarget model corresponding to Hub
+`48d7e25`. It is not an Aeneas
 translation or a proof of the entire native Factory protocol. The model retains
 all 21 instance columns, staged SQL/native effects, direct versus recorded errors,
 unknown SQL commit outcomes and separately observed RPC results.
@@ -24,15 +25,45 @@ in 6.686 seconds; its exact artifact was reused for the proof retry. The compact
 the failed authoring attempts. The broader dated record is
 [Factory retarget row proof](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-retarget-row-proof.md).
 
+## Checked native-output checkpoint
+
+`success_implies_capacity` derives capacity acceptance from normal modeled return;
+`successful_apply_complete` therefore needs no separate capacity premise.
+`successful_outputs_complete` combines the independent full-row contract with
+path-sensitive sandbox observations, provider material, issued creation requests
+and unrelated-state frames. Keep preserves the observed sandbox and prior
+providers without refresh or creation. Restart refreshes the modeled client
+projection, retaining the native observation unless the source phase condition
+selects stop/start. Create and replace issue the complete constructed request and
+provider material while retaining arbitrary returned native observations.
+
+`changed_present_accepts` constructs successful execution under explicit no-fault
+observations. The populated changed-target witness combines that acceptance with
+complete outputs, valid identifiers, distinct schema-constrained digests, actual
+SHA-256 fixture pairs and exact source-script construction. Native hash/formatter
+and schema interpretation remain explicit premises. The witness does not prove
+token issuance, remote readiness or an executed checkout. The coordinator independently
+checked all four SHA-256 fixture pairs and the source script bytes.
+
+The new leaf passed in **6.945 seconds** with all **14 executable axiom guards**
+and eight printed closures allowing only the same three standard axioms. Its
+model and prior row-proof artifacts were hash-checked and reused. A finite
+800,000-heartbeat limit applies only to `complete_output_algebra`; there is no
+global limit change. Failed syntax, tactic and heartbeat attempts are retained in
+the [source receipt](SOURCE.md#checked-native-output-checkpoint), rather than
+classified as native defects. The dated record is
+[Factory native-output proof](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-native-output-proof.md).
+
 ## Manual checks
 
 Lean 4.35.0 and Mathlib `56a005855ea17e0b0958f73ec801ae140b0a1679` are pinned.
-No Aeneas dependency or historical instance-name patch is used. Both named targets
-are manual; no default/CI target or runtime behavior is added.
+No Aeneas dependency or historical instance-name patch is used. All three named
+targets are manual; no default/CI target or runtime behavior is added.
 
 ```sh
 LAKE_NO_UPDATE=1 lake build FactoryRetargetModel
 LAKE_NO_UPDATE=1 lake env lean FactoryRetargetProof.lean -o .lake/build/lib/lean/FactoryRetargetProof.olean
+LAKE_NO_UPDATE=1 lake env lean FactoryNativeOutputProof.lean -o .lake/build/lib/lean/FactoryNativeOutputProof.olean
 ```
 
 ## Interpretation boundaries and remaining work
@@ -62,10 +93,13 @@ phase/spec. Native maps use complete deployment keys; physical unrelated-object
 framing additionally needs distinct scoped `(workspace, sandboxName)` keys because
 the native name truncates UUID text.
 
-The full protocol remains partial. Next steps are deriving capacity acceptance
-from success, path-sensitive native outputs (keep retains the prior image/provider
-state; restart refreshes credentials but does not compare every spec field), exact
-failure-prefix and conditional retry connections, and finite serialized histories.
+The full protocol remains partial. The output specifications and modeled program
+share `choice`; independent contracts for every lifecycle selection condition
+remain to be checked. Further work includes exact failure-prefix and conditional
+retry connections, finite serialized histories and semantic controls for wrong
+outputs and wrongful refusals. Modeled provider fields do not verify entire native
+Provider protobuf objects; their profiles, defaults and native interpretation
+remain external contracts.
 Multi-replica publication ordering, independent linked-follower supersession,
 removal interleavings, nonreturn/crash and eventual liveness remain outside this
 checkpoint. Runtime/native regression evidence is separate from these model proofs.
