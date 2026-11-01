@@ -75,7 +75,7 @@ pub(super) async fn runner(
     .transpose()
 }
 
-/// A runner's row, as both runner listings read it.
+/// A runner's row, shared by point lookup and both listings.
 struct RunnerRow {
     repository: String,
     branch: String,
@@ -126,6 +126,27 @@ impl TryFrom<RunnerRow> for Runner {
                 .context("the stored linked pusher is malformed")?,
         })
     }
+}
+
+/// The complete current runner of one link, without scanning its other links.
+pub(super) async fn current_runner(
+    store: &PlatformStore,
+    repository: &str,
+    branch: &BranchName,
+    link: &LinkName,
+) -> Result<Option<Runner>> {
+    sqlx::query_file_as!(
+        RunnerRow,
+        "src/factory/record/current_runner.sql",
+        repository,
+        branch.as_str(),
+        link.as_str()
+    )
+    .fetch_optional(store.pool())
+    .await
+    .context("failed to read the current runner")?
+    .map(Runner::try_from)
+    .transpose()
 }
 
 /// The runners of `branch` of `repository`, by link name.

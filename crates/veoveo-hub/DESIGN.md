@@ -647,6 +647,20 @@ progress. After confirmed deletion, a failed target write or creation can leave 
 sandbox; it does not restore the previous serving worker. A later reconciliation or
 push retries according to the recorded applied revision.
 
+Within one Hub watcher, the parent repository, branch and link name identify a
+runner's lock. A linked notification acquires it before rereading the current runner:
+removal or a different linked repository or tracked branch makes the old notification
+irrelevant, while a still-relevant notification uses the current parent revision and
+pusher. The lock covers source preparation, native and stored effects, and publication
+or clearing of the link's failure. A parent's link resolution, fallback to recorded
+linked content and application use that same lock, as do runner removal and failure
+clearing. Linked continuations and parent link resolution use the runner row read
+inside their lock rather than a snapshot taken before a completed change. Cancellation
+is checked before changing it or publishing its failure. This is process-local runner serialization,
+not a cross-replica ordering guarantee. Parent failure retries still prepare a saved
+parent revision and membership outside this boundary; their freshness is separate
+from the current-runner reread and linked-notification ordering.
+
 Changes to an instance's joined registration routing fields publish through the existing
 kernel notification channel. Every replica reloads the joined registration and compares
 the complete registered-server output, including branch, linked repository, declaration,

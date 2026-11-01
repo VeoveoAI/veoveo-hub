@@ -634,6 +634,17 @@ impl Factory {
         }
     }
 
+    /// The complete current runner of `link` of `branch`, or none after removal.
+    pub async fn runner(
+        &self,
+        repository: &str,
+        branch: &BranchName,
+        link: &LinkName,
+    ) -> Result<Option<Runner>> {
+        repository_id(repository)?;
+        record::current_runner(&self.store, repository, branch, link).await
+    }
+
     /// The runners of `branch` of `repository`, by link name.
     pub async fn runners(&self, repository: &str, branch: &BranchName) -> Result<Vec<Runner>> {
         repository_id(repository)?;

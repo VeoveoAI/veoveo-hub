@@ -25,7 +25,7 @@ use lore_proto::lore::{
     thin_client::v1::{NodeType, TreeNode},
 };
 use sha2::{Digest, Sha256};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
 use veoveo_hub::{
     HubCatalog, HubCatalogAdmission, HubCatalogHandle,
@@ -85,6 +85,20 @@ enum Call {
     RevisionBranch(PrincipalId, Revision),
 }
 
+/// Test-local stream control. Drain is consumed when the production follower
+/// next polls, after its previous complete event handler has returned.
+#[derive(Debug)]
+enum Delivery {
+    Event(Result<Event, tonic::Status>),
+    Drained(oneshot::Sender<()>),
+}
+
+struct ReadPause {
+    revision: Revision,
+    entered: oneshot::Sender<()>,
+    released: oneshot::Receiver<()>,
+}
+
 #[derive(Default)]
 struct LoreState {
     calls: Vec<Call>,
@@ -96,8 +110,12 @@ struct LoreState {
     runs: HashMap<Revision, Option<String>>,
     /// Revisions whose read fails.
     unreadable: HashSet<Revision>,
+    /// An armed one-shot gate on a parent's read, never a production hook.
+    read_pause: Option<ReadPause>,
+    /// The equivalent one-shot gate after a linked revision has been selected.
+    linked_read_pause: Option<(RepositoryId, ReadPause)>,
     /// One sender per subscription, in order.
-    subscriptions: Vec<mpsc::UnboundedSender<Result<Event, tonic::Status>>>,
+    subscriptions: Vec<mpsc::UnboundedSender<Delivery>>,
     /// The links at the top level of each revision of the repository.
     links: HashMap<Revision, Vec<LinkNode>>,
     /// The rest of each revision's own tree, as Lore lists it, which its links are read
@@ -121,7 +139,7 @@ struct Linked {
     openshell: HashMap<Revision, LinkedPrepared>,
     /// Who read what, in order.
     calls: Vec<Call>,
-    subscriptions: Vec<mpsc::UnboundedSender<Result<Event, tonic::Status>>>,
+    subscriptions: Vec<mpsc::UnboundedSender<Delivery>>,
 }
 
 /// The tree node Lore lists for a link at the top level.
@@ -157,13 +175,18 @@ impl FakeLore {
     /// Send `event` on the latest subscription.
     fn send(&self, event: Result<Event, tonic::Status>) {
         let state = self.0.lock().unwrap();
-        state.subscriptions.last().unwrap().send(event).unwrap();
+        state
+            .subscriptions
+            .last()
+            .unwrap()
+            .send(Delivery::Event(event))
+            .unwrap();
     }
 
     /// Send `event` on the first subscription, unless its follower stopped receiving.
     fn send_first(&self, event: Result<Event, tonic::Status>) -> bool {
         let state = self.0.lock().unwrap();
-        state.subscriptions[0].send(event).is_ok()
+        state.subscriptions[0].send(Delivery::Event(event)).is_ok()
     }
 
     fn admit(&self, call: Call, person: &PrincipalId) -> Result<()> {
@@ -207,8 +230,67 @@ impl FakeLore {
             .subscriptions
             .last()
             .unwrap()
-            .send(event)
+            .send(Delivery::Event(event))
             .unwrap();
+    }
+
+    /// Arm only the next read of this parent revision. No mutex is held across
+    /// the async pause, so an independent parent's follower can finish meanwhile.
+    fn pause_read(&self, revision: Revision) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
+        let (entered, waiting) = oneshot::channel();
+        let (release, released) = oneshot::channel();
+        self.with(|state| {
+            assert!(state.read_pause.is_none());
+            state.read_pause = Some(ReadPause {
+                revision,
+                entered,
+                released,
+            });
+        });
+        (waiting, release)
+    }
+
+    fn pause_linked_read(
+        &self,
+        repository: RepositoryId,
+        revision: Revision,
+    ) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
+        let (entered, waiting) = oneshot::channel();
+        let (release, released) = oneshot::channel();
+        self.with(|state| {
+            assert!(state.linked_read_pause.is_none());
+            state.linked_read_pause = Some((
+                repository,
+                ReadPause {
+                    revision,
+                    entered,
+                    released,
+                },
+            ));
+        });
+        (waiting, release)
+    }
+
+    /// Acknowledge the exact preceding handler's completion without introducing
+    /// a recheck, subsequent source read, delay or corrective application.
+    async fn drained(&self, repository: Option<&RepositoryId>) {
+        let sender = {
+            let state = self.0.lock().unwrap();
+            match repository {
+                Some(repository) => state.linked[repository]
+                    .subscriptions
+                    .last()
+                    .unwrap()
+                    .clone(),
+                None => state.subscriptions.last().unwrap().clone(),
+            }
+        };
+        let (drained, done) = oneshot::channel();
+        sender.send(Delivery::Drained(drained)).unwrap();
+        tokio::time::timeout(BOUND, done)
+            .await
+            .expect("the follower did not finish the preceding event")
+            .expect("the fixture stream ended before the drain marker");
     }
 }
 
@@ -234,8 +316,18 @@ impl Lore for FakeLore {
                     self.0.lock().unwrap().subscriptions.push(sender);
                 }
             }
-            let events: Events = Box::pin(tokio_stream::wrappers::UnboundedReceiverStream::new(
+            let events: Events = Box::pin(futures::stream::unfold(
                 receiver,
+                |mut receiver| async move {
+                    loop {
+                        match receiver.recv().await? {
+                            Delivery::Event(event) => return Some((event, receiver)),
+                            Delivery::Drained(drained) => {
+                                let _ = drained.send(());
+                            }
+                        }
+                    }
+                },
             ));
             Ok(events)
         })
@@ -330,6 +422,25 @@ impl Lore for FakeLore {
                 return answer;
             }
             self.admit(Call::Read(person.clone(), revision.clone()), person)?;
+            let pause = {
+                let mut state = self.0.lock().unwrap();
+                if state
+                    .read_pause
+                    .as_ref()
+                    .is_some_and(|pause| &pause.revision == revision)
+                {
+                    state.read_pause.take()
+                } else {
+                    None
+                }
+            };
+            if let Some(pause) = pause {
+                let _ = pause.entered.send(());
+                anyhow::ensure!(
+                    pause.released.await.is_ok(),
+                    "the test-owned read gate was dropped"
+                );
+            }
             let (unreadable, run) = {
                 let state = self.0.lock().unwrap();
                 (
@@ -419,13 +530,36 @@ impl Lore for FakeLore {
         _: &'a Path,
     ) -> BoxFuture<'a, Result<LinkedPrepared>> {
         Box::pin(async move {
-            self.linked(
-                watched,
-                Call::Read(person.clone(), revision.clone()),
-                person,
-                |linked| Ok(linked.openshell.get(revision).cloned().unwrap_or_default()),
-            )
-            .expect("a linked repository's revision")
+            let answer = self
+                .linked(
+                    watched,
+                    Call::Read(person.clone(), revision.clone()),
+                    person,
+                    |linked| Ok(linked.openshell.get(revision).cloned().unwrap_or_default()),
+                )
+                .expect("a linked repository's revision");
+            let pause = {
+                let mut state = self.0.lock().unwrap();
+                if state
+                    .linked_read_pause
+                    .as_ref()
+                    .is_some_and(|(repository, pause)| {
+                        repository == &watched.repository && &pause.revision == revision
+                    })
+                {
+                    state.linked_read_pause.take()
+                } else {
+                    None
+                }
+            };
+            if let Some((_, pause)) = pause {
+                let _ = pause.entered.send(());
+                anyhow::ensure!(
+                    pause.released.await.is_ok(),
+                    "the test-owned linked read gate was dropped"
+                );
+            }
+            answer
         })
     }
 }
@@ -1184,6 +1318,29 @@ impl Fixture {
         .unwrap()
     }
 
+    /// Observe complete recorded routing, submitted native argv and the actual
+    /// configured client lookup together, after a test-owned stream drain.
+    async fn runner_output(
+        &self,
+        branch: &str,
+        link: &str,
+    ) -> (factory::Runner, Vec<String>, factory::InstanceClient) {
+        let runner = self
+            .runners(branch)
+            .await
+            .into_iter()
+            .find(|runner| runner.link.name.as_str() == link)
+            .unwrap();
+        let command = self
+            .runner_sandbox(branch, link)
+            .await
+            .spec
+            .unwrap()
+            .command;
+        let client = self.runner_client(branch, link).await;
+        (runner, command, client)
+    }
+
     /// The runner's sandbox, as OpenShell holds it.
     async fn runner_sandbox(&self, branch: &str, link: &str) -> openshell_sdk::raw::proto::Sandbox {
         let deployment = self
@@ -1438,6 +1595,79 @@ async fn a_linked_branch_runs_one_runner_per_link_serving_the_branch_each_link_t
     .await;
 }
 
+/// Start only the declared team-a runner and fully drain initial real followers.
+async fn watching_one_runner(
+    fixture: &Fixture,
+    branch: &str,
+) -> (PrincipalId, PrincipalId, PrincipalId, PrincipalId) {
+    let (alice, bob, carol, dave) = linked_branch(fixture, branch);
+    fixture.lore.with(|state| {
+        state
+            .links
+            .insert(revision('1'), vec![link("team-a", LINKED_A, 'a', true)]);
+    });
+    for (repository, watcher) in [(LINKED_A, &bob), (LINKED_B, &dave)] {
+        fixture
+            .watches
+            .store()
+            .watch(&linked_watched(repository), watcher)
+            .await
+            .unwrap();
+    }
+    fixture
+        .watches
+        .watch(watched(), alice.clone())
+        .await
+        .unwrap();
+    fixture.lore.drained(None).await;
+    fixture
+        .watches
+        .watch(linked_watched(LINKED_A), bob.clone())
+        .await
+        .unwrap();
+    fixture
+        .lore
+        .drained(Some(&RepositoryId::parse(LINKED_A).unwrap()))
+        .await;
+    (alice, bob, carol, dave)
+}
+
+/// A production tracking query, paused by the test at the caller/callee boundary.
+async fn captured_candidate(fixture: &Fixture, branch: &str) -> factory::Runner {
+    fixture
+        .factory
+        .tracking(LINKED_A)
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|runner| runner.branch == name(branch) && runner.link.name.as_str() == "team-a")
+        .expect("the established runner is tracked by A")
+}
+
+/// Independent expected full argv, preserving the fixed shell/script prefix.
+fn expected_runner_command(
+    before: &[String],
+    branch: &str,
+    repository: &str,
+    tracked: char,
+    web: bool,
+) -> Vec<String> {
+    let mut command = before[..3].to_vec();
+    command.extend([
+        "runner".to_owned(),
+        format!("grpcs://lore.internal:41337/{REPOSITORY}"),
+        branch.to_owned(),
+        format!("grpcs://lore.internal:41337/{repository}"),
+        branch_id(tracked).to_string(),
+        "crates".to_owned(),
+        "openshell".to_owned(),
+    ]);
+    if web {
+        command.push("web".into());
+    }
+    command
+}
+
 /// A branch-created event starts a recheck only after all earlier events on this
 /// subscription have finished. The call count is an observation barrier, not a delay.
 async fn drain_linked_events(fixture: &Fixture, repository: &str, watcher: &PrincipalId) {
@@ -1654,6 +1884,585 @@ async fn retargeting_a_link_updates_its_runner_identity_client_and_push_routing(
                 advanced.clone(),
                 advanced,
                 expected_command,
+            )
+        );
+    })
+    .await;
+}
+
+/// The immutable pre-fix read-gate reproduction is in its frozen evidence packet.
+/// Here the exact real tracking candidate is retained across a completed parent
+/// change, then forwarded to the real continuation. No lock-overlap is required.
+#[tokio::test]
+async fn a_stale_linked_preparation_cannot_undo_a_completed_parent_retarget() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/stale-preparation";
+        let (alice, _, carol, dave) = watching_one_runner(&fixture, branch).await;
+        let a = RepositoryId::parse(LINKED_A).unwrap();
+        let b = RepositoryId::parse(LINKED_B).unwrap();
+        let original = fixture.runner_output(branch, "team-a").await;
+        let candidate = captured_candidate(&fixture, branch).await;
+        fixture.lore.with(|state| {
+            let linked = state
+                .linked
+                .get_mut(&RepositoryId::parse(LINKED_A).unwrap())
+                .unwrap();
+            linked.branches[0].latest = revision('e');
+            linked.committers.insert(revision('e'), carol.clone());
+        });
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('2');
+            state.committers.insert(revision('2'), alice.clone());
+            state.runs.insert(revision('2'), None);
+            state
+                .links
+                .insert(revision('2'), vec![link("team-a", LINKED_B, 'b', false)]);
+            state.trees.insert(revision('2'), own_tree('1'));
+        });
+        fixture.lore.send(Ok(pushed('1', '2', &alice)));
+        fixture.lore.drained(None).await;
+        let before_stale = fixture.runner_output(branch, "team-a").await;
+        fixture
+            .watches
+            .reapply_candidate(
+                &linked_watched(LINKED_A),
+                candidate.clone(),
+                Some(Push {
+                    revision: revision('e'),
+                    pusher: carol.clone(),
+                }),
+            )
+            .await;
+        let after_stale = fixture.runner_output(branch, "team-a").await;
+
+        // Produce an actual current-B preparation failure, not a refused retarget
+        // that left A current. Its full status must survive an obsolete A failure.
+        fixture
+            .watches
+            .watch(linked_watched(LINKED_B), dave.clone())
+            .await
+            .unwrap();
+        fixture.lore.drained(Some(&b)).await;
+        fixture.lore.with(|state| {
+            let linked = state.linked.get_mut(&b).unwrap();
+            linked.branches[0].latest = revision('f');
+            linked.committers.insert(revision('f'), dave.clone());
+            linked.openshell.insert(
+                revision('f'),
+                LinkedPrepared {
+                    policy: Some(TEAM_POLICY.replace("/sandbox/src/**", "/sandbox/link/**")),
+                    providers: None,
+                },
+            );
+        });
+        fixture.lore.send_linked(&b, Ok(pushed('2', 'f', &dave)));
+        fixture.lore.drained(Some(&b)).await;
+        let failed_b = fixture.runner_output(branch, "team-a").await;
+        let failure = fixture
+            .watches
+            .store()
+            .runner_failure(
+                &watched(),
+                &name(branch),
+                &LinkName::parse("team-a").unwrap(),
+            )
+            .await
+            .unwrap()
+            .expect("B's linked policy is refused");
+        fixture.lore.with(|state| {
+            state.unreadable.insert(revision('1'));
+            let linked = state.linked.get_mut(&a).unwrap();
+            linked.branches[0].latest = revision('a');
+            linked.committers.insert(revision('a'), carol.clone());
+        });
+        fixture
+            .watches
+            .reapply_candidate(
+                &linked_watched(LINKED_A),
+                candidate,
+                Some(Push {
+                    revision: revision('a'),
+                    pusher: carol.clone(),
+                }),
+            )
+            .await;
+        let after_obsolete_failure = fixture.runner_output(branch, "team-a").await;
+        let retained_failure = fixture
+            .watches
+            .store()
+            .runner_failure(
+                &watched(),
+                &name(branch),
+                &LinkName::parse("team-a").unwrap(),
+            )
+            .await
+            .unwrap();
+
+        fixture.lore.with(|state| {
+            let linked = state.linked.get_mut(&b).unwrap();
+            linked.branches[0].latest = revision('e');
+            linked.committers.insert(revision('e'), dave.clone());
+        });
+        fixture.lore.send_linked(&b, Ok(pushed('2', 'e', &dave)));
+        fixture.lore.drained(Some(&b)).await;
+        let after_new_push = fixture.runner_output(branch, "team-a").await;
+        fixture.lore.with(|state| {
+            let linked = state.linked.get_mut(&a).unwrap();
+            linked.branches[0].latest = revision('a');
+            linked.committers.insert(revision('a'), carol.clone());
+        });
+        fixture.lore.send_linked(&a, Ok(pushed('1', 'a', &carol)));
+        fixture.lore.drained(Some(&a)).await;
+        let after_old_push = fixture.runner_output(branch, "team-a").await;
+        let final_failure = fixture
+            .watches
+            .store()
+            .runner_failure(
+                &watched(),
+                &name(branch),
+                &LinkName::parse("team-a").unwrap(),
+            )
+            .await
+            .unwrap();
+        let expected_runner = factory::Runner {
+            link: factory::Link {
+                name: LinkName::parse("team-a").unwrap(),
+                repository: LINKED_B.into(),
+                tracked: factory::TrackedBranch {
+                    id: branch_id('2').to_string(),
+                    name: "release".into(),
+                },
+            },
+            revision: Some(revision('2')),
+            linked_revision: Some(revision('d')),
+            linked_pusher: Some(dave.clone()),
+            ..original.0.clone()
+        };
+        let expected_client = factory::InstanceClient {
+            linked: Some(factory::LinkedClient {
+                repository: LINKED_B.into(),
+                pusher: Some(dave.clone()),
+            }),
+            ..original.2
+        };
+        let expected_command = expected_runner_command(&original.1, branch, LINKED_B, '2', false);
+        let expected = (
+            expected_runner.clone(),
+            expected_command.clone(),
+            expected_client.clone(),
+        );
+        let advanced = (
+            factory::Runner {
+                linked_revision: Some(revision('e')),
+                linked_pusher: Some(dave),
+                ..expected_runner
+            },
+            expected_command,
+            expected_client,
+        );
+        assert_eq!(
+            (
+                before_stale,
+                after_stale,
+                failed_b,
+                after_obsolete_failure,
+                failure.linked_repository.clone(),
+                failure.revision.clone(),
+                retained_failure,
+                after_new_push,
+                after_old_push,
+                final_failure
+            ),
+            (
+                expected.clone(),
+                expected.clone(),
+                expected.clone(),
+                expected,
+                b,
+                revision('2'),
+                Some(failure),
+                advanced.clone(),
+                advanced,
+                None
+            ),
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_captured_linked_candidate_cannot_resurrect_a_removed_runner() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/stale-removed";
+        let (alice, _, carol, _) = watching_one_runner(&fixture, branch).await;
+        let candidate = captured_candidate(&fixture, branch).await;
+        fixture.lore.with(|state| {
+            let linked = state
+                .linked
+                .get_mut(&RepositoryId::parse(LINKED_A).unwrap())
+                .unwrap();
+            linked.branches[0].latest = revision('e');
+            linked.committers.insert(revision('e'), carol.clone());
+        });
+        let original = fixture.runner_client(branch, "team-a").await;
+        let original_name = sandbox_name(original.deployment);
+        let material = fixture
+            .gateway
+            .refresh_material(
+                WORKSPACE,
+                &format!("{original_name}-lore"),
+                "LORE_ACCESS_TOKEN",
+            )
+            .unwrap();
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('2');
+            state.committers.insert(revision('2'), alice.clone());
+            state.links.insert(revision('2'), Vec::new());
+            state.trees.insert(revision('2'), own_tree('1'));
+            // No run at revision2: both the link and ordinary instance retire.
+        });
+        fixture.lore.send(Ok(pushed('1', '2', &alice)));
+        fixture.lore.drained(None).await;
+        let removed = fixture.runners(branch).await;
+        fixture
+            .watches
+            .reapply_candidate(
+                &linked_watched(LINKED_A),
+                candidate,
+                Some(Push {
+                    revision: revision('e'),
+                    pusher: carol.clone(),
+                }),
+            )
+            .await;
+        let after_stale = fixture.runners(branch).await;
+        let recreated = if after_stale.is_empty() {
+            None
+        } else {
+            Some(fixture.runner_output(branch, "team-a").await)
+        };
+        let client = factory::instance_client(
+            &fixture.db.a,
+            &material["client_id"],
+            &material["client_secret"],
+        )
+        .await
+        .unwrap();
+        let failure = fixture
+            .watches
+            .store()
+            .runner_failure(
+                &watched(),
+                &name(branch),
+                &LinkName::parse("team-a").unwrap(),
+            )
+            .await
+            .unwrap();
+        let a = RepositoryId::parse(LINKED_A).unwrap();
+        fixture.lore.send_linked(&a, Ok(pushed('1', 'e', &carol)));
+        fixture.lore.drained(Some(&a)).await;
+        assert_eq!(
+            (
+                removed,
+                after_stale,
+                recreated,
+                client,
+                failure,
+                fixture.gateway.sandbox(WORKSPACE, &original_name).is_none(),
+                fixture.runners(branch).await
+            ),
+            (Vec::new(), Vec::new(), None, None, None, true, Vec::new())
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_captured_linked_candidate_uses_the_current_parent_program_and_pusher() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/stale-program";
+        let (_, _, carol, _) = watching_one_runner(&fixture, branch).await;
+        let original = fixture.runner_output(branch, "team-a").await;
+        let candidate = captured_candidate(&fixture, branch).await;
+        let frank = person("frank");
+        fixture.lore.with(|state| {
+            state.granted.insert(frank.clone());
+            state.branches[0].latest = revision('2');
+            state.committers.insert(revision('2'), frank.clone());
+            state.runs.insert(revision('2'), None);
+            state
+                .links
+                .insert(revision('2'), vec![link("team-a", LINKED_A, 'a', true)]);
+            let mut tree = own_tree('2');
+            tree.push(tree_node("web", NodeType::Directory));
+            state.trees.insert(revision('2'), tree);
+        });
+        fixture.lore.send(Ok(pushed('1', '2', &frank)));
+        fixture.lore.drained(None).await;
+        let before = fixture.runner_output(branch, "team-a").await;
+        let image = fixture
+            .runner_sandbox(branch, "team-a")
+            .await
+            .spec
+            .unwrap()
+            .template
+            .unwrap()
+            .image;
+        fixture.lore.with(|state| {
+            let linked = state
+                .linked
+                .get_mut(&RepositoryId::parse(LINKED_A).unwrap())
+                .unwrap();
+            linked.branches[0].latest = revision('e');
+            linked.committers.insert(revision('e'), carol.clone());
+        });
+        fixture
+            .watches
+            .reapply_candidate(
+                &linked_watched(LINKED_A),
+                candidate,
+                Some(Push {
+                    revision: revision('e'),
+                    pusher: carol.clone(),
+                }),
+            )
+            .await;
+        let after = fixture.runner_output(branch, "team-a").await;
+        let after_image = fixture
+            .runner_sandbox(branch, "team-a")
+            .await
+            .spec
+            .unwrap()
+            .template
+            .unwrap()
+            .image;
+        let expected_command = expected_runner_command(&original.1, branch, LINKED_A, '1', true);
+        let expected_runner = factory::Runner {
+            revision: Some(revision('2')),
+            pusher: Some(frank.clone()),
+            ..original.0
+        };
+        let expected_client = factory::InstanceClient {
+            pusher: Some(frank),
+            ..original.2
+        };
+        let expected = (
+            expected_runner.clone(),
+            expected_command.clone(),
+            expected_client.clone(),
+        );
+        let advanced = (
+            factory::Runner {
+                linked_revision: Some(revision('e')),
+                linked_pusher: Some(carol.clone()),
+                ..expected_runner
+            },
+            expected_command,
+            factory::InstanceClient {
+                linked: Some(factory::LinkedClient {
+                    repository: LINKED_A.into(),
+                    pusher: Some(carol),
+                }),
+                ..expected_client
+            },
+        );
+        let digest = hex::encode(Sha256::digest(
+            format!("FROM scratch # {}\n", revision('2')).as_bytes(),
+        ));
+        assert_eq!(
+            (before, after, after_image, image.ends_with(&digest)),
+            (expected, advanced, image, true)
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn parent_link_resolution_serializes_with_a_captured_linked_update() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/resolve-order";
+        let (alice, _, carol, _) = watching_one_runner(&fixture, branch).await;
+        let original = fixture.runner_output(branch, "team-a").await;
+        let candidate = captured_candidate(&fixture, branch).await;
+        let a = RepositoryId::parse(LINKED_A).unwrap();
+        let (entered, release) = fixture.lore.pause_linked_read(a.clone(), revision('c'));
+        fixture.lore.with(|state| {
+            state.branches[0].latest = revision('2');
+            state.committers.insert(revision('2'), alice.clone());
+            state.runs.insert(revision('2'), None);
+            state
+                .links
+                .insert(revision('2'), vec![link("team-a", LINKED_A, 'a', true)]);
+            let mut tree = own_tree('2');
+            tree.push(tree_node("web", NodeType::Directory));
+            state.trees.insert(revision('2'), tree);
+        });
+        fixture.lore.send(Ok(pushed('1', '2', &alice)));
+        tokio::time::timeout(BOUND, entered)
+            .await
+            .expect("parent resolve did not read linked content")
+            .unwrap();
+        let locked = fixture.watches.runner_locked(
+            &watched(),
+            &name(branch),
+            &LinkName::parse("team-a").unwrap(),
+        );
+        fixture.lore.with(|state| {
+            let linked = state.linked.get_mut(&a).unwrap();
+            linked.branches[0].latest = revision('e');
+            linked.committers.insert(revision('e'), carol.clone());
+        });
+        let watches = fixture.watches.clone();
+        let queued_pusher = carol.clone();
+        let queued = tokio::spawn(async move {
+            watches
+                .reapply_candidate(
+                    &linked_watched(LINKED_A),
+                    candidate,
+                    Some(Push {
+                        revision: revision('e'),
+                        pusher: queued_pusher,
+                    }),
+                )
+                .await;
+        });
+        release
+            .send(())
+            .expect("the parent resolve gate ended early");
+        fixture.lore.drained(None).await;
+        tokio::time::timeout(BOUND, queued)
+            .await
+            .expect("the queued linked update did not finish")
+            .unwrap();
+        let after = fixture.runner_output(branch, "team-a").await;
+        let expected_runner = factory::Runner {
+            revision: Some(revision('2')),
+            linked_revision: Some(revision('e')),
+            linked_pusher: Some(carol.clone()),
+            ..original.0
+        };
+        let expected_command = expected_runner_command(&original.1, branch, LINKED_A, '1', true);
+        let expected_client = factory::InstanceClient {
+            linked: Some(factory::LinkedClient {
+                repository: LINKED_A.into(),
+                pusher: Some(carol),
+            }),
+            ..original.2
+        };
+        assert_eq!(
+            (locked, after),
+            (true, (expected_runner, expected_command, expected_client))
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn linked_failure_publication_finishes_before_a_later_parent_retarget() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let branch = "links/failure-order";
+        let (alice, _, carol, dave) = watching_one_runner(&fixture, branch).await;
+        let original = fixture.runner_output(branch, "team-a").await;
+        let candidate = captured_candidate(&fixture, branch).await;
+        fixture.lore.with(|state| {
+            let linked = state
+                .linked
+                .get_mut(&RepositoryId::parse(LINKED_A).unwrap())
+                .unwrap();
+            linked.branches[0].latest = revision('e');
+            linked.committers.insert(revision('e'), carol.clone());
+        });
+        let (entered, release) = fixture.lore.pause_read(revision('1'));
+        let watches = fixture.watches.clone();
+        let failing = tokio::spawn(async move {
+            watches
+                .reapply_candidate(
+                    &linked_watched(LINKED_A),
+                    candidate,
+                    Some(Push {
+                        revision: revision('e'),
+                        pusher: carol,
+                    }),
+                )
+                .await;
+        });
+        tokio::time::timeout(BOUND, entered)
+            .await
+            .expect("the linked preparation did not reach the parent read")
+            .unwrap();
+        let locked = fixture.watches.runner_locked(
+            &watched(),
+            &name(branch),
+            &LinkName::parse("team-a").unwrap(),
+        );
+        fixture.lore.with(|state| {
+            state.unreadable.insert(revision('1'));
+            state.branches[0].latest = revision('2');
+            state.committers.insert(revision('2'), alice.clone());
+            state.runs.insert(revision('2'), None);
+            state
+                .links
+                .insert(revision('2'), vec![link("team-a", LINKED_B, 'b', false)]);
+            state.trees.insert(revision('2'), own_tree('1'));
+        });
+        fixture.lore.send(Ok(pushed('1', '2', &alice)));
+        eventually("the later parent preparation request", || {
+            fixture
+                .lore
+                .calls()
+                .contains(&Call::Read(alice.clone(), revision('2')))
+        })
+        .await;
+        release.send(()).expect("the linked read gate ended early");
+        tokio::time::timeout(BOUND, failing)
+            .await
+            .expect("the old failure publication did not finish")
+            .unwrap();
+        fixture.lore.drained(None).await;
+        let output = fixture.runner_output(branch, "team-a").await;
+        let failure = fixture
+            .watches
+            .store()
+            .runner_failure(
+                &watched(),
+                &name(branch),
+                &LinkName::parse("team-a").unwrap(),
+            )
+            .await
+            .unwrap();
+        let expected_runner = factory::Runner {
+            link: factory::Link {
+                name: LinkName::parse("team-a").unwrap(),
+                repository: LINKED_B.into(),
+                tracked: factory::TrackedBranch {
+                    id: branch_id('2').to_string(),
+                    name: "release".into(),
+                },
+            },
+            revision: Some(revision('2')),
+            linked_revision: Some(revision('d')),
+            linked_pusher: Some(dave.clone()),
+            ..original.0
+        };
+        let expected_command = expected_runner_command(&original.1, branch, LINKED_B, '2', false);
+        let expected_client = factory::InstanceClient {
+            linked: Some(factory::LinkedClient {
+                repository: LINKED_B.into(),
+                pusher: Some(dave),
+            }),
+            ..original.2
+        };
+        assert_eq!(
+            (locked, output, failure),
+            (
+                true,
+                (expected_runner, expected_command, expected_client),
+                None
             )
         );
     })

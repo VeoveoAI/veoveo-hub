@@ -94,6 +94,36 @@ impl Watches {
         &self.inner.store
     }
 
+    /// Forward a real captured tracking candidate to the production continuation.
+    #[cfg(test)]
+    pub(super) async fn reapply_candidate(
+        &self,
+        linked: &Watched,
+        candidate: Runner,
+        pushed: Option<Push>,
+    ) {
+        self.inner
+            .reapply(linked, candidate, pushed, &self.inner.stop)
+            .await;
+    }
+
+    /// Observe the existing mutex; test scheduling metadata never changes it.
+    #[cfg(test)]
+    pub(super) fn runner_locked(
+        &self,
+        parent: &Watched,
+        branch: &BranchName,
+        link: &LinkName,
+    ) -> bool {
+        let instance = self.inner.lock((
+            parent.repository.clone(),
+            branch.clone(),
+            Some(link.clone()),
+        ));
+        let locked = instance.try_lock().is_err();
+        locked
+    }
+
     /// What watching knows about a branch of the repository that the caller's tenant
     /// registers: who watches it and why the last subscription as them failed, and why
     /// the branch's latest push could not be prepared; for a link of the branch, also who
@@ -420,6 +450,45 @@ impl Inner {
         pushed: Option<Push>,
         stop: &CancellationToken,
     ) {
+        let Ok(parent_repository) = RepositoryId::parse(&runner.repository) else {
+            return;
+        };
+        let parent = Watched {
+            deployment: linked.deployment.clone(),
+            repository: parent_repository,
+        };
+        let instance = self.lock((
+            parent.repository.clone(),
+            runner.branch.clone(),
+            Some(runner.link.name.clone()),
+        ));
+        let _applying = instance.lock().await;
+        if stop.is_cancelled() {
+            return;
+        }
+        // tracking() supplied a candidate, not the parent program or link that
+        // still owns this slot after waiting for another application/removal.
+        let current = match self
+            .factory
+            .runner(&runner.repository, &runner.branch, &runner.link.name)
+            .await
+        {
+            Ok(current) => current,
+            Err(error) => {
+                tracing::warn!(repository = %runner.repository, branch = %runner.branch,
+                    "the runner's current state is unknown: {error:#}");
+                return;
+            }
+        };
+        let Some(current) = current else {
+            return;
+        };
+        if current.link.repository != linked.repository.as_str()
+            || current.link.tracked.id != runner.link.tracked.id
+        {
+            return;
+        }
+        let runner = current;
         let (Some(revision), Some(pusher)) = (runner.revision.clone(), runner.pusher.clone())
         else {
             return;
@@ -432,13 +501,6 @@ impl Inner {
                 .map(|(revision, pusher)| Push { revision, pusher })
         }) else {
             return;
-        };
-        let Ok(parent_repository) = RepositoryId::parse(&runner.repository) else {
-            return;
-        };
-        let parent = Watched {
-            deployment: linked.deployment.clone(),
-            repository: parent_repository,
         };
         let parent_revision = revision.clone();
         let applied = async {
@@ -493,6 +555,9 @@ impl Inner {
             anyhow::Ok(())
         };
         let outcome = applied.await;
+        if stop.is_cancelled() {
+            return;
+        }
         if outcome.is_ok()
             && let Err(error) = self
                 .store
@@ -765,30 +830,37 @@ impl Inner {
         stop: &CancellationToken,
     ) {
         self.retire_runners(watched, branch, links, stop).await;
-        let runners = self
-            .factory
-            .runners(watched.repository.as_str(), branch)
-            .await
-            .unwrap_or_else(|error| {
-                tracing::warn!(%branch, "the branch's runners are unknown: {error:#}");
-                Vec::new()
-            });
         for link in links {
+            let instance = self.lock((
+                watched.repository.clone(),
+                branch.clone(),
+                Some(link.name.clone()),
+            ));
+            let _applying = instance.lock().await;
             if stop.is_cancelled() {
                 return;
             }
-            let existing = runners.iter().find(|runner| runner.link.name == link.name);
+            // Resolve from the row observed under this runner's lock, not the
+            // snapshot taken before another follower advanced its linked content.
+            let existing = self
+                .factory
+                .runner(watched.repository.as_str(), branch, &link.name)
+                .await
+                .unwrap_or_else(|error| {
+                    tracing::warn!(%branch, link = %link.name, "the runner's current state is unknown: {error:#}");
+                    None
+                });
             let linked = Watched {
                 deployment: watched.deployment.clone(),
                 repository: link.repository.clone(),
             };
-            let resolved = self.resolve(&linked, id, link, existing).await;
+            let resolved = self.resolve(&linked, id, link, existing.as_ref()).await;
             let failure = resolved.as_ref().err().map(|error| format!("{error:#}"));
             let runner = match resolved {
                 Ok(runner) => Some(runner),
                 // A runner whose tracked branch cannot be read now serves it as it last read
                 // it, under the branch's new program.
-                Err(_) => match existing {
+                Err(_) => match existing.as_ref() {
                     Some(existing) => self.recorded(&linked, existing).await,
                     None => None,
                 },
@@ -809,6 +881,9 @@ impl Inner {
                     runner_push,
                 )
                 .await;
+            }
+            if stop.is_cancelled() {
+                return;
             }
             let failure = failure
                 .as_deref()
@@ -967,6 +1042,15 @@ impl Inner {
         match self.store.runner_failures(watched, branch).await {
             Ok(failed) => {
                 for link in failed.into_iter().filter(|link| !kept(link)) {
+                    let instance = self.lock((
+                        watched.repository.clone(),
+                        branch.clone(),
+                        Some(link.clone()),
+                    ));
+                    let _applying = instance.lock().await;
+                    if stop.is_cancelled() {
+                        return;
+                    }
                     if let Err(error) = self.store.runner(watched, branch, &link, None).await {
                         tracing::error!("failed to clear the runner's failure: {error:#}");
                     }
@@ -993,7 +1077,8 @@ impl Inner {
             .clone()
     }
 
-    /// Apply a runner's push once no other push to it is being applied.
+    /// Apply while the caller holds this runner's lock from current-state lookup
+    /// through preparation and failure publication. Reacquiring it would deadlock.
     async fn change_runner(
         &self,
         watched: &Watched,
@@ -1003,12 +1088,6 @@ impl Inner {
         prepared: Prepared,
         runner: RunnerPush,
     ) {
-        let instance = self.lock((
-            watched.repository.clone(),
-            branch.clone(),
-            Some(runner.link.name.clone()),
-        ));
-        let _applying = instance.lock().await;
         if stop.is_cancelled() {
             return;
         }
@@ -1044,6 +1123,12 @@ impl Inner {
             .await
         {
             tracing::warn!(repository = %watched.repository, %branch, %link, "the runner was not removed: {error:#}");
+        }
+        if stop.is_cancelled() {
+            return;
+        }
+        if let Err(error) = self.store.runner(watched, branch, link, None).await {
+            tracing::error!("failed to clear the runner's failure: {error:#}");
         }
     }
 
