@@ -22,3 +22,5 @@ lean_lib FactoryWatcherAdvanceControl
 lean_lib FactorySavedParentModel
 lean_lib FactorySavedParentProof
 lean_lib FactorySavedParentHistoryProof
+lean_lib FactorySavedParentFixture
+lean_lib FactorySavedParentFixtureProof

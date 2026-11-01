@@ -1,10 +1,11 @@
 # Saved-parent preparation and guarded publication
 
-Status: the model, foundation and composed update/retry histories are checked.
-Independent populated examples and semantic controls remain pending. The
+Status: the model, foundation, composed update/retry histories and independent
+populated examples are checked. Semantic controls remain pending. The
 [model checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-model.md)
 and [foundation checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-foundation.md),
-followed by the [history checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-histories.md),
+followed by the [history checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-histories.md)
+and [populated checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-fixtures.md),
 keep definition elaboration, theorem checks and native evidence separate. Runtime basis
 is Hub `77b258ae10837a01ca7c7464e7c4245c94cd4105`; the package source starts on
 coverage main `e1101a7ab5b1f44b69d46592c8067d561cfa65d4`. The prior Factory and
@@ -124,8 +125,31 @@ legitimately observe newer linked content; the theorem does not require a no-op.
 
 All seven history declarations pass standard-axiom guards. These remain scoped
 manual model compositions under the same native interpretation, not extraction or
-formal refinement of async Rust, SQL or external services. Independently populated
-complete sequences and deliberate semantic faults/restorations remain to check.
+formal refinement of async Rust, SQL or external services.
+
+## Checked independent populated sequences
+
+`FactorySavedParentFixture` imports only executable models and public
+`FactoryWatcherFixture` data, not the foundation/history correctness leaves. Its
+structural Ready helper supplies before-row evidence to the actual composition;
+subsequent row presence is proved only for closed actual preceding executions.
+Expected B records, client, native spec, providers, submitted request and argv,
+and related/unrelated status payloads are independently constructed fixture data.
+
+`FactorySavedParentFixtureProof` checks five sequences: successful B then obsolete
+success; B with a noncommitted link-status clear then obsolete success and error;
+B then a committed current preparation error with lost reply then obsolete error;
+actual new-parent-ID application at the reused name then deleted-old-ID retry; and
+success clearing both diagnostic keys followed by accepted current-head retry.
+The last preparation builds a different image but keeps the same source tree,
+command and requirements; the actual child succeeds while retaining the first
+native image/request/providers. Old diagnostics are represented starting data,
+not claimed created by these examples. The replacement operates on an existing
+row, not a missing-row allocation. External phase observations and checkout-byte
+limitations remain unchanged. Eight guards and five closure audits pass.
+
+Deliberate semantic faults, unchanged positive assertions and exact restoration
+remain to qualify this saved-parent slice.
 
 ## Contracts for the complete slice
 
@@ -146,4 +170,4 @@ complete sequences and deliberate semantic faults/restorations remain to check.
 Theorems assume truthful native snapshots and the stated serialized/no-external-
 write domain, not desired Requests or successful after-states. Dated records above
 retain exact artifacts and commands for completed checks; no receipt is claimed
-for the pending populated examples or controls.
+for the pending semantic controls.
