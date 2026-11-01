@@ -1,0 +1,17 @@
+--- a/FactorySavedParentModel.lean
++++ b/FactorySavedParentModel.lean
+@@ -194,7 +194,13 @@
+               branch.deleted = true ∨ branch.latest ≠ attempt.input.revision then
+             discard queried
+           else if o.afterNativeCancelled then discard (queried ++ [.cancelled])
+-          else handleSource attempt o s queried
++          else match attempt.source with
++            | .ok source =>
++                let key : FailureKey := ⟨attempt.input.watchedDeployment,
++                  ⟨attempt.input.parent.repository, attempt.input.parent.branch, source.linkName⟩⟩
++                if (s.watcher.failures key).isNone then discard queried
++                else handleSource attempt o s queried
++            | .error _ => handleSource attempt o s queried
+ 
+ /-- This existing-row region alone requires actual row evidence. The successful
+ native prefix is interpreted only in QuiescentPrefix; omitted prefix reads are

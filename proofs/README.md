@@ -172,7 +172,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-CONFIG-01 | Coherent live configuration publication | partial | Transaction model and native faults qualified; SQL refinement and replica adoption remain |
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and source controls checked; native watch publication defect fixed; formal listener/cursor and native refinement open |
-| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Saved-parent semantic controls; allocation, retirement and native/distributed correspondence |
+| HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Allocation, retirement and native/distributed correspondence |
 | HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Register/replace/update concurrency and snapshot-to-route identity have scoped qualification; removal, full snapshot-input refinement and broader lifecycle remain open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
@@ -1276,7 +1276,16 @@ state, not an additional repository authorization rule.
   took 60.328 s. See the
   [fixture record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-fixtures.md).
   These are synthetic modeled executions on an existing row, not native probes or
-  missing-row allocation. Semantic controls and exact restoration remain next.
+  missing-row allocation.
+- **Saved-parent semantic controls:** removing the native-head comparison permits
+  actual obsolete replay with the complete old row/client/native/provider/request
+  outputs. Requiring a matching diagnostic instead wrongly refuses a valid duplicate
+  after both clears. Independent wrong-outcome witnesses pass; the same unchanged
+  positive assertion is false under each fault. Exact reversals and fresh graphs
+  restore the original artifacts, including all five populated histories in
+  57.075 s. See the [control record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-factory-saved-parent-controls.md).
+  These are deliberate handwritten-model faults, not new native defects or SQL
+  refinement. No correctness proof artifact is imported under either fault.
 - **Residual/next:** the bounded watcher slice now includes its semantic controls
   and restoration. The complete Factory lifecycle remains partial. Saved-parent
   initial allocation/general membership effects, cross-replica reconciliation, concurrent

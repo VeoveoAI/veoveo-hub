@@ -37,6 +37,13 @@ Both selected watcher model controls and exact restorations are checked; see the
 [watcher control receipt](WATCHER_SOURCE.md#checked-watcher-semantic-controls).
 The overall native lifecycle contract remains partial.
 
+The [saved-parent layer](SAVED_PARENT_SOURCE.md) also checks complete newer-update/
+obsolete-retry histories and valid duplicate acceptance after diagnostics clear.
+Five independent populated histories pass. Two isolated semantic controls detect
+old-head replay and wrongful diagnostic-dependent refusal; exact restorations pass
+with baseline artifact hashes, including the final five-history proof in 57.075 s.
+See the [control receipt](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-factory-saved-parent-controls.md).
+
 ## Checked native-output checkpoint
 
 `success_implies_capacity` derives capacity acceptance from normal modeled return;
@@ -230,7 +237,7 @@ retain exact timings, outputs and logs. The dated record is
 ## Manual checks
 
 Lean 4.35.0 and Mathlib `56a005855ea17e0b0958f73ec801ae140b0a1679` are pinned.
-No Aeneas dependency or historical instance-name patch is used. All fifteen named
+No Aeneas dependency or historical instance-name patch is used. All named
 targets are manual; no default/CI target or runtime behavior is added.
 
 ```sh
@@ -249,6 +256,12 @@ LAKE_NO_UPDATE=1 lake env lean FactoryWatcherStatusProof.lean -o .lake/build/lib
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherFixture.lean -o .lake/build/lib/lean/FactoryWatcherFixture.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherFixtureProof.lean -o .lake/build/lib/lean/FactoryWatcherFixtureProof.olean
 LAKE_NO_UPDATE=1 lake env lean FactoryWatcherAdvanceControl.lean -o .lake/build/lib/lean/FactoryWatcherAdvanceControl.olean
+LAKE_NO_UPDATE=1 lake env lean FactorySavedParentModel.lean -o .lake/build/lib/lean/FactorySavedParentModel.olean
+LAKE_NO_UPDATE=1 lake env lean FactorySavedParentProof.lean -o .lake/build/lib/lean/FactorySavedParentProof.olean
+LAKE_NO_UPDATE=1 lake env lean FactorySavedParentHistoryProof.lean -o .lake/build/lib/lean/FactorySavedParentHistoryProof.olean
+LAKE_NO_UPDATE=1 lake env lean FactorySavedParentFixture.lean -o .lake/build/lib/lean/FactorySavedParentFixture.olean
+LAKE_NO_UPDATE=1 lake env lean FactorySavedParentFixtureProof.lean -o .lake/build/lib/lean/FactorySavedParentFixtureProof.olean
+LAKE_NO_UPDATE=1 lake env lean FactorySavedParentControl.lean -o .lake/build/lib/lean/FactorySavedParentControl.olean
 ```
 
 ## Interpretation boundaries and remaining work

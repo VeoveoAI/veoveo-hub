@@ -24,3 +24,4 @@ lean_lib FactorySavedParentProof
 lean_lib FactorySavedParentHistoryProof
 lean_lib FactorySavedParentFixture
 lean_lib FactorySavedParentFixtureProof
+lean_lib FactorySavedParentControl

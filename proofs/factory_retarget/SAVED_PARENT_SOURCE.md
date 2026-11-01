@@ -1,11 +1,12 @@
 # Saved-parent preparation and guarded publication
 
-Status: the model, foundation, composed update/retry histories and independent
-populated examples are checked. Semantic controls remain pending. The
+Status: the model, foundation, composed update/retry histories, independent
+populated examples and both selected semantic controls/restorations are checked. The
 [model checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-model.md)
 and [foundation checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-foundation.md),
 followed by the [history checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-histories.md)
 and [populated checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-10-31-factory-saved-parent-fixtures.md),
+then the [control checkpoint](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-factory-saved-parent-controls.md),
 keep definition elaboration, theorem checks and native evidence separate. Runtime basis
 is Hub `77b258ae10837a01ca7c7464e7c4245c94cd4105`; the package source starts on
 coverage main `e1101a7ab5b1f44b69d46592c8067d561cfa65d4`. The prior Factory and
@@ -148,8 +149,48 @@ not claimed created by these examples. The replacement operates on an existing
 row, not a missing-row allocation. External phase observations and checkout-byte
 limitations remain unchanged. Eight guards and five closure audits pass.
 
-Deliberate semantic faults, unchanged positive assertions and exact restoration
-remain to qualify this saved-parent slice.
+## Checked semantic controls
+
+`saved_parent_preserves_and_accepts` in `FactorySavedParentControl.lean` requires both
+`AcceptedThenOldSuccess` and `ClearedThenValidDuplicate`. It imports only the
+executable fixture/models, not the generic foundation/history proofs. The correct
+baseline passes in 20.802 s. Two independent faults are checked in private copies:
+
+- `mutations/omit-saved-head-check.patch` removes only the native head comparison.
+  ID, name, deletion and cancellation checks remain. The independent
+  `FactorySavedParentHeadOmissionWitness` derives actual B success followed by
+  successful obsolete A replay: the complete old row/client/native spec/providers,
+  both submitted requests/argv and the status maps. The unchanged positive assertion
+  is false. The four-stage sequence takes 46.446 s.
+- `mutations/require-saved-link-failure.patch` requires a matching link diagnostic
+  after successful current-head source preparation. The independent
+  `FactorySavedParentDiagnosticRefusalWitness` derives actual first B success and
+  both cleared diagnostics, then wrong discard with no child and the complete B
+  provisioning state retained. The same positive assertion is false. The four-stage
+  sequence takes 44.340 s. Diagnostic absence is not a legitimate new authority rule.
+
+Both wrong-outcome witnesses pass standard-axiom audits. Each check of the positive
+assertion under a fault reports `decide` establishing a false proposition and the rejected
+`sorryAx`; no positive artifact is emitted. Syntax, imports, missing decidability
+or resource failures do not count as detection. No generic correctness artifact is
+reused under either fault.
+
+Each exact reverse patch restores the full twelve-file source/config map in the
+same private tree. Fresh Model → Fixture → Control checks pass in 26.395 s and
+83.066 s respectively; the latter includes the full five-scenario FixtureProof,
+which takes 57.075 s. Restored model, fixture, control and full fixture-proof
+artifacts match their accepted baseline hashes. The final two positive leaves
+pass nine guards and six printed closures: Control one/one, FixtureProof eight/five.
+
+For manual reproduction, use each patch separately in a disposable copy, with the
+matching witness copied from `mutations/` to that copy's module root. Rebuild
+SavedParentModel and Fixture before the witness and unchanged Control; retain only
+the unchanged RetargetModel, WatcherModel and WatcherFixture prerequisites. Reverse
+the exact patch, remove all derived artifacts, and rebuild the restored positive
+graph. Run FixtureProof after the final restoration. The dated control record has
+the complete command order, input/output identities, logs and authoring repair.
+These are controls of two chosen handwritten-model faults, not new native defects
+or exhaustive fault coverage.
 
 ## Contracts for the complete slice
 
@@ -169,5 +210,5 @@ remain to qualify this saved-parent slice.
 
 Theorems assume truthful native snapshots and the stated serialized/no-external-
 write domain, not desired Requests or successful after-states. Dated records above
-retain exact artifacts and commands for completed checks; no receipt is claimed
-for the pending semantic controls.
+retain exact artifacts and commands for completed checks. Initial allocation,
+general membership retirement and native/distributed correspondence remain open.

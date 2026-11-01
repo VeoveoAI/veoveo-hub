@@ -1,0 +1,11 @@
+--- a/FactorySavedParentModel.lean
++++ b/FactorySavedParentModel.lean
+@@ -191,7 +191,7 @@
+       | .error error => discard (queried ++ [.nativeWarning error])
+       | .ok branch =>
+           if branch.id ≠ attempt.input.branchId ∨ branch.name ≠ attempt.input.parent.branch ∨
+-              branch.deleted = true ∨ branch.latest ≠ attempt.input.revision then
++              branch.deleted = true then
+             discard queried
+           else if o.afterNativeCancelled then discard (queried ++ [.cancelled])
+           else handleSource attempt o s queried

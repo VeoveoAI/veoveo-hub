@@ -27,6 +27,10 @@ It leaves this layer's `reapply` and existing-runner `run_links` bodies unchange
 the parent guard is an added enclosing boundary. The accepted model/proof source
 files remain unchanged. This native fix does not extend their formal scope to
 saved-parent preparation, full membership retirement or initial allocation.
+The separate [saved-parent layer](SAVED_PARENT_SOURCE.md) now covers preparation
+admission, scoped complete histories, populated examples and two semantic controls;
+it retains explicit existing-row and quiescent-membership conditions. It does not
+enlarge the scope of this watcher's unchanged proofs.
 
 | Model | Runtime responsibility |
 | --- | --- |
