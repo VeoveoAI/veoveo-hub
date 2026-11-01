@@ -1,0 +1,209 @@
+{
+  "status": "qualified manual source-correspondence model; partial HUB-COMPUTER-01",
+  "date": "2026-11-01",
+  "base_commit": "8b7303d8351ebf356577666c981fbbe9747c79f0",
+  "agents": {
+    "author": "GPT-6.1 Sol",
+    "qualification": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source": {
+    "lean_files": {
+      "ComputerLifecycleModel.lean": "2c2de131b821c32e59f95207bd467260ae6921941a260f37b3414bc849047ded",
+      "ComputerLifecycleProof.lean": "f5c473fd177ea2f6f3ee9ea43fd47c3f70332a3029df399b051e5e3a68b19a77",
+      "ComputerLifecycleSpecification.lean": "31a99bd615e86152f73a8ec06f4788a7d754579b6782c9611fbecbc6622c8a9e",
+      "ComputerLifecycleWitnesses.lean": "6775dd24301302daea0ce98be570598887dac9e2d59dc23fdbde6d975d77943b"
+    },
+    "build_inputs": {
+      "lake-manifest.json": "dbd4f235c7a2d4db07a8c5ea9e8c328d7780341312c311d8d2d2f39a9f35f7d0",
+      "lakefile.lean": "1ef0735124ae4bb25e67da9613abdd4a1053989de720c9d27af8dac124febe98",
+      "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+    },
+    "native_files": {
+      "crates/veoveo-hub/DESIGN.md": "4f720f196358bf3a8b1f37427dc90e40ddcb25ae252d62acab0690428cd866c3",
+      "crates/veoveo-hub/src/computers/lifecycle.rs": "126d1260be2022c9c353b3be0975256caf454791dd07a86bf1fbbdee8ef408dc",
+      "crates/veoveo-hub/src/computers/provisioning.rs": "37610a8f274b2188196b045fa2950d57f9f69b07bf402f49f219b5226ae208dc",
+      "crates/veoveo-hub/src/computers/gateway.rs": "a7a2b7ecd7ee9735aa8e7c5b50468d6c32676f957002e99b07bb315d7d1e46a0",
+      "crates/veoveo-hub/src/computers/session.rs": "dd9a74772fc016ce99a4c5ce02d209e51ab63c2a1aa3bd1bc79b35971b2689d5",
+      "crates/veoveo-hub/src/store/computers.rs": "38c658e0984fdb0c44edaae6b8bbb57850bf2eccf121b0665cf993f1ade34cd7",
+      "crates/veoveo-hub/src/store/computers/operation_claim.sql": "8a4327879ae5a4388f34a8b224ec266f41e8a829f34e81412bec044b4db8fbdc",
+      "crates/veoveo-hub/src/store/computers/operation_finish.sql": "5f65d03444ec25524e064ef82a96c6b3a8b9b76e5846dbaf42763bda8713dfb6",
+      "crates/veoveo-hub/src/store/computers/operation_fail.sql": "4a7278161c0f0303f23ef91bf14a9ef73d319b8695c01110bfe1143d90ccc7f5",
+      "crates/veoveo-hub/src/store/computers/operation_shown.sql": "eb978a67e5c92a9954f982f0228dc6347d5d926feaf6dc64410983f646f3b23c",
+      "crates/veoveo-hub/migrations/0024_computer_versions.sql": "fa1a78d026cc185a9ae94aea1ec35c8f9126acf0f6508b5dd3a16547554bb928"
+    },
+    "native_receipt": "native-stale-completion.json",
+    "frozen_package_map": {
+      "bytes": 880,
+      "sha256": "d4c5349d8917a0ed93387d08c455ad3eba4d1140ff943481f55fdaff56c8e3f7"
+    },
+    "package_files": 9,
+    "unchanged_before_after": true,
+    "documentation_updated_after_check": true
+  },
+  "toolchain": {
+    "lake_revision": "Lake version 5.0.0-src+eb6cafb (Lean version 4.35.0)",
+    "lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "lean_revision": "Lean (version 4.35.0, x86_64-unknown-linux-gnu, commit eb6cafb7290e8bd5f2937522d8d804f58f02bafc, Release)",
+    "lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "mathlib_tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+    "packages_resolved_path": "/home/rozgo/.cache/lean-pilot/hub-sdk-adoption-20261030/probe-1/source-parent/veoveo-hub/proofs/current_roles/.lake/packages"
+  },
+  "qualification": {
+    "command": "LAKE_NO_UPDATE=1 lake build ComputerLifecycleProof",
+    "platform": "Ubuntu Linux x86_64",
+    "timeout_seconds": 180,
+    "default_heartbeats": true,
+    "elapsed_ms": 3620,
+    "exit": 0,
+    "timed_out": false,
+    "log": {
+      "bytes": 2964,
+      "sha256": "e892fc33ddc511683ad9e7e7176b482df3523fb99a5440d0b5c78a8ce0634b76"
+    },
+    "artifacts": {
+      "ComputerLifecycleModel.olean": {
+        "bytes": 1582792,
+        "exists": true,
+        "sha256": "da827f0d579c950ac5164ba736428c6721c499172325c30c2ba2aba2f64f1d62"
+      },
+      "ComputerLifecycleProof.olean": {
+        "bytes": 556312,
+        "exists": true,
+        "sha256": "341138411cd2ad740477dab23a02fcacf5df0bb88be45b1de16ad9b7612b90a7"
+      },
+      "ComputerLifecycleSpecification.olean": {
+        "bytes": 63008,
+        "exists": true,
+        "sha256": "12945971ff5ff56a2f78cadc6eac2fa418e2cd98b693aa2e6ad9115c716ab95f"
+      },
+      "ComputerLifecycleWitnesses.olean": {
+        "bytes": 170192,
+        "exists": true,
+        "sha256": "8bc54f4654db5ecc33585bea087b42047eab97367563ff6eb366c24fe5af86fb"
+      }
+    },
+    "guarded_declarations": [
+      "claim_admission",
+      "claim_exact",
+      "claim_refused",
+      "finish_exact",
+      "fail_exact",
+      "shown_exact",
+      "stale_completion",
+      "ended_completion",
+      "owner_completion_refused",
+      "unrelated_rows",
+      "commit_error_not_rollback",
+      "abort_error_preserves",
+      "launch_claim",
+      "claim_error_no_launch",
+      "reread_error_no_launch",
+      "stages_success",
+      "stages_first_error",
+      "ordered_success",
+      "stale_worker",
+      "Fixture.put_same",
+      "Fixture.put_expected",
+      "Fixture.accepted_success",
+      "Fixture.observed_failure_prefix",
+      "Fixture.failure_and_retry",
+      "Fixture.actual_stale_history",
+      "Fixture.notice_suppression",
+      "Fixture.strict_boundary"
+    ],
+    "printed_closures": [
+      "claim_exact",
+      "finish_exact",
+      "fail_exact",
+      "stale_completion",
+      "stages_first_error",
+      "ordered_success",
+      "stale_worker",
+      "Fixture.accepted_success",
+      "Fixture.observed_failure_prefix",
+      "Fixture.failure_and_retry",
+      "Fixture.actual_stale_history"
+    ],
+    "allowed_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "warning_classes": [
+      "Mathlib imports without module header",
+      "unused simp arguments",
+      "local unit variable resembles constructor"
+    ],
+    "reuse": "Same private Lake graph as checkpoint1. Only Proof rebuilt; the three prerequisite OLeans stayed byte-identical. No OLean transplant or cache deletion."
+  },
+  "scenarios": [
+    "Full claim -> successful acknowledged launch -> nine returned native-stage successes -> exact complete provision/notice/custody/table output.",
+    "createSandbox returns error after six accepted logical attempts; exact seven-attempt prefix, error and opaque effect marker; full recorded failure -> fresh claim -> successful retry.",
+    "A=70 at time0 -> stale takeover B=71 at661 with cutoff1 -> exact complete B claim and successful output. Direct old finish/fail preserve whole tables during B and after B finishes.",
+    "Generic stale_worker covers a captured old worker completing against the actual table at SQL linearization, with arbitrary native observations.",
+    "Strict cutoff equality, shown-notice suppression, wrong-owner/ended-operation refusal, unrelated rows, committed SQL error delivery versus abort, and claim/reread errors launching no worker."
+  ],
+  "authoring_failure": {
+    "elapsed_ms": 23503,
+    "exit": 1,
+    "log": {
+      "bytes": 12036,
+      "sha256": "b3976e1e01a718bc021c77d4304b22b99db38ff8fc8d481586375741e855a171"
+    },
+    "proof_artifact_created": false,
+    "causes": [
+      "unrelated_rows left four conditional-projection goals unsolved",
+      "documentation comment immediately before namespace was invalid declaration syntax"
+    ],
+    "repair": "Split remaining conditionals and simplify the updated key; make the namespace comment ordinary. No model, specification, theorem statement, axiom guard or dependency changed.",
+    "patch": "--- checkpoint1/ComputerLifecycleProof.lean\n+++ checkpoint2/ComputerLifecycleProof.lean\n@@ -78,7 +78,8 @@\n     case none => simp [claim, finish, fail, showNotice, found]\n     case some row =>\n       cases pending : row.operation <;>\n-        simp [claim, finish, fail, showNotice, found, pending, put, other]\n+        simp [claim, finish, fail, showNotice, found, pending, put, other] <;>\n+        split_ifs <;> simp [put, other]\n \n theorem commit_error_not_rollback (before : Table) (effect : Effect) (message : String) :\n     (deliver before effect (.commitError message)).rows = effect.rows \u2227\n@@ -183,7 +184,7 @@\n       \u27e8cause, endedAt, context.target.version\u27e9 row newOp found pending different\n     simp [deliver, actual.2.2.1, actual.2.2.2, result]\n \n-/-- Fixture inputs are populated synthetic admitted snapshots,not native UUID,\n+/- Fixture inputs are populated synthetic admitted snapshots,not native UUID,\n version-hash or provisioning executions. Native is merely an opaque effect marker. -/\n namespace Fixture\n \n",
+    "patch_identity": {
+      "bytes": 1029,
+      "sha256": "525f7ee87d5f8e157d3969254dd339d678e99c7302103d150b373f218f6a3657"
+    },
+    "initial_proof_sha256": "5cf31cf1cad742b483a9ee6ec0a7914d36c79da932e30566c3f0f0bf6244675e"
+  },
+  "setup_issue": {
+    "classification": "pre-compiler driver path error",
+    "cause": "The remote driver tried to read a Mac-only /tmp path. It was corrected to compare staged source against the frozen manifest hash.",
+    "retained_note": {
+      "bytes": 408,
+      "sha256": "6ca9274fe890b18fab9b7bef1615e41a00d8a68cd7da7f045ca17a3daafaba32"
+    },
+    "raw_traceback_retained": false
+  },
+  "evidence": {
+    "local_mirror": "/tmp/hub-computer-lifecycle-20261101/proof-checkpoint2-mirror",
+    "prior_mirror": "/tmp/hub-computer-lifecycle-20261101/proof-checkpoint1-mirror",
+    "summary": {
+      "bytes": 5608,
+      "sha256": "bc732b29621e0e9b14d64880723cd38fc8f99612bd6d4e17b50c69c27c32cbeb"
+    },
+    "driver": {
+      "bytes": 9748,
+      "sha256": "da932aa008ecb7daaed6791cf8b478acd62124ec89d1b54c3c4de8914bff8ed4"
+    },
+    "builder_receipt": {
+      "bytes": 4407,
+      "sha256": "f55e63d3731c13ce028e0a3eab18515de0d26c935665323f45acfe2bf2b35a22"
+    }
+  },
+  "review": [
+    "Compared all nine frozen canonical package files and eleven mapped native files with recorded SHA-256 values before documentation updates.",
+    "Verified all four copied OLean byte lengths/hashes and both actual compiler log byte lengths/hashes.",
+    "Matched 27 source guard names and eleven source print commands to the manifest; read all eleven actual closure outputs.",
+    "Reviewed the two-site repair and source correspondence; no nonproof changes since native-qualified base."
+  ],
+  "boundaries": [
+    "Handwritten model, not Aeneas extraction or formal Rust/SQL refinement. PostgreSQL statement atomicity, commit/error outcomes and source correspondence remain contracts.",
+    "Native observations and full target/custody snapshots are abstract inputs. Logical attempts are not proof of remote receipt or real OpenShell execution.",
+    "Outer 600-second timer/interrupted prefixes, removal internals, native same-name effects, persistent storage and eventual recovery are not proved.",
+    "SQL operation-ID fencing does not cancel accepted native mutations. Ready/TCP observations are historical and do not establish current HTTP health.",
+    "Browser/session admission, custody issuance/renewal, collection and unrelated writers remain separate obligations.",
+    "No semantic fault control has yet qualified this package. No new production bug, runtime change, deployment or model call in this checkpoint."
+  ],
+  "reproduction": "From proofs/computer_lifecycle with the pinned Lean and Lake dependencies available, run LAKE_NO_UPDATE=1 lake build ComputerLifecycleProof under an external 180-second bound. Lake owns compilation/caches; no CI hook or runtime prover is added."
+}

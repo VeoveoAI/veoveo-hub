@@ -1317,9 +1317,17 @@ sandbox; it must not claim the new version succeeded.
   including complete operation/provision snapshots, custody and notices. The focused
   test passes in 1.41 s; full Mac/Linux checks each pass 475 tests with two existing
   skips. No runtime fix was needed. See the [receipt](computer_lifecycle/evidence/native-stale-completion.json).
-- **Residual/next:** qualify the source-mapped replacement protocol model: actual
-  acceptance and full output, failure/retry and stale completion histories. This
-  native checkpoint establishes no Lean theorem or formal SQL refinement. Browser
+- **Lean checkpoint:** the [manual replacement protocol](computer_lifecycle/README.md)
+  now proves exact claim/finish/failure effects and full table framing, acknowledged
+  claim/reread launch, returned-stage ordering/first-error behavior, and populated
+  success, failure/retry and stale-operation histories. Independent complete rows
+  describe B's admitted claim and successful result. Committed SQL errors are
+  distinguished from aborts. The final named target passes in 3.620 s with 27
+  guarded declarations and eleven permitted axiom closures
+  ([receipt](computer_lifecycle/evidence/replacement-protocol.json)). This is a
+  source-correspondence model, not extracted Rust or formal SQL refinement.
+- **Residual/next:** semantic fault controls for the replacement model, then browser
+  and custody composition. The outer timeout scheduler is not modeled. Browser
   recovery, OpenShell termination/readiness, credential custody and persistent home
   survival need native/deployed evidence. SQL fencing alone does not prevent an old
   native request from affecting a newer sandbox.
