@@ -111,9 +111,22 @@ independent serial-history contract, while the fixed execution does. Generic
 correctness is not used to manufacture either execution's existence. Thirty-six
 new declaration guards and eight printed closures pass.
 
-Next: semantic controls with exact restoration, complete response payloads and
-broader lifecycle composition. SQLValid preservation and native SQL refinement
-are not added by these witnesses.
+The [semantic controls](evidence/instance-lifetime-controls.json) now qualify two
+deliberate model faults against those unchanged expected outputs. Ignoring the
+primitive login-drop effect leaves the candidate login after removal and the old
+login after replacement. Returning `invalidToken` from a successful registration
+acknowledgement preserves the committed database but violates the expected reply.
+Independent complete wrong-output diagnostics pass; the unchanged acceptance
+proof fails at the corresponding login-map or response equalities. Both exact
+patch reversals restore the full source maps and fresh positive proof graphs.
+These are deliberate model faults, not additional native defects or SQL faults.
+
+The scoped store-model qualification includes its original-race witness, valid
+executions and semantic controls. Next are complete native response payloads and
+postcommit service effects, followed by broader lifecycle composition. The store
+commit precedes service audits, catalog reloads, `served_at` and response construction;
+an error in those steps cannot be interpreted as rollback. SQLValid preservation
+and native SQL refinement remain separate obligations.
 
 Namespace writers, token reissue, RFC 7592 updates, housekeeping, allocation/recreation,
 ID reuse, other normal row writers, distributed ordering, listener convergence,
@@ -135,3 +148,13 @@ Only actual imported old Model/Specification/Effects dependencies are required; 
 private check did not replay all sixteen old targets. The canonical context check
 preserved source/import/tool identities. Earlier record-layout, erased-type and proof-authoring
 failures are retained separately; none is native defect evidence or accepted sorry.
+
+The two `mutations/*.patch` files and their diagnostic `.lean` files are manual
+control inputs, not baseline targets. In a disposable copy of this package, apply
+one patch with `patch -p1`, copy its diagnostic into the package root, and freshly
+compile Model, Specification, Witnesses and that diagnostic before checking the
+unchanged WitnessProof. The diagnostic must pass and WitnessProof must fail at
+the intended independent output assertion. Reverse that exact patch, discard all
+dependent compiler artifacts, and freshly compile the positive graph again.
+The receipt records the qualified commands, timings, source maps and failures;
+no execution script or automatic check was added to the repository.

@@ -258,7 +258,13 @@ execution violates the same serial-history contract the fixed execution satisfie
 Thirty-six new declaration guards and eight printed closures pass. Its manual
 target is `LAKE_NO_UPDATE=1 lake build RegistrationLifetimeWitnessConsequences`.
 
-Semantic controls and exact restoration remain next. Responses currently carry tags,
+The [semantic controls](evidence/instance-lifetime-controls.json) detect an ignored
+login-drop effect and a wrong successful-registration response. Independent
+complete wrong-output diagnostics pass; unchanged acceptance assertions fail at
+the intended login-map and response equalities. Both exact source restorations
+and fresh positive graphs pass. See [manual control instructions](LIFETIME_SOURCE.md#manual-qualification).
+
+Native response payloads and postcommit service effects are next. Responses currently carry tags,
 not complete returned credential/database/metadata payloads. External preparation,
 token reissue, other instance-row writers, listener convergence and formal
 Rust/SQL refinement remain outside this checkpoint; see the

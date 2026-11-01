@@ -1,0 +1,11 @@
+--- a/RegistrationLifetimeModel.lean
++++ b/RegistrationLifetimeModel.lean
+@@ -50,7 +50,7 @@
+       { db with deployment := db.deployment.map (fun old => { old with metadata }) }
+   | .registration (.deleteRows clients) =>
+       { db with registrations := fun key => if key ∈ clients then none else db.registrations key }
+-  | .registration (.dropLogin login) => { db with logins := put db.logins login none }
++  | .registration (.dropLogin login) => db
+   | .registration (.createLogin login role) => { db with logins := put db.logins login (some role) }
+   | .registration (.insert row) => { db with registrations := put db.registrations row.client (some row) }
+   | .upsertDeployment metadata stable => { db with deployment := upsert db.deployment metadata stable }

@@ -1437,8 +1437,12 @@ establish six actual execution chains with independent complete model outputs:
 the original orphan, fixed acceptance/removal, removal-first, abort/retry, lost
 commit reply and existing-deployment replacement. The original execution refutes
 the same serial-history contract satisfied by the fixed execution. Thirty-six
-new guards and eight printed closures pass. Semantic controls and exact
-restoration are next; complete response payloads also remain unproved. These checkpoints do not
+new guards and eight printed closures pass. The
+[semantic controls](registration_transactions/evidence/instance-lifetime-controls.json)
+now detect ignored login cleanup and a wrong successful response against unchanged
+independent assertions; exact restoration and fresh positive graphs pass after
+each. This qualifies the scoped store-model slice. Complete native response
+payloads and postcommit service effects are next and remain unproved. These checkpoints do not
 establish formal SQL refinement, asynchronous listener convergence or deployment.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance

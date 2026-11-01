@@ -1,0 +1,401 @@
+{
+  "date": "2026-11-01",
+  "status": "Two deliberate manual-model faults detected by unchanged independent acceptance contracts; exact restoration and fresh positive graph pass after each.",
+  "evidence_class": "Manual model semantic controls, not native bug discoveries or SQL refinement",
+  "source_commit": "af953f6207a1fcfe592ad7328a6a74b6375c7905",
+  "native_source_revision": "12a132dcbdddcd7fad1defcd007432385d237a76",
+  "agents": {
+    "implementation": "GPT-6.1 Sol",
+    "checks": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "pins": {
+    "Aeneas": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "Lake_binary_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "Lean": "4.35.0",
+    "Lean_binary_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "Mathlib": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "Mathlib.Tactic.olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2",
+    "Mathlib_manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147"
+  },
+  "source_files": {
+    "RegistrationLifetimeModel.lean": {
+      "bytes": 14849,
+      "sha256": "cdfa5d25b5bc770a55c581864f46adcfabbe252cb3a694245c911c26ed0f8954"
+    },
+    "RegistrationLifetimeSpecification.lean": {
+      "bytes": 5138,
+      "sha256": "f95c67cea0a5e4420b770bf22eb3c9546c812c08a823f71cf4f2251d7e1cd7f2"
+    },
+    "RegistrationLifetimeWitnesses.lean": {
+      "bytes": 13877,
+      "sha256": "db607aa503416f90bf6e3be541b6a51c4776f8700b5c3406d0f9cee808cb64e0"
+    },
+    "RegistrationLifetimeWitnessProof.lean": {
+      "bytes": 24986,
+      "sha256": "cf3cf467eb0fa2316da678a761b214b7f731a84031f1daf2861273f15c3d0765"
+    }
+  },
+  "mutations": {
+    "drop-login-noop.patch": {
+      "bytes": 771,
+      "sha256": "710a3586b7610f39073c04542990ea89f73e8d84f6f4a0b8ec22693b47502e8c"
+    },
+    "registered-invalid-token.patch": {
+      "bytes": 318,
+      "sha256": "15e0d17c66bc8983faf7aec967a55d8b6c14d3a34e068dfb1b1373affa2c864a"
+    },
+    "RegistrationLifetimeDropLoginFault.lean": {
+      "bytes": 2973,
+      "sha256": "32c97254981d1a24137a262e2fe8180b919575e8bd3f4db9c6d5110cdcbdcbfa"
+    },
+    "RegistrationLifetimeResponseFault.lean": {
+      "bytes": 3308,
+      "sha256": "08332539ed044398af8b30f0db353eb8717f8dee308a8b7d926e32ec7e6a40df"
+    }
+  },
+  "controls": [
+    {
+      "case": "drop-login-noop",
+      "summary_sha256": "ee786f2d860ccbbd6e6282f8f632073dd501b51dc6c19d89b3c228ebfa83174f",
+      "summary": {
+        "case": "drop-login-noop",
+        "diagnostic_sha256": "32c97254981d1a24137a262e2fe8180b919575e8bd3f4db9c6d5110cdcbdcbfa",
+        "full_source_map_restored": true,
+        "inputs_sha256": "7a4ce9995e910e3f4e63e59cca095bf44aa0f221334014c6832833230bbbb43b",
+        "launcher_log": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/launcher.log",
+        "lean": "4.35.0",
+        "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+        "mutant_acceptance_olean_absent": true,
+        "mutant_diagnostic_exit": 0,
+        "mutant_model_sha256": "af49f8eda484144f83d10badc08ec4c8d7cf3d3c7c206e63b49cc751feeaecd7",
+        "native_source_revision": "12a132dcbdddcd7fad1defcd007432385d237a76",
+        "patch_sha256": "710a3586b7610f39073c04542990ea89f73e8d84f6f4a0b8ec22693b47502e8c",
+        "repo_head": "af953f6207a1fcfe592ad7328a6a74b6375c7905",
+        "restored_compile_map_matches_baseline": true,
+        "restored_oleans": {
+          ".lake/build/lib/lean/RegistrationLifetimeModel.olean": "4f02385283c7b823e055f494eb5b6bfcba25b60838a9fea3540b5a0603384ecd",
+          ".lake/build/lib/lean/RegistrationLifetimeSpecification.olean": "cd654019fd170bc422402d53c90e737f00664f28633b725e7e5034d71a05ad2e",
+          ".lake/build/lib/lean/RegistrationLifetimeWitnessProof.olean": "6ad2c9166df5d95ac971cc3085cc7f8367dedbf000bbc44d751a7bb45fe6bbb0",
+          ".lake/build/lib/lean/RegistrationLifetimeWitnesses.olean": "a11b65da9368f54bfa0c70597902029c9f217a8cef4964b86eb1957528df3995"
+        },
+        "restored_positive_olean_hashes_file": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/restored-oleans.sha256",
+        "semantic_review_notes": [
+          "Independent diagnostic compiled and printed only propext/Quot.sound.",
+          "Unchanged WitnessProof reported unsolved login-map goals at lines 217 and 338; its sorryAx guard rejected the affected declarations. Root review pending."
+        ],
+        "source_archive_sha256": "bc5c3f7722f895d7119a3088626a49155cd02ff3dbd4b4d773de35af43ffeef0",
+        "source_map_baseline_sha256": "916fa93c8f107c1214e4c01c1742f38fd54458f16f9646699737ff8b2b2aa257",
+        "stages": [
+          {
+            "artifact": {
+              "bytes": 1642296,
+              "exists": true,
+              "sha256": "3bb4c121553054b04cad7c68f7938aa786983bf16ad8fb4d62abf935b2990eec"
+            },
+            "elapsed_ms": 4618,
+            "exit_status": 0,
+            "log_bytes": 344,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/mutant-model.log",
+            "log_sha256": "0be5422211c46e83526765b2044f26e9026ea51de43de2e744eb13808d7e7030",
+            "stage": "mutant-model"
+          },
+          {
+            "artifact": {
+              "bytes": 230848,
+              "exists": true,
+              "sha256": "cd654019fd170bc422402d53c90e737f00664f28633b725e7e5034d71a05ad2e"
+            },
+            "elapsed_ms": 2915,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/mutant-specification.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "mutant-specification"
+          },
+          {
+            "artifact": {
+              "bytes": 460456,
+              "exists": true,
+              "sha256": "10ce3da8035f3d99e2ed82e3ef8be35181b08ad86067477b3966aefc06adc3f3"
+            },
+            "elapsed_ms": 3041,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/mutant-witnesses.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "mutant-witnesses"
+          },
+          {
+            "artifact": {
+              "bytes": 396752,
+              "exists": true,
+              "sha256": "bda661d1cb31700679bb823ea59cdc7f3d08f330d6fa3b47c5446b8ae556d37b"
+            },
+            "elapsed_ms": 3132,
+            "exit_status": 0,
+            "log_bytes": 107,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/mutant-diagnostic.log",
+            "log_sha256": "2efe2612ae82e786d8ede3ea8267bd7db357edc2f3bfa4935753769f0b17cc9b",
+            "stage": "mutant-diagnostic"
+          },
+          {
+            "artifact": {
+              "exists": false
+            },
+            "elapsed_ms": 3417,
+            "exit_status": 1,
+            "log_bytes": 2443,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/mutant-acceptance.log",
+            "log_sha256": "4b6eaabd4d47b941aeed0b3ead7da22b676e29f9535a6653938dbbec987d7ce6",
+            "stage": "mutant-acceptance"
+          },
+          {
+            "artifact": {
+              "bytes": 1645008,
+              "exists": true,
+              "sha256": "4f02385283c7b823e055f494eb5b6bfcba25b60838a9fea3540b5a0603384ecd"
+            },
+            "elapsed_ms": 4833,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/restored-model.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "restored-model"
+          },
+          {
+            "artifact": {
+              "bytes": 230848,
+              "exists": true,
+              "sha256": "cd654019fd170bc422402d53c90e737f00664f28633b725e7e5034d71a05ad2e"
+            },
+            "elapsed_ms": 2956,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/restored-specification.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "restored-specification"
+          },
+          {
+            "artifact": {
+              "bytes": 465152,
+              "exists": true,
+              "sha256": "a11b65da9368f54bfa0c70597902029c9f217a8cef4964b86eb1957528df3995"
+            },
+            "elapsed_ms": 3115,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/restored-witnesses.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "restored-witnesses"
+          },
+          {
+            "artifact": {
+              "bytes": 1798544,
+              "exists": true,
+              "sha256": "6ad2c9166df5d95ac971cc3085cc7f8367dedbf000bbc44d751a7bb45fe6bbb0"
+            },
+            "elapsed_ms": 3601,
+            "exit_status": 0,
+            "log_bytes": 1722,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/drop-login-noop-mirror/restored-acceptance.log",
+            "log_sha256": "d4f29b5799d4ffa3e89131a831920f7911a5898882952f0bbe52e3ae02645ae2",
+            "stage": "restored-acceptance"
+          }
+        ],
+        "status": "mutant_candidate_rejection_and_restored_positive_pass_pending_root_semantic_review",
+        "timeout_seconds_per_stage": 180,
+        "total_stage_elapsed_ms": 31628,
+        "unchanged_acceptance_exit": 1
+      },
+      "review": "Accepted: independent wrong-output diagnostic passes; unchanged output assertions fail at intended state/tag equalities; execution helpers have no errors; exact restored graph passes. This supersedes pending-review status in the immutable builder summary.",
+      "runner_sha256": "ae7f275190e6d76de3c817de54db4337840d9e4cdbbce2dd61eebdd3d6b7d06c"
+    },
+    {
+      "case": "registered-invalid-token",
+      "summary_sha256": "31b3a2b017ca7acd9db8178b51e1377ec6b802aef9d9f418844004f95dcba3c6",
+      "summary": {
+        "case": "registered-invalid-token",
+        "diagnostic_sha256": "08332539ed044398af8b30f0db353eb8717f8dee308a8b7d926e32ec7e6a40df",
+        "full_source_map_restored": true,
+        "inputs_sha256": "25272a100b0f58ce20749b4020cdea13bec4f5f864ee68bc09a050d0a3a489a5",
+        "launcher_log": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/launcher.log",
+        "lean": "4.35.0",
+        "mathlib_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+        "mutant_acceptance_olean_absent": true,
+        "mutant_diagnostic_exit": 0,
+        "mutant_model_sha256": "f70392b3a36435579b8796b85c172395a4861d55becee81d31ec6be2697fa98f",
+        "native_source_revision": "12a132dcbdddcd7fad1defcd007432385d237a76",
+        "patch_sha256": "15e0d17c66bc8983faf7aec967a55d8b6c14d3a34e068dfb1b1373affa2c864a",
+        "repo_head": "af953f6207a1fcfe592ad7328a6a74b6375c7905",
+        "restored_compile_map_matches_baseline": true,
+        "restored_oleans": {
+          ".lake/build/lib/lean/RegistrationLifetimeModel.olean": "4f02385283c7b823e055f494eb5b6bfcba25b60838a9fea3540b5a0603384ecd",
+          ".lake/build/lib/lean/RegistrationLifetimeSpecification.olean": "cd654019fd170bc422402d53c90e737f00664f28633b725e7e5034d71a05ad2e",
+          ".lake/build/lib/lean/RegistrationLifetimeWitnessProof.olean": "6ad2c9166df5d95ac971cc3085cc7f8367dedbf000bbc44d751a7bb45fe6bbb0",
+          ".lake/build/lib/lean/RegistrationLifetimeWitnesses.olean": "a11b65da9368f54bfa0c70597902029c9f217a8cef4964b86eb1957528df3995"
+        },
+        "restored_positive_olean_hashes_file": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/restored-oleans.sha256",
+        "semantic_review_notes": [
+          "Independent diagnostic compiled; root log inspection pending.",
+          "Unchanged WitnessProof reported register response type mismatches at source lines 148, 207, 252, and 329; guard rejected consequent sorryAx. Root review pending."
+        ],
+        "source_archive_sha256": "bc5c3f7722f895d7119a3088626a49155cd02ff3dbd4b4d773de35af43ffeef0",
+        "source_map_baseline_sha256": "0fa7dff183812d1e5c737e83b1647a5907daabefe7ceadd3c0aace6e9e92af37",
+        "stages": [
+          {
+            "artifact": {
+              "bytes": 1644704,
+              "exists": true,
+              "sha256": "54a39edfd693bfdba4f09f6685fa1a50c57a05be68e009994bdb7e95efbc175b"
+            },
+            "elapsed_ms": 4617,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/mutant-model.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "mutant-model"
+          },
+          {
+            "artifact": {
+              "bytes": 230720,
+              "exists": true,
+              "sha256": "22e2344bb609e8c765709175e4464bd14ad3606047e4c44d797ff5b75680673d"
+            },
+            "elapsed_ms": 2919,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/mutant-specification.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "mutant-specification"
+          },
+          {
+            "artifact": {
+              "bytes": 465152,
+              "exists": true,
+              "sha256": "a11b65da9368f54bfa0c70597902029c9f217a8cef4964b86eb1957528df3995"
+            },
+            "elapsed_ms": 2964,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/mutant-witnesses.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "mutant-witnesses"
+          },
+          {
+            "artifact": {
+              "bytes": 350736,
+              "exists": true,
+              "sha256": "994a2989a7ae637b5afdd5e13c2248f9722150e68b2429e77eefbe58023bd655"
+            },
+            "elapsed_ms": 3334,
+            "exit_status": 0,
+            "log_bytes": 123,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/mutant-diagnostic.log",
+            "log_sha256": "a0f44d9bf88718bbe42ef49e9641313e50c26eef25ca0613758a8697614d2580",
+            "stage": "mutant-diagnostic"
+          },
+          {
+            "artifact": {
+              "exists": false
+            },
+            "elapsed_ms": 3253,
+            "exit_status": 1,
+            "log_bytes": 2931,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/mutant-acceptance.log",
+            "log_sha256": "74af0252421902a3f456be593e14c6bd2696b03cfb31858640d98463e83e3fc7",
+            "stage": "mutant-acceptance"
+          },
+          {
+            "artifact": {
+              "bytes": 1645008,
+              "exists": true,
+              "sha256": "4f02385283c7b823e055f494eb5b6bfcba25b60838a9fea3540b5a0603384ecd"
+            },
+            "elapsed_ms": 4762,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/restored-model.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "restored-model"
+          },
+          {
+            "artifact": {
+              "bytes": 230848,
+              "exists": true,
+              "sha256": "cd654019fd170bc422402d53c90e737f00664f28633b725e7e5034d71a05ad2e"
+            },
+            "elapsed_ms": 2976,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/restored-specification.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "restored-specification"
+          },
+          {
+            "artifact": {
+              "bytes": 465152,
+              "exists": true,
+              "sha256": "a11b65da9368f54bfa0c70597902029c9f217a8cef4964b86eb1957528df3995"
+            },
+            "elapsed_ms": 2992,
+            "exit_status": 0,
+            "log_bytes": 0,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/restored-witnesses.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stage": "restored-witnesses"
+          },
+          {
+            "artifact": {
+              "bytes": 1798544,
+              "exists": true,
+              "sha256": "6ad2c9166df5d95ac971cc3085cc7f8367dedbf000bbc44d751a7bb45fe6bbb0"
+            },
+            "elapsed_ms": 3521,
+            "exit_status": 0,
+            "log_bytes": 1722,
+            "log_path": "/tmp/hub-registration-instance-removal-20261101/lifetime4/registered-invalid-token-mirror/restored-acceptance.log",
+            "log_sha256": "d4f29b5799d4ffa3e89131a831920f7911a5898882952f0bbe52e3ae02645ae2",
+            "stage": "restored-acceptance"
+          }
+        ],
+        "status": "mutant_candidate_rejection_and_restored_positive_pass_pending_root_semantic_review",
+        "timeout_seconds_per_stage": 180,
+        "total_stage_elapsed_ms": 31338,
+        "unchanged_acceptance_exit": 1
+      },
+      "review": "Accepted: independent wrong-output diagnostic passes; unchanged output assertions fail at intended state/tag equalities; execution helpers have no errors; exact restored graph passes. This supersedes pending-review status in the immutable builder summary.",
+      "runner_sha256": "ae7f275190e6d76de3c817de54db4337840d9e4cdbbce2dd61eebdd3d6b7d06c"
+    }
+  ],
+  "claims": [
+    "Ignored modeled DROP effect leaves exact candidate login20 after removal and prior login40 after replacement; unchanged full login-map assertions reject it.",
+    "A valid committed replacement can be evaluated with exact stored output but wrong invalidToken acknowledgement; unchanged successful-response assertions reject the altered tag.",
+    "Both mutants retain the same request/Step signatures and expected output predicates; diagnostics import no generic correctness proof.",
+    "Both exact patch reversals restore the complete source maps, followed by fresh Model/Specification/Witnesses/WitnessProof passes and previously accepted OLean hashes."
+  ],
+  "axioms": {
+    "diagnostic_guards": 4,
+    "diagnostic_prints": 2,
+    "diagnostic_closures": [
+      "propext",
+      "Quot.sound"
+    ],
+    "restored_witness_guards_per_case": 34,
+    "restored_printed_closures_per_case": 6,
+    "accepted_sorryAx": false
+  },
+  "boundaries": [
+    "Diagnostics evaluate complete synthetic model fixture outputs; they do not separately prove mutated Step-chain reachability. Unchanged execution declarations report no errors; intended output proofs fail.",
+    "DROP remains in the staged write/event list; only its primitive modeled effect is ignored. This is not a missing SQL statement or a fault injected into PostgreSQL.",
+    "Wrong successful-response tag occurs after modeled commit; this does not test a pre-admission rejection or native HTTP status.",
+    "The canonical generic history proof is not replayed against mutants. Its existing accepted checkpoint remains unchanged.",
+    "Complete native API response payloads, postcommit service effects, other native writers, SQL/async refinement, external preparation atomicity and liveness remain open boundaries."
+  ],
+  "not_run": [
+    "Native Rust or Docker checks",
+    "Deployment or model-driven acceptance",
+    "Unrelated default targets",
+    "New CI/runtime machinery"
+  ]
+}
