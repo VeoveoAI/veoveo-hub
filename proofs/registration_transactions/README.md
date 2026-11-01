@@ -310,5 +310,9 @@ The [populated success witness](evidence/audited-update-success.json) now passes
 data/audit outputs, retained fields, precommit privacy, lock release and successful
 store acknowledgment. Run it manually with
 `LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateWitnessProof`.
-Refusal/confirmed-abort/retry, actual replacement/no-op and the omitted-Update
-control remain next.
+The [recovery witness](evidence/audited-update-recovery.json) now passes twenty
+guards and nine printed closures for refused audit, explicit abort and fresh
+successful retry. Sixteen actual steps compose with independent complete results;
+the error never substitutes for confirmed rollback. Run it manually with
+`LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateRecoveryProof`.
+Actual replacement/no-op and the omitted-Update control remain next.

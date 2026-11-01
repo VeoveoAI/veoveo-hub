@@ -1533,8 +1533,13 @@ now constructs nine actual steps from a two-replica seed and proves independent
 complete DB/audit results, retained fields and unrelated state, private precommit
 writes, lock release and successful store acknowledgment. Fifteen declaration
 guards and nine closures pass. Execution is separate from output acceptance for
-the later omission control. Refusal/confirmed-abort/retry, actual replacement/no-op
-and that control remain next; no new native or deployed result is claimed.
+the later omission control. The [recovery witness](registration_transactions/evidence/audited-update-recovery.json)
+adds a correct-but-conflicting audit record, explicit failed-transaction abort,
+then a fresh successful retry. Sixteen actual steps compose; independent complete
+outputs preserve committed state through failure and retain both attempts in the
+final maps. Twenty guards and nine closures pass. This is a concrete recovery
+schedule, not liveness or native failure execution. Actual replacement/no-op and
+the omission control remain next; no new native or deployed result is claimed.
 
 ## HUB-LORE-01 — Native grants and contributed token issuance
 

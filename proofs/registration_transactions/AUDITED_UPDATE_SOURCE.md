@@ -1,8 +1,8 @@
 # Audited UPDATE store adapter
 
-The foundation and a **populated matched-update success execution pass the manual
-Lean checks**. Recovery, replacement/no-op and the omitted-Update control remain
-pending. Native source basis is
+The foundation, **populated matched-update success and refused-audit recovery
+executions pass the manual Lean checks**. Replacement/no-op and the omitted-Update
+control remain pending. Native source basis is
 `3d1b0b969ca8f35a757b74ebc9b959d62bf5ae33`; initial proof basis is
 `ba812e6625a1c0706bd1b8815f5b752254693aa9`. No Rust, SQL, existing Lean module,
 package pin or default target changes accompany this manual model. This is not an
@@ -37,7 +37,7 @@ transactional-audit part of HUB-CLEANUP-01 in [the coverage map](../README.md).
   via the reused Record/Encoding/CoreAppend types.
 * The existing native audit-refusal fixture in
   [concurrency_tests.rs:1360](../../crates/veoveo-hub/src/registration/store/concurrency_tests.rs)
-  uses a BEFORE INSERT exception. A future model ID-conflict witness is a different
+  uses a BEFORE INSERT exception. The checked model ID-conflict witness is a different
   modeled refusal. SQL error propagation and confirmed rollback remain explicit
   native interpretation; an error alone does not prove abort.
 
@@ -113,8 +113,9 @@ UPDATE effects preserve the CURRENT frame, without assuming the environment stop
 
 The separate populated matched execution below supplies actual acceptance with
 independently specified full outputs and an ordinary successful acknowledgment.
-Refusal/abort/retry and replacement/noop executions remain required, with explicit
-external audit provenance for replacement. A later omission control will remove only the Update instruction
+The separate recovery execution below adds refusal, explicit abort and fresh retry.
+Replacement/noop remains required, with explicit external audit provenance for
+replacement. A later omission control will remove only the Update instruction
 and require a legal modified execution plus wrong full result and rejection of the
 unchanged acceptance assertion. No control has been authored or run here.
 
@@ -187,3 +188,31 @@ exited 1; all three actual `.olean` outputs, logs and maps were independently
 verified without rerunning the compiler. The raw summary and corrective supplement
 are preserved in the [receipt](evidence/audited-update-success.json) and explained in
 the [record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-audited-update-success.md).
+
+## Checked refused-audit recovery
+
+RecoveryWitnesses and RecoveryProof reuse the same populated seed and independently
+literal expected result. Actor 0 reaches the audit call after both private writes.
+Its record 900 has the correct Update instruction, target and timestamp encoding,
+but that ID already names a different complete committed record. The proof excludes
+every valid CoreAppend result for it. An actual failure step retains the original
+committed database and ledger, sets the error outcome and still holds the lock.
+A separate actual serverAbort releases the lock; error alone never proves abort.
+
+Actor 1 then executes a fresh nine-step update from that exact aborted state,
+appending locally fresh record 100 and returning success. The final complete maps
+retain actor 0's failed/aborted state alongside actor 1's successful state, preserve
+the prior complete audit record and untouched data, and contain exactly the retry's
+update event. The top-level theorem composes all sixteen actual steps. The aborted
+cursor is inactive model state, not a new runtime tombstone or ID reservation.
+This proves a possible successful retry schedule, not eventual recovery or lost
+commit-reply behavior.
+
+One bounded `LAKE_NO_UPDATE=1 lake build RegistrationAuditedUpdateRecoveryProof`
+passed in 37.976 s, with twenty declaration guards and nine printed closures. Three
+closures need no axioms; the others use only `propext` and `Quot.sound`. An earlier
+38.026 s authoring attempt failed because two local binders used Lean's reserved
+`prefix` keyword; renaming them to `readyPath` retained every definition, theorem
+statement and guard. No runtime source changed and no native check was rerun.
+See the [receipt](evidence/audited-update-recovery.json) and
+[record](https://github.com/VeoveoAI/veoveo-docs/blob/main/records/2026-11-01-registration-audited-update-recovery.md).
