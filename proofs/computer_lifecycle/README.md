@@ -55,6 +55,15 @@ remain open. The [browser-membership extraction probe](evidence/browser-membersh
 retains actual current catalog and contributed-authority paths in Charon, but
 Aeneas cannot translate their dynamic dispatch and borrowed group iterator.
 Its partial Lean output is not adopted. The independent rule-selection calculation
-[translates successfully](evidence/work-context-membership-extraction.json), including
-an additive shared-graph candidate; model integration and Lean proof are still
-pending. Full browser admission remains required.
+[translates successfully](evidence/work-context-membership-extraction.json); its
+additive shared graph is integrated, and the
+[membership proof](../current_roles/evidence/work-context-membership-proof.json)
+checks the exact highest matching level and absence, with valid client-only grants.
+[Four shared-package regression commands](../request_composition/evidence/shared-model-regression-20261101.json)
+also pass within their original source scopes. Both additional membership semantic
+controls remain unqualified/deferred: the first diagnostic failed Lean proof
+authoring and the second control was not run. The
+[closeout receipt](../current_roles/evidence/work-context-membership-closeout.json)
+records exact private baseline restoration and the original audit's passing rerun.
+Full browser admission and custody remain open, and the broad verification roadmap
+is paused pending better Rust/Aeneas support.

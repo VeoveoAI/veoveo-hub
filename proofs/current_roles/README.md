@@ -97,12 +97,25 @@ identities, authoring corrections and tool setup. All 48 guarded declarations
 pass; the twelve printed closures contain only `propext`, `Classical.choice` and
 `Quot.sound`. These targets are nondefault and introduce no CI or runtime gate.
 
-This is a **checked proof checkpoint**, with deliberate semantic fault controls
-and broader shared-package regressions still pending. Full browser admission,
-current catalog/group enrichment, authority dispatch, SQL/custody consistency
-and recovery remain outside this calculation. Standard-library and translator
-correspondence are assumptions, not established by the axiom audit. No runtime
-Rust source or authorization rule changes in this increment.
+This is a **checked membership proof checkpoint**. The
+[shared-package regressions](../request_composition/evidence/shared-model-regression-20261101.json)
+qualified two current-role and two request-composition build commands within their
+original source scopes. Both membership semantic controls remain unqualified and
+deferred. The first control's independent diagnostic failed Lean proof authoring
+before any original negative acceptance check; the second control was not run.
+These are not Rust translation failures or successful semantic counterexamples.
+
+The [closeout receipt](evidence/work-context-membership-closeout.json) records
+all authoring failures, exact 110-file private baseline restoration and the original
+audit's passing 16.96 s rerun (48 guards / 12 standard-only closures). Broken
+diagnostics remain temporary; the checked model and acceptance proofs are unchanged.
+
+The broad verification roadmap is paused pending better Rust/Aeneas support.
+Full browser admission, current catalog/group enrichment, authority dispatch,
+SQL/custody consistency and recovery remain outside this calculation.
+Standard-library and translator correspondence are assumptions, not established
+by the axiom audit. No runtime Rust source or authorization rule changes in this
+increment.
 
 ## Current session-family authority
 

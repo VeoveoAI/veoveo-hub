@@ -51,7 +51,7 @@
     "Lean": "4.35.0 x86_64-unknown-linux-gnu",
     "Lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
     "Mathlib": "56a005855ea17e0b0958f73ec801ae140b0a1679",
-    "qualified_discriminant_patch_sha256": "467f244cc2103c050f38e732c153712c5c9fbbccc0ca0827d5c32990b174f411"
+    "qualified_discriminant_source_sha256": "467f244cc2103c050f38e732c153712c5c9fbbccc0ca0827d5c32990b174f411"
   },
   "commands": [
     {
@@ -145,5 +145,11 @@
     "Historical routing/issuer applicability is not extended to newer native repository grants or async callers.",
     "Existing qualified private Aeneas discriminant patch remains required.",
     "Source setup failures are not successful tests; no native tests or deployment were run in this regression slice."
-  ]
+  ],
+  "qualified_tool_patch": {
+    "path": "tooling/qualified-discriminant-instance.patch",
+    "bytes": 937,
+    "sha256": "1d21c956e3bbbcbff57f9185e8f784b772cd34302c4bda765a8a463fb1bdcb80",
+    "note": "467f244... identifies resulting patched Discriminant.lean source, not this937B patch file. Original raw summary retained unchanged."
+  }
 }

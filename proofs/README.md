@@ -5,9 +5,10 @@ for them. The unit of coverage is an invariant, not a theorem count. A small hel
 proof does not establish the whole request, transaction or runtime lifecycle.
 
 Verification remains manual and on demand. Broad implementation of the coverage
-roadmap below is paused pending better Rust/Aeneas support. Wrap-up completes only
-the existing membership controls and proof-package dependency correction; it starts
-no new verification slice. The coverage and open boundaries remain recorded here.
+roadmap below is paused pending better Rust/Aeneas support. Wrap-up retains and
+restores the checked membership baseline, records the deferred semantic controls,
+and closes the proof-package dependency gap; it starts no new verification slice.
+The coverage and open boundaries remain recorded here.
 This map adds no CI job, hook, watcher, proof requirement or runtime check, and
 proposes no additional security rules.
 
@@ -1361,9 +1362,15 @@ sandbox; it must not claim the new version succeeded.
   ([proof receipt](current_roles/evidence/work-context-membership-proof.json)).
   Current target correspondence and the historical typed-ID/shared-model boundary
   remain explicit ([extraction receipt](current_roles/evidence/work-context-membership-extraction.json)).
-- **Residual/next:** deliberate membership fault controls and shared-package
-  regressions, then browser and custody composition with unsupported boundaries explicit.
-  The outer timeout scheduler is not modeled. Browser
+- **Wrap-up status:** [four shared-package regression commands](request_composition/evidence/shared-model-regression-20261101.json)
+  pass within their original source scopes. Both membership semantic controls are
+  unqualified/deferred: the first diagnostic failed Lean proof authoring, and the
+  second control was not run. No semantic rejection was qualified; these are not
+  Rust translation failures. The [closeout receipt](current_roles/evidence/work-context-membership-closeout.json)
+  records exact private source restoration and the original audit's 16.96 s pass
+  (48 guards / 12 standard-only closures). Broad roadmap implementation is paused
+  pending better Rust/Aeneas support; full browser and custody composition remain
+  open. The outer timeout scheduler is not modeled. Browser
   recovery, OpenShell termination/readiness, credential custody and persistent home
   survival need native/deployed evidence. SQL fencing alone does not prevent an old
   native request from affecting a newer sandbox.
