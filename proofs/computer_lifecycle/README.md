@@ -42,6 +42,13 @@ Use an external 180-second bound. There is no CI/default target or new runner.
 Lake manages compiled artifacts; `.lake/` and full qualification logs stay local.
 Source, pins, specifications, proofs and compact receipts are committed.
 
+Two [semantic controls](evidence/semantic-controls.json) now qualify sensitivity
+to a missing operation-ID check and an omitted listener attempt. Each independent
+diagnostic proves the full wrong outcome; the original proof rejects it and passes
+after exact restoration. The receipt retains both one-line faults, diagnostic
+sources and temporary target additions for manual reproduction in private copies.
+The committed model and proof assertions remain unchanged.
+
 Read [SOURCE.md](SOURCE.md) for the correspondence and assumptions. The outer
 timeout scheduler, native cancellation, browser recovery and credential custody
-remain open. Semantic fault controls are the next check; none is claimed here.
+remain open. Next is the actual current-membership dependency of browser admission.

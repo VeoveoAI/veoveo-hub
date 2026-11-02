@@ -1,0 +1,434 @@
+{
+  "status": "qualified semantic controls for manual Computer lifecycle model",
+  "date": "2026-11-01",
+  "base_commit": "a751c9b2589d27b366b30854994af956cffa4b26",
+  "agents": {
+    "author": "GPT-6.1 Sol",
+    "qualification": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "lean": {
+    "path": "/Users/rozgo/.elan/toolchains/leanprover--lean4---v4.35.0/bin/lean",
+    "sha256": "d1d9c26a539f54fe839d2aa7760bf1ac1dd76a30b26e2c9684bebf2900038fcf",
+    "version": "Lean (version 4.35.0, arm64-apple-darwin24.6.0, commit eb6cafb7290e8bd5f2937522d8d804f58f02bafc, Release)"
+  },
+  "lake": {
+    "path": "/Users/rozgo/.elan/toolchains/leanprover--lean4---v4.35.0/bin/lake",
+    "sha256": "d2d63c80ca10bd2cc9557d11d59221b95c6eefb078c9652a11ef887ab8a068a5",
+    "version": "Lake version 5.0.0-src+eb6cafb (Lean version 4.35.0)"
+  },
+  "mathlib": {
+    "actual_head": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "locked_revision": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "manifest_sha256": "6fcb8417bf0d6056cebf3c9f9bacd4569f21f3b9c571c60649150b9118b55147",
+    "pin_source": "frozen root lake-manifest; the initial materialized cache had no Git checkout; fresh private Lake-managed checkout now matches locked revision",
+    "tactic_olean_bytes": 43272,
+    "tactic_olean_sha256": "589150e06f904bce5b615763147d60460598bee3ed3c5307ea6f7217d1944ce2"
+  },
+  "dependency_revisions": {
+    "Cli": "c24fe6078c630e89b489bffe59b3e20ac30d12c8",
+    "LeanSearchClient": "d6b4c7be5be75ec4917c873ac50c756dc1436372",
+    "Qq": "dce0ad79c486cb1fb504af04f953c3466b0c6db8",
+    "aesop": "4a174c490d8707121c4a9290800489f105d85e07",
+    "batteries": "66e469188fe07963e5cf666c7d4433f45b8131c5",
+    "importGraph": "a41f0e9a4dea23188ea9cc1c41ac9f8bbafe0b93",
+    "mathlib": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "plausible": "dfa4f38190d07c37e315953e08b90fe2d95b3c24",
+    "proofwidgets": "df72b022e558978a1c50264cfc4d7fec86fa8e04"
+  },
+  "source": {
+    "baseline_package": {
+      "ComputerLifecycleModel.lean": "2c2de131b821c32e59f95207bd467260ae6921941a260f37b3414bc849047ded",
+      "ComputerLifecycleProof.lean": "f5c473fd177ea2f6f3ee9ea43fd47c3f70332a3029df399b051e5e3a68b19a77",
+      "ComputerLifecycleSpecification.lean": "31a99bd615e86152f73a8ec06f4788a7d754579b6782c9611fbecbc6622c8a9e",
+      "ComputerLifecycleWitnesses.lean": "6775dd24301302daea0ce98be570598887dac9e2d59dc23fdbde6d975d77943b",
+      "README.md": "343d42ef9dc5c396305765cf0fa93c9337c5bcc1b863eedd4307926fc5b159d4",
+      "SOURCE.md": "c685d78be11c2c1d60bd91acdf2191446b753a944a3911e9141a28b7585c9757",
+      "evidence/native-stale-completion.json": "8759bc3352c442d3b79d4c335a615a55361bbad1347767620508fdc18d725f9d",
+      "evidence/replacement-protocol.json": "f187b7da2888dc52abec04115db4b8e30e162416b1a2744bdd5ebcc39f45c003",
+      "lake-manifest.json": "dbd4f235c7a2d4db07a8c5ea9e8c328d7780341312c311d8d2d2f39a9f35f7d0",
+      "lakefile.lean": "1ef0735124ae4bb25e67da9613abdd4a1053989de720c9d27af8dac124febe98",
+      "lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c"
+    },
+    "frozen_manifest": {
+      "bytes": 7581,
+      "sha256": "6c66667f6c04707cc4eca903349398e4435d984f6988c14b5548e2284be9f373"
+    },
+    "baseline_map": {
+      "bytes": 1071,
+      "sha256": "b6e2d551df65e9e3e07d0ccfc9106facae42357e3eece4ed9f93e7a3a296bfcd"
+    },
+    "unchanged_proof_sha256": "f5c473fd177ea2f6f3ee9ea43fd47c3f70332a3029df399b051e5e3a68b19a77",
+    "native_basis": "8b7303d8351ebf356577666c981fbbe9747c79f0; native source unchanged by these controls"
+  },
+  "controls": {
+    "finish-guard": {
+      "fault_patch": "--- a/ComputerLifecycleModel.lean\n+++ b/ComputerLifecycleModel.lean\n@@ -91,7 +91,7 @@\n   | none => \u27e8rows, false\u27e9\n   | some row => match row.operation with\n     | none => \u27e8rows, false\u27e9\n-    | some current => if owned row key && current.id == op then\n+    | some current => if owned row key then\n         \u27e8put rows key.id (some { row with\n           provisioning := current.target\n           notice := if row.noticeShown then none else notice\n",
+      "fault_patch_sha256": "5b958156d330261f8fec0f8076b13e5128d814632002ac1d6b02edf1e601441c",
+      "fault_model_sha256": "1c5671657934c6a7b1c326aab4471b314916583838c99282e14098ad3e75c6c5",
+      "temporary_target_patch": "--- a/lakefile.lean\n+++ b/lakefile.lean\n@@ -9,3 +9,6 @@\n lean_lib ComputerLifecycleSpecification\n lean_lib ComputerLifecycleWitnesses\n lean_lib ComputerLifecycleProof\n+\n+-- PRIVATE deliberate model-fault diagnostic;not a default/production target.\n+lean_lib ComputerFinishGuardDiagnostic\n",
+      "diagnostic": {
+        "source": "import ComputerLifecycleWitnesses\nimport Lean.Util.CollectAxioms\n\n/-! PRIVATE deliberate finish-guard fault. A and B BOTH target v2. Wrong effect:\nA's success prematurely publishes B's stored target and clears B's pending op;\nit is NOT a demonstration of A publishing an older target. No native run claimed. -/\nnamespace ComputerLifecycle.FinishGuardDiagnostic\nopen ComputerLifecycle.Fixture\n\ndef oldCompletion := runWorker newerClaim.rows context allGood 0 690 .commitAck\n\ndef directExpected : Row :=\n  { tenant := 11, principal := 13, custody := custody, ready := true\n    provisioning := \u27e8\"v2\", \"complete-new-template/config/policy/images/secret-references\"\u27e9\n    operation := none, noticeShown := false, failure := none, notice := none\n    collectedAt := none, keepOn := true\n    storageFrame := \"created_at=retained;all-unprojected-columns\" }\n\ntheorem put_same (rows : Table) (id : Nat) (first last : Option Row) :\n    put (put rows id first) id last = put rows id last := by\n  funext subject\n  by_cases same : subject = id <;> simp [put, same]\n\ntheorem put_expected (row : Row) : put base 7 (some row) = expectedRows row := by\n  funext id\n  by_cases same : id = 7 <;> simp [put, base, expectedRows, same]\n\n/-- Genuine A claim followed by newer stale takeover B,not a supplied post-state. -/\ntheorem actual_newer_claim : claimed.matched = true \u2227 newerClaim.matched = true \u2227\n    newerClaim.rows = expectedRows expectedNewerClaim \u2227 context.operation = 70 \u2227 newerContext.operation = 71 := by\n  refine \u27e8rfl, rfl, ?_, rfl, rfl\u27e9\n  change put (put base 7 (some (expectedClaim seed 70 next 0)))\n    7 (some expectedNewerClaim) = _\n  rw [put_same]\n  exact put_expected expectedNewerClaim\n\n/-- Actual old-context native continuation and resulting COMPLETE wrong table.\nIndependent literal expectedSuccess is reused as wrong early B-publication output. -/\ntheorem actual_wrong_worker :\n    oldCompletion.native.attempts = expectedAttempts context \u2227 oldCompletion.native.result = .ok () \u2227\n    oldCompletion.native.native = 9 \u2227 oldCompletion.recorded.response = .ok true \u2227\n    oldCompletion.recorded.rows = expectedRows expectedSuccess \u2227\n    oldCompletion.loggedRecordingError = none \u2227\n    (oldCompletion.recorded.rows 7).bind (\u00b7.operation) = none := by\n  refine \u27e8rfl, rfl, rfl, rfl, ?_, rfl, rfl\u27e9\n  change put (put (put base 7 (some (expectedClaim seed 70 next 0)))\n    7 (some expectedNewerClaim)) 7 (some expectedSuccess) = _\n  repeat rw [put_same]\n  exact put_expected expectedSuccess\n\ntheorem wrong_table_changed : oldCompletion.recorded.rows \u2260 newerClaim.rows := by\n  intro same\n  have row := congrFun same 7\n  have operation := congrArg (fun value : Option Row => value.bind (\u00b7.operation)) row\n  change none = some (Operation.mk 71 661 next) at operation\n  cases operation\n\n/-- Negate the actual instantiated unchanged stale_worker output contract. -/\ntheorem rejects_stale_worker :\n    \u00ac(oldCompletion.recorded.rows = newerClaim.rows \u2227 oldCompletion.recorded.response = .ok false) := by\n  intro preserved\n  exact wrong_table_changed preserved.1\n\n/-- Connect separately to the EXACT direct finish(None) call in the original\nFixture.actual_stale_history assertion. Full direct row differs only in notice. -/\ntheorem direct_finish_wrong :\n    (finish newerClaim.rows key 70 none).matched = true \u2227\n    (finish newerClaim.rows key 70 none).rows = expectedRows directExpected \u2227\n    \u00acRejectedCompletion newerClaim.rows (finish newerClaim.rows key 70 none)\n      (fail newerClaim.rows key 70 \u27e8\"obsolete\", 700, \"v2\"\u27e9) := by\n  refine \u27e8rfl, ?_, ?_\u27e9\n  \u00b7 change put (put (put base 7 (some (expectedClaim seed 70 next 0)))\n      7 (some expectedNewerClaim)) 7 (some directExpected) = _\n    repeat rw [put_same]\n    exact put_expected directExpected\n  \u00b7 intro rejected\n    have wrong : true = false := rejected.2.1\n    cases wrong\n\n#print axioms actual_newer_claim\n#print axioms actual_wrong_worker\n#print axioms rejects_stale_worker\n#print axioms direct_finish_wrong\n\nrun_cmd do\n  for declaration in [``put_same, ``put_expected, ``actual_newer_claim, ``actual_wrong_worker,\n      ``wrong_table_changed, ``rejects_stale_worker, ``direct_finish_wrong] do\n    let axioms \u2190 Lean.collectAxioms declaration\n    for name in axioms do\n      unless name == ``propext || name == ``Classical.choice || name == ``Quot.sound do\n        throwError \"unexpected finish-guard fault diagnostic axiom in {declaration}: {name}\"\n\nend ComputerLifecycle.FinishGuardDiagnostic\n",
+        "sha256": "4d5b6e92afe830266726bcefb940f5982b82eca20ac9da9748471d96d455b7e4",
+        "guarded_declarations": [
+          "put_same",
+          "put_expected",
+          "actual_newer_claim",
+          "actual_wrong_worker",
+          "wrong_table_changed",
+          "rejects_stale_worker",
+          "direct_finish_wrong"
+        ],
+        "printed_closures": [
+          "actual_newer_claim",
+          "actual_wrong_worker",
+          "rejects_stale_worker",
+          "direct_finish_wrong"
+        ]
+      },
+      "stages": [
+        {
+          "phase": "diagnostic",
+          "command": "LAKE_NO_UPDATE=1 lake build ComputerFinishGuardDiagnostic",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 42540,
+          "log_bytes": 16279,
+          "log_sha256": "164a3e30e897fb2d0d002bd76e3c7f47868c603a60cbac3bd153ea722a888677",
+          "source_unchanged_during_phase": true,
+          "tools_unchanged": true,
+          "artifacts": {
+            "ComputerFinishGuardDiagnostic.olean": {
+              "bytes": 71888,
+              "exists": true,
+              "sha256": "65da6669336587770ddc230b3f246ac70f32a6cbb60e7808692c6781d0a97e51"
+            },
+            "ComputerLifecycleModel.olean": {
+              "bytes": 1583208,
+              "exists": true,
+              "sha256": "f85985b07628264d2ba4494adf49d33aa4dfae3f06adce339a49ed7cd42a64ac"
+            },
+            "ComputerLifecycleProof.olean": {
+              "exists": false
+            },
+            "ComputerLifecycleSpecification.olean": {
+              "bytes": 63008,
+              "exists": true,
+              "sha256": "12945971ff5ff56a2f78cadc6eac2fa418e2cd98b693aa2e6ad9115c716ab95f"
+            },
+            "ComputerLifecycleWitnesses.olean": {
+              "bytes": 170192,
+              "exists": true,
+              "sha256": "8bc54f4654db5ecc33585bea087b42047eab97367563ff6eb366c24fe5af86fb"
+            }
+          }
+        },
+        {
+          "phase": "negative",
+          "command": "LAKE_NO_UPDATE=1 lake build ComputerLifecycleProof",
+          "exit": 1,
+          "timed_out": false,
+          "elapsed_ms": 4215,
+          "log_bytes": 7878,
+          "log_sha256": "a4423c5a785f566944c5772318ed8849a090171695e4e601cae8b7799052c139",
+          "source_unchanged_during_phase": true,
+          "tools_unchanged": true,
+          "artifacts": {
+            "ComputerFinishGuardDiagnostic.olean": {
+              "bytes": 71888,
+              "exists": true,
+              "sha256": "65da6669336587770ddc230b3f246ac70f32a6cbb60e7808692c6781d0a97e51"
+            },
+            "ComputerLifecycleModel.olean": {
+              "bytes": 1583208,
+              "exists": true,
+              "sha256": "f85985b07628264d2ba4494adf49d33aa4dfae3f06adce339a49ed7cd42a64ac"
+            },
+            "ComputerLifecycleProof.olean": {
+              "exists": false
+            },
+            "ComputerLifecycleSpecification.olean": {
+              "bytes": 63008,
+              "exists": true,
+              "sha256": "12945971ff5ff56a2f78cadc6eac2fa418e2cd98b693aa2e6ad9115c716ab95f"
+            },
+            "ComputerLifecycleWitnesses.olean": {
+              "bytes": 170192,
+              "exists": true,
+              "sha256": "8bc54f4654db5ecc33585bea087b42047eab97367563ff6eb366c24fe5af86fb"
+            }
+          }
+        },
+        {
+          "phase": "restored",
+          "command": "LAKE_NO_UPDATE=1 lake build ComputerLifecycleProof",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 11274,
+          "log_bytes": 3084,
+          "log_sha256": "9bf7ddb58ef0892b6070f186f9904037f93a137ecf68de1c3349e1cc03d0f176",
+          "source_unchanged_during_phase": true,
+          "tools_unchanged": true,
+          "artifacts": {
+            "ComputerFinishGuardDiagnostic.olean": {
+              "bytes": 71888,
+              "exists": true,
+              "sha256": "65da6669336587770ddc230b3f246ac70f32a6cbb60e7808692c6781d0a97e51"
+            },
+            "ComputerLifecycleModel.olean": {
+              "bytes": 1582792,
+              "exists": true,
+              "sha256": "da827f0d579c950ac5164ba736428c6721c499172325c30c2ba2aba2f64f1d62"
+            },
+            "ComputerLifecycleProof.olean": {
+              "bytes": 556320,
+              "exists": true,
+              "sha256": "519795a38452d2d069262b2a3396ad37bc358a4cf20d91fdef18399b78e88348"
+            },
+            "ComputerLifecycleSpecification.olean": {
+              "bytes": 63008,
+              "exists": true,
+              "sha256": "12945971ff5ff56a2f78cadc6eac2fa418e2cd98b693aa2e6ad9115c716ab95f"
+            },
+            "ComputerLifecycleWitnesses.olean": {
+              "bytes": 170192,
+              "exists": true,
+              "sha256": "8bc54f4654db5ecc33585bea087b42047eab97367563ff6eb366c24fe5af86fb"
+            }
+          }
+        }
+      ],
+      "restoration": {
+        "all_11_baseline_files_match": true,
+        "diagnostic_source_and_target_removed": true,
+        "normal_lake_rebuild": true
+      },
+      "semantic_rejection": "Unchanged stale_completion at line55 requires whole-table equality and matched=false. Removed operation-ID comparison instead matches and clears B. Independent actual_wrong_worker and direct_finish_wrong prove the contrary output."
+    },
+    "listener-omission": {
+      "fault_patch": "--- a/ComputerLifecycleModel.lean\n+++ b/ComputerLifecycleModel.lean\n@@ -155,7 +155,7 @@\n def invoke (context : Context) (stage : Stage) : Invocation :=\n   \u27e8context.key, context.operation, context.target, stage\u27e9\n def program : List Stage := [.forSpec, .remove, .connect, .deleteTemplate, .buildTemplate,\n-  .createTemplate, .createSandbox, .waitReady, .waitListener]\n+  .createTemplate, .createSandbox, .waitReady]\n \n structure Observation (Native : Type) where\n   result : Except String Unit\n",
+      "fault_patch_sha256": "bf2f5c204d7fd0fe46a575dff34d7487dc88a8ee08aabdbc1a92d81fd26085dd",
+      "fault_model_sha256": "7c2e4f306f3689dc907ae62466ac7eeea4960d9cd5346d95565f02c605b59dad",
+      "temporary_target_patch": "--- a/lakefile.lean\n+++ b/lakefile.lean\n@@ -9,3 +9,6 @@\n lean_lib ComputerLifecycleSpecification\n lean_lib ComputerLifecycleWitnesses\n lean_lib ComputerLifecycleProof\n+\n+-- PRIVATE deliberate model-fault diagnostic;not a default/production target.\n+lean_lib ComputerListenerOmissionDiagnostic\n",
+      "diagnostic": {
+        "source": "import ComputerLifecycleWitnesses\nimport Lean.Util.CollectAxioms\n\n/-! PRIVATE deliberate missing-listener-stage fault. All unchanged observation\nresults are synthetic successes;effect marker9 is NOT a number of attempted calls.\nThe actual worker records full success after only eight logical attempts. -/\nnamespace ComputerLifecycle.ListenerOmissionDiagnostic\nopen ComputerLifecycle.Fixture\n\ndef expectedEight : List Invocation :=\n  [\u27e8context.key, context.operation, context.target, .forSpec\u27e9,\n   \u27e8context.key, context.operation, context.target, .remove\u27e9,\n   \u27e8context.key, context.operation, context.target, .connect\u27e9,\n   \u27e8context.key, context.operation, context.target, .deleteTemplate\u27e9,\n   \u27e8context.key, context.operation, context.target, .buildTemplate\u27e9,\n   \u27e8context.key, context.operation, context.target, .createTemplate\u27e9,\n   \u27e8context.key, context.operation, context.target, .createSandbox\u27e9,\n   \u27e8context.key, context.operation, context.target, .waitReady\u27e9]\n\ntheorem put_same (rows : Table) (id : Nat) (first last : Option Row) :\n    put (put rows id first) id last = put rows id last := by\n  funext subject\n  by_cases same : subject = id <;> simp [put, same]\n\ntheorem put_expected (row : Row) : put base 7 (some row) = expectedRows row := by\n  funext id\n  by_cases same : id = 7 <;> simp [put, base, expectedRows, same]\n\ntheorem actual_eight_success : claimed.matched = true \u2227\n    launch (deliver base claimed .commitAck) key 70 next (some \"new release\") (.ok (claimed.rows 7)) =\n      .started context \u2227\n    succeeded.native.attempts = expectedEight \u2227 succeeded.native.result = .ok () \u2227\n    succeeded.recorded.response = .ok true \u2227 succeeded.recorded.rows = expectedRows expectedSuccess \u2227\n    succeeded.native.native = 9 \u2227 succeeded.loggedRecordingError = none := by\n  refine \u27e8rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl\u27e9\n  change put (put base 7 (some (expectedClaim seed 70 next 0))) 7 (some expectedSuccess) = _\n  rw [put_same]\n  exact put_expected expectedSuccess\n\ntheorem listener_not_attempted : invoke context .waitListener \u2209 succeeded.native.attempts := by\n  rw [actual_eight_success.2.2.1]\n  decide\n\ntheorem rejects_nine : succeeded.native.attempts \u2260 expectedAttempts context := by\n  intro same\n  have length := congrArg List.length same\n  change (8 : Nat) = 9 at length\n  omega\n\n/-- Exact instantiated ordered_success conclusion is false although the worker\ncommits its complete durable success row and returns acknowledged true. -/\ntheorem rejects_ordered_success :\n    \u00ac(succeeded.native.result = .ok () \u2227 succeeded.native.attempts = expectedAttempts context) := by\n  intro ordered\n  exact rejects_nine ordered.2\n\n/-- Same conjunction as the ORIGINAL Fixture.accepted_success theorem,without\nimporting its correctness module. The only changed intended output is attempts. -/\ntheorem rejects_accepted_success :\n    \u00ac(claimed.matched = true \u2227\n      launch (deliver base claimed .commitAck) key 70 next (some \"new release\") (.ok (claimed.rows 7)) =\n        .started context \u2227\n      succeeded.native.attempts = expectedAttempts context \u2227 succeeded.native.result = .ok () \u2227\n      succeeded.recorded.response = .ok true \u2227 succeeded.recorded.rows = expectedRows expectedSuccess \u2227\n      succeeded.native.native = 9 \u2227 succeeded.loggedRecordingError = none) := by\n  intro accepted\n  exact rejects_nine accepted.2.2.1\n\n#print axioms actual_eight_success\n#print axioms listener_not_attempted\n#print axioms rejects_ordered_success\n#print axioms rejects_accepted_success\n\nrun_cmd do\n  for declaration in [``put_same, ``put_expected, ``actual_eight_success, ``listener_not_attempted,\n      ``rejects_nine, ``rejects_ordered_success, ``rejects_accepted_success] do\n    let axioms \u2190 Lean.collectAxioms declaration\n    for name in axioms do\n      unless name == ``propext || name == ``Classical.choice || name == ``Quot.sound do\n        throwError \"unexpected listener fault diagnostic axiom in {declaration}: {name}\"\n\nend ComputerLifecycle.ListenerOmissionDiagnostic\n",
+        "sha256": "bbea6fe2005c35b72996934903cea2ef025639b1252583bf5eeb5c6c97a1c0a2",
+        "guarded_declarations": [
+          "put_same",
+          "put_expected",
+          "actual_eight_success",
+          "listener_not_attempted",
+          "rejects_nine",
+          "rejects_ordered_success",
+          "rejects_accepted_success"
+        ],
+        "printed_closures": [
+          "actual_eight_success",
+          "listener_not_attempted",
+          "rejects_ordered_success",
+          "rejects_accepted_success"
+        ]
+      },
+      "stages": [
+        {
+          "phase": "diagnostic",
+          "command": "LAKE_NO_UPDATE=1 lake build ComputerListenerOmissionDiagnostic",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 11746,
+          "log_bytes": 1312,
+          "log_sha256": "06ca1cc6545c35c9d2dc6c757f268f3cb81c69bdcc046545fb2c689890c95942",
+          "source_unchanged_during_phase": true,
+          "tools_unchanged": true,
+          "artifacts": {
+            "ComputerLifecycleModel.olean": {
+              "bytes": 1581584,
+              "exists": true,
+              "sha256": "f91a2d1c1897971da2a4a50bb6fb1647fc297d1e62618602491ca95096580abf"
+            },
+            "ComputerLifecycleProof.olean": {
+              "exists": false
+            },
+            "ComputerLifecycleSpecification.olean": {
+              "bytes": 63008,
+              "exists": true,
+              "sha256": "12945971ff5ff56a2f78cadc6eac2fa418e2cd98b693aa2e6ad9115c716ab95f"
+            },
+            "ComputerLifecycleWitnesses.olean": {
+              "bytes": 170192,
+              "exists": true,
+              "sha256": "8bc54f4654db5ecc33585bea087b42047eab97367563ff6eb366c24fe5af86fb"
+            },
+            "ComputerListenerOmissionDiagnostic.olean": {
+              "bytes": 65288,
+              "exists": true,
+              "sha256": "805559bd6852cd7e55d64d6effaac35be01362236b4b15dce4ed86b417b00d18"
+            }
+          }
+        },
+        {
+          "phase": "negative",
+          "command": "LAKE_NO_UPDATE=1 lake build ComputerLifecycleProof",
+          "exit": 1,
+          "timed_out": false,
+          "elapsed_ms": 3856,
+          "log_bytes": 8942,
+          "log_sha256": "ad4af3a5becb0aff432e5490b47dc0700f4b5f2a76ce97bbdc82f6d78cdcab98",
+          "source_unchanged_during_phase": true,
+          "tools_unchanged": true,
+          "artifacts": {
+            "ComputerLifecycleModel.olean": {
+              "bytes": 1581584,
+              "exists": true,
+              "sha256": "f91a2d1c1897971da2a4a50bb6fb1647fc297d1e62618602491ca95096580abf"
+            },
+            "ComputerLifecycleProof.olean": {
+              "exists": false
+            },
+            "ComputerLifecycleSpecification.olean": {
+              "bytes": 63008,
+              "exists": true,
+              "sha256": "12945971ff5ff56a2f78cadc6eac2fa418e2cd98b693aa2e6ad9115c716ab95f"
+            },
+            "ComputerLifecycleWitnesses.olean": {
+              "bytes": 170192,
+              "exists": true,
+              "sha256": "8bc54f4654db5ecc33585bea087b42047eab97367563ff6eb366c24fe5af86fb"
+            },
+            "ComputerListenerOmissionDiagnostic.olean": {
+              "bytes": 65288,
+              "exists": true,
+              "sha256": "805559bd6852cd7e55d64d6effaac35be01362236b4b15dce4ed86b417b00d18"
+            }
+          }
+        },
+        {
+          "phase": "restored",
+          "command": "LAKE_NO_UPDATE=1 lake build ComputerLifecycleProof",
+          "exit": 0,
+          "timed_out": false,
+          "elapsed_ms": 10477,
+          "log_bytes": 3084,
+          "log_sha256": "cc6e90b87b4786158d4e5b23080c6d12bc19f3c3d6827a404eab3e367dda1afe",
+          "source_unchanged_during_phase": true,
+          "tools_unchanged": true,
+          "artifacts": {
+            "ComputerLifecycleModel.olean": {
+              "bytes": 1582792,
+              "exists": true,
+              "sha256": "da827f0d579c950ac5164ba736428c6721c499172325c30c2ba2aba2f64f1d62"
+            },
+            "ComputerLifecycleProof.olean": {
+              "bytes": 556328,
+              "exists": true,
+              "sha256": "ffcd89252437c40a28743ffc2340c7669067d6b76936e3a9317a0ef1077ef29b"
+            },
+            "ComputerLifecycleSpecification.olean": {
+              "bytes": 63008,
+              "exists": true,
+              "sha256": "12945971ff5ff56a2f78cadc6eac2fa418e2cd98b693aa2e6ad9115c716ab95f"
+            },
+            "ComputerLifecycleWitnesses.olean": {
+              "bytes": 170192,
+              "exists": true,
+              "sha256": "8bc54f4654db5ecc33585bea087b42047eab97367563ff6eb366c24fe5af86fb"
+            },
+            "ComputerListenerOmissionDiagnostic.olean": {
+              "bytes": 65288,
+              "exists": true,
+              "sha256": "805559bd6852cd7e55d64d6effaac35be01362236b4b15dce4ed86b417b00d18"
+            }
+          }
+        }
+      ],
+      "restoration": {
+        "all_11_baseline_files_match": true,
+        "diagnostic_source_and_target_removed": true,
+        "normal_lake_rebuild": true
+      },
+      "semantic_rejection": "Unchanged ordered_success at line164 requires nine attempts ending in waitListener. Fault executes only eight through waitReady. Independent actual_eight_success and rejects_accepted_success prove the actual full wrong outcome and negate the original acceptance conjunction."
+    }
+  },
+  "allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "timeout_seconds_per_proof_command": 180,
+  "setup": {
+    "linux": "TCP accepted; SSH banner timed out. No Linux compiler launched; partial staging unverified.",
+    "linux_receipt": {
+      "bytes": 2460,
+      "sha256": "5b47c24f6206241e3b74683b7ab528fe0d7a6f10c6894c3b0114582ddddd7f22"
+    },
+    "mac_initial_attempt": "A copied cache without Git metadata caused Lake dependency checkout failure before Lean compilation. Only the empty Git metadata created by that attempt was moved into evidence; preexisting source/OLeans were retained.",
+    "mac_initial_lake_log": {
+      "bytes": 4426,
+      "sha256": "808df570a62810f11fa76d65ca2ea51340ed273697463c6dbd56cc258826765a"
+    },
+    "fresh_dependency_timeout": {
+      "command": "LAKE_NO_UPDATE=1 lake env lean --version",
+      "elapsed_ms": 600057,
+      "exit": 124,
+      "lake_manifest_sha256_after": "dbd4f235c7a2d4db07a8c5ea9e8c328d7780341312c311d8d2d2f39a9f35f7d0",
+      "lake_manifest_sha256_before": "dbd4f235c7a2d4db07a8c5ea9e8c328d7780341312c311d8d2d2f39a9f35f7d0",
+      "log": "/tmp/hub-computer-lifecycle-20261101/semantic-controls1/mac-execution2/finish-guard/setup/lake-dependency-materialization.log",
+      "log_bytes": 2013,
+      "log_sha256": "83d71f0d5f7d1655ec21a4de7a15802ed7e3432c3279967597a9269b1c1745c6",
+      "package_dir": "/tmp/hub-computer-lifecycle-20261101/semantic-controls1/mac-execution2/finish-guard/source/.lake/packages",
+      "source_map_matches_frozen": true,
+      "source_unchanged": true,
+      "timed_out": true
+    },
+    "recovery": "Native shallow fetch/check out exact Batteries lock commit; resume Lake-managed Git checkouts; official targeted lake exe cache get Mathlib.Data.List.Basic Mathlib.Tactic. No pins changed or OLeans transplanted.",
+    "dependency_setup_only": true,
+    "summary_correction": {
+      "applies_to": "tools_before/tools_after.mathlib_revision_source fields in the six per-phase summaries",
+      "correction": "Those strings were copied from the initial cache-provenance description and are stale after successful normal Lake materialization. The actual proof runs used fresh private Lake-managed Git checkouts: each package HEAD is recorded in dependency_package_map and matches the root lake-manifest lock. Mathlib specifically has actual checkout HEAD 56a005855ea17e0b0958f73ec801ae140b0a1679. The earlier shared materialized cache has no Git checkout; its attempt-created empty .git metadata was moved to cache-setup-evidence and was not used for successful commands.",
+      "lake": {
+        "path": "/Users/rozgo/.elan/toolchains/leanprover--lean4---v4.35.0/bin/lake",
+        "sha256": "d2d63c80ca10bd2cc9557d11d59221b95c6eefb078c9652a11ef887ab8a068a5",
+        "version": "Lake version 5.0.0-src+eb6cafb (Lean version 4.35.0)"
+      },
+      "package_head_matches": true,
+      "proof_execution_tools": {
+        "path": "/Users/rozgo/.elan/toolchains/leanprover--lean4---v4.35.0/bin/lean",
+        "sha256": "d1d9c26a539f54fe839d2aa7760bf1ac1dd76a30b26e2c9684bebf2900038fcf",
+        "version": "Lean (version 4.35.0, arm64-apple-darwin24.6.0, commit eb6cafb7290e8bd5f2937522d8d804f58f02bafc, Release)"
+      },
+      "raw_summaries_preserved": true
+    },
+    "summary_correction_identity": {
+      "bytes": 1328,
+      "sha256": "9564c653894e9599be8c42fe3dee5785b451c3f70366109b31a986dfe5883514"
+    }
+  },
+  "review": [
+    "Compared canonical11-file baseline and both restored11-file private sources against frozen map before documentation changes.",
+    "Verified all six compiler log byte lengths/hashes, source maps before/after,26 copied artifact files and nine actual dependency Git HEADs.",
+    "Read independent full wrong-output witnesses and exact original semantic rejection residuals; downstream sorryAx cascades alone were not counted.",
+    "Matched14 diagnostic guard names and read8 diagnostic/22 restored printed closures; permitted axioms only on successful targets.",
+    "Negative original Proof artifacts absent. Original proof source, specification, witnesses and native source unchanged."
+  ],
+  "reproduction": [
+    "Use a private package copy at base_commit and pinned toolchain/dependencies. Apply one fault_patch and its temporary_target_patch, then write its diagnostic.source to the named module.",
+    "Run that diagnostic named target, then the unchanged ComputerLifecycleProof target, each with LAKE_NO_UPDATE=1 and an external180s bound. Require the independent diagnostic to pass before accepting the specified original semantic failure.",
+    "Reverse both patches, remove the diagnostic source, require full baseline map equality, then rerun original ComputerLifecycleProof. Let Lake invalidate/rebuild normally. Repeat separately for the other control."
+  ],
+  "evidence": {
+    "root": "/tmp/hub-computer-lifecycle-20261101/semantic-controls1/mac-execution2",
+    "aggregate_receipt": {
+      "bytes": 28821,
+      "sha256": "e0c909d55a982d67181316ec7e85331218fa301a60e21a8e6ce5e73b7d62e7df"
+    },
+    "diagnostic_artifacts_retained_after_restore": "Old diagnostic OLeans remain inactive in Lake/evidence; they are not imported by the restored Proof. Their source and target are removed.",
+    "artifact_reproducibility": "Record each actual OLean identity separately; restored Proof artifacts differ between private builds. Byte identity across builds/platforms is not claimed."
+  },
+  "boundaries": [
+    "Sensitivity of a handwritten source-correspondence model, not extracted Rust/SQL refinement or new native defects.",
+    "Existing PostgreSQL regression remains separate evidence. No new native tests, runtime/auth rules, deployment or model inference.",
+    "No proof of outer timeout scheduling, cancellation of native side effects, persistent-home survival or current application health.",
+    "Browser admission/custody and current-membership extraction remain open; prepared extraction probe has not run."
+  ]
+}

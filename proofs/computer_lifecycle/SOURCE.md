@@ -109,5 +109,14 @@ no process readiness/cancellation guarantee follows from them.
 `LAKE_NO_UPDATE=1 lake build ComputerLifecycleProof` passed in 3.620 seconds under
 an external 180-second bound after two proof-authoring repairs. The 27 declaration
 guards passed; eleven printed closures contain only the permitted Lean axioms.
-See the [receipt](evidence/replacement-protocol.json). Semantic fault controls
-remain pending. No production behavior changed.
+See the [receipt](evidence/replacement-protocol.json).
+
+Two subsequent [semantic controls](evidence/semantic-controls.json) remove only
+finish's operation-ID comparison or the program's listener attempt in private
+copies. Independent Witnesses-only diagnostics prove the whole wrong output and
+negate the original assertions. The unchanged original Proof rejects each fault,
+then passes after exact source restoration. Each diagnostic has seven guarded
+declarations and four printed closures; each restored Proof retains its 27 guards
+and eleven closures. These runs used Mac arm64 with the same pinned Lean release
+and actual Lake-managed dependency revisions after Linux SSH failed before login.
+No production behavior changed; native correspondence remains a stated boundary.

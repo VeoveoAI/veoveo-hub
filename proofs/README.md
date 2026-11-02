@@ -173,7 +173,7 @@ No percentage or blanket “Hub verified” claim follows from this map.
 | HUB-ROUTE-01 | Deterministic fresh routing and stable captured routing | partial | Retained route/current-policy/issuer provenance is composed; async acquisition, TTL wrappers and combined source controls remain |
 | HUB-CATALOG-01 | Catalog, cursor, cache and listener isolation | partial | Finite supported cache histories/fences and source controls checked; native watch publication defect fixed; formal listener/cursor and native refinement open |
 | HUB-FACTORY-01 | Authoritative reconciliation and safe native lifecycle | partial (manual model) | Allocation, retirement and native/distributed correspondence |
-| HUB-COMPUTER-01 | Owner/session identity and version recovery | unproved | Model admission and version-recording transitions |
+| HUB-COMPUTER-01 | Owner/session identity and version recovery | partial (manual model) | Replacement effects, recovery histories and two semantic controls checked; browser/custody composition and native refinement remain |
 | HUB-REGISTER-01 | Registration, replacement and storage identity | partial | Registration/removal concurrency, audit recovery and a postcommit continuation have scoped qualification; remaining operation adapters, native continuation and full snapshot-input refinement remain open |
 | HUB-LORE-01 | Native repository grants and contributed token issuance | unproved | Trace assignment/group decisions through common token assembly |
 | HUB-CLEANUP-01 | Reference-preserving cleanup and audit consistency | partial | Registration audit has scoped model and native evidence; broader reference retention, expiry and deletion races remain |
@@ -1326,8 +1326,18 @@ sandbox; it must not claim the new version succeeded.
   guarded declarations and eleven permitted axiom closures
   ([receipt](computer_lifecycle/evidence/replacement-protocol.json)). This is a
   source-correspondence model, not extracted Rust or formal SQL refinement.
-- **Residual/next:** semantic fault controls for the replacement model, then browser
-  and custody composition. The outer timeout scheduler is not modeled. Browser
+- **Semantic controls:** removing finish's current-operation check makes A's actual
+  worker publish B's target prematurely and clear B's pending operation. Omitting
+  the listener stage commits complete success after eight attempts instead of
+  nine. Independent full wrong-output diagnostics pass; the unchanged original
+  assertions reject both faults. Exact restoration of all eleven package files
+  is followed by positive original proof checks (11.274 s and 10.477 s), each with
+  27 guards and eleven permitted axiom closures. These are deliberately injected
+  model faults, not newly found runtime bugs
+  ([receipt](computer_lifecycle/evidence/semantic-controls.json)).
+- **Residual/next:** browser and custody composition, beginning with feasibility
+  of extracting the actual current-membership functions unchanged. That probe is
+  prepared but unexecuted. The outer timeout scheduler is not modeled. Browser
   recovery, OpenShell termination/readiness, credential custody and persistent home
   survival need native/deployed evidence. SQL fencing alone does not prevent an old
   native request from affecting a newer sandbox.
