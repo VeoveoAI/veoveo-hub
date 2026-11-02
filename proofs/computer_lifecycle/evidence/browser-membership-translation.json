@@ -1,0 +1,290 @@
+{
+  "status": "translation incomplete; no theorem or generated graph adopted",
+  "date": "2026-11-01",
+  "agents": {
+    "source_analysis": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "source": {
+    "hub_revision": "a751c9b2589d27b366b30854994af956cffa4b26",
+    "applicable_main": "a0794ab",
+    "sdk_revision": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+    "core_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "guard_files": {
+      "Cargo.lock": "ae4364822a7c5f8c9847df4b1d5681fe2a68c2b1ecc56ab13df6c7037f6f1d41",
+      "Cargo.toml": "61044a1397e6042c4d1fd8216ead08d063ebe62919f189bf7b72054656703588",
+      "crates/veoveo-hub/src/catalog.rs": "c8284fefc5200c0bc86b57ea74759fb7f15085e3446001ab9b73a8c6d48fc26b",
+      "crates/veoveo-hub/src/computers/proxy.rs": "3174a45bd36e2a8872df0c1ba1912df4fc7628a8a27e8a0e08098f8f62ee1738",
+      "crates/veoveo-hub/src/computers/session.rs": "dd9a74772fc016ce99a4c5ce02d209e51ab63c2a1aa3bd1bc79b35971b2689d5",
+      "crates/veoveo-hub/src/contract/catalog.rs": "4c3c3b6369e8ee9fef8ccbdd679b0e03a0a4b12beb5dd7cb7c15abb3315a0b2d",
+      "crates/veoveo-hub/src/control_plane/auth_config.rs": "8b6bb0d1d1458e1dbc2f8f3370b8ed9bb8d4e27a8388008536be577bdc08a796",
+      "crates/veoveo-hub/src/control_plane/work_context.rs": "831954d5cb21a4e7a5f664ea24733a4d811c7699a9d5fb5075a224e2efd1f5af",
+      "crates/veoveo-hub/src/oauth_clients.rs": "2d1e891ed7a3da9eed8af9ef8e72aad472cad60744a23270292c20d412a45287",
+      "crates/veoveo-hub/src/store/computers.rs": "38c658e0984fdb0c44edaae6b8bbb57850bf2eccf121b0665cf993f1ade34cd7"
+    },
+    "hub_archive_sha256": "b75ec902ed6b9dbb57a7fe9f3768bd7bb26d47aad8e7eeff30c4f8993ecd5778",
+    "sdk_archive_sha256": "f60c20c32d8a80d78a3ffb3d0066d9228012e7a5c8bdae19e45cd80cdeb93877",
+    "hub_file_count": 1297,
+    "sdk_file_count": 178
+  },
+  "tools": {
+    "aeneas": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+    "aeneas_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+    "charon": "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+    "charon_sha256": "813d8ce502b7fe1b4bbb5e149ce7b403a031ce17c2cfd6fab831342ed397dc74",
+    "charon_target": "/home/rozgo/.cache/lean-pilot/hub-current-permissions-20261029/probe-1/charon-target",
+    "rust_toolchain": "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+    "aeneas_version": "aeneas nightly-2026.10.23-fdebf20",
+    "platform": "Linux rozgo-sim-pc 6.8.0-147-generic #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux"
+  },
+  "charon": {
+    "argv": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+      "cargo",
+      "--sysroot",
+      "default",
+      "--preset=aeneas",
+      "--start-from",
+      "veoveo_hub::oauth_clients::_::membership",
+      "--start-from",
+      "veoveo_hub::catalog::_::work_context_membership",
+      "--start-from",
+      "veoveo_hub::control_plane::work_context::_::membership_for",
+      "--include",
+      "veoveo_hub",
+      "--include",
+      "veoveo_hub_sdk",
+      "--include",
+      "veoveo_types",
+      "--dest-file",
+      "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/outputs/browser_membership.llbc",
+      "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+      "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+      "--",
+      "--manifest-path",
+      "crates/veoveo-hub/Cargo.toml",
+      "--lib",
+      "--locked"
+    ],
+    "stages": [
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "metadata",
+          "--locked",
+          "--offline",
+          "--format-version",
+          "1",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/source",
+        "elapsed_ms": 1416,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/logs/verify-source-pin-metadata.log",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "verify-source-pin-metadata",
+        "stdout_bytes": 3042864,
+        "stdout_path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/cargo-metadata.json",
+        "stdout_sha256": "bea64ed834bf2a3b7bc61c276007e4589246f59dd0d3dc721983ae4786406013",
+        "timed_out": false,
+        "timeout_seconds": 180
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "clean",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/source",
+        "elapsed_ms": 164,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/logs/clean-hub-charon-target.log",
+        "log_bytes": 21,
+        "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+        "stage": "clean-hub-charon-target",
+        "timed_out": false,
+        "timeout_seconds": 120
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+          "cargo",
+          "--sysroot",
+          "default",
+          "--preset=aeneas",
+          "--start-from",
+          "veoveo_hub::oauth_clients::_::membership",
+          "--start-from",
+          "veoveo_hub::catalog::_::work_context_membership",
+          "--start-from",
+          "veoveo_hub::control_plane::work_context::_::membership_for",
+          "--include",
+          "veoveo_hub",
+          "--include",
+          "veoveo_hub_sdk",
+          "--include",
+          "veoveo_types",
+          "--dest-file",
+          "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/outputs/browser_membership.llbc",
+          "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+          "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+          "--",
+          "--manifest-path",
+          "crates/veoveo-hub/Cargo.toml",
+          "--lib",
+          "--locked"
+        ],
+        "cwd": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/source",
+        "elapsed_ms": 30065,
+        "exit": 0,
+        "log": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/logs/charon-actual-browser-membership.log",
+        "log_bytes": 4866,
+        "log_sha256": "742a74b0cc2ba4290a41702f0636ec6c3c3593f176adfefbb8cceaeaea7ef345",
+        "stage": "charon-actual-browser-membership",
+        "timed_out": false,
+        "timeout_seconds": 600
+      }
+    ],
+    "llbc": {
+      "bytes": 4118268,
+      "exists": true,
+      "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/outputs/browser_membership.llbc",
+      "sha256": "c0f3a7874226019f9b2e4ae639c454c424766c8c0576803e6818326b1010bce3"
+    },
+    "has_errors": false,
+    "own_transparent_functions": 87,
+    "own_transparent_types": 204,
+    "root_functions": [
+      {
+        "id": 27,
+        "owner": "EffectiveOAuthClient",
+        "method": "membership"
+      },
+      {
+        "id": 28,
+        "owner": "HubCatalog",
+        "method": "work_context_membership"
+      },
+      {
+        "id": 29,
+        "owner": "WorkContextDefinition",
+        "method": "membership_for"
+      }
+    ],
+    "opaque_selectors": []
+  },
+  "inventory_correction": {
+    "original_inventory_sha256": "e03c2481a07f879dd07715ba450034653de23816d68a304d02ddd52762846ce8",
+    "original_failure": "Root gate counted all started declarations and expected three. Three functions plus OAuthClientAuthority trait declaration were started.",
+    "reviewed_scope": "Exactly the three actual function bodies and transparent, error-free trait declaration ID 0. All original helper, complete-field, own-body and source-span checks pass. Dynamic vtable and catalog branches retained.",
+    "continuation": "Same LLBC, no source, selector or generated-code changes; Aeneas alone ran once."
+  },
+  "aeneas": {
+    "command": [
+      "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+      "-backend",
+      "lean",
+      "-filter-trait-methods",
+      "-split-files",
+      "-namespace",
+      "HubBrowserMembership",
+      "-subdir",
+      "HubBrowserMembership",
+      "-dest",
+      "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/outputs",
+      "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/outputs/browser_membership.llbc"
+    ],
+    "exit": 1,
+    "timed_out": false,
+    "timeout_seconds": 600,
+    "elapsed_ms": 1421,
+    "log_bytes": 13377,
+    "log_sha256": "ee8dcae5dc4b16cfddce47646a0111c5589518e6860a11d68c8da9e9c01d742b",
+    "outputs": [
+      {
+        "bytes": 136312,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/outputs/HubBrowserMembership/Funs.lean",
+        "relative_path": "HubBrowserMembership/Funs.lean",
+        "sha256": "57066a96bf4cd13d8ab4329598fd996432d8b97e2c0d74deff958c3e81a3177d"
+      },
+      {
+        "bytes": 26654,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/outputs/HubBrowserMembership/FunsExternal_Template.lean",
+        "relative_path": "HubBrowserMembership/FunsExternal_Template.lean",
+        "sha256": "24404145f9e4461b3aac12d7184132e21256c147dcf3359c300793b5820878b9"
+      },
+      {
+        "bytes": 131435,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/outputs/HubBrowserMembership/Types.lean",
+        "relative_path": "HubBrowserMembership/Types.lean",
+        "sha256": "320abed6d6c20ebea070f5acdde593d928f317b3721b4c383585c33ff7506cf1"
+      },
+      {
+        "bytes": 15416,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/outputs/HubBrowserMembership/TypesExternal_Template.lean",
+        "relative_path": "HubBrowserMembership/TypesExternal_Template.lean",
+        "sha256": "8ad10e90269de32bd23980d1ef34b1d787c411e17046bd61541893bdee656b1c"
+      },
+      {
+        "bytes": 4118268,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/browser-membership-probe1/run1/outputs/browser_membership.llbc",
+        "relative_path": "browser_membership.llbc",
+        "sha256": "c0f3a7874226019f9b2e4ae639c454c424766c8c0576803e6818326b1010bce3"
+      }
+    ],
+    "source_unchanged": true,
+    "sdk_unchanged": true,
+    "tools_unchanged": true,
+    "source_before_sha256": "8c4e4dd465fc597a52854d3de65c732014043f648cc0d17a929f0367b9f1f5c9",
+    "source_after_sha256": "8c4e4dd465fc597a52854d3de65c732014043f648cc0d17a929f0367b9f1f5c9",
+    "sdk_before_sha256": "ac39602873565352a3b44db2683be85420bff7a5da3603277d58d66e4a502fdd",
+    "sdk_after_sha256": "ac39602873565352a3b44db2683be85420bff7a5da3603277d58d66e4a502fdd"
+  },
+  "diagnostics": [
+    {
+      "source": "crates/veoveo-hub/src/oauth_clients.rs:111",
+      "result": "Dynamic trait types unsupported for EffectiveOAuthClient; actual contributed membership call at line 164 also reports unsupported function pointers."
+    },
+    {
+      "source": "crates/veoveo-hub/src/contract/catalog.rs:567",
+      "result": "Required group_memberships and caller with_group_memberships report backend internal errors; the borrowed map-lookup closure at line 574 cannot end an abstraction."
+    },
+    {
+      "source": "complete receiver field graph",
+      "result": "Additional dynamic/arrow type errors in HubUpstreamHttpClientPool, SectionDeclaration, TargetDeclaration, Codec and AuthConfig; missing-type errors cascade into generated files."
+    },
+    {
+      "source": "Iterator external interface",
+      "result": "Backend warns its Lean builtin Iterator model lacks map, filter, flatten and max fields. These require ordinary explicit library models before a successful extraction could become a proof."
+    }
+  ],
+  "partial_output": "Four partial Lean files are diagnostic artifacts only; they contain unfinished definitions and missing types. No Lean compile or theorem check was run on them.",
+  "setup_notes": [
+    "Original selector inventory mismatch occurred after successful Charon and before any backend call.",
+    "Temporary continuation preflight corrected grouped root_matches parsing, accepted only normal Cargo .git/.cargo-ok metadata outside the tracked SDK map, and corrected version query to -version. None was a translation attempt."
+  ],
+  "review": [
+    "Checked current canonical guard hashes against frozen source.",
+    "Inspected three real LLBC bodies including dynamic dispatch, current enrichment and iter/filter/map/max pipeline.",
+    "Independently verified all five backend output byte lengths/SHA-256 values and full backend log; read exact failing source spans and partial generated definitions."
+  ],
+  "next": "Evaluate a separate unchanged-source membership_for calculation without catalog or contributed-dispatch receivers. Its scope cannot establish browser admission or current group enrichment; those remain required composition work.",
+  "boundaries": [
+    "No runtime defect established, runtime rewrite, new auth rule, deployment or model call.",
+    "No catalog-only admission oracle, dropped dynamic branch or opaque own helper introduced.",
+    "Full browser admission/output, current catalog/authority, SQL and proxy/custody composition remain open."
+  ],
+  "local_evidence": "/tmp/hub-computer-lifecycle-20261101/browser-membership-probe1-mirror"
+}

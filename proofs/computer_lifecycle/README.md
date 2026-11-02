@@ -51,4 +51,8 @@ The committed model and proof assertions remain unchanged.
 
 Read [SOURCE.md](SOURCE.md) for the correspondence and assumptions. The outer
 timeout scheduler, native cancellation, browser recovery and credential custody
-remain open. Next is the actual current-membership dependency of browser admission.
+remain open. The [browser-membership extraction probe](evidence/browser-membership-translation.json)
+retains actual current catalog and contributed-authority paths in Charon, but
+Aeneas cannot translate their dynamic dispatch and borrowed group iterator.
+Its partial Lean output is not adopted. The independent rule-selection calculation
+is the next supported-boundary candidate; full browser admission remains required.

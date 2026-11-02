@@ -1335,9 +1335,15 @@ sandbox; it must not claim the new version succeeded.
   27 guards and eleven permitted axiom closures. These are deliberately injected
   model faults, not newly found runtime bugs
   ([receipt](computer_lifecycle/evidence/semantic-controls.json)).
-- **Residual/next:** browser and custody composition, beginning with feasibility
-  of extracting the actual current-membership functions unchanged. That probe is
-  prepared but unexecuted. The outer timeout scheduler is not modeled. Browser
+- **Browser membership extraction:** unchanged-source Charon succeeds for actual
+  authority dispatch, current catalog membership and highest matching rule, with
+  87 transparent own functions and 204 own types. The pinned Aeneas backend fails
+  on required dynamic dispatch and borrowed group-iterator operations, plus
+  unsupported receiver-field types. Its four partial files are not adopted;
+  no browser theorem follows ([receipt](computer_lifecycle/evidence/browser-membership-translation.json)).
+- **Residual/next:** establish the supported membership calculation separately,
+  then browser and custody composition with the unsupported boundaries explicit.
+  The outer timeout scheduler is not modeled. Browser
   recovery, OpenShell termination/readiness, credential custody and persistent home
   survival need native/deployed evidence. SQL fencing alone does not prevent an old
   native request from affecting a newer sandbox.
