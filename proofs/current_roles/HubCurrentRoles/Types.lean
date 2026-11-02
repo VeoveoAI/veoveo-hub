@@ -2085,6 +2085,19 @@ structure control_plane.policy.PolicyDecision where
     veoveo_types.permission_names.PermissionName alloc.alloc.Global
   trace_id : control_plane.ids.TraceId
 
+/-- [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{closure#1}]
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 78:17-78:34 -/
+@[reducible]
+def control_plane.work_context.WorkContextDefinition.membership_for.closure_1
+  :=
+Unit
+
+/-- [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{closure}]
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 77:20-77:64 -/
+def control_plane.work_context.WorkContextDefinition.membership_for.closure :=
+  veoveo_hub_sdk.identity.Principal ×
+  veoveo_types.platform_names.OAuthClientId
+
 /-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{closure}]
     Source: 'crates/veoveo-hub/src/delegation.rs', lines 78:20-78:61 -/
 @[reducible]

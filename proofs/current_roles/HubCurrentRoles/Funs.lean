@@ -1049,6 +1049,112 @@ def
   let u ← url.Url.Insts.CoreCloneClone.clone endpoint
   ok u
 
+/-- [veoveo_types::authority::{impl core::cmp::PartialEq<veoveo_types::authority::WorkContextMembershipLevel> for veoveo_types::authority::WorkContextMembershipLevel}::eq]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 34:24-34:33
+    Name pattern: [veoveo_types::authority::{core::cmp::PartialEq<veoveo_types::authority::WorkContextMembershipLevel, veoveo_types::authority::WorkContextMembershipLevel>}::eq]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::authority::{core::cmp::PartialEq<veoveo_types::authority::WorkContextMembershipLevel, veoveo_types::authority::WorkContextMembershipLevel>}::eq"]
+def
+  veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialEqWorkContextMembershipLevel.eq
+  (self : veoveo_types.authority.WorkContextMembershipLevel)
+  (other : veoveo_types.authority.WorkContextMembershipLevel) :
+  Result Bool
+  := do
+  let self1 := read_discriminant self
+  let other1 := read_discriminant other
+  ok (self1 = other1)
+
+/-- Trait implementation: [veoveo_types::authority::{impl core::cmp::PartialEq<veoveo_types::authority::WorkContextMembershipLevel> for veoveo_types::authority::WorkContextMembershipLevel}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 34:24-34:33
+    Name pattern: [core::cmp::PartialEq<veoveo_types::authority::WorkContextMembershipLevel, veoveo_types::authority::WorkContextMembershipLevel>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialEq<veoveo_types::authority::WorkContextMembershipLevel, veoveo_types::authority::WorkContextMembershipLevel>"]
+impl_def
+  veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialEqWorkContextMembershipLevel
+  : core.cmp.PartialEq veoveo_types.authority.WorkContextMembershipLevel
+  veoveo_types.authority.WorkContextMembershipLevel := {
+  eq :=
+    veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialEqWorkContextMembershipLevel.eq
+  ne := core.cmp.PartialEq.ne.trait_default
+    veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialEqWorkContextMembershipLevel
+}
+
+/-- Trait implementation: [veoveo_types::authority::{impl core::cmp::Eq for veoveo_types::authority::WorkContextMembershipLevel}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 34:35-34:37
+    Name pattern: [core::cmp::Eq<veoveo_types::authority::WorkContextMembershipLevel>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Eq<veoveo_types::authority::WorkContextMembershipLevel>"]
+def veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpEq :
+  core.cmp.Eq veoveo_types.authority.WorkContextMembershipLevel := {
+  partialEqInst :=
+    veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialEqWorkContextMembershipLevel
+}
+
+/-- [veoveo_types::authority::{impl core::cmp::Ord for veoveo_types::authority::WorkContextMembershipLevel}::cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 34:51-34:54
+    Name pattern: [veoveo_types::authority::{core::cmp::Ord<veoveo_types::authority::WorkContextMembershipLevel>}::cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::authority::{core::cmp::Ord<veoveo_types::authority::WorkContextMembershipLevel>}::cmp"]
+def veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpOrd.cmp
+  (self : veoveo_types.authority.WorkContextMembershipLevel)
+  (other : veoveo_types.authority.WorkContextMembershipLevel) :
+  Result Ordering
+  := do
+  let self1 := read_discriminant self
+  let other1 := read_discriminant other
+  ok (core.cmp.impls.OrdIsize.cmp self1 other1)
+
+/-- [veoveo_types::authority::{impl core::cmp::PartialOrd<veoveo_types::authority::WorkContextMembershipLevel> for veoveo_types::authority::WorkContextMembershipLevel}::partial_cmp]:
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 34:39-34:49
+    Name pattern: [veoveo_types::authority::{core::cmp::PartialOrd<veoveo_types::authority::WorkContextMembershipLevel, veoveo_types::authority::WorkContextMembershipLevel>}::partial_cmp]
+    Visibility: public -/
+@[rust_fun
+  "veoveo_types::authority::{core::cmp::PartialOrd<veoveo_types::authority::WorkContextMembershipLevel, veoveo_types::authority::WorkContextMembershipLevel>}::partial_cmp"]
+def
+  veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialOrdWorkContextMembershipLevel.partial_cmp
+  (self : veoveo_types.authority.WorkContextMembershipLevel)
+  (other : veoveo_types.authority.WorkContextMembershipLevel) :
+  Result (Option Ordering)
+  := do
+  let o ←
+    veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpOrd.cmp self
+      other
+  ok (some o)
+
+/-- Trait implementation: [veoveo_types::authority::{impl core::cmp::PartialOrd<veoveo_types::authority::WorkContextMembershipLevel> for veoveo_types::authority::WorkContextMembershipLevel}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 34:39-34:49
+    Name pattern: [core::cmp::PartialOrd<veoveo_types::authority::WorkContextMembershipLevel, veoveo_types::authority::WorkContextMembershipLevel>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialOrd<veoveo_types::authority::WorkContextMembershipLevel, veoveo_types::authority::WorkContextMembershipLevel>"]
+impl_def
+  veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialOrdWorkContextMembershipLevel
+  : core.cmp.PartialOrd veoveo_types.authority.WorkContextMembershipLevel
+  veoveo_types.authority.WorkContextMembershipLevel := {
+  partialEqInst :=
+    veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialEqWorkContextMembershipLevel
+  partial_cmp :=
+    veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialOrdWorkContextMembershipLevel.partial_cmp
+  gt := core.cmp.PartialOrd.gt.trait_default
+    veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialOrdWorkContextMembershipLevel
+}
+
+/-- Trait implementation: [veoveo_types::authority::{impl core::cmp::Ord for veoveo_types::authority::WorkContextMembershipLevel}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/authority.rs', lines 34:51-34:54
+    Name pattern: [core::cmp::Ord<veoveo_types::authority::WorkContextMembershipLevel>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Ord<veoveo_types::authority::WorkContextMembershipLevel>"]
+impl_def veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpOrd :
+  core.cmp.Ord veoveo_types.authority.WorkContextMembershipLevel := {
+  eqInst := veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpEq
+  partialOrdInst :=
+    veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpPartialOrdWorkContextMembershipLevel
+  cmp := veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpOrd
+}
+
 /-- Trait implementation: [veoveo_types::execution::{impl core::cmp::PartialEq<veoveo_types::execution::DeploymentId> for veoveo_types::execution::DeploymentId}]
     Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/execution.rs', lines 18:0-18:46
     Name pattern: [core::cmp::PartialEq<veoveo_types::execution::DeploymentId, veoveo_types::execution::DeploymentId>] -/
@@ -1127,6 +1233,48 @@ impl_def veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId :
   eq := veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId.eq
   ne := core.cmp.PartialEq.ne.trait_default
     veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId
+}
+
+/-- Trait implementation: [veoveo_types::identity::{impl core::cmp::PartialOrd<veoveo_types::identity::PrincipalId> for veoveo_types::identity::PrincipalId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 9:0-9:69
+    Name pattern: [core::cmp::PartialOrd<veoveo_types::identity::PrincipalId, veoveo_types::identity::PrincipalId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialOrd<veoveo_types::identity::PrincipalId, veoveo_types::identity::PrincipalId>"]
+impl_def veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialOrdPrincipalId :
+  core.cmp.PartialOrd veoveo_types.identity.PrincipalId
+  veoveo_types.identity.PrincipalId := {
+  partialEqInst :=
+    veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId
+  partial_cmp :=
+    veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialOrdPrincipalId.partial_cmp
+  gt := core.cmp.PartialOrd.gt.trait_default
+    veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialOrdPrincipalId
+}
+
+/-- Trait implementation: [veoveo_types::identity::{impl core::cmp::Eq for veoveo_types::identity::PrincipalId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 9:0-9:69
+    Name pattern: [core::cmp::Eq<veoveo_types::identity::PrincipalId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Eq<veoveo_types::identity::PrincipalId>"]
+def veoveo_types.identity.PrincipalId.Insts.CoreCmpEq : core.cmp.Eq
+  veoveo_types.identity.PrincipalId := {
+  partialEqInst :=
+    veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialEqPrincipalId
+}
+
+/-- Trait implementation: [veoveo_types::identity::{impl core::cmp::Ord for veoveo_types::identity::PrincipalId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/identity.rs', lines 9:0-9:69
+    Name pattern: [core::cmp::Ord<veoveo_types::identity::PrincipalId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Ord<veoveo_types::identity::PrincipalId>"]
+impl_def veoveo_types.identity.PrincipalId.Insts.CoreCmpOrd : core.cmp.Ord
+  veoveo_types.identity.PrincipalId := {
+  eqInst := veoveo_types.identity.PrincipalId.Insts.CoreCmpEq
+  partialOrdInst :=
+    veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialOrdPrincipalId
+  cmp := veoveo_types.identity.PrincipalId.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_types.identity.PrincipalId.Insts.CoreCmpOrd
 }
 
 /-- Trait implementation: [veoveo_types::identity::{impl core::cmp::PartialEq<veoveo_types::identity::TenantId> for veoveo_types::identity::TenantId}]
@@ -1401,6 +1549,49 @@ impl_def
     veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialEqOAuthClientId.eq
   ne := core.cmp.PartialEq.ne.trait_default
     veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialEqOAuthClientId
+}
+
+/-- Trait implementation: [veoveo_types::platform_names::{impl core::cmp::PartialOrd<veoveo_types::platform_names::OAuthClientId> for veoveo_types::platform_names::OAuthClientId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 39:0-39:36
+    Name pattern: [core::cmp::PartialOrd<veoveo_types::platform_names::OAuthClientId, veoveo_types::platform_names::OAuthClientId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::PartialOrd<veoveo_types::platform_names::OAuthClientId, veoveo_types::platform_names::OAuthClientId>"]
+impl_def
+  veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialOrdOAuthClientId
+  : core.cmp.PartialOrd veoveo_types.platform_names.OAuthClientId
+  veoveo_types.platform_names.OAuthClientId := {
+  partialEqInst :=
+    veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialEqOAuthClientId
+  partial_cmp :=
+    veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialOrdOAuthClientId.partial_cmp
+  gt := core.cmp.PartialOrd.gt.trait_default
+    veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialOrdOAuthClientId
+}
+
+/-- Trait implementation: [veoveo_types::platform_names::{impl core::cmp::Eq for veoveo_types::platform_names::OAuthClientId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 39:0-39:36
+    Name pattern: [core::cmp::Eq<veoveo_types::platform_names::OAuthClientId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Eq<veoveo_types::platform_names::OAuthClientId>"]
+def veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpEq : core.cmp.Eq
+  veoveo_types.platform_names.OAuthClientId := {
+  partialEqInst :=
+    veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialEqOAuthClientId
+}
+
+/-- Trait implementation: [veoveo_types::platform_names::{impl core::cmp::Ord for veoveo_types::platform_names::OAuthClientId}]
+    Source: '/cargo/git/checkouts/veoveo-core-becc5d46deb07dab/120306e/platform/types/src/platform_names.rs', lines 39:0-39:36
+    Name pattern: [core::cmp::Ord<veoveo_types::platform_names::OAuthClientId>] -/
+@[reducible, rust_trait_impl
+  "core::cmp::Ord<veoveo_types::platform_names::OAuthClientId>"]
+impl_def veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpOrd :
+  core.cmp.Ord veoveo_types.platform_names.OAuthClientId := {
+  eqInst := veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpEq
+  partialOrdInst :=
+    veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialOrdOAuthClientId
+  cmp := veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpOrd.cmp
+  min := core.cmp.Ord.min.trait_default
+    veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpOrd
 }
 
 /-- [veoveo_hub::audit::{veoveo_hub::auth::verified::AuthenticatedSubject}::acting_task]:
@@ -1801,6 +1992,191 @@ def control_plane.policy.PolicyTarget.Insts.CoreCloneClone.clone
       control_plane.policy.DecodedPolicyTarget.Insts.CoreCloneClone.clone
         __self_0
     ok (control_plane.policy.PolicyTarget.Unadmitted dpt)
+
+/-- [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextMembershipRule}::matches]:
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 46:4-51:5
+    Visibility: public -/
+def control_plane.work_context.WorkContextMembershipRule.matches
+  (self : control_plane.work_context.WorkContextMembershipRule)
+  (principal : veoveo_hub_sdk.identity.Principal)
+  (oauth_client : veoveo_types.platform_names.OAuthClientId) :
+  Result Bool
+  := do
+  let b ←
+    alloc.collections.btree.set.BTreeSet.contains
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+      (core.borrow.Borrow.Blanket veoveo_types.identity.PrincipalId)
+      veoveo_types.identity.PrincipalId.Insts.CoreCmpOrd
+      veoveo_types.identity.PrincipalId.Insts.CoreCmpOrd self.principals
+      principal.id
+  if b
+  then ok true
+  else
+    let b1 ←
+      alloc.collections.btree.set.BTreeSet.is_disjoint
+        alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+        veoveo_types.identity.GroupId.Insts.CoreCmpOrd self.groups
+        principal.groups
+    if b1
+    then
+      let b2 ←
+        alloc.collections.btree.set.BTreeSet.is_disjoint
+          alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+          veoveo_types.identity.RoleId.Insts.CoreCmpOrd self.roles
+          principal.roles
+      if b2
+      then
+        alloc.collections.btree.set.BTreeSet.contains
+          alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+          (core.borrow.Borrow.Blanket
+          veoveo_types.platform_names.OAuthClientId)
+          veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpOrd
+          veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpOrd
+          self.oauth_clients oauth_client
+      else ok true
+    else ok true
+
+/-- [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{impl core::ops::function::FnMut<(&'_0 veoveo_hub::control_plane::work_context::WorkContextMembershipRule,), veoveo_types::authority::WorkContextMembershipLevel> for veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{closure#1}}::call_mut]:
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 78:17-78:34 -/
+def
+  control_plane.work_context.WorkContextDefinition.membership_for.closure_1.Insts.CoreOpsFunctionFnMutTupleShared0WorkContextMembershipRuleWorkContextMembershipLevel.call_mut
+  (c :
+  control_plane.work_context.WorkContextDefinition.membership_for.closure_1)
+  (tupled_args : control_plane.work_context.WorkContextMembershipRule) :
+  Result (veoveo_types.authority.WorkContextMembershipLevel ×
+    control_plane.work_context.WorkContextDefinition.membership_for.closure_1)
+  := do
+  ok (tupled_args.level, c)
+
+/-- [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::control_plane::work_context::WorkContextMembershipRule,), veoveo_types::authority::WorkContextMembershipLevel> for veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{closure#1}}::call_once]:
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 78:17-78:34 -/
+def
+  control_plane.work_context.WorkContextDefinition.membership_for.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0WorkContextMembershipRuleWorkContextMembershipLevel.call_once
+  (c :
+  control_plane.work_context.WorkContextDefinition.membership_for.closure_1)
+  (wcmr : control_plane.work_context.WorkContextMembershipRule) :
+  Result veoveo_types.authority.WorkContextMembershipLevel
+  := do
+  let (wcml, _) ←
+    control_plane.work_context.WorkContextDefinition.membership_for.closure_1.Insts.CoreOpsFunctionFnMutTupleShared0WorkContextMembershipRuleWorkContextMembershipLevel.call_mut
+      c wcmr
+  ok wcml
+
+/-- Trait implementation: [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{impl core::ops::function::FnOnce<(&'_0 veoveo_hub::control_plane::work_context::WorkContextMembershipRule,), veoveo_types::authority::WorkContextMembershipLevel> for veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{closure#1}}]
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 78:17-78:34 -/
+@[reducible]
+def
+  control_plane.work_context.WorkContextDefinition.membership_for.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0WorkContextMembershipRuleWorkContextMembershipLevel
+  : core.ops.function.FnOnce
+  control_plane.work_context.WorkContextDefinition.membership_for.closure_1
+  control_plane.work_context.WorkContextMembershipRule
+  veoveo_types.authority.WorkContextMembershipLevel := {
+  call_once :=
+    control_plane.work_context.WorkContextDefinition.membership_for.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0WorkContextMembershipRuleWorkContextMembershipLevel.call_once
+}
+
+/-- Trait implementation: [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{impl core::ops::function::FnMut<(&'_0 veoveo_hub::control_plane::work_context::WorkContextMembershipRule,), veoveo_types::authority::WorkContextMembershipLevel> for veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{closure#1}}]
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 78:17-78:34 -/
+@[reducible]
+def
+  control_plane.work_context.WorkContextDefinition.membership_for.closure_1.Insts.CoreOpsFunctionFnMutTupleShared0WorkContextMembershipRuleWorkContextMembershipLevel
+  : core.ops.function.FnMut
+  control_plane.work_context.WorkContextDefinition.membership_for.closure_1
+  control_plane.work_context.WorkContextMembershipRule
+  veoveo_types.authority.WorkContextMembershipLevel := {
+  FnOnceInst :=
+    control_plane.work_context.WorkContextDefinition.membership_for.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0WorkContextMembershipRuleWorkContextMembershipLevel
+  call_mut :=
+    control_plane.work_context.WorkContextDefinition.membership_for.closure_1.Insts.CoreOpsFunctionFnMutTupleShared0WorkContextMembershipRuleWorkContextMembershipLevel.call_mut
+}
+
+/-- [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{impl core::ops::function::FnMut<(&'_2 &'_3 veoveo_hub::control_plane::work_context::WorkContextMembershipRule,), bool> for veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{closure}<'_0, '_1>}::call_mut]:
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 77:20-77:64 -/
+def
+  control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3WorkContextMembershipRuleBool.call_mut
+  (c : control_plane.work_context.WorkContextDefinition.membership_for.closure)
+  (tupled_args : control_plane.work_context.WorkContextMembershipRule) :
+  Result (Bool ×
+    control_plane.work_context.WorkContextDefinition.membership_for.closure)
+  := do
+  let (p, oci) := c
+  let b ←
+    control_plane.work_context.WorkContextMembershipRule.matches tupled_args p
+      oci
+  ok (b, c)
+
+/-- [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{impl core::ops::function::FnOnce<(&'_2 &'_3 veoveo_hub::control_plane::work_context::WorkContextMembershipRule,), bool> for veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{closure}<'_0, '_1>}::call_once]:
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 77:20-77:64 -/
+def
+  control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3WorkContextMembershipRuleBool.call_once
+  (c : control_plane.work_context.WorkContextDefinition.membership_for.closure)
+  (wcmr : control_plane.work_context.WorkContextMembershipRule) :
+  Result Bool
+  := do
+  let (b, _) ←
+    control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3WorkContextMembershipRuleBool.call_mut
+      c wcmr
+  ok b
+
+/-- Trait implementation: [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{impl core::ops::function::FnOnce<(&'_2 &'_3 veoveo_hub::control_plane::work_context::WorkContextMembershipRule,), bool> for veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{closure}<'_0, '_1>}]
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 77:20-77:64 -/
+@[reducible]
+def
+  control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3WorkContextMembershipRuleBool
+  : core.ops.function.FnOnce
+  control_plane.work_context.WorkContextDefinition.membership_for.closure
+  control_plane.work_context.WorkContextMembershipRule Bool := {
+  call_once :=
+    control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3WorkContextMembershipRuleBool.call_once
+}
+
+/-- Trait implementation: [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{impl core::ops::function::FnMut<(&'_2 &'_3 veoveo_hub::control_plane::work_context::WorkContextMembershipRule,), bool> for veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for::{closure}<'_0, '_1>}]
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 77:20-77:64 -/
+@[reducible]
+def
+  control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3WorkContextMembershipRuleBool
+  : core.ops.function.FnMut
+  control_plane.work_context.WorkContextDefinition.membership_for.closure
+  control_plane.work_context.WorkContextMembershipRule Bool := {
+  FnOnceInst :=
+    control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3WorkContextMembershipRuleBool
+  call_mut :=
+    control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3WorkContextMembershipRuleBool.call_mut
+}
+
+/-- [veoveo_hub::control_plane::work_context::{veoveo_hub::control_plane::work_context::WorkContextDefinition}::membership_for]:
+    Source: 'crates/veoveo-hub/src/control_plane/work_context.rs', lines 70:4-80:5
+    Visibility: public -/
+def control_plane.work_context.WorkContextDefinition.membership_for
+  (self : control_plane.work_context.WorkContextDefinition)
+  (principal : veoveo_hub_sdk.identity.Principal)
+  (oauth_client : veoveo_types.platform_names.OAuthClientId) :
+  Result (Option veoveo_types.authority.WorkContextMembershipLevel)
+  := do
+  let s := alloc.vec.Vec.deref self.memberships
+  let i ← core.slice.Slice.iter s
+  let f ←
+    core.iter.traits.iterator.Iterator.filter.default
+      (core.iter.traits.iterator.IteratorSliceIter
+      control_plane.work_context.WorkContextMembershipRule)
+      control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3WorkContextMembershipRuleBool
+      i (principal, oauth_client)
+  let m ←
+    core.iter.traits.iterator.Iterator.map.default
+      (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+      (core.iter.traits.iterator.IteratorSliceIter
+      control_plane.work_context.WorkContextMembershipRule)
+      control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3WorkContextMembershipRuleBool)
+      control_plane.work_context.WorkContextDefinition.membership_for.closure_1.Insts.CoreOpsFunctionFnMutTupleShared0WorkContextMembershipRuleWorkContextMembershipLevel
+      f ()
+  core.iter.traits.iterator.Iterator.max.default
+    (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.traits.iterator.IteratorSliceIter
+    control_plane.work_context.WorkContextMembershipRule)
+    control_plane.work_context.WorkContextDefinition.membership_for.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3WorkContextMembershipRuleBool)
+    control_plane.work_context.WorkContextDefinition.membership_for.closure_1.Insts.CoreOpsFunctionFnMutTupleShared0WorkContextMembershipRuleWorkContextMembershipLevel)
+    veoveo_types.authority.WorkContextMembershipLevel.Insts.CoreCmpOrd m
 
 /-- [veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{impl core::ops::function::FnMut<(&'_1 veoveo_types::permission_names::PermissionName,), bool> for veoveo_hub::delegation::{impl veoveo_hub::delegation::authority::Permissions<veoveo_types::permission_names::PermissionName> for alloc::collections::btree::set::BTreeSet<veoveo_types::permission_names::PermissionName, alloc::alloc::Global>}::narrow::{closure}<'_0>}::call_mut]:
     Source: 'crates/veoveo-hub/src/delegation.rs', lines 78:20-78:61 -/

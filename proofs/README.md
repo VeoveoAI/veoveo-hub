@@ -1342,13 +1342,16 @@ sandbox; it must not claim the new version succeeded.
   unsupported receiver-field types. Its four partial files are not adopted;
   no browser theorem follows ([receipt](computer_lifecycle/evidence/browser-membership-translation.json)).
 - **Supported calculation:** the separate, unchanged `membership_for` calculation
-  translates successfully on current pins (25 own functions/types); an additive
-  extraction on the established shared proof basis also succeeds. No Lean
-  qualification or model adoption follows yet. Current target applicability and
-  the historical typed-ID model boundary are recorded explicitly
-  ([receipt](computer_lifecycle/evidence/work-context-membership-extraction.json)).
-- **Residual/next:** integrate and prove the exact membership calculation,
-  then browser and custody composition with the unsupported boundaries explicit.
+  translates on current pins; its additive shared graph is now adopted. The
+  checked actual-function proof establishes termination and the exact highest
+  matching level over raw rules, including valid client-only grants, absence,
+  permutation and duplicate invariance. All 48 axiom guards pass with standard
+  Lean logical axioms only; focused validation takes 5.583 s with warm dependencies
+  ([proof receipt](current_roles/evidence/work-context-membership-proof.json)).
+  Current target correspondence and the historical typed-ID/shared-model boundary
+  remain explicit ([extraction receipt](current_roles/evidence/work-context-membership-extraction.json)).
+- **Residual/next:** deliberate membership fault controls and shared-package
+  regressions, then browser and custody composition with unsupported boundaries explicit.
   The outer timeout scheduler is not modeled. Browser
   recovery, OpenShell termination/readiness, credential custody and persistent home
   survival need native/deployed evidence. SQL fencing alone does not prevent an old

@@ -61,6 +61,49 @@ that generic function; no opaque replacement is introduced. Its separate authori
 proof package remains unchanged. Model defaults/audit and both connected client
 targets pass with the exact regenerated source.
 
+## Work Context membership calculation
+
+[WorkContextMembershipProof](WorkContextMembershipProof.lean) proves the actual
+extracted `membership_for` calculation returns the highest level of a matching
+original rule, and returns `None` exactly when no rule matches. Its independent
+specification uses the four raw selectors (principal, group, role and OAuth
+client), requires a matching-rule witness for every returned level, and bounds
+every other matching level. Valid client-only grants, empty selectors, reordered
+rules and duplicated rules are covered. The finite-cursor proof establishes
+termination; it does not assume that the desired maximum was already selected.
+
+[MembershipPrimitiveProof](MembershipPrimitiveProof.lean) supplies ordinary
+disjointness and iterator-maximum laws. The operational maximum consumes actual
+`next` and comparison results; the native enum comparison is checked against
+`Viewer < Contributor < Custodian < Owner`. Existing typed-ID and collection
+representations remain explicit native-refinement boundaries.
+
+The [extraction receipt](evidence/work-context-membership-extraction.json) records
+the additive shared graph: existing declarations are unchanged, and current-pin
+membership bodies agree with the focused extraction. Generated Types/Funs are
+adopted byte for byte. This does not renew the historical routing/HTTP/issuer
+proofs to current main. It requires the already qualified generated-instance
+naming patch under `../request_composition/tooling/`; no new tool patch is added.
+
+Run manually in the qualified dependency configuration:
+
+```sh
+LAKE_NO_UPDATE=1 lake build WorkContextMembershipAudit
+```
+
+The [proof receipt](evidence/work-context-membership-proof.json) records the
+passing focused check (5.583 s with warm dependencies), exact source/output
+identities, authoring corrections and tool setup. All 48 guarded declarations
+pass; the twelve printed closures contain only `propext`, `Classical.choice` and
+`Quot.sound`. These targets are nondefault and introduce no CI or runtime gate.
+
+This is a **checked proof checkpoint**, with deliberate semantic fault controls
+and broader shared-package regressions still pending. Full browser admission,
+current catalog/group enrichment, authority dispatch, SQL/custody consistency
+and recovery remain outside this calculation. Standard-library and translator
+correspondence are assumptions, not established by the axiom audit. No runtime
+Rust source or authorization rule changes in this increment.
+
 ## Current session-family authority
 
 This manual increment qualifies the pure `SessionFamilyAuthority::allows` sub-boundary

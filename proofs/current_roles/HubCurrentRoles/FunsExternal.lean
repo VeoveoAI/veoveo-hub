@@ -2182,3 +2182,88 @@ def Iterator.map
   _root_.core.iter.traits.iterator.Iterator.map.default iterator mapper
 
 end Aeneas.Std.core.iter.traits.iterator
+
+/- Ordinary operational models for current Work Context membership. Generated
+bodies and nominal identity types remain untouched. Native collection representation
+and standard-library correspondence retain the existing explicit model boundary. -/
+noncomputable section
+local instance (predicate : Prop) : Decidable predicate := Classical.propDecidable predicate
+
+universe u v
+
+namespace CurrentRolesNative
+
+def disjointBy {T : Type u} (comparison : T → T → Result Ordering)
+    (left right : List T) : Result Bool := do
+  match left with
+  | [] => .ok true
+  | head :: tail =>
+    let found ← memberBy (fun value => .ok value) comparison right head
+    if found then .ok false else disjointBy comparison tail right
+
+/-- Consume the real iterator and invoke its supplied comparison. Equal keys
+select the later value, as Rust Iterator::max does. No precomputed maximum,
+validity/admission guard, or arbitrary finite fuel belongs to this executor. -/
+def maxLoop {I : Type u} {T : Type v}
+    (iterator : Aeneas.Std.core.iter.traits.iterator.Iterator I T)
+    (comparison : T → T → Result Ordering) (state : I) (best : Option T) :
+    Result (Option T) := do
+  let (entry, next) ← iterator.next state
+  match entry with
+  | none => .ok best
+  | some value =>
+    match best with
+    | none => maxLoop iterator comparison next (some value)
+    | some previous =>
+      let order ← comparison previous value
+      maxLoop iterator comparison next
+        (some (if order == .gt then previous else value))
+partial_fixpoint
+
+end CurrentRolesNative
+
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::is_disjoint"]
+def alloc.collections.btree.set.BTreeSet.is_disjoint
+    {T : Type _} {A : Type _} (allocator : core.alloc.AllocatorClone A)
+    (order : core.cmp.Ord T)
+    (left right : alloc.collections.btree.set.BTreeSet T A) : Result Bool :=
+  CurrentRolesNative.disjointBy order.cmp left.toList right.toList
+
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::max"]
+def core.iter.traits.iterator.Iterator.max.default
+    {I : Type _} {T : Type _}
+    (iterator : Aeneas.Std.core.iter.traits.iterator.Iterator I T)
+    (order : core.cmp.Ord T) (state : I) : Result (Option T) :=
+  CurrentRolesNative.maxLoop iterator order.cmp state none
+
+/-- Required concrete BTree iterator dictionaries use Rust's native last-item
+fast path. Ascending/unique native enumeration remains the existing BTree
+representation boundary; the generic max above actually invokes next/cmp. -/
+def alloc.collections.btree.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV.max
+    {K V : Type _} (_order : core.cmp.Ord (K × V))
+    (state : alloc.collections.btree.map.Iter K V) : Result (Option (K × V)) :=
+  .ok state.getLast?
+
+def alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.max
+    {T : Type _} (_order : core.cmp.Ord T)
+    (state : alloc.collections.btree.set.Iter T) : Result (Option T) :=
+  .ok state.getLast?
+
+def veoveo_types.identity.PrincipalId.Insts.CoreCmpOrd.cmp
+    (left right : veoveo_types.identity.PrincipalId) : Result Ordering :=
+  .ok (compare left.value right.value)
+
+def veoveo_types.identity.PrincipalId.Insts.CoreCmpPartialOrdPrincipalId.partial_cmp
+    (left right : veoveo_types.identity.PrincipalId) : Result (Option Ordering) :=
+  .ok (some (compare left.value right.value))
+
+def veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpOrd.cmp
+    (left right : veoveo_types.platform_names.OAuthClientId) : Result Ordering :=
+  .ok (compare left.value right.value)
+
+def veoveo_types.platform_names.OAuthClientId.Insts.CoreCmpPartialOrdOAuthClientId.partial_cmp
+    (left right : veoveo_types.platform_names.OAuthClientId) : Result (Option Ordering) :=
+  .ok (some (compare left.value right.value))
+
+end

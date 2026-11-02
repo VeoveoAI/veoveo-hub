@@ -102,3 +102,8 @@ lean_lib SdkInternalAuthCallerExamples
 lean_lib SdkInternalAuthCallerWitnesses
 
 lean_lib AppOriginAdmissionProof
+
+-- Explicit manual Work Context membership targets; existing defaults unchanged.
+lean_lib MembershipPrimitiveProof
+lean_lib WorkContextMembershipProof
+lean_lib WorkContextMembershipAudit
