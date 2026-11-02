@@ -55,4 +55,6 @@ remain open. The [browser-membership extraction probe](evidence/browser-membersh
 retains actual current catalog and contributed-authority paths in Charon, but
 Aeneas cannot translate their dynamic dispatch and borrowed group iterator.
 Its partial Lean output is not adopted. The independent rule-selection calculation
-is the next supported-boundary candidate; full browser admission remains required.
+[translates successfully](evidence/work-context-membership-extraction.json), including
+an additive shared-graph candidate; model integration and Lean proof are still
+pending. Full browser admission remains required.

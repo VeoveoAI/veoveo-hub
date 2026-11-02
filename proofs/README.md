@@ -1341,7 +1341,13 @@ sandbox; it must not claim the new version succeeded.
   on required dynamic dispatch and borrowed group-iterator operations, plus
   unsupported receiver-field types. Its four partial files are not adopted;
   no browser theorem follows ([receipt](computer_lifecycle/evidence/browser-membership-translation.json)).
-- **Residual/next:** establish the supported membership calculation separately,
+- **Supported calculation:** the separate, unchanged `membership_for` calculation
+  translates successfully on current pins (25 own functions/types); an additive
+  extraction on the established shared proof basis also succeeds. No Lean
+  qualification or model adoption follows yet. Current target applicability and
+  the historical typed-ID model boundary are recorded explicitly
+  ([receipt](computer_lifecycle/evidence/work-context-membership-extraction.json)).
+- **Residual/next:** integrate and prove the exact membership calculation,
   then browser and custody composition with the unsupported boundaries explicit.
   The outer timeout scheduler is not modeled. Browser
   recovery, OpenShell termination/readiness, credential custody and persistent home

@@ -1,0 +1,384 @@
+{
+  "status": "Focused current-source and additive shared-basis translation succeeded; Lean proof and model adoption pending",
+  "date": "2026-11-01",
+  "agents": {
+    "author": "GPT-6.1 Sol",
+    "execution": "GPT-6 Luna",
+    "review": "GPT-6 Astra"
+  },
+  "scope": "Actual WorkContextDefinition::membership_for, selector matching, closures and native level comparison; no catalog/group/authority/browser admission claim",
+  "focused": {
+    "hub": "a751c9b2589d27b366b30854994af956cffa4b26",
+    "sdk": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+    "core": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+    "stages": [
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "metadata",
+          "--locked",
+          "--offline",
+          "--format-version",
+          "1",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-for-probe1/run1/source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "elapsed_ms": 315,
+        "exit": 0,
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "verify-source-pin-metadata",
+        "timed_out": false,
+        "timeout_seconds": 180
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cargo/bin/rustup",
+          "run",
+          "nightly-2026-09-17-x86_64-unknown-linux-gnu",
+          "cargo",
+          "clean",
+          "-p",
+          "veoveo-hub",
+          "--manifest-path",
+          "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-for-probe1/run1/source/crates/veoveo-hub/Cargo.toml"
+        ],
+        "elapsed_ms": 164,
+        "exit": 0,
+        "log_bytes": 21,
+        "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+        "stage": "clean-hub-charon-target",
+        "timed_out": false,
+        "timeout_seconds": 120
+      },
+      {
+        "argv": [
+          "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/charon",
+          "cargo",
+          "--sysroot",
+          "default",
+          "--preset=aeneas",
+          "--start-from",
+          "veoveo_hub::control_plane::work_context::_::membership_for",
+          "--include",
+          "veoveo_hub",
+          "--include",
+          "veoveo_hub_sdk",
+          "--include",
+          "veoveo_types",
+          "--dest-file",
+          "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-for-probe1/run1/outputs/work_context_membership.llbc",
+          "--rustc-arg=-Zcrate-attr=feature(register_tool)",
+          "--rustc-arg=-Zcrate-attr=register_tool(charon)",
+          "--",
+          "--manifest-path",
+          "crates/veoveo-hub/Cargo.toml",
+          "--lib",
+          "--locked"
+        ],
+        "elapsed_ms": 27712,
+        "exit": 0,
+        "log_bytes": 4862,
+        "log_sha256": "8e70c3d26b56667ba3fe325ad8a4810dcc28fed76d6cc6f95618cc54127cb2d7",
+        "stage": "charon-actual-work-context-membership",
+        "timed_out": false,
+        "timeout_seconds": 600
+      }
+    ],
+    "llbc": {
+      "bytes": 1032516,
+      "exists": true,
+      "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-for-probe1/run1/outputs/work_context_membership.llbc",
+      "sha256": "1db6a55d4a99a52d8cf6d4bc4acbd45738af5133f13b81aa6ebf2f418559e3a5"
+    },
+    "own_functions": 25,
+    "own_types": 25,
+    "source_root_count": 1,
+    "backend": {
+      "command": [
+        "/home/rozgo/.cache/lean-pilot/toolchain/aeneas-release/aeneas",
+        "-backend",
+        "lean",
+        "-filter-trait-methods",
+        "-split-files",
+        "-namespace",
+        "veoveo_hub",
+        "-subdir",
+        "HubCurrentRoles",
+        "-dest",
+        "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-for-probe1/run1/outputs",
+        "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-for-probe1/run1/outputs/work_context_membership.llbc"
+      ],
+      "exit_status": 0,
+      "wall_elapsed_seconds": 0.74,
+      "aeneas_reported_seconds": 0.570998,
+      "timeout_seconds": 600,
+      "timed_out": false,
+      "log_bytes": 4196,
+      "log_sha256": "a685fcc55317715800c57a236591a55a2b9a3f55970d6bed9a67b9c2baaf0893",
+      "aeneas_binary_sha256": "d968af5e01e50cef84add48a75cf2af8f80751458cab931066d05f42098d934c",
+      "outputs": [
+        {
+          "bytes": 48286,
+          "relative_path": "HubCurrentRoles/Funs.lean",
+          "sha256": "7d8866de4f8afe9156df75157efcc80667355f0d8e2365c43972352f9b17639c"
+        },
+        {
+          "bytes": 7398,
+          "relative_path": "HubCurrentRoles/FunsExternal_Template.lean",
+          "sha256": "6a45974b707f707e6ea1f76b7b9ee2c0f7c82c5958a838c3cd4f3c1e69d47a72"
+        },
+        {
+          "bytes": 13861,
+          "relative_path": "HubCurrentRoles/Types.lean",
+          "sha256": "6795c6b97925f501c0e32e26d6c9ae535604566629bf2e130b08617ddac7b06d"
+        },
+        {
+          "bytes": 1794,
+          "relative_path": "HubCurrentRoles/TypesExternal_Template.lean",
+          "sha256": "9a95e891be67e17777dc71fd1cc0fb06fd9d3550a16df5050be659b0391eca5a"
+        },
+        {
+          "bytes": 1032516,
+          "relative_path": "work_context_membership.llbc",
+          "sha256": "1db6a55d4a99a52d8cf6d4bc4acbd45738af5133f13b81aa6ebf2f418559e3a5"
+        }
+      ],
+      "source_after_map": {
+        "bytes": 201805,
+        "hub_map_sha256": "8c4e4dd465fc597a52854d3de65c732014043f648cc0d17a929f0367b9f1f5c9",
+        "hub_matches_manifest": true,
+        "hub_paths": 1297,
+        "path": "/tmp/hub-computer-lifecycle-20261101/membership-for-probe1-mirror/aeneas-continuation/source-after.json",
+        "sdk_map_sha256": "ac39602873565352a3b44db2683be85420bff7a5da3603277d58d66e4a502fdd",
+        "sdk_matches_manifest": true,
+        "sdk_paths": 178,
+        "sha256": "f39a9fb6f708b60c4514500e3db24ebae6c51d2caab37760fea6aff38828e192"
+      }
+    },
+    "inventory_correction": "Required cmp exists. Actual name retains Impl{Trait:30}; the inherited owner scanner only handles inherent Impl.Ty. Trait30 implements core::cmp::Ord (trait7) for WorkContextMembershipLevel (ADT25 via deduplicated type23), method0 is transparent/error-free function152 at authority.rs:34. No LLBC edit or Charon retry. Raw backend-result prose saying the impl segment was absent is inaccurate; this is an owner-resolution limitation.",
+    "setup": "Temporary continuation wrapper stopped before backend; exact planned command then ran once through timeout600 and /usr/bin/time. No source/tool/selector changes.",
+    "warnings": "Builtin Iterator interface lacks map/filter/max fields; explicit ordinary library models remain required."
+  },
+  "shared_candidate": {
+    "hub": "1ccb8681de067184bdf2fb38a95f6625182af9fe",
+    "sdk": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+    "core": "120306eb969c6134dadd422dca701a2ce63e9492",
+    "selector_counts": {
+      "includes": 54,
+      "opaques": 15,
+      "resolved_functions": 18,
+      "starts": 18,
+      "transparent_functions": 19
+    },
+    "stages": [
+      {
+        "elapsed_ms": 415,
+        "exit": 0,
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stage": "verify-source-pin-metadata",
+        "timed_out": false,
+        "timeout_seconds": 180
+      },
+      {
+        "elapsed_ms": 6,
+        "exit": 0,
+        "log_bytes": 47,
+        "log_sha256": "0c2a1c628f2401523898c025afd0931256713e06c04c5ae8902dca3d5ec88fb9",
+        "stage": "apply-catalog-annotation",
+        "timed_out": false,
+        "timeout_seconds": 30
+      },
+      {
+        "elapsed_ms": 164,
+        "exit": 0,
+        "log_bytes": 21,
+        "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+        "stage": "clean-hub-charon-target",
+        "timed_out": false,
+        "timeout_seconds": 120
+      },
+      {
+        "elapsed_ms": 27110,
+        "exit": 0,
+        "log_bytes": 4842,
+        "log_sha256": "f5d31b43e59f9c6c2adc25cb88ac83b816675ab15017b67bbdbe6138feea0376",
+        "stage": "charon-composition-probe",
+        "timed_out": false,
+        "timeout_seconds": 600
+      },
+      {
+        "elapsed_ms": 2172,
+        "exit": 0,
+        "log_bytes": 7550,
+        "log_sha256": "329a58cf9eec322d00ec69ffd37cfda9aba4e5836f65992ba7ab214301554d75",
+        "stage": "aeneas-composition-probe",
+        "timed_out": false,
+        "timeout_seconds": 600
+      }
+    ],
+    "llbc": {
+      "bytes": 6638697,
+      "sha256": "41a3c142a7b7cc67ecd70a35bfdceb6be5030d2cc0f40889de070e22e634838c",
+      "has_errors": false,
+      "error_decl_count": 0,
+      "expected_transparent_function_count": 19
+    },
+    "outputs": [
+      {
+        "bytes": 272658,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-shared-extraction1/run1/outputs/HubCurrentRoles/Funs.lean",
+        "relative_path": "HubCurrentRoles/Funs.lean",
+        "sha256": "b693858e9d7dcbf36fc3455a8f588524cd6bde0bbcaaaa04b739564d5858c5a4"
+      },
+      {
+        "bytes": 116137,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-shared-extraction1/run1/outputs/HubCurrentRoles/FunsExternal_Template.lean",
+        "relative_path": "HubCurrentRoles/FunsExternal_Template.lean",
+        "sha256": "40122ae90877d82cbdedf8a027caba64f64270cb5b77bed149cde080f6fe7087"
+      },
+      {
+        "bytes": 119836,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-shared-extraction1/run1/outputs/HubCurrentRoles/Types.lean",
+        "relative_path": "HubCurrentRoles/Types.lean",
+        "sha256": "b0516d83e07f6c753c8dac405605cc8f8b44dad533555405a8da8f48ed481eb8"
+      },
+      {
+        "bytes": 30945,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-shared-extraction1/run1/outputs/HubCurrentRoles/TypesExternal_Template.lean",
+        "relative_path": "HubCurrentRoles/TypesExternal_Template.lean",
+        "sha256": "07b72e46042781ddd19fb342adbeebf1b3b6c2963973763f3a4116bf72a0360a"
+      },
+      {
+        "bytes": 6638697,
+        "path": "/home/rozgo/.cache/lean-pilot/hub-computer-lifecycle-20261101/membership-shared-extraction1/run1/outputs/hub_current_roles.llbc",
+        "relative_path": "hub_current_roles.llbc",
+        "sha256": "41a3c142a7b7cc67ecd70a35bfdceb6be5030d2cc0f40889de070e22e634838c"
+      }
+    ],
+    "source_annotation": "Only existing reversible catalog-field naming metadata in disposable extraction source; no runtime expression edit or installed pin rollback.",
+    "raw_change_review": "Compared canonical generated files: Types adds13lines and Funs506lines, with no existing lines removed or changed. Broad authority include also extracts unrelated clone bodies, including one already modeled externally; refining that scope is under review before adoption.",
+    "adopted": false
+  },
+  "current_target_applicability": {
+    "source_comparisons": [
+      {
+        "byte_identical": true,
+        "current_revision": "a751c9b2589d27b366b30854994af956cffa4b26",
+        "current_sha256": "831954d5cb21a4e7a5f664ea24733a4d811c7699a9d5fb5075a224e2efd1f5af",
+        "old_revision": "1ccb8681de067184bdf2fb38a95f6625182af9fe",
+        "old_sha256": "831954d5cb21a4e7a5f664ea24733a4d811c7699a9d5fb5075a224e2efd1f5af",
+        "path": "crates/veoveo-hub/src/control_plane/work_context.rs",
+        "repository": "veoveo-hub"
+      },
+      {
+        "byte_identical": true,
+        "current_revision": "7360c0f96cb616c519d27256df214ff4f2e6e831",
+        "current_sha256": "f7902b24c7239cac6c11e0640695a6aa58e6e717154881e4d34d70ad1d71d852",
+        "old_revision": "154a473f2c2c2d0fbc974bc04b6c7159bd397829",
+        "old_sha256": "f7902b24c7239cac6c11e0640695a6aa58e6e717154881e4d34d70ad1d71d852",
+        "path": "crates/veoveo-hub-sdk/src/identity.rs",
+        "repository": "veoveo-hub-sdk"
+      },
+      {
+        "byte_identical": true,
+        "current_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "current_sha256": "69c6bf78b198226da10859f339567015b258baf7d866ad2684e04c8b349c807b",
+        "old_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+        "old_sha256": "69c6bf78b198226da10859f339567015b258baf7d866ad2684e04c8b349c807b",
+        "path": "platform/types/src/identity.rs",
+        "repository": "veoveo-core"
+      },
+      {
+        "byte_identical": true,
+        "current_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "current_sha256": "e8e7247f42210a324b7d9d39cfde4f2c46214bb32568692cce9daf84e46a1717",
+        "old_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+        "old_sha256": "e8e7247f42210a324b7d9d39cfde4f2c46214bb32568692cce9daf84e46a1717",
+        "path": "platform/types/src/authority.rs",
+        "repository": "veoveo-core"
+      },
+      {
+        "byte_identical": true,
+        "current_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "current_sha256": "8d2c74b9dbf2c5ca4087af091bb1d15a2be5b6bc74cbf436c3b2fa34ea173c36",
+        "old_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+        "old_sha256": "8d2c74b9dbf2c5ca4087af091bb1d15a2be5b6bc74cbf436c3b2fa34ea173c36",
+        "path": "platform/types/src/names.rs",
+        "repository": "veoveo-core"
+      },
+      {
+        "byte_identical": true,
+        "current_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "current_sha256": "4460ee33fea0aa75526e4ccf80805cbf852e99a61742a82a9ce8f144fda3c486",
+        "old_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+        "old_sha256": "4460ee33fea0aa75526e4ccf80805cbf852e99a61742a82a9ce8f144fda3c486",
+        "path": "platform/types/src/id.rs",
+        "repository": "veoveo-core"
+      },
+      {
+        "byte_identical": true,
+        "current_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "current_sha256": "3b89a147428bee45902da165579500290c479555a9c74a01e4433a7e96a7ceef",
+        "old_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+        "old_sha256": "3b89a147428bee45902da165579500290c479555a9c74a01e4433a7e96a7ceef",
+        "path": "platform/macros/src/id.rs",
+        "repository": "veoveo-core"
+      },
+      {
+        "byte_identical": true,
+        "current_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "current_sha256": "936a5ac945212115a35b6861ca7e2e1993575e8412852d37990d884ae97e74e5",
+        "old_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+        "old_sha256": "936a5ac945212115a35b6861ca7e2e1993575e8412852d37990d884ae97e74e5",
+        "path": "platform/macros/src/id_frontend.rs",
+        "repository": "veoveo-core"
+      },
+      {
+        "byte_identical": true,
+        "current_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "current_sha256": "43fbb664dcb6deb863fb4895defe623b10c25cfbc78c946d3af8ce50e02637de",
+        "old_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+        "old_sha256": "43fbb664dcb6deb863fb4895defe623b10c25cfbc78c946d3af8ce50e02637de",
+        "path": "platform/macros/src/lib.rs",
+        "repository": "veoveo-core"
+      },
+      {
+        "byte_identical": true,
+        "current_revision": "422dcf268d690fcbc3fee435cf9b81e7f36ffeac",
+        "current_sha256": "b18345861e45ac3eaf2959abcffd121549053dbf0949b980255dbbf8251736cb",
+        "old_revision": "120306eb969c6134dadd422dca701a2ce63e9492",
+        "old_sha256": "b18345861e45ac3eaf2959abcffd121549053dbf0949b980255dbbf8251736cb",
+        "path": "platform/types/src/platform_names.rs",
+        "region": "OAuthClientId declaration, ClientIds profile and client_schema complete function; native lines38\u201362",
+        "repository": "veoveo-core",
+        "whole_file_diff": "Later ServerSlugs validation gained a forbidden double-underscore check; not reached by this target."
+      }
+    ],
+    "generated_review": "Membership/matcher/closure/level-comparison definitions and full principal/context/rule declarations match after generated comments/whitespace normalization per author review. Full declaration/interface review remains pending.",
+    "representation_boundary": "Focused graph transparently extracts typed IDs; established shared graph retains its previous typed-ID and comparison external-model partition. Four Eq dictionaries differ under that partition; they must not be described as byte-identical or silently normalized away.",
+    "historical_scope": [
+      "RegistrationSnapshot.selected now handles Runners/link equality; RegisteredServer adds runner.",
+      "HTTP new adds repository; issue_bearer_token_until now calls issue_with_repository; SDK issuer/execution changed.",
+      "Do not claim historical selected/HTTP/issuer theorems current. No runtime/pin rollback; old source is extraction basis only."
+    ]
+  },
+  "review": [
+    "Independently checked current focused5output files, compilerlog and1297Hub/178SDK post-source-map hashes against frozen manifests.",
+    "Independently checked combined5output files and5stage logs; reviewed literal additive generated diffs."
+  ],
+  "next": "Finish narrowly scoped shared model integration; ordinary disjoint/max models using actual next/cmp, declarative greatest-matching-level proof, axiom guards, semantic controls and restored baseline. Full browser composition remains open.",
+  "boundaries": [
+    "Translation is not Lean typechecking or theorem qualification. Generated sparse and combined candidate outputs remain scratch artifacts.",
+    "No Rust changes, runtime authentication rule, native test, deployment, CI hook or model inference.",
+    "Prior selected/HTTP/issuer proofs remain tied to their recorded source scope; this does not refresh them to current main."
+  ],
+  "evidence_roots": {
+    "focused": "/tmp/hub-computer-lifecycle-20261101/membership-for-probe1-mirror",
+    "shared": "/tmp/hub-computer-lifecycle-20261101/membership-shared-extraction1-mirror"
+  }
+}
