@@ -4,11 +4,22 @@ Track important system properties, their implementation boundaries and the evide
 for them. The unit of coverage is an invariant, not a theorem count. A small helper
 proof does not establish the whole request, transaction or runtime lifecycle.
 
-Verification remains manual and on demand. The comprehensive coverage roadmap below
-is approved for implementation. This map adds no CI job, hook, watcher, proof
-requirement or runtime check, and proposes no additional security rules.
+Verification remains manual and on demand. Broad implementation of the coverage
+roadmap below is paused pending better Rust/Aeneas support. Wrap-up completes only
+the existing membership controls and proof-package dependency correction; it starts
+no new verification slice. The coverage and open boundaries remain recorded here.
+This map adds no CI job, hook, watcher, proof requirement or runtime check, and
+proposes no additional security rules.
 
 ## Source basis and status
+
+The [shared-model regression receipt](request_composition/evidence/shared-model-regression-20261101.json)
+records two current-role and two request-composition build commands against the
+qualified shared graph. The exact tested request-composition manifest is now
+adopted: it adds the already-pinned SDK internal-auth proof dependency and normalizes
+an equivalent local path, with all prior dependency revisions unchanged. These
+are historical proof-package regressions, not fresh whole-Hub qualification or
+expanded current-runtime applicability. Failed setup attempts remain recorded.
 
 The initial source review inspected local main
 `4d5ae5b4ca56e4f8f0ea4e7766d7fe1e9a129f28` and independently observed origin/main

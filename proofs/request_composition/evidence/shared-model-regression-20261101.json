@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-01",
+  "status": "four existing shared-model build commands passed; exact tested manifest adopted",
+  "scope": "Manual historical proof-package regression only. Not current whole-Hub Rust/SQL/browser/deployment qualification; membership target keeps its separate source boundary.",
+  "agents": {
+    "execution": "GPT-6 Luna (builder)",
+    "source_review": "GPT-6.1 Sol (coder)",
+    "coordination_review": "GPT-6 Astra"
+  },
+  "canonical_basis": "6c0a1e1f7f9089b879a22ab6c81048bf7527b0c7",
+  "source_payload": {
+    "entries": 114,
+    "equivalence": "All114 effective source entries equal canonical6c0a1e1 bytes, except request_composition manifest equals the exact adopted previously tested c54014a0... effective manifest. No Lean/runtime source changes.",
+    "before": {
+      "bytes": 19308,
+      "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/source-map.effective.before.json",
+      "sha256": "e947ef09c75df62b7652ffcf583c75ccfa35586f3caa0a2420560c06b02f1dc4"
+    },
+    "after_raw": {
+      "bytes": 19309,
+      "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/source-map.after.json",
+      "sha256": "20d2c99cd7e2f00678a2ad73f7231f2b85fc40285e7bf057e284e66a9a8e2088",
+      "format_note": "Raw file ends with literal backslash-n and is NOT strict-valid JSON. In-memory removal of that two-byte suffix yields the same114 entries as before; raw evidence is unmodified."
+    }
+  },
+  "manifest_adoption": {
+    "added_package": {
+      "name": "sdkInternalAuthProof",
+      "rev": "6afa18a0625265d2adae8916a22321a17e8e6418",
+      "subDir": "proofs/internal_auth"
+    },
+    "all_prior_revisions_unchanged": true,
+    "diff": {
+      "bytes": 10067,
+      "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/lake-manifest-refresh.diff",
+      "sha256": "d35f99d0c9bb0049fbafc348da0d3dda928f2898b499f58152c75e83f95a2948"
+    },
+    "effective_sha256": "c54014a0f991232aa1b6fdd61fcb21b2fc7fb9bddc371ca6d49a4fc3182993e6",
+    "original_sha256": "122bb04c46b444c1de2a0dc47a258c6b5fc97e3c0274ed44ad489a7609aa8cc6",
+    "semantic_summary": {
+      "bytes": 642,
+      "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/manifest-refresh.json",
+      "sha256": "195c3256c003893bb75909aad498051231b0e4e36851ed61217a88da77e28859"
+    },
+    "path_normalization": "hubAuthorityProof ../authority -> ../current_roles/../authority resolves identically. Existing package fields/pins unchanged; only sdkInternalAuthProof6afa18a.../proofs/internal_auth was missing."
+  },
+  "toolchain": {
+    "Aeneas": "fdebf20d78e8007bb92fc17068f17fc2e6cfbbbf",
+    "Lake_sha256": "8ba83c98f76562d03b8dbc33f1057151ba6cbb121679dde76b2260ccc90495e1",
+    "Lean": "4.35.0 x86_64-unknown-linux-gnu",
+    "Lean_sha256": "bf8d54e4714cc4b03d3f6bb34c83b7202b87e49c8bfcbff6895c085bb90ceb38",
+    "Mathlib": "56a005855ea17e0b0958f73ec801ae140b0a1679",
+    "qualified_discriminant_patch_sha256": "467f244cc2103c050f38e732c153712c5c9fbbccc0ca0827d5c32990b174f411"
+  },
+  "commands": [
+    {
+      "command": "LAKE_NO_UPDATE=1 lake build",
+      "elapsed_seconds": 20.6,
+      "exit": 0,
+      "log": {
+        "bytes": 105593,
+        "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/01b-current-roles-default-cwd-corrected.log",
+        "sha256": "b2945108e295e43b3a935449f3b1de556108ec4dd369384faf341bb44739e7c1"
+      },
+      "reported_jobs": 1875,
+      "stage": "current_roles_defaults"
+    },
+    {
+      "command": "LAKE_NO_UPDATE=1 lake build SdkInternalAuthCallerProof SdkInternalAuthCallerExamples SdkInternalAuthCallerWitnesses AppOriginAdmissionProof WorkContextMembershipAudit",
+      "elapsed_seconds": 21.4,
+      "exit": 0,
+      "log": {
+        "bytes": 194571,
+        "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/02-current-roles-explicit.log",
+        "sha256": "919feb5adfc1e13029ff173e24a8326c08f1cfdffbdb642d917ba2bcd6aaffa6"
+      },
+      "reported_jobs": 1855,
+      "stage": "current_roles_explicit"
+    },
+    {
+      "command": "LAKE_NO_UPDATE=1 lake build",
+      "elapsed_seconds": 3.48,
+      "exit": 0,
+      "log": {
+        "bytes": 46442,
+        "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/03c-request-composition-default-pinned-path.log",
+        "sha256": "7c247a4b63f5e2be5972dfdf89a85585d10392bbf91feb2e92779a1caad5e3b8"
+      },
+      "reported_jobs": 1821,
+      "stage": "request_composition_defaults"
+    },
+    {
+      "command": "LAKE_NO_UPDATE=1 lake build SelectedRegistrationProof SelectedCollectionProof SelectedMapInsertionProof SelectedMapCollectionProof SelectedRouteContextProof SnapshotConstructorProof DirectPolicyClientProof DelegatedPolicyClientProof RegisteredSurfacesProof PolicyIssuerCompositionProof",
+      "elapsed_seconds": 32.82,
+      "exit": 0,
+      "log": {
+        "bytes": 237307,
+        "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/04-request-composition-explicit.log",
+        "sha256": "301bd85f4ea58e6b6ce363ecb13d3b1dcc08efaaee13792822af154010b62945"
+      },
+      "reported_jobs": 1863,
+      "stage": "request_composition_explicit"
+    }
+  ],
+  "setup_and_superseded_attempts": {
+    "manifest_refresh_setup": {
+      "bytes": 413,
+      "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/setup-lake-update-hubCurrentRolesProof.log",
+      "sha256": "6da25fe97585af104ddbcfdcf4862766f03c15915784ba64d52393d11b4da2db"
+    },
+    "stage1_initial_cwd_setup_failure": {
+      "bytes": 173,
+      "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/01-current-roles-default.log",
+      "sha256": "c9c6994b5fcc7cd65940fd0bb8f810b1caf992c842fffde10e83d04a73770319"
+    },
+    "stage3_request_composition_defaults_manifest_failure": {
+      "bytes": 290,
+      "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/03-request-composition-default.log",
+      "sha256": "7e9b39e9e715f54aded211bfb4534207352b2aa914c89279adad8cb9f08cdbff"
+    },
+    "stage3a_path_setup_failure": {
+      "bytes": 142,
+      "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/03b-request-composition-default.log",
+      "sha256": "65cb890b9bb2ea4571bdadaa6b0ce92978de3cd615c6e10e3664dd42f7127d1f"
+    },
+    "stage4_request_composition_explicit_pass": {
+      "bytes": 237307,
+      "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/04-request-composition-explicit.log",
+      "sha256": "301bd85f4ea58e6b6ce363ecb13d3b1dcc08efaaee13792822af154010b62945"
+    }
+  },
+  "summary": {
+    "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/summary.json",
+    "bytes": 6098,
+    "sha256": "ef7f2efbf4c3572dcd41f24750b5d041005b342ba59628451776195fce42b4c8"
+  },
+  "artifacts": {
+    "bytes": 2789,
+    "path": "/tmp/hub-computer-lifecycle-20261101/shared-regressions/mirror/outputs.after.json",
+    "sha256": "72b44f5f11d5bf5adcbf81203f486e5385f29da8213af21471ba9a1dc1b86c1e"
+  },
+  "boundaries": [
+    "Exactly two current_roles and two request_composition commands; not every proof package.",
+    "Historical routing/issuer applicability is not extended to newer native repository grants or async callers.",
+    "Existing qualified private Aeneas discriminant patch remains required.",
+    "Source setup failures are not successful tests; no native tests or deployment were run in this regression slice."
+  ]
+}
