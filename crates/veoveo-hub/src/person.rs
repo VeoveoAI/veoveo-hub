@@ -2,8 +2,11 @@
 //! them: display name and email. The sign-in callback records each person at every
 //! sign-in, so a person who signed in can be named by email and is shown by email and
 //! name. An email belongs to one person of a tenant; a sign-in with another person's
-//! email takes it over.
-use std::fmt;
+//! email takes it over. A contribution that holds a tenant's groups names the groups a
+//! person belongs to (`PersonGroups`).
+use std::{fmt, sync::Arc};
+
+use anyhow::{Result, ensure};
 
 use serde::Serialize;
 use veoveo_types::{PrincipalId, TenantId};
@@ -52,6 +55,51 @@ impl Email {
 impl fmt::Display for Email {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(&self.0)
+    }
+}
+
+/// A group of a person's tenant that they belong to, by the name the contribution that
+/// holds the tenant's groups gives it, with their role in it.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PersonGroup {
+    pub name: String,
+    pub role: PersonGroupRole,
+}
+
+/// A person's role in a group: one of its owners, or a member.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PersonGroupRole {
+    Owner,
+    Member,
+}
+
+impl fmt::Display for PersonGroupRole {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Owner => "owner",
+            Self::Member => "member",
+        })
+    }
+}
+
+/// The groups of a tenant a person belongs to in a catalog revision, as the contribution
+/// that holds the tenant's groups knows them.
+pub trait PersonGroups: fmt::Debug + Send + Sync {
+    fn groups(
+        &self,
+        catalog: &crate::HubCatalog,
+        tenant: &TenantId,
+        principal: &PrincipalId,
+    ) -> Result<Vec<PersonGroup>>;
+}
+
+impl crate::HubState {
+    /// Name people's groups with `groups`. Without it, a person belongs to no group the
+    /// Hub can name.
+    pub fn bind_person_groups(mut self, groups: Arc<dyn PersonGroups>) -> Result<Self> {
+        ensure!(self.person_groups.is_none(), "person groups already bound");
+        self.person_groups = Some(groups);
+        Ok(self)
     }
 }
 

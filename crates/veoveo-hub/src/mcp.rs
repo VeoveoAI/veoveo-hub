@@ -384,6 +384,13 @@ impl ServerHandler for HubMcp {
         veoveo_hub_sdk::final_protocol_versions()
     }
 
+    async fn discover(
+        &self,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::DiscoverResult, McpError> {
+        self.handle_discover(&context).await
+    }
+
     async fn list_tools(
         &self,
         request: Option<PaginatedRequestParams>,

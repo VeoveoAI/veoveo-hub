@@ -653,6 +653,35 @@ fn a_groups_members_hold_it_by_its_id_writing_and_its_owners_administering() {
     assert!(memberships("native-alice", "tenant-b").is_empty());
 }
 
+#[test]
+fn a_person_s_groups_are_named_with_their_role_in_each() {
+    use veoveo_hub::person::{PersonGroup, PersonGroupRole, PersonGroups as _};
+    let current = catalog(grouped());
+    let groups = |principal: &str, tenant: &str| {
+        sharing::PersonGroups
+            .groups(
+                &current,
+                &TenantId::parse(tenant).unwrap(),
+                &PrincipalId::parse(principal).unwrap(),
+            )
+            .unwrap()
+    };
+    let bioma = |role| PersonGroup {
+        name: "bioma".to_owned(),
+        role,
+    };
+    assert_eq!(
+        groups("native-bob", "tenant-a"),
+        [bioma(PersonGroupRole::Owner)]
+    );
+    assert_eq!(
+        groups("native-alice", "tenant-a"),
+        [bioma(PersonGroupRole::Member)]
+    );
+    assert!(groups("native-carol", "tenant-a").is_empty());
+    assert!(groups("native-alice", "tenant-b").is_empty());
+}
+
 /// Whether the configuration's admission accepts `plane`.
 fn admits(plane: HubControlPlane) -> bool {
     HubCatalog::from_control_plane(
