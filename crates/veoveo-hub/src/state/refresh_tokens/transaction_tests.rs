@@ -57,7 +57,6 @@ impl Fixture {
                 authorization_server: &server,
                 protected_resource: &resource,
                 oauth_client_id: &client,
-                work_context: &WorkContextId::parse("refresh-fixture").unwrap(),
                 principal: &principal,
                 principal_display_name: &PrincipalDisplayName::new("Refresh fixture").unwrap(),
                 scopes: &principal.scopes,
@@ -117,7 +116,6 @@ impl Fixture {
             principal: self.principal.id.clone(),
             kind: AuditPrincipalKind::User,
             tenant: self.principal.tenant.clone(),
-            work_context: Some(self.issued.grant.work_context.clone()),
         })
         .target(
             crate::audit::profile_target(&HubProfileId::parse("refresh-fixture").unwrap()).unwrap(),

@@ -79,8 +79,6 @@ XVKygdRdax3xMB3Eld5rlIDwzX09ARHrm8badXtrF0NhQPYZVbax8rpJGcgEFPgXEJJ71w==
         #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(rename = "https://veoveo.ai/claims/session-family")]
         session_family: Option<&'a str>,
-        #[serde(rename = "https://veoveo.ai/claims/work-context")]
-        work_context: &'a str,
         #[serde(rename = "https://veoveo.ai/claims/invocation-mode")]
         invocation_mode: InvocationMode,
         #[serde(rename = "https://veoveo.ai/claims/initiator")]
@@ -339,7 +337,6 @@ XVKygdRdax3xMB3Eld5rlIDwzX09ARHrm8badXtrF0NhQPYZVbax8rpJGcgEFPgXEJJ71w==
                 principal_display_name: "Mara Chen",
                 client_id: "operator-local-public",
                 session_family,
-                work_context: "mission",
                 invocation_mode: InvocationMode::Direct,
                 initiator: "https://idp.example.com#00u123",
                 aud: AUDIENCE,

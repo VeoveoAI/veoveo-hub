@@ -7,7 +7,6 @@ use futures::future::BoxFuture;
 use jsonwebtoken::jwk::JwkSet;
 use std::{fmt::Debug, sync::Arc};
 use veoveo_hub_sdk::{OAuthClientId, Principal};
-use veoveo_types::{WorkContextId, WorkContextMembershipLevel};
 
 pub trait OAuthClientResolver: Debug + Send + Sync {
     fn resolve<'a>(
@@ -89,12 +88,6 @@ impl OAuthClientResolver for OwnedOAuthClientResolver {
 
 /// Policy supplied by the registration's owner, resolved again for every request.
 pub trait OAuthClientAuthority: Debug + Send + Sync {
-    fn membership(
-        &self,
-        catalog: &HubCatalog,
-        context: &WorkContextId,
-        principal: &Principal,
-    ) -> Result<WorkContextMembershipLevel>;
     fn token_extensions(&self) -> Result<veoveo_types::AdmittedExtensions>;
     fn apply_service_roles(&self, principal: &mut Principal) -> Result<()>;
     fn validate_token(&self, verified: &VerifiedAccessToken) -> Result<()>;
@@ -153,19 +146,6 @@ impl EffectiveOAuthClient {
         self.ensure_installed(catalog, id)?;
         self.authority = Some(authority);
         Ok(self)
-    }
-    pub fn membership(
-        &self,
-        catalog: &HubCatalog,
-        context: &WorkContextId,
-        principal: &Principal,
-    ) -> Result<WorkContextMembershipLevel> {
-        match &self.authority {
-            Some(authority) => authority.membership(catalog, context, principal),
-            None => {
-                Ok(catalog.work_context_membership(&self.registration.id, context, principal)?)
-            }
-        }
     }
     pub fn token_extensions(&self) -> Result<veoveo_types::AdmittedExtensions> {
         self.authority
@@ -294,12 +274,7 @@ impl HubState {
                 "OAuth token registration source mismatch"
             ),
         }
-        let membership = client.membership(
-            catalog,
-            &verified.access_token.work_context,
-            &verified.principal,
-        )?;
-        Ok(catalog.resolve_subject_with_client(verified, &client.registration, membership)?)
+        Ok(catalog.resolve_subject_with_client(verified, &client.registration)?)
     }
 }
 
@@ -311,14 +286,6 @@ mod owner_tests {
     #[derive(Debug)]
     struct Authority;
     impl OAuthClientAuthority for Authority {
-        fn membership(
-            &self,
-            _: &HubCatalog,
-            _: &WorkContextId,
-            _: &Principal,
-        ) -> Result<WorkContextMembershipLevel> {
-            Ok(WorkContextMembershipLevel::Contributor)
-        }
         fn token_extensions(&self) -> Result<veoveo_types::AdmittedExtensions> {
             Ok(Default::default())
         }

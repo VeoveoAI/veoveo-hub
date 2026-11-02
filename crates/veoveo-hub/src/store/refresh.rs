@@ -11,7 +11,7 @@ use sqlx::{PgConnection, types::Json};
 use uuid::Uuid;
 use veoveo_hub_sdk::Principal;
 use veoveo_hub_sdk::{HubRefreshFamilyId, ProtectedResourceId};
-use veoveo_types::{OAuthClientId, ScopeName, Sha256Digest, WorkContextId};
+use veoveo_types::{OAuthClientId, ScopeName, Sha256Digest};
 
 use super::{HubStore, HubStoreError};
 use super::{TransactionAppend, admitted, authorization::scopes};
@@ -48,7 +48,6 @@ pub struct RefreshFamily {
     pub authorization_server: AuthorizationServerId,
     pub protected_resource: ProtectedResourceId,
     pub oauth_client_id: OAuthClientId,
-    pub work_context: WorkContextId,
     pub principal: RefreshPrincipal,
     pub scopes: BTreeSet<ScopeName>,
     pub current_generation: u64,
@@ -81,7 +80,6 @@ pub struct NewRefreshFamily {
     pub authorization_server: AuthorizationServerId,
     pub protected_resource: ProtectedResourceId,
     pub oauth_client_id: OAuthClientId,
-    pub work_context: WorkContextId,
     pub principal: RefreshPrincipal,
     pub scopes: BTreeSet<ScopeName>,
     pub issued_at: DateTime<Utc>,
@@ -156,7 +154,6 @@ struct FamilyRow {
     authorization_server: String,
     protected_resource: String,
     oauth_client_id: String,
-    work_context: String,
     principal: Json<Principal>,
     principal_display_name: String,
     scopes: Vec<String>,
@@ -184,10 +181,6 @@ impl TryFrom<FamilyRow> for RefreshFamily {
             oauth_client_id: admitted(
                 "refresh_family.oauth_client_id",
                 OAuthClientId::parse(row.oauth_client_id),
-            )?,
-            work_context: admitted(
-                "refresh_family.work_context",
-                WorkContextId::parse(row.work_context),
             )?,
             principal: RefreshPrincipal {
                 principal: row.principal.0,
@@ -299,7 +292,6 @@ impl HubStore {
             family.authorization_server.as_str(),
             family.protected_resource.as_str(),
             family.oauth_client_id.as_str(),
-            family.work_context.as_str(),
             principal.id.as_str(),
             principal.tenant.as_ref().map(|tenant| tenant.as_str()),
             &scopes,

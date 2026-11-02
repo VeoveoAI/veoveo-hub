@@ -190,7 +190,6 @@ async fn publish(
             principal: caller.principal.clone(),
             kind: AuditPrincipalKind::User,
             tenant: Some(caller.tenant.clone()),
-            work_context: None,
         },
         via: None,
         request: audit_request(),

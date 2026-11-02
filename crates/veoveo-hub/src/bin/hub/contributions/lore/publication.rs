@@ -148,7 +148,6 @@ mod tests {
                 principal: PrincipalId::parse("native-alice").unwrap(),
                 kind: veoveo_audit_contract::AuditPrincipalKind::User,
                 tenant: Some(TenantId::parse("tenant-a").unwrap()),
-                work_context: None,
             },
             via: None,
             request: veoveo_audit_contract::AuditRequest::background(),

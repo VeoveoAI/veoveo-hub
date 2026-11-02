@@ -4,7 +4,7 @@ use veoveo_hub_sdk::hub::{HubDiscoveryFailure, HubDiscoveryFailureCode, HubDisco
 
 use crate::control_plane::DiscoveryFailureMode;
 use rmcp::ErrorData as McpError;
-use rmcp::model::{Prompt, Resource, ResourceTemplate, Tool};
+use rmcp::model::{Prompt, Resource, ResourceTemplate, Skill, Tool};
 use tokio::{
     sync::{Mutex, Notify, broadcast},
     time::Instant,
@@ -262,6 +262,7 @@ pub(super) struct CatalogDiscoveryCache {
     resource_templates: SurfaceCache<ResourceTemplate>,
     tools: SurfaceCache<Tool>,
     prompts: SurfaceCache<Prompt>,
+    skills: SurfaceCache<Skill>,
     changes: broadcast::Sender<DiscoveryChange>,
     settled: Notify,
 }
@@ -272,6 +273,7 @@ impl Default for CatalogDiscoveryCache {
             resource_templates: Default::default(),
             tools: Default::default(),
             prompts: Default::default(),
+            skills: Default::default(),
             changes: broadcast::channel(DISCOVERY_CHANGE_BUFFER).0,
             settled: Notify::new(),
         }
@@ -289,6 +291,7 @@ impl CatalogDiscoveryCache {
             HubDiscoverySurface::ResourceTemplates => self.resource_templates.contains(key).await,
             HubDiscoverySurface::Tools => self.tools.contains(key).await,
             HubDiscoverySurface::Prompts => self.prompts.contains(key).await,
+            HubDiscoverySurface::Skills => self.skills.contains(key).await,
         }
     }
 
@@ -311,6 +314,7 @@ impl CatalogDiscoveryCache {
                     HubDiscoverySurface::Prompts => {
                         self.prompts.awaiting_initial_result(keys).await
                     }
+                    HubDiscoverySurface::Skills => self.skills.awaiting_initial_result(keys).await,
                 };
                 if !pending {
                     return;
@@ -336,6 +340,7 @@ impl CatalogDiscoveryCache {
             HubDiscoverySurface::ResourceTemplates => self.resource_templates.pending(keys).await,
             HubDiscoverySurface::Tools => self.tools.pending(keys).await,
             HubDiscoverySurface::Prompts => self.prompts.pending(keys).await,
+            HubDiscoverySurface::Skills => self.skills.pending(keys).await,
         };
         if pending {
             HubDiscoveryFailureCode::DiscoveryPending
@@ -356,6 +361,7 @@ impl CatalogDiscoveryCache {
             }
             HubDiscoverySurface::Tools => self.tools.begin(key, true).await,
             HubDiscoverySurface::Prompts => self.prompts.begin(key, true).await,
+            HubDiscoverySurface::Skills => self.skills.begin(key, true).await,
         }
     }
     pub(super) async fn finish_failure(&self, surface: HubDiscoverySurface, fetch: DiscoveryFetch) {
@@ -366,6 +372,7 @@ impl CatalogDiscoveryCache {
             }
             HubDiscoverySurface::Tools => self.tools.finish(&fetch, None).await,
             HubDiscoverySurface::Prompts => self.prompts.finish(&fetch, None).await,
+            HubDiscoverySurface::Skills => self.skills.finish(&fetch, None).await,
         };
         self.settled.notify_waiters();
     }
@@ -464,6 +471,24 @@ impl CatalogDiscoveryCache {
                 .await;
         }
     }
+    pub(super) async fn skills(&self, key: &DiscoveryCacheKey) -> Option<AdmittedCatalog<Skill>> {
+        self.skills.get(key).await
+    }
+    pub(super) async fn start_skills(&self, key: DiscoveryCacheKey) -> Option<DiscoveryFetch> {
+        self.skills.begin(key, false).await
+    }
+    pub(super) async fn store_skills(
+        &self,
+        fetch: Option<DiscoveryFetch>,
+        items: Vec<Skill>,
+        denied: u32,
+    ) {
+        if let Some(fetch) = fetch {
+            self.skills
+                .finish(&fetch.with_denied(denied), Some(items))
+                .await;
+        }
+    }
     pub(super) async fn invalidate_prompts(&self, server: &ServerSlug) {
         self.prompts.invalidate(server).await;
     }
@@ -479,12 +504,14 @@ impl CatalogDiscoveryCache {
         self.resource_templates.invalidate_cached_key(key).await;
         self.tools.invalidate_cached_key(key).await;
         self.prompts.invalidate_cached_key(key).await;
+        self.skills.invalidate_cached_key(key).await;
     }
     pub(super) async fn invalidate_key(&self, key: &DiscoveryCacheKey) {
         self.resources.invalidate_key(key).await;
         self.resource_templates.invalidate_key(key).await;
         self.tools.invalidate_key(key).await;
         self.prompts.invalidate_key(key).await;
+        self.skills.invalidate_key(key).await;
         self.settled.notify_waiters();
     }
     pub(super) async fn invalidate_resource_surfaces(&self, server: &ServerSlug) {
@@ -540,6 +567,7 @@ pub(super) fn enforce_complete_discovery<E>(
         HubDiscoverySurface::ResourceTemplates => "resource template",
         HubDiscoverySurface::Tools => "tool",
         HubDiscoverySurface::Prompts => "prompt",
+        HubDiscoverySurface::Skills => "skill",
     };
     Err(crate::mcp_support::mcp_internal(format!(
         "profile requires complete {surface} discovery; unavailable servers: {}",

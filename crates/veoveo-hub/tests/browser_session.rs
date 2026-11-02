@@ -446,7 +446,6 @@ fn browser_login(config: &mut Value, keycloak: &TestKeycloak) {
         json!({
             "id": BROWSER,
             "authorizationServer": "local",
-            "defaultWorkContext": "local",
             "invocationMode": "direct",
             "displayName": "Browser",
             "allowedResources": [resource],
@@ -489,10 +488,6 @@ fn browser_login(config: &mut Value, keycloak: &TestKeycloak) {
         .as_array_mut()
         .unwrap()
         .push(json!({ "role": "member", "subject": { "principal": format!("{issuer}#{USER}") } }));
-    config["workContexts"][0]["memberships"][0]["oauthClients"]
-        .as_array_mut()
-        .unwrap()
-        .push(json!(BROWSER));
 }
 
 /// The test realm: the Hub's confidential client, which must use PKCE and whose

@@ -5,7 +5,7 @@ use std::{collections::BTreeSet, time::Duration};
 
 use chrono::{TimeDelta, Utc};
 use veoveo_hub_sdk::{OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject};
-use veoveo_types::{PrincipalId, Sha256Digest, TenantId, WorkContextId};
+use veoveo_types::{PrincipalId, Sha256Digest, TenantId};
 
 use super::super::{HubStore, RefreshRevocation};
 use crate::{
@@ -51,7 +51,6 @@ async fn ending_a_persons_sessions_revokes_their_live_families_and_their_lore_cl
                         )
                         .unwrap(),
                         oauth_client_id: &OAuthClientId::parse("browser").unwrap(),
-                        work_context: &WorkContextId::parse("fixture").unwrap(),
                         principal: &principal,
                         principal_display_name: &PrincipalDisplayName::new("Fixture").unwrap(),
                         scopes: &BTreeSet::new(),
@@ -72,7 +71,7 @@ async fn ending_a_persons_sessions_revokes_their_live_families_and_their_lore_cl
         let config: crate::control_plane::Computers = serde_json::from_value(serde_json::json!({
             "gateway": {"endpoint":"https://gateway.example/", "certificateAuthority":"/unused/ca", "bearerEnvironment":"UNUSED"},
             "template":{"workspace":"installation", "name":"initial"}, "policyFile":"/unused/policy", "command":["/initial/app"],
-            "oauthClient":"fixture-client", "profile":"fixture", "workContext":"fixture", "port":4096,
+            "oauthClient":"fixture-client", "profile":"fixture", "port":4096,
             "hubProvider":{"profile":"fixture-hub", "credentialKey":"HUB_REFERENCE"},
             "modelProvider":{"profile":"fixture-model", "credentialKey":"MODEL_REFERENCE", "secret":"fixture-secret"},
             "loreProvider":{"profile":"fixture-lore", "credentialKey":"LORE_ACCESS_TOKEN"}

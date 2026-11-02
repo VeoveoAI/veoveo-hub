@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- The unique source tuple arbitrates concurrent projections; the loser keeps the\n-- winner's route.\nINSERT INTO hub.task_route (\n    id, tenant, owner, profile, server, source_task_id, authority_digest,\n    owner_kind, owner_issuer, owner_subject, invocation_mode, initiator, delegation_id,\n    data_labels, created_at, expires_at, delegated_caller, deployment, composition\n)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)\nON CONFLICT (server, deployment, source_task_id, owner, profile) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "Timestamptz",
+        "Timestamptz",
+        "Jsonb",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2850f2172f603f516ad02bb8c889ef22d54b4b5c40c382fd927c189923f7cf51"
+}

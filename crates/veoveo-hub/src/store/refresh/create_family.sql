@@ -1,5 +1,5 @@
 INSERT INTO hub.refresh_family (
-    id, authorization_server, protected_resource, oauth_client_id, work_context, principal_id, tenant,
+    id, authorization_server, protected_resource, oauth_client_id, principal_id, tenant,
     scopes, principal, principal_display_name, current_generation, issued_at, expires_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, $11, $12)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, $10, $11)

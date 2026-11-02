@@ -18,11 +18,6 @@ use veoveo_types::{DataLabelId, OAuthClientId, ScopeName};
 
 use crate::contract::AuthMethod;
 
-/// OCSF Account Change (3001) with an activity this class does not fix.
-const OCSF_ACCOUNT_CHANGE: AuditOcsfClass = AuditOcsfClass {
-    class_uid: 3001,
-    activity_id: 99,
-};
 /// OCSF Authentication (3002) with an activity this class does not fix.
 const OCSF_AUTHENTICATION: AuditOcsfClass = AuditOcsfClass {
     class_uid: 3002,
@@ -94,14 +89,6 @@ pub enum AuthenticationActivity {
     Revoke,
     Replay,
     CredentialDenial,
-}
-
-/// A change a control-plane publication made to an identity record.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, veoveo_types::Vocabulary)]
-pub enum AccountActivity {
-    Create,
-    Update,
-    Delete,
 }
 
 /// A step in a server's registration with the Hub. An expiry records a
@@ -190,18 +177,6 @@ pub struct Authentication {
 impl AuditDetailType for Authentication {
     const CLASS: &'static str = "hub.authentication";
     const OCSF: AuditOcsfClass = OCSF_AUTHENTICATION;
-}
-
-/// A control-plane publication created, changed or deleted an identity record: class
-/// `hub.account_change`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct AccountChange {
-    pub activity: AccountActivity,
-}
-impl AuditDetailType for AccountChange {
-    const CLASS: &'static str = "hub.account_change";
-    const OCSF: AuditOcsfClass = OCSF_ACCOUNT_CHANGE;
 }
 
 /// One admitted revision became authoritative in the same transaction as this record.
@@ -304,7 +279,6 @@ impl HubAudit {
         builder.declare::<AdminAdmission>()?;
         builder.declare::<AdminCompletion>()?;
         builder.declare::<Authentication>()?;
-        builder.declare::<AccountChange>()?;
         builder.declare::<ControlPlanePublication>()?;
         builder.declare::<Registration>()?;
         builder.declare::<TaskStatusRead>()?;
@@ -340,7 +314,6 @@ mod tests {
         assert_eq!(
             hub,
             [
-                "account_change",
                 "admin_admission",
                 "admin_completion",
                 "authentication",
@@ -364,7 +337,6 @@ mod tests {
     fn each_hub_class_names_its_ocsf_class() {
         assert_eq!(Authentication::OCSF.class_uid, 3002);
         assert_eq!(TokenExchange::OCSF, OCSF_SERVICE_TICKET);
-        assert_eq!(AccountChange::OCSF.class_uid, 3001);
         assert_eq!(Registration::OCSF.class_uid, 3004);
         assert_eq!(TaskStatusRead::OCSF, AuditOcsfClass::api_activity(2));
         assert_eq!(AdminAdmission::OCSF, AuditOcsfClass::API_ACTIVITY_OTHER);
@@ -374,6 +346,6 @@ mod tests {
             .filter(|declaration| declaration.class().owner() == "hub")
             .map(|declaration| declaration.ocsf().class_uid)
             .collect();
-        assert_eq!(declared.len(), 8);
+        assert_eq!(declared.len(), 7);
     }
 }

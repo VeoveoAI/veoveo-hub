@@ -5,13 +5,13 @@
 | Boundary | Supported profile |
 |---|---|
 | MCP 2026-07-28 Tasks extension | Opaque canonical Task identifiers projected from upstream CreateTaskResult |
-| Veoveo invocation authority | Stable tenant, actual actor, Work Context, profile and invocation provenance; every use checks current policy and retained data labels |
+| Veoveo invocation authority | Stable tenant, actual actor, profile and invocation provenance; every use checks current policy and retained data labels |
 | PostgreSQL 18 | `hub.task_route` in core's `hub` schema, read and written through checked sqlx queries beside `task_routes.rs` and pruned through core's `PlatformStore::prune_task_routes` |
 | Veoveo `gtr_` route identifiers | 32 random bytes encoded as base64url without padding; identifiers convey no access authority |
 
 `task_routes.rs` owns the mapping between an upstream Task and its public hub
 identifier. The source tuple is logical server, immutable deployment, opaque upstream ID, owner and profile, and a
-unique constraint holds it. Each mapping also records its tenant, Work Context,
+unique constraint holds it. Each mapping also records its tenant,
 authorization digest, exact execution composition and the owner's actor and provenance. The
 composition is retained by its canonical digest before a route is inserted. Authority fields must match
 before an existing route is reused.
@@ -20,10 +20,14 @@ A route of a server that declares uses keeps `delegated_caller`, the caller a to
 exchange with the Task as its subject acts for while the Task runs, unless another
 server's call created the Task. Retention removes it with its route.
 
-The tenant, owner and Work Context columns reference their rows in the `identity`
-schema. The Hub records the owner as an identity before it writes the route, and
-the active configuration defines the Work Context. A route goes with its Work Context
-when a later configuration removes it.
+The tenant and owner columns reference their rows in the `identity` schema. The Hub
+records the owner as an identity before it writes the route, and publishing a
+configuration records each tenant it defines.
+
+A Task belongs to the person who started it. Ownership is attribution, not authority:
+a route reaches nothing its owner's current permissions, data labels and the owning
+server's own grants do not. The Hub decides access to a Task by its route and current
+policy; the server that holds it then decides by its own domain and grants.
 
 An upstream tool retry can return its original Task. Hub projection returns that
 Task's existing public route, including across replicas and fresh authentication.
@@ -48,9 +52,9 @@ identity row in the same tenant. Reads, updates, cancellations and listeners the
 match recorded ownership before checking
 current profile exposure and policy. Ownership is the principal key, kind, issuer and
 subject, the invocation provenance with its initiator and delegation identity, and
-the admitted data labels. The route separately binds tenant, Work Context and profile.
+the admitted data labels. The route separately binds tenant and profile.
 Current labels must contain the recorded labels. A new sign-in, an unrelated scope
-change, or a Work Context policy revision does not change ownership. Removing required
+change, or a policy revision does not change ownership. Removing required
 current permissions still denies access. Every upstream request carries the current
 caller authority; the owning server enforces its current domain and named grants.
 Creation authority never becomes a credential for later access.
@@ -61,15 +65,14 @@ keys retain their full authority fingerprints. Their isolation must not be repla
 with the ownership comparison.
 
 Qualification exercises refreshed scopes and policy revisions, required-scope and
-role removal, retained-label removal, wrong tenant, context, profile, actor and
+role removal, retained-label removal, wrong tenant, profile, actor and
 issuer, changed initiator and delegation, current policy revocation and removed Task
 exposure. The database tests cover twelve competing projections across two pools,
-retained expiry, changed Work Context, authority and labels, expired mappings,
+retained expiry, changed authority and labels, expired mappings,
 independent servers, overflow-safe retention input and the stored ownership round
 trip.
 
-Deployment identity is independent of the logical namespace and the business Work
-Context. Different deployments can project the same opaque source Task ID without
+Deployment identity is independent of the logical namespace. Different deployments can project the same opaque source Task ID without
 colliding. Current registration of the exact immutable deployment may resume after
 a process restart; no lookup substitutes the newest registration of another deployment.
 

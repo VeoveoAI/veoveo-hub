@@ -11,7 +11,7 @@ use chrono::{DateTime, Utc};
 use sqlx::types::Json;
 use veoveo_hub_sdk::Principal;
 use veoveo_hub_sdk::ProtectedResourceId;
-use veoveo_types::{OAuthClientId, ScopeName, Vocabulary, WorkContextId};
+use veoveo_types::{OAuthClientId, ScopeName, Vocabulary};
 
 use super::admitted;
 use super::{HubStore, HubStoreError};
@@ -28,7 +28,6 @@ impl HubStore {
             request.idp_state.as_str(),
             request.protected_resource.as_str(),
             request.oauth_client_id.as_str(),
-            request.work_context.as_str(),
             request.oidc_client.as_str(),
             Json(&request.destination) as _,
             &scopes,
@@ -72,10 +71,6 @@ impl HubStore {
                     "authorization_request.oauth_client_id",
                     OAuthClientId::parse(row.oauth_client_id),
                 )?,
-                work_context: admitted(
-                    "authorization_request.work_context",
-                    WorkContextId::parse(row.work_context),
-                )?,
                 oidc_client: admitted(
                     "authorization_request.oidc_client",
                     OidcClientRegistrationId::parse(row.oidc_client),
@@ -115,7 +110,6 @@ impl HubStore {
             code.code.as_str(),
             code.protected_resource.as_str(),
             code.oauth_client_id.as_str(),
-            code.work_context.as_str(),
             code.oidc_client.as_str(),
             code.redirect_uri.as_str(),
             code.client_state.as_ref().map(OAuthStateValue::as_str),
@@ -160,10 +154,6 @@ impl HubStore {
                 oauth_client_id: admitted(
                     "authorization_code.oauth_client_id",
                     OAuthClientId::parse(row.oauth_client_id),
-                )?,
-                work_context: admitted(
-                    "authorization_code.work_context",
-                    WorkContextId::parse(row.work_context),
                 )?,
                 oidc_client: admitted(
                     "authorization_code.oidc_client",

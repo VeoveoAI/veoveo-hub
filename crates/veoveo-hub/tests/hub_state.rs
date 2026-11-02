@@ -25,7 +25,7 @@ use veoveo_hub::{
 use veoveo_hub_sdk::{
     HubProfileId, JwtId, OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject,
 };
-use veoveo_types::{PrincipalId, ScopeName, TenantId, WorkContextId};
+use veoveo_types::{PrincipalId, ScopeName, TenantId};
 
 #[tokio::test]
 async fn concurrent_hub_audit_writes_retry_transaction_conflicts() {
@@ -185,7 +185,6 @@ async fn hub_correctness_state_is_shared_and_single_use_across_replicas() {
                 authorization_server: &authorization_server,
                 protected_resource: &resource,
                 oauth_client_id: &client_id,
-                work_context: &WorkContextId::parse("mission").unwrap(),
                 principal: &principal,
                 principal_display_name: &PrincipalDisplayName::new("Alice").unwrap(),
                 scopes: &principal.scopes,
@@ -383,7 +382,6 @@ async fn refresh_rotation_rolls_back_when_success_audit_cannot_commit() {
                 authorization_server: &authorization_server,
                 protected_resource: &resource,
                 oauth_client_id: &client_id,
-                work_context: &WorkContextId::parse("mission").unwrap(),
                 principal: &principal,
                 principal_display_name: &PrincipalDisplayName::new("Alice").unwrap(),
                 scopes: &principal.scopes,
@@ -476,7 +474,6 @@ async fn consuming_a_successor_clears_its_delivery_envelope_atomically() {
                 authorization_server: &authorization_server,
                 protected_resource: &resource,
                 oauth_client_id: &client_id,
-                work_context: &WorkContextId::parse("mission").unwrap(),
                 principal: &principal,
                 principal_display_name: &PrincipalDisplayName::new("Alice").unwrap(),
                 scopes: &principal.scopes,
@@ -583,7 +580,6 @@ async fn public_client_revocation_is_bound_idempotent_and_family_wide() {
                 authorization_server: &authorization_server,
                 protected_resource: &resource,
                 oauth_client_id: &client_id,
-                work_context: &WorkContextId::parse("mission").unwrap(),
                 principal: &principal,
                 principal_display_name: &PrincipalDisplayName::new("Alice").unwrap(),
                 scopes: &principal.scopes,
@@ -667,7 +663,6 @@ fn authorization_request(
         idp_state: OAuthStateValue::parse("integration-idp-state").unwrap(),
         protected_resource: resource_for(profile),
         oauth_client_id: client_id.clone(),
-        work_context: WorkContextId::parse("mission").unwrap(),
         oidc_client: OidcClientRegistrationId::parse("enterprise").unwrap(),
         destination: veoveo_hub::control_plane::AuthorizationDestination::Code {
             redirect_uri: OAuthRedirectUri::new("https://veoveo.example/oauth/callback").unwrap(),
@@ -708,7 +703,6 @@ fn authorization_code(
         code: OAuthAuthorizationCode::parse("D".repeat(43)).unwrap(),
         protected_resource: resource_for(profile),
         oauth_client_id: client_id.clone(),
-        work_context: WorkContextId::parse("mission").unwrap(),
         oidc_client: OidcClientRegistrationId::parse("enterprise").unwrap(),
         redirect_uri: OAuthRedirectUri::new("https://veoveo.example/oauth/callback").unwrap(),
         client_state: None,
@@ -735,7 +729,6 @@ fn fixture_draft(
             principal: principal.id.clone(),
             kind: AuditPrincipalKind::User,
             tenant: principal.tenant.clone(),
-            work_context: None,
         })
         .occurred_at(timestamp)
         .build()

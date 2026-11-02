@@ -11,11 +11,11 @@
 | JWT, RFC 7519, and JWS, RFC 7515 | Access tokens the hosted authorization server signs with Ed25519 (`EdDSA`, RFC 8037); identity provider and client tokens in RS, PS, ES or EdDSA algorithms |
 | JWK Thumbprint, RFC 7638 | The `kid` of the hosted authorization server's key, which the configuration repeats as `accessTokenKeyId` |
 | Token revocation, RFC 7009, and OAuth security BCP, RFC 9700 | Refresh-family rotation, replay detection and revocation |
-| Veoveo access token claims | Collision-resistant names under `https://veoveo.ai/claims/`: `principal`, `principal-display-name`, `principal-kind`, `session-family`, `work-context`, `invocation-mode`, `initiator`, `delegation`, `tenant`, `data-labels` and `principal-assurances`; `managed-execution` is reserved and never accepted from a token |
+| Veoveo access token claims | Collision-resistant names under `https://veoveo.ai/claims/`: `principal`, `principal-display-name`, `principal-kind`, `session-family`, `invocation-mode`, `initiator`, `delegation`, `tenant`, `data-labels` and `principal-assurances`; `managed-execution` is reserved and never accepted from a token |
 | PostgreSQL 18 | Refresh families, replay guards, JWT revocations and audit records shared by every replica, in the Hub's `hub` schema and core's `audit` schema |
 
 The forwarded tokens the Hub sends to registered servers are a separate profile,
-defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/a1d9d653ae3d723821cdeeab92f4a67acdca39ce/crates/veoveo-hub-sdk/src/registration/DESIGN.md#forwarded-identity).
+defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/aff002265f681aa03ac8747ed5008f5c4eddf979/crates/veoveo-hub-sdk/src/registration/DESIGN.md#forwarded-identity).
 
 ## Access Tokens
 
@@ -60,10 +60,10 @@ Errors carry the codes of RFC 6749 §5.2 and RFC 8707 §2, with HTTP 400 and
 
 | Request | `error` |
 |---|---|
-| Not one form, a repeated parameter, no `grant_type`, or a `work_context` the caller may not act in | `invalid_request` |
+| Not one form, a repeated parameter or no `grant_type` | `invalid_request` |
 | An unknown client, or an assertion that is malformed, wrongly signed, expired, replayed or addressed elsewhere | `invalid_client` |
-| An authenticated client that may not use the grant, whose own authority is unavailable, or that may not act in its default Work Context | `unauthorized_client` |
-| An authorization code or identity assertion whose principal may not act in the Work Context it binds | `invalid_grant` |
+| An authenticated client that may not use the grant, or whose own authority is unavailable | `unauthorized_client` |
+| An authorization code, refresh token or identity assertion whose principal belongs to no tenant the installation defines | `invalid_grant` |
 | A grant the resource does not support | `unsupported_grant_type` |
 | A resource that is unknown or that the client may not request | `invalid_target` |
 | A scope the client may not request | `invalid_scope` |
@@ -82,9 +82,9 @@ token. When the client supports refresh, the token carries the family identity i
 `session-family` claim, and each rotation keeps it. Client-credentials and ID-JAG
 exchanges create no family.
 
-After JWT validation and Work Context resolution, authentication reads a bound family
-and checks its authorization server, profile, client, Work Context, principal, tenant,
-scope and lifetime. A missing, expired or revoked family denies the request; a
+After JWT validation and tenant resolution, authentication reads a bound family
+and checks its authorization server, profile, client, principal, tenant, scope and
+lifetime. A missing, expired or revoked family denies the request; a
 database failure returns HTTP 503 within a five-second deadline. Logout and refresh
 replay revoke the family on every replica, which also denies its outstanding access
 tokens, as RFC 7009 §2.1 allows. The family predicate lives in `policy::session`.

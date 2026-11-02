@@ -1,10 +1,9 @@
 //! Production Task decisions shared with the manual extraction package.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Binding<T, O, W, P> {
+pub struct Binding<T, O, P> {
     pub tenant: T,
     pub owner: O,
-    pub work_context: W,
     pub profile: P,
 }
 

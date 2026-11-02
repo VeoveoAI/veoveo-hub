@@ -3,8 +3,7 @@ use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use veoveo_hub_sdk::HubProfileId;
-use veoveo_types::WorkContextMembershipLevel;
-use veoveo_types::{InvocationMode, PrincipalId, TenantId, WorkContextId};
+use veoveo_types::{InvocationMode, PrincipalId, TenantId};
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -38,9 +37,6 @@ pub struct ConsoleSession {
     pub actor_id: PrincipalId,
     pub tenant_id: TenantId,
     pub tenant_name: String,
-    pub work_context: WorkContextId,
-    pub work_context_title: String,
-    pub membership: WorkContextMembershipLevel,
     pub invocation_mode: InvocationMode,
     pub available_tenants: Vec<ConsoleTenant>,
 }

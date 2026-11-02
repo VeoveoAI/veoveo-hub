@@ -5,6 +5,7 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HubControlPlaneError {
     InvalidComputers(&'static str),
+    InvalidComputerSkills(String),
     InvalidFactory(&'static str),
     DuplicateRole(veoveo_types::RoleId),
     UnknownGrantRole(veoveo_types::RoleId),
@@ -33,11 +34,6 @@ pub enum HubControlPlaneError {
     DuplicatePolicy(PolicyVersion),
     DuplicateDataLabel(DataLabelId),
     DuplicateTenant(TenantId),
-    DuplicateWorkContext(WorkContextId),
-    InvalidWorkContext {
-        context: WorkContextId,
-        reason: String,
-    },
     InvalidBranding {
         field: &'static str,
         reason: String,
@@ -124,9 +120,9 @@ pub enum HubControlPlaneError {
         client: OAuthClientId,
         authorization_server: AuthorizationServerId,
     },
-    UnknownOAuthClientWorkContext {
+    UnknownOAuthClientTenant {
         client: OAuthClientId,
-        context: WorkContextId,
+        tenant: TenantId,
     },
     OAuthClientInvocationModeMismatch {
         client: OAuthClientId,
@@ -268,6 +264,9 @@ impl fmt::Display for HubControlPlaneError {
             Self::InvalidComputers(reason) => {
                 write!(f, "invalid Computers configuration: {reason}")
             }
+            Self::InvalidComputerSkills(reason) => {
+                write!(f, "invalid Computers skills: {reason}")
+            }
             Self::InvalidFactory(reason) => write!(f, "invalid factory configuration: {reason}"),
             Self::CatalogAdmission(error) => fmt::Display::fmt(error, f),
             Self::DuplicateRole(role) => write!(f, "duplicate installation role `{role}`"),
@@ -317,12 +316,6 @@ impl fmt::Display for HubControlPlaneError {
             Self::DuplicatePolicy(policy) => write!(f, "duplicate policy version `{policy}`"),
             Self::DuplicateDataLabel(label) => write!(f, "duplicate data label `{label}`"),
             Self::DuplicateTenant(tenant) => write!(f, "duplicate tenant `{tenant}`"),
-            Self::DuplicateWorkContext(context) => {
-                write!(f, "duplicate Work Context `{context}`")
-            }
-            Self::InvalidWorkContext { context, reason } => {
-                write!(f, "invalid Work Context `{context}`: {reason}")
-            }
             Self::InvalidBranding { field, reason } => {
                 write!(f, "installation branding `{field}` {reason}")
             }
@@ -458,9 +451,9 @@ impl fmt::Display for HubControlPlaneError {
                 f,
                 "OAuth client `{client}` references unknown resource authorization server `{authorization_server}`"
             ),
-            Self::UnknownOAuthClientWorkContext { client, context } => write!(
+            Self::UnknownOAuthClientTenant { client, tenant } => write!(
                 f,
-                "OAuth client `{client}` references unknown Work Context `{context}`"
+                "OAuth client `{client}` acts under unknown tenant `{tenant}`"
             ),
             Self::OAuthClientInvocationModeMismatch { client, mode } => write!(
                 f,

@@ -1,7 +1,7 @@
 //! Calls between servers: the RFC 8693 token exchange a registered server performs to
 //! call other servers for its caller, and the admission of the token it receives at a
 //! profile. The protocol is the SDK's
-//! [calls between servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/f369804dd2bda5c69103f480169769c80fac2859/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers).
+//! [calls between servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/aff002265f681aa03ac8747ed5008f5c4eddf979/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers).
 use std::{collections::BTreeSet, sync::Arc};
 
 pub(crate) mod authority;
@@ -845,9 +845,8 @@ mod authority_adapter_tests {
         AccessTokenSubject, Principal, PrincipalKind, ProtectedResourceId, TokenSubject,
     };
     use veoveo_types::{
-        AccessSubject, DelegationId, InvocationAuthority, InvocationMode, InvocationProvenance,
-        PolicyVersion, PrincipalId, ResourceTypeName, RoleId, TenantId, WorkContextId,
-        WorkContextMembershipLevel, WorkContextOutputPolicy,
+        DelegationId, InvocationAuthority, InvocationMode, InvocationProvenance, PolicyVersion,
+        PrincipalId, ResourceTypeName, RoleId, TenantId,
     };
 
     // These fixtures own held-fixture and its permissions. No network, signature
@@ -884,16 +883,8 @@ mod authority_adapter_tests {
         actor.kind = PrincipalKind::Service;
         let delegation_id = DelegationId::parse("held-fixture-delegation").unwrap();
         let authority = InvocationAuthority {
-            work_context: WorkContextId::parse("held-fixture").unwrap(),
             tenant: principal.tenant.clone().unwrap(),
-            membership: WorkContextMembershipLevel::Owner,
             policy_revision: PolicyVersion::parse("fixture-policy-v1").unwrap(),
-            output_policy: WorkContextOutputPolicy {
-                owner: AccessSubject::Principal(principal.id.clone()),
-                initial_grants: Vec::new(),
-                classification: None,
-                data_labels: BTreeSet::new(),
-            },
             provenance: InvocationProvenance::Delegated {
                 initiator: principal.id.clone(),
                 delegation_id: delegation_id.clone(),
@@ -910,7 +901,6 @@ mod authority_adapter_tests {
                 session_family: None,
                 audience: ProtectedResourceId::parse("https://held-fixture.test/mcp/fixture")
                     .unwrap(),
-                work_context: authority.work_context.clone(),
                 invocation_mode: InvocationMode::Delegated,
                 initiator: Some(principal.id.clone()),
                 delegation_id: Some(delegation_id),
@@ -935,7 +925,7 @@ mod authority_adapter_tests {
     fn held_catalog(grantee: &PrincipalId) -> HubCatalog {
         let mut plane: HubControlPlane = serde_json::from_value(serde_json::json!({
             "identityProviders": [], "authorizationServers": [], "profiles": [],
-            "tenants": [], "workContexts": [], "policies": [], "dataLabels": [], "oidcClients": []
+            "tenants": [], "policies": [], "dataLabels": [], "oidcClients": []
         }))
         .unwrap();
         let role = RoleId::parse("held-fixture-reader").unwrap();

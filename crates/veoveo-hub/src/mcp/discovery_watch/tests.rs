@@ -138,7 +138,11 @@ impl Fixture {
             )
             .await
             .unwrap();
-        let downstream = downstream.await.unwrap();
+        // `server/discover` alone selects no lifecycle: the downstream session starts
+        // with the client's first request that carries its own metadata.
+        let (downstream, listed) = tokio::join!(downstream, client.list_tools(None));
+        let downstream = downstream.unwrap();
+        listed.unwrap();
         Self {
             root,
             server,
@@ -446,16 +450,14 @@ async fn unchanging_runner_isolation(same_link: bool) {
 
     let mut plane: crate::control_plane::HubControlPlane =
         serde_json::from_str(include_str!("../../../testdata/hub.json")).unwrap();
-    let context = &plane.work_contexts[0];
+    let tenant = plane.tenants[0].id.clone();
+    let policy_revision = plane.profiles[0].policy_version.clone();
     let mut subject = crate::mcp::task_ownership_tests::subject();
-    // This fixture admits the configured context, not the Task fixture's enterprise.
-    subject.actor.tenant = Some(context.tenant.clone());
-    subject.principal.tenant = Some(context.tenant.clone());
-    subject.authority.tenant = context.tenant.clone();
-    subject.authority.work_context = context.id.clone();
-    subject.authority.policy_revision = context.policy_revision.clone();
-    subject.authority.output_policy = context.output_policy.clone();
-    subject.access_token.work_context = context.id.clone();
+    // This fixture admits the configured tenant, not the Task fixture's enterprise.
+    subject.actor.tenant = Some(tenant.clone());
+    subject.principal.tenant = Some(tenant.clone());
+    subject.authority.tenant = tenant;
+    subject.authority.policy_revision = policy_revision;
     let grant = RunnerGrantFixture {
         tenant: subject.principal.tenant.as_ref().unwrap().to_string(),
         principal: subject.principal.id.to_string(),

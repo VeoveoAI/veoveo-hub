@@ -317,7 +317,6 @@ async fn sign_in(runtime: &ComputerRuntime) -> Result<Response> {
                 .join(" "),
         )
         .append_pair("resource", profile.protected_resource.as_str())
-        .append_pair("work_context", runtime.config.work_context.as_str())
         .append_pair("state", &state);
     let mut response = redirect(authorization.as_str())?;
     response.headers_mut().append(
@@ -475,9 +474,8 @@ async fn finish(
         .resolve_authenticated_subject(&catalog, verified)
         .await?;
     ensure!(
-        subject.access_token.oauth_client_id == runtime.config.oauth_client
-            && subject.authority.work_context == runtime.config.work_context,
-        "Computer user grant bound to another client/context"
+        subject.access_token.oauth_client_id == runtime.config.oauth_client,
+        "Computer user grant bound to another client"
     );
     ensure!(
         runtime
@@ -783,7 +781,6 @@ pub(super) async fn logout(runtime: ComputerRuntime, headers: HeaderMap) -> Resp
             principal: principal.id.clone(),
             kind: AuditPrincipalKind::User,
             tenant: principal.tenant.clone(),
-            work_context: Some(runtime.config.work_context.clone()),
         })
         .target(profile_target(&runtime.config.profile)?)
         .reason(

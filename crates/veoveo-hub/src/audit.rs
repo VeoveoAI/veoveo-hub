@@ -34,8 +34,7 @@ impl AuthenticatedSubject {
         }
     }
 
-    /// The actor a record names: the principal the request acts as, in its tenant and
-    /// Work Context.
+    /// The actor a record names: the principal the request acts as, in its tenant.
     pub fn audit_actor(&self) -> AuditActor {
         AuditActor {
             principal: self.actor.id.clone(),
@@ -44,7 +43,6 @@ impl AuthenticatedSubject {
                 PrincipalKind::Service => AuditPrincipalKind::Service,
             },
             tenant: self.actor.tenant.clone(),
-            work_context: Some(self.authority.work_context.clone()),
         }
     }
 
@@ -161,6 +159,7 @@ pub fn mcp_action_detail(
         }),
         HubAction::ResourcesRead => read(McpReadMethod::ResourceRead),
         HubAction::PromptsGet => read(McpReadMethod::PromptGet),
+        HubAction::SkillsGet => read(McpReadMethod::SkillGet),
         HubAction::CompletionComplete => read(McpReadMethod::Completion),
         HubAction::SubscriptionsListen => read(McpReadMethod::Subscription),
         HubAction::TasksGet => audit.detail(&TaskStatusRead {

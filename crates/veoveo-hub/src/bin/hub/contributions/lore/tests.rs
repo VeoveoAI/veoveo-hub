@@ -112,7 +112,6 @@ fn context<'a>(catalog: &'a HubCatalog, principal: &'a Principal) -> TokenContex
         &resource.resource,
         &client.id,
         principal,
-        &client.default_work_context,
         &resource.required_scopes,
         None,
     )

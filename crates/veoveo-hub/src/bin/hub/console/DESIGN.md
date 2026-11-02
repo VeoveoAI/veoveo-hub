@@ -5,11 +5,11 @@
 | Boundary | Supported profile |
 |---|---|
 | HTTP, RFC 9110 | Authenticated `GET /console-api/{profile}/session`, JSON, `no-store` |
-| Veoveo OAuth and Work Context | Existing hub authentication, exact profile audience, current session family and invocation authority |
+| Veoveo OAuth | Existing hub authentication, exact profile audience, current session family and invocation authority |
 | JSON Schema 2020-12 | Closed `ConsoleBootstrap`, branding and identity DTOs owned by `veoveo-hub-contract` |
 
 The session response opens the Console without installation-inventory authority.
-It contains current identity, one current tenant, Work Context and public branding.
+It contains current identity, one current tenant and public branding.
 It never loads principal inventories, Tasks, servers or control-plane secrets.
 `canReadInstallation` reflects the current catalog's `AdminRead` decision against
 the Hub target. It is a presentation hint; administrative handlers independently

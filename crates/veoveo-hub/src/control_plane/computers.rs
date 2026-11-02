@@ -8,7 +8,7 @@ use std::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use veoveo_hub_sdk::{HubProfileId, OAuthClientId};
-use veoveo_types::{InvocationMode, WorkContextId};
+use veoveo_types::InvocationMode;
 
 use super::{HubControlPlane, HubControlPlaneError};
 use crate::contract::{
@@ -18,12 +18,13 @@ use crate::contract::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Computers {
-    /// Public Computer guidance, served from current control as the MCP server
-    /// instructions of the Computers' profile to Computer clients; the Hub writes
-    /// nothing into a Computer. Plain Markdown only; connection values remain in
-    /// their native inputs. None or blank text serves no handbook.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub handbook: Option<String>,
+    /// The installation's own skills for Computers' agents: each skill name, which is
+    /// its directory's, to its files, each path relative to the skill's directory and
+    /// `/`-separated to the file's UTF-8 text, `SKILL.md` among them. The Hub serves them
+    /// at `skill://veoveo/{name}/{path}` to Computer clients on the Computers' profile
+    /// alone and writes nothing into a Computer; an empty map serves none.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub skills: crate::skills::SkillFiles,
     pub gateway: ComputerGateway,
     pub template: ComputerTemplate,
     /// Trusted native authored policy, admitted before runtime publication.
@@ -33,7 +34,6 @@ pub struct Computers {
     pub command: Vec<String>,
     pub oauth_client: OAuthClientId,
     pub profile: HubProfileId,
-    pub work_context: WorkContextId,
     /// Native loopback destination inside each admitted sandbox.
     pub port: u16,
     /// Further programs of the Computer version, each served under
@@ -117,6 +117,8 @@ impl Computers {
 
     pub(super) fn validate(&self, plane: &HubControlPlane) -> Result<(), HubControlPlaneError> {
         let invalid = |reason| HubControlPlaneError::InvalidComputers(reason);
+        crate::skills::HubSkills::load(&self.skills)
+            .map_err(|error| HubControlPlaneError::InvalidComputerSkills(error.to_string()))?;
         let mut names = std::collections::BTreeSet::new();
         let mut ports = std::collections::BTreeSet::from([self.port]);
         for app in &self.apps {
@@ -190,14 +192,9 @@ impl Computers {
                 .grant_types
                 .contains(&OAuthGrantType::AuthorizationCodePkce)
             || !client.grant_types.contains(&OAuthGrantType::RefreshToken)
-            || client.default_work_context != self.work_context
-            || !plane
-                .work_contexts
-                .iter()
-                .any(|context| context.id == self.work_context)
         {
             return Err(invalid(
-                "browser client must admit direct PKCE and refresh for the configured profile and Work Context",
+                "browser client must admit direct PKCE and refresh for the configured profile",
             ));
         }
         if !plane.secrets.iter().any(|secret| {

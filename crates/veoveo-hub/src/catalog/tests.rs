@@ -14,8 +14,7 @@ use crate::control_plane::{
     MCP_ENTERPRISE_MANAGED_AUTHORIZATION_EXTENSION, MCP_OAUTH_CLIENT_CREDENTIALS_EXTENSION,
     OAuthClientRegistration, OAuthClientSurface, OAuthEndpointUrl, OidcClientAuthMethod,
     OidcClientId, PolicyEffect, PolicyReasonCode, PolicyRule, PolicyRuleId, PolicyTarget,
-    ResourceAuthorizationServer, TenantDefinition, TraceId, WorkContextDefinition,
-    WorkContextMembershipRule,
+    ResourceAuthorizationServer, TenantDefinition, TraceId,
 };
 use chrono::{DateTime, Utc};
 use serde_json::Value;
@@ -23,10 +22,8 @@ use veoveo_hub_sdk::{
     CanonicalTaskId, JwtId, OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject,
 };
 use veoveo_types::{
-    AccessSubject, DataLabelId, GroupId, InvocationMode, PrincipalId, RoleId, ScopeName, TenantId,
-    WorkContextId,
+    DataLabelId, GroupId, InvocationMode, PrincipalId, RoleId, ScopeName, TenantId,
 };
-use veoveo_types::{WorkContextMembershipLevel, WorkContextOutputPolicy};
 
 use super::*;
 use crate::{BearerError, PolicyRequest, www_authenticate_challenge};
@@ -154,37 +151,6 @@ fn tenants() -> Vec<TenantDefinition> {
     }]
 }
 
-fn work_contexts() -> Vec<WorkContextDefinition> {
-    vec![WorkContextDefinition {
-        id: WorkContextId::parse("mission").unwrap(),
-        tenant: TenantId::parse("tenant-a").unwrap(),
-        title: "Mission".into(),
-        policy_revision: PolicyVersion::parse("2026-07-02").unwrap(),
-        output_policy: WorkContextOutputPolicy {
-            owner: AccessSubject::Group(GroupId::parse("operations").unwrap()),
-            initial_grants: Vec::new(),
-            classification: None,
-            data_labels: BTreeSet::new(),
-        },
-        memberships: vec![
-            WorkContextMembershipRule {
-                level: WorkContextMembershipLevel::Owner,
-                principals: BTreeSet::new(),
-                groups: BTreeSet::new(),
-                roles: BTreeSet::from([RoleId::parse("operator").unwrap()]),
-                oauth_clients: BTreeSet::new(),
-            },
-            WorkContextMembershipRule {
-                level: WorkContextMembershipLevel::Owner,
-                principals: BTreeSet::new(),
-                groups: BTreeSet::new(),
-                roles: BTreeSet::new(),
-                oauth_clients: BTreeSet::from([OAuthClientId::parse("operator-service").unwrap()]),
-            },
-        ],
-    }]
-}
-
 fn profile() -> HubProfile {
     HubProfile {
         id: HubProfileId::parse("default").unwrap(),
@@ -209,7 +175,6 @@ fn oauth_clients() -> Vec<OAuthClientRegistration> {
         OAuthClientRegistration {
             id: OAuthClientId::parse("operator-local-public").unwrap(),
             authorization_server: AuthorizationServerId::parse("veoveo").unwrap(),
-            default_work_context: WorkContextId::parse("mission").unwrap(),
             invocation_mode: InvocationMode::Direct,
             display_name: Some("Veoveo Operator Local Client".to_string()),
             client_surface: OAuthClientSurface::FullMcp,
@@ -241,7 +206,6 @@ fn oauth_clients() -> Vec<OAuthClientRegistration> {
         OAuthClientRegistration {
             id: OAuthClientId::parse("operator-service").unwrap(),
             authorization_server: AuthorizationServerId::parse("veoveo").unwrap(),
-            default_work_context: WorkContextId::parse("mission").unwrap(),
             invocation_mode: InvocationMode::Automated,
             display_name: Some("Veoveo Operator Service".to_string()),
             client_surface: OAuthClientSurface::FullMcp,
@@ -314,7 +278,6 @@ fn catalog_with_profile_and_policy(profile: HubProfile, policy: PolicySet) -> Hu
             registration: None,
             extensions: Default::default(),
             tenants: tenants(),
-            work_contexts: work_contexts(),
             policies: vec![policy],
             data_labels: data_labels(),
             oauth_clients: oauth_clients(),
@@ -1098,8 +1061,7 @@ impl crate::contract::CatalogSection for GroupsFixture {
 const FIXTURE_GROUP_WRITE: &str = "5f0c1d2e3a4b5c6d7e8f90a1b2c3d4e5";
 const FIXTURE_GROUP_ADMIN: &str = "6a1b2c3d4e5f60718293a4b5c6d7e8f9";
 
-/// The test catalog with a delegated client, a Work Context membership granted to the
-/// write group, and the section's memberships.
+/// The test catalog with a delegated client and the section's memberships.
 fn catalog_with_groups(
     memberships: Vec<(&str, &str, &str, veoveo_hub_sdk::GroupRole)>,
 ) -> HubCatalog {
@@ -1107,14 +1069,6 @@ fn catalog_with_groups(
     builder
         .register_section::<GroupsFixture>(veoveo_types::ExtensionName::parse("groups").unwrap())
         .unwrap();
-    let mut contexts = work_contexts();
-    contexts[0].memberships.push(WorkContextMembershipRule {
-        level: WorkContextMembershipLevel::Contributor,
-        principals: BTreeSet::new(),
-        groups: BTreeSet::from([GroupId::parse(FIXTURE_GROUP_WRITE).unwrap()]),
-        roles: BTreeSet::new(),
-        oauth_clients: BTreeSet::new(),
-    });
     let mut clients = oauth_clients();
     let mut delegated = clients[0].clone();
     delegated.id = OAuthClientId::parse("operator-delegated").unwrap();
@@ -1145,7 +1099,6 @@ fn catalog_with_groups(
                 serde_json::to_value(section).unwrap(),
             )]),
             tenants: tenants(),
-            work_contexts: contexts,
             policies: vec![policy()],
             data_labels: data_labels(),
             oauth_clients: clients,
@@ -1171,7 +1124,6 @@ fn verified_for(client: &str, mode: InvocationMode, principal: Principal) -> Ver
             oauth_client_id: OAuthClientId::parse(client).unwrap(),
             session_family: None,
             audience: ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap(),
-            work_context: WorkContextId::parse("mission").unwrap(),
             invocation_mode: mode,
             initiator: Some(principal.id.clone()),
             delegation_id: (mode == InvocationMode::Delegated)
@@ -1256,25 +1208,53 @@ fn a_subject_holds_its_groups_with_their_roles_beside_its_identity_providers() {
             },
         ])
     );
-    // The Work Context membership granted to the write group is held through it.
+    // The authority names the caller's tenant and its profile's policy revision; no
+    // group or other membership gates the call.
     assert_eq!(
-        subject.authority.membership,
-        WorkContextMembershipLevel::Contributor
+        subject.authority.tenant,
+        TenantId::parse("tenant-a").unwrap()
+    );
+    assert_eq!(
+        subject.authority.policy_revision,
+        PolicyVersion::parse("2026-07-02").unwrap()
     );
 
-    // The revision that removed the memberships leaves none, and no membership.
+    // The revision that removed the memberships leaves none, and the caller still acts
+    // with its identity provider's groups alone.
     let removed = catalog_with_groups(Vec::new());
     assert_eq!(
         removed.with_group_memberships(person.clone()),
         person.clone()
     );
+    let ungrouped = removed
+        .resolve_authenticated_subject(verified_for(
+            "operator-local-public",
+            InvocationMode::Direct,
+            person.clone(),
+        ))
+        .unwrap();
+    assert_eq!(ungrouped.actor.groups, person.groups);
+
+    // A caller acts only in a tenant the installation defines.
+    let mut stranger = person.clone();
+    stranger.tenant = Some(TenantId::parse("tenant-elsewhere").unwrap());
     assert!(matches!(
         removed.resolve_authenticated_subject(verified_for(
             "operator-local-public",
             InvocationMode::Direct,
-            person.clone(),
+            stranger,
         )),
-        Err(HubAuthorityError::MembershipDenied { .. })
+        Err(HubAuthorityError::UnknownTenant { .. })
+    ));
+    let mut tenantless = person.clone();
+    tenantless.tenant = None;
+    assert!(matches!(
+        removed.resolve_authenticated_subject(verified_for(
+            "operator-local-public",
+            InvocationMode::Direct,
+            tenantless,
+        )),
+        Err(HubAuthorityError::MissingTenant(_))
     ));
 
     // A server's call for the caller: its actor is the server and holds no groups.
@@ -1313,4 +1293,40 @@ fn a_role_granted_to_a_groups_id_is_held_through_it() {
         crate::policy::held_roles(&installation, &catalog.with_group_memberships(person)),
         BTreeSet::from([RoleId::parse("billed").unwrap()])
     );
+}
+
+#[test]
+fn a_skill_address_routes_to_the_server_its_authority_names() {
+    let mut observatory =
+        crate::test_catalog::registered_server("observatory", "http://127.0.0.1:1/observatory");
+    let mut declaration = (*observatory.authorization).clone();
+    declaration.requirements.resources.insert(
+        veoveo_types::ResourceUri::new("skill://observatory/read-readings/SKILL.md").unwrap(),
+        veoveo_hub_sdk::registration::RouteAccess::Authenticated,
+    );
+    observatory.authorization = std::sync::Arc::new(declaration);
+    observatory.capabilities =
+        crate::registration::ServerCapabilities::from_declaration(&observatory.authorization);
+    assert!(observatory.capabilities.skills);
+    // A server whose slug is the scheme owns no other server's skills by its scheme.
+    let skill = crate::test_catalog::registered_server("skill", "http://127.0.0.1:1/skill");
+    assert!(!skill.capabilities.skills);
+    let catalog = catalog().with_registrations(crate::registration::RegistrationSnapshot::new([
+        skill,
+        observatory,
+    ]));
+    let profile = HubProfileId::parse("default").unwrap();
+    let person = principal(&["operator:use"]);
+    let routed = |uri: &str| match catalog.server_for_resource_uri(&profile, &person, uri) {
+        crate::catalog::ResourceRoute::Server(server) => Some(server.slug.to_string()),
+        _ => None,
+    };
+    assert_eq!(
+        routed("skill://observatory/read-readings/references/units.md").as_deref(),
+        Some("observatory")
+    );
+    assert_eq!(routed("skill://time/read-readings/SKILL.md"), None);
+    assert_eq!(routed("skill://veoveo/home/SKILL.md"), None);
+    assert!(catalog.owns_resource_uri(&profile, "skill://observatory/read-readings/SKILL.md"));
+    assert!(!catalog.owns_resource_uri(&profile, "skill://veoveo/home/SKILL.md"));
 }

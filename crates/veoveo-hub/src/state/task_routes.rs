@@ -9,8 +9,7 @@ use veoveo_hub_sdk::{
     CanonicalTaskId, DeploymentId, ExecutionContext, HubProfileId, Principal, ServerSlug,
 };
 use veoveo_store::{
-    PrincipalId, PrincipalKind, TenantId, WorkContextId, deterministic_principal_id,
-    deterministic_tenant_id, deterministic_work_context_id,
+    PrincipalId, PrincipalKind, TenantId, deterministic_principal_id, deterministic_tenant_id,
 };
 use veoveo_types::{
     DataLabelId, DelegationId, InvocationAuthority, InvocationProvenance, Sha256Digest,
@@ -28,12 +27,11 @@ const MAX_SOURCE_TASK_ID_BYTES: usize = 512;
 #[path = "task_routes/tests.rs"]
 mod tests;
 
-/// A projection to record: who created the upstream Task, in which tenant, Work
-/// Context and profile, on which server, under which authority.
+/// A projection to record: who created the upstream Task, in which tenant and profile, on
+/// which server, under which authority.
 #[derive(Clone, Debug)]
 pub(crate) struct HubTaskRouteDraft {
     pub tenant: veoveo_types::TenantId,
-    pub work_context: veoveo_types::WorkContextId,
     pub profile: HubProfileId,
     pub server: ServerSlug,
     pub deployment: DeploymentId,
@@ -146,7 +144,6 @@ pub(crate) struct HubTaskRoute {
     pub id: CanonicalTaskId,
     pub tenant: TenantId,
     pub owner: PrincipalId,
-    pub work_context: WorkContextId,
     pub profile: HubProfileId,
     pub server: ServerSlug,
     pub deployment: DeploymentId,
@@ -161,7 +158,6 @@ struct RouteRow {
     id: String,
     tenant: TenantId,
     owner: PrincipalId,
-    work_context: WorkContextId,
     profile: String,
     server: String,
     deployment: uuid::Uuid,
@@ -202,7 +198,6 @@ impl TryFrom<RouteRow> for HubTaskRoute {
             id: CanonicalTaskId::parse(row.id)?,
             tenant: row.tenant,
             owner: row.owner,
-            work_context: row.work_context,
             profile: HubProfileId::parse(row.profile)?,
             server: ServerSlug::parse(row.server)?,
             deployment: DeploymentId::parse(row.deployment.to_string())?,
@@ -232,7 +227,6 @@ impl TryFrom<RouteRow> for HubTaskRoute {
 struct RouteIdentity {
     tenant: TenantId,
     owner: PrincipalId,
-    work_context: WorkContextId,
 }
 
 impl RouteIdentity {
@@ -241,7 +235,6 @@ impl RouteIdentity {
         Ok(Self {
             tenant: deterministic_tenant_id(tenant)?,
             owner: deterministic_principal_id(tenant, draft.ownership.principal.as_str())?,
-            work_context: deterministic_work_context_id(tenant, draft.work_context.as_str())?,
         })
     }
 }
@@ -350,7 +343,6 @@ impl HubState {
             id.as_str(),
             identity.tenant as TenantId,
             identity.owner as PrincipalId,
-            identity.work_context as WorkContextId,
             draft.profile.as_str(),
             draft.server.as_str(),
             draft.source_task_id,
@@ -536,7 +528,6 @@ fn reusable(
     let retained_key = (
         route.tenant,
         route.owner,
-        route.work_context,
         &route.profile,
         &route.server,
         route.deployment,
@@ -547,7 +538,6 @@ fn reusable(
     let proposed_key = (
         identity.tenant,
         identity.owner,
-        identity.work_context,
         &draft.profile,
         &draft.server,
         draft.deployment,

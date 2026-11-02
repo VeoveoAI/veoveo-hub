@@ -150,8 +150,7 @@ impl HubState {
         }
         if !(family.protected_resource == profile.protected_resource
             && family.authorization_server == profile.authorization_server
-            && family.oauth_client_id == config.oauth_client
-            && family.work_context == config.work_context)
+            && family.oauth_client_id == config.oauth_client)
         {
             return Ok(None);
         }
@@ -187,10 +186,7 @@ impl HubState {
         {
             return Ok(None);
         }
-        if client
-            .membership(catalog, &family.work_context, principal)
-            .is_err()
-        {
+        if catalog.principal_tenant(principal).is_err() {
             return Ok(None);
         }
         Ok(Some(BrowserSession {
@@ -271,7 +267,7 @@ mod tests {
                 "gateway": {"endpoint": "https://gateway.example/", "certificateAuthority": "/unused/ca", "bearerEnvironment": "UNUSED"},
                 "template": {"workspace": "installation", "name": "computer"},
                 "policyFile": "/unused/policy", "command": ["/unused/app"],
-                "oauthClient": "operator-local-public", "profile": "operator", "workContext": "operations", "port": 4096,
+                "oauthClient": "operator-local-public", "profile": "operator", "port": 4096,
                 "hubProvider": {"profile": "fixture-hub", "credentialKey": "HUB_REFERENCE"},
                 "modelProvider": {"profile": "fixture-model", "credentialKey": "MODEL_REFERENCE", "secret": "unused"},
                 "loreProvider": {"profile": "fixture-lore", "credentialKey": "LORE_ACCESS_TOKEN"}
@@ -285,7 +281,7 @@ mod tests {
             };
             let issued = hub.issue_refresh_token(HubRefreshIssueRequest {
                 authorization_server: &profile.authorization_server, protected_resource: &profile.protected_resource, oauth_client_id: &config.oauth_client,
-                work_context: &config.work_context, principal: &principal, principal_display_name: &PrincipalDisplayName::new("Fixture user").unwrap(),
+                principal: &principal, principal_display_name: &PrincipalDisplayName::new("Fixture user").unwrap(),
                 scopes: &principal.scopes, now: Utc::now(),
             }).await.unwrap();
             let computer = hub.hub_store().ensure_computer(principal.tenant.as_ref().unwrap(), &principal.id, &crate::computers::ComputerProvisionSpec::fixture(config.clone())).await.unwrap();

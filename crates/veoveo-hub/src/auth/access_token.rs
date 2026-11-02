@@ -6,9 +6,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header, jw
 use veoveo_hub_sdk::{
     AccessTokenSubject, JwtId, OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject,
 };
-use veoveo_types::{
-    DataLabelId, DelegationId, GroupId, PrincipalId, RoleId, TenantId, WorkContextId,
-};
+use veoveo_types::{DataLabelId, DelegationId, GroupId, PrincipalId, RoleId, TenantId};
 
 use super::{
     claims::{JwtClaims, StringListClaim},
@@ -110,8 +108,6 @@ impl JwtVerifier {
             oauth_client_id,
             session_family: claims.session_family,
             audience: self.config.audience.clone(),
-            work_context: WorkContextId::parse(claims.work_context.clone())
-                .map_err(AuthError::Claim)?,
             invocation_mode: claims.invocation_mode,
             initiator: claims
                 .initiator
@@ -208,7 +204,6 @@ pub const ACCESS_TOKEN_CORE_CLAIMS: &[&str] = &[
     "https://veoveo.ai/claims/principal-display-name",
     "client_id",
     "https://veoveo.ai/claims/session-family",
-    "https://veoveo.ai/claims/work-context",
     "https://veoveo.ai/claims/invocation-mode",
     "https://veoveo.ai/claims/initiator",
     "https://veoveo.ai/claims/delegation",

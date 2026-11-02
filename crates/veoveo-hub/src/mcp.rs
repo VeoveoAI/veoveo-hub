@@ -11,6 +11,7 @@ mod progress;
 mod prompts;
 mod resource_read;
 mod resources;
+mod skills;
 mod subscriptions;
 #[cfg(test)]
 pub(crate) mod task_ownership_tests;
@@ -29,10 +30,11 @@ use rmcp::{
     handler::server::ServerHandler,
     model::{
         CallToolRequestParams, CallToolResponse, CancelTaskParams, CompleteRequestParams,
-        CompleteResult, ErrorData as McpError, GetPromptRequestParams, GetTaskParams,
-        GetTaskResult, ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult,
-        ListToolsResult, PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams,
-        ReadResourceResponse, ServerConfig, SubscriptionFilter, UpdateTaskParams,
+        CompleteResult, ErrorData as McpError, GetPromptRequestParams, GetSkillRequestParams,
+        GetSkillResult, GetTaskParams, GetTaskResult, ListPromptsResult,
+        ListResourceTemplatesResult, ListResourcesResult, ListSkillsResult, ListToolsResult,
+        PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse,
+        ServerConfig, SubscriptionFilter, UpdateTaskParams,
     },
     service::{
         Peer, RequestContext, RoleClient, RoleServer, RunningService, ServiceError,
@@ -306,15 +308,16 @@ fn upstream_transport_config(uri: &str) -> StreamableHttpClientTransportConfig {
     StreamableHttpClientTransportConfig::with_uri(uri.to_owned())
 }
 
+/// Whether `error` lost the connection to an upstream, so its pooled client is discarded.
+/// An HTTP rejection is the upstream's answer, with or without its body, and is not.
 fn recoverable_upstream_connection_error(error: &ServiceError) -> bool {
+    use rmcp::transport::streamable_http_client::StreamableHttpError;
     match error {
         ServiceError::TransportSend(error) => !matches!(
-            error
-                .error
-                .downcast_ref::<rmcp::transport::streamable_http_client::StreamableHttpError<
-                    upstream_authorized_http::HubAuthorizedHttpError,
-                >>(),
-            Some(rmcp::transport::streamable_http_client::StreamableHttpError::HttpResponse { .. })
+            error.error.downcast_ref::<StreamableHttpError<
+                upstream_authorized_http::HubAuthorizedHttpError,
+            >>(),
+            Some(StreamableHttpError::HttpResponse { .. } | StreamableHttpError::HttpStatus(_))
         ),
         ServiceError::TransportClosed => true,
         // RMCP currently maps an abruptly terminated Streamable HTTP response
@@ -485,6 +488,31 @@ impl ServerHandler for HubMcp {
             .map(Into::into)
     }
 
+    async fn list_skills(
+        &self,
+        request: Option<PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<ListSkillsResult, McpError> {
+        // Boxed, as skill futures are large: inline, they would enlarge every request's
+        // dispatch future past a debug build's worker stack.
+        request_observation(&context)?
+            .scope(Box::pin(self.handle_list_skills(request, context)))
+            .await
+    }
+
+    async fn get_skill(
+        &self,
+        request: GetSkillRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<GetSkillResult, McpError> {
+        let response = HttpResponseContext::from_request(&context)?;
+        response.finish(
+            request_observation(&context)?
+                .scope(Box::pin(self.handle_get_skill(request, context)))
+                .await,
+        )
+    }
+
     async fn complete(
         &self,
         request: CompleteRequestParams,
@@ -560,10 +588,8 @@ mod tests {
     use chrono::Utc;
     use veoveo_hub_sdk::{PrincipalKind, TokenIssuer, TokenSubject};
     use veoveo_types::{
-        AccessSubject, InvocationProvenance, PolicyVersion, PrincipalId, RoleId, ScopeName,
-        TenantId, WorkContextId,
+        InvocationProvenance, PolicyVersion, PrincipalId, RoleId, ScopeName, TenantId,
     };
-    use veoveo_types::{WorkContextMembershipLevel, WorkContextOutputPolicy};
 
     use super::*;
 
@@ -586,16 +612,8 @@ mod tests {
 
     pub(super) fn authority() -> InvocationAuthority {
         InvocationAuthority {
-            work_context: WorkContextId::parse("mission").unwrap(),
             tenant: TenantId::parse("tenant").unwrap(),
-            membership: WorkContextMembershipLevel::Owner,
             policy_revision: PolicyVersion::parse("r1").unwrap(),
-            output_policy: WorkContextOutputPolicy {
-                owner: AccessSubject::Principal(PrincipalId::parse("issuer#subject").unwrap()),
-                initial_grants: Vec::new(),
-                classification: None,
-                data_labels: BTreeSet::new(),
-            },
             provenance: InvocationProvenance::Direct {
                 initiator: PrincipalId::parse("issuer#subject").unwrap(),
             },

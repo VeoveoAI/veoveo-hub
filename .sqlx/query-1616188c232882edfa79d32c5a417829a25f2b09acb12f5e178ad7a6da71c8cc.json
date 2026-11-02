@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "-- One statement snapshot, not a claim that successive ordinary SELECTs agree.\n-- No sequence/identifier allocation state is projected here.\n-- veoveo: all tenants (a unit test snapshots every control-plane row of its own fixture database)\n-- veoveo: scan (a unit test reads every row of its own fixture database to compare snapshots)\nSELECT jsonb_build_object(\n    'active', (SELECT revision FROM hub.control_active),\n    'revisions', COALESCE((SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM hub.control_revision r), '[]'::jsonb),\n    'objects', COALESCE((SELECT jsonb_agg(to_jsonb(o) ORDER BY o.revision, o.kind, o.object_id) FROM hub.control_object o), '[]'::jsonb),\n    'enterprises', COALESCE((SELECT jsonb_agg(to_jsonb(e) ORDER BY e.id) FROM identity.enterprise e), '[]'::jsonb),\n    'tenants', COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY t.id) FROM identity.tenant t), '[]'::jsonb),\n    'audit', COALESCE((SELECT jsonb_agg(to_jsonb(a) ORDER BY a.sequence) FROM audit.record a), '[]'::jsonb)\n) AS \"snapshot!\"\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "snapshot!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "1616188c232882edfa79d32c5a417829a25f2b09acb12f5e178ad7a6da71c8cc"
+}

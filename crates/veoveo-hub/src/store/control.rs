@@ -1,22 +1,15 @@
 //! The installation configuration as published revisions, the pointer to the active
-//! one, and the identity rows of the Work Contexts it defines.
+//! one, and the identity rows of the tenants it defines.
 use crate::control_plane::{
     HubControlPlane, HubControlPlaneRevision, HubControlPlaneRevisionId,
-    HubControlPlaneRevisionSource, WorkContextDefinition,
+    HubControlPlaneRevisionSource, TenantDefinition,
 };
-use chrono::{DateTime, Utc};
 use sqlx::{PgConnection, types::Json};
-use veoveo_types::{
-    AccessLevel, AccessSubject, ExtensionName, PolicyVersion, PrincipalId, Sha256Digest,
-};
+use veoveo_types::{ExtensionName, PolicyVersion, PrincipalId, Sha256Digest};
 
 use super::{HubStore, HubStoreError};
 use super::{TransactionAppend, admitted};
-use veoveo_store::{
-    EnterpriseId, GrantPermission, GrantSubjectKind, TenantId, WorkContextId,
-    WorkContextMembershipLevel, deterministic_enterprise_id, deterministic_tenant_id,
-    deterministic_work_context_id,
-};
+use veoveo_store::{EnterpriseId, TenantId, deterministic_enterprise_id, deterministic_tenant_id};
 
 /// One object of a revision: an identity provider, profile, policy rule or any other
 /// configuration object, under its kind and identifier.
@@ -79,7 +72,7 @@ impl HubStore {
         .transpose()
     }
 
-    /// Publish a revision with its objects, replace the Work Contexts with the ones it
+    /// Publish a revision with its objects, ensure the identity row of every tenant it
     /// defines, make it active and append `records`, in one transaction.
     pub async fn publish_control_revision(
         &self,
@@ -117,12 +110,7 @@ impl HubStore {
             _ => error.into(),
         })?;
         insert_objects(&mut transaction, revision, publication.objects).await?;
-        replace_work_contexts(
-            &mut transaction,
-            &revision.control_plane.work_contexts,
-            revision.applied_at,
-        )
-        .await?;
+        ensure_tenants(&mut transaction, &revision.control_plane.tenants).await?;
         sqlx::query_file!(
             "src/store/control/activate.sql",
             revision.revision_id.as_str(),
@@ -180,136 +168,34 @@ async fn insert_objects(
     Ok(())
 }
 
-/// Make the identity schema's Work Contexts exactly the ones `contexts` defines.
-async fn replace_work_contexts(
+/// Ensure the identity row of every tenant `tenants` defines, and of the installation's
+/// enterprise they belong to. A tenant a later revision omits keeps its row, as the
+/// principals and Task routes that name it do.
+async fn ensure_tenants(
     connection: &mut PgConnection,
-    contexts: &[WorkContextDefinition],
-    now: DateTime<Utc>,
+    tenants: &[TenantDefinition],
 ) -> Result<(), HubStoreError> {
+    if tenants.is_empty() {
+        return Ok(());
+    }
     let enterprise = deterministic_enterprise_id();
-    if !contexts.is_empty() {
-        sqlx::query_file!(
-            "src/store/control/ensure_enterprise.sql",
-            enterprise as EnterpriseId,
-        )
-        .execute(&mut *connection)
-        .await?;
-    }
-    let mut retained = Vec::with_capacity(contexts.len());
-    for context in contexts {
-        let tenant = deterministic_tenant_id(context.tenant.as_str())?;
-        let id = deterministic_work_context_id(context.tenant.as_str(), context.id.as_str())?;
-        retained.push(id);
-        sqlx::query_file!(
-            "src/store/control/ensure_tenant.sql",
-            tenant as TenantId,
-            enterprise as EnterpriseId,
-            context.tenant.as_str(),
-        )
-        .execute(&mut *connection)
-        .await?;
-        let policy = &context.output_policy;
-        let (owner_kind, owner_key) = subject(&policy.owner);
-        let data_labels = policy
-            .data_labels
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>();
-        sqlx::query_file!(
-            "src/store/control/upsert_work_context.sql",
-            id as WorkContextId,
-            tenant as TenantId,
-            context.id.as_str(),
-            context.title,
-            context.policy_revision.as_str(),
-            owner_kind as GrantSubjectKind,
-            owner_key,
-            policy.classification.as_ref().map(ToString::to_string),
-            &data_labels,
-            now,
-        )
-        .execute(&mut *connection)
-        .await?;
-        sqlx::query_file!("src/store/control/delete_grants.sql", id as WorkContextId)
-            .execute(&mut *connection)
-            .await?;
-        sqlx::query_file!(
-            "src/store/control/delete_memberships.sql",
-            id as WorkContextId
-        )
-        .execute(&mut *connection)
-        .await?;
-        for (ordinal, grant) in (0_i32..).zip(&policy.initial_grants) {
-            let (subject_kind, subject_key) = subject(&grant.subject);
-            sqlx::query_file!(
-                "src/store/control/create_grant.sql",
-                id as WorkContextId,
-                ordinal,
-                subject_kind as GrantSubjectKind,
-                subject_key,
-                permission(grant.level) as GrantPermission,
-            )
-            .execute(&mut *connection)
-            .await?;
-        }
-        for (ordinal, rule) in (0_i32..).zip(&context.memberships) {
-            let principals = texts(&rule.principals);
-            let groups = texts(&rule.groups);
-            let roles = texts(&rule.roles);
-            let oauth_clients = texts(&rule.oauth_clients);
-            sqlx::query_file!(
-                "src/store/control/create_membership.sql",
-                id as WorkContextId,
-                ordinal,
-                level(rule.level) as WorkContextMembershipLevel,
-                &principals,
-                &groups,
-                &roles,
-                &oauth_clients,
-            )
-            .execute(&mut *connection)
-            .await?;
-        }
-    }
     sqlx::query_file!(
-        "src/store/control/delete_stale_work_contexts.sql",
-        &retained as &[WorkContextId],
+        "src/store/control/ensure_enterprise.sql",
+        enterprise as EnterpriseId,
     )
     .execute(&mut *connection)
     .await?;
+    for tenant in tenants {
+        sqlx::query_file!(
+            "src/store/control/ensure_tenant.sql",
+            deterministic_tenant_id(tenant.id.as_str())? as TenantId,
+            enterprise as EnterpriseId,
+            tenant.id.as_str(),
+        )
+        .execute(&mut *connection)
+        .await?;
+    }
     Ok(())
-}
-
-fn texts<T: ToString>(values: &std::collections::BTreeSet<T>) -> Vec<String> {
-    values.iter().map(ToString::to_string).collect()
-}
-
-fn subject(subject: &AccessSubject) -> (GrantSubjectKind, String) {
-    match subject {
-        AccessSubject::Principal(principal) => (GrantSubjectKind::Principal, principal.to_string()),
-        AccessSubject::Group(group) => (GrantSubjectKind::Group, group.to_string()),
-    }
-}
-
-fn permission(level: AccessLevel) -> GrantPermission {
-    match level {
-        AccessLevel::Read => GrantPermission::Read,
-        AccessLevel::Write => GrantPermission::Write,
-        AccessLevel::Admin => GrantPermission::Admin,
-    }
-}
-
-fn level(level: veoveo_types::WorkContextMembershipLevel) -> WorkContextMembershipLevel {
-    match level {
-        veoveo_types::WorkContextMembershipLevel::Viewer => WorkContextMembershipLevel::Viewer,
-        veoveo_types::WorkContextMembershipLevel::Contributor => {
-            WorkContextMembershipLevel::Contributor
-        }
-        veoveo_types::WorkContextMembershipLevel::Custodian => {
-            WorkContextMembershipLevel::Custodian
-        }
-        veoveo_types::WorkContextMembershipLevel::Owner => WorkContextMembershipLevel::Owner,
-    }
 }
 
 fn source_wire(source: HubControlPlaneRevisionSource) -> &'static str {

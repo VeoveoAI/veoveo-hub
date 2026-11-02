@@ -1,7 +1,7 @@
 //! Pages over currently admitted descriptors, independent of upstream insertion order.
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use rmcp::model::{
-    ErrorData as McpError, PaginatedRequestParams, Prompt, Resource, ResourceTemplate, Tool,
+    ErrorData as McpError, PaginatedRequestParams, Prompt, Resource, ResourceTemplate, Skill, Tool,
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use veoveo_hub_sdk::CatalogPage;
@@ -20,6 +20,7 @@ pub(super) enum Surface {
     Resources,
     Templates,
     Prompts,
+    Skills,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -65,6 +66,14 @@ impl CatalogItem for Resource {
     fn key(&self) -> Result<Self::Key, McpError> {
         ResourceUri::new(self.uri.clone())
             .map_err(|_| mcp_internal("invalid resource identity in admitted catalog"))
+    }
+}
+impl CatalogItem for Skill {
+    type Key = ResourceUri;
+    const SURFACE: Surface = Surface::Skills;
+    fn key(&self) -> Result<Self::Key, McpError> {
+        ResourceUri::new(self.uri.clone())
+            .map_err(|_| mcp_internal("invalid skill identity in admitted catalog"))
     }
 }
 impl CatalogItem for ResourceTemplate {

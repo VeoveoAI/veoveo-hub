@@ -73,6 +73,12 @@ impl HubMcp {
                 .read_task_status_resource(task_id, &request.uri, &context)
                 .await;
         }
+        // The installation's own skills are the Hub's to serve.
+        if let Ok(skill) = veoveo_hub_sdk::skills::SkillUri::parse(&request.uri)
+            && skill.is_hub()
+        {
+            return Box::pin(self.read_own_skill_file(&skill, &context)).await;
+        }
         let caller = self.authenticated(&context)?;
         let (routed, projection) = self
             .project_resource_for_upstream(&caller, HubAction::ResourcesRead, &request.uri)

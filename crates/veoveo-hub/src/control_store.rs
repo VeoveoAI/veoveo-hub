@@ -112,10 +112,6 @@ impl HubControlStore {
             .context("refusing to persist invalid hub control plane")?;
         let audit = crate::audit::AuditAppend::new(audit::changes(
             &crate::audit_registry(),
-            previous.as_ref().map_or(&[], |revision| {
-                revision.control_plane.work_contexts.as_slice()
-            }),
-            &revision.control_plane.work_contexts,
             context,
             revision,
         )?);
@@ -178,14 +174,6 @@ fn control_plane_objects(
             "tenant",
             tenant.id.as_str(),
             tenant,
-        )?);
-    }
-    for context in &control_plane.work_contexts {
-        objects.push(object(
-            Some(context.tenant.clone()),
-            "work_context",
-            context.id.as_str(),
-            context,
         )?);
     }
     for policy in &control_plane.policies {

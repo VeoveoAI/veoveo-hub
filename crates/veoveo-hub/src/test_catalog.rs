@@ -64,26 +64,14 @@ pub fn registered_server(slug: &str, endpoint: &str) -> crate::registration::Reg
     }
 }
 
-/// Publish a configuration that defines exactly one Work Context, so rows that
-/// reference it can be written.
-pub async fn publish_work_context(
-    store: &crate::store::HubStore,
-    tenant: &veoveo_types::TenantId,
-    work_context: &veoveo_types::WorkContextId,
-) {
+/// Publish a configuration that defines exactly one tenant, so rows that reference it
+/// can be written.
+pub async fn publish_tenant(store: &crate::store::HubStore, tenant: &veoveo_types::TenantId) {
     let plane: crate::control_plane::HubControlPlane = serde_json::from_value(serde_json::json!({
         "identityProviders": [],
         "authorizationServers": [],
         "profiles": [],
-        "tenants": [],
-        "workContexts": [{
-            "id": work_context,
-            "tenant": tenant,
-            "title": "Fixture Work Context",
-            "policyRevision": "r1",
-            "outputPolicy": { "owner": { "kind": "group", "id": "owners" } },
-            "memberships": []
-        }],
+        "tenants": [{ "id": tenant }],
         "policies": [],
         "dataLabels": [],
         "oidcClients": []

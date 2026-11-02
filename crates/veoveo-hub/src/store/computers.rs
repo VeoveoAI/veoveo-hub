@@ -638,8 +638,6 @@ mod tests {
     use chrono::TimeDelta;
     use std::{collections::BTreeSet, time::Duration};
     use veoveo_hub_sdk::{OAuthClientId, Principal, PrincipalKind, TokenIssuer, TokenSubject};
-    use veoveo_types::WorkContextId;
-
     #[tokio::test]
     async fn native_handoff_rows_serialize_owners_and_fail_closed_after_rollback() {
         tokio::time::timeout(Duration::from_secs(90), async {
@@ -663,7 +661,7 @@ mod tests {
             let config: crate::control_plane::Computers = serde_json::from_value(serde_json::json!({
                 "gateway": {"endpoint":"https://gateway.example/", "certificateAuthority":"/unused/ca", "bearerEnvironment":"UNUSED"},
                 "template":{"workspace":"installation", "name":"initial"}, "policyFile":"/unused/policy", "command":["/initial/app"],
-                "oauthClient":"fixture-client", "profile":"fixture", "workContext":"fixture", "port":4096,
+                "oauthClient":"fixture-client", "profile":"fixture", "port":4096,
                 "hubProvider":{"profile":"fixture-hub", "credentialKey":"HUB_REFERENCE"},
                 "modelProvider":{"profile":"fixture-model", "credentialKey":"MODEL_REFERENCE", "secret":"fixture-secret"},
                 "loreProvider":{"profile":"fixture-lore", "credentialKey":"LORE_ACCESS_TOKEN"}
@@ -707,7 +705,6 @@ mod tests {
                     )
                     .unwrap(),
                     oauth_client_id: &OAuthClientId::parse("browser").unwrap(),
-                    work_context: &WorkContextId::parse("fixture").unwrap(),
                     principal: &principal,
                     principal_display_name: &PrincipalDisplayName::new("Fixture user").unwrap(),
                     scopes: &BTreeSet::new(),
@@ -835,7 +832,6 @@ mod tests {
                     )
                     .unwrap(),
                     oauth_client_id: &OAuthClientId::parse("browser").unwrap(),
-                    work_context: &WorkContextId::parse("fixture").unwrap(),
                     principal: &principal,
                     principal_display_name: &PrincipalDisplayName::new("Fixture user").unwrap(),
                     scopes: &BTreeSet::new(),
@@ -974,7 +970,7 @@ mod tests {
             let config: crate::control_plane::Computers = serde_json::from_value(serde_json::json!({
                 "gateway":{"endpoint":"https://gateway.example/","certificateAuthority":"/unused/ca","bearerEnvironment":"UNUSED"},
                 "template":{"workspace":"installation","name":"initial"},"policyFile":"/unused/policy","command":["/initial/app"],
-                "oauthClient":"fixture-client","profile":"fixture","workContext":"fixture","port":4096,
+                "oauthClient":"fixture-client","profile":"fixture","port":4096,
                 "hubProvider":{"profile":"fixture-hub","credentialKey":"HUB_REFERENCE"},
                 "modelProvider":{"profile":"fixture-model","credentialKey":"MODEL_REFERENCE","secret":"fixture-secret"},
                 "loreProvider":{"profile":"fixture-lore","credentialKey":"LORE_ACCESS_TOKEN"}
@@ -1110,7 +1106,7 @@ mod tests {
         let config: crate::control_plane::Computers = serde_json::from_value(serde_json::json!({
             "gateway":{"endpoint":"https://gateway.example/","certificateAuthority":"/unused/ca","bearerEnvironment":"UNUSED"},
             "template":{"workspace":"installation","name":"initial"},"policyFile":"/unused/policy","command":["/initial/app"],
-            "oauthClient":"fixture-client","profile":"fixture","workContext":"fixture","port":4096,
+            "oauthClient":"fixture-client","profile":"fixture","port":4096,
             "hubProvider":{"profile":"fixture-hub","credentialKey":"HUB_REFERENCE"},
             "modelProvider":{"profile":"fixture-model","credentialKey":"MODEL_REFERENCE","secret":"fixture-secret"},
             "loreProvider":{"profile":"fixture-lore","credentialKey":"LORE_ACCESS_TOKEN"}

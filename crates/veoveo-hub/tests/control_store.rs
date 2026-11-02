@@ -2,21 +2,16 @@
 mod catalog_admission;
 #[path = "support/database.rs"]
 mod database;
-use database as fixture;
-use std::collections::BTreeSet;
-
 use chrono::{SubsecRound, Utc};
+use database as fixture;
 
 use veoveo_hub::control_plane::{
     HubControlPlane, HubControlPlaneRevision, HubControlPlaneRevisionId,
-    HubControlPlaneRevisionSource, PolicySet, TenantDefinition, WorkContextDefinition,
-    WorkContextMembershipRule,
+    HubControlPlaneRevisionSource, PolicySet, TenantDefinition,
 };
 use veoveo_hub::{HubControlStore, is_revision_conflict};
-use veoveo_hub_sdk::OAuthClientId;
 use veoveo_store::{PlatformStore, deterministic_tenant_id};
-use veoveo_types::{AccessSubject, GroupId, PolicyVersion, PrincipalId, TenantId, WorkContextId};
-use veoveo_types::{WorkContextMembershipLevel, WorkContextOutputPolicy};
+use veoveo_types::{PolicyVersion, PrincipalId, TenantId};
 
 #[tokio::test]
 async fn publishes_immutable_revisions_and_moves_active_pointer_atomically() {
@@ -57,25 +52,6 @@ async fn publication() {
         rules: Vec::new(),
         metadata: serde_json::Value::Null,
     });
-    second_plane.work_contexts.push(WorkContextDefinition {
-        id: WorkContextId::parse("operations").unwrap(),
-        tenant: TenantId::parse("tenant-integration").unwrap(),
-        title: "Operations".to_owned(),
-        policy_revision: PolicyVersion::parse("r1").unwrap(),
-        output_policy: WorkContextOutputPolicy {
-            owner: AccessSubject::Group(GroupId::parse("operations").unwrap()),
-            initial_grants: Vec::new(),
-            classification: None,
-            data_labels: BTreeSet::new(),
-        },
-        memberships: vec![WorkContextMembershipRule {
-            level: WorkContextMembershipLevel::Contributor,
-            principals: BTreeSet::new(),
-            groups: BTreeSet::new(),
-            roles: BTreeSet::new(),
-            oauth_clients: BTreeSet::from([OAuthClientId::parse("automation").unwrap()]),
-        }],
-    });
     let second = revision("gcp-second", "b".repeat(64), second_plane);
     store
         .record_revision(&second, &audit_context)
@@ -89,22 +65,17 @@ async fn publication() {
     assert_eq!(second_head.revision_id, second.revision_id);
     assert_eq!(second_head.sha256, second.sha256);
     assert_eq!(revision_count(&db.a).await, 2);
-    assert_eq!(active_object_count(&db.a).await, 3);
+    assert_eq!(active_object_count(&db.a).await, 2);
     let tenant_id = deterministic_tenant_id("tenant-integration").unwrap();
-    let context =
-        db.b.work_context_by_key(tenant_id, "operations")
-            .await
-            .unwrap()
-            .unwrap();
-    assert_eq!(context.title, "Operations");
-    assert_eq!(context.output_policy.owner_key, "operations");
     assert_eq!(
-        context.membership_for_oauth_client("automation"),
-        Some(veoveo_store::WorkContextMembershipLevel::Contributor)
+        tenant_slug(&db.b, tenant_id).await.as_deref(),
+        Some("tenant-integration")
     );
 
+    // A tenant a later revision omits keeps its identity row, as the principals and
+    // Task routes that name it do.
     let mut third_plane = second.control_plane.clone();
-    third_plane.work_contexts.clear();
+    third_plane.tenants.clear();
     let third = revision("gcp-third", "c".repeat(64), third_plane);
     store.record_revision(&third, &audit_context).await.unwrap();
     assert_eq!(
@@ -112,12 +83,10 @@ async fn publication() {
         Some(third.clone())
     );
     assert_eq!(revision_count(&db.a).await, 3);
-    assert_eq!(active_object_count(&db.a).await, 2);
-    assert!(
-        db.a.work_context_by_key(tenant_id, "operations")
-            .await
-            .unwrap()
-            .is_none()
+    assert_eq!(active_object_count(&db.a).await, 1);
+    assert_eq!(
+        tenant_slug(&db.a, tenant_id).await.as_deref(),
+        Some("tenant-integration")
     );
 
     let duplicate = store
@@ -135,18 +104,6 @@ async fn publication() {
         publications(&db.a).await,
         ["gcp-first", "gcp-second", "gcp-third"],
         "even an empty or owner-only revision has an atomic publication record"
-    );
-    assert!(
-        db.a.work_context_by_key(tenant_id, "operations")
-            .await
-            .unwrap()
-            .is_none(),
-        "failed re-publication must not recreate a deleted Work Context"
-    );
-    assert_eq!(
-        account_activities(&db.a).await,
-        ["create", "delete"],
-        "failed re-publication must not re-audit a deleted Work Context"
     );
 }
 
@@ -198,11 +155,14 @@ async fn publications(store: &PlatformStore) -> Vec<String> {
         .unwrap()
 }
 
-async fn account_activities(store: &PlatformStore) -> Vec<String> {
-    sqlx::query_file_scalar!("tests/control_store/account_details.sql")
-        .fetch_all(store.pool())
-        .await
-        .unwrap()
+async fn tenant_slug(store: &PlatformStore, tenant: veoveo_store::TenantId) -> Option<String> {
+    sqlx::query_file_scalar!(
+        "tests/control_store/tenant_slug.sql",
+        tenant as veoveo_store::TenantId
+    )
+    .fetch_optional(store.pool())
+    .await
+    .unwrap()
 }
 
 fn audit_context() -> veoveo_audit_contract::AuditContext {
@@ -211,7 +171,6 @@ fn audit_context() -> veoveo_audit_contract::AuditContext {
             principal: PrincipalId::parse("integration-admin").unwrap(),
             kind: veoveo_audit_contract::AuditPrincipalKind::Service,
             tenant: None,
-            work_context: None,
         },
         via: None,
         request: veoveo_audit_contract::AuditRequest::background(),
@@ -244,7 +203,6 @@ fn empty_control_plane() -> HubControlPlane {
         registration: None,
         extensions: Default::default(),
         tenants: Vec::new(),
-        work_contexts: Vec::new(),
         policies: Vec::new(),
         data_labels: Vec::new(),
         oauth_clients: Vec::new(),

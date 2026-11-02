@@ -14,19 +14,20 @@ publish = false
 # Native wire types are consumed only by the executable's approved contribution.
 lore-proto = { git = "https://github.com/VeoveoAI/lore", rev = "c33e017af48d221c5b42d19865adf78814bcced4", default-features = false }
 # veoveo-core, pinned to one revision for every core crate.
-veoveo-audit = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "422dcf268d690fcbc3fee435cf9b81e7f36ffeac" }
-veoveo-audit-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "422dcf268d690fcbc3fee435cf9b81e7f36ffeac" }
-veoveo-fixtures = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "422dcf268d690fcbc3fee435cf9b81e7f36ffeac" }
-veoveo-http = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "422dcf268d690fcbc3fee435cf9b81e7f36ffeac" }
-veoveo-oauth = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "422dcf268d690fcbc3fee435cf9b81e7f36ffeac" }
-veoveo-store = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "422dcf268d690fcbc3fee435cf9b81e7f36ffeac" }
-veoveo-task = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "422dcf268d690fcbc3fee435cf9b81e7f36ffeac" }
-veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "422dcf268d690fcbc3fee435cf9b81e7f36ffeac" }
-veoveo-usage = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "422dcf268d690fcbc3fee435cf9b81e7f36ffeac" }
-veoveo-usage-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "422dcf268d690fcbc3fee435cf9b81e7f36ffeac" }
+veoveo-audit = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff" }
+veoveo-audit-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff" }
+veoveo-fixtures = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff" }
+veoveo-http = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff" }
+veoveo-oauth = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff" }
+veoveo-skills = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff", features = ["load"] }
+veoveo-store = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff" }
+veoveo-task = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff" }
+veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff" }
+veoveo-usage = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff" }
+veoveo-usage-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "05b6c47540680e085cc5356ed4ba8742ecc78bff" }
 # veoveo-hub-sdk, pinned to one revision for the library and its test server.
-veoveo-hub-sdk = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "7360c0f96cb616c519d27256df214ff4f2e6e831" }
-veoveo-hub-sdk-fixture = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "7360c0f96cb616c519d27256df214ff4f2e6e831" }
+veoveo-hub-sdk = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "aff002265f681aa03ac8747ed5008f5c4eddf979" }
+veoveo-hub-sdk-fixture = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "aff002265f681aa03ac8747ed5008f5c4eddf979" }
 
 aws-lc-rs = "1.18.0"
 openshell-sdk = { git = "https://github.com/VeoveoAI/OpenShell", rev = "c80bda2013a5656bc2421a38013463709481671f", version = "0.0.0" }
@@ -59,7 +60,7 @@ opentelemetry_sdk = "0.32.1"
 parking_lot = "0.12.5"
 rcgen = "0.14.9"
 reqwest = { version = "=0.13.5", default-features = false }
-rmcp = { version = "=3.5.0", git = "https://github.com/VeoveoAI/rust-sdk", rev = "faa4e9d57dcb834740b6053c483ed2de7b8b8076" }
+rmcp = { version = "=3.8.0", git = "https://github.com/VeoveoAI/rust-sdk", rev = "d45f7f5e43e910f818400ca702cc904c5682c213" }
 rustls = { version = "0.23.45", default-features = false, features = ["ring", "std", "tls12"] }
 schemars = "1.2.2"
 secrecy = "0.10.3"
@@ -68,7 +69,7 @@ serde_json = "=1.0.151"
 # The YAML of a revision's openshell/providers.yaml, at the version openshell-policy already uses.
 serde_yaml = "=0.9.34"
 sha2 = "=0.11.0"
-# The 0.2 line, whose `Sse` type rmcp 3.5.0's transport exposes.
+# The 0.2 line, whose `Sse` type rmcp 3.8.0's transport exposes.
 sse-stream = "=0.2.6"
 # PostgreSQL 18 through sqlx, with the version and Rustls backend veoveo-core pins.
 sqlx = { version = "=0.9.0", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls-ring-native-roots", "uuid", "chrono", "json", "macros"] }

@@ -19,7 +19,7 @@ replacement changes the next request's authentication and policy through the sha
 catalog handle.
 
 Authentication records credential denials before dispatch. A verified bearer resolves
-the caller's OAuth client, Work Context and invocation authority, synchronizes the
+the caller's OAuth client, tenant and invocation authority, synchronizes the
 principal into the platform directory and continues with an `AuthenticatedSubject`.
 The middleware fails closed when the audit writer or the database is unavailable.
 

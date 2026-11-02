@@ -18,14 +18,13 @@ use veoveo_hub::contract::{AuthOutcome, AuthReasonCode, PkceCodeChallengeMethod}
 use veoveo_hub::control_plane::{AuthorizationDestination, HubAuthorizationRequest};
 use veoveo_hub::{HubCatalog, RegisteredProtectedResource};
 use veoveo_hub_sdk::OAuthClientId;
-use veoveo_types::{ScopeName, WorkContextId};
+use veoveo_types::ScopeName;
 const AUTHORIZATION_REQUEST_TTL_SECONDS: i64 = 600;
 pub(super) async fn begin(
     state: &AppState,
     catalog: &HubCatalog,
     profile: RegisteredProtectedResource<'_>,
     client_id: OAuthClientId,
-    work_context: WorkContextId,
     scopes: BTreeSet<ScopeName>,
     destination: AuthorizationDestination,
 ) -> axum::response::Response {
@@ -89,7 +88,6 @@ pub(super) async fn begin(
         idp_state: idp_state.clone(),
         protected_resource: profile.protected_resource().clone(),
         oauth_client_id: client_id.clone(),
-        work_context,
         oidc_client: oidc_client.id.clone(),
         destination,
         requested_scopes: scopes,

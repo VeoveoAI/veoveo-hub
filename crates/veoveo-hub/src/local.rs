@@ -152,7 +152,6 @@ fn configuration(
             json!({
                 "id": caller.client_id,
                 "authorizationServer": "local",
-                "defaultWorkContext": "local",
                 "invocationMode": "automated",
                 "displayName": format!("Acceptance caller with the {} role", caller.role),
                 "allowedResources": [resource],
@@ -214,17 +213,6 @@ fn configuration(
         },
         "registration": { "secret": "registration_secret" },
         "tenants": [{ "id": "local", "title": "Local installation" }],
-        "workContexts": [{
-            "id": "local",
-            "tenant": "local",
-            "title": "Local",
-            "policyRevision": "local",
-            "outputPolicy": { "owner": { "kind": "principal", "id": format!("{issuer}#acceptance-admin") } },
-            "memberships": [{
-                "level": "contributor",
-                "oauthClients": callers.iter().map(|caller| caller.client_id.as_str()).collect::<Vec<_>>()
-            }]
-        }],
         "policies": [{ "version": "local", "rules": [] }],
         "dataLabels": [],
         "oauthClients": clients,

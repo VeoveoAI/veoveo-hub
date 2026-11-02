@@ -108,7 +108,6 @@ async fn publish(
             principal,
             kind: AuditPrincipalKind::Service,
             tenant: None,
-            work_context: None,
         },
         via: None,
         request: AuditRequest::background(),

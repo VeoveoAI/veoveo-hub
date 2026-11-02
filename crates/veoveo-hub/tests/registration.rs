@@ -1,8 +1,8 @@
 //! Runs the Hub binary against a disposable PostgreSQL database, registers the SDK's
 //! Observatory fixture server through the RFC 7591 flow with the SDK's registration client,
-//! and checks the role decisions, the namespace pin, the database grant, that a live
-//! registration costs no writes while idle, and the end of a registration from the
-//! server's and a caller's side.
+//! and checks the role decisions, the skills a caller is offered, the namespace pin, the
+//! database grant, that a live registration costs no writes while idle, and the end of a
+//! registration from the server's and a caller's side.
 
 #[path = "support/hub.rs"]
 mod hub;
@@ -26,7 +26,10 @@ use chrono::{DateTime, Utc};
 use hub::Hub;
 use rmcp::{
     ClientLifecycleMode, ClientServiceExt,
-    model::{ProtocolVersion, ReadResourceRequestParams},
+    model::{
+        GetSkillRequestParams, ProtocolVersion, ReadResourceRequestParams, ResourceContents,
+        SkillResources,
+    },
     service::{RoleClient, RunningService},
     transport::{
         StreamableHttpClientTransport, streamable_http_client::StreamableHttpClientTransportConfig,
@@ -50,6 +53,8 @@ use veoveo_types::{ResourceScheme, ServerSlug};
 const READING: &str = "observatory://reading/sensor-a";
 const CONTRACT: &str = "observatory://contract";
 const DOCUMENTS: &str = "observatory://docs";
+const SKILL: &str = "skill://observatory/read-readings/SKILL.md";
+const SKILL_REFERENCE: &str = "skill://observatory/read-readings/references/units.md";
 /// The grace period the Hub gives a registration without a live process.
 const GRACE_SECONDS: u64 = 5;
 
@@ -295,6 +300,45 @@ async fn qualify() {
     assert!(read(&admin, CONTRACT).await.is_ok());
     assert!(read(&member, DOCUMENTS).await.is_err());
     assert!(read(&admin, DOCUMENTS).await.is_err());
+
+    // A skill is offered only to a caller who may read every one of its files: this
+    // registration makes the skill's reference sensitive, so the member is offered nothing
+    // and the admin the skill, whose files read with the digests its manifest names.
+    assert!(member.list_all_skills().await.unwrap().is_empty());
+    assert!(
+        member
+            .get_skill(GetSkillRequestParams::new(SKILL))
+            .await
+            .is_err()
+    );
+    assert!(read(&member, SKILL).await.is_ok());
+    assert!(read(&member, SKILL_REFERENCE).await.is_err());
+    let skills = admin.list_all_skills().await.unwrap();
+    assert_eq!(
+        skills
+            .iter()
+            .map(|skill| skill.uri.as_str())
+            .collect::<Vec<_>>(),
+        [SKILL]
+    );
+    let got = admin
+        .get_skill(GetSkillRequestParams::new(SKILL))
+        .await
+        .unwrap();
+    assert_eq!(got.skill, skills[0], "skills/get answers the listed entry");
+    let SkillResources::Files(files) = &got.skill.resources else {
+        panic!("a full manifest")
+    };
+    assert_eq!(files.len(), 2);
+    for file in files {
+        let read = read(&admin, &file.uri).await.unwrap();
+        let ResourceContents::TextResourceContents { text, .. } = &read.contents[0] else {
+            panic!("{} reads as text", file.uri)
+        };
+        file.verify(text.as_bytes()).unwrap();
+    }
+    // The Hub's own skills are served to a Computer's own client alone.
+    assert!(read(&admin, "skill://veoveo/home/SKILL.md").await.is_err());
     assert_eq!(
         *fixture.key_ids.lock().unwrap(),
         BTreeSet::from([signing_key_id.as_str().to_owned()]),
@@ -478,7 +522,9 @@ fn registration_client(
         "requirements": {
             "resources": {
                 "observatory://readings": {"kind":"permission", "permission":"observatory.readings.read"},
-                "observatory://contract": {"kind":"permission", "permission":"observatory.contract.read"}
+                "observatory://contract": {"kind":"permission", "permission":"observatory.contract.read"},
+                "skill://observatory/read-readings/SKILL.md": {"kind":"authenticated"},
+                "skill://observatory/read-readings/references/units.md": {"kind":"permission", "permission":"observatory.contract.read"}
             },
             "resourceTemplates": {
                 "observatory://reading/{reading_id}": {"kind":"permission", "permission":"observatory.readings.read"}

@@ -40,15 +40,18 @@ async fn an_ended_catalog_source_reaches_the_downstream_reconnect_path() {
         )
         .await
         .unwrap();
-    let mut server = server.await.unwrap();
-    let subscription = client
-        .listen(
+    // `server/discover` alone selects no lifecycle: the server's session starts with the
+    // client's first request that carries its own metadata, here the listen.
+    let (server, subscription) = tokio::join!(
+        server,
+        client.listen(
             SubscriptionFilter::builder()
                 .resources_list_changed()
                 .build(),
         )
-        .await
-        .unwrap();
+    );
+    let mut server = server.unwrap();
+    let subscription = subscription.unwrap();
     let mut routed = Box::pin(routed_notifications(
         (
             ServerSlug::parse("catalog").unwrap(),

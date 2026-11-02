@@ -66,8 +66,8 @@ fn configure(config: &mut Value) {
         json!("https://identity.example/authorize");
     config["identityProviders"][0]["tokenEndpoint"] = json!("https://identity.example/token");
     let clients = config["oauthClients"].as_array_mut().unwrap();
-    clients.push(json!({"id":"native-cli","authorizationServer":"local","defaultWorkContext":"local","invocationMode":"direct","allowedResources":[RESOURCE],"grantTypes":["device_authorization","refresh_token","token_exchange"],"authMethods":["none"],"allowedScopes":["native:login","offline_access"]}));
-    clients.push(json!({"id":"native-factory","authorizationServer":"local","defaultWorkContext":"local","invocationMode":"automated","allowedResources":[RESOURCE],"grantTypes":["client_credentials"],"authMethods":["client_secret_post"],"allowedScopes":["native:login","offline_access"],"credentialSecret":"native-client-secret","tenant":"local"}));
+    clients.push(json!({"id":"native-cli","authorizationServer":"local","invocationMode":"direct","allowedResources":[RESOURCE],"grantTypes":["device_authorization","refresh_token","token_exchange"],"authMethods":["none"],"allowedScopes":["native:login","offline_access"]}));
+    clients.push(json!({"id":"native-factory","authorizationServer":"local","invocationMode":"automated","allowedResources":[RESOURCE],"grantTypes":["client_credentials"],"authMethods":["client_secret_post"],"allowedScopes":["native:login","offline_access"],"credentialSecret":"native-client-secret","tenant":"local"}));
     config["secrets"].as_array_mut().unwrap().push(json!({"id":"native-client-secret","source":"env","purpose":"oauth_client_secret","locator":"VEOVEO_NATIVE_FIXTURE_SECRET","owner":{"kind":"hub"}}));
     config["oidcClients"] = json!([{"id":"native-broker","identityProvider":"local","authorizationServer":"local","allowedResources":[RESOURCE],"clientId":"synthetic-broker","redirectUri":"https://hub.example/oauth/callback","authMethod":"client_secret_post","credentialSecret":"native-client-secret","scopes":["openid"]}]);
 }

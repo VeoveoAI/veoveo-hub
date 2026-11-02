@@ -16,7 +16,6 @@ pub fn kernel_catalog_registry_builder() -> Result<CatalogRegistryBuilder, Exten
             "servers",
             "profiles",
             "tenants",
-            "work_contexts",
             "policies",
             "data_labels",
             "oauth_clients",

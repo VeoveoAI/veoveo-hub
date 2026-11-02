@@ -119,7 +119,7 @@ fn a_version_names_what_a_sandbox_gets_and_nothing_else() {
             .all(|byte| byte.is_ascii_hexdigit())
     );
 
-    // Another object, name, environment order, handbook, policy file path, connection
+    // Another object, name, environment order, skills, policy file path, connection
     // limit or collection setting.
     let mut reversed = environment;
     reversed.reverse();
@@ -127,7 +127,13 @@ fn a_version_names_what_a_sandbox_gets_and_nothing_else() {
         HUB_ONLY,
         &template("registry/computer@sha256:1", &reversed, &[]),
     );
-    same.config.handbook = Some("Edited guidance".into());
+    same.config.skills = std::collections::BTreeMap::from([(
+        "home".to_owned(),
+        std::collections::BTreeMap::from([(
+            "SKILL.md".to_owned(),
+            "---\nname: home\ndescription: Edited guidance.\n---\n".to_owned(),
+        )]),
+    )]);
     same.config.policy_file = "/etc/veoveo/hub/computer-v2.yaml".into();
     same.config.template.name = "computer-v2".into();
     same.config.forwarding_connection_limit = std::num::NonZeroUsize::new(7).unwrap();

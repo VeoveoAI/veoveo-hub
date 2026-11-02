@@ -17,7 +17,7 @@ pub struct VerifiedAccessToken {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthenticatedSubject {
-    /// Resolved at the authenticated execution boundary, never inferred from WorkContext.
+    /// Resolved at the authenticated execution boundary.
     pub execution: Option<veoveo_hub_sdk::ExecutionContext>,
     pub extensions: veoveo_types::AdmittedExtensions,
     pub audit: veoveo_audit_contract::AuditRequest,

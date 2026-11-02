@@ -23,8 +23,6 @@ pub(super) struct JwtClaimsWire {
     #[serde(default)]
     #[serde(rename = "https://veoveo.ai/claims/session-family")]
     pub(super) session_family: Option<veoveo_hub_sdk::HubRefreshFamilyId>,
-    #[serde(rename = "https://veoveo.ai/claims/work-context")]
-    pub(super) work_context: String,
     #[serde(rename = "https://veoveo.ai/claims/invocation-mode")]
     pub(super) invocation_mode: InvocationMode,
     #[serde(default)]

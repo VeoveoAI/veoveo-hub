@@ -10,7 +10,7 @@ The [crate design](crates/veoveo-hub/DESIGN.md) describes the Hub. It
 builds on [veoveo-core](https://github.com/VeoveoAI/veoveo-core) for the database
 kernel, identity, Tasks, the audit envelope and the usage ledger, and on
 [veoveo-hub-sdk](https://github.com/VeoveoAI/veoveo-hub-sdk) for MCP, the forwarded
-token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/a1d9d653ae3d723821cdeeab92f4a67acdca39ce/crates/veoveo-hub-sdk/src/registration/DESIGN.md)
+token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/aff002265f681aa03ac8747ed5008f5c4eddf979/crates/veoveo-hub-sdk/src/registration/DESIGN.md)
 every server follows. The Hub owns its control plane, its policy evaluator and the
 `hub` database schema.
 

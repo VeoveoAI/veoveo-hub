@@ -8,7 +8,7 @@ use sqlx::types::Json;
 use std::collections::BTreeSet;
 use uuid::Uuid;
 use veoveo_hub_sdk::{OAuthClientId, Principal, ProtectedResourceId};
-use veoveo_types::{ScopeName, Sha256Digest, WorkContextId};
+use veoveo_types::{ScopeName, Sha256Digest};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, veoveo_types::Vocabulary)]
 #[vocabulary(postgres)]
@@ -23,7 +23,6 @@ struct DeviceRow {
     id: Uuid,
     protected_resource: String,
     oauth_client_id: String,
-    work_context: String,
     scopes: Vec<String>,
     state: DeviceStatus,
     browser_digest: Option<String>,
@@ -38,7 +37,6 @@ pub struct DeviceAuthorization {
     pub id: Uuid,
     pub resource: ProtectedResourceId,
     pub client: OAuthClientId,
-    pub work_context: WorkContextId,
     pub scopes: BTreeSet<ScopeName>,
     pub expires_at: DateTime<Utc>,
     pub browser_digest: Option<Sha256Digest>,
@@ -50,7 +48,6 @@ impl TryFrom<DeviceRow> for DeviceAuthorization {
             id: row.id,
             resource: ProtectedResourceId::parse(row.protected_resource)?,
             client: OAuthClientId::parse(row.oauth_client_id)?,
-            work_context: WorkContextId::parse(row.work_context)?,
             scopes: row
                 .scopes
                 .into_iter()
@@ -67,7 +64,6 @@ pub struct NewDeviceAuthorization<'a> {
     pub user: &'a Sha256Digest,
     pub resource: &'a ProtectedResourceId,
     pub client: &'a OAuthClientId,
-    pub work_context: &'a WorkContextId,
     pub scopes: &'a BTreeSet<ScopeName>,
     pub now: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
@@ -102,7 +98,6 @@ impl HubStore {
             request.user.as_str(),
             request.resource.as_str(),
             request.client.as_str(),
-            request.work_context.as_str(),
             &scopes,
             request.now + TimeDelta::seconds(5),
             request.now,
@@ -268,8 +263,8 @@ mod tests {
             let db = crate::test_store::TestDb::new().await;
             let left = HubStore::new(db.a.clone()); let right = HubStore::new(db.b.clone());
             let now = Utc::now(); let id = Uuid::now_v7(); let device = digest(1); let user = digest(2); let browser = digest(3);
-            let client = OAuthClientId::parse("fixture-cli").unwrap(); let resource = ProtectedResourceId::parse("https://fixture.example/resource").unwrap(); let context = WorkContextId::parse("fixture").unwrap(); let scopes = BTreeSet::from([ScopeName::parse("offline_access").unwrap()]);
-            left.create_device_authorization(NewDeviceAuthorization { id, device:&device, user:&user, client:&client, resource:&resource, work_context:&context, scopes:&scopes, now, expires_at: now + TimeDelta::minutes(10) }).await.unwrap();
+            let client = OAuthClientId::parse("fixture-cli").unwrap(); let resource = ProtectedResourceId::parse("https://fixture.example/resource").unwrap(); let scopes = BTreeSet::from([ScopeName::parse("offline_access").unwrap()]);
+            left.create_device_authorization(NewDeviceAuthorization { id, device:&device, user:&user, client:&client, resource:&resource, scopes:&scopes, now, expires_at: now + TimeDelta::minutes(10) }).await.unwrap();
             assert!(matches!(right.poll_device_authorization(&device, &OAuthClientId::parse("wrong").unwrap(), now).await.unwrap(), DevicePoll::Invalid));
             assert!(matches!(right.poll_device_authorization(&device, &client, now + TimeDelta::seconds(5)).await.unwrap(), DevicePoll::Pending));
             assert!(matches!(left.poll_device_authorization(&device, &client, now + TimeDelta::seconds(6)).await.unwrap(), DevicePoll::SlowDown));
@@ -286,7 +281,7 @@ mod tests {
             assert_eq!(results.iter().filter(|r| matches!(r, DevicePoll::Invalid)).count(), 1);
             assert!(left.device_authorization(&user, time).await.unwrap().is_none());
             let expiring_device = digest(5); let expiring_user = digest(6); let expiring_id = Uuid::now_v7();
-            left.create_device_authorization(NewDeviceAuthorization { id:expiring_id, device:&expiring_device, user:&expiring_user, client:&client, resource:&resource, work_context:&context, scopes:&scopes, now, expires_at:now+TimeDelta::seconds(30) }).await.unwrap();
+            left.create_device_authorization(NewDeviceAuthorization { id:expiring_id, device:&expiring_device, user:&expiring_user, client:&client, resource:&resource, scopes:&scopes, now, expires_at:now+TimeDelta::seconds(30) }).await.unwrap();
             assert!(matches!(right.poll_device_authorization(&expiring_device, &client, now+TimeDelta::seconds(31)).await.unwrap(), DevicePoll::Expired));
             left.deny_device_authorization(expiring_id).await.unwrap();
             assert!(matches!(right.poll_device_authorization(&expiring_device, &client, now+TimeDelta::seconds(10)).await.unwrap(), DevicePoll::Denied));

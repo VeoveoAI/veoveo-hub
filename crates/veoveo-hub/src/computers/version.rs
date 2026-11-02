@@ -236,7 +236,7 @@ fn rules<'a>(pairs: impl Iterator<Item = &'a (String, String)>) -> Vec<NetworkRu
 /// The canonical document a version digests. Protobuf maps encode in no fixed order,
 /// so the policy enters in OpenShell's canonical JSON and the template's environment
 /// as a sorted map beside the rest of its spec, whose encoding has no map left. The
-/// handbook, the forwarding capacity, the gateway connection and the names of the
+/// skills, the forwarding capacity, the gateway connection and the names of the
 /// template and the policy file are left out: none reaches the sandbox itself. The
 /// supervisor and sandbox runtime images the gateway's driver reports are in: every new
 /// sandbox runs them.
@@ -246,7 +246,7 @@ fn canonical(spec: &ComputerProvisionSpec) -> Result<serde_json::Value> {
         .as_object_mut()
         .context("Computer settings are not an object")?;
     for key in [
-        "handbook",
+        "skills",
         "forwardingConnectionLimit",
         "collectAfterSeconds",
         "gateway",

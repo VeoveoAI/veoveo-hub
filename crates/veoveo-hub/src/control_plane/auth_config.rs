@@ -120,9 +120,6 @@ pub enum JwksSource {
 pub struct OAuthClientRegistration {
     pub id: OAuthClientId,
     pub authorization_server: AuthorizationServerId,
-    /// Canonical context used when this client does not explicitly select a
-    /// different context through an authorized interactive session.
-    pub default_work_context: WorkContextId,
     /// Invocation provenance this OAuth relationship is allowed to establish.
     pub invocation_mode: veoveo_types::InvocationMode,
     #[serde(default, skip_serializing_if = "Option::is_none")]

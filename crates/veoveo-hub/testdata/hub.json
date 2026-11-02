@@ -114,60 +114,10 @@
       "metadata": {}
     }
   ],
-  "workContexts": [
-    {
-      "id": "operations",
-      "tenant": "tenant-a",
-      "title": "Operations",
-      "policyRevision": "2026-07-02",
-      "outputPolicy": {
-        "owner": {
-          "kind": "group",
-          "id": "operations"
-        },
-        "initialGrants": [
-          {
-            "subject": {
-              "kind": "group",
-              "id": "reviewers"
-            },
-            "level": "read"
-          }
-        ]
-      },
-      "memberships": [
-        {
-          "level": "owner",
-          "oauthClients": [
-            "admin-console",
-            "admin-delegated",
-            "admin-service"
-          ]
-        },
-        {
-          "level": "contributor",
-          "oauthClients": [
-            "operator-local-public",
-            "operator-delegated",
-            "operator-hosted-public",
-            "operator-hosted-delegated",
-            "operator-service"
-          ]
-        },
-        {
-          "level": "contributor",
-          "oauthClients": [
-            "workspace"
-          ]
-        }
-      ]
-    }
-  ],
   "oauthClients": [
     {
       "id": "operator-local-public",
       "authorizationServer": "veoveo",
-      "defaultWorkContext": "operations",
       "invocationMode": "direct",
       "displayName": "Veoveo Operator Local Client",
       "clientSurface": "full_mcp",
@@ -201,7 +151,6 @@
     {
       "id": "operator-delegated",
       "authorizationServer": "veoveo",
-      "defaultWorkContext": "operations",
       "invocationMode": "delegated",
       "displayName": "Operator Delegated Client",
       "clientSurface": "full_mcp",
@@ -227,7 +176,6 @@
     {
       "id": "operator-hosted-public",
       "authorizationServer": "veoveo",
-      "defaultWorkContext": "operations",
       "invocationMode": "direct",
       "displayName": "Veoveo Operator Hosted Client",
       "clientSurface": "tools_compat",
@@ -256,7 +204,6 @@
     {
       "id": "operator-hosted-delegated",
       "authorizationServer": "veoveo",
-      "defaultWorkContext": "operations",
       "invocationMode": "delegated",
       "displayName": "Hosted Operator Delegated Client",
       "clientSurface": "tools_compat",
@@ -283,7 +230,6 @@
     {
       "id": "admin-console",
       "authorizationServer": "veoveo",
-      "defaultWorkContext": "operations",
       "invocationMode": "direct",
       "displayName": "Veoveo Admin Console",
       "clientSurface": "full_mcp",
@@ -311,7 +257,6 @@
     {
       "id": "admin-delegated",
       "authorizationServer": "veoveo",
-      "defaultWorkContext": "operations",
       "invocationMode": "delegated",
       "displayName": "Administration Delegated Client",
       "clientSurface": "full_mcp",
@@ -338,7 +283,6 @@
     {
       "id": "operator-service",
       "authorizationServer": "veoveo",
-      "defaultWorkContext": "operations",
       "invocationMode": "automated",
       "displayName": "Veoveo Operator Service",
       "clientSurface": "full_mcp",
@@ -366,7 +310,6 @@
     {
       "id": "admin-service",
       "authorizationServer": "veoveo",
-      "defaultWorkContext": "operations",
       "invocationMode": "automated",
       "displayName": "Veoveo Admin Service",
       "clientSurface": "full_mcp",
@@ -395,7 +338,6 @@
     {
       "id": "workspace",
       "authorizationServer": "veoveo",
-      "defaultWorkContext": "operations",
       "invocationMode": "direct",
       "displayName": "Veoveo Workspace",
       "clientSurface": "full_mcp",

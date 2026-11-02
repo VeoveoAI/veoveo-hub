@@ -12,14 +12,14 @@ use chrono::{TimeDelta, Utc};
 use hub::Hub;
 use serde_json::{Value, json};
 use veoveo_fixtures::store::TestDb;
-use veoveo_types::{PrincipalId, TenantId, WorkContextId};
+use veoveo_types::{PrincipalId, TenantId};
 use veoveo_usage::UsageStore;
 use veoveo_usage_contract::{
     ChargePeriod, Currency, Money, Quantity, ServiceCategory, UsageActor, UsageDraft, UsageKind,
     UsageKindDeclaration, UsagePhase, UsageSourceId, UsageUnit,
 };
 
-/// The principal, tenant and Work Context an access token names.
+/// The principal and tenant an access token names.
 fn actor(token: &str) -> UsageActor {
     use base64::Engine as _;
     let claims: Value = serde_json::from_slice(
@@ -37,12 +37,6 @@ fn actor(token: &str) -> UsageActor {
         .unwrap(),
         tenant: TenantId::parse(claims["https://veoveo.ai/claims/tenant"].as_str().unwrap())
             .unwrap(),
-        work_context: WorkContextId::parse(
-            claims["https://veoveo.ai/claims/work-context"]
-                .as_str()
-                .unwrap(),
-        )
-        .unwrap(),
     }
 }
 

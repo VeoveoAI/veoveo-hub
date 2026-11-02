@@ -14,7 +14,7 @@ use veoveo_hub::{
 };
 use veoveo_hub_sdk::ProtectedResourceId;
 use veoveo_hub_sdk::*;
-use veoveo_types::{InvocationMode, PrincipalId, ScopeName, TenantId, WorkContextId};
+use veoveo_types::{InvocationMode, PrincipalId, ScopeName, TenantId};
 
 #[tokio::test]
 async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation() {
@@ -25,7 +25,6 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
     let resource = ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap();
     let authorization_server = AuthorizationServerId::parse("veoveo").unwrap();
     let client = OAuthClientId::parse("console").unwrap();
-    let context = WorkContextId::parse("mission").unwrap();
     let principal = Principal {
         id: PrincipalId::parse("https://identity.example#one").unwrap(),
         kind: PrincipalKind::User,
@@ -50,7 +49,6 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
                 authorization_server: &authorization_server,
                 protected_resource: &resource,
                 oauth_client_id: &client,
-                work_context: &context,
                 principal: &principal,
                 principal_display_name: &display,
                 scopes: &principal.scopes,
@@ -101,7 +99,6 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
             oauth_client_id: client.clone(),
             session_family: Some(issued.grant.family_id.clone()),
             audience: ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap(),
-            work_context: context.clone(),
             invocation_mode: InvocationMode::Direct,
             initiator: Some(principal.id.clone()),
             delegation_id: None,
@@ -164,11 +161,10 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
                 .await
                 .unwrap()
         );
-        for mismatch in ["client", "context", "scope"] {
+        for mismatch in ["client", "scope"] {
             let mut bad = token.clone();
             match mismatch {
                 "client" => bad.oauth_client_id = OAuthClientId::parse("other").unwrap(),
-                "context" => bad.work_context = WorkContextId::parse("other").unwrap(),
                 _ => {
                     bad.scopes.insert(ScopeName::parse("admin:use").unwrap());
                 }
@@ -306,7 +302,6 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
         "subject": "service",
         "oauth_client_id": "service",
         "audience": "https://veoveo.example/mcp/operator",
-        "work_context": "mission",
         "invocation_mode": "automated",
         "issued_at": Utc::now(),
         "expires_at": Utc::now() + TimeDelta::minutes(15)
@@ -346,7 +341,6 @@ fn audit(
         principal: principal.id.clone(),
         kind: AuditPrincipalKind::User,
         tenant: principal.tenant.clone(),
-        work_context: None,
     });
     if let Some(reason) = veoveo_hub::audit::authentication_reason(reason) {
         draft = draft.reason(reason);

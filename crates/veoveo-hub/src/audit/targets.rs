@@ -5,9 +5,7 @@
 use anyhow::{Context, Result};
 use veoveo_audit_contract::{AuditPartition, AuditTarget, task_target};
 use veoveo_hub_sdk::{HubProfileId, ProtectedResourceId, audit::McpTarget};
-use veoveo_types::{
-    OAuthClientId, ResourceUri, ResourceUriBuilder, ServerSlug, TenantId, UriSegment, WorkContextId,
-};
+use veoveo_types::{OAuthClientId, ResourceUri, ResourceUriBuilder, ServerSlug, UriSegment};
 
 use crate::control_plane::PolicyTarget;
 
@@ -52,17 +50,6 @@ pub fn client_target(client: &OAuthClientId) -> Result<AuditTarget> {
     target(
         platform("veoveo://clients")?
             .segment(segment(client.as_str())?)
-            .build()?,
-    )
-}
-
-/// `veoveo://tenants/{tenant}/work-contexts/{context}`: a Work Context of a tenant.
-pub fn work_context_target(tenant: &TenantId, context: &WorkContextId) -> Result<AuditTarget> {
-    target(
-        platform("veoveo://tenants")?
-            .segment(segment(tenant.as_str())?)
-            .segment(segment("work-contexts")?)
-            .segment(segment(context.as_str())?)
             .build()?,
     )
 }

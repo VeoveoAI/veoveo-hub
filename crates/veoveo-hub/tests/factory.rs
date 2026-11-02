@@ -1748,7 +1748,7 @@ fn native_section(config: &mut serde_json::Value) {
         ]
     });
     config["oauthClients"].as_array_mut().unwrap().push(json!({
-        "id": "native-cli", "authorizationServer": "local", "defaultWorkContext": "local",
+        "id": "native-cli", "authorizationServer": "local",
         "invocationMode": "direct", "allowedResources": [NATIVE_RESOURCE],
         "grantTypes": ["device_authorization", "refresh_token", "token_exchange"],
         "authMethods": ["none"], "allowedScopes": ["native:login", "offline_access"]
@@ -1973,7 +1973,7 @@ async fn computer_on(
             "gateway": gateway,
             "template": {"workspace": "installation", "name": "computer"},
             "policyFile": "/unused/policy", "command": ["/unused/app"],
-            "oauthClient": "computer-browser", "profile": "computer", "workContext": "local", "port": 4096,
+            "oauthClient": "computer-browser", "profile": "computer", "port": 4096,
             "hubProvider": {"profile": "vv-computer-hub", "credentialKey": "COMPUTER_HUB_REFERENCE"},
             "modelProvider": {"profile": "vv-computer-model", "credentialKey": "DEEPINFRA_API_KEY", "secret": "unused"},
             "loreProvider": {"profile": "vv-lore", "credentialKey": "LORE_ACCESS_TOKEN"}

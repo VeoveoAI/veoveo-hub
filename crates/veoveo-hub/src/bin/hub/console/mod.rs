@@ -21,7 +21,7 @@ pub(crate) struct ConsoleState {
     pub offline_mode: bool,
 }
 
-/// Authentication supplies current identity and Work Context before this handler.
+/// Authentication supplies current identity and invocation authority before this handler.
 /// The permission flag is presentation data; each administrative request authorizes again.
 pub(crate) async fn bootstrap(
     State(state): State<ConsoleState>,

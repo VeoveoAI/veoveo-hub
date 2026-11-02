@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.refresh_family (\n    id, authorization_server, protected_resource, oauth_client_id, principal_id, tenant,\n    scopes, principal, principal_display_name, current_generation, issued_at, expires_at\n)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, $10, $11)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "Jsonb",
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "68437cf40322f1f00c4d98390ba2dbf28fcf3f1902ea9f3149f96fde2d0efb62"
+}

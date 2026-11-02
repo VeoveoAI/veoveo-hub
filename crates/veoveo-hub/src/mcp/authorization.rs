@@ -9,9 +9,7 @@ use rmcp::{
 };
 use veoveo_audit_contract::AuditOutcome;
 use veoveo_hub_sdk::{CanonicalTaskId, LocalToolName, PromptName, ServerSlug};
-use veoveo_store::{
-    deterministic_principal_id, deterministic_tenant_id, deterministic_work_context_id,
-};
+use veoveo_store::{deterministic_principal_id, deterministic_tenant_id};
 
 use crate::{
     AuthenticatedSubject, PolicyRequest,
@@ -94,14 +92,10 @@ impl HubMcp {
             .map_err(|error| mcp_internal(format!("invalid task tenant: {error}")))?;
         let expected_owner = deterministic_principal_id(tenant_key, subject.actor.id.as_str())
             .map_err(|error| mcp_internal(format!("invalid task owner: {error}")))?;
-        let expected_work_context =
-            deterministic_work_context_id(tenant_key, subject.authority.work_context.as_str())
-                .map_err(|error| mcp_internal(format!("invalid task Work Context: {error}")))?;
         let request = task_decision::admit_owner(
             task_decision::Binding {
                 tenant: route.tenant,
                 owner: route.owner,
-                work_context: route.work_context,
                 profile: route.profile,
             },
             task_decision::Ownership {
@@ -119,7 +113,6 @@ impl HubMcp {
                 binding: task_decision::Binding {
                     tenant: expected_tenant,
                     owner: expected_owner,
-                    work_context: expected_work_context,
                     profile: self.profile_id.clone(),
                 },
                 ownership: task_decision::Ownership {
@@ -535,6 +528,30 @@ impl HubMcp {
             ));
         }
         Ok(subject)
+    }
+
+    /// `skills/get` records its answer. A refusal of the skill's own address commits
+    /// here, before any upstream request.
+    pub(super) async fn admit_skill_get(
+        &self,
+        context: &RequestContext<RoleServer>,
+        subject: &AuthenticatedSubject,
+        server: ServerSlug,
+        uri: &str,
+    ) -> Result<(), McpError> {
+        let action = HubAction::SkillsGet;
+        let target = resource_policy_target(server, uri)?;
+        let decision = self
+            .policy_decision(subject, action, &target, trace_id_for_context(context)?)
+            .await?;
+        if decision.effect == PolicyEffect::Deny {
+            self.record_policy_denial(subject, action, target, decision.reason)
+                .await?;
+            return Err(mcp_invalid_request(
+                self.written(&decision.target).denial(decision.reason),
+            ));
+        }
+        Ok(())
     }
 
     pub(super) async fn authorize_projected_resource(
@@ -1116,7 +1133,7 @@ mod tests {
                 "grants": [{ "role": "registered-policy-reader", "subject": { "principal": "registered-policy-caller" } }]
             },
             "policies": [{ "version": "2026-10-30", "rules": [] }],
-            "tenants": [], "workContexts": [], "dataLabels": [], "oidcClients": []
+            "tenants": [], "dataLabels": [], "oidcClients": []
         })).unwrap();
         let slug = ServerSlug::parse("registered-policy-fixture").unwrap();
         let permission = |action: &str| {
@@ -1758,9 +1775,7 @@ mod tests {
         use chrono::{TimeDelta, Utc};
         use std::collections::BTreeSet;
         use veoveo_hub_sdk::{AccessTokenSubject, OAuthClientId, ProtectedResourceId};
-        use veoveo_types::{
-            DelegationId, GroupId, InvocationMode, ScopeName, TenantId, WorkContextId,
-        };
+        use veoveo_types::{DelegationId, GroupId, InvocationMode, ScopeName, TenantId};
 
         let mut principal = super::super::tests::principal();
         principal.tenant = Some(TenantId::parse("tenant-a").unwrap());
@@ -1776,7 +1791,6 @@ mod tests {
             oauth_client_id: OAuthClientId::parse("operator-delegated").unwrap(),
             session_family: None,
             audience: ProtectedResourceId::parse("https://veoveo.example/mcp/operator").unwrap(),
-            work_context: WorkContextId::parse("operations").unwrap(),
             invocation_mode: InvocationMode::Delegated,
             initiator: Some(principal.id.clone()),
             delegation_id: Some(DelegationId::parse("cache-delegation").unwrap()),

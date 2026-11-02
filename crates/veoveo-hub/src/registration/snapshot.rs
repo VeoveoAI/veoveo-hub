@@ -15,6 +15,9 @@ pub struct ServerCapabilities {
     pub prompts: bool,
     pub completions: bool,
     pub tasks: bool,
+    /// Whether it serves skills: it requires `skill://` files, which registration admits
+    /// only under its own slug.
+    pub skills: bool,
 }
 
 impl ServerCapabilities {
@@ -24,12 +27,17 @@ impl ServerCapabilities {
         let resources =
             !requirements.resources.is_empty() || !requirements.resource_templates.is_empty();
         let prompts = !requirements.prompts.is_empty();
+        let skills = requirements.resources.keys().any(|uri| {
+            uri.as_str()
+                .starts_with(&format!("{}://", veoveo_hub_sdk::skills::SCHEME))
+        });
         Self {
             tools,
             resources,
             prompts,
             completions: resources || prompts,
             tasks: tools,
+            skills,
         }
     }
 }

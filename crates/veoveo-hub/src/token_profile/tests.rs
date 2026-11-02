@@ -158,14 +158,13 @@ fn context<'a>(catalog: &'a HubCatalog, principal: &'a Principal) -> TokenContex
         &resource.resource,
         &client.id,
         principal,
-        &client.default_work_context,
         &resource.required_scopes,
         None,
     )
     .unwrap()
 }
 #[test]
-fn owner_grants_use_current_assignments_and_do_not_acquire_a_work_context_gate() {
+fn owner_grants_use_current_assignments_and_do_not_acquire_a_tenant_gate() {
     let (registry, key) = registry();
     let mut principal = principal();
     principal.tenant = Some(veoveo_types::TenantId::parse("tenant-b").unwrap());
@@ -234,7 +233,6 @@ fn foreign_registry_and_wrong_resource_are_refused_before_owner_authorization() 
         &resource.protected_resource,
         &client.id,
         &principal,
-        &client.default_work_context,
         &scopes,
         None,
     )

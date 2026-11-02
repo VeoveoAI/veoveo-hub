@@ -52,18 +52,35 @@ impl HubMcp {
             rmcp::model::TASKS_EXTENSION_ID.to_owned(),
             JsonObject::new(),
         );
+        // Skills are listed per caller from the servers it reaches, without directory
+        // reads: every manifest is complete.
+        extensions.insert(
+            rmcp::model::SKILLS_EXTENSION_ID.to_owned(),
+            skills_capability(),
+        );
         capabilities.extensions = Some(extensions);
 
         let mut info = ServerConfig::default();
         info.capabilities = capabilities;
         info.server_info = Implementation::new("veoveo-hub", env!("CARGO_PKG_VERSION"));
-        let mut instructions = HUB_INSTRUCTIONS.to_string();
-        if let Some(handbook) = self.computer_handbook() {
-            instructions.push_str("\n\n");
-            instructions.push_str(&handbook);
-        }
-        info.instructions = Some(instructions);
+        info.instructions = Some(self.instructions(None));
         info
+    }
+
+    /// The Hub's instructions: its one line, then for a Computer's own client the section
+    /// about the person whose Computer it is, when `person` holds it, and the addresses
+    /// of the installation's own skills.
+    fn instructions(&self, person: Option<&str>) -> String {
+        let mut instructions = HUB_INSTRUCTIONS.to_string();
+        if let Some(person) = person {
+            instructions.push_str("\n\n");
+            instructions.push_str(person);
+        }
+        if let Some(pointers) = self.skill_pointers() {
+            instructions.push_str("\n\n");
+            instructions.push_str(&pointers);
+        }
+        instructions
     }
 
     /// `server/discover`'s answer, for the operation's authenticated caller.
@@ -79,42 +96,51 @@ impl HubMcp {
     }
 
     /// The server information `server/discover` answers `subject`: `get_info`'s, and for
-    /// a Computer's own client, after its handbook, the section about the person whose
-    /// Computer it is.
+    /// a Computer's own client the section about the person whose Computer it is after
+    /// the Hub's line.
     async fn discovered_info(&self, subject: Option<&AuthenticatedSubject>) -> ServerConfig {
         let mut info = self.handle_get_info();
         let section = match subject {
             Some(subject) => self.person_section(subject).await,
             None => None,
         };
-        if let Some(section) = section {
-            let instructions = info.instructions.get_or_insert_with(String::new);
-            instructions.push_str("\n\n");
-            instructions.push_str(&section);
-        }
+        info.instructions = Some(self.instructions(section.as_deref()));
         info
     }
 
     /// The installation's Computer settings in `catalog`, when this operation's caller is
     /// a Computer's own client on the Computers' profile: no other caller of the Hub gets
     /// what follows from them.
-    fn computers_of_caller<'a>(&self, catalog: &'a HubCatalog) -> Option<&'a Computers> {
+    pub(super) fn computers_of_caller<'a>(&self, catalog: &'a HubCatalog) -> Option<&'a Computers> {
         let client = self.client.as_ref()?;
         let computers = catalog.control_plane().computers.as_ref()?;
         (computers.profile == self.profile_id && &computers.oauth_client == client)
             .then_some(computers)
     }
 
-    /// The installation's Computer handbook, for a Computer's own client on the
-    /// Computers' profile only: other callers of the Hub never receive it.
-    fn computer_handbook(&self) -> Option<String> {
+    /// Where the installation's own skills are, for a Computer's own client on the
+    /// Computers' profile only: each skill's address and description. Other callers of
+    /// the Hub never learn of them, and an installation without skills names none.
+    fn skill_pointers(&self) -> Option<String> {
         let catalog = self.catalog.current();
-        self.computers_of_caller(&catalog)?
-            .handbook
-            .as_deref()
-            .map(str::trim)
-            .filter(|handbook| !handbook.is_empty())
-            .map(str::to_owned)
+        self.computers_of_caller(&catalog)?;
+        let skills = catalog.hub_skills().skills();
+        if skills.is_empty() {
+            return None;
+        }
+        let mut text = String::from(
+            "## Skills\n\nLoad a skill with `skills/get` when a task needs it, and read its \
+             files with `resources/read`:\n",
+        );
+        for skill in skills {
+            let _ = write!(
+                text,
+                "\n- `{}`: {}",
+                skill.uri,
+                skill.frontmatter.description.trim()
+            );
+        }
+        Some(text)
     }
 
     /// The section about the person whose Computer `subject`'s client is, for a
@@ -122,8 +148,8 @@ impl HubMcp {
     /// Computer still connects.
     async fn person_section(&self, subject: &AuthenticatedSubject) -> Option<String> {
         let catalog = self.catalog.current();
-        let computers = self.computers_of_caller(&catalog)?;
-        match self.person_brief(&catalog, computers, subject).await {
+        self.computers_of_caller(&catalog)?;
+        match self.person_brief(&catalog, subject).await {
             Ok(brief) => brief.map(|brief| brief.markdown()),
             Err(error) => {
                 tracing::warn!(
@@ -141,7 +167,6 @@ impl HubMcp {
     async fn person_brief(
         &self,
         catalog: &HubCatalog,
-        computers: &Computers,
         subject: &AuthenticatedSubject,
     ) -> Result<Option<PersonBrief>> {
         let principal = &subject.principal;
@@ -178,12 +203,6 @@ impl HubMcp {
                 tenant.as_str(),
                 catalog.tenant(tenant).and_then(|t| t.title.as_deref()),
             ),
-            work_context: titled(
-                computers.work_context.as_str(),
-                catalog
-                    .work_context(&computers.work_context)
-                    .map(|context| context.title.as_str()),
-            ),
             computer: computer.id.clone(),
         }))
     }
@@ -204,7 +223,6 @@ struct PersonBrief {
     person: Option<Person>,
     principal: String,
     tenant: String,
-    work_context: String,
     computer: ComputerId,
 }
 
@@ -221,12 +239,20 @@ impl PersonBrief {
         }
         let _ = write!(
             text,
-            ". Their principal is `{}` in the tenant {}. This Computer works in the Work \
-             Context {}.\n\nThis is their Computer `{}`. Everything here acts as {}: every \
-             Hub tool, and every command line that holds this Computer's credentials.",
-            self.principal, self.tenant, self.work_context, self.computer, self.name
+            ". Their principal is `{}` in the tenant {}.\n\nThis is their Computer `{}`. \
+             Everything here acts as {}: every Hub tool, and every command line that holds \
+             this Computer's credentials.",
+            self.principal, self.tenant, self.computer, self.name
         );
         text
+    }
+}
+
+/// The skills extension's settings: no `directoryRead`, since every manifest is complete.
+fn skills_capability() -> JsonObject {
+    match serde_json::to_value(rmcp::model::SkillsCapability::new()) {
+        Ok(serde_json::Value::Object(settings)) => settings,
+        _ => JsonObject::new(),
     }
 }
 
@@ -249,10 +275,13 @@ mod tests {
         person::{Email, Person},
     };
 
-    const HANDBOOK: &str =
-        "## Home\n\n`~` is always kept; everything else comes with the Computer version.\n";
+    const HOME: &str = "---\nname: home\ndescription: What your Computer keeps and what each version brings.\n---\n# Home\n\n`~` is always kept; everything else comes with the Computer version.\n";
 
-    fn plane(handbook: Option<&str>) -> HubControlPlane {
+    /// The pointers a Computer's own client reads to the installation's `home` skill.
+    const POINTERS: &str = "## Skills\n\nLoad a skill with `skills/get` when a task needs it, and read its files with `resources/read`:\n\n- `skill://veoveo/home/SKILL.md`: What your Computer keeps and what each version brings.";
+
+    /// The test installation with Computers, and the `home` skill when `skills` is set.
+    fn plane(skills: bool) -> HubControlPlane {
         let mut plane: HubControlPlane =
             serde_json::from_str(include_str!("../../testdata/hub.json")).unwrap();
         plane.secrets.push(
@@ -266,13 +295,18 @@ mod tests {
             "gateway": {"endpoint": "https://gateway.example/", "certificateAuthority": "/unused/ca", "bearerEnvironment": "UNUSED"},
             "template": {"workspace": "installation", "name": "computer"},
             "policyFile": "/unused/policy", "command": ["/usr/local/bin/opencode", "serve"],
-            "oauthClient": "operator-local-public", "profile": "operator", "workContext": "operations", "port": 4096,
+            "oauthClient": "operator-local-public", "profile": "operator", "port": 4096,
             "hubProvider": {"profile": "vv-computer-hub", "credentialKey": "COMPUTER_HUB_REFERENCE"},
             "modelProvider": {"profile": "vv-computer-model", "credentialKey": "DEEPINFRA_API_KEY", "secret": "computer-model-api-key"},
             "loreProvider": {"profile": "vv-lore", "credentialKey": "LORE_ACCESS_TOKEN"}
         }))
         .unwrap();
-        computers.handbook = handbook.map(str::to_owned);
+        if skills {
+            computers.skills = std::collections::BTreeMap::from([(
+                "home".to_owned(),
+                std::collections::BTreeMap::from([("SKILL.md".to_owned(), HOME.to_owned())]),
+            )]);
+        }
         plane.computers = Some(computers);
         plane
     }
@@ -314,20 +348,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn computer_clients_receive_the_handbook_as_server_instructions() {
+    async fn computer_clients_are_pointed_at_the_installations_skills() {
         tokio::time::timeout(Duration::from_secs(90), async {
             let db = crate::test_store::TestDb::new().await;
             let state = crate::HubState::new(db.a.clone());
             let computer = instructions(
                 &state,
-                plane(Some(HANDBOOK)),
+                plane(true),
                 "operator",
                 Some("operator-local-public"),
             );
-            assert_eq!(
-                computer,
-                format!("{HUB_INSTRUCTIONS}\n\n{}", HANDBOOK.trim())
-            );
+            assert_eq!(computer, format!("{HUB_INSTRUCTIONS}\n\n{POINTERS}"));
             for (profile, client) in [
                 // Another client of the Computers' profile.
                 ("operator", Some("operator-delegated")),
@@ -336,33 +367,36 @@ mod tests {
                 ("operator", None),
             ] {
                 assert_eq!(
-                    instructions(&state, plane(Some(HANDBOOK)), profile, client),
+                    instructions(&state, plane(true), profile, client),
                     HUB_INSTRUCTIONS,
-                    "{profile} {client:?} must not receive the Computer handbook"
+                    "{profile} {client:?} must not learn of the installation's skills"
                 );
             }
-            for handbook in [None, Some(""), Some(" \n")] {
-                assert_eq!(
-                    instructions(
-                        &state,
-                        plane(handbook),
-                        "operator",
-                        Some("operator-local-public")
-                    ),
-                    HUB_INSTRUCTIONS
-                );
-            }
+            assert_eq!(
+                instructions(
+                    &state,
+                    plane(false),
+                    "operator",
+                    Some("operator-local-public")
+                ),
+                HUB_INSTRUCTIONS
+            );
+            // Every caller is told the Hub serves skills.
+            let capabilities = hub(&state, plane(true), "admin", None)
+                .get_info()
+                .capabilities;
+            assert!(capabilities.supports_skills());
         })
         .await
         .expect("instructions fixture deadline");
     }
 
     #[tokio::test]
-    async fn a_computer_client_discovers_whom_it_works_for_after_the_handbook() {
+    async fn a_computer_client_discovers_whom_it_works_for_before_its_skills() {
         tokio::time::timeout(Duration::from_secs(90), async {
             let db = crate::test_store::TestDb::new().await;
             let state = crate::HubState::new(db.a.clone());
-            let mut plane = plane(Some(HANDBOOK));
+            let mut plane = plane(true);
             // The person holds an installation role and their sign-in carries one: neither
             // is a fact fixed for the Computer's life, so the section names neither.
             plane.authorization = serde_json::from_value(serde_json::json!({
@@ -390,10 +424,10 @@ mod tests {
                     Some("operator-local-public"),
                 )
             };
-            let handbook = format!("{HUB_INSTRUCTIONS}\n\n{}", HANDBOOK.trim());
+            let pointed = format!("{HUB_INSTRUCTIONS}\n\n{POINTERS}");
 
             // A person without a Computer is told about no Computer.
-            assert_eq!(discovered(computer_client()).await, handbook);
+            assert_eq!(discovered(computer_client()).await, pointed);
 
             state
                 .hub_store()
@@ -422,15 +456,15 @@ mod tests {
             let version = computer.provisioning.version().unwrap();
             let instructions = discovered(computer_client()).await;
             let section = instructions
-                .strip_prefix(&format!("{handbook}\n\n"))
-                .expect("the section follows the handbook");
+                .strip_prefix(&format!("{HUB_INSTRUCTIONS}\n\n"))
+                .and_then(|rest| rest.strip_suffix(&format!("\n\n{POINTERS}")))
+                .expect("the section is between the Hub's line and the skills");
             assert_eq!(
                 section,
                 format!(
                     "## Who you work for\n\n\
                      You work for Alex Rozgo, alex@example.com. Their principal is \
-                     `issuer#subject` in the tenant Smoke tenant (`tenant-a`). This Computer \
-                     works in the Work Context Operations (`operations`).\n\n\
+                     `issuer#subject` in the tenant Smoke tenant (`tenant-a`).\n\n\
                      This is their Computer `{}`. Everything here acts as Alex Rozgo: every \
                      Hub tool, and every command line that holds this Computer's credentials.",
                     computer.id
@@ -459,7 +493,7 @@ mod tests {
                     .await
                     .instructions
                     .unwrap(),
-                handbook
+                pointed
             );
         })
         .await

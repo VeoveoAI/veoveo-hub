@@ -11,9 +11,10 @@ Neither its code nor its configuration names a server.
 | Standard | Profile |
 |---|---|
 | MCP `2026-07-28`, Streamable HTTP | One endpoint per profile at `/mcp/{profile}`, aggregating tools, resources, resource templates, prompts, completions, Tasks and resource subscriptions of registered servers. `server/discover` lists `2026-07-28` as the only version, and another version is refused with `-32022`. The `resources.subscribe` capability declares `resourceSubscriptions` on `subscriptions/listen`; `resources/subscribe` and `resources/unsubscribe` are no methods of that version and answer `-32601` |
+| MCP Skills extension `io.modelcontextprotocol/skills`, SEP-2640, and the Agent Skills format | `skills/list` and `skills/get` for the skills of the servers a caller reaches, each at `skill://{slug}/{name}/{path}` and passed unchanged, and for a Computer's own client the installation's own at `skill://veoveo/{name}/{path}`; the files are read with `resources/read`. Declared without `directoryRead`, since every manifest is complete; `"dynamic"` skills are not offered. See [skills](#skills) |
 | MCP Apps `2026-01-26`, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value. The Hub is the installation's web host of Apps, with the sandbox proxy on its own origin; see [Apps host](#apps-host) |
 | HTML iframe `sandbox` and Content Security Policy Level 3 | An App runs in an `allow-scripts` frame without `allow-same-origin`, under the policy the Hub builds from its declaration; see [Apps host](#apps-host) |
-| [Server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/523c7ace42660a20b213bef7acb31398813fec97/crates/veoveo-hub-sdk/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
+| [Server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/aff002265f681aa03ac8747ed5008f5c4eddf979/crates/veoveo-hub-sdk/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
 | JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `HubInternalTokenIssuer`; a call another server made names that server as the prior actor |
 | OAuth 2.0 Token Exchange, RFC 8693, with RFC 9396 token requests | `/oauth/token` with the `urn:ietf:params:oauth:grant-type:token-exchange` grant, for registered servers that declare uses; profile in [calls between servers](#calls-between-servers) |
 | OAuth 2.0, RFC 6749, and RFC 7523 | The hosted authorization server; see [token and session authority](src/auth/DESIGN.md) |
@@ -27,8 +28,8 @@ Neither its code nor its configuration names a server.
 | PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, then the Hub's own `hub` schema, applied at startup; `LISTEN` on the `hub` channel for registration changes; one login role per registration. A database per data environment in the same instance, with core's kernel schemas |
 | OpenTelemetry | `service.name` is `veoveo-hub` |
 | Veoveo installation configuration | `HubControlPlane` in `src/control_plane.rs`, read as JSON |
-| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Hub's `hub.*` classes. The Hub's records carry its own reason codes and name targets by URI |
-| [Veoveo usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/platform/usage/DESIGN.md), after FOCUS 1.4 with ISO 4217 currencies | The Hub prepares the ledger's monthly partitions and serves daily totals across servers |
+| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/05b6c47540680e085cc5356ed4ba8742ecc78bff/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Hub's `hub.*` classes. The Hub's records carry its own reason codes and name targets by URI |
+| [Veoveo usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/05b6c47540680e085cc5356ed4ba8742ecc78bff/platform/usage/DESIGN.md), after FOCUS 1.4 with ISO 4217 currencies | The Hub prepares the ledger's monthly partitions and serves daily totals across servers |
 
 ## Execution Composition And Deployment Identity
 
@@ -215,8 +216,8 @@ level the cause deserves.
 ## Configuration
 
 The installation configuration holds identity providers, the hosted authorization
-server, profiles, OAuth clients, tenants, Work Contexts, policy rules for the Hub's
-own actions, and two sections for registered servers:
+server, profiles, OAuth clients, tenants, policy rules for the Hub's own actions, and
+two sections for registered servers:
 
 - `authorization`: roles that select permissions by access kind and risk, grants of
   roles to groups or principals, and overrides that add a risk to or deny a permission;
@@ -229,7 +230,7 @@ and `acceptance-admin`, that hold the `member` and `admin` roles.
 ## Server Registration
 
 `src/registration` implements the [server registration
-protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/523c7ace42660a20b213bef7acb31398813fec97/crates/veoveo-hub-sdk/src/registration/DESIGN.md)
+protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/aff002265f681aa03ac8747ed5008f5c4eddf979/crates/veoveo-hub-sdk/src/registration/DESIGN.md)
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
 then the software statement against the pinned key and the endpoint URL. The slug
@@ -771,8 +772,9 @@ link could not run.
 The catalog combines the installation configuration with the registration snapshot.
 A server's MCP surfaces follow its authorization declaration: tools when it declares
 tool requirements, resources and completions when it declares resources or templates,
-prompts when it declares prompts. A server's URI scheme equals its slug, so resource
-URIs pass through unchanged and the Hub routes them by scheme or `ui://{slug}/`.
+prompts when it declares prompts, and skills when it requires `skill://` files. A
+server's URI scheme equals its slug, so resource URIs pass through unchanged and the Hub
+routes them by scheme, `ui://{slug}/` or `skill://{slug}/`.
 Tools are listed as `{slug}__{tool}`. A slug holds no two consecutive underscores, so a
 name splits at its first `__`.
 
@@ -781,8 +783,8 @@ caller's selected branch whose linked repository the caller holds a
 [grant](#groups-and-sharing) on, from that link's runner: its tools as
 `{slug}__{link}__{tool}`, and its resources and templates as `{slug}://{link}/{rest}`,
 which reach the runner as `{slug}://{rest}`, so the program never knows its link's name.
-Its `ui://{slug}/` resources, its prompts and its app origin are one set for the server,
-served by the first runner by link the caller reaches. A name or URI that names a link
+Its `ui://{slug}/` resources, its skills, its prompts and its app origin are one set for
+the server, served by the first runner by link the caller reaches. A name or URI that names a link
 the caller holds no grant on, or no link of the selected branch, or a linked server's
 name without a link, is refused as a target the server did not declare, and the denial
 is recorded as one. Each runner is discovered, watched and cached on its own, and policy
@@ -839,6 +841,45 @@ discovery watches; a discovery beyond it fails until watches end. List pages use
 cursor of at most 16 KiB that carries the surface and the last returned identity, so
 each page uses the caller's current admission on any replica.
 
+## Skills
+
+A server serves the guidance for using it as skills (MCP Skills, SEP-2640), and the
+Hub passes them through: a skill's address is `skill://{slug}/{name}/SKILL.md`, which
+names the server behind the one MCP server a host sees, and its files are resources at
+`skill://{slug}/{name}/{path}`. The SDK's registration admits requirements on `skill://`
+only under the server's own slug, so the address alone routes a skill, and the Hub
+rewrites neither entries nor bytes, whose digests therefore hold. A server whose
+registration requires `skill://` files is asked for its skills; a linked server's skills
+are one set, served by the first runner by link the caller reaches, as its Apps are.
+`skill://veoveo/` is the Hub's own: `veoveo` is a reserved slug no server registers.
+
+`skills/list` gathers, for each server the caller reaches, its `skills/list` from the
+discovery cache under the `skills` surface, keyed and invalidated as the other surfaces
+are, and offers an entry only when it is the server's own, valid, with a full manifest,
+and the caller's policy admits `skills/list` on every one of its files as a resource of
+the server: an entry with any file denied is left out whole and counted as denied. A
+server that fails is left out and named under the `skills` surface, as for prompts. For a
+Computer's own client the installation's own skills come first. The answer is private,
+paged by skill address, and its one `mcp.discovery` record has the collection `skills`.
+
+`skills/get` routes by the address's slug. The caller's policy must admit `skills/get` on
+the skill's `SKILL.md` before the server is asked, and then on every file of the manifest
+the server answers; the answer is private with a TTL of zero. A refusal before the server
+is asked commits its denial record; otherwise the Hub records `mcp.read` with the method
+`skill_get` and the skill's address as its target, with the outcome. A skill file is read
+with `resources/read` like any of the server's resources, under `resources/read` on that
+file.
+
+The installation's own skills are `computers.skills`: each skill name to its files, each
+path relative to the skill's directory to its UTF-8 text. When the configuration loads,
+each skill is read with core's `veoveo_skills::load::skill`, which refuses what a host
+would refuse, and projected with every file's SHA-256 and size; a configuration with an
+invalid skill is refused. They are served to callers whose token belongs to
+`computers.oauthClient` on `/mcp/{computers.profile}` alone, as `skills/list` entries,
+`skills/get` answers and `resources/read` of their files, each recorded as `mcp.read`
+with the file's or skill's address as target; any other caller is told no skill or
+resource is there. They change only with a publication.
+
 ## Authorization
 
 `policy::decide` in `src/policy` makes every decision. A registered server's tools,
@@ -853,6 +894,19 @@ A request on a server's app origin is the action `app_origin` on the target
 is. The Hub's own administrative actions are decided by the configuration's policy
 rules. A grant or rule that names a group matches the caller's groups: their identity
 provider's, and their Lore groups by ID ([groups and sharing](#groups-and-sharing)).
+
+A project is a group. The Hub keeps no project of its own: no token binds one and no
+membership admits a caller. Every request acts in its caller's tenant, the one their
+identity names, which the configuration must define; a caller without one, or of
+another, is refused at sign-in, at every token grant and at every request. The
+invocation authority a request carries is that tenant, its profile's policy revision
+and its provenance. Each remaining decision has one owner: the Hub's roles decide tool
+and resource permissions; Lore decides repository access from the Hub's tokens, which
+carry the caller's assignments; the Hub decides access to a Task by its route and then
+the server that holds it by its own; and each server decides its data from the
+forwarded groups and its own grants, as Artifact does with its grants to people and
+groups. Joining a group gives what is shared with it and leaving takes that away; a
+person's own assignments and grants stay.
 
 ## Forwarded Identity
 
@@ -891,7 +945,7 @@ takes three rollouts, each complete on every replica before the next begins:
 ## Calls Between Servers
 
 `src/delegation.rs` implements the exchange of the SDK's [calls between
-servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/f369804dd2bda5c69103f480169769c80fac2859/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers)
+servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/aff002265f681aa03ac8747ed5008f5c4eddf979/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers)
 and the admission of the tokens it issues. A registered server authenticates at
 `/oauth/token` with an RFC 7523 assertion signed by the key its registration pinned;
 the Hub records the assertion's `jti` with the other replay identifiers. The
@@ -960,8 +1014,8 @@ Task identifier, in the envelope's `via`.
 The Hub records with the installation's registry: the SDK's MCP classes, core's
 platform classes and its own `hub.*` classes, each declared with its OCSF class.
 `hub.authentication` maps to OCSF Authentication (3002), `hub.token_exchange`
-to Authentication's Service Ticket Request (3002, 4), `hub.account_change` to
-Account Change (3001), `hub.registration` to Entity Management (3004),
+to Authentication's Service Ticket Request (3002, 4), `hub.registration` to Entity
+Management (3004),
 `hub.task_status` to API Activity Read (6003, 2), and the administrative classes to
 API Activity (6003).
 
@@ -976,8 +1030,7 @@ and `unavailable`. A successful action records no reason.
 
 Targets are URIs. The Hub names what it owns in the `veoveo` scheme:
 `veoveo://hub`, `veoveo://servers/{server}`, `veoveo://profiles/{profile}`,
-`veoveo://clients/{client}`, `veoveo://tenants/{tenant}/work-contexts/{context}` and
-`veoveo://audit/installation` or `veoveo://audit/tenants/{tenant}` for an audit
+`veoveo://clients/{client}` and `veoveo://audit/installation` or `veoveo://audit/tenants/{tenant}` for an audit
 partition. A resource is named by its own URI, a Task by core's UUID URN, and tools,
 resource templates, prompts, discovery and Task routes by the SDK's MCP targets. The
 details of caller records carry the invocation facts: the OAuth client, the principal
@@ -1023,12 +1076,16 @@ through core's confined functions.
 
 ## Upstream Transport
 
-The workspace pins RMCP 3.5.0 from `VeoveoAI/rust-sdk` at
-`faa4e9d57dcb834740b6053c483ed2de7b8b8076`, the revision `veoveo-hub-sdk` pins. The fork
-exposes HTTP rejection status and body through `StreamableHttpError::HttpResponse`,
-keeps exact Task subscription filters, and ends a client worker whose first request
-failed with that error at DEBUG once the caller has received it, since the caller
-decides what it means; a worker fatal no caller received stays ERROR. Each registered server has its own pooled HTTP
+The workspace pins RMCP 3.8.0 from `VeoveoAI/rust-sdk`'s `veoveo/main` at
+`d45f7f5e43e910f818400ca702cc904c5682c213`, the revision `veoveo-hub-sdk` pins: upstream
+`main` after 3.8.0 with the fork's changes its `VEOVEO_FORK.md` lists. An upstream's
+HTTP rejection reaches the Hub typed: upstream rmcp reports 429 and 5xx without their
+body (`StreamableHttpError::HttpStatus`), and the fork reports every other rejection
+with its status and body (`StreamableHttpError::HttpResponse`); either is the upstream's
+answer, which the caller receives with its status, and neither discards the server's
+pooled client. The fork keeps exact Task subscription filters, and ends a client worker
+whose first request failed with that error at DEBUG once the caller has received it,
+since the caller decides what it means; a worker fatal no caller received stays ERROR. Each registered server has its own pooled HTTP
 client. A server can restart behind its port forward while the forward keeps the
 Hub's side of every pooled connection open, so those connections fail only when the
 next request goes out. A request that fails in its connection, unsent or with its
@@ -1053,8 +1110,8 @@ profile or a typed `CatalogSection` contribution. Authorization requests, codes,
 refresh families, revocation and current-session checks bind the actual resource
 ID. Contributed resources have no fabricated MCP profile. Their broker client is
 selected by resource, authorization server and identity provider. MCP retains its
-profile-specific grant selection and Work Context membership checks; attribution
-of a Work Context alone neither grants nor denies a contributed owner's data.
+profile-specific grant selection and its tenant check; a contributed owner decides
+its own data.
 
 The common `issuance` module owns signing, issuer, subject, audience, client,
 family, timestamps and token purpose. A typed `TokenProfile` authorizes against its
@@ -1329,7 +1386,7 @@ it.
 
 Each request runs through the Hub's ordinary MCP path as the person. The Hub signs an
 access token of the session's refresh family, as a refresh of that family would: its
-principal, client, Work Context, scopes and `session-family`, valid 60 seconds and
+principal, client, scopes and `session-family`, valid 60 seconds and
 never beyond the family. It sends the request with that token to its own
 `/mcp/{computers.profile}` in process, and the token never leaves the process.
 Authentication with its session-family check, selection, policy, routing and audit
@@ -1512,8 +1569,9 @@ The Hub owns the `hub` schema. Its migrations in `migrations/` run after core's
 kernel migrations and record their history in `hub._sqlx_migrations`, as
 `sqlx.toml` declares. `src/store` reads and writes the schema through `HubStore`:
 OAuth requests and codes, refresh families, JWT revocations, replay identifiers,
-control-plane revisions and principals' selections. A publication also writes the identity rows of the Work
-Contexts it defines in core's `identity` schema. Refresh rotation and control-plane
+control-plane revisions and principals' selections. A publication also writes the identity rows of the
+tenants it defines, and of the installation's enterprise, in core's `identity` schema; a
+tenant a later revision omits keeps its row. Refresh rotation and control-plane
 publication commit their audit records in the same transaction through the audit
 envelope's transactional append; an audit record that cannot commit rolls the change
 back.
@@ -1535,7 +1593,7 @@ the check and release builds compile them offline, from a cold target directory 
 as from the build host's cached one.
 
 `tests/database_conformance.rs` holds the Hub's own statements to core's
-[database rules](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/docs/DATABASE.md#server-schema-rules)
+[database rules](https://github.com/VeoveoAI/veoveo-core/blob/05b6c47540680e085cc5356ed4ba8742ecc78bff/docs/DATABASE.md#server-schema-rules)
 over the `hub`, `identity` and `kernel` schemas. The fixture applies the Hub's
 migrations as the installation owner after the kernel migrations, as startup does, and
 plans every statement as that owner. Refresh families and control-plane revisions are
@@ -1559,7 +1617,9 @@ SDK's registration client and calls the Hub as both acceptance callers. It check
 pinned namespace, the refusal of the slug `hub`, the initial access token, the
 database grant, which migrates the
 server's schema as its group role and holds the server's kernel instance, role
-decisions by risk, refusal of undeclared resources, the permissions each forwarded
+decisions by risk, refusal of undeclared resources, that a skill is offered, got and
+read only by a caller who may read every one of its files, with the digests its manifest
+names, and that no ordinary caller reads the Hub's own skills, the permissions each forwarded
 token carries, that three housekeeping rounds leave a live registration's row version
 unchanged, that deregistration drops a registration's login, and that a process that
 ends without deregistering loses its registration and login after the grace period.
@@ -1752,9 +1812,10 @@ by its ID as `write` and its owner as `admin`, and nobody else or in another ten
 Unit tests in `src/catalog/tests.rs` check a subject's groups, with a section of their
 own: the caller's own call holds its tenant's groups with their roles beside the
 identity provider's, as principal and actor alike, and none of another tenant or
-another person; a Work Context membership granted to a group is held through it, and
-the revision that removed the membership leaves neither; a server's call for the caller
-holds none; and a role granted to a group's ID is held through it.
+another person; the revision that removed the memberships leaves none, and the caller
+still acts with its identity provider's groups; a caller of a tenant the installation
+does not define, or of none, is refused; a server's call for the caller holds none; and
+a role granted to a group's ID is held through it.
 
 `tests/lore_sharing.rs` starts the binary with the native HTTP fixture's configuration,
 records synthetic `hub.person` rows as a sign-in writes them, and calls the access and
@@ -1908,7 +1969,7 @@ the driver's capabilities in `GetGatewayInfo`, where it reads the backend.
 Its name is the first twelve hexadecimal digits of the SHA-256, under the domain
 `https://veoveo.ai/formats/computer-version` and a NUL byte, of a canonical document:
 the template's spec with its environment as a sorted map, OpenShell's canonical policy
-JSON, the settings without the handbook, the forwarding capacity, the collection
+JSON, the settings without the skills, the forwarding capacity, the collection
 setting, the gateway connection and the template's and policy file's names, and the
 driver's images when it reports any. A supervisor or runtime change therefore names a
 new version, which every running Computer is offered; a driver that reports none
@@ -2047,7 +2108,7 @@ additions require matching maintained runtime images.
 ### Private Computer browser ingress
 
 The optional live `computers` installation selects one public PKCE client,
-profile/Work Context, authenticated native OpenShell gateway, trusted workload
+profile, authenticated native OpenShell gateway, trusted workload
 template, native policy file, fixed service command and global provider profiles.
 The gateway authority has explicit workspace/provider/sandbox provisioning rights;
 it never enters the Computer. The trusted bearer environment must hold a native
@@ -2059,23 +2120,24 @@ provider profile or forwarding target. Both credential keys name native runtime
 **environment aliases**, rather than logical profile credential names.
 
 A Computer's `/sandbox` is its owner's home, and the Hub writes nothing into it: it
-runs no command in a Computer. The installation's `computers.handbook` is served as
-the MCP server instructions of `/mcp/{computers.profile}` to callers whose token
-belongs to `computers.oauthClient`, after the Hub's own one-line description; other
-callers of the Hub never receive it. Each discovery reads the current catalog, so an
-edit reaches a client on its next connection.
+runs no command in a Computer. The installation's guidance for Computers' agents is
+`computers.skills`, the Hub's own [skills](#skills), and the MCP server instructions of
+`/mcp/{computers.profile}` only point at it. Every caller's instructions are the Hub's
+one-line description. For callers whose token belongs to `computers.oauthClient`,
+`server/discover` adds a section the Hub writes for the person whose Computer it is,
+`## Who you work for`, and then `## Skills`, the address and description of each of the
+installation's skills; other callers of the Hub never receive either. Each discovery
+reads the current catalog, so an edit reaches a client on its next connection.
 
-After the handbook, the same callers' `server/discover` answers a section the Hub writes
-for the person whose Computer it is, `## Who you work for`, so the agent knows from its
-first turn, without a tool call, whom it works for. It names who the person is with
-facts fixed for the Computer's life, from the Hub's own records: their name and email as
-their last sign-in named them (`hub.person`), their principal, their tenant and the
-Computers' Work Context with their titles, this Computer's ID, and that everything in
-it acts as them. A client reads the instructions once per connection, so nothing that
-changes while the Computer runs is there: the agent reads groups, repository access and
-the Computer's version live through the tools the handbook names. The section holds no
-token, no grant list and no server's name. When a record cannot be read, discovery
-answers without the section, and the Hub logs why.
+The person's section lets the agent know from its first turn, without a tool call, whom
+it works for. It names who the person is with facts fixed for the Computer's life, from
+the Hub's own records: their name and email as their last sign-in named them
+(`hub.person`), their principal and their tenant with its title, this Computer's ID, and
+that everything in it acts as them. A client reads the instructions once per
+connection, so nothing that changes while the Computer runs is there: the agent reads
+groups, repository access and the Computer's version live through the tools the skills
+name. The section holds no token, no grant list and no server's name. When a record
+cannot be read, discovery answers without the section, and the Hub logs why.
 
 `GET /computer` admits the existing opaque host-only session cookie or starts an
 ordinary PKCE authorization against this Hub's existing OAuth endpoints. A bounded
@@ -2327,7 +2389,7 @@ administrator may publish any of `write`, `owner`, `admin`, `push-protected`,
 `obliterate` and `migrate`. Only an explicit assignment, to the person or to a group they
 belong to, grants a repository.
 Creating a repository, through the Hub or with Lore, makes its creator the owner; no
-other grant is automatic, and no administrator role or Work Context membership grants repositories.
+other grant is automatic, and no administrator role grants repositories.
 Removing an assignment or a membership stops further issuance, while tokens already
 issued keep their rights until they expire under the deployment's token lifetime.
 
@@ -2378,20 +2440,19 @@ authenticates a request (`resolve_authenticated_subject` in `src/catalog.rs`), i
 the principal's `groups`, beside its identity provider's, the `id` of each group of the
 principal's tenant they belong to in that catalog revision, and to its `group_roles` their
 role in it: `member` as `write` and `owner` as `admin`, as a repository's member writes
-and its owner also shares and deletes. It adds them before it resolves the Work Context
-membership. From there the existing contracts carry them, and nothing else changes:
+and its owner also shares and deletes. From there the existing contracts carry them,
+and nothing else changes:
 
 | Contract | Carries | Decides |
 |---|---|---|
 | The installation's roles, grants and policy rules, in `policy::decide` | the subject's `groups` | a role granted to one of them is held through it, so the caller's `tools/list`, admission and forwarded permissions follow it |
-| Work Context memberships | the subject's `groups` | a membership naming one of them |
 | The forwarded token, RFC 9068 | `groups`, which the SDK requires to equal the embedded actor's | each server's own decisions over groups |
 | The invocation claim `https://veoveo.ai/claims/invocation` | the actor's `group_roles` | the SDK's `Principal::group_memberships`, by which Artifact caps a group grant |
 | Token exchange, RFC 8693 | the caller as the forwarded token or the Task's route retains it, groups included | the roles evaluated again at each exchange |
 | A server's call for a caller | no groups: its actor is the server, and the SDK refuses a server actor with groups | nothing through groups, as before |
 
 The installation names only what exists before it is published: people and its identity
-provider's groups. Its roles, rules and Work Context memberships therefore never name a
+provider's groups. Its roles and rules therefore never name a
 Lore group, which people make and delete at runtime. A Lore group is named by the grants
 people make at runtime: Lore's assignments, and each server's own, such as Artifact's.
 Whether a person may call a billed or other risky tool is their role's to decide, never a
@@ -2410,8 +2471,8 @@ name could equal an identity provider's group. The kernel reads memberships thro
 sections: `CatalogSection::group_memberships` lists a section's memberships, none unless
 it holds groups, and the catalog keeps them by tenant and principal beside its objects,
 once per revision; the Lore section lists its groups' members. Only the subject of a
-request (`HubCatalog::with_group_memberships`) and the match of a Work Context
-membership read them, so no token the Hub issues to a client carries them.
+request (`HubCatalog::with_group_memberships`) reads them, so no token the Hub issues to
+a client carries them.
 
 People are named by email. At every sign-in the Hub records the person in `hub.person`:
 tenant, principal, display name and email, which is the identity provider's `email`

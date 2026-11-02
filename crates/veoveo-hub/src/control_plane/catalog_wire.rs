@@ -22,7 +22,6 @@ struct ControlPlaneWire {
     #[serde(flatten)]
     pub extensions: BTreeMap<String, Value>,
     pub tenants: Vec<TenantDefinition>,
-    pub work_contexts: Vec<crate::control_plane::WorkContextDefinition>,
     pub policies: Vec<PolicySet>,
     pub data_labels: Vec<DataLabelDefinition>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -67,7 +66,6 @@ impl<'de> Deserialize<'de> for HubControlPlane {
             registration: wire.registration,
             extensions: wire.extensions,
             tenants: wire.tenants,
-            work_contexts: wire.work_contexts,
             policies: wire.policies,
             data_labels: wire.data_labels,
             oauth_clients: wire.oauth_clients,
@@ -88,14 +86,6 @@ impl HubControlPlane {
             policies: self.policies.iter().map(|x| x.version.clone()).collect(),
             tenants: self.tenants.iter().map(|x| x.id.clone()).collect(),
             data_labels: self.data_labels.iter().map(|x| x.id.clone()).collect(),
-            work_contexts: self
-                .work_contexts
-                .iter()
-                .map(|context| crate::contract::WorkContextFacts {
-                    id: context.id.clone(),
-                    tenant: context.tenant.clone(),
-                })
-                .collect(),
             oauth_clients: self
                 .oauth_clients
                 .iter()
@@ -107,7 +97,6 @@ impl HubControlPlane {
                     allowed_scopes: x.allowed_scopes.clone(),
                     grant_types: x.grant_types.clone(),
                     auth_methods: x.auth_methods.clone(),
-                    default_work_context: x.default_work_context.clone(),
                     invocation_mode: x.invocation_mode,
                     has_jwks: x.jwks.is_some(),
                     has_credential_secret: x.credential_secret.is_some(),

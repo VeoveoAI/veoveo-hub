@@ -131,7 +131,6 @@ fn control_plane_with_secrets(secrets: Vec<SecretReference>) -> HubControlPlane 
         registration: None,
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -249,32 +248,6 @@ fn default_tenants() -> Vec<TenantDefinition> {
     }]
 }
 
-fn default_work_contexts() -> Vec<crate::control_plane::WorkContextDefinition> {
-    vec![crate::control_plane::WorkContextDefinition {
-        id: WorkContextId::parse("default").unwrap(),
-        tenant: TenantId::parse("tenant-a").unwrap(),
-        title: "Default work".to_owned(),
-        policy_revision: PolicyVersion::parse("2026-07-02").unwrap(),
-        output_policy: veoveo_types::WorkContextOutputPolicy {
-            owner: veoveo_types::AccessSubject::Group(GroupId::parse("operations").unwrap()),
-            initial_grants: Vec::new(),
-            classification: None,
-            data_labels: BTreeSet::new(),
-        },
-        memberships: vec![crate::control_plane::WorkContextMembershipRule {
-            level: veoveo_types::WorkContextMembershipLevel::Owner,
-            principals: BTreeSet::new(),
-            groups: BTreeSet::new(),
-            roles: BTreeSet::from([RoleId::parse("operator").unwrap()]),
-            oauth_clients: BTreeSet::from([
-                OAuthClientId::parse("operator-local-public").unwrap(),
-                OAuthClientId::parse("operator-hosted-public").unwrap(),
-                OAuthClientId::parse("operator-service").unwrap(),
-            ]),
-        }],
-    }]
-}
-
 fn default_profile() -> HubProfile {
     HubProfile {
         id: HubProfileId::parse("default").unwrap(),
@@ -299,7 +272,6 @@ fn default_oauth_clients() -> Vec<OAuthClientRegistration> {
         OAuthClientRegistration {
             id: OAuthClientId::parse("operator-local-public").unwrap(),
             authorization_server: AuthorizationServerId::parse("veoveo").unwrap(),
-            default_work_context: WorkContextId::parse("default").unwrap(),
             invocation_mode: veoveo_types::InvocationMode::Direct,
             display_name: Some("Veoveo Operator Local Client".to_string()),
             client_surface: OAuthClientSurface::FullMcp,
@@ -330,7 +302,6 @@ fn default_oauth_clients() -> Vec<OAuthClientRegistration> {
         OAuthClientRegistration {
             id: OAuthClientId::parse("operator-service").unwrap(),
             authorization_server: AuthorizationServerId::parse("veoveo").unwrap(),
-            default_work_context: WorkContextId::parse("default").unwrap(),
             invocation_mode: veoveo_types::InvocationMode::Automated,
             display_name: Some("Veoveo Operator Service".to_string()),
             client_surface: OAuthClientSurface::FullMcp,
@@ -474,7 +445,6 @@ fn control_plane_validates_cross_references() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -509,7 +479,6 @@ fn control_plane_rejects_unknown_identity_provider_reference() {
         profiles: vec![profile],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -545,7 +514,6 @@ fn control_plane_rejects_unknown_authorization_server_reference() {
         profiles: vec![profile],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -581,7 +549,6 @@ fn control_plane_rejects_authorization_server_unknown_identity_provider() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -617,7 +584,6 @@ fn control_plane_rejects_profile_without_auth_modes() {
         profiles: vec![profile],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -652,7 +618,6 @@ fn control_plane_rejects_oidc_profile_without_browser_endpoints() {
         profiles: vec![profile],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -690,7 +655,6 @@ fn control_plane_rejects_oidc_profile_without_browser_endpoints() {
         profiles: vec![profile],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -731,7 +695,6 @@ fn control_plane_rejects_extension_auth_modes_without_matching_endpoints() {
         profiles: vec![profile],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -768,7 +731,6 @@ fn control_plane_rejects_unknown_secret_owner_references() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -812,7 +774,6 @@ fn control_plane_rejects_unknown_secret_owner_references() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -859,7 +820,6 @@ fn control_plane_rejects_missing_oauth_client_for_auth_mode() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: vec![],
@@ -882,12 +842,6 @@ fn control_plane_rejects_missing_oauth_client_for_auth_mode() {
 fn control_plane_allows_service_profile_before_durable_client_admission() {
     let mut profile = default_profile();
     profile.auth_modes = BTreeSet::from([AuthMode::OAuthClientCredentials]);
-    let mut contexts = default_work_contexts();
-    for context in &mut contexts {
-        for rule in &mut context.memberships {
-            rule.oauth_clients.clear();
-        }
-    }
     let config = HubControlPlane {
         execution: None,
         branding: None,
@@ -901,7 +855,6 @@ fn control_plane_allows_service_profile_before_durable_client_admission() {
         profiles: vec![profile],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: contexts,
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: vec![],
@@ -931,7 +884,6 @@ fn control_plane_rejects_missing_oidc_client_for_browser_auth() {
         profiles: vec![profile],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -969,7 +921,6 @@ fn control_plane_rejects_oidc_client_without_openid_scope() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -1005,7 +956,6 @@ fn control_plane_rejects_public_client_credentials() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: clients,
@@ -1041,7 +991,6 @@ fn control_plane_rejects_private_key_jwt_without_jwks() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: clients,
@@ -1083,7 +1032,6 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: clients,
@@ -1116,7 +1064,6 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: clients,
@@ -1153,7 +1100,6 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: clients,
@@ -1191,7 +1137,6 @@ fn control_plane_rejects_unsupported_oauth_client_auth_combinations() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: clients,
@@ -1229,7 +1174,6 @@ fn control_plane_rejects_oauth_client_missing_required_scope() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: clients,
@@ -1276,7 +1220,6 @@ fn control_plane_rejects_duplicate_tenants() {
                 metadata: Value::Null,
             },
         ],
-        work_contexts: default_work_contexts(),
         policies: vec![default_policy()],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -1309,7 +1252,6 @@ fn control_plane_rejects_duplicate_policy_rule_ids() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![policy],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -1345,7 +1287,6 @@ fn control_plane_rejects_unknown_policy_rule_references() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![policy],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -1379,7 +1320,6 @@ fn control_plane_rejects_unknown_policy_rule_references() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![policy],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -1412,7 +1352,6 @@ fn control_plane_rejects_unknown_policy_rule_references() {
         profiles: vec![default_profile()],
         extensions: Default::default(),
         tenants: default_tenants(),
-        work_contexts: default_work_contexts(),
         policies: vec![policy],
         data_labels: default_data_labels(),
         oauth_clients: default_oauth_clients(),
@@ -1779,7 +1718,7 @@ fn computer_bootstrap_admits_only_fixed_direct_clients_and_env_provider_seeds() 
         "gateway": {"endpoint":"https://gateway.test", "certificateAuthority":"/etc/native/ca.pem", "bearerEnvironment":"COMPUTER_PROVISION_AUTHORITY"},
         "template": {"workspace":"installation", "name":"computer"},
         "policyFile":"/etc/native/computer-policy.yaml", "command":["/usr/local/bin/computer"],
-        "oauthClient":"operator-local-public", "profile":"default", "workContext":"default", "port":4096,
+        "oauthClient":"operator-local-public", "profile":"default", "port":4096,
         "hubProvider":{"profile":"computer-user", "credentialKey":"access_token"},
         "modelProvider":{"profile":"computer-model", "credentialKey":"api_key", "secret":"computer-model-seed"},
         "loreProvider":{"profile":"lore", "credentialKey":"LORE_ACCESS_TOKEN"}

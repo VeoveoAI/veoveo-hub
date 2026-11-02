@@ -11,7 +11,6 @@ CREATE TABLE hub.device_authorization (
     user_digest text NOT NULL UNIQUE CHECK (user_digest ~ '^sha256:[0-9a-f]{64}$'),
     protected_resource text NOT NULL CHECK (protected_resource <> ''),
     oauth_client_id text NOT NULL CHECK (oauth_client_id <> ''),
-    work_context text NOT NULL CHECK (work_context <> ''),
     scopes text[] NOT NULL,
     state text NOT NULL CHECK (state IN ('pending','authorizing','approved','denied','consumed')),
     browser_digest text CHECK (browser_digest ~ '^sha256:[0-9a-f]{64}$'),

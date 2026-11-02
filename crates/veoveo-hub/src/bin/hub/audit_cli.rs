@@ -157,7 +157,6 @@ async fn connect(
             principal,
             kind: AuditPrincipalKind::Service,
             tenant: None,
-            work_context: None,
         })
         .build()?;
     let marker = draft.id();

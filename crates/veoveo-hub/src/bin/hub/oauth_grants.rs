@@ -354,13 +354,9 @@ pub(super) async fn token_endpoint_authorization_code(
         );
     }
     if profile.profile().is_some()
-        && let Err(err) = catalog.work_context_membership(
-            &client_id,
-            &code_record.work_context,
-            &code_record.principal,
-        )
+        && let Err(err) = catalog.principal_tenant(&code_record.principal)
     {
-        tracing::warn!("rejected authorization-code Work Context: {err}");
+        tracing::warn!("rejected authorization code: {err}");
         if let Err(err) = record_oidc_auth_audit(
             &state.hub_state,
             profile,
@@ -377,12 +373,12 @@ pub(super) async fn token_endpoint_authorization_code(
         {
             return auth_audit_error_response(err);
         }
-        // The code binds its Work Context, so a principal no longer in it holds an
-        // invalid grant (RFC 6749 §5.2).
+        // A principal whose tenant the installation no longer defines holds an invalid
+        // grant (RFC 6749 §5.2).
         return oauth_error_response(
             StatusCode::BAD_REQUEST,
             "invalid_grant",
-            "the code's principal is no member of its Work Context",
+            "the code's principal belongs to no tenant of this installation",
         );
     }
     let refresh = if client.grant_types.contains(&OAuthGrantType::RefreshToken) {
@@ -392,7 +388,6 @@ pub(super) async fn token_endpoint_authorization_code(
                 authorization_server: &authorization_server.id,
                 protected_resource: profile.protected_resource(),
                 oauth_client_id: &client_id,
-                work_context: &code_record.work_context,
                 principal: &code_record.principal,
                 principal_display_name: &code_record.principal_display_name,
                 scopes: &code_record.scopes,
@@ -448,7 +443,6 @@ pub(super) async fn token_endpoint_authorization_code(
                 session_family: refresh
                     .as_ref()
                     .map(|issued| issued.grant.family_id.clone()),
-                work_context: code_record.work_context.clone(),
                 provenance: InvocationProvenance::Direct {
                     initiator: code_record.principal.id.clone(),
                 },
@@ -465,7 +459,6 @@ pub(super) async fn token_endpoint_authorization_code(
                 profile.protected_resource(),
                 &client_id,
                 &code_record.principal,
-                &code_record.work_context,
                 &code_record.scopes,
                 refresh.as_ref().map(|r| &r.grant.family_id),
             )?;

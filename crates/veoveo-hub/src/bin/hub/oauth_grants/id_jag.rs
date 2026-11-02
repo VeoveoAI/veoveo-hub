@@ -7,13 +7,12 @@ use veoveo_hub::contract::{OAuthClientAuthMethod, OAuthGrantType};
 use veoveo_hub::control_plane::{AuthMode, HubProfile, ResourceAuthorizationServer};
 use veoveo_hub::{HubCatalog, IdJagConfig, IdJagVerifier};
 use veoveo_hub_sdk::{OAuthClientId, PrincipalKind};
-use veoveo_types::{DelegationId, InvocationProvenance, WorkContextId};
+use veoveo_types::{DelegationId, InvocationProvenance};
 
 use crate::{
     audit::{AuthAuditRecord, auth_audit_error_response, record_id_jag_auth_audit},
     http_util::{
         TokenResponse, allowed_hub_jwt_algorithms, load_jwks, oauth_error_response, token_response,
-        work_context_refused,
     },
     oauth_grants::{TokenRequest, scopes::id_jag_token_scopes},
     runtime::{AppState, current_http_client},
@@ -417,27 +416,12 @@ pub(crate) async fn token_endpoint_id_jag(
             );
         }
     };
-    let work_context = match request.work_context.as_deref() {
-        Some(value) => match WorkContextId::parse(value.trim()) {
-            Ok(context) => context,
-            Err(_) => {
-                return oauth_error_response(
-                    StatusCode::BAD_REQUEST,
-                    "invalid_request",
-                    "work_context is not a valid Work Context ID",
-                );
-            }
-        },
-        None => client.default_work_context.clone(),
-    };
-    if let Err(err) =
-        catalog.work_context_membership(&client_id, &work_context, &verified_id_jag.principal)
-    {
-        tracing::warn!("rejected Work Context selection: {err}");
-        return work_context_refused(
-            request.work_context.is_some(),
+    if let Err(err) = catalog.principal_tenant(&verified_id_jag.principal) {
+        tracing::warn!("rejected identity assertion: {err}");
+        return oauth_error_response(
+            StatusCode::BAD_REQUEST,
             "invalid_grant",
-            "the asserted principal is no member of the client's default Work Context",
+            "the asserted principal belongs to no tenant of this installation",
         );
     }
     let delegation_id = match DelegationId::parse(verified_id_jag.jwt_id.as_str()) {
@@ -467,7 +451,6 @@ pub(crate) async fn token_endpoint_id_jag(
             purpose: None,
             extensions: Default::default(),
             session_family: None,
-            work_context,
             provenance: InvocationProvenance::Delegated {
                 initiator: verified_id_jag.principal.id.clone(),
                 delegation_id,

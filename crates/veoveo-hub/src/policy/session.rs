@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use veoveo_hub_sdk::{AccessTokenSubject, OAuthClientId, Principal, ProtectedResourceId};
-use veoveo_types::{PrincipalId, ScopeName, TenantId, WorkContextId};
+use veoveo_types::{PrincipalId, ScopeName, TenantId};
 
 /// Read-only projection of the existing hub refresh-family record. Display
 /// metadata, delivery envelopes and database IDs are outside this decision.
@@ -14,7 +14,6 @@ pub struct SessionFamilyAuthority {
     authorization_server: AuthorizationServerId,
     protected_resource: ProtectedResourceId,
     oauth_client_id: OAuthClientId,
-    work_context: WorkContextId,
     principal_id: PrincipalId,
     tenant: Option<TenantId>,
     scopes: BTreeSet<ScopeName>,
@@ -58,7 +57,7 @@ impl SessionFamilyAuthority {
         token.session_family.is_some() && self.revoked_at.is_none() && self.expires_at > now
             && self.principal_id == principal.id && self.tenant == principal.tenant
             && self.authorization_server == *authorization_server && self.protected_resource == *protected_resource
-            && self.oauth_client_id == token.oauth_client_id && self.work_context == token.work_context
+            && self.oauth_client_id == token.oauth_client_id
             && self.principal.principal.id == principal.id && self.principal.principal.kind == principal.kind
             // The retained principal has its original IdP issuer; the verified
             // access-token principal has the hub issuer and the same identity.
@@ -126,7 +125,6 @@ mod tests {
                 HubRefreshFamilyId::parse("019a33a6-1000-7000-8000-000000000001").unwrap(),
             ),
             audience: resource.clone(),
-            work_context: WorkContextId::parse("session-fixture-context").unwrap(),
             invocation_mode: InvocationMode::Direct,
             initiator: Some(principal.id.clone()),
             delegation_id: None,
@@ -142,7 +140,6 @@ mod tests {
             authorization_server: server.clone(),
             protected_resource: resource.clone(),
             oauth_client_id: token.oauth_client_id.clone(),
-            work_context: token.work_context.clone(),
             principal_id: principal.id.clone(),
             tenant: principal.tenant.clone(),
             scopes: BTreeSet::from([
@@ -185,7 +182,7 @@ mod tests {
 
     #[test]
     fn session_rejects_every_compared_identity_or_scope_binding() {
-        let cases: [Case; 13] = [
+        let cases: [Case; 12] = [
             ("family principal", |f| {
                 f.family.principal_id = PrincipalId::parse("session-fixture-other").unwrap()
             }),
@@ -200,9 +197,6 @@ mod tests {
             }),
             ("OAuth client", |f| {
                 f.token.oauth_client_id = OAuthClientId::parse("session-fixture-other").unwrap()
-            }),
-            ("Work Context", |f| {
-                f.token.work_context = WorkContextId::parse("session-fixture-other").unwrap()
             }),
             ("retained principal", |f| {
                 f.family.principal.principal.id =

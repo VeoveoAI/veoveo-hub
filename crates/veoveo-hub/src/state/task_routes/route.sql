@@ -2,7 +2,6 @@ SELECT
     r.id,
     r.tenant AS "tenant: TenantId",
     r.owner AS "owner: PrincipalId",
-    r.work_context AS "work_context: WorkContextId",
     r.profile,
     r.server,
     r.deployment,

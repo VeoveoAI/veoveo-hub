@@ -30,8 +30,6 @@ use veoveo_oauth::{ClientAssertionKeyId, ClientAssertionSigner};
 use veoveo_types::OAuthClientId;
 
 const DEADLINE: Duration = Duration::from_secs(120);
-/// A client the token endpoint test adds to the installation outside every Work Context.
-const UNAFFILIATED: &str = "unaffiliated-caller";
 
 /// One running Hub. Fields drop in order, so the process ends before its database.
 struct Installation {
@@ -75,15 +73,7 @@ async fn token_endpoint_errors_carry_the_codes_their_rfcs_define() {
 }
 
 async fn token_endpoint_errors() {
-    // A client with the member's key that no Work Context admits.
-    let local = Installation::configured(|config| {
-        let clients = config["oauthClients"].as_array_mut().unwrap();
-        let mut unaffiliated = clients[0].clone();
-        unaffiliated["id"] = json!(UNAFFILIATED);
-        unaffiliated["displayName"] = json!("Caller outside every Work Context");
-        clients.push(unaffiliated);
-    })
-    .await;
+    let local = Installation::start().await;
     let hub = &local.hub;
     let http = reqwest::Client::new();
     let member = hub.caller("member");
@@ -171,25 +161,11 @@ async fn token_endpoint_errors() {
     )
     .await;
 
-    // RFC 6749 §5.2 defines no `access_denied` for the token endpoint: a Work Context the
-    // request names and the client may not act in is an invalid request, and a client
-    // that may act in no Work Context is unauthorized for the grant.
-    expect_oauth_error(
-        hub,
-        &http,
-        &fresh().with("work_context", "elsewhere"),
-        "invalid_request",
-    )
-    .await;
-    let unaffiliated = OAuthClientId::parse(UNAFFILIATED).unwrap();
-    let assertion = signer.assertion(&unaffiliated, &endpoint).unwrap();
-    expect_oauth_error(
-        hub,
-        &http,
-        &hub.client_credentials(&unaffiliated, assertion.expose_secret()),
-        "unauthorized_client",
-    )
-    .await;
+    // RFC 6749 §3.2: the token endpoint ignores a parameter it does not define.
+    let (status, _, body) = hub
+        .request_token(&http, &fresh().with("work_context", "elsewhere"))
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
 
     // RFC 7521 §4.2: the assertion identifies the client, so `client_id` is optional.
     let (status, _, body) = hub

@@ -43,21 +43,32 @@ impl RequestError {
         mcp_internal(format!("failed to discover upstream MCP: {error}")).into()
     }
 
+    /// An upstream's HTTP rejection: rmcp reports 429 and 5xx without their body
+    /// (`HttpStatus`) and every other rejection with its body (`HttpResponse`). The
+    /// caller receives the upstream's status when it is a client or server error.
     fn from_transport(error: &DynamicTransportError) -> Option<Self> {
-        match error
+        let (status, error) = match error
             .error
-            .downcast_ref::<StreamableHttpError<HubAuthorizedHttpError>>()
+            .downcast_ref::<StreamableHttpError<HubAuthorizedHttpError>>()?
         {
-            Some(StreamableHttpError::HttpResponse { status, body }) => Some(Self::Http {
-                status: if status.is_client_error() || status.is_server_error() {
-                    *status
-                } else {
-                    StatusCode::BAD_GATEWAY
-                },
-                error: mcp_internal(format!("upstream HTTP request rejected: {status}: {body}")),
-            }),
-            _ => None,
-        }
+            StreamableHttpError::HttpResponse { status, body } => (
+                *status,
+                format!("upstream HTTP request rejected: {status}: {body}"),
+            ),
+            StreamableHttpError::HttpStatus(rejection) => {
+                let status = StatusCode::from_u16(rejection.status).ok()?;
+                (status, format!("upstream HTTP request rejected: {status}"))
+            }
+            _ => return None,
+        };
+        Some(Self::Http {
+            status: if status.is_client_error() || status.is_server_error() {
+                status
+            } else {
+                StatusCode::BAD_GATEWAY
+            },
+            error: mcp_internal(error),
+        })
     }
 }
 
@@ -130,21 +141,46 @@ mod tests {
         ))
     }
 
+    /// A 429 or 5xx rejection, which rmcp reports without its body.
+    fn transport_status(status: StatusCode) -> rmcp::ServiceError {
+        rmcp::ServiceError::TransportSend(DynamicTransportError::from_parts(
+            "fixture",
+            std::any::TypeId::of::<()>(),
+            Box::new(StreamableHttpError::<HubAuthorizedHttpError>::HttpStatus(
+                rmcp::transport::streamable_http_client::HttpStatusError::new(
+                    status.as_u16(),
+                    Some("30".to_owned()),
+                ),
+            )),
+        ))
+    }
+
     #[test]
     fn typed_http_rejection_does_not_retry_but_connection_loss_does() {
-        let rejection = transport_rejection(StatusCode::PAYLOAD_TOO_LARGE);
-        assert!(!super::super::recoverable_upstream_connection_error(
-            &rejection
-        ));
+        for (rejection, expected) in [
+            (
+                transport_rejection(StatusCode::PAYLOAD_TOO_LARGE),
+                StatusCode::PAYLOAD_TOO_LARGE,
+            ),
+            (
+                transport_status(StatusCode::SERVICE_UNAVAILABLE),
+                StatusCode::SERVICE_UNAVAILABLE,
+            ),
+            (
+                transport_status(StatusCode::TOO_MANY_REQUESTS),
+                StatusCode::TOO_MANY_REQUESTS,
+            ),
+        ] {
+            assert!(!super::super::recoverable_upstream_connection_error(
+                &rejection
+            ));
+            assert!(matches!(
+                RequestError::from(rejection),
+                RequestError::Http { status, .. } if status == expected
+            ));
+        }
         assert!(super::super::recoverable_upstream_connection_error(
             &rmcp::ServiceError::TransportClosed
-        ));
-        assert!(matches!(
-            RequestError::from(rejection),
-            RequestError::Http {
-                status: StatusCode::PAYLOAD_TOO_LARGE,
-                ..
-            }
         ));
     }
 

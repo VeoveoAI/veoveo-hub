@@ -10,7 +10,7 @@ use veoveo_hub_sdk::{
 };
 use veoveo_types::{
     DataLabelId, GroupId, IdentifierError, PolicyVersion, PrincipalId, ResourceUri, RoleId,
-    ScopeName, TenantId, WorkContextId,
+    ScopeName, TenantId,
 };
 
 use chrono::{DateTime, Utc};
@@ -57,9 +57,7 @@ mod branding;
 pub use branding::*;
 mod catalog_schema;
 mod catalog_wire;
-pub mod work_context;
 pub use catalog_schema::composed_hub_schema;
-pub use work_context::{WorkContextDefinition, WorkContextMembershipRule};
 pub const HUB_CORE_FIELDS: &[&str] = &[
     "branding",
     "identityProviders",
@@ -68,7 +66,6 @@ pub const HUB_CORE_FIELDS: &[&str] = &[
     "authorization",
     "registration",
     "tenants",
-    "workContexts",
     "policies",
     "dataLabels",
     "oauthClients",
@@ -107,7 +104,6 @@ pub struct HubControlPlane {
     #[serde(flatten)]
     pub extensions: BTreeMap<String, Value>,
     pub tenants: Vec<TenantDefinition>,
-    pub work_contexts: Vec<crate::control_plane::WorkContextDefinition>,
     pub policies: Vec<PolicySet>,
     pub data_labels: Vec<DataLabelDefinition>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -284,60 +280,6 @@ impl HubControlPlane {
             }
         }
 
-        let mut work_contexts = BTreeMap::new();
-        for context in &self.work_contexts {
-            if work_contexts.insert(context.id.clone(), context).is_some() {
-                return Err(HubControlPlaneError::DuplicateWorkContext(
-                    context.id.clone(),
-                ));
-            }
-            if !tenants.contains(&context.tenant) {
-                return Err(HubControlPlaneError::InvalidWorkContext {
-                    context: context.id.clone(),
-                    reason: format!("references unknown tenant `{}`", context.tenant),
-                });
-            }
-            if !policies.contains(&context.policy_revision) {
-                return Err(HubControlPlaneError::InvalidWorkContext {
-                    context: context.id.clone(),
-                    reason: format!(
-                        "references unknown policy revision `{}`",
-                        context.policy_revision
-                    ),
-                });
-            }
-            if context.title.trim().is_empty() {
-                return Err(HubControlPlaneError::InvalidWorkContext {
-                    context: context.id.clone(),
-                    reason: "title must not be empty".to_owned(),
-                });
-            }
-            if context.memberships.is_empty()
-                || context
-                    .memberships
-                    .iter()
-                    .any(|membership| !membership.has_selector())
-            {
-                return Err(HubControlPlaneError::InvalidWorkContext {
-                    context: context.id.clone(),
-                    reason: "each context requires at least one membership rule with a selector"
-                        .to_owned(),
-                });
-            }
-            if let Some(label) = context
-                .output_policy
-                .data_labels
-                .iter()
-                .chain(context.output_policy.classification.iter())
-                .find(|label| !data_labels.contains(*label))
-            {
-                return Err(HubControlPlaneError::InvalidWorkContext {
-                    context: context.id.clone(),
-                    reason: format!("output policy references unknown data label `{label}`"),
-                });
-            }
-        }
-
         let mut profiles = BTreeSet::new();
         let mut profile_by_id = BTreeMap::new();
         let mut protected_resources = BTreeSet::new();
@@ -497,20 +439,14 @@ impl HubControlPlane {
                 &policy_by_id,
                 &secret_refs,
             )?;
-            let Some(context) = work_contexts.get(&client.default_work_context) else {
-                return Err(HubControlPlaneError::UnknownOAuthClientWorkContext {
-                    client: client.id.clone(),
-                    context: client.default_work_context.clone(),
-                });
-            };
-            if client
+            if let Some(tenant) = client
                 .tenant
                 .as_ref()
-                .is_some_and(|tenant| tenant != &context.tenant)
+                .filter(|tenant| !tenants.contains(*tenant))
             {
-                return Err(HubControlPlaneError::InvalidWorkContext {
-                    context: context.id.clone(),
-                    reason: format!("OAuth client `{}` belongs to a different tenant", client.id),
+                return Err(HubControlPlaneError::UnknownOAuthClientTenant {
+                    client: client.id.clone(),
+                    tenant: tenant.clone(),
                 });
             }
             let mode_matches = match client.invocation_mode {

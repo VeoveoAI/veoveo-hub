@@ -10,7 +10,6 @@ use veoveo_hub::contract::{
     OAuthRedirectUri, OAuthStateValue, PkceCodeChallenge, PkceCodeChallengeMethod,
 };
 use veoveo_hub_sdk::OAuthClientId;
-use veoveo_types::WorkContextId;
 
 use crate::{
     audit::{AuthAuditRecord, auth_audit_error_response, record_oidc_auth_audit},
@@ -34,8 +33,6 @@ pub(crate) struct AuthorizationRequest {
     state: Option<String>,
     #[serde(default)]
     resource: Option<String>,
-    #[serde(default)]
-    work_context: Option<String>,
 }
 
 pub(crate) async fn authorize_endpoint(
@@ -194,35 +191,6 @@ pub(crate) async fn authorize_endpoint(
             "client is not allowed for this protected resource",
         );
     }
-    let work_context = match request.work_context.as_deref() {
-        Some(value) => match WorkContextId::parse(value.trim()) {
-            Ok(context) if catalog.work_context(&context).is_some() => context,
-            _ => {
-                if let Err(err) = record_oidc_auth_audit(
-                    &state.hub_state,
-                    profile,
-                    AuthAuditRecord {
-                        authorization_server: Some(authorization_server),
-                        client_id: Some(&client_id),
-                        principal: None,
-                        outcome: AuthOutcome::Deny,
-                        reason: AuthReasonCode::InvalidAuthorizationRequest,
-                        started_at,
-                    },
-                )
-                .await
-                {
-                    return auth_audit_error_response(err);
-                }
-                return oauth_error_response(
-                    StatusCode::BAD_REQUEST,
-                    "invalid_request",
-                    "work_context is not available",
-                );
-            }
-        },
-        None => client.default_work_context.clone(),
-    };
     let redirect_uri = match OAuthRedirectUri::new(request.redirect_uri.trim()) {
         Ok(redirect_uri) if client.redirect_uris.contains(&redirect_uri) => redirect_uri,
         _ => {
@@ -341,7 +309,6 @@ pub(crate) async fn authorize_endpoint(
         &catalog,
         profile,
         client_id,
-        work_context,
         scopes,
         veoveo_hub::control_plane::AuthorizationDestination::Code {
             redirect_uri,

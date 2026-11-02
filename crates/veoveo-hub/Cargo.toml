@@ -22,6 +22,7 @@ veoveo-audit.workspace = true
 veoveo-audit-contract = { workspace = true, features = ["postgres"] }
 veoveo-http.workspace = true
 veoveo-oauth.workspace = true
+veoveo-skills.workspace = true
 veoveo-store.workspace = true
 veoveo-hub-sdk.workspace = true
 veoveo-types.workspace = true

@@ -22,7 +22,7 @@ use sha2::{Digest, Sha256};
 use uuid::Uuid;
 use veoveo_hub_sdk::{HubRefreshFamilyId, OAuthClientId, Principal, ProtectedResourceId};
 use veoveo_store::{MaintenanceBatch, Pruned};
-use veoveo_types::{ScopeName, Sha256Digest, WorkContextId};
+use veoveo_types::{ScopeName, Sha256Digest};
 
 use super::HubState;
 
@@ -137,7 +137,6 @@ pub struct HubRefreshIssueRequest<'a> {
     pub authorization_server: &'a AuthorizationServerId,
     pub protected_resource: &'a ProtectedResourceId,
     pub oauth_client_id: &'a OAuthClientId,
-    pub work_context: &'a WorkContextId,
     pub principal: &'a Principal,
     pub principal_display_name: &'a PrincipalDisplayName,
     pub scopes: &'a BTreeSet<ScopeName>,
@@ -261,7 +260,6 @@ impl HubState {
             authorization_server,
             protected_resource,
             oauth_client_id,
-            work_context,
             principal,
             principal_display_name,
             scopes,
@@ -277,7 +275,6 @@ impl HubState {
             authorization_server: authorization_server.clone(),
             protected_resource: protected_resource.clone(),
             oauth_client_id: oauth_client_id.clone(),
-            work_context: work_context.clone(),
             principal: RefreshPrincipal {
                 principal: principal.clone(),
                 display_name: principal_display_name.clone(),
@@ -305,7 +302,6 @@ impl HubState {
                 authorization_server: authorization_server.clone(),
                 protected_resource: protected_resource.clone(),
                 oauth_client_id: oauth_client_id.clone(),
-                work_context: work_context.clone(),
                 principal: principal.clone(),
                 principal_display_name: principal_display_name.clone(),
                 scopes: scopes.clone(),
@@ -443,7 +439,6 @@ pub(super) fn grant_from_family(family: RefreshFamily) -> HubRefreshGrant {
         authorization_server: family.authorization_server,
         protected_resource: family.protected_resource,
         oauth_client_id: family.oauth_client_id,
-        work_context: family.work_context,
         principal: family.principal.principal,
         principal_display_name: family.principal.display_name,
         scopes: family.scopes,
@@ -453,15 +448,11 @@ pub(super) fn grant_from_family(family: RefreshFamily) -> HubRefreshGrant {
     }
 }
 
-/// Binds a delivery envelope to its family's client, Work Context and generation.
+/// Binds a delivery envelope to its family's client and generation.
 fn refresh_delivery_aad(family: &RefreshFamily, generation: u64) -> Vec<u8> {
     format!(
-        "veoveo-refresh-delivery-v3\0{}\0{}\0{}\0{}\0{}\0{generation}",
-        family.authorization_server,
-        family.protected_resource,
-        family.oauth_client_id,
-        family.work_context,
-        family.id,
+        "veoveo-refresh-delivery-v4\0{}\0{}\0{}\0{}\0{generation}",
+        family.authorization_server, family.protected_resource, family.oauth_client_id, family.id,
     )
     .into_bytes()
 }

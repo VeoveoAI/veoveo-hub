@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 use veoveo_hub_sdk::{OAuthClientId, Principal, ProtectedResourceId};
-use veoveo_types::{AdmittedExtensions, ExtensionRegistry, ScopeName, WorkContextId};
+use veoveo_types::{AdmittedExtensions, ExtensionRegistry, ScopeName};
 
 use crate::{
     HubCatalog, RegisteredProtectedResource,
@@ -44,7 +44,6 @@ pub struct TokenContext<'a> {
     resource: RegisteredProtectedResource<'a>,
     client: &'a OAuthClientId,
     principal: &'a Principal,
-    work_context: &'a WorkContextId,
     scopes: &'a BTreeSet<ScopeName>,
     family: Option<&'a veoveo_hub_sdk::HubRefreshFamilyId>,
     not_after: Option<chrono::DateTime<chrono::Utc>>,
@@ -56,7 +55,6 @@ impl<'a> TokenContext<'a> {
         resource: &'a ProtectedResourceId,
         client: &'a OAuthClientId,
         principal: &'a Principal,
-        work_context: &'a WorkContextId,
         scopes: &'a BTreeSet<ScopeName>,
         family: Option<&'a veoveo_hub_sdk::HubRefreshFamilyId>,
     ) -> Result<Self> {
@@ -79,14 +77,13 @@ impl<'a> TokenContext<'a> {
             "token scopes exceed the registration"
         );
         if resource.profile().is_some() {
-            catalog.work_context_membership(client, work_context, principal)?;
+            catalog.principal_tenant(principal)?;
         }
         Ok(Self {
             catalog,
             resource,
             client,
             principal,
-            work_context,
             scopes,
             family,
             not_after: None,
@@ -104,9 +101,6 @@ impl<'a> TokenContext<'a> {
     }
     pub fn principal(&self) -> &'a Principal {
         self.principal
-    }
-    pub fn work_context(&self) -> &'a WorkContextId {
-        self.work_context
     }
     pub fn scopes(&self) -> &'a BTreeSet<ScopeName> {
         self.scopes
@@ -405,7 +399,6 @@ async fn sign_prepared(
             not_after: context.not_after,
             extensions: token.extensions,
             session_family: context.family.cloned(),
-            work_context: context.work_context.clone(),
             provenance: match principal.kind {
                 veoveo_hub_sdk::PrincipalKind::User => veoveo_types::InvocationProvenance::Direct {
                     initiator: principal.id.clone(),

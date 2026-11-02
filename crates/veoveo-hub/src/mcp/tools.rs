@@ -607,7 +607,6 @@ impl HubMcp {
             .state
             .create_task_route(HubTaskRouteDraft {
                 tenant: subject.authority.tenant.clone(),
-                work_context: subject.authority.work_context.clone(),
                 profile: self.profile_id.clone(),
                 server: server.clone(),
                 deployment: registered.deployment,

@@ -10,19 +10,18 @@ use crate::contract::OidcClientRegistrationId;
 use crate::control_plane::{
     DataLabelDefinition, HubControlPlane, HubProfile, IdentityProvider, IdentityProviderId,
     OAuthClientRegistration, PolicySet, ResourceAuthorizationServer, TenantDefinition,
-    WorkContextDefinition,
 };
 use anyhow::{Context, Result};
 use parking_lot::RwLock;
 use sha2::{Digest, Sha256};
 use veoveo_hub_sdk::{
-    HubProfileId, OAuthClientId, Principal, PrincipalKind, ServerSlug, TokenSubject,
+    HubProfileId, OAuthClientId, Principal, PrincipalKind, ProtectedResourceId, ServerSlug,
+    TokenSubject,
 };
 use veoveo_types::{
-    DataLabelId, InvocationMode, InvocationProvenance, PolicyVersion, PrincipalId, TenantId,
-    WorkContextId,
+    DataLabelId, InvocationAuthority, InvocationMode, InvocationProvenance, PolicyVersion,
+    PrincipalId, TenantId,
 };
-use veoveo_types::{InvocationAuthority, WorkContextMembershipLevel};
 
 use crate::policy::resource_scheme;
 use crate::registration::RegisteredServer;
@@ -32,10 +31,10 @@ use crate::{AuthenticatedSubject, HubCatalogAdmission, VerifiedAccessToken};
 pub enum HubAuthorityError {
     ContributedTokenAuthority,
     UnknownOAuthClient(OAuthClientId),
-    UnknownWorkContext(WorkContextId),
+    UnknownProtectedResource(ProtectedResourceId),
     MissingTenant(PrincipalId),
-    TenantMismatch {
-        context: WorkContextId,
+    UnknownTenant {
+        tenant: TenantId,
         principal: PrincipalId,
     },
     InvocationModeMismatch {
@@ -44,10 +43,6 @@ pub enum HubAuthorityError {
         received: InvocationMode,
     },
     InvalidProvenance(InvocationMode),
-    MembershipDenied {
-        context: WorkContextId,
-        principal: PrincipalId,
-    },
     InvalidActorIdentity,
 }
 
@@ -59,15 +54,18 @@ impl std::fmt::Display for HubAuthorityError {
             Self::UnknownOAuthClient(client) => {
                 write!(formatter, "unknown OAuth client `{client}`")
             }
-            Self::UnknownWorkContext(context) => {
-                write!(formatter, "unknown Work Context `{context}`")
+            Self::UnknownProtectedResource(resource) => {
+                write!(
+                    formatter,
+                    "no profile serves protected resource `{resource}`"
+                )
             }
             Self::MissingTenant(principal) => {
                 write!(formatter, "principal `{principal}` has no tenant")
             }
-            Self::TenantMismatch { context, principal } => write!(
+            Self::UnknownTenant { tenant, principal } => write!(
                 formatter,
-                "Work Context `{context}` and principal `{principal}` belong to different tenants"
+                "principal `{principal}` belongs to tenant `{tenant}`, which this installation does not define"
             ),
             Self::InvocationModeMismatch {
                 client,
@@ -80,10 +78,6 @@ impl std::fmt::Display for HubAuthorityError {
             Self::InvalidProvenance(mode) => {
                 write!(formatter, "`{mode:?}` invocation provenance is invalid")
             }
-            Self::MembershipDenied { context, principal } => write!(
-                formatter,
-                "principal `{principal}` has no membership in Work Context `{context}`"
-            ),
             Self::InvalidActorIdentity => formatter.write_str("resolved actor identity is invalid"),
         }
     }
@@ -257,10 +251,11 @@ pub struct HubCatalog {
     policies: BTreeMap<PolicyVersion, usize>,
     data_labels: BTreeMap<DataLabelId, usize>,
     tenants: BTreeMap<TenantId, usize>,
-    work_contexts: BTreeMap<WorkContextId, usize>,
     oauth_clients: BTreeMap<OAuthClientId, usize>,
     oidc_clients: BTreeMap<OidcClientRegistrationId, usize>,
     secrets: BTreeMap<SecretReferenceId, usize>,
+    /// The installation's own skills, `computers.skills`, with their digests.
+    hub_skills: Arc<crate::skills::HubSkills>,
 }
 
 impl HubCatalog {
@@ -316,12 +311,6 @@ impl HubCatalog {
             .enumerate()
             .map(|(index, tenant)| (tenant.id.clone(), index))
             .collect();
-        let work_contexts = control_plane
-            .work_contexts
-            .iter()
-            .enumerate()
-            .map(|(index, context)| (context.id.clone(), index))
-            .collect();
         let oauth_clients = control_plane
             .oauth_clients
             .iter()
@@ -340,6 +329,10 @@ impl HubCatalog {
             .enumerate()
             .map(|(index, secret)| (secret.id.clone(), index))
             .collect();
+        let hub_skills = Arc::new(match &control_plane.computers {
+            Some(computers) => crate::skills::HubSkills::load(&computers.skills)?,
+            None => crate::skills::HubSkills::default(),
+        });
 
         Ok(Self {
             admission,
@@ -354,10 +347,10 @@ impl HubCatalog {
             policies,
             data_labels,
             tenants,
-            work_contexts,
             oauth_clients,
             oidc_clients,
             secrets,
+            hub_skills,
         })
     }
 
@@ -473,48 +466,30 @@ impl HubCatalog {
             .find(|authorization_server| authorization_server.issuer.as_str() == issuer)
     }
 
+    /// The installation's own skills, served to Computers' clients alone.
+    pub fn hub_skills(&self) -> &crate::skills::HubSkills {
+        &self.hub_skills
+    }
+
     pub fn oauth_client(&self, client_id: &OAuthClientId) -> Option<&OAuthClientRegistration> {
         self.oauth_clients
             .get(client_id)
             .map(|index| &self.control_plane.oauth_clients[*index])
     }
 
-    pub fn work_context(&self, context_id: &WorkContextId) -> Option<&WorkContextDefinition> {
-        self.work_contexts
-            .get(context_id)
-            .map(|index| &self.control_plane.work_contexts[*index])
-    }
-
-    pub fn work_contexts(&self) -> impl Iterator<Item = &WorkContextDefinition> {
-        self.control_plane.work_contexts.iter()
-    }
-
-    pub fn work_context_membership(
+    /// The tenant `principal` acts in: the one its identity names, which this revision
+    /// must define. Sign-in and every request require it; it grants nothing by itself.
+    pub fn principal_tenant(
         &self,
-        client_id: &OAuthClientId,
-        context_id: &WorkContextId,
         principal: &Principal,
-    ) -> Result<WorkContextMembershipLevel, HubAuthorityError> {
-        let client = self
-            .oauth_client(client_id)
-            .ok_or_else(|| HubAuthorityError::UnknownOAuthClient(client_id.clone()))?;
-        let context = self
-            .work_context(context_id)
-            .ok_or_else(|| HubAuthorityError::UnknownWorkContext(context_id.clone()))?;
+    ) -> Result<&TenantDefinition, HubAuthorityError> {
         let tenant = principal
             .tenant
             .as_ref()
             .ok_or_else(|| HubAuthorityError::MissingTenant(principal.id.clone()))?;
-        if tenant != &context.tenant {
-            return Err(HubAuthorityError::TenantMismatch {
-                context: context.id.clone(),
-                principal: principal.id.clone(),
-            });
-        }
-        context
-            .membership_for(&self.with_group_memberships(principal.clone()), &client.id)
-            .ok_or_else(|| HubAuthorityError::MembershipDenied {
-                context: context.id.clone(),
+        self.tenant(tenant)
+            .ok_or_else(|| HubAuthorityError::UnknownTenant {
+                tenant: tenant.clone(),
                 principal: principal.id.clone(),
             })
     }
@@ -544,19 +519,13 @@ impl HubCatalog {
             .ok_or_else(|| {
                 HubAuthorityError::UnknownOAuthClient(verified.access_token.oauth_client_id.clone())
             })?;
-        let membership = self.work_context_membership(
-            &verified.access_token.oauth_client_id,
-            &verified.access_token.work_context,
-            &verified.principal,
-        )?;
-        self.resolve_subject_with_client(verified, client, membership)
+        self.resolve_subject_with_client(verified, client)
     }
 
     pub(crate) fn resolve_subject_with_client(
         &self,
         verified: VerifiedAccessToken,
         client: &OAuthClientRegistration,
-        membership: WorkContextMembershipLevel,
     ) -> Result<AuthenticatedSubject, HubAuthorityError> {
         let VerifiedAccessToken {
             purpose: _,
@@ -566,22 +535,18 @@ impl HubCatalog {
             principal_display_name,
         } = verified;
         let principal = self.with_group_memberships(principal);
-        let context = self
-            .work_context(&access_token.work_context)
+        let tenant = self.principal_tenant(&principal)?.id.clone();
+        let profile = self
+            .profile_by_protected_resource(access_token.audience.as_str())
             .ok_or_else(|| {
-                HubAuthorityError::UnknownWorkContext(access_token.work_context.clone())
+                HubAuthorityError::UnknownProtectedResource(access_token.audience.clone())
             })?;
+        let policy_revision = profile.policy_version.clone();
         if access_token.invocation_mode != client.invocation_mode {
             return Err(HubAuthorityError::InvocationModeMismatch {
                 client: client.id.clone(),
                 expected: client.invocation_mode,
                 received: access_token.invocation_mode,
-            });
-        }
-        if principal.tenant.as_ref() != Some(&context.tenant) {
-            return Err(HubAuthorityError::TenantMismatch {
-                context: context.id.clone(),
-                principal: principal.id.clone(),
             });
         }
         let (actor, provenance) = match access_token.invocation_mode {
@@ -660,11 +625,8 @@ impl HubCatalog {
             actor,
             principal_display_name,
             authority: InvocationAuthority {
-                work_context: context.id.clone(),
-                tenant: context.tenant.clone(),
-                membership,
-                policy_revision: context.policy_revision.clone(),
-                output_policy: context.output_policy.clone(),
+                tenant,
+                policy_revision,
                 provenance,
             },
             delegation: None,
@@ -881,8 +843,8 @@ impl HubCatalog {
         self.registrations.iter().collect()
     }
 
-    /// The server whose URI scheme, or whose `ui://<slug>/` App prefix, owns `uri`, as
-    /// it serves `principal`. A linked server's URIs name the link after the scheme,
+    /// The server whose URI scheme, or whose `ui://<slug>/` App prefix or
+    /// `skill://<slug>/` skills, owns `uri`, as it serves `principal`. A linked server's URIs name the link after the scheme,
     /// `{slug}://{link}/{rest}`, and reach that link's runner when the principal reaches
     /// it; its Apps are one set, which the runner the principal reaches first serves.
     pub fn server_for_resource_uri(
@@ -905,7 +867,9 @@ impl HubCatalog {
         if owner.runner.is_none() {
             return ResourceRoute::Server(owner);
         }
-        let routed = if scheme.as_str() == "ui" {
+        // A linked server's Apps and skills are one set, which the runner the principal
+        // reaches first serves.
+        let routed = if shares_runners(&scheme) {
             self.shared_runner(principal, &owner.slug)
         } else {
             uri.strip_prefix(&format!("{scheme}://"))
@@ -919,7 +883,8 @@ impl HubCatalog {
         }
     }
 
-    /// Whether a registered server's URI scheme, or `ui://<slug>/` App prefix, owns `uri`.
+    /// Whether a registered server's URI scheme, `ui://<slug>/` App prefix or
+    /// `skill://<slug>/` skills own `uri`.
     pub fn owns_resource_uri(&self, profile_id: &HubProfileId, uri: &str) -> bool {
         resource_scheme(uri).is_some_and(|scheme| {
             self.profile_servers(profile_id)
@@ -995,8 +960,19 @@ fn server_owns_hub_resource_uri(
     uri: &str,
     scheme: &veoveo_types::ResourceScheme,
 ) -> bool {
+    // A skill's owner is the server its authority names, whatever server's scheme is
+    // `skill`; the Hub's own `skill://veoveo/` is no server's.
+    if scheme.as_str() == veoveo_hub_sdk::skills::SCHEME {
+        return veoveo_hub_sdk::skills::owned_by(uri, &server.slug);
+    }
     server.uri_scheme == *scheme
         || (scheme.as_str() == "ui" && uri.starts_with(&format!("ui://{}/", server.slug.as_str())))
+}
+
+/// Whether URIs of `scheme` are one set for a linked server, served by one of its runners
+/// unchanged: its Apps' and its skills'.
+pub(crate) fn shares_runners(scheme: &veoveo_types::ResourceScheme) -> bool {
+    matches!(scheme.as_str(), "ui" | veoveo_hub_sdk::skills::SCHEME)
 }
 
 #[cfg(test)]

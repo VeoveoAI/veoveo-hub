@@ -17,11 +17,12 @@ pub(crate) fn hub_resource_uri(uri: &str) -> Result<ResourceUri, McpError> {
         .map_err(|err| mcp_invalid_params(format!("invalid resource URI: {err}")))
 }
 
-/// Registered servers keep their own URIs: each server's URI scheme equals its slug, and
-/// its Apps live under `ui://<slug>/`, so the Hub routes them unchanged. A runner's URIs
-/// under its scheme carry its link after the scheme, `{slug}://{rest}` on the runner being
-/// `{slug}://{link}/{rest}` in the Hub, so the program never knows its link's name; its
-/// Apps are one set for the server and stay unchanged.
+/// Registered servers keep their own URIs: each server's URI scheme equals its slug, its
+/// Apps live under `ui://<slug>/` and its skills under `skill://<slug>/`, so the Hub
+/// routes them unchanged. A runner's URIs under its scheme carry its link after the
+/// scheme, `{slug}://{rest}` on the runner being `{slug}://{link}/{rest}` in the Hub, so
+/// the program never knows its link's name; its Apps and skills are one set for the server
+/// and stay unchanged.
 pub(crate) fn project_upstream_resource_uri_for_hub(
     server: &RegisteredServer,
     upstream_uri: &str,
@@ -60,7 +61,7 @@ pub(crate) fn unlinked_uri<'a>(
     let Some(link) = server.link() else {
         return Some(std::borrow::Cow::Borrowed(uri));
     };
-    if uri.starts_with("ui://") {
+    if uri.starts_with("ui://") || uri.starts_with("skill://") {
         return Some(std::borrow::Cow::Borrowed(uri));
     }
     let scheme = format!("{}://", server.uri_scheme);
@@ -308,6 +309,28 @@ mod tests {
         assert_eq!(
             upstream_error(rmcp::ServiceError::TransportClosed).code,
             rmcp::model::ErrorCode::INTERNAL_ERROR
+        );
+    }
+
+    #[test]
+    fn a_runners_apps_and_skills_keep_their_addresses() {
+        let mut runner =
+            crate::test_catalog::registered_server("forge", "http://127.0.0.1:1/forge");
+        runner.runner = Some(crate::registration::RunnerOf {
+            link: "team-a".parse().unwrap(),
+            repository: "0123456789abcdef0123456789abcdef".parse().unwrap(),
+        });
+        for unchanged in ["ui://forge/board.html", "skill://forge/build/SKILL.md"] {
+            assert_eq!(linked_uri(&runner, unchanged), unchanged);
+            assert_eq!(unlinked_uri(&runner, unchanged).as_deref(), Some(unchanged));
+        }
+        assert_eq!(
+            linked_uri(&runner, "forge://builds"),
+            "forge://team-a/builds"
+        );
+        assert_eq!(
+            unlinked_uri(&runner, "forge://team-a/builds").as_deref(),
+            Some("forge://builds")
         );
     }
 }

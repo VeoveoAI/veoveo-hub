@@ -71,7 +71,7 @@ impl ComputerConfiguration {
         let installation = match previous.filter(|old| {
             // Guidance and collection changes do not change native provisioning inputs.
             let mut previous_config = old.config.as_ref().clone();
-            previous_config.handbook.clone_from(&config.handbook);
+            previous_config.skills.clone_from(&config.skills);
             previous_config.collect_after_seconds = config.collect_after_seconds;
             previous_config == *config
                 && old.installation.hub_url() == profile.protected_resource.as_str()

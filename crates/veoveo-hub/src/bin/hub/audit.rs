@@ -215,7 +215,6 @@ fn authentication_draft(
                 veoveo_hub_sdk::PrincipalKind::Service => AuditPrincipalKind::Service,
             },
             tenant: principal.tenant.clone(),
-            work_context: None,
         });
     } else if allowed
         && let (Some(server), Some(client)) = (record.authorization_server, record.client_id)
@@ -224,7 +223,6 @@ fn authentication_draft(
             principal: PrincipalId::parse(format!("{}#{}", server.issuer, client))?,
             kind: AuditPrincipalKind::Service,
             tenant: None,
-            work_context: None,
         });
     }
     Ok(draft.build()?)

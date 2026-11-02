@@ -95,8 +95,7 @@ pub(super) async fn token(
         Ok(None) => return refuse("invalid_grant"),
         Err(e) => return internal_error_response(e),
     };
-    // Use the same current family admission as other hosted callers. No new
-    // Work Context membership requirement is imposed on contributed resources.
+    // Use the same current family admission as other hosted callers.
     match state
         .hub_state
         .access_token_session_valid(
@@ -122,7 +121,6 @@ pub(super) async fn token(
             resource.protected_resource(),
             &client_id,
             &family.principal.principal,
-            &family.work_context,
             &family.scopes,
             Some(family_id),
         )?

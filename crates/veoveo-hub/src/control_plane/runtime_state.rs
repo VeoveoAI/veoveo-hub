@@ -69,7 +69,6 @@ pub struct HubAuthorizationRequest {
     pub idp_state: OAuthStateValue,
     pub protected_resource: ProtectedResourceId,
     pub oauth_client_id: OAuthClientId,
-    pub work_context: WorkContextId,
     pub oidc_client: OidcClientRegistrationId,
     pub destination: AuthorizationDestination,
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
@@ -87,7 +86,6 @@ pub struct HubAuthorizationCodeRecord {
     pub code: OAuthAuthorizationCode,
     pub protected_resource: ProtectedResourceId,
     pub oauth_client_id: OAuthClientId,
-    pub work_context: WorkContextId,
     pub oidc_client: OidcClientRegistrationId,
     pub redirect_uri: OAuthRedirectUri,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -110,7 +108,6 @@ pub struct HubRefreshGrant {
     pub authorization_server: AuthorizationServerId,
     pub protected_resource: ProtectedResourceId,
     pub oauth_client_id: OAuthClientId,
-    pub work_context: WorkContextId,
     pub principal: Principal,
     pub principal_display_name: PrincipalDisplayName,
     pub scopes: BTreeSet<ScopeName>,

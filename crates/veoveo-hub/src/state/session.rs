@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use veoveo_hub_sdk::{AccessTokenSubject, OAuthClientId, Principal, ProtectedResourceId};
-use veoveo_types::{PrincipalId, ScopeName, TenantId, WorkContextId};
+use veoveo_types::{PrincipalId, ScopeName, TenantId};
 
 use super::HubState;
 use crate::policy::session::{SessionFamilyAuthority, SessionRequest};
@@ -77,7 +77,6 @@ struct SessionView<'a> {
     authorization_server: &'a AuthorizationServerId,
     protected_resource: &'a ProtectedResourceId,
     oauth_client_id: &'a OAuthClientId,
-    work_context: &'a WorkContextId,
     principal_id: &'a PrincipalId,
     tenant: &'a Option<TenantId>,
     scopes: &'a BTreeSet<ScopeName>,
@@ -99,7 +98,6 @@ impl<'a> From<&'a RefreshFamily> for SessionView<'a> {
             authorization_server: &family.authorization_server,
             protected_resource: &family.protected_resource,
             oauth_client_id: &family.oauth_client_id,
-            work_context: &family.work_context,
             principal_id: &principal.id,
             tenant: &principal.tenant,
             scopes: &family.scopes,

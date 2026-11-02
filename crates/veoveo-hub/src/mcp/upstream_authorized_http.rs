@@ -349,6 +349,7 @@ fn map_reqwest_transport_error(
         StreamableHttpError::HttpResponse { status, body } => {
             StreamableHttpError::HttpResponse { status, body }
         }
+        StreamableHttpError::HttpStatus(rejection) => StreamableHttpError::HttpStatus(rejection),
         StreamableHttpError::UnexpectedContentType(content_type) => {
             StreamableHttpError::UnexpectedContentType(content_type)
         }
@@ -390,11 +391,7 @@ mod tests {
 
     use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
     use veoveo_hub_sdk::{HubInternalSigningKey, PrincipalKind, TokenIssuer, TokenSubject};
-    use veoveo_types::{
-        AccessSubject, InvocationProvenance, PolicyVersion, PrincipalId, ScopeName, TenantId,
-        WorkContextId,
-    };
-    use veoveo_types::{WorkContextMembershipLevel, WorkContextOutputPolicy};
+    use veoveo_types::{InvocationProvenance, PolicyVersion, PrincipalId, ScopeName, TenantId};
 
     use super::*;
 
@@ -461,16 +458,8 @@ mod tests {
             authenticated_at: None,
         };
         let authority = InvocationAuthority {
-            work_context: WorkContextId::parse("mission").unwrap(),
             tenant: TenantId::parse("tenant").unwrap(),
-            membership: WorkContextMembershipLevel::Owner,
             policy_revision: PolicyVersion::parse("r1").unwrap(),
-            output_policy: WorkContextOutputPolicy {
-                owner: AccessSubject::Principal(actor_id.clone()),
-                initial_grants: Vec::new(),
-                classification: None,
-                data_labels: BTreeSet::new(),
-            },
             provenance: InvocationProvenance::Direct {
                 initiator: actor_id,
             },
@@ -499,7 +488,6 @@ mod tests {
                             .unwrap(),
                     ),
                     audience: veoveo_hub_sdk::ProtectedResourceId::parse("operator").unwrap(),
-                    work_context: authority.work_context.clone(),
                     invocation_mode: veoveo_types::InvocationMode::Direct,
                     initiator: Some(actor.id.clone()),
                     delegation_id: None,

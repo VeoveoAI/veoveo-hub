@@ -358,13 +358,9 @@ pub(crate) async fn authorization_callback(
         .await;
     }
     if profile.profile().is_some()
-        && let Err(err) = catalog.work_context_membership(
-            &authorization_request.oauth_client_id,
-            &authorization_request.work_context,
-            &verified_identity.principal,
-        )
+        && let Err(err) = catalog.principal_tenant(&verified_identity.principal)
     {
-        tracing::warn!("rejected Work Context selection: {err}");
+        tracing::warn!("rejected sign-in: {err}");
         if let Err(err) = record_oidc_auth_audit(
             &state.hub_state,
             &profile,
@@ -385,7 +381,7 @@ pub(crate) async fn authorization_callback(
             &state,
             &authorization_request,
             "access_denied",
-            Some("Work Context membership is required"),
+            Some("the principal belongs to no tenant of this installation"),
         )
         .await;
     }
@@ -451,7 +447,6 @@ pub(crate) async fn authorization_callback(
                 code: hub_code.clone(),
                 protected_resource: profile.protected_resource().clone(),
                 oauth_client_id: authorization_request.oauth_client_id.clone(),
-                work_context: authorization_request.work_context.clone(),
                 oidc_client: oidc_client_record_id,
                 redirect_uri: redirect_uri.clone(),
                 client_state: client_state.clone(),

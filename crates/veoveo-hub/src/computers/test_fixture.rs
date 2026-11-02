@@ -1,6 +1,6 @@
 //! Computer runtime fixtures: the fake OpenShell gateway (`tests/factory/gateway.rs`)
 //! serving the installation's template, a provisioner on it with the test catalog's
-//! browser client, profile and Work Context, an owner's Computer and the handoff of its
+//! browser client and profile, an owner's Computer and the handoff of its
 //! next sign-in. Every credential is a synthetic string.
 pub(super) use crate::test_gateway as fake;
 
@@ -40,7 +40,7 @@ pub(super) fn config() -> Computers {
         "gateway": {"endpoint": "https://gateway.example/", "certificateAuthority": "/unused/ca", "bearerEnvironment": "UNUSED"},
         "template": {"workspace": "installation", "name": "computer"},
         "policyFile": "/unused/policy", "command": ["/usr/local/bin/opencode", "serve"],
-        "oauthClient": "operator-local-public", "profile": "operator", "workContext": "operations", "port": 4096,
+        "oauthClient": "operator-local-public", "profile": "operator", "port": 4096,
         "hubProvider": {"profile": "vv-computer-hub", "credentialKey": "COMPUTER_HUB_REFERENCE"},
         "modelProvider": {"profile": "vv-computer-model", "credentialKey": "DEEPINFRA_API_KEY", "secret": "computer-model-api-key"},
         "loreProvider": {"profile": LORE_PROFILE, "credentialKey": LORE_KEY}
@@ -259,7 +259,6 @@ async fn signed_in_computer(
             authorization_server: &profile.authorization_server,
             protected_resource: &profile.protected_resource,
             oauth_client_id: &config.oauth_client,
-            work_context: &config.work_context,
             principal: &principal,
             principal_display_name: &crate::contract::PrincipalDisplayName::new("Owner").unwrap(),
             scopes: &principal.scopes,

@@ -21,14 +21,6 @@ pub(crate) fn presentation(
         .find(|tenant| tenant.id == tenant_id)
         .and_then(|tenant| tenant.title.clone())
         .unwrap_or_else(|| tenant_id.to_string());
-    let work_context_title = control
-        .work_contexts
-        .iter()
-        .find(|context| context.id == subject.authority.work_context)
-        .map_or_else(
-            || subject.authority.work_context.to_string(),
-            |context| context.title.clone(),
-        );
     let branding = control.branding.as_ref();
     Ok((
         ConsoleInstallation {
@@ -55,9 +47,6 @@ pub(crate) fn presentation(
             actor_id: subject.actor.id.clone(),
             tenant_id: tenant_id.clone(),
             tenant_name: tenant_name.clone(),
-            work_context: subject.authority.work_context.clone(),
-            work_context_title,
-            membership: subject.authority.membership,
             invocation_mode: subject.authority.provenance.mode(),
             available_tenants: vec![ConsoleTenant {
                 id: tenant_id,

@@ -9,13 +9,11 @@ use veoveo_hub::control_plane::ResourceAuthorizationServer;
 use veoveo_hub::oauth_clients::EffectiveOAuthClient;
 use veoveo_hub::{ClientAssertionConfig, ClientAssertionVerifier, HubCatalog};
 use veoveo_oauth::CLIENT_ASSERTION_TYPE;
-use veoveo_types::WorkContextId;
 
 use crate::{
     audit::{AuthAuditRecord, auth_audit_error_response, record_protocol_auth_audit},
     http_util::{
         TokenResponse, allowed_hub_jwt_algorithms, load_jwks, oauth_error_response, token_response,
-        work_context_refused,
     },
     oauth_grants::{TokenRequest, requested_client_credentials_scopes},
     runtime::{AppState, current_http_client},
@@ -447,19 +445,6 @@ pub(super) async fn token_endpoint_client_credentials(
             }
         }
     };
-    let work_context = match request.work_context.as_deref() {
-        Some(value) => match WorkContextId::parse(value.trim()) {
-            Ok(context) => context,
-            Err(_) => {
-                return oauth_error_response(
-                    StatusCode::BAD_REQUEST,
-                    "invalid_request",
-                    "work_context is not a valid Work Context ID",
-                );
-            }
-        },
-        None => client.default_work_context.clone(),
-    };
     let Some(tenant) = client.tenant.as_ref() else {
         tracing::error!(client = %client_id, "automated OAuth client has no tenant");
         return oauth_error_response(
@@ -485,24 +470,13 @@ pub(super) async fn token_endpoint_client_credentials(
         }
     };
     // RFC 6749 §5.2 defines no `access_denied` for the token endpoint. A client whose
-    // own authority cannot act is unauthorized for the grant; a Work Context it asked
-    // for and may not act in is an invalid request.
+    // own authority cannot act is unauthorized for the grant.
     if let Err(error) = effective.apply_service_roles(&mut service_principal) {
         tracing::warn!(%error, "managed service roles are unavailable");
         return oauth_error_response(
             StatusCode::BAD_REQUEST,
             "unauthorized_client",
             "the client's authority is unavailable",
-        );
-    }
-    if resource.profile().is_some()
-        && let Err(err) = effective.membership(catalog, &work_context, &service_principal)
-    {
-        tracing::warn!("rejected Work Context selection: {err}");
-        return work_context_refused(
-            request.work_context.is_some(),
-            "unauthorized_client",
-            "the client is no member of its default Work Context",
         );
     }
 
@@ -523,7 +497,6 @@ pub(super) async fn token_endpoint_client_credentials(
                 resource.protected_resource(),
                 &client_id,
                 &service_principal,
-                &work_context,
                 &scopes,
                 None,
             )?;
@@ -548,7 +521,6 @@ pub(super) async fn token_endpoint_client_credentials(
             &client_id,
             &service_principal,
             crate::tokens::ServiceTokenAuthority {
-                work_context,
                 extensions: binding,
             },
             &scopes,

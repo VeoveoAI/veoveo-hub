@@ -146,7 +146,6 @@ pub(crate) async fn authorize(
             user: &digest(&code),
             resource: resource.protected_resource(),
             client: &id,
-            work_context: &client.default_work_context,
             scopes: &scopes,
             now,
             expires_at: now + TimeDelta::seconds(TTL),
@@ -339,7 +338,6 @@ pub(crate) async fn approve(
                 &catalog,
                 resource,
                 request.client,
-                request.work_context,
                 request.scopes,
                 AuthorizationDestination::Device {
                     request: request.id,
@@ -412,7 +410,6 @@ pub(super) async fn token(
             authorization_server: &server.id,
             protected_resource: &approved.resource,
             oauth_client_id: &client_id,
-            work_context: &approved.work_context,
             principal: &principal,
             principal_display_name: &display,
             scopes: &approved.scopes,
@@ -429,7 +426,6 @@ pub(super) async fn token(
             &approved.resource,
             &client_id,
             &principal,
-            &approved.work_context,
             &approved.scopes,
             Some(&refresh.grant.family_id),
         )?

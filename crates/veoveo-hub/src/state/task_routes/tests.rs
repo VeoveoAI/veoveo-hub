@@ -5,7 +5,6 @@ fn draft() -> HubTaskRouteDraft {
     let subject = crate::mcp::task_ownership_tests::subject();
     HubTaskRouteDraft {
         tenant: subject.authority.tenant.clone(),
-        work_context: subject.authority.work_context.clone(),
         profile: HubProfileId::parse("admin").unwrap(),
         server: ServerSlug::parse("upstream-a").unwrap(),
         deployment: deployment(1),
@@ -44,16 +43,12 @@ fn input_tenant() -> veoveo_types::TenantId {
     draft().tenant
 }
 
-/// Task routes reference the Work Context the active configuration defines.
+/// Task routes reference the tenant the active configuration defines.
 async fn database() -> fixture::TestDb {
     let db = fixture::TestDb::new().await;
     let input = draft();
-    crate::test_catalog::publish_work_context(
-        &crate::store::HubStore::new(db.a.clone()),
-        &input.tenant,
-        &input.work_context,
-    )
-    .await;
+    crate::test_catalog::publish_tenant(&crate::store::HubStore::new(db.a.clone()), &input.tenant)
+        .await;
     let store = crate::store::HubStore::new(db.a.clone());
     store.retain_composition(&capture()).await.unwrap();
     for (slug, deployment) in [
@@ -152,13 +147,11 @@ async fn changed_authority_or_expired_routes_cannot_be_rebound_by_an_upstream_re
     let state = HubState::new(db.a.clone());
     let input = draft();
     let (canonical, original) = state.create_task_route(input.clone()).await.unwrap();
-    let mut work_context = input.clone();
-    work_context.work_context = veoveo_types::WorkContextId::parse("other").unwrap();
     let mut authority = input.clone();
     authority.authority_digest = Sha256Digest::from_bytes([0xb; 32]);
     let mut labels = input.clone();
     labels.ownership.data_labels.clear();
-    for altered in [work_context, authority, labels] {
+    for altered in [authority, labels] {
         assert!(state.create_task_route(altered).await.is_err());
         let current = state
             .task_route(&canonical, &input_tenant())

@@ -9,7 +9,7 @@ use chrono::{TimeDelta, Utc};
 use jsonwebtoken::encode;
 use serde::Serialize;
 use veoveo_hub_sdk::{JwtId, OAuthClientId, Principal, PrincipalKind, TokenSubject};
-use veoveo_types::{InvocationProvenance, PrincipalId, ScopeName, TenantId, WorkContextId};
+use veoveo_types::{InvocationProvenance, PrincipalId, ScopeName, TenantId};
 
 pub const ACCESS_TOKEN_TTL_SECONDS: i64 = 15 * 60;
 
@@ -33,8 +33,6 @@ struct AccessTokenClaims {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "https://veoveo.ai/claims/session-family")]
     session_family: Option<veoveo_hub_sdk::HubRefreshFamilyId>,
-    #[serde(rename = "https://veoveo.ai/claims/work-context")]
-    work_context: String,
     #[serde(rename = "https://veoveo.ai/claims/invocation-mode")]
     invocation_mode: veoveo_types::InvocationMode,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -74,7 +72,6 @@ pub struct AccessTokenInvocation {
     pub purpose: Option<crate::token_profile::TokenPurpose>,
     pub extensions: veoveo_types::AdmittedExtensions,
     pub session_family: Option<veoveo_hub_sdk::HubRefreshFamilyId>,
-    pub work_context: WorkContextId,
     pub provenance: InvocationProvenance,
 }
 
@@ -101,7 +98,6 @@ impl std::fmt::Debug for IssuedAccessToken {
 }
 
 pub struct ServiceTokenAuthority {
-    pub work_context: WorkContextId,
     pub extensions: veoveo_types::AdmittedExtensions,
 }
 
@@ -130,7 +126,6 @@ pub async fn issue_client_credentials_access_token(
             purpose: None,
             extensions: authority.extensions,
             session_family: None,
-            work_context: authority.work_context,
             provenance: InvocationProvenance::Automated,
         },
         service_principal.id.clone(),
@@ -208,7 +203,6 @@ pub async fn issue_access_token(
         client_id: client_id.to_string(),
         session_family: invocation.session_family,
         extensions: invocation.extensions.wire(),
-        work_context: invocation.work_context.to_string(),
         invocation_mode: invocation.provenance.mode(),
         initiator: invocation.provenance.initiator().map(ToString::to_string),
         delegation_id: match &invocation.provenance {

@@ -30,7 +30,6 @@ pub(crate) fn subject() -> AuthenticatedSubject {
             oauth_client_id: OAuthClientId::parse("workspace").unwrap(),
             session_family: None,
             audience: ProtectedResourceId::parse("https://veoveo.example/mcp/workspace").unwrap(),
-            work_context: authority.work_context.clone(),
             invocation_mode: InvocationMode::Direct,
             initiator: Some(actor.id.clone()),
             delegation_id: None,

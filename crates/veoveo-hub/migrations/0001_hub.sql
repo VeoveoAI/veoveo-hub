@@ -98,7 +98,6 @@ CREATE TABLE hub.authorization_request (
     idp_state text PRIMARY KEY CHECK (idp_state <> ''),
     profile text NOT NULL CHECK (profile <> ''),
     oauth_client_id text NOT NULL CHECK (oauth_client_id <> ''),
-    work_context text NOT NULL CHECK (work_context <> ''),
     oidc_client text NOT NULL CHECK (oidc_client <> ''),
     redirect_uri text NOT NULL CHECK (redirect_uri <> ''),
     client_state text,
@@ -122,7 +121,6 @@ CREATE TABLE hub.authorization_code (
     code text PRIMARY KEY CHECK (code <> ''),
     profile text NOT NULL CHECK (profile <> ''),
     oauth_client_id text NOT NULL CHECK (oauth_client_id <> ''),
-    work_context text NOT NULL CHECK (work_context <> ''),
     oidc_client text NOT NULL CHECK (oidc_client <> ''),
     redirect_uri text NOT NULL CHECK (redirect_uri <> ''),
     client_state text,
@@ -146,7 +144,6 @@ CREATE TABLE hub.refresh_family (
     authorization_server text NOT NULL CHECK (authorization_server <> ''),
     profile text NOT NULL CHECK (profile <> ''),
     oauth_client_id text NOT NULL CHECK (oauth_client_id <> ''),
-    work_context text NOT NULL CHECK (work_context <> ''),
     principal_id text NOT NULL CHECK (principal_id <> ''),
     tenant text CHECK (tenant <> ''),
     scopes text[] NOT NULL,
@@ -231,7 +228,6 @@ CREATE TABLE hub.task_route (
     id text PRIMARY KEY CHECK (id ~ '^gtr_[A-Za-z0-9_-]{43}$'),
     tenant uuid NOT NULL REFERENCES identity.tenant (id),
     owner uuid NOT NULL REFERENCES identity.principal (id),
-    work_context uuid NOT NULL REFERENCES identity.work_context (id) ON DELETE CASCADE,
     profile text NOT NULL CHECK (profile <> ''),
     server text NOT NULL CHECK (server <> ''),
     source_task_id text NOT NULL CHECK (octet_length(source_task_id) BETWEEN 1 AND 512),
@@ -265,10 +261,8 @@ COMMENT ON COLUMN hub.task_route.delegated_caller IS
 CREATE INDEX refresh_token_replacement ON hub.refresh_token (replacement)
     WHERE replacement IS NOT NULL;
 
--- Cleanup deletes expired Task routes in expiry order, and removing a Work Context
--- removes its routes through the second index rather than a scan.
+-- Cleanup deletes expired Task routes in expiry order.
 CREATE INDEX task_route_expiry ON hub.task_route (expires_at);
-CREATE INDEX task_route_work_context ON hub.task_route (work_context);
 
 -- Deleting a principal or a tenant checks the Task routes that reference it. These
 -- indexes find those routes without a scan of every route.
@@ -317,5 +311,4 @@ COMMENT ON TABLE hub.registration IS
     'kernel instance for the grace period; the Hub then removes it with its login.';
 
 COMMENT ON TABLE hub.task_route IS
-    'Retention: until it expires or a publication deletes its Work Context; the Hub '
-    'prunes expired routes in batches.';
+    'Retention: until it expires; the Hub prunes expired routes in batches.';

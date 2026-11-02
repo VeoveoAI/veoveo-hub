@@ -188,11 +188,7 @@ pub(crate) async fn token_endpoint_refresh_token(
         )
         .await;
     }
-    if profile.profile().is_some()
-        && catalog
-            .work_context_membership(&client_id, &grant.work_context, &grant.principal)
-            .is_err()
-    {
+    if profile.profile().is_some() && catalog.principal_tenant(&grant.principal).is_err() {
         return invalid_refresh_response(
             state,
             profile,
@@ -221,7 +217,6 @@ pub(crate) async fn token_endpoint_refresh_token(
                 purpose: None,
                 extensions: Default::default(),
                 session_family: Some(grant.family_id.clone()),
-                work_context: grant.work_context.clone(),
                 provenance: InvocationProvenance::Direct {
                     initiator: grant.principal.id.clone(),
                 },
@@ -238,7 +233,6 @@ pub(crate) async fn token_endpoint_refresh_token(
                 profile.protected_resource(),
                 &client_id,
                 &grant.principal,
-                &grant.work_context,
                 &grant.scopes,
                 Some(&grant.family_id),
             )?

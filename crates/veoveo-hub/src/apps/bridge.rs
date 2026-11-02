@@ -144,7 +144,6 @@ pub(super) async fn family_bearer(
             purpose: None,
             extensions: Default::default(),
             session_family: Some(family.id.clone()),
-            work_context: family.work_context.clone(),
             provenance: InvocationProvenance::Direct {
                 initiator: principal.id.clone(),
             },

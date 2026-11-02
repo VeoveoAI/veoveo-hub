@@ -61,17 +61,11 @@ pub struct OAuthClientFacts {
     pub allowed_scopes: BTreeSet<ScopeName>,
     pub grant_types: BTreeSet<crate::contract::OAuthGrantType>,
     pub auth_methods: BTreeSet<crate::contract::OAuthClientAuthMethod>,
-    pub default_work_context: veoveo_types::WorkContextId,
     pub invocation_mode: veoveo_types::InvocationMode,
     pub has_jwks: bool,
     pub has_credential_secret: bool,
     pub has_redirect_uris: bool,
     pub direct_task_call_adapter: bool,
-}
-#[derive(Debug, Clone)]
-pub struct WorkContextFacts {
-    pub id: veoveo_types::WorkContextId,
-    pub tenant: TenantId,
 }
 #[derive(Debug, Clone, Default)]
 pub struct CatalogFacts {
@@ -80,7 +74,6 @@ pub struct CatalogFacts {
     pub tenants: BTreeSet<TenantId>,
     pub data_labels: BTreeSet<DataLabelId>,
     pub oauth_clients: Vec<OAuthClientFacts>,
-    pub work_contexts: Vec<WorkContextFacts>,
 }
 #[derive(Debug, Clone)]
 pub struct ProtectedResourceDescriptor {
@@ -654,7 +647,6 @@ pub const CORE_CATALOG_OBJECT_KINDS: &[&str] = &[
     "server",
     "profile",
     "tenant",
-    "work_context",
     "policy",
     "policy_rule",
     "data_label",

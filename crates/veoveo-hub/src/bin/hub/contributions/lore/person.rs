@@ -108,7 +108,6 @@ fn admit<'a>(
         &deployment.audience,
         &client.id,
         principal,
-        &client.default_work_context,
         &deployment.login_scopes,
         None,
     )
