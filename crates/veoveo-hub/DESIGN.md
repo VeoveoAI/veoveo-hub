@@ -908,6 +908,10 @@ forwarded groups and its own grants, as Artifact does with its grants to people 
 groups. Joining a group gives what is shared with it and leaving takes that away; a
 person's own assignments and grants stay.
 
+The ID-JAG grant's delegated invocation mode makes the OAuth client the actor and the
+owner of what it does, so it is not for a person's work until outputs are owned by the
+person who initiated it.
+
 ## Forwarded Identity
 
 `mcp/upstream_authorized_http.rs` issues a fresh RFC 9068 token for each upstream HTTP
@@ -972,7 +976,13 @@ A Task stops acting for a caller
 whose browser session the Hub revoked because one of its refresh tokens was
 replayed: the exchange is refused with `invalid_grant` and a Task-bound token is no
 longer admitted. A logout, a session that expired or a caller without a session
-leaves the delegation in place until the Task ends.
+leaves the delegation in place until the Task ends. A Task also stops acting for a caller
+whom the installation removed from a group it configures that the caller held when the
+Task started: the exchange is refused with `invalid_grant`, "the caller's groups changed
+since the Task started". The current revision's configured memberships decide; groups the
+installation does not configure, such as the identity provider's, are not checked, since
+the Hub keeps the provider's groups from the sign-in that created the session and a
+refresh does not read them again.
 
 The token carries the requested permissions that the server declared and the caller
 holds now: the installation's roles and overrides are evaluated again at each

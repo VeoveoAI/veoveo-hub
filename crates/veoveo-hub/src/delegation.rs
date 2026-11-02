@@ -650,6 +650,18 @@ impl DelegationService {
                 "the caller's session was revoked after a refresh token was replayed",
             ));
         }
+        let principal = &caller.request_context.principal;
+        if let Some(tenant) = &principal.tenant
+            && self
+                .inner
+                .catalog
+                .snapshot()
+                .catalog()
+                .sections()
+                .lost_configured_group(tenant, &principal.id, &principal.groups)
+        {
+            return Ok(Some("the caller's groups changed since the Task started"));
+        }
         Ok(None)
     }
 
