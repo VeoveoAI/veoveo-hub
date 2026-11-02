@@ -1,6 +1,5 @@
 //! Kernel catalog admission and Hub state for this binary. OAuth clients come
-//! from the installation configuration; the executable binds typed contributions, and
-//! the Lore contribution names the groups people belong to.
+//! from the installation configuration; the executable binds typed contributions.
 use std::sync::Arc;
 
 use veoveo_hub::{HubCatalogAdmission, HubState, oauth_clients::CatalogOAuthClientResolver};
@@ -13,6 +12,5 @@ pub(super) fn catalog_admission() -> anyhow::Result<HubCatalogAdmission> {
 pub(super) fn hub_state(platform: PlatformStore) -> anyhow::Result<HubState> {
     HubState::new(platform)
         .bind_token_extensions(crate::contributions::bindings()?.profiles.claim_registry())?
-        .bind_oauth_client_resolver(Arc::new(CatalogOAuthClientResolver))?
-        .bind_person_groups(Arc::new(crate::contributions::lore::sharing::PersonGroups))
+        .bind_oauth_client_resolver(Arc::new(CatalogOAuthClientResolver))
 }

@@ -2066,21 +2066,16 @@ callers of the Hub never receive it. Each discovery reads the current catalog, s
 edit reaches a client on its next connection.
 
 After the handbook, the same callers' `server/discover` answers a section the Hub writes
-for the person whose Computer it is, `## Who you work for`, so the agent knows them from
-its first turn without a tool call. It holds the Hub's own records only:
-- the person's name and email as their last sign-in named them (`hub.person`), their
-  principal, their tenant and the Computers' Work Context with its title;
-- the installation roles the Hub grants them (`authorization.grants`, through their
-  groups too) and the roles their sign-in carries, when they hold any;
-- the groups of their tenant they belong to, with their role in each (owner or
-  member), as the contribution that holds the tenant's groups names them
-  (`person::PersonGroups`, which the Lore contribution binds);
-- the Computer's ID and current version, and that everything in it acts as them.
-
-The section holds no token, no grant list and no server's name: what the person's tools
-look up, and where, is the handbook's to say. The Hub reads these at each discovery, so
-a change shows at the next connection. When one cannot be read, discovery answers
-without the section, and the Hub logs why.
+for the person whose Computer it is, `## Who you work for`, so the agent knows from its
+first turn, without a tool call, whom it works for. It names who the person is with
+facts fixed for the Computer's life, from the Hub's own records: their name and email as
+their last sign-in named them (`hub.person`), their principal, their tenant and the
+Computers' Work Context with their titles, this Computer's ID, and that everything in
+it acts as them. A client reads the instructions once per connection, so nothing that
+changes while the Computer runs is there: the agent reads groups, repository access and
+the Computer's version live through the tools the handbook names. The section holds no
+token, no grant list and no server's name. When a record cannot be read, discovery
+answers without the section, and the Hub logs why.
 
 `GET /computer` admits the existing opaque host-only session cookie or starts an
 ordinary PKCE authorization against this Hub's existing OAuth endpoints. A bounded

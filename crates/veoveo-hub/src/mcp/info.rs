@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, fmt::Write as _};
+use std::fmt::Write as _;
 
 use anyhow::{Context as _, Result};
 use rmcp::{
@@ -10,14 +10,11 @@ use rmcp::{
     },
     service::{RequestContext, RoleServer},
 };
-use veoveo_types::RoleId;
 
 use super::HubMcp;
 use crate::{
-    AuthenticatedSubject, HubCatalog,
-    computers::{ComputerId, ComputerVersion},
-    control_plane::Computers,
-    person::{Person, PersonGroup},
+    AuthenticatedSubject, HubCatalog, computers::ComputerId, control_plane::Computers,
+    person::Person,
 };
 
 impl HubMcp {
@@ -138,8 +135,9 @@ impl HubMcp {
         }
     }
 
-    /// What the Hub's own records say about `subject`'s person and their Computer; none
-    /// when they own no Computer.
+    /// Who `subject`'s person is and which Computer is theirs, as the Hub's own records
+    /// name them; none when they own no Computer. Only facts fixed for the Computer's
+    /// life: what changes while it runs, the agent reads live through its tools.
     async fn person_brief(
         &self,
         catalog: &HubCatalog,
@@ -163,13 +161,6 @@ impl HubMcp {
             .await?
             .into_iter()
             .next();
-        let mut groups = match &self.state.person_groups {
-            Some(groups) => groups
-                .groups(catalog, tenant, &principal.id)
-                .context("name the person's groups")?,
-            None => Vec::new(),
-        };
-        groups.sort();
         Ok(Some(PersonBrief {
             name: person
                 .as_ref()
@@ -193,17 +184,7 @@ impl HubMcp {
                     .work_context(&computers.work_context)
                     .map(|context| context.title.as_str()),
             ),
-            installation_roles: crate::policy::held_roles(
-                &catalog.control_plane().authorization,
-                principal,
-            ),
-            sign_in_roles: principal.roles.clone(),
-            groups,
             computer: computer.id.clone(),
-            version: computer
-                .provisioning
-                .version()
-                .context("name the Computer's version")?,
         }))
     }
 }
@@ -224,22 +205,11 @@ struct PersonBrief {
     principal: String,
     tenant: String,
     work_context: String,
-    installation_roles: BTreeSet<RoleId>,
-    sign_in_roles: BTreeSet<RoleId>,
-    groups: Vec<PersonGroup>,
     computer: ComputerId,
-    version: ComputerVersion,
 }
 
 impl PersonBrief {
     fn markdown(&self) -> String {
-        let roles = |roles: &BTreeSet<RoleId>| {
-            roles
-                .iter()
-                .map(|role| format!("`{}`", role.as_str()))
-                .collect::<Vec<_>>()
-                .join(", ")
-        };
         let mut text = String::from("## Who you work for\n\n");
         let _ = write!(text, "You work for {}", self.name);
         if let Some(email) = self
@@ -249,37 +219,12 @@ impl PersonBrief {
         {
             let _ = write!(text, ", {email}");
         }
-        let _ = writeln!(
-            text,
-            ". Their principal is `{}` in the tenant {}. This Computer works in the Work Context {}.",
-            self.principal, self.tenant, self.work_context
-        );
-        if !self.installation_roles.is_empty() {
-            let _ = writeln!(
-                text,
-                "\nTheir installation roles: {}.",
-                roles(&self.installation_roles)
-            );
-        }
-        if !self.sign_in_roles.is_empty() {
-            let _ = writeln!(
-                text,
-                "\nThe roles their sign-in carries: {}.",
-                roles(&self.sign_in_roles)
-            );
-        }
-        if self.groups.is_empty() {
-            text.push_str("\nThey belong to no group.\n");
-        } else {
-            text.push_str("\nTheir groups:\n");
-            for group in &self.groups {
-                let _ = writeln!(text, "- `{}`, {}", group.name, group.role);
-            }
-        }
         let _ = write!(
             text,
-            "\nThis is their Computer `{}`, at version `{}`. Everything here acts as {}: every Hub tool, and every command line that holds this Computer's credentials.",
-            self.computer, self.version, self.name
+            ". Their principal is `{}` in the tenant {}. This Computer works in the Work \
+             Context {}.\n\nThis is their Computer `{}`. Everything here acts as {}: every \
+             Hub tool, and every command line that holds this Computer's credentials.",
+            self.principal, self.tenant, self.work_context, self.computer, self.name
         );
         text
     }
@@ -293,7 +238,7 @@ mod tests {
 
     use rmcp::handler::server::ServerHandler;
     use veoveo_hub_sdk::{HubProfileId, OAuthClientId};
-    use veoveo_types::{PrincipalId, TenantId};
+    use veoveo_types::TenantId;
 
     use super::HUB_INSTRUCTIONS;
     use crate::{
@@ -301,7 +246,7 @@ mod tests {
         contract::PrincipalDisplayName,
         control_plane::HubControlPlane,
         mcp::HubMcp,
-        person::{Email, Person, PersonGroup, PersonGroupRole},
+        person::{Email, Person},
     };
 
     const HANDBOOK: &str =
@@ -412,43 +357,14 @@ mod tests {
         .expect("instructions fixture deadline");
     }
 
-    /// The groups a contribution names for the test's person: one they own, one they
-    /// are a member of.
-    #[derive(Debug)]
-    struct Groups;
-
-    impl crate::person::PersonGroups for Groups {
-        fn groups(
-            &self,
-            _: &HubCatalog,
-            tenant: &TenantId,
-            principal: &PrincipalId,
-        ) -> anyhow::Result<Vec<PersonGroup>> {
-            assert_eq!(
-                (tenant.as_str(), principal.as_str()),
-                ("tenant-a", "issuer#subject")
-            );
-            Ok(vec![
-                PersonGroup {
-                    name: "ops".to_owned(),
-                    role: PersonGroupRole::Member,
-                },
-                PersonGroup {
-                    name: "flight".to_owned(),
-                    role: PersonGroupRole::Owner,
-                },
-            ])
-        }
-    }
-
     #[tokio::test]
     async fn a_computer_client_discovers_whom_it_works_for_after_the_handbook() {
         tokio::time::timeout(Duration::from_secs(90), async {
             let db = crate::test_store::TestDb::new().await;
-            let state = crate::HubState::new(db.a.clone())
-                .bind_person_groups(Arc::new(Groups))
-                .unwrap();
+            let state = crate::HubState::new(db.a.clone());
             let mut plane = plane(Some(HANDBOOK));
+            // The person holds an installation role and their sign-in carries one: neither
+            // is a fact fixed for the Computer's life, so the section names neither.
             plane.authorization = serde_json::from_value(serde_json::json!({
                 "roles": [{"name": "member", "access": ["read", "write"]}],
                 "grants": [{"role": "member", "subject": {"principal": "issuer#subject"}}]
@@ -504,22 +420,26 @@ mod tests {
                 .await
                 .unwrap();
             let version = computer.provisioning.version().unwrap();
+            let instructions = discovered(computer_client()).await;
+            let section = instructions
+                .strip_prefix(&format!("{handbook}\n\n"))
+                .expect("the section follows the handbook");
             assert_eq!(
-                discovered(computer_client()).await,
+                section,
                 format!(
-                    "{handbook}\n\n## Who you work for\n\n\
+                    "## Who you work for\n\n\
                      You work for Alex Rozgo, alex@example.com. Their principal is \
                      `issuer#subject` in the tenant Smoke tenant (`tenant-a`). This Computer \
                      works in the Work Context Operations (`operations`).\n\n\
-                     Their installation roles: `member`.\n\n\
-                     The roles their sign-in carries: `operator`.\n\n\
-                     Their groups:\n- `flight`, owner\n- `ops`, member\n\n\
-                     This is their Computer `{}`, at version `{version}`. Everything here \
-                     acts as Alex Rozgo: every Hub tool, and every command line that holds \
-                     this Computer's credentials.",
+                     This is their Computer `{}`. Everything here acts as Alex Rozgo: every \
+                     Hub tool, and every command line that holds this Computer's credentials.",
                     computer.id
                 )
             );
+            // What changes while the Computer runs is read live through tools.
+            for changing in ["role", "member", "operator", "group", version.as_str()] {
+                assert!(!section.contains(changing), "{changing} in {section}");
+            }
 
             // No other caller learns about the person, nor does a caller without a subject.
             for (profile, client) in [

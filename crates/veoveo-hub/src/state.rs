@@ -33,8 +33,6 @@ pub struct HubState {
     pub(crate) audit_health: std::sync::Arc<std::sync::OnceLock<veoveo_audit::AuditHealth>>,
     pub(crate) oauth_client_resolver:
         Option<std::sync::Arc<dyn crate::oauth_clients::OAuthClientResolver>>,
-    /// The contribution that names the groups a person belongs to.
-    pub(crate) person_groups: Option<std::sync::Arc<dyn crate::person::PersonGroups>>,
     /// Principals whose selection changed, as this replica learned it from the `hub`
     /// channel. Their open MCP listens complete with a catalog change hint.
     pub(crate) selection_changes: tokio::sync::broadcast::Sender<veoveo_types::PrincipalId>,
@@ -48,7 +46,6 @@ impl HubState {
             audit_writer: Default::default(),
             audit_health: Default::default(),
             oauth_client_resolver: None,
-            person_groups: None,
             token_extensions: None,
             selection_changes: tokio::sync::broadcast::channel(SELECTION_CHANGES).0,
         }

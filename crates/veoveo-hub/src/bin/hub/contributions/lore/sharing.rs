@@ -616,32 +616,3 @@ fn refused(refusal: Refusal) -> Problem {
     };
     Problem::new(status, code, title).detail(detail)
 }
-
-/// The groups of a tenant a person belongs to, by name, with their role in each: the
-/// Lore section's groups, which the Hub names in the section about the person whose
-/// Computer a client is.
-#[derive(Debug)]
-pub(crate) struct PersonGroups;
-
-impl veoveo_hub::person::PersonGroups for PersonGroups {
-    fn groups(
-        &self,
-        catalog: &veoveo_hub::HubCatalog,
-        tenant: &TenantId,
-        principal: &PrincipalId,
-    ) -> Result<Vec<veoveo_hub::person::PersonGroup>> {
-        use veoveo_hub::person::{PersonGroup, PersonGroupRole};
-        Ok(Lore::of(catalog)?
-            .memberships(tenant, principal)
-            .filter_map(|group| {
-                Some(PersonGroup {
-                    name: group.name.as_str().to_owned(),
-                    role: match group.role(principal)? {
-                        GroupRole::Owner => PersonGroupRole::Owner,
-                        GroupRole::Member => PersonGroupRole::Member,
-                    },
-                })
-            })
-            .collect())
-    }
-}
