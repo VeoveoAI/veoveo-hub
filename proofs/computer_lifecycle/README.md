@@ -54,16 +54,13 @@ timeout scheduler, native cancellation, browser recovery and credential custody
 remain open. The [browser-membership extraction probe](evidence/browser-membership-translation.json)
 retains actual current catalog and contributed-authority paths in Charon, but
 Aeneas cannot translate their dynamic dispatch and borrowed group iterator.
-Its partial Lean output is not adopted. The independent rule-selection calculation
-[translates successfully](evidence/work-context-membership-extraction.json); its
-additive shared graph is integrated, and the
-[membership proof](../current_roles/evidence/work-context-membership-proof.json)
-checks the exact highest matching level and absence, with valid client-only grants.
-[Four shared-package regression commands](../request_composition/evidence/shared-model-regression-20261101.json)
-also pass within their original source scopes. Both additional membership semantic
-controls remain unqualified/deferred: the first diagnostic failed Lean proof
-authoring and the second control was not run. The
-[closeout receipt](../current_roles/evidence/work-context-membership-closeout.json)
-records exact private baseline restoration and the original audit's passing rerun.
-Full browser admission and custody remain open, and the broad verification roadmap
-is paused pending better Rust/Aeneas support.
+Its partial Lean output is not adopted. That probe includes the now-deleted Work
+Context admission graph; it is historical evidence, not the current browser contract.
+The separate membership proof and its unqualified/deferred controls were retired
+with the shared package. Their [pinned history](https://github.com/VeoveoAI/veoveo-hub/tree/b5c08321d752c9e42a817b076fe82b2d53900619/proofs/current_roles)
+retains the checked theorem, failed authoring diagnostics and restored-baseline
+receipt. It supplies no current Skills/group/tenant admission proof.
+
+Full browser admission and custody remain open. Broad verification implementation
+is paused pending better Rust/Aeneas support; the retained replacement model is not
+a claim of current whole-Computer verification.

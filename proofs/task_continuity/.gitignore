@@ -1,5 +1,0 @@
-.lake/
-rust/target/
-rust/*.llbc
-evidence/*.log
-snapshots/

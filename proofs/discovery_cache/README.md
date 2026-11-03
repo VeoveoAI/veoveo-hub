@@ -264,8 +264,9 @@ stated synchronous contracts, not native async/mutex refinement, listener freshn
 or the full catalog/cursor goal.
 
 Validation used Lean 4.35.0 and the pinned Aeneas revision with the existing
-[qualified discriminant instance-name patch](../request_composition/tooling/qualified-discriminant-instance.patch)
-in a recorded private path override. This cache graph has no new generated enum or
+[qualified discriminant instance-name patch](https://github.com/VeoveoAI/veoveo-hub/blob/b5c08321d752c9e42a817b076fe82b2d53900619/proofs/request_composition/tooling/qualified-discriminant-instance.patch)
+in a recorded private path override. Reproduction retrieves that exact patch from
+its immutable history link; its former local package was retired. This cache graph has no new generated enum or
 `read_discriminant` reference, and no direct need for that patch was established.
 Clean upstream reproduction has not been measured; the canonical manifest pin is
 not a claim that an unmodified upstream dependency was tested. No new cache tool

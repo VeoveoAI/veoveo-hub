@@ -14,8 +14,10 @@ token and the [server registration protocol](https://github.com/VeoveoAI/veoveo-
 every server follows. The Hub owns its control plane, its policy evaluator and the
 `hub` database schema.
 
-The [proof and evidence map](proofs/README.md) tracks important system invariants,
-manual formal verification and the limits of existing coverage.
+The [proof and evidence map](proofs/README.md) lists eight retained manual proof
+packages and their source limits. Six stale Work Context package areas were retired
+in one batch; their results remain in pinned Git history. Broad verification is paused,
+and no current whole-Hub proof is claimed.
 
 ## Gate
 
