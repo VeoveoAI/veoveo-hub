@@ -827,7 +827,10 @@ snapshot for manifests and routing, while its validity and publication receiver 
 the live catalog generation. Opening or reusing a watch rejects a stale generation
 before changing the watch map, including after waiting for its mutex, and checks
 the live generation again after upstream discovery before remembering an unchanging
-server or keeping a stream. A live publication makes an old watch inactive; the
+server or keeping a stream. The request that first needs a watch opens it, its upstream
+connection, discovery and listen, on a task of its own, which ends if the request is
+dropped first: the watch outlives the request, so its client lifecycle does not run on
+the request's stack, where the inbound request's handling is already deep. A live publication makes an old watch inactive; the
 watch invalidates its key's cached descriptors, in-flight tickets and retry records
 and ends its stream even when the upstream is quiet. A deployment whose discovered
 capabilities do not advertise the change is remembered by its deployment ID and the

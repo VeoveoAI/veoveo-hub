@@ -165,20 +165,44 @@ impl HubMcp {
                 .map_err(|_| mcp_internal("catalog authority expired"))?;
             let deadline = tokio::time::Instant::now() + remaining;
             let mut generation = self.live_catalog.subscribe();
-            let (connection, subscription) = tokio::time::timeout(OPEN_DEADLINE, async {
-                let connection = routed.upstream(&key.server, downstream, subject).await.map_err(super::http_response::RequestError::into_protocol)?;
-                // Ask only for the changes the server advertises.
-                let effective = connection
-                    .peer
-                    .peer_info()
-                    .map(|info| filter.supported_by(&info.capabilities))
-                    .unwrap_or_default();
-                if effective == SubscriptionFilter::new() {
-                    return Ok::<_, McpError>((connection, None));
-                }
-                let subscription = open_catalog_subscription(&connection.peer, &effective).await?;
-                Ok((connection, Some(subscription)))
-            }).await.map_err(|_| mcp_internal("catalog subscription open deadline exceeded"))??;
+            // The watch outlives this request, so it opens on a task of its own: its
+            // upstream client lifecycle does not run on the request's stack, which the
+            // inbound request's handling already made deep. Dropping the request ends it.
+            let opening = {
+                let routed = routed.clone();
+                let server = key.server.clone();
+                let subject = subject.clone();
+                let filter = filter.clone();
+                let open = async move {
+                    tokio::time::timeout(OPEN_DEADLINE, async {
+                        let connection = routed.upstream(&server, downstream, &subject).await.map_err(super::http_response::RequestError::into_protocol)?;
+                        // Ask only for the changes the server advertises.
+                        let effective = connection
+                            .peer
+                            .peer_info()
+                            .map(|info| filter.supported_by(&info.capabilities))
+                            .unwrap_or_default();
+                        if effective == SubscriptionFilter::new() {
+                            return Ok::<_, McpError>((connection, None));
+                        }
+                        let subscription = open_catalog_subscription(&connection.peer, &effective).await?;
+                        Ok((connection, Some(subscription)))
+                    })
+                    .await
+                };
+                // The opening is the request's upstream work, timed and audited with it.
+                let observation = crate::request_observation::RequestObservation::current();
+                AbortOnDrop(tokio::spawn(async move {
+                    match observation {
+                        Some(observation) => observation.scope(open).await,
+                        None => open.await,
+                    }
+                }))
+            };
+            let (connection, subscription) = opening
+                .await
+                .map_err(|_| mcp_internal("catalog subscription open ended"))?
+                .map_err(|_| mcp_internal("catalog subscription open deadline exceeded"))??;
             if *generation.borrow_and_update() != key.catalog_generation { return Err(mcp_internal("catalog changed while opening subscription")); }
             let Some(mut subscription) = subscription else {
                 return Ok(Watch { cancelled: CancellationToken::new(), unchanging: true });
@@ -258,3 +282,24 @@ pub(super) async fn open_catalog_subscription(
 
 #[cfg(test)]
 mod tests;
+
+/// A spawned task that is aborted when its handle is dropped before it finishes, so work
+/// moved off a request's stack still ends with the request.
+struct AbortOnDrop<T>(tokio::task::JoinHandle<T>);
+
+impl<T> Drop for AbortOnDrop<T> {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
+impl<T> std::future::Future for AbortOnDrop<T> {
+    type Output = Result<T, tokio::task::JoinError>;
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        context: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        std::pin::Pin::new(&mut self.0).poll(context)
+    }
+}
