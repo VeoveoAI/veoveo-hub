@@ -976,13 +976,20 @@ A Task stops acting for a caller
 whose browser session the Hub revoked because one of its refresh tokens was
 replayed: the exchange is refused with `invalid_grant` and a Task-bound token is no
 longer admitted. A logout, a session that expired or a caller without a session
-leaves the delegation in place until the Task ends. A Task also stops acting for a caller
-whom the installation removed from a group it configures that the caller held when the
-Task started: the exchange is refused with `invalid_grant`, "the caller's groups changed
-since the Task started". The current revision's configured memberships decide; groups the
-installation does not configure, such as the identity provider's, are not checked, since
-the Hub keeps the provider's groups from the sign-in that created the session and a
-refresh does not read them again.
+leaves the delegation in place until the Task ends, or for a session that expired, until
+the Hub deletes it. A Task also stops acting for a caller who lost a group, or a role in
+one, since the Task started. At each exchange the Hub computes the caller's groups as a
+request would now: the identity provider's groups that the caller's session stored at
+sign-in, which a refresh does not read again, with the memberships the current revision
+configures, each with its role. When a group the saved caller held, or its role in one,
+is not among them, as after a removal, the group's deletion or a change from owner to
+member, the exchange is refused with `invalid_grant`, "the caller's groups changed since
+the Task started". A caller whose session the Hub has deleted is refused with
+`invalid_grant`, "the caller's session has ended", since its provider's groups are no
+longer known; a caller whose token is bound to no session, such as a service, holds only
+the groups the installation configures for it.
+Groups and roles gained since are neither refused nor forwarded: the saved caller is still
+what is forwarded.
 
 The token carries the requested permissions that the server declared and the caller
 holds now: the installation's roles and overrides are evaluated again at each

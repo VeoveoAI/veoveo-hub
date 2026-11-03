@@ -90,11 +90,14 @@ replay revoke the family on every replica, which also denies its outstanding acc
 tokens, as RFC 7009 §2.1 allows. The family predicate lives in `policy::session`.
 
 A Task a caller started keeps acting for that caller after a logout and after the
-family expires, until the Task ends. A family revoked because a refresh token was
-replayed, which suggests the session was stolen, also ends the delegation of the
-caller's running Tasks: `HubState::session_compromised` reads the family's
-revocation reason at each Task exchange and at each admission of a Task-bound token,
-including request-origin exchanges later in that Task's signed actor chain. The
+family expires, until the Task ends or the Hub deletes the expired family. A family
+revoked because a refresh token was replayed, which suggests the session was stolen,
+also ends the delegation of the caller's running Tasks: `HubState::caller_session` reads
+the family at each Task exchange and at each admission of a Task-bound token, for its
+revocation reason and for the identity provider's groups stored at sign-in, which the
+caller's current groups are computed from (see
+[Calls Between Servers](../../DESIGN.md#calls-between-servers)), including
+request-origin exchanges later in that Task's signed actor chain. The
 native Task route/profile and original caller must still agree, independently of the
 immediate calling server. Ordinary logout continues not to revoke Tasks. Request-only
 chains retain the existing signed-request expiry and current-policy semantics; this

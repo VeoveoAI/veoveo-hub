@@ -72,7 +72,7 @@ pub use policy::{PolicyRequest, mcp_method_name, resource_scheme_from_uri};
 pub use principal_audit::{merge_principal_audit_metadata, principal_audit_metadata};
 pub use secrets::{HubSecretResolver, ResolvedSecretString, SecretResolverError};
 pub use state::{
-    HubRefreshDeliveryWindow, HubRefreshExchange, HubRefreshIssueRequest,
+    CallerSession, HubRefreshDeliveryWindow, HubRefreshExchange, HubRefreshIssueRequest,
     HubRefreshRotationRequest, HubState, IssuedHubRefreshToken, REFRESH_TOKEN_TTL_SECONDS,
     RefreshTokenDeliveryCipher,
 };

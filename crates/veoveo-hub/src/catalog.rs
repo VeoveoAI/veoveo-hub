@@ -507,6 +507,28 @@ impl HubCatalog {
         principal
     }
 
+    /// Whether `saved`, a caller as a Task saved it when it started, held a group, or a
+    /// role in one, that the caller does not hold now. Its groups now are computed as a
+    /// request's are: `signed_in`, the principal its session stored at sign-in with the
+    /// identity provider's groups, with this revision's memberships added. Groups and
+    /// roles gained since do not count.
+    pub fn lost_group_or_role(&self, saved: &Principal, signed_in: Principal) -> bool {
+        let current = self.with_group_memberships(signed_in);
+        let role_now = |group: &veoveo_types::GroupId| {
+            current
+                .group_roles
+                .iter()
+                .filter(|membership| &membership.group == group)
+                .map(|membership| membership.role)
+                .max()
+        };
+        !saved.groups.is_subset(&current.groups)
+            || saved
+                .group_roles
+                .iter()
+                .any(|held| role_now(&held.group).is_none_or(|now| now < held.role))
+    }
+
     pub fn resolve_authenticated_subject(
         &self,
         verified: VerifiedAccessToken,

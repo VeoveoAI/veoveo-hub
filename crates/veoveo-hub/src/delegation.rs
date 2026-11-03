@@ -640,25 +640,22 @@ impl DelegationService {
         {
             return Ok(Some("the originating Task has ended"));
         }
-        if self
+        let session = self
             .inner
             .hub
-            .session_compromised(&caller.request_context.access_token)
-            .await?
-        {
-            return Ok(Some(
-                "the caller's session was revoked after a refresh token was replayed",
-            ));
-        }
-        let principal = &caller.request_context.principal;
-        if let Some(tenant) = &principal.tenant
-            && self
-                .inner
-                .catalog
-                .snapshot()
-                .catalog()
-                .sections()
-                .lost_configured_group(tenant, &principal.id, &principal.groups)
+            .caller_session(&caller.request_context.access_token)
+            .await?;
+        let saved = &caller.request_context.principal;
+        let signed_in = match signed_in_principal(saved, session) {
+            Ok(principal) => principal,
+            Err(reason) => return Ok(Some(reason)),
+        };
+        if self
+            .inner
+            .catalog
+            .snapshot()
+            .catalog()
+            .lost_group_or_role(saved, signed_in)
         {
             return Ok(Some("the caller's groups changed since the Task started"));
         }
@@ -843,6 +840,31 @@ fn subject_of(
     }
 }
 
+/// The principal a Task's caller signed in as, which its groups now are computed from, or
+/// why the Task no longer acts for the caller. A session revoked for a replayed refresh
+/// token, or one the Hub deleted, ends the delegation; a caller bound to no session, such
+/// as a service, holds no identity provider groups beyond the installation's.
+fn signed_in_principal(
+    saved: &veoveo_hub_sdk::Principal,
+    session: crate::CallerSession,
+) -> Result<veoveo_hub_sdk::Principal, &'static str> {
+    match session {
+        crate::CallerSession::Stored { replayed: true, .. } => {
+            Err("the caller's session was revoked after a refresh token was replayed")
+        }
+        crate::CallerSession::Stored { principal, .. } if principal.id == saved.id => {
+            Ok(*principal)
+        }
+        crate::CallerSession::Stored { .. } => Err("the caller's session names another principal"),
+        crate::CallerSession::Deleted => Err("the caller's session has ended"),
+        crate::CallerSession::Unbound => Ok(veoveo_hub_sdk::Principal {
+            groups: BTreeSet::new(),
+            group_roles: BTreeSet::new(),
+            ..saved.clone()
+        }),
+    }
+}
+
 #[cfg(test)]
 mod authority_adapter_tests {
     use super::*;
@@ -991,6 +1013,50 @@ mod authority_adapter_tests {
             calls_hub: false,
         });
         (granting, refusing)
+    }
+
+    #[test]
+    fn the_callers_session_gives_the_principal_its_groups_are_computed_from() {
+        use crate::CallerSession;
+        use veoveo_hub_sdk::{GroupMembership, GroupRole};
+        let mut saved = held_caller("person").request_context.principal;
+        let configured = veoveo_types::GroupId::parse("reviewers").unwrap();
+        saved.groups.insert(configured.clone());
+        saved.group_roles.insert(GroupMembership {
+            group: configured,
+            role: GroupRole::Admin,
+        });
+        let mut signed_in = saved.clone();
+        signed_in.groups = BTreeSet::from([veoveo_types::GroupId::parse("idp-staff").unwrap()]);
+        signed_in.group_roles = BTreeSet::new();
+        let stored = |principal: &Principal, replayed| CallerSession::Stored {
+            principal: Box::new(principal.clone()),
+            replayed,
+        };
+
+        // A stored session gives its principal from sign-in, with the provider's groups.
+        assert_eq!(
+            signed_in_principal(&saved, stored(&signed_in, false)),
+            Ok(signed_in.clone())
+        );
+        // A session revoked for a replay, deleted, or another principal's ends it.
+        assert_eq!(
+            signed_in_principal(&saved, stored(&signed_in, true)),
+            Err("the caller's session was revoked after a refresh token was replayed")
+        );
+        assert_eq!(
+            signed_in_principal(&saved, CallerSession::Deleted),
+            Err("the caller's session has ended")
+        );
+        let someone = held_caller("someone").request_context.principal;
+        assert_eq!(
+            signed_in_principal(&saved, stored(&someone, false)),
+            Err("the caller's session names another principal")
+        );
+        // A caller bound to no session has no provider groups: only configured ones count.
+        let unbound = signed_in_principal(&saved, CallerSession::Unbound).unwrap();
+        assert!(unbound.groups.is_empty() && unbound.group_roles.is_empty());
+        assert_eq!(unbound.id, saved.id);
     }
 
     #[test]

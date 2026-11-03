@@ -9,7 +9,7 @@ use veoveo_hub::contract::{
     AuthMethod, AuthReasonCode, AuthorizationServerId, PrincipalDisplayName,
 };
 use veoveo_hub::{
-    HubRefreshDeliveryWindow, HubRefreshExchange, HubRefreshIssueRequest,
+    CallerSession, HubRefreshDeliveryWindow, HubRefreshExchange, HubRefreshIssueRequest,
     HubRefreshRotationRequest, HubState, RefreshTokenDeliveryCipher,
 };
 use veoveo_hub_sdk::ProtectedResourceId;
@@ -31,7 +31,8 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
         issuer: TokenIssuer::parse("https://identity.example").unwrap(),
         subject: TokenSubject::parse("one").unwrap(),
         tenant: Some(TenantId::parse("tenant-a").unwrap()),
-        groups: BTreeSet::new(),
+        // The identity provider's group, which a Task's group check reads from the family.
+        groups: BTreeSet::from([veoveo_types::GroupId::parse("idp-staff").unwrap()]),
         group_roles: BTreeSet::new(),
         roles: BTreeSet::new(),
         scopes: BTreeSet::from([ScopeName::parse("operator:use").unwrap()]),
@@ -227,6 +228,12 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
                 .unwrap()
         );
         assert!(!second.session_compromised(&token).await.unwrap());
+        // A Task reads the principal the family stored at sign-in, from another replica.
+        let stored = |replayed| CallerSession::Stored {
+            principal: Box::new(principal.clone()),
+            replayed,
+        };
+        assert_eq!(second.caller_session(&token).await.unwrap(), stored(false));
         match ending {
             "logout" => {
                 first
@@ -288,11 +295,21 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
                 .await
                 .unwrap()
         );
-        // A running Task stops acting for the caller only after a replay (D37): a logout,
-        // an expiry or a removed family leaves its delegation in place.
+        // Only a replay compromises the session (D37): a logout, an expiry or a removed
+        // family does not, though a removed family ends a Task's group check below.
         assert_eq!(
             second.session_compromised(&token).await.unwrap(),
             ending == "replay",
+            "{ending}"
+        );
+        // The family stays readable after a logout, a replay and an expiry; once deleted,
+        // the session has ended and a Task's group check refuses.
+        assert_eq!(
+            second.caller_session(&token).await.unwrap(),
+            match ending {
+                "missing" => CallerSession::Deleted,
+                _ => stored(ending == "replay"),
+            },
             "{ending}"
         );
     }
@@ -308,6 +325,10 @@ async fn session_binding_survives_rotation_and_rejects_cross_replica_revocation(
     }))
     .unwrap();
     assert!(!first.session_compromised(&service).await.unwrap());
+    assert_eq!(
+        first.caller_session(&service).await.unwrap(),
+        CallerSession::Unbound
+    );
 }
 
 fn audit(

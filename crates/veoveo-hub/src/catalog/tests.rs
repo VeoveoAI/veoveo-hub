@@ -1270,6 +1270,59 @@ fn a_subject_holds_its_groups_with_their_roles_beside_its_identity_providers() {
 }
 
 #[test]
+fn a_task_caller_loses_a_group_or_role_as_a_request_would_compute_them() {
+    use veoveo_hub_sdk::GroupRole;
+    let reviewers = FIXTURE_GROUP_ADMIN;
+    let other = "8c3d4e5f60718293a4b5c6d7e8f9a0b1";
+    // The caller signed in with one identity provider group, and the Task saved them as
+    // a request computed them then: that group, and the installation's group as owner.
+    let mut signed_in = principal(&["operator:use"]);
+    signed_in
+        .groups
+        .insert(GroupId::parse("engineering").unwrap());
+    let at_start = catalog_with_groups(vec![(
+        "tenant-a",
+        "user@example.com",
+        reviewers,
+        GroupRole::Admin,
+    )]);
+    let saved = at_start.with_group_memberships(signed_in.clone());
+
+    // Unchanged: the identity provider's group, which no revision configures, and the
+    // installation's group with the same role.
+    assert!(!at_start.lost_group_or_role(&saved, signed_in.clone()));
+    // Removed from the group, which another person still holds.
+    let removed = catalog_with_groups(vec![(
+        "tenant-a",
+        "other@example.com",
+        reviewers,
+        GroupRole::Admin,
+    )]);
+    assert!(removed.lost_group_or_role(&saved, signed_in.clone()));
+    // The group deleted: no membership of it is left at all.
+    let deleted = catalog_with_groups(Vec::new());
+    assert!(deleted.lost_group_or_role(&saved, signed_in.clone()));
+    // Owner changed to member: still in the group, with less.
+    let downgraded = catalog_with_groups(vec![(
+        "tenant-a",
+        "user@example.com",
+        reviewers,
+        GroupRole::Write,
+    )]);
+    assert!(downgraded.lost_group_or_role(&saved, signed_in.clone()));
+    // The session no longer has the identity provider's group: lost too.
+    assert!(at_start.lost_group_or_role(&saved, principal(&["operator:use"])));
+    // A group gained since, and a role raised since, count for nothing.
+    let gained = catalog_with_groups(vec![
+        ("tenant-a", "user@example.com", reviewers, GroupRole::Admin),
+        ("tenant-a", "user@example.com", other, GroupRole::Read),
+    ]);
+    assert!(!gained.lost_group_or_role(&saved, signed_in.clone()));
+    let as_member = downgraded.with_group_memberships(signed_in.clone());
+    assert!(!at_start.lost_group_or_role(&as_member, signed_in));
+}
+
+#[test]
 fn a_role_granted_to_a_groups_id_is_held_through_it() {
     use crate::control_plane::{GrantSubject, InstallationAuthorization, RoleGrant};
     let catalog = catalog_with_groups(vec![(

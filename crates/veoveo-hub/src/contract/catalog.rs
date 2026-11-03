@@ -568,17 +568,6 @@ impl AdmittedCatalogSections {
             .into_iter()
             .flatten()
     }
-    /// Whether `principal` held a group of `tenant` that the installation configures and
-    /// is no longer its member. `held` is the caller's groups when a Task started; groups
-    /// the installation does not configure, such as the identity provider's, are not checked.
-    pub fn lost_configured_group(
-        &self,
-        tenant: &TenantId,
-        principal: &PrincipalId,
-        held: &BTreeSet<veoveo_types::GroupId>,
-    ) -> bool {
-        lost_configured_group(self.memberships.get(tenant), principal, held)
-    }
     /// The grant `principal` holds on `repository` in `tenant`: the union of the actions
     /// of their own grants and of those of every group of the tenant they belong to, or
     /// none when they hold none.
@@ -665,59 +654,3 @@ pub const CORE_CATALOG_OBJECT_KINDS: &[&str] = &[
     "oidc_client",
     "secret",
 ];
-
-/// See [`AdmittedCatalogSections::lost_configured_group`].
-fn lost_configured_group(
-    tenant: Option<&BTreeMap<PrincipalId, BTreeSet<GroupMembership>>>,
-    principal: &PrincipalId,
-    held: &BTreeSet<veoveo_types::GroupId>,
-) -> bool {
-    let Some(tenant) = tenant else { return false };
-    let current: BTreeSet<_> = tenant
-        .get(principal)
-        .into_iter()
-        .flatten()
-        .map(|membership| &membership.group)
-        .collect();
-    held.iter().any(|group| {
-        !current.contains(group)
-            && tenant
-                .values()
-                .flatten()
-                .any(|membership| membership.group == *group)
-    })
-}
-
-#[cfg(test)]
-mod lost_group_tests {
-    use super::*;
-    use veoveo_hub_sdk::GroupRole;
-    use veoveo_types::GroupId;
-
-    #[test]
-    fn only_a_configured_group_the_caller_left_counts() {
-        let person = PrincipalId::parse("https://idp.example#person").unwrap();
-        let other = PrincipalId::parse("https://idp.example#other").unwrap();
-        let group = |name: &str| GroupId::parse(name).unwrap();
-        let member = |name: &str| GroupMembership {
-            group: group(name),
-            role: GroupRole::Read,
-        };
-        let held = BTreeSet::from([group("reviewers"), group("idp-staff")]);
-        // Memberships unchanged: still in the configured group.
-        let unchanged = BTreeMap::from([(person.clone(), BTreeSet::from([member("reviewers")]))]);
-        assert!(!lost_configured_group(Some(&unchanged), &person, &held));
-        // Removed from the configured group, which others still hold.
-        let removed = BTreeMap::from([(other.clone(), BTreeSet::from([member("reviewers")]))]);
-        assert!(lost_configured_group(Some(&removed), &person, &held));
-        // An identity provider group the installation does not configure is ignored.
-        let unconfigured =
-            BTreeMap::from([(person.clone(), BTreeSet::from([member("reviewers")]))]);
-        assert!(!lost_configured_group(
-            Some(&unconfigured),
-            &person,
-            &BTreeSet::from([group("reviewers"), group("idp-only")])
-        ));
-        assert!(!lost_configured_group(None, &person, &held));
-    }
-}

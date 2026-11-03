@@ -55,20 +55,49 @@ impl HubState {
     /// Task stops acting for such a caller; a logout or a session that simply expired
     /// leaves its Tasks' delegation in place.
     pub async fn session_compromised(&self, token: &AccessTokenSubject) -> Result<bool> {
+        Ok(matches!(
+            self.caller_session(token).await?,
+            CallerSession::Stored { replayed: true, .. }
+        ))
+    }
+
+    /// The login session a caller's token is bound to, as a running Task reads it at each
+    /// exchange: the principal it stored at sign-in, with the identity provider's groups
+    /// that a refresh does not read again, and whether it was revoked for a replay.
+    pub async fn caller_session(&self, token: &AccessTokenSubject) -> Result<CallerSession> {
         let Some(family_id) = &token.session_family else {
-            return Ok(false);
+            return Ok(CallerSession::Unbound);
         };
         let family = tokio::time::timeout(
             std::time::Duration::from_secs(5),
             self.store.refresh_family(family_id),
         )
         .await
-        .context("session revocation read deadline")?
+        .context("session read deadline")?
         .context("failed to read the caller's session family")?;
-        Ok(family.is_some_and(|family| {
-            family.revocation == Some(crate::store::RefreshRevocation::TokenReplay)
-        }))
+        Ok(match family {
+            None => CallerSession::Deleted,
+            Some(family) => CallerSession::Stored {
+                replayed: family.revocation == Some(crate::store::RefreshRevocation::TokenReplay),
+                principal: Box::new(family.principal.principal),
+            },
+        })
     }
+}
+
+/// The login session a caller's token is bound to.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CallerSession {
+    /// The token is bound to no session, as a service's is.
+    Unbound,
+    /// The Hub deleted the session, which it does once the session has expired.
+    Deleted,
+    /// The session as stored: the principal from sign-in, before the installation's
+    /// group memberships are added, and whether it was revoked for a replay.
+    Stored {
+        principal: Box<Principal>,
+        replayed: bool,
+    },
 }
 
 /// The members of a family the session decision reads.

@@ -14,6 +14,7 @@ pub use refresh_tokens::{
     HubRefreshRotationRequest, IssuedHubRefreshToken, REFRESH_TOKEN_TTL_SECONDS,
     RefreshTokenDeliveryCipher,
 };
+pub use session::CallerSession;
 pub(crate) use task_routes::decision as task_decision;
 pub(crate) use task_routes::{HubTaskOwnership, HubTaskRoute, HubTaskRouteDraft};
 
