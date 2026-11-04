@@ -25,6 +25,7 @@ mod oauth;
 pub(crate) use oauth::{app_session, sign_in_for_app, sign_in_for_entry};
 mod pages;
 mod provisioning;
+pub use provisioning::{HUB_PROVIDER, LORE_PROVIDER, MODEL_PROVIDER};
 mod proxy;
 pub(crate) mod runtime;
 #[cfg(test)]

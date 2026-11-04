@@ -14,7 +14,8 @@ use std::time::Duration;
 use openshell_sdk::raw::proto as p;
 
 use super::super::test_fixture::{
-    LORE_KEY, LORE_PROFILE, OWNER, catalog, computer, fake::Call, gateway, next_login, scope,
+    LORE_KEY, LORE_PROFILE, OWNER, catalog, computer, config, fake::Call, gateway, header_profile,
+    next_login, profile, provisioner, scope,
 };
 use super::{HUB_PROVIDER, LORE_PROVIDER, MODEL_PROVIDER, Strategy};
 use crate::registration;
@@ -371,4 +372,128 @@ async fn availability_is_logged_on_each_change_and_not_on_each_read() {
         availability(Some(&available), &available),
         Availability::Unchanged
     );
+}
+
+/// A version that adds a model provider, whose vendor takes its key in a header of its
+/// own, creates it in the owner's workspace when it next replaces the Computer, before
+/// the running sandbox goes, and attaches it after the Computer's other model provider.
+/// The running sandbox of the earlier version is still that version's.
+#[tokio::test]
+async fn a_version_that_adds_a_model_provider_creates_it_when_it_replaces_the_computer() {
+    tokio::time::timeout(Duration::from_secs(60), async {
+        let (fake, earlier) = gateway(Strategy::Oauth2ClientCredentials).await;
+        let catalog = catalog();
+        let (computer, grant) = next_login(&computer(&earlier));
+        let name = computer.native_name();
+        earlier.handoff(&catalog, &computer, grant).await.unwrap();
+        earlier
+            .replace(&computer, uuid::Uuid::now_v7())
+            .await
+            .unwrap();
+        let running = fake.sandbox(&name, &name).unwrap();
+        fake.take_calls();
+
+        let mut with_vendor = config();
+        with_vendor.additional_model_providers.push(
+            serde_json::from_value(serde_json::json!({
+                "name": "computer-vendor", "profile": "vv-computer-vendor",
+                "credentialKey": "VENDOR_API_KEY", "secret": "computer-vendor-api-key"
+            }))
+            .unwrap(),
+        );
+        fake.set_profile(header_profile(
+            "vv-computer-vendor",
+            "VENDOR_API_KEY",
+            None,
+            "x-api-key",
+        ));
+        let next = provisioner(earlier.gateway.client.clone(), with_vendor);
+        next.validate_profiles().await.unwrap();
+        earlier.validate_sandbox(&computer, &running).unwrap();
+        assert!(
+            next.validate_sandbox(&computer, &running).is_err(),
+            "the next version's sandbox attaches the vendor's provider too"
+        );
+
+        next.replace(&computer, uuid::Uuid::now_v7()).await.unwrap();
+        let calls = fake.take_calls();
+        let [
+            Call::CreateProvider(vendor),
+            Call::DeleteSandbox(delete),
+            Call::DeleteSandboxTemplate(_),
+            Call::CreateSandboxTemplate(_),
+            Call::CreateSandbox(create),
+        ] = calls.as_slice()
+        else {
+            panic!("the replacement at the next version sent {calls:#?}");
+        };
+        assert!(delete.keep_workspace, "the update keeps the home");
+        assert_eq!(
+            vendor.request_id,
+            uuid::Uuid::new_v5(&computer.model_provider_request, b"computer-vendor").to_string()
+        );
+        assert_eq!(vendor.workspace_scope, scope(&name));
+        let vendor = vendor.provider.as_ref().unwrap();
+        assert_eq!(
+            (
+                vendor.metadata.as_ref().unwrap().name.as_str(),
+                vendor.r#type.as_str(),
+                vendor
+                    .credentials
+                    .keys()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>(),
+            ),
+            (
+                "computer-vendor",
+                "vv-computer-vendor",
+                vec!["VENDOR_API_KEY"]
+            )
+        );
+        assert_eq!(
+            create.spec.as_ref().unwrap().providers,
+            [
+                HUB_PROVIDER,
+                MODEL_PROVIDER,
+                "computer-vendor",
+                LORE_PROVIDER
+            ]
+        );
+        next.validate_sandbox(&computer, &fake.sandbox(&name, &name).unwrap())
+            .unwrap();
+    })
+    .await
+    .expect("the update fixture exceeded 60 seconds");
+}
+
+/// A model provider's profile may send its key in a named header; a refreshing
+/// profile, and a header without a name, may not.
+#[tokio::test]
+async fn only_a_model_providers_profile_sends_its_key_in_a_header_of_its_own() {
+    let (fake, provisioner) = gateway(Strategy::Oauth2ClientCredentials).await;
+    let model = &provisioner.config.model_provider;
+    fake.set_profile(header_profile(
+        &model.profile,
+        &model.credential_key,
+        None,
+        "x-api-key",
+    ));
+    provisioner.validate_profiles().await.unwrap();
+    fake.set_profile(header_profile(
+        &model.profile,
+        &model.credential_key,
+        None,
+        "",
+    ));
+    assert!(provisioner.validate_profiles().await.is_err());
+    fake.set_profile(profile(&model.profile, &model.credential_key, None));
+    provisioner.validate_profiles().await.unwrap();
+    let hub = &provisioner.config.hub_provider;
+    fake.set_profile(header_profile(
+        &hub.profile,
+        &hub.credential_key,
+        Some(Strategy::Oauth2RefreshToken),
+        "x-api-key",
+    ));
+    assert!(provisioner.validate_profiles().await.is_err());
 }

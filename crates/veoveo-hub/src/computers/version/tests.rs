@@ -319,3 +319,33 @@ fn the_gateways_supervisor_and_runtime_images_name_a_version() {
     // A gateway that stops reporting them changes nothing a sandbox is told.
     assert_eq!(whats_new(&reported, &base).unwrap().supervisor, None);
 }
+
+/// A Computer without further model providers is stored and named as one recorded before
+/// they existed; a further provider is a new version, which a stored copy keeps.
+#[test]
+fn further_model_providers_name_a_new_version_and_their_absence_keeps_the_old() {
+    let base = spec(HUB_ONLY, &template("registry/computer@sha256:1", &[], &[]));
+    let stored = serde_json::to_value(&base).unwrap();
+    assert!(stored.get("additionalModelSecrets").is_none());
+    assert!(stored["config"].get("additionalModelProviders").is_none());
+
+    let mut config = base.config.clone();
+    config.additional_model_providers.push(
+        serde_json::from_value(serde_json::json!({
+            "name": "computer-vendor", "profile": "vv-computer-vendor",
+            "credentialKey": "VENDOR_API_KEY", "secret": "computer-vendor-api-key"
+        }))
+        .unwrap(),
+    );
+    let mut vendor_secret = model_secret(&config);
+    vendor_secret.id = config.additional_model_providers[0].secret.clone();
+    let mut with_vendor = base
+        .clone()
+        .with_additional_model_secrets(vec![vendor_secret]);
+    with_vendor.config = config;
+    assert_ne!(with_vendor.version().unwrap(), base.version().unwrap());
+    let reread: ComputerProvisionSpec =
+        serde_json::from_value(serde_json::to_value(&with_vendor).unwrap()).unwrap();
+    assert_eq!(reread, with_vendor);
+    assert_eq!(reread.version().unwrap(), with_vendor.version().unwrap());
+}

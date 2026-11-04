@@ -1780,6 +1780,47 @@ fn computer_bootstrap_admits_only_fixed_direct_clients_and_env_provider_seeds() 
             "{apps:?}"
         );
     }
+    // Further model providers: each named by a DNS label of its own, distinct from the
+    // Hub's, the default model's and Lore's providers, and each seeded by a declared Env
+    // provider key.
+    let with_models = |models: &[(&str, &str)]| {
+        let mut with = plane.clone();
+        with.computers.as_mut().unwrap().additional_model_providers = models
+            .iter()
+            .map(|(name, secret)| super::ComputerModelProvider {
+                name: (*name).to_owned(),
+                profile: format!("{name}-profile"),
+                credential_key: "api_key".into(),
+                secret: SecretReferenceId::parse(*secret).unwrap(),
+            })
+            .collect();
+        with.validate(&crate::catalog_fixture::registry())
+    };
+    with_models(&[]).unwrap();
+    with_models(&[
+        ("computer-vendor", "computer-model-seed"),
+        ("computer-other", "computer-model-seed"),
+    ])
+    .unwrap();
+    for models in [
+        vec![("Computer-Vendor", "computer-model-seed")],
+        vec![("computer-hub", "computer-model-seed")],
+        vec![("computer-model", "computer-model-seed")],
+        vec![("computer-lore", "computer-model-seed")],
+        vec![
+            ("computer-vendor", "computer-model-seed"),
+            ("computer-vendor", "computer-model-seed"),
+        ],
+        vec![("computer-vendor", "computer-vendor-seed")],
+    ] {
+        assert!(
+            matches!(
+                with_models(&models),
+                Err(HubControlPlaneError::InvalidComputers(_))
+            ),
+            "{models:?}"
+        );
+    }
     let mut bad = plane.clone();
     bad.secrets.last_mut().unwrap().source = SecretSource::Vault;
     assert!(matches!(

@@ -278,6 +278,10 @@ fn canonical(spec: &ComputerProvisionSpec) -> Result<serde_json::Value> {
             "environment": environment,
         },
     });
+    // A version without further model providers keeps the document it had before them.
+    if !spec.additional_model_secrets.is_empty() {
+        document["additionalModelSecrets"] = serde_json::to_value(&spec.additional_model_secrets)?;
+    }
     // A gateway that reports no images leaves the document as it was before it could.
     if !spec.runtime.is_empty() {
         document["runtime"] = serde_json::to_value(&spec.runtime)?;

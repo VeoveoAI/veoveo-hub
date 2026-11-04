@@ -77,6 +77,11 @@ impl ComputerConfiguration {
                 && old.installation.hub_url() == profile.protected_resource.as_str()
                 && catalog.secret_reference(&config.model_provider.secret)
                     == Some(old.installation.model_secret())
+                && config
+                    .additional_model_providers
+                    .iter()
+                    .map(|model| catalog.secret_reference(&model.secret))
+                    .eq(old.installation.additional_model_secrets().iter().map(Some))
         }) {
             Some(old) => old.installation.clone(),
             None => {

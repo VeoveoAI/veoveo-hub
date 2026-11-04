@@ -1,7 +1,7 @@
 //! Native workspace/provider/template lifecycle. No grant is persisted by the Hub.
 //!
 //! [`Installation`] holds what a control revision fixes: the gateway, the policy file's
-//! policy, the model secret and the Hub's resource URL. It reads the installation's
+//! policy, the model providers' secrets and the Hub's resource URL. It reads the installation's
 //! template when a Computer is entered, compared by its object identity and resource
 //! version, and prepares the current version only when that changes; a missing or
 //! invalid template leaves Computers unavailable without stopping the Hub.
@@ -27,13 +27,13 @@ use crate::{
     store::Computer,
 };
 
-pub(super) const HUB_PROVIDER: &str = "computer-hub";
-pub(super) const MODEL_PROVIDER: &str = "computer-model";
+/// The owner's Hub access, which the gateway refreshes with the sign-in's grant.
+pub const HUB_PROVIDER: &str = "computer-hub";
+/// The default model vendor's key.
+pub const MODEL_PROVIDER: &str = "computer-model";
 /// The owner's Lore access: tokens the gateway refreshes with the Computer's own Lore
 /// client, the owner's login token or one repository's token.
-pub(super) const LORE_PROVIDER: &str = "computer-lore";
-/// The providers every Computer's sandbox attaches.
-const PROVIDERS: [&str; 3] = [HUB_PROVIDER, MODEL_PROVIDER, LORE_PROVIDER];
+pub const LORE_PROVIDER: &str = "computer-lore";
 const RETENTION: &str = "openshell.nvidia.com/retention";
 /// The version a sandbox was created at, in its environment beside `LORE_IDENTITY`.
 pub(super) const COMPUTER_VERSION: &str = "COMPUTER_VERSION";
@@ -94,6 +94,7 @@ pub(super) struct Installation {
     policy: p::sandbox::v1::SandboxPolicy,
     public: String,
     model_secret: SecretReference,
+    additional_model_secrets: Vec<SecretReference>,
     hub_url: String,
     current: Arc<Mutex<Option<Current>>>,
 }
@@ -142,9 +143,23 @@ fn create_refused(status: tonic::Status) -> anyhow::Error {
         native_error("create sandbox", status)
     }
 }
+/// The trusted Env locator of a model provider's key, which resolves now.
+async fn resolved_model_secret(
+    catalog: &HubCatalog,
+    id: &crate::contract::SecretReferenceId,
+) -> Result<SecretReference> {
+    let secret = catalog
+        .secret_reference(id)
+        .context("Computer model secret missing")?
+        .clone();
+    let _ = HubSecretResolver::new()
+        .resolve_reference(&secret, SecretPurpose::ProviderApiKey)
+        .await?;
+    Ok(secret)
+}
 impl Installation {
     /// What does not depend on the template: the policy file, the gateway, the model
-    /// secret and the profile's resource URL. Reads no template, so a missing one
+    /// providers' secrets and the profile's resource URL. Reads no template, so a missing one
     /// leaves the Hub running.
     pub async fn prepare(
         config: Arc<Computers>,
@@ -163,13 +178,11 @@ impl Installation {
             }
             _ => Gateway::connect(&config.gateway, config.forwarding_connection_limit).await?,
         };
-        let model_secret = catalog
-            .secret_reference(&config.model_provider.secret)
-            .context("Computer model secret missing")?
-            .clone();
-        let _ = HubSecretResolver::new()
-            .resolve_reference(&model_secret, SecretPurpose::ProviderApiKey)
-            .await?;
+        let model_secret = resolved_model_secret(catalog, &config.model_provider.secret).await?;
+        let mut additional_model_secrets = Vec::new();
+        for model in &config.additional_model_providers {
+            additional_model_secrets.push(resolved_model_secret(catalog, &model.secret).await?);
+        }
         let hub_url = catalog
             .profile(&config.profile)
             .context("Computer profile unavailable")?
@@ -181,6 +194,7 @@ impl Installation {
             policy,
             public: public.to_owned(),
             model_secret,
+            additional_model_secrets,
             hub_url,
             current: Arc::default(),
         })
@@ -194,12 +208,16 @@ impl Installation {
             policy: provisioner.policy.clone(),
             public: provisioner.public.clone(),
             model_secret: provisioner.spec.model_secret.clone(),
+            additional_model_secrets: provisioner.spec.additional_model_secrets.clone(),
             hub_url: provisioner.spec.hub_url.clone(),
             current: Arc::default(),
         }
     }
     pub fn model_secret(&self) -> &SecretReference {
         &self.model_secret
+    }
+    pub fn additional_model_secrets(&self) -> &[SecretReference] {
+        &self.additional_model_secrets
     }
     pub fn hub_url(&self) -> &str {
         &self.hub_url
@@ -344,7 +362,8 @@ impl Installation {
             &self.policy,
             &template,
         )
-        .with_runtime(super::spec::ComputerRuntime::of(&info.compute_drivers[0]));
+        .with_runtime(super::spec::ComputerRuntime::of(&info.compute_drivers[0]))
+        .with_additional_model_secrets(self.additional_model_secrets.clone());
         spec.version()?;
         let provisioner = self.for_spec(spec)?;
         provisioner.validate_profiles().await?;
@@ -372,23 +391,28 @@ impl Provisioner {
     async fn validate_profiles(&self) -> Result<()> {
         let public = &self.public;
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
-        for (id, key, refresh) in [
-            (
-                &self.config.hub_provider.profile,
-                &self.config.hub_provider.credential_key,
-                Some(Strategy::Oauth2RefreshToken),
-            ),
-            (
-                &self.config.model_provider.profile,
-                &self.config.model_provider.credential_key,
-                None,
-            ),
-            (
-                &self.config.lore_provider.profile,
-                &self.config.lore_provider.credential_key,
-                Some(Strategy::Oauth2ClientCredentials),
-            ),
-        ] {
+        let profiles = std::iter::once((
+            &self.config.hub_provider.profile,
+            &self.config.hub_provider.credential_key,
+            Some(Strategy::Oauth2RefreshToken),
+        ))
+        .chain(std::iter::once((
+            &self.config.model_provider.profile,
+            &self.config.model_provider.credential_key,
+            None,
+        )))
+        .chain(
+            self.config
+                .additional_model_providers
+                .iter()
+                .map(|model| (&model.profile, &model.credential_key, None)),
+        )
+        .chain(std::iter::once((
+            &self.config.lore_provider.profile,
+            &self.config.lore_provider.credential_key,
+            Some(Strategy::Oauth2ClientCredentials),
+        )));
+        for (id, key, refresh) in profiles {
             let profile = tokio::time::timeout(
                 RPC_TIMEOUT,
                 grpc.get_provider_profile(p::GetProviderProfileRequest {
@@ -410,11 +434,16 @@ impl Provisioner {
                 .iter()
                 .find(|c| c.env_vars.iter().any(|env| env == key))
                 .context("Computer profile credential undeclared")?;
+            let bearer = credential.auth_style == "bearer"
+                && credential.header_name.eq_ignore_ascii_case("authorization");
+            // A model vendor may take its key in a header of its own, such as `x-api-key`.
+            let header = refresh.is_none()
+                && credential.auth_style == "header"
+                && !credential.header_name.is_empty();
             ensure!(
                 credential.required
                     && credential.env_vars.len() == 1
-                    && credential.auth_style == "bearer"
-                    && credential.header_name.eq_ignore_ascii_case("authorization")
+                    && (bearer || header)
                     && credential.token_grant.is_none(),
                 "Computer profile credential shape differs from installation"
             );
@@ -506,21 +535,7 @@ impl Provisioner {
             }
             Err(e) => return Err(native_error("get workspace", e)),
         }
-        let model = HubSecretResolver::new()
-            .resolve_reference(&self.spec.model_secret, SecretPurpose::ProviderApiKey)
-            .await?;
-        self.ensure_provider(
-            computer,
-            ProviderSeed {
-                name: MODEL_PROVIDER,
-                profile: &self.config.model_provider.profile,
-                key: &self.config.model_provider.credential_key,
-                value: Some(model.expose_secret()),
-                expiry: None,
-                request_id: computer.model_provider_request,
-            },
-        )
-        .await?;
+        self.ensure_model_providers(computer).await?;
         self.ensure_provider(
             computer,
             ProviderSeed {
@@ -622,12 +637,16 @@ impl Provisioner {
         }
         self.wait_gone(&name).await
     }
-    /// Replace the Computer's sandbox with one of this version: delete the sandbox,
-    /// keeping its workspace volume, which the next sandbox of its name adopts; clone
+    /// Replace the Computer's sandbox with one of this version: ensure the version's
+    /// model providers in the owner's workspace; delete the sandbox, keeping its
+    /// workspace volume, which the next sandbox of its name adopts; clone
     /// this version's template for the owner; create the sandbox from it and wait until
     /// its listener answers. `operation` derives every request ID, so a retried request
     /// of the same operation is the same native mutation.
     pub async fn replace(&self, computer: &Computer, operation: Uuid) -> Result<()> {
+        // A version may add a model provider the owner's workspace does not have yet;
+        // ensure them before the running sandbox goes.
+        self.ensure_model_providers(computer).await?;
         self.remove(computer, operation).await?;
         let name = computer.native_name();
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
@@ -684,7 +703,7 @@ impl Provisioner {
             spec: Some(p::SandboxSpec {
                 policy: Some(self.policy.clone()),
                 command: self.config.command.clone(),
-                providers: PROVIDERS.map(String::from).to_vec(),
+                providers: self.providers(),
                 restart_policy: p::SandboxRestartPolicy::Always as i32,
                 ..Default::default()
             }),
@@ -716,6 +735,69 @@ impl Provisioner {
             "rotate Lore credential",
         )
         .await
+    }
+    /// The providers every sandbox of this version attaches: the Hub's, the default
+    /// model's, each further model provider in its listed order, and Lore's.
+    fn providers(&self) -> Vec<String> {
+        [HUB_PROVIDER, MODEL_PROVIDER]
+            .map(String::from)
+            .into_iter()
+            .chain(
+                self.config
+                    .additional_model_providers
+                    .iter()
+                    .map(|model| model.name.clone()),
+            )
+            .chain(std::iter::once(LORE_PROVIDER.to_owned()))
+            .collect()
+    }
+    /// This version's model providers in the owner's workspace, each created with the
+    /// key its trusted secret resolves to when missing: the default model's with the
+    /// Computer's model provider request, and each further one with a request ID derived
+    /// from that and its name.
+    async fn ensure_model_providers(&self, computer: &Computer) -> Result<()> {
+        let key = HubSecretResolver::new()
+            .resolve_reference(&self.spec.model_secret, SecretPurpose::ProviderApiKey)
+            .await?;
+        self.ensure_provider(
+            computer,
+            ProviderSeed {
+                name: MODEL_PROVIDER,
+                profile: &self.config.model_provider.profile,
+                key: &self.config.model_provider.credential_key,
+                value: Some(key.expose_secret()),
+                expiry: None,
+                request_id: computer.model_provider_request,
+            },
+        )
+        .await?;
+        for model in &self.config.additional_model_providers {
+            let secret = self
+                .spec
+                .additional_model_secrets
+                .iter()
+                .find(|secret| secret.id == model.secret)
+                .context("Computer model secret missing from its version")?;
+            let key = HubSecretResolver::new()
+                .resolve_reference(secret, SecretPurpose::ProviderApiKey)
+                .await?;
+            self.ensure_provider(
+                computer,
+                ProviderSeed {
+                    name: &model.name,
+                    profile: &model.profile,
+                    key: &model.credential_key,
+                    value: Some(key.expose_secret()),
+                    expiry: None,
+                    request_id: Uuid::new_v5(
+                        &computer.model_provider_request,
+                        model.name.as_bytes(),
+                    ),
+                },
+            )
+            .await?;
+        }
+        Ok(())
     }
     async fn ensure_provider(&self, computer: &Computer, seed: ProviderSeed<'_>) -> Result<()> {
         let ProviderSeed {
@@ -819,7 +901,7 @@ impl Provisioner {
                     .is_some_and(|v| v.name == name)
                 && spec.command == self.config.command
                 && spec.policy.as_ref() == Some(&self.policy)
-                && spec.providers == PROVIDERS
+                && spec.providers == self.providers()
                 && spec.restart_policy == p::SandboxRestartPolicy::Always as i32
                 && spec.environment.get("PUBLIC_BASE_PATH") == Some(&computer.base_path()),
             "its sandbox differs from what its version gives: its name, retention, template, command, policy, providers, restart policy or base path changed"

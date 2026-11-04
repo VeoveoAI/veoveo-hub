@@ -43,6 +43,10 @@ impl ComputerRuntime {
 pub struct ComputerProvisionSpec {
     pub(crate) config: Computers,
     pub(crate) model_secret: SecretReference,
+    /// Each further model provider's secret locator, in the order of
+    /// `config.additional_model_providers`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) additional_model_secrets: Vec<SecretReference>,
     pub(crate) hub_url: String,
     pub(crate) backend: PersistenceBackend,
     #[serde(default, skip_serializing_if = "ComputerRuntime::is_empty")]
@@ -62,12 +66,18 @@ impl ComputerProvisionSpec {
         Self {
             config,
             model_secret,
+            additional_model_secrets: Vec::new(),
             hub_url,
             backend,
             runtime: ComputerRuntime::default(),
             policy: policy.encode_to_vec(),
             template: template.encode_to_vec(),
         }
+    }
+    /// This spec with the secret locators of its further model providers.
+    pub(crate) fn with_additional_model_secrets(mut self, secrets: Vec<SecretReference>) -> Self {
+        self.additional_model_secrets = secrets;
+        self
     }
     /// This spec with the images the gateway's driver gives every new sandbox.
     pub(crate) fn with_runtime(mut self, runtime: ComputerRuntime) -> Self {

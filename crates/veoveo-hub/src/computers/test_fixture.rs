@@ -71,6 +71,20 @@ pub(super) fn profile(id: &str, key: &str, refresh: Option<Strategy>) -> p::Prov
     }
 }
 
+/// [`profile`] with its credential sent in the header `header` instead, as a model
+/// vendor may take its key.
+pub(super) fn header_profile(
+    id: &str,
+    key: &str,
+    refresh: Option<Strategy>,
+    header: &str,
+) -> p::ProviderProfile {
+    let mut profile = profile(id, key, refresh);
+    profile.credentials[0].auth_style = "header".into();
+    profile.credentials[0].header_name = header.into();
+    profile
+}
+
 pub(super) async fn gateway(lore: Strategy) -> (fake::Gateway, Provisioner) {
     gateway_with(lore, config()).await
 }
@@ -91,6 +105,9 @@ pub(super) async fn gateway_with(
         &config.model_provider.credential_key,
         None,
     ));
+    for model in &config.additional_model_providers {
+        fake.set_profile(profile(&model.profile, &model.credential_key, None));
+    }
     fake.set_profile(profile(LORE_PROFILE, LORE_KEY, Some(lore)));
     fake.ready_on_start();
     let provisioner = provisioner(client, config);
@@ -129,8 +146,21 @@ pub(super) fn installation_template(image: &str, note: Option<&str>) -> p::Sandb
 /// The model seed's trusted Env locator. The variable Cargo and nextest set for every
 /// test process stands in as a synthetic, nonsecret value.
 pub(super) fn model_secret(config: &Computers) -> SecretReference {
+    env_secret(&config.model_provider.secret)
+}
+
+/// Each further model provider's seed, as [`model_secret`].
+pub(super) fn additional_model_secrets(config: &Computers) -> Vec<SecretReference> {
+    config
+        .additional_model_providers
+        .iter()
+        .map(|model| env_secret(&model.secret))
+        .collect()
+}
+
+fn env_secret(id: &crate::contract::SecretReferenceId) -> SecretReference {
     SecretReference {
-        id: config.model_provider.secret.clone(),
+        id: id.clone(),
         source: SecretSource::Env,
         purpose: SecretPurpose::ProviderApiKey,
         locator: SecretLocator::parse("CARGO_PKG_NAME").unwrap(),
@@ -154,7 +184,8 @@ pub(super) fn provisioner(client: OpenShellClient, config: Computers) -> Provisi
         PersistenceBackend::Kubernetes,
         &policy,
         &template,
-    );
+    )
+    .with_additional_model_secrets(additional_model_secrets(&config));
     Provisioner::of(
         Gateway::of(client, NonZeroUsize::new(4).unwrap()),
         Arc::new(config),

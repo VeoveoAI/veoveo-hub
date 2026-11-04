@@ -1990,8 +1990,10 @@ A Computer version is everything a new sandbox gets from the installation: the
 template, the policy, the Hub's Computer settings, and the supervisor and sandbox
 runtime images the gateway's driver gives every sandbox, which a typed provision
 snapshot holds (workload settings, native policy/template protobufs, selected
-persistence backend, the driver's images, and model secret locator, never
-access/refresh tokens or actual model credentials). Only the gateway's configuration
+persistence backend, the driver's images, and each model provider's secret locator,
+never access/refresh tokens or actual model credentials). A version with further model
+providers adds their locators to the document its name digests; one without leaves it
+as it was. Only the gateway's configuration
 sets those images, and OpenShell refuses them in a template, so the Hub reads them from
 the driver's capabilities in `GetGatewayInfo`, where it reads the backend.
 
@@ -2029,7 +2031,8 @@ The installation's template is read when a Computer is entered, at most once in 
 seconds across entries, and compared by its object ID and resource version: OpenShell
 has no template update, so a changed template is a new object whose resource version
 starts again at 1. The version is prepared again only on a change: the gateway's one
-driver and its whole-workspace persistence, and the three provider profiles. A missing
+driver and its whole-workspace persistence, and the provider profiles: the Hub's,
+each model provider's and Lore's. A missing
 or invalid template or profile leaves Computers unavailable, with a page and a problem
 that say why, and the Hub still starts; a Computer whose sandbox runs is still served.
 The template no longer has to exist before the Hub.
@@ -2194,7 +2197,24 @@ were given, so custody replaces a sandbox that exists, keeping its home, before 
 browser enters. Entry creates a missing one with the owner's template clone and
 nonsecret external base path. The existing managed runtime access
 value is never replaced with UpdateProvider; no operator credential export occurs.
-The model seed resolves through the existing trusted Env ProviderApiKey locator.
+`computers.modelProvider` is the default model vendor's key, the workspace-local
+`computer-model`, and `computers.additionalModelProviders` lists further vendors' keys,
+each `{name, profile, credentialKey, secret}`: the workspace-local provider's name, which
+the installation's policy binds by `credential_binding`; its global static profile; the
+runtime environment alias of its one credential; and a declared trusted Env
+ProviderApiKey secret, its seed. A name is a lowercase DNS label, distinct among them
+and from `computer-hub`, `computer-model` and `computer-lore`. A static profile's
+credential is required, names one environment variable, neither mints nor refreshes, and
+is sent as a bearer `Authorization` header or as one named header (`auth_style:
+header`), as each model vendor's API takes its key. The list is optional and left out
+when empty, so a control-plane revision or a recorded Computer from before it is still
+admitted as it is stored, and a Computer without further vendors keeps its version.
+Custody, and every replacement before it creates the sandbox, ensures each of its
+version's model providers in the owner's workspace, so a version that adds a vendor
+reaches a Computer when it is next replaced: `computer-model` with the Computer's
+`model_provider_request`, and each further provider with a request ID derived from that
+and its name. Every sandbox attaches the Hub's provider, `computer-model`, each further
+provider in its listed order and Lore's.
 Native global profiles and exact refresh recipient are checked before custody.
 The selected backend is read with native `GetGatewayInfo` (requiring `config:read`
 and `platform_admin`). Docker must opt into its persistent workspace. Kubernetes
