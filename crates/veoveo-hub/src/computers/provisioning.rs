@@ -76,6 +76,9 @@ struct ProviderSeed<'a> {
     value: Option<&'a str>,
     expiry: Option<DateTime<Utc>>,
     request_id: Uuid,
+    /// For a static key no refresh owns, the request ID that sets an existing
+    /// provider's key to `value`; none keeps an existing provider's credential.
+    update: Option<String>,
 }
 
 /// The current version, or why there is none, as of one read of the template.
@@ -535,7 +538,7 @@ impl Provisioner {
             }
             Err(e) => return Err(native_error("get workspace", e)),
         }
-        self.ensure_model_providers(computer).await?;
+        self.ensure_model_providers(computer, handoff).await?;
         self.ensure_provider(
             computer,
             ProviderSeed {
@@ -545,6 +548,7 @@ impl Provisioner {
                 value: Some(grant.access.expose_secret()),
                 expiry: Some(grant.access_expiry),
                 request_id: computer.hub_provider_request,
+                update: None,
             },
         )
         .await?;
@@ -557,6 +561,7 @@ impl Provisioner {
                 value: None,
                 expiry: None,
                 request_id: Uuid::new_v5(&handoff, b"lore-provider"),
+                update: None,
             },
         )
         .await?;
@@ -637,16 +642,17 @@ impl Provisioner {
         }
         self.wait_gone(&name).await
     }
-    /// Replace the Computer's sandbox with one of this version: ensure the version's
+    /// Replace the Computer's sandbox with one of this version: write the version's
     /// model providers in the owner's workspace; delete the sandbox, keeping its
     /// workspace volume, which the next sandbox of its name adopts; clone
     /// this version's template for the owner; create the sandbox from it and wait until
     /// its listener answers. `operation` derives every request ID, so a retried request
     /// of the same operation is the same native mutation.
     pub async fn replace(&self, computer: &Computer, operation: Uuid) -> Result<()> {
-        // A version may add a model provider the owner's workspace does not have yet;
-        // ensure them before the running sandbox goes.
-        self.ensure_model_providers(computer).await?;
+        // A version may add a model provider the owner's workspace does not have yet,
+        // and the installation may have rotated a vendor's key; write them before the
+        // running sandbox goes.
+        self.ensure_model_providers(computer, operation).await?;
         self.remove(computer, operation).await?;
         let name = computer.native_name();
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
@@ -751,11 +757,13 @@ impl Provisioner {
             .chain(std::iter::once(LORE_PROVIDER.to_owned()))
             .collect()
     }
-    /// This version's model providers in the owner's workspace, each created with the
-    /// key its trusted secret resolves to when missing: the default model's with the
-    /// Computer's model provider request, and each further one with a request ID derived
-    /// from that and its name.
-    async fn ensure_model_providers(&self, computer: &Computer) -> Result<()> {
+    /// This version's model providers in the owner's workspace, each with the key its
+    /// trusted secret resolves to now. A missing one is created, the default model's with
+    /// the Computer's model provider request and each further one with a request ID
+    /// derived from that and its name; an existing one's key is set with a request ID of
+    /// `operation` and its name, so a rotated key reaches the next sandbox and custody's
+    /// own replacement repeats the same mutation.
+    async fn ensure_model_providers(&self, computer: &Computer, operation: Uuid) -> Result<()> {
         let key = HubSecretResolver::new()
             .resolve_reference(&self.spec.model_secret, SecretPurpose::ProviderApiKey)
             .await?;
@@ -768,6 +776,7 @@ impl Provisioner {
                 value: Some(key.expose_secret()),
                 expiry: None,
                 request_id: computer.model_provider_request,
+                update: Some(request(operation, &format!("model-key/{MODEL_PROVIDER}"))),
             },
         )
         .await?;
@@ -793,6 +802,7 @@ impl Provisioner {
                         &computer.model_provider_request,
                         model.name.as_bytes(),
                     ),
+                    update: Some(request(operation, &format!("model-key/{}", model.name))),
                 },
             )
             .await?;
@@ -807,6 +817,7 @@ impl Provisioner {
             value,
             expiry,
             request_id,
+            update,
         } = seed;
         let workspace = computer.native_name();
         let mut grpc = self.gateway.client.raw_grpc_fresh().await?;
@@ -836,6 +847,23 @@ impl Provisioner {
                         && (value.is_none() || provider.credentials.contains_key(key)),
                     "Computer provider differs from trusted installation"
                 );
+                if let (Some(request_id), Some(value)) = (update, value) {
+                    tokio::time::timeout(
+                        RPC_TIMEOUT,
+                        grpc.update_provider(p::UpdateProviderRequest {
+                            workspace_scope: scope(&workspace),
+                            request_id,
+                            provider: Some(p::Provider {
+                                metadata: Some(metadata(name, &workspace)),
+                                credentials: HashMap::from([(key.into(), value.into())]),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        }),
+                    )
+                    .await?
+                    .map_err(|e| native_error("update provider", e))?;
+                }
             }
             Err(status) if status.code() == tonic::Code::NotFound => {
                 let profile = tokio::time::timeout(

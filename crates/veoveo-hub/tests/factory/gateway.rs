@@ -52,6 +52,7 @@ pub enum Call {
     CreateSandboxTemplate(p::CreateSandboxTemplateRequest),
     DeleteSandboxTemplate(p::DeleteSandboxTemplateRequest),
     CreateProvider(p::CreateProviderRequest),
+    UpdateProvider(p::UpdateProviderRequest),
     DeleteProvider(p::DeleteProviderRequest),
     CreateSandbox(p::CreateSandboxRequest),
     StopSandbox(p::StopSandboxRequest),
@@ -220,6 +221,16 @@ impl Gateway {
             .collect()
     }
 
+    /// The value a workspace's provider holds for a credential key, if any.
+    pub fn credential(&self, workspace: &str, provider: &str, key: &str) -> Option<String> {
+        self.state
+            .lock()
+            .unwrap()
+            .providers
+            .get(&(workspace.to_owned(), provider.to_owned()))
+            .and_then(|provider| provider.credentials.get(key).cloned())
+    }
+
     /// Mint rotated credentials at `url` with OAuth 2.0 client credentials, as the
     /// gateway does for a profile whose refresh names that token endpoint.
     pub fn set_token_url(&self, url: String) {
@@ -352,6 +363,28 @@ impl Gateway {
                 state.providers.insert(key, provider);
                 state.calls.push(Call::CreateProvider(request));
                 Ok(p::ProviderResponse::default())
+            }),
+            // Like the gateway, credentials merge by key and a value replaces the held one.
+            "UpdateProvider" => unary(request, move |request: p::UpdateProviderRequest| {
+                let mut state = state.lock().unwrap();
+                let update = request.provider.clone().unwrap_or_default();
+                let name = update
+                    .metadata
+                    .as_ref()
+                    .map(|m| m.name.clone())
+                    .unwrap_or_default();
+                let key = (workspace(request.workspace_scope.as_ref())?, name);
+                let provider = state
+                    .providers
+                    .get_mut(&key)
+                    .ok_or_else(|| Status::not_found("provider not found"))?;
+                provider.credentials.extend(update.credentials);
+                let provider = provider.clone();
+                state.calls.push(Call::UpdateProvider(request));
+                Ok(p::ProviderResponse {
+                    provider: Some(provider),
+                    ..Default::default()
+                })
             }),
             "DeleteProvider" => unary(request, move |request: p::DeleteProviderRequest| {
                 let mut state = state.lock().unwrap();

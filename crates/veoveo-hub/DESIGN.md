@@ -2209,12 +2209,17 @@ is sent as a bearer `Authorization` header or as one named header (`auth_style:
 header`), as each model vendor's API takes its key. The list is optional and left out
 when empty, so a control-plane revision or a recorded Computer from before it is still
 admitted as it is stored, and a Computer without further vendors keeps its version.
-Custody, and every replacement before it creates the sandbox, ensures each of its
-version's model providers in the owner's workspace, so a version that adds a vendor
-reaches a Computer when it is next replaced: `computer-model` with the Computer's
+Custody, and every replacement before it creates the sandbox, writes each of its
+version's model providers in the owner's workspace from the key its secret resolves to
+now. A missing one is created: `computer-model` with the Computer's
 `model_provider_request`, and each further provider with a request ID derived from that
-and its name. Every sandbox attaches the Hub's provider, `computer-model`, each further
-provider in its listed order and Lore's.
+and its name. An existing one's key is set with UpdateProvider, which a static model key
+admits since no refresh owns it, with a request ID derived from the operation and the
+provider's name, so custody's own replacement repeats it as the same mutation. So a
+version that adds a vendor, and a vendor key the installation rotates, which the Hub
+reads when it starts, reach a Computer when it next enters or is replaced, and the
+sandbox it then gets starts its processes with that key. Every sandbox attaches the
+Hub's provider, `computer-model`, each further provider in its listed order and Lore's.
 Native global profiles and exact refresh recipient are checked before custody.
 The selected backend is read with native `GetGatewayInfo` (requiring `config:read`
 and `platform_admin`). Docker must opt into its persistent workspace. Kubernetes

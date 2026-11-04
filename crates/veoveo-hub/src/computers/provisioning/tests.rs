@@ -3,8 +3,9 @@
 //! the user's refresh grant and the Computer's own Lore client to the gateway and rotates
 //! both credentials; it creates no sandbox. A replacement clones the version's
 //! template with the owner as `LORE_IDENTITY` and the version as `COMPUTER_VERSION`,
-//! deletes an existing sandbox keeping its workspace and creates the sandbox, with the
-//! Lore provider attached. A later handoff keeps the Lore provider, replaces only its
+//! sets the existing model providers' keys from their secrets, deletes an existing
+//! sandbox keeping its workspace and creates the sandbox, with the Lore provider
+//! attached. A later handoff keeps the Lore provider, replaces only its
 //! client's secret and replaces the running sandbox. The fake reports synthetic
 //! rotation expiries, makes sandboxes ready at once and accepts forwarding without
 //! relaying bytes; no OpenShell, Lore, Hub token endpoint or model is involved, and every
@@ -47,6 +48,32 @@ fn assert_lore_refresh(
     assert_eq!(
         &registration::digest(&refresh.material["client_secret"]),
         client
+    );
+}
+
+/// A write of the default model provider's key in the owner's workspace with the
+/// request ID of `operation`: its name and key, never another member.
+fn assert_model_key(update: &p::UpdateProviderRequest, name: &str, operation: uuid::Uuid) {
+    assert_eq!(update.workspace_scope, scope(name));
+    assert_eq!(
+        update.request_id,
+        uuid::Uuid::new_v5(&operation, format!("model-key/{MODEL_PROVIDER}").as_bytes())
+            .to_string()
+    );
+    let provider = update.provider.as_ref().unwrap();
+    let key = config().model_provider.credential_key;
+    assert_eq!(
+        (
+            provider.metadata.as_ref().unwrap().name.as_str(),
+            provider.r#type.as_str(),
+            provider
+                .credentials
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            provider.config.is_empty(),
+        ),
+        (MODEL_PROVIDER, "", vec![key.as_str()], true)
     );
 }
 
@@ -111,6 +138,7 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
         provisioner.replace(&computer, operation).await.unwrap();
         let calls = fake.take_calls();
         let [
+            Call::UpdateProvider(model),
             Call::DeleteSandboxTemplate(_),
             Call::CreateSandboxTemplate(template),
             Call::CreateSandbox(create),
@@ -118,6 +146,7 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
         else {
             panic!("the first replacement sent {calls:#?}");
         };
+        assert_model_key(model, &name, operation);
         let environment = &template
             .template
             .as_ref()
@@ -169,10 +198,12 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
             .unwrap();
         let calls = fake.take_calls();
         let [
+            Call::UpdateProvider(custody_model),
             Call::ConfigureProviderRefresh(_),
             Call::RotateProviderCredential(_),
             Call::ConfigureProviderRefresh(refresh),
             Call::RotateProviderCredential(rotation),
+            Call::UpdateProvider(model),
             Call::DeleteSandbox(delete),
             Call::DeleteSandboxTemplate(_),
             Call::CreateSandboxTemplate(_),
@@ -181,6 +212,11 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
         else {
             panic!("the next handoff sent {calls:#?}");
         };
+        // Custody's replacement repeats custody's write of the model key, the same
+        // mutation, which the gateway replays.
+        let handoff = computer.handoff.unwrap();
+        assert_model_key(custody_model, &name, handoff);
+        assert_eq!(model, custody_model);
         assert_lore_refresh(refresh, &name, &second);
         assert_eq!(rotation.provider, LORE_PROVIDER);
         assert_eq!(
@@ -189,7 +225,6 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
             name
         );
         assert!(delete.keep_workspace, "the restart keeps the home");
-        let handoff = computer.handoff.unwrap();
         assert_eq!(
             create.request_id,
             uuid::Uuid::new_v5(&handoff, b"create").to_string()
@@ -202,6 +237,7 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
         provisioner.replace(&computer, operation).await.unwrap();
         let calls = fake.take_calls();
         let [
+            Call::UpdateProvider(model),
             Call::DeleteSandbox(delete),
             Call::DeleteSandboxTemplate(_),
             Call::CreateSandboxTemplate(_),
@@ -210,6 +246,7 @@ async fn a_handoff_rotates_the_owners_lore_access_and_a_replacement_keeps_the_ho
         else {
             panic!("the later replacement sent {calls:#?}");
         };
+        assert_model_key(model, &name, operation);
         assert!(delete.keep_workspace, "a replacement keeps the home");
         assert_eq!(
             delete.request_id,
@@ -261,6 +298,7 @@ async fn a_replacement_waits_for_the_sandbox_to_go_when_the_delete_answers_after
         assert!(started.elapsed() >= Duration::from_millis(1500));
         let calls = fake.take_calls();
         let [
+            Call::UpdateProvider(_),
             Call::DeleteSandbox(delete),
             Call::DeleteSandboxTemplate(_),
             Call::CreateSandboxTemplate(_),
@@ -313,7 +351,10 @@ async fn a_sandbox_that_does_not_go_fails_the_replacement_with_what_still_runs()
         );
         let calls = fake.take_calls();
         assert!(
-            matches!(calls.as_slice(), [Call::DeleteSandbox(_)]),
+            matches!(
+                calls.as_slice(),
+                [Call::UpdateProvider(_), Call::DeleteSandbox(_)]
+            ),
             "nothing replaces a sandbox that has not gone: {calls:#?}"
         );
     })
@@ -418,6 +459,7 @@ async fn a_version_that_adds_a_model_provider_creates_it_when_it_replaces_the_co
         next.replace(&computer, uuid::Uuid::now_v7()).await.unwrap();
         let calls = fake.take_calls();
         let [
+            Call::UpdateProvider(_),
             Call::CreateProvider(vendor),
             Call::DeleteSandbox(delete),
             Call::DeleteSandboxTemplate(_),
@@ -464,6 +506,95 @@ async fn a_version_that_adds_a_model_provider_creates_it_when_it_replaces_the_co
     })
     .await
     .expect("the update fixture exceeded 60 seconds");
+}
+
+/// A Hub that starts with a rotated vendor key, which secrets resolving another
+/// synthetic value stand in for, sets each existing model provider's key in the owner's
+/// workspace when it next replaces the Computer, before the running sandbox goes, so the
+/// next sandbox's processes start with it. The update names the key and nothing else.
+#[tokio::test]
+async fn a_rotated_model_key_reaches_the_owners_workspace_when_the_computer_is_next_replaced() {
+    tokio::time::timeout(Duration::from_secs(60), async {
+        let mut with_vendor = config();
+        with_vendor.additional_model_providers.push(
+            serde_json::from_value(serde_json::json!({
+                "name": "computer-vendor", "profile": "vv-computer-vendor",
+                "credentialKey": "VENDOR_API_KEY", "secret": "computer-vendor-api-key"
+            }))
+            .unwrap(),
+        );
+        let (fake, base) = gateway(Strategy::Oauth2ClientCredentials).await;
+        fake.set_profile(header_profile(
+            "vv-computer-vendor",
+            "VENDOR_API_KEY",
+            None,
+            "x-api-key",
+        ));
+        let earlier = provisioner(base.gateway.client.clone(), with_vendor.clone());
+        let (computer, grant) = next_login(&computer(&earlier));
+        let name = computer.native_name();
+        earlier.handoff(&catalog(), &computer, grant).await.unwrap();
+        earlier
+            .replace(&computer, uuid::Uuid::now_v7())
+            .await
+            .unwrap();
+        let model_key = with_vendor.model_provider.credential_key.clone();
+        let held = |provider: &str, key: &str| fake.credential(&name, provider, key);
+        assert_eq!(
+            held(MODEL_PROVIDER, &model_key).as_deref(),
+            Some(env!("CARGO_PKG_NAME"))
+        );
+        assert_eq!(
+            held("computer-vendor", "VENDOR_API_KEY").as_deref(),
+            Some(env!("CARGO_PKG_NAME"))
+        );
+        fake.take_calls();
+
+        let mut rotated = provisioner(base.gateway.client.clone(), with_vendor);
+        let locator = crate::contract::SecretLocator::parse("CARGO_PKG_VERSION").unwrap();
+        rotated.spec.model_secret.locator = locator.clone();
+        rotated.spec.additional_model_secrets[0].locator = locator;
+        let operation = uuid::Uuid::now_v7();
+        rotated.replace(&computer, operation).await.unwrap();
+        let calls = fake.take_calls();
+        let [
+            Call::UpdateProvider(model),
+            Call::UpdateProvider(vendor),
+            Call::DeleteSandbox(delete),
+            Call::DeleteSandboxTemplate(_),
+            Call::CreateSandboxTemplate(_),
+            Call::CreateSandbox(_),
+        ] = calls.as_slice()
+        else {
+            panic!("the replacement after the rotation sent {calls:#?}");
+        };
+        assert_model_key(model, &name, operation);
+        assert_eq!(
+            vendor.request_id,
+            uuid::Uuid::new_v5(&operation, b"model-key/computer-vendor").to_string()
+        );
+        assert_eq!(
+            vendor
+                .provider
+                .as_ref()
+                .unwrap()
+                .credentials
+                .keys()
+                .collect::<Vec<_>>(),
+            ["VENDOR_API_KEY"]
+        );
+        assert!(delete.keep_workspace, "a rotation keeps the home");
+        assert_eq!(
+            held(MODEL_PROVIDER, &model_key).as_deref(),
+            Some(env!("CARGO_PKG_VERSION"))
+        );
+        assert_eq!(
+            held("computer-vendor", "VENDOR_API_KEY").as_deref(),
+            Some(env!("CARGO_PKG_VERSION"))
+        );
+    })
+    .await
+    .expect("the rotation fixture exceeded 60 seconds");
 }
 
 /// A model provider's profile may send its key in a named header; a refreshing
