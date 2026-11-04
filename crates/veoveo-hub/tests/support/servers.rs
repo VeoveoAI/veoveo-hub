@@ -110,6 +110,31 @@ pub async fn serve_revision(
         ServerKeyPair::from_pkcs8_der(namespace_key.pkcs8_der()).unwrap(),
         veoveo_hub_sdk::DeploymentId::new(),
         SecretString::from(hub.secret("VEOVEO_REGISTRATION_SECRET").to_owned()),
+        |router| router,
+        build,
+    )
+    .await
+}
+
+/// [`serve`] with `wrap` around the server's router, for a fixture that answers otherwise
+/// than its SDK host would.
+pub async fn serve_wrapped(
+    hub: &Hub,
+    http: &reqwest::Client,
+    slug: &str,
+    declaration: AuthorizationDeclaration,
+    wrap: impl FnOnce(Router) -> Router,
+    build: impl AsyncFnOnce(&Registration, &ClientMetadata, &ServerKeyPair) -> HostedServer,
+) -> Served {
+    serve_as(
+        hub,
+        http,
+        slug,
+        declaration,
+        ServerKeyPair::generate().unwrap(),
+        veoveo_hub_sdk::DeploymentId::new(),
+        SecretString::from(hub.secret("VEOVEO_REGISTRATION_SECRET").to_owned()),
+        wrap,
         build,
     )
     .await
@@ -134,6 +159,7 @@ pub async fn serve_instance(
         ServerKeyPair::generate().unwrap(),
         instance.deployment,
         instance.registration_token.clone(),
+        |router| router,
         build,
     )
     .await
@@ -148,6 +174,7 @@ async fn serve_as(
     key: ServerKeyPair,
     deployment: veoveo_hub_sdk::DeploymentId,
     initial_access_token: SecretString,
+    wrap: impl FnOnce(Router) -> Router,
     build: impl AsyncFnOnce(&Registration, &ClientMetadata, &ServerKeyPair) -> HostedServer,
 ) -> Served {
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
@@ -182,13 +209,9 @@ async fn serve_as(
     .unwrap();
     let registration = client.register().await.unwrap();
     let bearers = Bearers::default();
-    let router: Router = build(&registration, &metadata, &key)
-        .await
-        .into_router()
-        .layer(axum::middleware::from_fn_with_state(
-            bearers.clone(),
-            record,
-        ));
+    let router: Router = wrap(build(&registration, &metadata, &key).await.into_router()).layer(
+        axum::middleware::from_fn_with_state(bearers.clone(), record),
+    );
     tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
     Served {
         key,

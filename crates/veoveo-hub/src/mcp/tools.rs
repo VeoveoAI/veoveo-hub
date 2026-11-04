@@ -18,7 +18,10 @@ use rmcp::{
     service::{Peer, PeerRequestOptions, RequestContext, RoleClient, RoleServer},
 };
 use serde_json::Value;
-use veoveo_hub_sdk::{LocalToolName, related_task_meta, sanitized_request_meta};
+use veoveo_hub_sdk::{
+    LocalToolName, RELATED_TASK_META_KEY, related_task_meta, sanitized_request_meta,
+    set_related_task_meta,
+};
 
 use crate::{
     AuthenticatedSubject,
@@ -471,6 +474,38 @@ impl HubMcp {
                         mcp_internal(format!("unknown tool server `{}`", projection.server))
                     })?;
                     project_call_tool_resource_uris(manifest, &mut result)?;
+                    // An ordinary call may start a Task in the background, which its
+                    // result names; the Hub records it as a Task tool's Task.
+                    if let Some(source_task_id) = related_task(&result)? {
+                        if !server_supports_tasks {
+                            return Err(mcp_internal(
+                                "the server's result names a related task, but the server declares no Tasks",
+                            )
+                            .into());
+                        }
+                        let started = upstream
+                            .peer
+                            .get_task(rmcp::model::GetTaskParams::new(source_task_id.clone()))
+                            .await
+                            .map_err(RequestError::from)?
+                            .task
+                            .task;
+                        if started.task_id != source_task_id {
+                            return Err(mcp_internal(
+                                "the server answered for another Task than its result's related task",
+                            )
+                            .into());
+                        }
+                        let canonical = self
+                            .record_task_route(
+                                &subject,
+                                &projection.server,
+                                source_task_id,
+                                started.ttl_ms,
+                            )
+                            .await?;
+                        set_related_task_meta(&mut result.meta, canonical);
+                    }
                     Ok(CallToolResponse::Complete(result))
                 }
                 ServerResult::InputRequiredResult(result) => {
@@ -580,6 +615,29 @@ impl HubMcp {
         server: &veoveo_hub_sdk::ServerSlug,
         mut created: CreateTaskResult,
     ) -> Result<CreateTaskResult, McpError> {
+        let canonical = self
+            .record_task_route(
+                subject,
+                server,
+                created.task.task_id.clone(),
+                created.task.ttl_ms,
+            )
+            .await?;
+        created.task.task_id = canonical.clone();
+        created.meta = Some(related_task_meta(canonical));
+        Ok(created)
+    }
+
+    /// Records the route of the Task `source_task_id` that `server` created for the
+    /// subject's call, a Task tool's Task or one an ordinary call started, and returns its
+    /// canonical identifier.
+    async fn record_task_route(
+        &self,
+        subject: &AuthenticatedSubject,
+        server: &veoveo_hub_sdk::ServerSlug,
+        source_task_id: String,
+        ttl_ms: Option<u64>,
+    ) -> Result<String, McpError> {
         let authority_digest = veoveo_types::Sha256Digest::from_bytes(
             invocation_authorization_fingerprint(&subject.actor, &subject.authority)?,
         );
@@ -614,21 +672,43 @@ impl HubMcp {
                     .execution
                     .clone()
                     .ok_or_else(|| mcp_internal("Task execution capture is missing"))?,
-                source_task_id: created.task.task_id.clone(),
+                source_task_id,
                 authority_digest,
                 ownership: crate::state::HubTaskOwnership::from_invocation(
                     &subject.actor,
                     &subject.authority,
                 ),
-                ttl_ms: created.task.ttl_ms,
+                ttl_ms,
                 delegated_caller,
             })
             .await
             .map_err(|error| mcp_internal(format!("failed to persist hub task route: {error}")))?;
-        created.task.task_id = canonical.to_string();
-        created.meta = Some(related_task_meta(canonical.to_string()));
-        Ok(created)
+        Ok(canonical.to_string())
     }
+}
+
+/// The Task an ordinary call's result names in `_meta["io.modelcontextprotocol/related-task"]`:
+/// none, or exactly one Task identifier. Any other value, such as several Tasks, is the
+/// server's protocol error.
+fn related_task(result: &CallToolResult) -> Result<Option<String>, McpError> {
+    let Some(related) = result
+        .meta
+        .as_ref()
+        .and_then(|meta| meta.get(RELATED_TASK_META_KEY))
+    else {
+        return Ok(None);
+    };
+    match related.as_object() {
+        Some(related) if related.len() == 1 => match related.get("taskId") {
+            Some(Value::String(task)) if !task.is_empty() => Ok(Some(task.clone())),
+            _ => Err(malformed_related_task()),
+        },
+        _ => Err(malformed_related_task()),
+    }
+}
+
+fn malformed_related_task() -> McpError {
+    mcp_internal("the server's result names a related task that is not one Task identifier")
 }
 
 fn tool_call_result_kind(
@@ -744,6 +824,44 @@ pub(super) fn rewrite_detailed_task_id(task: &mut DetailedTask, canonical_task_i
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_result_names_at_most_one_related_task_by_its_identifier() {
+        let named = |related: Value| {
+            let mut result = CallToolResult::structured(serde_json::json!({}));
+            let mut meta = rmcp::model::JsonObject::new();
+            meta.insert(RELATED_TASK_META_KEY.to_owned(), related);
+            result.meta = Some(rmcp::model::MetaObject(meta));
+            related_task(&result)
+        };
+        assert_eq!(
+            related_task(&CallToolResult::structured(serde_json::json!({}))).unwrap(),
+            None
+        );
+        assert_eq!(
+            named(serde_json::json!({"taskId": "task-1"})).unwrap(),
+            Some("task-1".to_owned())
+        );
+        for malformed in [
+            serde_json::json!("task-1"),
+            serde_json::json!({}),
+            serde_json::json!({"taskId": ""}),
+            serde_json::json!({"taskId": 7}),
+            serde_json::json!({"taskId": "task-1", "other": "task-2"}),
+            serde_json::json!([{"taskId": "task-1"}, {"taskId": "task-2"}]),
+        ] {
+            let refused = named(malformed.clone()).unwrap_err();
+            assert_eq!(
+                refused.code,
+                rmcp::model::ErrorCode::INTERNAL_ERROR,
+                "{malformed}"
+            );
+            assert!(
+                refused.message.contains("not one Task identifier"),
+                "{malformed}"
+            );
+        }
+    }
 
     #[test]
     fn tool_call_audit_distinguishes_domain_and_protocol_failures() {
