@@ -1372,7 +1372,8 @@ a script at a fixed path would outlive the Hub that served it.
 
 The proxy holds no session or data, and its code is the same for every App. Its URL's
 query names the App's validated sources, one `connect`, `resource`, `frame` or `base`
-parameter per source. The Hub validates them again by the rules below, except that a
+parameter per source, and `declared=1` when the App declares `_meta.ui.csp`. The Hub
+validates them again by the rules below, except that a
 `frame` source may be any server's app origin, and answers the page with the App's
 policy as its `Content-Security-Policy` header, beside `frame-ancestors {issuer
 origin}`. The App's `about:srcdoc` frame inherits that policy, so the App runs under it
@@ -1385,7 +1386,7 @@ The Hub builds an App's policy from the `_meta.ui.csp` of its listed resource, a
 specification constructs it:
 
 ```text
-default-src 'none'; script-src 'self' 'unsafe-inline' {resource};
+default-src 'none'; script-src 'self' 'unsafe-inline' {declared: 'wasm-unsafe-eval'} {resource};
 style-src 'self' 'unsafe-inline' {resource}; img-src 'self' data: {resource};
 font-src 'self' {resource}; media-src 'self' data: {resource};
 connect-src {connect, or 'none'}; frame-src {frame, or 'none'};
@@ -1393,8 +1394,12 @@ base-uri {base, or 'self'}; object-src 'none'
 ```
 
 `'self'` is the sandbox origin, which serves only the proxy page. Without
-`_meta.ui.csp` every list is empty, the specification's restrictive default. Each
-declared source is one exact origin: an `https` or `http` URL, or for `connectDomains`
+`_meta.ui.csp` every list is empty, and the policy is exactly the specification's
+restrictive default. An App that declares `_meta.ui.csp`, even with every list empty,
+also gets `'wasm-unsafe-eval'` in `script-src`, so it can compile WebAssembly, which
+admits no JavaScript `eval`. The specification fixes the policy only when `ui.csp` is
+omitted, and it forbids undeclared domains, which this keyword is not. Each declared
+source is one exact origin: an `https` or `http` URL, or for `connectDomains`
 also `wss` or `ws`, with a host and without user information, path, query, fragment or
 wildcard, kept as `scheme://host[:port]`. `frameDomains` admits only the App's own
 server's app origin. No list names the issuer's origin, the sandbox origin or another

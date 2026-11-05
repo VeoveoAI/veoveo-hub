@@ -509,7 +509,7 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
         assert_eq!(data["sandbox"], SANDBOX);
         assert_eq!(
             data["proxy"],
-            "https://sandbox.apps.veoveo.example/?connect=https%3A%2F%2Fapi.example.net&frame=https%3A%2F%2Ffixture.apps.veoveo.example"
+            "https://sandbox.apps.veoveo.example/?declared=1&connect=https%3A%2F%2Fapi.example.net&frame=https%3A%2F%2Ffixture.apps.veoveo.example"
         );
         assert_eq!(data["csp"]["connectDomains"], json!(["https://api.example.net"]));
         assert!(

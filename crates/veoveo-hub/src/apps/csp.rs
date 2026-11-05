@@ -10,6 +10,9 @@ use super::origins::AppOrigins;
 
 /// The most sources one directive takes.
 const MAX_SOURCES: usize = 32;
+/// The sandbox query parameter of an App that declares `_meta.ui.csp`, which every list
+/// may leave empty, and the one value it takes.
+const DECLARED: (&str, &str) = ("declared", "1");
 
 /// Why the Hub does not admit an App's declared policy.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -76,9 +79,11 @@ enum Frames<'a> {
     AnyServer,
 }
 
-/// An App's admitted sources, each one exact origin, sorted and without duplicates.
+/// An App's admitted sources, each one exact origin, sorted and without duplicates, and
+/// whether it declares `_meta.ui.csp`, which admits WebAssembly.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AppPolicy {
+    declared: bool,
     connect: Vec<String>,
     resource: Vec<String>,
     frame: Vec<String>,
@@ -87,22 +92,26 @@ pub struct AppPolicy {
 
 impl AppPolicy {
     /// The policy of `server`'s listed App `resource`. Without `_meta.ui.csp` every list
-    /// is empty, the restrictive default.
+    /// is empty and it is not declared, the specification's exact restrictive default.
     pub fn admit(
         resource: &Resource,
         server: &ServerSlug,
         origins: &AppOrigins,
     ) -> Result<Self, PolicyError> {
-        let declared = resource
+        let has_ui_meta = resource
             .meta
             .as_ref()
             .is_some_and(|meta| meta.0.contains_key(UI_META_KEY));
         let csp = match resource_ui_meta(resource) {
-            Some(meta) => meta.csp.unwrap_or_default(),
-            None if declared => return Err(PolicyError::Metadata),
-            None => UiCsp::default(),
+            Some(meta) => meta.csp,
+            None if has_ui_meta => return Err(PolicyError::Metadata),
+            None => None,
         };
-        let mut policy = Self::default();
+        let mut policy = Self {
+            declared: csp.is_some(),
+            ..Self::default()
+        };
+        let csp = csp.unwrap_or_default();
         for list in List::ALL {
             let values = match list {
                 List::Connect => &csp.connect_domains,
@@ -120,15 +129,22 @@ impl AppPolicy {
         if query.len() > 16 * 1024 {
             return Err(PolicyError::Query);
         }
+        let mut policy = Self::default();
         let mut values: [Vec<String>; 4] = Default::default();
         for (name, value) in url::form_urlencoded::parse(query.as_bytes()) {
+            if name == DECLARED.0 {
+                if value != DECLARED.1 {
+                    return Err(PolicyError::Query);
+                }
+                policy.declared = true;
+                continue;
+            }
             let index = List::ALL
                 .iter()
                 .position(|list| list.parameter() == name)
                 .ok_or(PolicyError::Query)?;
             values[index].push(value.into_owned());
         }
-        let mut policy = Self::default();
         for (list, values) in List::ALL.into_iter().zip(&values) {
             *policy.list_mut(list) = admit_list(list, values, Frames::AnyServer, origins)?;
         }
@@ -156,6 +172,9 @@ impl AppPolicy {
     /// The sandbox query that names this policy.
     pub fn query(&self) -> String {
         let mut query = url::form_urlencoded::Serializer::new(String::new());
+        if self.declared {
+            query.append_pair(DECLARED.0, DECLARED.1);
+        }
         for list in List::ALL {
             for source in self.list(list) {
                 query.append_pair(list.parameter(), source);
@@ -189,12 +208,14 @@ impl AppPolicy {
             sources.join(" ")
         };
         let resource = &self.resource;
+        let script = if self.declared {
+            "'self' 'unsafe-inline' 'wasm-unsafe-eval'"
+        } else {
+            "'self' 'unsafe-inline'"
+        };
         [
             "default-src 'none'".to_owned(),
-            format!(
-                "script-src {}",
-                sources(resource, "'self' 'unsafe-inline'", "")
-            ),
+            format!("script-src {}", sources(resource, script, "")),
             format!(
                 "style-src {}",
                 sources(resource, "'self' 'unsafe-inline'", "")
@@ -363,7 +384,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             policy.header(&origins),
-            "default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.example.net:8443; \
+            "default-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.example.net:8443; \
              style-src 'self' 'unsafe-inline' https://cdn.example.net:8443; \
              img-src 'self' data: https://cdn.example.net:8443; font-src 'self' https://cdn.example.net:8443; \
              media-src 'self' data: https://cdn.example.net:8443; \
@@ -379,6 +400,41 @@ mod tests {
             policy.csp().connect_domains,
             ["https://api.example.net", "wss://stream.example.net"]
         );
+    }
+
+    #[test]
+    fn a_declaration_admits_webassembly_even_with_every_list_empty() {
+        let origins = origins();
+        let policy = AppPolicy::admit(&declared(UiCsp::default()), &fixture(), &origins).unwrap();
+        assert_eq!(
+            policy.header(&origins),
+            "default-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; \
+             style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; \
+             media-src 'self' data:; connect-src 'none'; frame-src 'none'; base-uri 'self'; \
+             object-src 'none'; frame-ancestors https://veoveo.example"
+        );
+        // The proxy builds its header from the query, so the declaration has to survive it.
+        assert_eq!(policy.query(), "declared=1");
+        assert_eq!(AppPolicy::from_query(&policy.query(), &origins), Ok(policy));
+        // `_meta.ui` without `csp` declares nothing.
+        let undeclared = app_resource_with_meta(
+            "ui://fixture/board.html",
+            "board",
+            ResourceUiMeta {
+                csp: None,
+                prefers_border: Some(true),
+            },
+        );
+        assert_eq!(
+            AppPolicy::admit(&undeclared, &fixture(), &origins),
+            Ok(AppPolicy::default())
+        );
+        assert!(
+            !AppPolicy::default()
+                .header(&origins)
+                .contains("wasm-unsafe-eval")
+        );
+        assert_eq!(AppPolicy::default().query(), "");
     }
 
     #[test]
@@ -513,6 +569,13 @@ mod tests {
             AppPolicy::from_query("script=https%3A%2F%2Fa.example.net", &origins),
             Err(PolicyError::Query)
         );
+        for value in ["declared=0", "declared=", "declared=true"] {
+            assert_eq!(
+                AppPolicy::from_query(value, &origins),
+                Err(PolicyError::Query),
+                "{value}"
+            );
+        }
         assert!(AppPolicy::from_query("connect=https%3A%2F%2Fveoveo.example", &origins).is_err());
     }
 }
