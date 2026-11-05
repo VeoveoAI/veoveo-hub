@@ -1663,6 +1663,9 @@ with a redirect to `/_veoveo/viewers/{slug}/?file=/{path}`, and `/_veoveo/viewer
 reaches `{route}{rest}` on the deployment the slug routes to, by the [public route](#public-routes)
 rules, for GET and HEAD. The request carries no cookie, `Referer`, `Origin` or forwarded host, so
 the server never sees a token. Of two servers taking one extension, the first by slug serves it.
+The servers are those the person's selection routes to, as their tools reach them, so a factory
+server's viewer is its instance of the person's branch or the base branch; a share link's origin,
+which has no person, takes the base branch's.
 
 ## HTTP Surface
 

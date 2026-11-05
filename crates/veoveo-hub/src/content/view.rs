@@ -259,7 +259,14 @@ async fn open(State(domain): State<ContentDomain>, request: Request) -> Response
     let origin = domain.origin.under(&token);
     let path = &opened.named.path;
     let catalog = domain.catalog.current();
-    let frame = match domain.viewer_for(&catalog, path) {
+    let servers = match domain
+        .viewers_for(&catalog, Some(&session.principal().id))
+        .await
+    {
+        Ok(servers) => servers,
+        Err(problem) => return refused_page(problem),
+    };
+    let frame = match super::serve::viewer_for(&servers, path) {
         Viewer::Itself => format!("{origin}/{path}"),
         Viewer::Declared(_) | Viewer::File => format!("{origin}/_veoveo/view/{path}"),
     };

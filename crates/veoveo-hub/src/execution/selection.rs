@@ -2,6 +2,7 @@
 use std::collections::BTreeMap;
 
 use veoveo_hub_sdk::{ResolvedComponent, ResolvedComposition, ServerSlug};
+use veoveo_types::PrincipalId;
 
 use super::BranchName;
 use crate::{AuthenticatedSubject, HubCatalog, HubState, registration::RegistrationSnapshot};
@@ -73,6 +74,26 @@ pub async fn admit_execution(
     };
     subject.execution = Some(admitted.composition.context());
     Ok(admitted)
+}
+
+/// The registrations `person`'s selection routes to now, as their tools reach them, or the base
+/// branch's for no person: for a read that keeps no composition.
+pub async fn routed_for(
+    state: &HubState,
+    catalog: &HubCatalog,
+    person: Option<&PrincipalId>,
+) -> Result<RegistrationSnapshot, ExecutionAdmissionError> {
+    let base = catalog
+        .control_plane()
+        .execution
+        .as_ref()
+        .and_then(|execution| execution.base_branch.as_ref());
+    let selection = match person {
+        Some(person) => state.hub_store().selection(person).await?,
+        None => BTreeMap::new(),
+    };
+    let admitted = route(catalog.registrations(), base, &selection);
+    Ok(catalog.registrations().selected(&admitted.composition))
 }
 
 /// Route each server to its newest registered deployment that is not an instance, then

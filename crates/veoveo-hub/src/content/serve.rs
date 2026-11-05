@@ -17,13 +17,15 @@ use veoveo_hub_sdk::{
     registration::{ContentLinkLabel, PublicRoutePrefix, ViewerDeclaration},
 };
 
+use veoveo_types::PrincipalId;
+
 use super::{ContentDomain, pages, token, view::canonical_segment};
 use crate::{
     HubCatalog,
     apps::{bridge::document_navigation, pages::message},
     computers::{family_session, session_digest},
     problem::Problem,
-    registration::RegisteredServer,
+    registration::{RegisteredServer, RegistrationSnapshot},
     store::ContentToken,
 };
 
@@ -73,6 +75,62 @@ fn extension(path: &str) -> Option<String> {
     Some(extension.to_ascii_lowercase())
 }
 
+/// The deployment among `servers` that serves `slug`'s viewer, and the viewer it declares.
+fn declared<'a>(
+    servers: &'a RegistrationSnapshot,
+    slug: &ServerSlug,
+) -> Option<(&'a RegisteredServer, &'a ViewerDeclaration)> {
+    servers
+        .iter()
+        .filter(|server| &server.slug == slug && server.link().is_none())
+        .find_map(|server| Some((server, server.surfaces.as_ref()?.viewer.as_ref()?)))
+}
+
+/// What opens the file at the raw `path` for a person who reaches `servers`: a declared viewer,
+/// the first by slug; HTML and folders as themselves; otherwise `file-viewer`.
+pub(super) fn viewer_for(servers: &RegistrationSnapshot, path: &str) -> Viewer {
+    if file_name(path).is_none() {
+        return Viewer::Itself;
+    }
+    let Some(extension) = extension(path) else {
+        return Viewer::File;
+    };
+    let declared = servers
+        .iter()
+        .filter(|server| {
+            declared(servers, &server.slug).is_some_and(|(_, viewer)| {
+                viewer
+                    .extensions
+                    .iter()
+                    .any(|taken| taken.as_str() == extension)
+            })
+        })
+        .map(|server| &server.slug)
+        .min();
+    match declared {
+        Some(slug) => Viewer::Declared(slug.clone()),
+        None if matches!(extension.as_str(), "html" | "htm" | "xhtml") => Viewer::Itself,
+        None => Viewer::File,
+    }
+}
+
+/// The viewer page of the file at the raw path `rest`.
+fn viewer_page(servers: &RegistrationSnapshot, rest: &str) -> Response {
+    match viewer_for(servers, rest) {
+        Viewer::Declared(slug) => {
+            let file = format!("/{rest}");
+            let file =
+                percent_encoding::utf8_percent_encode(&file, percent_encoding::NON_ALPHANUMERIC);
+            see_other(&format!("{SERVER_VIEWERS}{slug}/?file={file}"))
+        }
+        Viewer::Itself => see_other(&format!("/{rest}")),
+        Viewer::File => match file_name(rest) {
+            Some(name) => pages::viewer_page(&format!("/{rest}"), &name),
+            None => Problem::not_found().into_response(),
+        },
+    }
+}
+
 impl ContentDomain {
     /// The token a request's name holds, when its name lies under the domain, whatever it is.
     pub fn claims(&self, headers: &HeaderMap) -> Option<String> {
@@ -90,17 +148,6 @@ impl ContentDomain {
         registrations.deployment(&routed)
     }
 
-    /// The deployment that serves `slug`'s viewer, and the viewer it declares.
-    fn declared<'a>(
-        &self,
-        catalog: &'a HubCatalog,
-        slug: &ServerSlug,
-    ) -> Option<(&'a RegisteredServer, &'a ViewerDeclaration)> {
-        let server = self.routed(catalog, slug)?;
-        let viewer = server.surfaces.as_ref()?.viewer.as_ref()?;
-        Some((server, viewer))
-    }
-
     /// The deployment that serves `slug`'s links, and their route.
     fn links<'a>(
         &self,
@@ -112,28 +159,23 @@ impl ContentDomain {
         Some((server, links))
     }
 
-    /// What opens the file at the raw `path`: a declared viewer, the first by slug; HTML and
-    /// folders as themselves; otherwise `file-viewer`.
-    pub(super) fn viewer_for(&self, catalog: &HubCatalog, path: &str) -> Viewer {
-        if file_name(path).is_none() {
-            return Viewer::Itself;
-        }
-        let Some(extension) = extension(path) else {
-            return Viewer::File;
-        };
-        let declared = catalog.registrations().namespaces().keys().find(|slug| {
-            self.declared(catalog, slug).is_some_and(|(_, viewer)| {
-                viewer
-                    .extensions
-                    .iter()
-                    .any(|taken| taken.as_str() == extension)
+    /// The servers `person` reaches now, whose viewers open their files; those of the base branch
+    /// for no person, as on a share link's origin.
+    pub(super) async fn viewers_for(
+        &self,
+        catalog: &HubCatalog,
+        person: Option<&PrincipalId>,
+    ) -> Result<RegistrationSnapshot, Problem> {
+        crate::execution::routed_for(&self.hub, catalog, person)
+            .await
+            .map_err(|error| {
+                tracing::error!("failed to read a person's selection: {error:#}");
+                Problem::new(
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "content-unavailable",
+                    "This file is unavailable",
+                )
             })
-        });
-        match declared {
-            Some(slug) => Viewer::Declared(slug.clone()),
-            None if matches!(extension.as_str(), "html" | "htm" | "xhtml") => Viewer::Itself,
-            None => Viewer::File,
-        }
     }
 
     /// One request on the origin of `name`, what stood before the domain in its host.
@@ -221,7 +263,9 @@ impl ContentDomain {
             if let Err(problem) = owner.admit(&catalog, &session, &row.item).await {
                 return problem.into_response();
             }
-            return self.reserved(&catalog, &path, request).await;
+            return self
+                .reserved(&catalog, Some(&session.principal().id), &path, request)
+                .await;
         }
         let file = path.strip_prefix('/').unwrap_or(&path);
         let answer = owner
@@ -261,7 +305,9 @@ impl ContentDomain {
                 )
                 .await;
             return match answer.status() {
-                status if status.is_success() => self.reserved(&catalog, &path, request).await,
+                status if status.is_success() => {
+                    self.reserved(&catalog, None, &path, request).await
+                }
                 StatusCode::TOO_MANY_REQUESTS => answer,
                 StatusCode::NOT_FOUND => Problem::not_found().into_response(),
                 status => {
@@ -287,17 +333,30 @@ impl ContentDomain {
     }
 
     /// What the Hub answers itself on an item's origin, once the item is admitted.
-    async fn reserved(&self, catalog: &HubCatalog, path: &str, request: Request) -> Response {
+    async fn reserved(
+        &self,
+        catalog: &HubCatalog,
+        person: Option<&PrincipalId>,
+        path: &str,
+        request: Request,
+    ) -> Response {
         if let Some(rest) = path.strip_prefix(VIEWER_FILES) {
             return self.viewer_file(rest, request).await;
         }
+        if !path.starts_with(SERVER_VIEWERS) && !path.starts_with(VIEWER_PAGE) {
+            return Problem::not_found().into_response();
+        }
+        let servers = match self.viewers_for(catalog, person).await {
+            Ok(servers) => servers,
+            Err(problem) => return problem.into_response(),
+        };
         if let Some(rest) = path.strip_prefix(SERVER_VIEWERS) {
-            return self.server_viewer(catalog, rest, request).await;
+            return self.server_viewer(catalog, &servers, rest, request).await;
         }
-        if let Some(rest) = path.strip_prefix(VIEWER_PAGE) {
-            return self.viewer_page(catalog, rest);
+        match path.strip_prefix(VIEWER_PAGE) {
+            Some(rest) => viewer_page(&servers, rest),
+            None => Problem::not_found().into_response(),
         }
-        Problem::not_found().into_response()
     }
 
     /// `file-viewer`'s file at the raw path `rest`, from its mounted image.
@@ -324,12 +383,18 @@ impl ContentDomain {
 
     /// `{slug}/{rest}`: `rest` under the viewer route `slug` declares, without anything of the
     /// browser's that names the token.
-    async fn server_viewer(&self, catalog: &HubCatalog, rest: &str, request: Request) -> Response {
+    async fn server_viewer(
+        &self,
+        catalog: &HubCatalog,
+        servers: &RegistrationSnapshot,
+        rest: &str,
+        request: Request,
+    ) -> Response {
         let (slug, rest) = rest.split_once('/').unwrap_or((rest, ""));
         let Ok(slug) = ServerSlug::parse(slug) else {
             return Problem::not_found().into_response();
         };
-        let Some((server, viewer)) = self.declared(catalog, &slug) else {
+        let Some((server, viewer)) = declared(servers, &slug) else {
             return Problem::not_found().into_response();
         };
         let (mut parts, body) = request.into_parts();
@@ -344,25 +409,6 @@ impl ContentDomain {
                 Request::from_parts(parts, body),
             )
             .await
-    }
-
-    /// The viewer page of the file at the raw path `rest`.
-    fn viewer_page(&self, catalog: &HubCatalog, rest: &str) -> Response {
-        match self.viewer_for(catalog, rest) {
-            Viewer::Declared(slug) => {
-                let file = format!("/{rest}");
-                let file = percent_encoding::utf8_percent_encode(
-                    &file,
-                    percent_encoding::NON_ALPHANUMERIC,
-                );
-                see_other(&format!("{SERVER_VIEWERS}{slug}/?file={file}"))
-            }
-            Viewer::Itself => see_other(&format!("/{rest}")),
-            Viewer::File => match file_name(rest) {
-                Some(name) => pages::viewer_page(&format!("/{rest}"), &name),
-                None => Problem::not_found().into_response(),
-            },
-        }
     }
 
     /// The answer of a token that expired or whose session ended. A page load goes to `/view/`,

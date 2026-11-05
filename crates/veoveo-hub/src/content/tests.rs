@@ -1113,3 +1113,32 @@ async fn a_servers_link_has_its_own_origin_and_never_runs_on_the_issuers() {
     })
     .await;
 }
+
+#[test]
+fn a_factory_instance_a_person_reaches_opens_its_extensions() {
+    let mut server =
+        crate::test_catalog::registered_server("beacon", "http://127.0.0.1:9/beacon/mcp");
+    server.branch = Some("main".parse().unwrap());
+    server.surfaces = Some(SurfacesDeclaration {
+        public_routes: vec![PublicRouteDeclaration {
+            prefix: PublicRoutePrefix::new("/beacon/viewer/").unwrap(),
+            max_body_bytes: BodyLimit::new(1).unwrap(),
+            requests_per_minute: RequestRate::per_minute(6000).unwrap(),
+        }],
+        app_origin: false,
+        viewer: Some(ViewerDeclaration {
+            extensions: vec![FileExtension::new("usda").unwrap()],
+            route: PublicRoutePrefix::new("/beacon/viewer/").unwrap(),
+        }),
+        content: None,
+    });
+    let servers = crate::registration::RegistrationSnapshot::new([server]);
+    assert!(matches!(
+        super::serve::viewer_for(&servers, "a/b.USDA"),
+        super::serve::Viewer::Declared(_)
+    ));
+    assert!(matches!(
+        super::serve::viewer_for(&servers, "a/b.docx"),
+        super::serve::Viewer::File
+    ));
+}
