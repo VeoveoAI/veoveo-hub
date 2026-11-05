@@ -550,7 +550,7 @@ fn unavailable() -> Problem {
 }
 
 /// A refusal as the caller's problem.
-fn refused(refusal: Refusal) -> Problem {
+pub(super) fn refused(refusal: Refusal) -> Problem {
     let (status, code, title, detail) = match refusal {
         Refusal::UnknownRepository => (
             StatusCode::NOT_FOUND,

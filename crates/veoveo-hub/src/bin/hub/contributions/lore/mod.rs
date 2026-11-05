@@ -4,6 +4,7 @@ pub(crate) mod catalog;
 pub(crate) mod client_token;
 pub(crate) mod computer_client;
 pub(crate) mod factory;
+pub(crate) mod files;
 pub(crate) mod instance;
 pub(crate) mod instance_client;
 pub(crate) mod person;
@@ -146,6 +147,10 @@ pub struct Deployment {
     pub resource_name: ProtectedResourceName,
     pub audience: ProtectedResourceId,
     pub endpoint: url::Url,
+    /// Lore's HTTP endpoint, one `https` origin, which serves a repository's content to the
+    /// files route. Until it is set that route answers unavailable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_endpoint: Option<url::Url>,
     pub authorization_server: AuthorizationServerId,
     pub policy_version: PolicyVersion,
     pub login_scopes: BTreeSet<ScopeName>,
@@ -162,6 +167,23 @@ impl Deployment {
         Ok(tonic::transport::Endpoint::from_shared(format!(
             "https://{authority}/"
         ))?)
+    }
+
+    /// A person's token goes to Lore's HTTP endpoint, so it is `https` and only an origin.
+    fn validate_http_endpoint(&self) -> Result<()> {
+        if let Some(endpoint) = &self.http_endpoint {
+            ensure!(
+                endpoint.scheme() == "https"
+                    && endpoint.host_str().is_some()
+                    && endpoint.username().is_empty()
+                    && endpoint.password().is_none()
+                    && endpoint.query().is_none()
+                    && endpoint.fragment().is_none()
+                    && matches!(endpoint.path(), "" | "/"),
+                "invalid Lore HTTP endpoint"
+            );
+        }
+        Ok(())
     }
 
     fn recipient(&self) -> Result<String> {
@@ -591,6 +613,7 @@ impl Lore {
                 "unknown deployment authority"
             );
             d.recipient()?;
+            d.validate_http_endpoint()?;
             ensure!(
                 !d.login_scopes.is_empty()
                     && d.login_scopes

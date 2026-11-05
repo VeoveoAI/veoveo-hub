@@ -91,6 +91,39 @@ fn native_tls_endpoint_preserves_authority_and_rejects_invalid_native_urls() {
         assert!(deployment.tls_endpoint().is_err(), "{invalid}");
     }
 }
+#[test]
+fn lores_http_endpoint_is_one_https_origin_and_optional() {
+    let source: Lore = serde_json::from_value(plane().extensions.remove("lore").unwrap()).unwrap();
+    let mut deployment = source.deployments.into_iter().next().unwrap();
+    assert!(deployment.validate_http_endpoint().is_ok());
+    for valid in [
+        "https://lore.example:41339",
+        "https://lore.example:41339/",
+        "https://[2001:db8::7]:41339",
+    ] {
+        deployment.http_endpoint = Some(url::Url::parse(valid).unwrap());
+        assert!(deployment.validate_http_endpoint().is_ok(), "{valid}");
+    }
+    for invalid in [
+        "http://lore.example:41339",
+        "grpcs://lore.example:41339",
+        "https://user@lore.example:41339",
+        "https://lore.example:41339/v1",
+        "https://lore.example:41339?query=value",
+        "https://lore.example:41339#fragment",
+    ] {
+        deployment.http_endpoint = Some(url::Url::parse(invalid).unwrap());
+        assert!(deployment.validate_http_endpoint().is_err(), "{invalid}");
+    }
+    let with = |endpoint: &str| {
+        let mut plane = plane();
+        plane.extensions.get_mut("lore").unwrap()["deployments"][0]["httpEndpoint"] =
+            serde_json::json!(endpoint);
+        plane
+    };
+    assert!(admits(with("https://lore.example:41339")));
+    assert!(!admits(with("http://lore.example:41339")));
+}
 fn catalog(plane: HubControlPlane) -> HubCatalog {
     HubCatalog::from_control_plane(
         plane,

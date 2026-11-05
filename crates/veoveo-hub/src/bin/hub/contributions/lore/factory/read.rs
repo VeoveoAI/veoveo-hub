@@ -51,6 +51,17 @@ pub(super) async fn top_level(
     walk(client, request, revision, None, Some(1)).await
 }
 
+/// The entries directly in `folder` of the revision, or at its top level, links listed
+/// and not entered; none when the revision has no such folder.
+pub(crate) async fn folder(
+    client: ThinClientServiceClient<Channel>,
+    request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
+    revision: &Revision,
+    folder: Option<&str>,
+) -> Result<Vec<TreeNode>> {
+    walk(client, request, revision, folder, Some(1)).await
+}
+
 /// Everything at or under the top-level `directory` of the revision. A link under it is
 /// listed and, when its person may read the linked repository, entered.
 pub(super) async fn under(

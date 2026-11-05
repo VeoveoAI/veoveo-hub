@@ -130,6 +130,35 @@ impl Calls<'_> {
             .await
     }
 
+    /// The status and problem type a files route answers `caller`. Every answer of these
+    /// routes forbids sniffing and shared caches, refusals as well.
+    async fn file(
+        &self,
+        caller: &str,
+        repository: &str,
+        tail: &str,
+    ) -> (reqwest::StatusCode, String) {
+        let token = self
+            .hub
+            .access_token(&self.http, self.hub.caller(caller))
+            .await;
+        let response = self
+            .http
+            .get(format!(
+                "{}/lore/local/repositories/{repository}/files/{tail}",
+                self.hub.base
+            ))
+            .bearer_auth(token)
+            .send()
+            .await
+            .unwrap();
+        let status = response.status();
+        assert_eq!(response.headers()["x-content-type-options"], "nosniff");
+        assert_eq!(response.headers()["cache-control"], "private, no-transform");
+        let body: Value = response.json().await.unwrap();
+        (status, problem(&body).to_owned())
+    }
+
     async fn repositories(&self, caller: &str) -> Value {
         let (status, listed) = self
             .call(caller, reqwest::Method::GET, "/repositories", None)
@@ -273,6 +302,77 @@ async fn qualify() {
         calls.repositories("admin").await,
         json!({"repositories": []})
     );
+
+    // Lore's files answer no one without a grant. This installation names no HTTP endpoint
+    // for Lore, so a person with a grant reaches the read and is told it is unavailable, on
+    // each route of a path; no Lore server is involved.
+    for (caller, repository, tail, status, code) in [
+        (
+            "admin",
+            OWNED,
+            "main/a.usd",
+            reqwest::StatusCode::FORBIDDEN,
+            "repository-access-forbidden",
+        ),
+        (
+            "member",
+            UNKNOWN,
+            "main/a.usd",
+            reqwest::StatusCode::NOT_FOUND,
+            "repository-not-found",
+        ),
+        (
+            "member",
+            "not-a-repository",
+            "main/a.usd",
+            reqwest::StatusCode::NOT_FOUND,
+            "repository-not-found",
+        ),
+        (
+            "member",
+            OWNED,
+            "main/a%2Fb.usd",
+            reqwest::StatusCode::NOT_FOUND,
+            "lore-file-not-found",
+        ),
+        (
+            "member",
+            OWNED,
+            "main",
+            reqwest::StatusCode::SERVICE_UNAVAILABLE,
+            "lore-files-unavailable",
+        ),
+        (
+            "member",
+            OWNED,
+            "main/",
+            reqwest::StatusCode::SERVICE_UNAVAILABLE,
+            "lore-files-unavailable",
+        ),
+        (
+            "member",
+            OWNED,
+            "main/folder/a%20b.usd",
+            reqwest::StatusCode::SERVICE_UNAVAILABLE,
+            "lore-files-unavailable",
+        ),
+    ] {
+        assert_eq!(
+            calls.file(caller, repository, tail).await,
+            (status, code.to_owned()),
+            "{caller} {repository} {tail}"
+        );
+    }
+    let anonymous = calls
+        .http
+        .get(format!(
+            "{}/lore/local/repositories/{OWNED}/files/main/a.usd",
+            hub.base
+        ))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(anonymous.status(), reqwest::StatusCode::UNAUTHORIZED);
 
     // The owner shares it with a person by email, whatever its case; that person may read
     // its access now, but not share it.

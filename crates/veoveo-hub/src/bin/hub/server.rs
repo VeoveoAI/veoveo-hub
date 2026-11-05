@@ -349,6 +349,10 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             admin_state.clone(),
             auth_state.clone(),
         ))
+        .merge(crate::contributions::lore::files::router(
+            admin_state.clone(),
+            auth_state.clone(),
+        )?)
         .merge(crate::contributions::lore::resources::router(
             state,
             admin_state.clone(),

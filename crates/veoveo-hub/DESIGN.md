@@ -1536,6 +1536,7 @@ host page reads the stream with `fetch`, since `EventSource` cannot POST.
 | `PUT /factory/{profile}/watch?repository=<id>` | The Hub watches a Lore repository as the caller; 204, or 403 without the caller's grant |
 | `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
 | `GET /lore/{profile}/repositories` | The Lore repositories the caller holds a grant on, as [below](#repository-listing) |
+| `GET /lore/{profile}/repositories/{id}/files/{branch}/{path}` | A file of a Lore repository at the tip of a branch, or a folder's listing, read as the caller ([files](#files-from-lore)) |
 | `GET`/`PUT /lore/{profile}/repositories/{id}/access` | Who may reach a repository; an owner shares it with a person or a group ([groups and sharing](#groups-and-sharing)) |
 | `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members`, `DELETE /lore/{profile}/groups/{name}` | The caller's groups; creating one; an owner sets a membership or deletes the group |
 | `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person holds a grant on, own or through a group, for Lore's repository listing |
@@ -2477,6 +2478,60 @@ so that revision is published before the route's own, which then changes nothing
 route answers 201 for a repository it found unregistered. Owners share it as
 [below](#groups-and-sharing), an owner deletes it with Lore, and Lore lists repositories
 through the Hub as [below](#repository-listing).
+
+#### Files from Lore
+
+A file in a Lore repository is a URL, for any server and any preview. Nothing is checked
+out, stored or buffered on the way, so a push is live on the next request. A server
+reaches it for its caller or its Task through `hub_bearer`; the bytes pass through the
+Hub once, from Lore to the caller. The route is in
+`src/bin/hub/contributions/lore/files.rs`, whose `read` answers for any person a route
+can name, so another route calls it rather than repeating it.
+
+`GET /lore/{profile}/repositories/{id}/files/{branch}/{path}` takes the authenticated
+caller with a grant on the repository, as the [access list](#groups-and-sharing) does.
+`{branch}` alone, or with a trailing `/`, is the top level. Each read:
+
+1. Issues the person's Lore token for the repository (`person::issue`), which admits
+   their current grant.
+2. Finds the branch by name with `BranchGet`, and lists the folder that holds the path
+   at its latest revision with `RevisionTree`, which walks only folders. Only an exact
+   name matches.
+3. For a file, reads `GET {httpEndpoint}/v1/repository/{id}/content/{address}` with the
+   token and streams the answer as it arrives.
+
+Lore's rules decide each read, since the token is the person's and Lore checks it on
+both calls. A refusal by either answers 403 `repository-access-forbidden`, a path or
+branch that is not there 404 `lore-file-not-found`, and Lore failing 503
+`lore-files-unavailable`. A repository unknown in the caller's tenant answers 404
+`repository-not-found`, and one they hold no grant on 403, before Lore is asked.
+
+Every answer, a refusal as well, says `X-Content-Type-Options: nosniff` and
+`Cache-Control: private, no-transform`. A file's `ETag` is its content address, and an
+`If-None-Match` that holds it answers 304 after the checks above, without reading the
+content. `Range` goes to Lore, which answers 206 or 416 for one range and the whole file
+for what it does not understand; `If-Range` keeps the range only for the file's own
+`ETag`. Nothing else of the request reaches Lore. In particular no query does, since
+Lore's route would let it choose the answer's content type. A file answers
+`application/octet-stream`, whatever it is named.
+
+A folder answers `{"repository", "branch", "path", "entries": [{"name", "type", "size",
+"address"}]}`, entries by name, `type` being `file`, `directory` or `link`, and only a
+file having an `address`. `size` is the bytes under a folder. A link lists as the folder
+it links to, when the person may read that repository. The content of a file is read
+from the repository the URL names, so a file inside a link is read through its own
+repository's URL.
+
+The path is the raw URL path, percent-decoded one segment at a time, so `%2F` never
+separates. A segment that cannot be a name in a tree answers 404 without asking Lore: an
+empty one, `.`, `..`, one holding `/`, `\` or NUL, or one that is not UTF-8 once decoded.
+A name that merely begins with periods, such as `..hidden`, is a name. `{branch}` is one
+segment, so `feature%2Fx` names the branch `feature/x`.
+
+A Lore deployment names the origin with `httpEndpoint`, which is Lore's `[server.http]`
+with a `[server.http.certificate]`. A person's token goes there, so it must be one `https`
+origin, trusted through the same system roots as `endpoint`. A deployment without it
+answers 503 `lore-files-unavailable`. Its client follows no redirect and decodes nothing.
 
 #### Groups and sharing
 

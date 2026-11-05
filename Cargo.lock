@@ -5549,6 +5549,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
  "parking_lot",
+ "percent-encoding",
  "prost 0.14.4",
  "prost-types 0.14.4",
  "rcgen",

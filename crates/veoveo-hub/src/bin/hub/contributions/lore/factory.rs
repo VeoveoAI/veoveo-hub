@@ -11,7 +11,7 @@
 //! instances of deleted branches. Hub acts in Lore only as a person, under that person's
 //! current grant.
 pub(crate) mod native;
-mod read;
+pub(crate) mod read;
 mod store;
 pub(crate) mod watch;
 
@@ -71,6 +71,14 @@ pub(crate) struct ParentTree {
 #[derive(Debug, thiserror::Error)]
 #[error("{0}")]
 pub(crate) struct Refused(pub String);
+
+/// Lore's answer to a call that failed, other than a refusal of the person.
+#[derive(Debug, thiserror::Error)]
+#[error("{message}")]
+pub(crate) struct Answered {
+    pub code: tonic::Code,
+    pub message: String,
+}
 
 /// A repository's notifications, as one subscription receives them.
 pub(crate) type Events = BoxStream<'static, Result<Event, tonic::Status>>;

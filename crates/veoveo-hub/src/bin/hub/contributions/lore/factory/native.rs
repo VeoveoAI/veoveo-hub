@@ -28,7 +28,7 @@ use veoveo_hub::{
 };
 use veoveo_types::{PrincipalId, TenantId};
 
-use super::{BoxFuture, Branch, Events, Lore as LoreProtocol, Refused, Watched};
+use super::{Answered, BoxFuture, Branch, Events, Lore as LoreProtocol, Refused, Watched};
 use crate::contributions::lore::{
     BranchId, Deployment, DeploymentId, Lore, RepositoryId, person::issue,
 };
@@ -85,7 +85,7 @@ fn repository_url(deployment: &Deployment, repository: &RepositoryId) -> url::Ur
     url
 }
 
-async fn connect(deployment: &Deployment) -> Result<Channel> {
+pub(crate) async fn connect(deployment: &Deployment) -> Result<Channel> {
     deployment
         .tls_endpoint()?
         .connect_timeout(TIMEOUT)
@@ -99,7 +99,7 @@ async fn connect(deployment: &Deployment) -> Result<Channel> {
 }
 
 /// A request in the repository's partition, with the person's token.
-fn request<T>(message: T, token: &str, repository: &RepositoryId) -> Result<Request<T>> {
+pub(crate) fn request<T>(message: T, token: &str, repository: &RepositoryId) -> Result<Request<T>> {
     let mut request = Request::new(message);
     request
         .metadata_mut()
@@ -124,8 +124,36 @@ pub(super) fn failed(operation: &str, status: &tonic::Status) -> anyhow::Error {
         tonic::Code::PermissionDenied | tonic::Code::Unauthenticated => {
             anyhow::Error::new(Refused(message))
         }
-        _ => anyhow::anyhow!(message),
+        code => anyhow::Error::new(Answered { code, message }),
     }
+}
+
+/// The latest revision of the live branch of `name`, with the token of a person who may
+/// read the repository; none while the branch has no revision.
+pub(crate) async fn tip(
+    channel: Channel,
+    name: &str,
+    token: &str,
+    repository: &RepositoryId,
+) -> Result<Option<Revision>> {
+    let mut client = RevisionServiceClient::new(channel);
+    let message = BranchGetRequest {
+        query: Some(branch_get_request::Query::Name(name.to_owned())),
+    };
+    let record = tokio::time::timeout(
+        TIMEOUT,
+        client.branch_get(request(message, token, repository)?),
+    )
+    .await
+    .context("Lore did not answer for the branch in time")?
+    .map_err(|status| failed("read the branch", &status))?
+    .into_inner()
+    .branch
+    .context("Lore answered without the branch")?;
+    if record.latest.iter().all(|byte| *byte == 0) {
+        return Ok(None);
+    }
+    Ok(Some(Revision::parse(hex::encode(&record.latest))?))
 }
 
 fn branch(record: NativeBranch) -> Result<Branch> {
