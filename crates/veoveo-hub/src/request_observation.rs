@@ -20,6 +20,41 @@ use std::{
 };
 use veoveo_audit_contract::{AuditRequest, AuditRequestId, AuditSpanId, AuditTraceId};
 
+/// The request span of the Hub's listeners, with what `tower_http`'s default records: its
+/// method, version and URI, but for a public route's. Those serve callers that verify
+/// themselves, so their paths and queries can hold a credential, such as a share link's secret,
+/// and the span stops at the route's first segment.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RequestSpan;
+
+impl<B> tower_http::trace::MakeSpan<B> for RequestSpan {
+    fn make_span(&mut self, request: &axum::http::Request<B>) -> tracing::Span {
+        tracing::info_span!(
+            "request",
+            method = %request.method(),
+            uri = %logged_uri(request.uri()),
+            version = ?request.version(),
+        )
+    }
+}
+
+/// `uri` as a log may hold it.
+fn logged_uri(uri: &axum::http::Uri) -> String {
+    let path = uri.path();
+    let Some(rest) = path.strip_prefix(&format!("/{}/", crate::registration::INSTANCES_PATH))
+    else {
+        return uri.to_string();
+    };
+    // `{deployment}/{slug}/{route}`, and nothing the route's own caller named.
+    let kept = rest.split('/').take(3).collect::<Vec<_>>().join("/");
+    let held = rest.split('/').count() > 3 || uri.query().is_some();
+    format!(
+        "/{}/{kept}{}",
+        crate::registration::INSTANCES_PATH,
+        if held { "/…" } else { "" }
+    )
+}
+
 #[derive(Debug, Clone)]
 pub struct RequestObservation {
     pub audit: AuditRequest,
@@ -178,5 +213,34 @@ impl Drop for StageTimer {
         } else {
             histogram(self.stage).record(elapsed.as_secs_f64(), &[])
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_log_holds_nothing_a_public_routes_caller_named() {
+        let logged = |uri: &str| logged_uri(&uri.parse().unwrap());
+        assert_eq!(
+            logged("/instances/d1/ledger/shares/the-secret"),
+            "/instances/d1/ledger/shares/…"
+        );
+        assert_eq!(
+            logged("/instances/d1/ledger/operations/o1/the-secret?state=the-secret"),
+            "/instances/d1/ledger/operations/…"
+        );
+        assert_eq!(
+            logged("/instances/d1/ledger/hooks?token=the-secret"),
+            "/instances/d1/ledger/hooks/…"
+        );
+        assert_eq!(logged("/instances/d1"), "/instances/d1");
+        // Every other request's URI stays as it was.
+        assert_eq!(
+            logged("/view/lore/r/main/a.png?x=1"),
+            "/view/lore/r/main/a.png?x=1"
+        );
+        assert_eq!(logged("/mcp/local"), "/mcp/local");
     }
 }

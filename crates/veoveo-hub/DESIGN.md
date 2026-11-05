@@ -1204,6 +1204,10 @@ request reaches that deployment, live or orphaned, as long as it is registered:
 The Hub records no audit of a public route request: no person makes it, and the server
 verifies its caller.
 
+A public route serves callers that verify themselves, so its path and query can hold a credential,
+such as a share link's secret. A request's span and the log lines under it stop at
+`/instances/{deployment}/{slug}/{route}/…`.
+
 ## Apps Host
 
 The Hub is the installation's MCP Apps host, a web host by MCP Apps `2026-01-26`. An

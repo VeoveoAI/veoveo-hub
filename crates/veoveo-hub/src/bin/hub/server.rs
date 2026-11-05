@@ -15,7 +15,7 @@ use rmcp::transport::streamable_http_server::StreamableHttpService;
 use secrecy::{ExposeSecret, SecretString};
 use tokio_util::sync::CancellationToken;
 use tower::ServiceExt;
-use tower_http::trace::{DefaultMakeSpan, TraceLayer};
+use tower_http::trace::TraceLayer;
 use veoveo_hub::{
     HubCatalog, HubCatalogHandle, HubControlStore, HubMcp, HubRefreshDeliveryWindow,
     RefreshTokenDeliveryCipher,
@@ -485,7 +485,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             TraceLayer::new(tower_http::classify::SharedClassifier::new(
                 veoveo_hub::http::UnexpectedServerErrors,
             ))
-            .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
+            .make_span_with(veoveo_hub::request_observation::RequestSpan),
         );
 
     let listener = match passed_listener()? {
@@ -514,7 +514,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
                 ))
                 .layer(
                     TraceLayer::new_for_http()
-                        .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
+                        .make_span_with(veoveo_hub::request_observation::RequestSpan),
                 );
             let stop = ct.clone();
             Some(tokio::spawn(std::future::IntoFuture::into_future(
