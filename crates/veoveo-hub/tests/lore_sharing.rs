@@ -130,6 +130,14 @@ impl Calls<'_> {
             .await
     }
 
+    async fn repositories(&self, caller: &str) -> Value {
+        let (status, listed) = self
+            .call(caller, reqwest::Method::GET, "/repositories", None)
+            .await;
+        assert_eq!(status, reqwest::StatusCode::OK, "{listed}");
+        listed
+    }
+
     async fn membership(
         &self,
         caller: &str,
@@ -256,6 +264,16 @@ async fn qualify() {
     assert_eq!(status, reqwest::StatusCode::FORBIDDEN);
     assert_eq!(problem(&refused), "repository-owner-required");
 
+    // A person lists the repositories they may read, and no others.
+    assert_eq!(
+        calls.repositories("member").await,
+        json!({"repositories": [{"id": OWNED, "name": OWNED, "access": "owner"}]})
+    );
+    assert_eq!(
+        calls.repositories("admin").await,
+        json!({"repositories": []})
+    );
+
     // The owner shares it with a person by email, whatever its case; that person may read
     // its access now, but not share it.
     let (status, shared) = calls
@@ -276,6 +294,10 @@ async fn qualify() {
     assert_eq!(
         calls.access("admin", OWNED).await,
         (reqwest::StatusCode::OK, shared.clone())
+    );
+    assert_eq!(
+        calls.repositories("admin").await,
+        json!({"repositories": [{"id": OWNED, "name": OWNED, "access": "member"}]})
     );
 
     // A reader holds the repository without actions: they clone it and read its access,

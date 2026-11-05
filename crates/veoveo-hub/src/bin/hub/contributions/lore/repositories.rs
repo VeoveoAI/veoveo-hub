@@ -10,14 +10,15 @@
 //! next repository token holds it. Calling again with the `id` of a repository Lore
 //! records the caller as creating registers it; nobody else can claim it, and an owner
 //! assignment an administrator removed stays removed. Owners share it (`sharing.rs`), and
-//! an owner deletes it with Lore (`resources.rs`).
+//! an owner deletes it with Lore (`resources.rs`). `GET` lists the repositories the caller
+//! may read, from the grants the Hub answers Lore's own listing with (`catalog.rs`).
 use anyhow::Result;
 use axum::{
     Extension, Json, Router,
     extract::State,
     http::{HeaderValue, StatusCode, header::CACHE_CONTROL},
     response::{IntoResponse, Response},
-    routing::post,
+    routing::get,
 };
 use serde::{Deserialize, Serialize};
 use veoveo_hub::{
@@ -30,6 +31,7 @@ use super::{
     person::issue_login,
     publication::{Author, Publisher},
     repository_client::{Client, NativeRefusal},
+    sharing::Level,
 };
 use crate::runtime::AdminState;
 
@@ -53,7 +55,7 @@ struct Created {
 
 pub(crate) fn router(state: AdminState, auth: ProfileAuthState) -> Router {
     Router::new()
-        .route("/lore/{profile}/repositories", post(create))
+        .route("/lore/{profile}/repositories", get(list).post(create))
         .with_state(state)
         .layer(axum::middleware::from_fn_with_state(
             auth,
@@ -66,6 +68,57 @@ pub(super) fn random_hex() -> Result<String> {
     let mut bytes = [0_u8; 16];
     getrandom::fill(&mut bytes).map_err(|error| anyhow::anyhow!("random source: {error}"))?;
     Ok(hex::encode(bytes))
+}
+
+#[derive(Serialize)]
+struct Listed {
+    id: RepositoryId,
+    name: String,
+    access: Level,
+}
+
+async fn list(
+    State(state): State<AdminState>,
+    Extension(subject): Extension<AuthenticatedSubject>,
+) -> Result<Response, Problem> {
+    let principal = &subject.principal;
+    let tenant = principal.tenant.as_ref().ok_or_else(|| {
+        Problem::new(
+            StatusCode::FORBIDDEN,
+            "repository-listing-forbidden",
+            "Listing repositories requires a tenant",
+        )
+    })?;
+    let section = Lore::of(&state.catalog.current()).map_err(|error| {
+        tracing::error!("the Lore section is unreadable: {error:#}");
+        listing_unavailable()
+    })?;
+    let deployment = section.sole_deployment().map_err(|reason| {
+        tracing::error!("listing repositories has no Lore deployment: {reason}");
+        listing_unavailable()
+    })?;
+    let mut repositories = section
+        .held_repositories(&deployment.id, tenant, &principal.id)
+        .map(|(repository, actions)| Listed {
+            id: repository.id.clone(),
+            name: repository.title.clone(),
+            access: Level::of(&actions),
+        })
+        .collect::<Vec<_>>();
+    repositories.sort_by(|a, b| a.id.as_str().cmp(b.id.as_str()));
+    let mut response = Json(serde_json::json!({ "repositories": repositories })).into_response();
+    response
+        .headers_mut()
+        .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    Ok(response)
+}
+
+fn listing_unavailable() -> Problem {
+    Problem::new(
+        StatusCode::SERVICE_UNAVAILABLE,
+        "repository-listing-unavailable",
+        "Listing repositories is unavailable",
+    )
 }
 
 async fn create(

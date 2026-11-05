@@ -202,18 +202,13 @@ pub(super) fn listing(
     };
     let prefix = format!("{}-", request.resource_filter);
     let mut entries = section
-        .repositories
-        .iter()
-        .filter(|repository| repository.deployment == deployment.id && &repository.tenant == tenant)
-        .filter_map(|repository| {
-            let actions = section.actions(&deployment.id, &repository.id, tenant, principal)?;
-            Some(ResourcePermission {
-                resource_id: deployment.resource_id_template.render(&repository.id),
-                permission: actions
-                    .iter()
-                    .map(|action| action.as_str().to_owned())
-                    .collect(),
-            })
+        .held_repositories(&deployment.id, tenant, principal)
+        .map(|(repository, actions)| ResourcePermission {
+            resource_id: deployment.resource_id_template.render(&repository.id),
+            permission: actions
+                .iter()
+                .map(|action| action.as_str().to_owned())
+                .collect(),
         })
         .filter(|entry| {
             request.resource_filter.is_empty() || entry.resource_id.starts_with(&prefix)

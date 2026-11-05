@@ -542,6 +542,25 @@ impl Lore {
         Some(held.flat_map(|a| a.actions.iter().copied()).collect())
     }
 
+    /// The tenant's repositories on the deployment that the principal holds a grant on, own
+    /// or through a group, each with the actions the grants hold.
+    pub(crate) fn held_repositories<'a>(
+        &'a self,
+        deployment: &'a DeploymentId,
+        tenant: &'a TenantId,
+        principal: &'a PrincipalId,
+    ) -> impl Iterator<Item = (&'a Repository, BTreeSet<NativeAction>)> {
+        self.repositories
+            .iter()
+            .filter(move |repository| {
+                &repository.deployment == deployment && &repository.tenant == tenant
+            })
+            .filter_map(move |repository| {
+                let actions = self.actions(deployment, &repository.id, tenant, principal)?;
+                Some((repository, actions))
+            })
+    }
+
     /// Whether the principal holds a current grant on `repository`, own or through a
     /// group, on any deployment.
     pub(crate) fn grants(

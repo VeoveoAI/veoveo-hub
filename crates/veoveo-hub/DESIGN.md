@@ -1535,6 +1535,7 @@ host page reads the stream with `fetch`, since `EventSource` cannot POST.
 | `PUT`/`DELETE /selection/{profile}/{server}` | The caller's branch for a server, or back to the base branch; 204 |
 | `PUT /factory/{profile}/watch?repository=<id>` | The Hub watches a Lore repository as the caller; 204, or 403 without the caller's grant |
 | `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
+| `GET /lore/{profile}/repositories` | The Lore repositories the caller holds a grant on, as [below](#repository-listing) |
 | `GET`/`PUT /lore/{profile}/repositories/{id}/access` | Who may reach a repository; an owner shares it with a person or a group ([groups and sharing](#groups-and-sharing)) |
 | `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members`, `DELETE /lore/{profile}/groups/{name}` | The caller's groups; creating one; an owner sets a membership or deletes the group |
 | `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person holds a grant on, own or through a group, for Lore's repository listing |
@@ -2624,6 +2625,11 @@ pages lands in its place and nothing repeats. A `context_filter`, a negative
 the token's `resources` and its `auth_url` stays unset, so the Hub is asked only when
 something lists, creates or deletes, and the Hub answers none of `UrcAuthApi`'s other
 methods.
+
+`GET /lore/{profile}/repositories` answers a person the same grants through the Hub, for
+a viewer or a server that browses: the authenticated caller with a tenant gets
+`{"repositories": [{"id", "name", "access"}]}`, by ID, `access` being the level their
+actions show, as [the access list](#groups-and-sharing) names it. Lore is not asked.
 
 #### Repositories Lore creates and deletes
 
