@@ -72,7 +72,7 @@ impl AppsService {
         &self.origins
     }
 
-    /// `GET /apps/host-{digest}.js`, and `GET` and `POST /apps/{slug}/{page}`.
+    /// `GET /apps/host-{digest}.js`, `GET` and `POST /apps/{slug}/{page}`, and `GET /`.
     pub fn router(self) -> Router {
         Router::new()
             .route(
@@ -80,6 +80,7 @@ impl AppsService {
                 get(|| async { pages::host_script() }),
             )
             .route("/apps/{slug}/{*page}", get(open).post(bridge))
+            .route("/", get(home))
             .with_state(self)
     }
 
@@ -269,6 +270,53 @@ async fn open(State(apps): State<AppsService>, request: Request) -> Response {
     let app_origin = super::server_origin::declares_origin(&catalog, view.server())
         .then(|| apps.origins.app_origin(view.server()));
     pages::host_page(&view, title, &policy, &apps.origins, app_origin)
+}
+
+/// `GET /`: the way in, a page of the Apps the person sees now under their own selection.
+async fn home(State(apps): State<AppsService>, request: Request) -> Response {
+    let Some(observation) = request_observation(&request) else {
+        return unavailable(&"the request carries no correlation");
+    };
+    let catalog = apps.catalog.current();
+    if catalog
+        .runtime
+        .as_ref()
+        .and_then(|runtime| runtime.computers.as_ref())
+        .is_none()
+    {
+        return pages::message(
+            StatusCode::NOT_FOUND,
+            "Nothing here",
+            "This installation signs no one in to Apps.",
+        );
+    }
+    let headers = request.headers();
+    let (config, session) = match crate::computers::app_session(&apps.hub, &catalog, headers).await
+    {
+        Ok(Some(admitted)) => admitted,
+        Ok(None) if document_navigation(headers) => {
+            return crate::computers::sign_in_for_entry(pages::HOME)
+                .unwrap_or_else(|error| unavailable(&error));
+        }
+        Ok(None) => return sign_in_required(),
+        Err(error) => return unavailable(&error),
+    };
+    let person = match apps
+        .person(&catalog, &config, &session, observation, BEARER_SECONDS)
+        .await
+    {
+        Ok(person) => person,
+        Err(error) => return unavailable(&error),
+    };
+    let resources: Vec<Resource> = match person.list("resources/list", "resources").await {
+        Ok(resources) => resources,
+        Err(Failure::Unauthenticated) => {
+            return crate::computers::sign_in_for_entry(pages::HOME)
+                .unwrap_or_else(|error| unavailable(&error));
+        }
+        Err(error) => return unavailable(&error),
+    };
+    pages::home_page(&resources)
 }
 
 fn response(id: &RequestId, answer: Answer) -> Response {

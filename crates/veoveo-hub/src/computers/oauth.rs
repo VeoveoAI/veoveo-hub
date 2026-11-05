@@ -646,10 +646,13 @@ fn return_cookies(headers: &HeaderMap) -> Vec<String> {
         .collect()
 }
 
-/// Where a sign-in returns: an App's path, the entry of a server's app origin, the way
-/// into a further program of the person's Computer, or a file's page on the content domain,
+/// Where a sign-in returns: the home page, an App's path, the entry of a server's app origin, the
+/// way into a further program of the person's Computer, or a file's page on the content domain,
 /// re-spelled canonically; anything else is none.
 fn return_target(path: &str) -> Option<String> {
+    if path == crate::apps::pages::HOME {
+        return Some(path.to_owned());
+    }
     crate::apps::AppView::from_path(path)
         .map(|view| view.path())
         .or_else(|| crate::apps::entry_from_path(path))

@@ -6,9 +6,10 @@ use axum::{
     http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
+use rmcp::model::Resource;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
-use veoveo_hub_sdk::apps::UiCsp;
+use veoveo_hub_sdk::apps::{UiCsp, is_app_resource};
 
 use super::{csp::AppPolicy, origins::AppOrigins, route::AppView};
 
@@ -177,6 +178,93 @@ pub(super) fn proxy_page(policy: &AppPolicy, origins: &AppOrigins) -> Response {
     let body = PROXY_HTML.replace(HOST_ORIGIN_SLOT, &script_json(&origins.host()));
     private(html(StatusCode::OK, body), &policy.header(origins))
 }
+
+/// The way in: the Hub's own top.
+pub(crate) const HOME: &str = "/";
+
+/// One App on the home page.
+struct HomeApp {
+    path: String,
+    title: String,
+    description: String,
+    /// An icon the page holds itself, since it loads nothing from elsewhere.
+    icon: Option<String>,
+}
+
+/// The Apps among `resources`, by title.
+fn home_apps(resources: &[Resource]) -> Vec<HomeApp> {
+    let mut apps: Vec<HomeApp> = resources
+        .iter()
+        .filter(|resource| is_app_resource(resource))
+        .filter_map(|resource| {
+            let view = AppView::from_uri(&resource.uri)?;
+            Some(HomeApp {
+                path: view.path(),
+                title: resource
+                    .title
+                    .clone()
+                    .unwrap_or_else(|| resource.name.clone()),
+                description: resource.description.clone().unwrap_or_default(),
+                icon: resource
+                    .icons
+                    .iter()
+                    .flatten()
+                    .map(|icon| icon.src.clone())
+                    .find(|src| src.starts_with("data:image/")),
+            })
+        })
+        .collect();
+    apps.sort_by_key(|app| (app.title.to_lowercase(), app.path.clone()));
+    apps
+}
+
+/// The home page: a card for each App the person sees, and their Computer. Every value from a
+/// server is escaped, and the page runs nothing and loads nothing.
+pub(super) fn home_page(resources: &[Resource]) -> Response {
+    let mut cards = String::new();
+    for app in home_apps(resources) {
+        let icon = match &app.icon {
+            Some(src) => format!("<img src=\"{}\" alt=\"\">", escaped(src)),
+            None => {
+                let letter = app.title.chars().next().unwrap_or('?').to_uppercase();
+                format!("<span>{}</span>", escaped(&letter.to_string()))
+            }
+        };
+        cards.push_str(&format!(
+            "<a class=\"card\" href=\"{}\"><span class=\"icon\">{icon}</span>\
+             <span class=\"text\"><b>{}</b><small>{}</small></span></a>\n",
+            escaped(&app.path),
+            escaped(&app.title),
+            escaped(&app.description),
+        ));
+    }
+    let body = format!(
+        "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\
+         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
+         <meta name=\"color-scheme\" content=\"light dark\"><title>Veoveo</title>\
+         <style>{HOME_STYLE}</style></head><body><main>\
+         <h1>Veoveo</h1><p class=\"lead\">Your files, scenes and tools.</p>\
+         <nav class=\"grid\">\n{cards}\
+         <a class=\"card\" href=\"/computer\"><span class=\"icon\"><span>&gt;_</span></span>\
+         <span class=\"text\"><b>Your Computer</b><small>Your own sandbox, with its terminal and agents.</small></span></a>\n\
+         </nav></main></body></html>\n"
+    );
+    private(
+        html(StatusCode::OK, body),
+        "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; \
+         form-action 'none'; frame-ancestors 'none'",
+    )
+}
+
+const HOME_STYLE: &str = ":root{color-scheme:light dark;--bg:#fff;--soft:#f4f5f7;--fg:#16181d;--muted:#5b616e;--line:#e1e4e9;--accent:#2557d6}\
+@media(prefers-color-scheme:dark){:root{--bg:#14161a;--soft:#1e2127;--fg:#e8eaee;--muted:#9aa1ad;--line:#2c3038;--accent:#7aa2ff}}\
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif}\
+main{max-width:960px;margin:0 auto;padding:48px 20px}h1{margin:0;font-size:26px}.lead{margin:4px 0 28px;color:var(--muted)}\
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}\
+.card{display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--line);border-radius:12px;color:inherit;text-decoration:none;min-width:0}\
+.card:hover,.card:focus-visible{border-color:var(--accent);outline:none;background:var(--soft)}\
+.icon{flex:none;width:40px;height:40px;border-radius:10px;background:var(--soft);display:grid;place-items:center;font-weight:600;color:var(--muted);overflow:hidden}\
+.icon img{width:24px;height:24px}.text{display:grid;gap:2px;min-width:0}.text small{color:var(--muted);font-size:13px}";
 
 /// A plain page that says why no App opens.
 pub(crate) fn message(status: StatusCode, title: &str, text: &str) -> Response {

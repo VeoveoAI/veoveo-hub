@@ -1346,6 +1346,14 @@ instead of to `/computer`. Any other request without a session answers 401.
 The host page renders the App with the display mode `fullscreen`, the only one it
 offers.
 
+### Home Page
+
+`GET /` is the way in: a page with a card for each App the person sees now under their own selection, by title, and one for their
+Computer. It asks the catalog as an App's direct URL does, with the same session, so an App a person may not open is not on it and
+the Hub names no server. A document navigation without a session signs in and returns here. A server's title, description and icon
+reach the page only escaped, an icon only as a `data:image/` URI, and the page runs nothing and loads nothing, under a policy that
+says so.
+
 ### Host Page And Sandbox Proxy
 
 The host page and the proxy page are plain HTML, each with one small script, embedded in
@@ -1701,6 +1709,7 @@ which has no person, takes the base branch's.
 | `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person holds a grant on, own or through a group, for Lore's repository listing |
 | `POST /ucs.auth.RebacApi/CreateResource` | gRPC: registers the repository Lore is about to create, its creator its owner |
 | `POST /ucs.auth.RebacApi/DeleteResource` | gRPC: removes the repository Lore is about to delete, when an owner deletes it |
+| `GET /` | The home page: the Apps the person sees ([home page](#home-page)) |
 | `GET /apps/{slug}/{page}` | The host page of the App `ui://{slug}/{page}` for the browser session ([Apps host](#apps-host)) |
 | `POST /apps/{slug}/{page}` | That App's bridge: one JSON-RPC request of its view, run as the person; a `subscriptions/listen` answers with its event stream |
 | `GET /apps/host-{digest}.js` | The host page's script, immutable ([host page](#host-page-and-sandbox-proxy)) |

@@ -49,6 +49,11 @@ impl AppView {
         })
     }
 
+    /// The App `uri` names, by the same rules as its path.
+    pub fn from_uri(uri: &str) -> Option<Self> {
+        Self::from_path(&format!("/apps/{}", uri.strip_prefix("ui://")?))
+    }
+
     /// The App's canonical path.
     pub fn path(&self) -> String {
         format!("/apps/{}/{}", self.server, self.page)
@@ -89,6 +94,15 @@ mod tests {
         let nested = AppView::from_path("/apps/fixture/editor/v2~draft_1.html").unwrap();
         assert_eq!(nested.uri(), "ui://fixture/editor/v2~draft_1.html");
         assert_eq!(AppView::from_path(&nested.path()), Some(nested));
+    }
+
+    #[test]
+    fn a_uri_names_the_app_its_path_does() {
+        let view = AppView::from_uri("ui://fixture/board.html").unwrap();
+        assert_eq!(view.path(), "/apps/fixture/board.html");
+        for uri in ["fixture://board", "ui://sandbox/proxy.html", "ui://fixture"] {
+            assert!(AppView::from_uri(uri).is_none(), "{uri}");
+        }
     }
 
     #[test]

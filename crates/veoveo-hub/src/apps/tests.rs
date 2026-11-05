@@ -582,6 +582,48 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
 }
 
 #[tokio::test]
+async fn the_home_page_links_the_apps_the_person_sees_and_signs_in_first() {
+    tokio::time::timeout(std::time::Duration::from_secs(120), async {
+        let db = crate::test_store::TestDb::new().await;
+        let (fixture, _owner) = Fixture::start(&db).await;
+
+        let (status, headers, body) = fixture.send(fixture.open("/", true)).await;
+        let page = String::from_utf8(body).unwrap();
+        assert_eq!(status, StatusCode::OK, "{page}");
+        assert!(page.contains("href=\"/apps/fixture/board.html\""), "{page}");
+        assert!(
+            page.contains("Board &lt;/script&gt;"),
+            "a title is data, never markup: {page}"
+        );
+        assert!(
+            !page.contains("/apps/fixture/plain.html"),
+            "not an App: {page}"
+        );
+        assert!(page.contains("href=\"/computer\""), "{page}");
+        assert!(!page.contains("<script"), "the page runs nothing: {page}");
+        assert_eq!(headers[header::CACHE_CONTROL], "private, no-store");
+        assert_eq!(
+            headers[header::CONTENT_SECURITY_POLICY],
+            "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; \
+             form-action 'none'; frame-ancestors 'none'"
+        );
+
+        // Signed out, a page load signs in and comes back; anything else is refused.
+        let (status, headers, _) = fixture.send(fixture.open("/", false)).await;
+        assert_eq!(status, StatusCode::SEE_OTHER);
+        assert_eq!(headers[header::LOCATION], "/computer");
+        assert_eq!(
+            headers[header::SET_COOKIE],
+            "__Host-computer-return=/; Path=/; Max-Age=600; Secure; HttpOnly; SameSite=Lax"
+        );
+        let fetch = axum::http::Request::get("/").body(Body::empty()).unwrap();
+        assert_eq!(fixture.send(fetch).await.0, StatusCode::UNAUTHORIZED);
+    })
+    .await
+    .expect("the test finished in time");
+}
+
+#[tokio::test]
 async fn the_bridge_reaches_only_the_apps_own_linked_tools_and_resources_as_the_person() {
     tokio::time::timeout(std::time::Duration::from_secs(120), async {
         let db = crate::test_store::TestDb::new().await;
