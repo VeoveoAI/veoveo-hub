@@ -231,7 +231,11 @@
       && typeof config.computerApps === "string"
       && url.pathname.startsWith(config.computerApps)
       && url.pathname.length > config.computerApps.length;
-    if (!appOrigin && !computer) {
+    const view = url.origin === window.location.origin
+      && typeof config.viewPages === "string"
+      && url.pathname.startsWith(config.viewPages)
+      && url.pathname.length > config.viewPages.length;
+    if (!appOrigin && !computer && !view) {
       return fail(id, INVALID_PARAMS, "This host opens only the App's own server's app origin and your own Computer's programs.");
     }
     // The page itself goes there: no pop-up to block and no opener to reach back.

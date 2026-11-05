@@ -181,7 +181,9 @@ each registration's login and creates each data environment's database. The othe
 | `VEOVEO_AUDIT_SIGNING_KEY_B64`, `VEOVEO_AUDIT_RETENTION_DAYS`, `VEOVEO_AUDIT_EXPORT_CONFIG` | Audit sealing, retention and export |
 | `VEOVEO_ALLOW_LOOPBACK_HOSTS` | Accept loopback `Host` headers beside the issuer's host |
 | `VEOVEO_APPS_SANDBOX_ORIGIN` | Optional: the public origin of the Apps sandbox proxy, such as `https://sandbox.apps.veoveo.example`; without it the Hub hosts no App ([Apps host](#apps-host)) |
-| `VEOVEO_APPS_LISTEN_ADDRESS` | The socket address of the Apps listener, which serves only the sandbox proxy, `127.0.0.1:8081` by default; bound only with `VEOVEO_APPS_SANDBOX_ORIGIN` |
+| `VEOVEO_APPS_LISTEN_ADDRESS` | The socket address of the Apps listener, which serves the sandbox proxy, servers' app origins and the content domain, `127.0.0.1:8081` by default; bound only with `VEOVEO_APPS_SANDBOX_ORIGIN` |
+| `VEOVEO_CONTENT_ORIGIN` | Optional: the [content domain](#content-domain) as an origin, such as `https://veoveo-bioma.space`; needs the Apps listener. Without it `/view/` answers 404 |
+| `VEOVEO_FILE_VIEWER_PATH` | Where the `file-viewer` image is mounted, `/opt/veoveo/file-viewer` by default |
 | `VEOVEO_APPS_LISTENS_PER_SESSION` | The most open live-resource listens of one browser session on a replica, 8 by default ([live resources](#live-resources)) |
 
 The configuration's `secrets` section names the remaining secrets, such as the
@@ -1223,6 +1225,7 @@ first label is `sandbox`, and the rest is the apps domain, whose wildcard
 |---|---|---|
 | The issuer's | The Hub's | Each App's host page and bridge |
 | `sandbox.{apps domain}` | The Apps listener | The sandbox proxy, and nothing else |
+| `{token}.{content domain}` | The Apps listener | One item on the [content domain](#content-domain) |
 | `{slug}.{apps domain}` | The Apps listener | The app origin of a server whose registration declares one: its authenticated routes for a signed-in person ([server app origins](#server-app-origins)), which that server's Apps open top-level with `ui/open-link` |
 
 The Hub's own listener never serves the proxy page or an app origin, and the Apps
@@ -1299,11 +1302,12 @@ A frame nested in the App's frame inherits that frame's `sandbox="allow-scripts"
 its opaque origin, so the origin's session cookie is not sent and the application has
 no storage: measured in Chrome, such a nested frame got the Hub's 401 where a plain
 same-site frame of the origin reached the application. The host page carries the App's
-server's app origin when the server declares one, and `computerApps`,
-`/computer/apps/`. Its `ui/open-link` navigates the page to a URL of exactly that
-origin, or to a URL under `/computer/apps/` on the issuer's origin, a relative one
+server's app origin when the server declares one, `computerApps`, `/computer/apps/`, and
+`viewPages`, `/view/`. Its `ui/open-link` navigates the page to a URL of exactly that
+origin, to a URL under `/computer/apps/` on the issuer's origin, a relative one
 resolving there and its dot segments resolved first, which reaches the signed-in
-person's own Computer alone, and refuses every other target.
+person's own Computer alone, or to a URL under `/view/` there, a
+[file's page](#content-domain), and refuses every other target.
 
 `hub.app_origin_code` and `hub.app_origin_session` hold the codes and sessions; a family's
 or Computer's deletion removes them, and an expired or revoked family admits none.
@@ -1518,6 +1522,120 @@ host page reads the stream with `fetch`, since `EventSource` cannot POST.
   the App down, and when the page goes away. Ending the stream drops the in-process
   listen, which ends its upstream listens on the servers.
 
+## Content Domain
+
+Untrusted content and every viewer run on `{token}.{content domain}`, another registrable
+domain from the issuer's and the Apps domain's, so a browser sends none of the Hub's or an
+App's cookies there and a hostile file reaches only its own item, read-only. The
+installation names the domain with `VEOVEO_CONTENT_ORIGIN`, `https://veoveo-bioma.space` on
+Bioma; the Hub refuses to start with a domain at or under the issuer's or the Apps domain's,
+or without the Apps listener. Not an App: the MCP Apps specification governs Views, not
+these. An App opens a file with `ui/open-link` on `/view/`, which the host admits as it admits
+`/computer/apps/`. The module is `src/content/`.
+
+### The Page
+
+`GET /view/{owner}/{item}/{path}` on the issuer's origin opens one file for the signed-in
+person. It takes the Computer session as an [App's direct URL](#direct-url) does: a document
+navigation without one signs in and returns here, with the path re-spelled canonically,
+every segment percent-encoded but its unreserved characters. It asks the owner whether the
+person may read the item, so a person cannot mint a token for what they cannot read, mints the
+token, and frames the file with
+
+```text
+sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+allow="webgpu; autoplay"
+```
+
+under its own policy, whose `frame-src` names `https://*.{content domain}`. One frame rule for
+every file, so a file cannot navigate the Hub's page away. The viewer follows the file's
+extension, compared in lowercase:
+
+| Type | The frame loads |
+|---|---|
+| An extension a server's [viewer](#viewers) takes | `/_veoveo/view/{path}`, which goes to that viewer |
+| `.html`, `.htm`, `.xhtml`, a folder | `/{path}`, as itself |
+| Everything else | `/_veoveo/view/{path}`, `file-viewer` |
+
+While the page is open its script posts to the same URL every 15 minutes and whenever the
+page shows again. The Origin must be exactly the issuer's. The answer is the frame's origin; a
+refusal or another origin reloads the page, which signs in or mints anew.
+
+### The Origin
+
+`{token}.{content domain}` reaches the Apps listener through the tunnel, which sets
+`X-Forwarded-Host` from the name the browser asked for. The listener takes such a host before
+anything else, and a name there that is no known token answers 404, with no cookie and no
+sign-in. Each GET or HEAD request reads the token, checks its expiry, admits the session's
+family again, and asks the owner whether the person may read the item, so revoking a grant or
+ending the session stops the token on its next request. Then its path says what it wants:
+
+| Path | Answer |
+|---|---|
+| `/_veoveo/viewer/...` | `file-viewer`'s files, from the mounted image at `VEOVEO_FILE_VIEWER_PATH` |
+| `/_veoveo/viewers/{slug}/...` | That server's viewer route, by the rules below |
+| `/_veoveo/view/{path}` | The viewer page of that file |
+| Any other under `/_veoveo/` | 404 |
+| Anything else | The item's file, from its owner |
+
+Every answer carries `Content-Security-Policy: frame-ancestors {issuer} 'self'`, so only the
+Hub frames it, or a page of the same item, which holds nothing more; `nosniff`; and
+`Referrer-Policy: no-referrer`, since the origin itself holds the token. A file's answer takes
+`Cache-Control: private, no-transform`, with no lifetime, so the browser revalidates by `ETag`
+and every use is checked; and when its owner calls it `application/octet-stream` its
+`Content-Type` comes from its extension, unknown staying that. Nothing is stripped from a file:
+the origin's isolation is the protection. `file-viewer`'s files, which are published code, take
+`private, max-age=86400`, the longest a token lives. Its page has a policy naming only its own
+origin, `blob:` and `data:`, so that a rendered document reaches nothing else.
+
+`file-viewer` 3.3.3 is used as published, from its own image, mounted read-only into the Hub as
+factory sandboxes mount Lore's; the Hub holds nothing of it.
+
+### Tokens
+
+A token is 160 bits in hex, one DNS label, naming one person's session and one item (for Lore, a
+repository's branch). It behaves like a signed link: anyone holding the URL can read that item
+until it expires, as that person. It lives one hour, extended while the Hub's page is open, for
+at most 24 hours.
+
+A person's browser reopening an item gets the same token while it lives, so that its cache of
+the viewer and the files holds. The Hub stores a token only hashed, as its other opaque
+credentials, so it cannot read one back. Instead a token is derived: HMAC-SHA-256, truncated, of
+a random 128-bit nonce, the owner and the item, under the value of the session cookie. The row
+keeps the nonce and the digest of that cookie and of the token. Only the browser holding the
+cookie can recompute the token, the database alone cannot, and no installation secret is added.
+Each browser session has its own tokens. An expired one is never extended or reissued: the next
+mint draws a new nonce.
+
+A page load on an expired token, or on one whose session ended, goes to `/view/`, which signs in
+if needed and mints a new one, so a stale tab recovers on reload; for that the row stays seven
+days past its expiry, after which the name is unknown. In the Hub's frame, which may not show the
+Hub, it says so and the page's script reloads the page. Any other request answers 401.
+
+`hub.content_token` holds these rows; a family's or Computer's deletion removes them, and the Hub
+prunes a batch of old ones with each new token.
+
+### Owners
+
+The Hub reads items through `ContentOwner`, keyed by `{owner}`. An owner says what the URL's rest
+names (an item and a path), whether a person may read an item, and answers a read of a path.
+`lore` is the Hub's [Lore contribution](#files-from-lore): `/view/lore/{repository}/{branch}/{path}`,
+whose item is the repository and its branch, read as the person with [`read`](#files-from-lore).
+
+A server that owns items, as Artifact will, is another owner, under its slug; each of its items
+has its own origin. Its token may name a share link instead of a person; that decision belongs to
+the step that builds it.
+
+### Viewers
+
+A server declares a viewer in its registration's surfaces: the extensions it takes and one of its
+public routes, as the SDK's [registration design](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/src/registration/DESIGN.md#surfaces)
+has it, so the Hub names no server. `/_veoveo/view/{path}` answers a file of such an extension
+with a redirect to `/_veoveo/viewers/{slug}/?file=/{path}`, and `/_veoveo/viewers/{slug}/{rest}`
+reaches `{route}{rest}` on the deployment the slug routes to, by the [public route](#public-routes)
+rules, for GET and HEAD. The request carries no cookie, `Referer`, `Origin` or forwarded host, so
+the server never sees a token. Of two servers taking one extension, the first by slug serves it.
+
 ## HTTP Surface
 
 | Route | Purpose |
@@ -1550,7 +1668,7 @@ host page reads the stream with `fetch`, since `EventSource` cannot POST.
 
 Every route except the probes requires a `Host` header naming the issuer's host.
 
-The Apps listener serves the sandbox proxy and the servers' app origins, which
+The Apps listener serves the sandbox proxy, servers' app origins and the content domain, which
 `X-Forwarded-Host` tells apart:
 
 | Route | Purpose |
@@ -2486,7 +2604,8 @@ out, stored or buffered on the way, so a push is live on the next request. A ser
 reaches it for its caller or its Task through `hub_bearer`; the bytes pass through the
 Hub once, from Lore to the caller. The route is in
 `src/bin/hub/contributions/lore/files.rs`, whose `read` answers for any person a route
-can name, so another route calls it rather than repeating it.
+can name, so another route calls it rather than repeating it. The
+[content domain](#content-domain) reaches it the same way, through `lore/content.rs`.
 
 `GET /lore/{profile}/repositories/{id}/files/{branch}/{path}` takes the authenticated
 caller with a grant on the repository, as the [access list](#groups-and-sharing) does.

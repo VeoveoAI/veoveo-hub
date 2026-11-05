@@ -3,17 +3,17 @@
 //! the App's policy from its validated declaration, and the bridge, which runs a view's
 //! requests as the person through the Hub's ordinary MCP path.
 mod admission;
-mod bridge;
+pub(crate) mod bridge;
 mod csp;
 mod listen;
 mod mcp;
 mod origins;
-mod pages;
+pub(crate) mod pages;
 mod route;
 mod sandbox;
 mod server_origin;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 pub use bridge::AppsService;
 pub use csp::{AppPolicy, PolicyError};

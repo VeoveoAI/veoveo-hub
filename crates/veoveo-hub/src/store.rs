@@ -8,6 +8,8 @@
 mod app_origins;
 pub use app_origins::AppOriginCode;
 mod authorization;
+mod content_tokens;
+pub use content_tokens::{ContentToken, NewContentToken};
 mod device;
 mod execution;
 pub use device::{DeviceApproval, DeviceAuthorization, DevicePoll, NewDeviceAuthorization};

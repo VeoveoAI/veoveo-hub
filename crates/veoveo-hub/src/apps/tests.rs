@@ -39,7 +39,7 @@ const BOARD: &str = "/apps/fixture/board.html";
 const LARGEST: u64 = u64::MAX;
 
 /// The test catalog with an authorization server that signs with [`SIGNING_KEY`].
-fn catalog() -> HubCatalog {
+pub(crate) fn catalog() -> HubCatalog {
     static KEY: Once = Once::new();
     // SAFETY: nextest runs each test in its own process, and this sets one variable
     // once, to one value, before any thread of the test reads it.
@@ -517,6 +517,10 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
             "a server that declares no app origin is no target of ui/open-link"
         );
         assert_eq!(
+            data["viewPages"], "/view/",
+            "the host admits a file's page beside the Computer's programs"
+        );
+        assert_eq!(
             data["computerApps"], "/computer/apps/",
             "ui/open-link opens the person's own Computer's programs on this origin"
         );
@@ -566,6 +570,7 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
         let body = String::from_utf8(body).unwrap();
         assert!(body.contains("allow-scripts allow-same-origin"));
         assert!(body.contains("url.pathname.startsWith(config.computerApps)"));
+        assert!(body.contains("url.pathname.startsWith(config.viewPages)"));
         assert!(body.contains(r#"new Set(["tools/call", "resources/list", "resources/read", ...taskMethods])"#));
         assert_eq!(digest, hex::encode(&Sha256::digest(body.as_bytes())[..16]));
         let stale = axum::http::Request::get("/apps/host.js").body(Body::empty()).unwrap();
@@ -939,6 +944,7 @@ async fn an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_th
             server.surfaces = Some(SurfacesDeclaration {
                 public_routes: Vec::new(),
                 app_origin: true,
+                viewer: None,
             });
             server.authorization = Arc::new(AuthorizationDeclaration {
                 permissions: Vec::new(),
@@ -979,7 +985,7 @@ async fn an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_th
             .layer(axum::middleware::from_fn(
                 crate::request_observation::observe_request,
             ));
-        let listener = super::SandboxProxy::new(origins, Some(servers))
+        let listener = super::SandboxProxy::new(origins, Some(servers), None)
             .router()
             .layer(axum::middleware::from_fn(
                 crate::request_observation::observe_request,

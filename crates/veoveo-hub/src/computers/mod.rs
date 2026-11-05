@@ -22,7 +22,9 @@ pub(crate) use gateway::connect as connect_gateway;
 mod lifecycle;
 pub use lifecycle::{ComputerStatus, RestartStatus};
 mod oauth;
-pub(crate) use oauth::{app_session, sign_in_for_app, sign_in_for_entry};
+pub(crate) use oauth::{
+    app_session, family_session, session_cookie, session_digest, sign_in_for_app, sign_in_for_entry,
+};
 mod pages;
 mod provisioning;
 pub use provisioning::{HUB_PROVIDER, LORE_PROVIDER, MODEL_PROVIDER};

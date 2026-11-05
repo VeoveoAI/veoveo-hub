@@ -1,6 +1,6 @@
-//! The Apps listener: a request whose `X-Forwarded-Host` names a server's app origin goes
-//! to that origin; every other is the sandbox proxy's, at `GET /` and nothing else, whatever
-//! its `Host`.
+//! The Apps listener: a request whose `X-Forwarded-Host` lies under the content domain goes to
+//! that token's origin, and one that names a server's app origin to that origin; every other is
+//! the sandbox proxy's, at `GET /` and nothing else, whatever its `Host`.
 use std::sync::Arc;
 
 use axum::{
@@ -13,31 +13,42 @@ use axum::{
 use tower::ServiceExt as _;
 
 use super::{csp::AppPolicy, origins::AppOrigins, pages, server_origin::ServerOrigins};
-use crate::problem::Problem;
+use crate::{content::ContentDomain, problem::Problem};
 
 /// The sandbox proxy of the installation's Apps, and the servers' app origins beside it.
 #[derive(Clone)]
 pub struct SandboxProxy {
     origins: Arc<AppOrigins>,
     servers: Option<ServerOrigins>,
+    content: Option<ContentDomain>,
 }
 
 impl SandboxProxy {
-    pub fn new(origins: AppOrigins, servers: Option<ServerOrigins>) -> Self {
+    pub fn new(
+        origins: AppOrigins,
+        servers: Option<ServerOrigins>,
+        content: Option<ContentDomain>,
+    ) -> Self {
         Self {
             origins: Arc::new(origins),
             servers,
+            content,
         }
     }
 
-    /// The Apps listener's routes: a server's app origin by `X-Forwarded-Host`; otherwise
-    /// `GET /`, and 404 for every other path.
+    /// The Apps listener's routes: a token's origin or a server's app origin by
+    /// `X-Forwarded-Host`; otherwise `GET /`, and 404 for every other path.
     pub fn router(self) -> Router {
         Router::new().fallback(dispatch).with_state(self)
     }
 }
 
 async fn dispatch(State(listener): State<SandboxProxy>, request: Request) -> Response {
+    if let Some(content) = &listener.content
+        && let Some(name) = content.claims(request.headers())
+    {
+        return content.serve(&name, request).await;
+    }
     if let Some(servers) = &listener.servers
         && let Some(server) = servers.server(request.headers())
     {

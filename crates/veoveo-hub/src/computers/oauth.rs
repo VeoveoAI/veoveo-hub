@@ -646,14 +646,15 @@ fn return_cookies(headers: &HeaderMap) -> Vec<String> {
         .collect()
 }
 
-/// Where a sign-in returns: an App's path, the entry of a server's app origin, or the way
-/// into a further program of the person's Computer, re-spelled canonically; anything
-/// else is none.
+/// Where a sign-in returns: an App's path, the entry of a server's app origin, the way
+/// into a further program of the person's Computer, or a file's page on the content domain,
+/// re-spelled canonically; anything else is none.
 fn return_target(path: &str) -> Option<String> {
     crate::apps::AppView::from_path(path)
         .map(|view| view.path())
         .or_else(|| crate::apps::entry_from_path(path))
         .or_else(|| computer_app_path(path).map(|(target, _)| target))
+        .or_else(|| crate::content::view_return_path(path))
 }
 
 /// The return target of the request's one return cookie. Two return cookies name none.
@@ -684,8 +685,8 @@ pub(crate) fn sign_in_for_app(view: &crate::apps::AppView) -> Result<Response> {
     Ok(response)
 }
 
-/// Sign in to enter a server's app origin: `/computer` signs the browser in, and the
-/// callback returns it to `entry`, the issuer's entry of that origin.
+/// Sign in to enter a server's app origin or open a file's page: `/computer` signs the
+/// browser in, and the callback returns it to `entry`, that path on the issuer.
 pub(crate) fn sign_in_for_entry(entry: &str) -> Result<Response> {
     let mut response = redirect(super::pages::ENTRY)?;
     response
@@ -722,6 +723,36 @@ pub(crate) async fn app_session(
         .computer_browser_session(catalog, &config, &digest(&value), None)
         .await?
         .map(|session| (config, session)))
+}
+
+/// The value of the request's session cookie.
+pub(crate) fn session_cookie(headers: &HeaderMap) -> Option<String> {
+    cookie(headers, SESSION_COOKIE).ok().flatten()
+}
+
+/// The digest the store keeps of an opaque browser value.
+pub(crate) fn session_digest(value: &str) -> Sha256Digest {
+    digest(value)
+}
+
+/// The browser session of `family` on `computer` under the current Computers configuration:
+/// what a token on the content domain admits on every request.
+pub(crate) async fn family_session(
+    hub: &crate::HubState,
+    catalog: &crate::HubCatalog,
+    computer: &super::ComputerId,
+    family: &veoveo_hub_sdk::HubRefreshFamilyId,
+) -> Result<Option<super::BrowserSession>> {
+    let Some(config) = catalog
+        .runtime
+        .as_ref()
+        .and_then(|runtime| runtime.computers.as_ref())
+        .map(|computers| computers.config.clone())
+    else {
+        return Ok(None);
+    };
+    hub.computer_family_browser_session(catalog, &config, computer, family)
+        .await
 }
 
 /// Parameterless same-origin logout. Family/owner come only from fresh native

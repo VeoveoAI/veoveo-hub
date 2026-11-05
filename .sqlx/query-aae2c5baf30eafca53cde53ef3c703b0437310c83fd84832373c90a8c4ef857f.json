@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hub.content_token SET expires_at = LEAST($2, hard_expires_at) WHERE digest = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aae2c5baf30eafca53cde53ef3c703b0437310c83fd84832373c90a8c4ef857f"
+}

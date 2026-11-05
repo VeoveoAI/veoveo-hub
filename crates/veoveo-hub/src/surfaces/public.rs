@@ -101,114 +101,129 @@ fn refused(status: StatusCode, code: &'static str, title: &'static str) -> Respo
 }
 
 async fn forward(State(routes): State<PublicRoutes>, request: Request) -> Response {
-    let not_found = || Problem::not_found().into_response();
     let raw = request.uri().path().to_owned();
     let Some((deployment, path)) = split(&raw) else {
-        return not_found();
+        return Problem::not_found().into_response();
     };
-    if !plain_path(path) {
-        return not_found();
-    }
     let catalog = routes.catalog.current();
-    let Some(server) = catalog.registrations().deployment(&deployment).cloned() else {
-        return not_found();
-    };
-    let Some(route) = server.surfaces.as_ref().and_then(|surfaces| {
-        surfaces
-            .public_routes
-            .iter()
-            .find(|route| path.starts_with(route.prefix.as_str()))
-            .cloned()
-    }) else {
-        return not_found();
-    };
-    if !routes.admit(deployment, &route) {
-        let mut response = refused(
-            StatusCode::TOO_MANY_REQUESTS,
-            "public-route-rate",
-            "This route's request rate is exceeded",
-        );
-        let retry = Duration::from_secs_f64(
-            60.0 / f64::from(route.requests_per_minute.requests_per_minute()),
-        );
-        response.headers_mut().insert(
-            header::RETRY_AFTER,
-            HeaderValue::from(retry.as_secs().max(1)),
-        );
-        return response;
-    }
-    let limit = usize::try_from(route.max_body_bytes.bytes()).unwrap_or(usize::MAX);
-    let too_large = || {
-        refused(
-            StatusCode::PAYLOAD_TOO_LARGE,
-            "public-route-body",
-            "The request body exceeds this route's limit",
-        )
-    };
-    let (parts, body) = request.into_parts();
-    let declared = parts
-        .headers
-        .get(header::CONTENT_LENGTH)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.parse::<u64>().ok());
-    if declared.is_some_and(|length| length > route.max_body_bytes.bytes()) {
-        return too_large();
-    }
-    let Ok(body) = axum::body::to_bytes(body, limit).await else {
-        return too_large();
-    };
-    // The catalog's pool carries the native transport to factory sandboxes, as MCP's does.
-    let pool = catalog.upstream_http().unwrap_or(&routes.upstream);
-    let client = match pool.http_client(
-        server.deployment,
-        &server.endpoint,
-        server.branch.is_some(),
-    ) {
-        Ok(client) => client,
-        Err(error) => {
-            tracing::warn!(%deployment, error = %error, "no transport to a public route's deployment");
-            return refused(
-                StatusCode::BAD_GATEWAY,
-                "public-route-unreachable",
-                "The server is unreachable",
-            );
+    routes.reach(&catalog, deployment, path, request).await
+}
+
+impl PublicRoutes {
+    /// `path`, the server's own, of `deployment`, within the route prefix it falls under and that
+    /// route's body size and rate, carrying `request`'s method, query, headers and body.
+    pub async fn reach(
+        &self,
+        catalog: &crate::HubCatalog,
+        deployment: DeploymentId,
+        path: &str,
+        request: Request,
+    ) -> Response {
+        let routes = self;
+        let not_found = || Problem::not_found().into_response();
+        if !plain_path(path) {
+            return not_found();
         }
-    };
-    let mut url = server.endpoint.url().clone();
-    url.set_path(path);
-    url.set_query(parts.uri.query());
-    let mut headers = parts.headers;
-    strip_hop(&mut headers);
-    // The issuer's cookies are the Hub's sessions; a public route never receives them.
-    headers.remove(header::COOKIE);
-    headers.insert(header::HOST, routes.host.clone());
-    let answer = match client
-        .request(parts.method, url)
-        .headers(headers)
-        .body(body)
-        .send()
-        .await
-    {
-        Ok(answer) => answer,
-        Err(error) => {
-            tracing::warn!(%deployment, error = %error, "a public route's server did not answer");
-            return refused(
-                StatusCode::BAD_GATEWAY,
-                "public-route-unreachable",
-                "The server is unreachable",
+        let Some(server) = catalog.registrations().deployment(&deployment).cloned() else {
+            return not_found();
+        };
+        let Some(route) = server.surfaces.as_ref().and_then(|surfaces| {
+            surfaces
+                .public_routes
+                .iter()
+                .find(|route| path.starts_with(route.prefix.as_str()))
+                .cloned()
+        }) else {
+            return not_found();
+        };
+        if !routes.admit(deployment, &route) {
+            let mut response = refused(
+                StatusCode::TOO_MANY_REQUESTS,
+                "public-route-rate",
+                "This route's request rate is exceeded",
             );
+            let retry = Duration::from_secs_f64(
+                60.0 / f64::from(route.requests_per_minute.requests_per_minute()),
+            );
+            response.headers_mut().insert(
+                header::RETRY_AFTER,
+                HeaderValue::from(retry.as_secs().max(1)),
+            );
+            return response;
         }
-    };
-    let mut response = Response::builder().status(answer.status());
-    if let Some(headers) = response.headers_mut() {
-        *headers = answer.headers().clone();
-        strip_hop(headers);
-        // A server sets no cookie on the issuer's origin.
-        headers.remove(header::SET_COOKIE);
+        let limit = usize::try_from(route.max_body_bytes.bytes()).unwrap_or(usize::MAX);
+        let too_large = || {
+            refused(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "public-route-body",
+                "The request body exceeds this route's limit",
+            )
+        };
+        let (parts, body) = request.into_parts();
+        let declared = parts
+            .headers
+            .get(header::CONTENT_LENGTH)
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.parse::<u64>().ok());
+        if declared.is_some_and(|length| length > route.max_body_bytes.bytes()) {
+            return too_large();
+        }
+        let Ok(body) = axum::body::to_bytes(body, limit).await else {
+            return too_large();
+        };
+        // The catalog's pool carries the native transport to factory sandboxes, as MCP's does.
+        let pool = catalog.upstream_http().unwrap_or(&routes.upstream);
+        let client = match pool.http_client(
+            server.deployment,
+            &server.endpoint,
+            server.branch.is_some(),
+        ) {
+            Ok(client) => client,
+            Err(error) => {
+                tracing::warn!(%deployment, error = %error, "no transport to a public route's deployment");
+                return refused(
+                    StatusCode::BAD_GATEWAY,
+                    "public-route-unreachable",
+                    "The server is unreachable",
+                );
+            }
+        };
+        let mut url = server.endpoint.url().clone();
+        url.set_path(path);
+        url.set_query(parts.uri.query());
+        let mut headers = parts.headers;
+        strip_hop(&mut headers);
+        // The issuer's cookies are the Hub's sessions; a public route never receives them.
+        headers.remove(header::COOKIE);
+        headers.insert(header::HOST, routes.host.clone());
+        let answer = match client
+            .request(parts.method, url)
+            .headers(headers)
+            .body(body)
+            .send()
+            .await
+        {
+            Ok(answer) => answer,
+            Err(error) => {
+                tracing::warn!(%deployment, error = %error, "a public route's server did not answer");
+                return refused(
+                    StatusCode::BAD_GATEWAY,
+                    "public-route-unreachable",
+                    "The server is unreachable",
+                );
+            }
+        };
+        let mut response = Response::builder().status(answer.status());
+        if let Some(headers) = response.headers_mut() {
+            *headers = answer.headers().clone();
+            strip_hop(headers);
+            // A server sets no cookie on the issuer's origin.
+            headers.remove(header::SET_COOKIE);
+        }
+        response
+            .body(Body::from_stream(answer.bytes_stream()))
+            .unwrap_or_else(|_| Problem::internal().into_response())
     }
-    response
-        .body(Body::from_stream(answer.bytes_stream()))
-        .unwrap_or_else(|_| Problem::internal().into_response())
 }
 
 #[cfg(test)]

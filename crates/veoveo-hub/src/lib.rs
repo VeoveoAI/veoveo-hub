@@ -4,6 +4,7 @@ mod catalog;
 mod catalog_admission;
 mod catalog_registry;
 pub mod computers;
+pub mod content;
 pub mod contract;
 pub mod control_plane;
 pub mod data_environment;

@@ -14,20 +14,20 @@ publish = false
 # Native wire types are consumed only by the executable's approved contribution.
 lore-proto = { git = "https://github.com/VeoveoAI/lore", rev = "2c0c689bbfc9239ddb4ad01f751f27ce9f518019", default-features = false }
 # veoveo-core, pinned to one revision for every core crate.
-veoveo-audit = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d" }
-veoveo-audit-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d" }
-veoveo-fixtures = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d" }
-veoveo-http = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d" }
-veoveo-oauth = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d" }
-veoveo-skills = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d", features = ["load"] }
-veoveo-store = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d" }
-veoveo-task = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d" }
-veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d" }
-veoveo-usage = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d" }
-veoveo-usage-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "97e85e054924d6db999da2d3d93ba3e383910e2d" }
+veoveo-audit = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd" }
+veoveo-audit-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd" }
+veoveo-fixtures = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd" }
+veoveo-http = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd" }
+veoveo-oauth = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd" }
+veoveo-skills = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd", features = ["load"] }
+veoveo-store = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd" }
+veoveo-task = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd" }
+veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd" }
+veoveo-usage = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd" }
+veoveo-usage-contract = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "a8dafe90206d1cadbb1d2de26304fe061a542ffd" }
 # veoveo-hub-sdk, pinned to one revision for the library and its test server.
-veoveo-hub-sdk = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "22ff657df5368eb15dd1a8e39c02ce57e19e3887" }
-veoveo-hub-sdk-fixture = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "22ff657df5368eb15dd1a8e39c02ce57e19e3887" }
+veoveo-hub-sdk = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "886cb6ab8e32ad412caaf537cf4ba6b92e8e8409" }
+veoveo-hub-sdk-fixture = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "886cb6ab8e32ad412caaf537cf4ba6b92e8e8409" }
 
 aws-lc-rs = "1.18.0"
 openshell-sdk = { git = "https://github.com/VeoveoAI/OpenShell", rev = "c80bda2013a5656bc2421a38013463709481671f", version = "0.0.0" }
@@ -44,6 +44,7 @@ dotenvy = "0.15.7"
 futures = "0.3.34"
 getrandom = "0.4.3"
 hex = "=0.4.3"
+hmac = "=0.13.0"
 http-body = "=1.1.0"
 http-body-util = "=0.1.5"
 hyper = { version = "=1.12.0", features = ["client", "http1"] }
@@ -58,6 +59,7 @@ libc = "0.2.190"
 opentelemetry = "0.32.0"
 opentelemetry_sdk = "0.32.1"
 parking_lot = "0.12.5"
+mime_guess = "=2.0.5"
 percent-encoding = "=2.3.2"
 rcgen = "0.14.9"
 reqwest = { version = "=0.13.5", default-features = false }

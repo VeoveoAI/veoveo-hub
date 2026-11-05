@@ -99,6 +99,36 @@ impl HubState {
         .context("app origin admission read deadline")?
     }
 
+    /// The browser session of `family` on `computer`, which a token on the content domain
+    /// names: the admission of the Computer's own session.
+    pub async fn computer_family_browser_session(
+        &self,
+        catalog: &HubCatalog,
+        config: &Computers,
+        computer: &ComputerId,
+        family: &HubRefreshFamilyId,
+    ) -> Result<Option<BrowserSession>> {
+        tokio::time::timeout(ADMISSION_READ_TIMEOUT, async {
+            let Some((computer, family)) = self
+                .hub_store()
+                .computer_and_family(computer, family)
+                .await?
+            else {
+                return Ok(None);
+            };
+            if !computer.ready
+                || computer.handoff.is_some()
+                || computer.family.as_ref() != Some(&family.id)
+            {
+                return Ok(None);
+            }
+            self.admit_computer_family(catalog, config, computer, family)
+                .await
+        })
+        .await
+        .context("content token admission read deadline")?
+    }
+
     /// The browser session of a sign-in that joins the family the Computer already
     /// holds, while that family is still admitted. None when the Computer has no
     /// admitted family or its custody is changing: the sign-in hands its own off.

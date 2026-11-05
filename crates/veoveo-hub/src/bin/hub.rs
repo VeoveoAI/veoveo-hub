@@ -206,6 +206,17 @@ struct ServeArgs {
     /// `https://sandbox.apps.veoveo.example`. Without it the Hub hosts no App.
     #[arg(long, env = "VEOVEO_APPS_SANDBOX_ORIGIN")]
     apps_sandbox_origin: Option<veoveo_hub::apps::SandboxOrigin>,
+    /// The content domain as an origin, on another registrable domain from the issuer's and
+    /// the Apps domain's. Without it `/view/` answers 404.
+    #[arg(long, env = "VEOVEO_CONTENT_ORIGIN")]
+    content_origin: Option<veoveo_hub::content::ContentOrigin>,
+    /// Where the `file-viewer` image is mounted.
+    #[arg(
+        long,
+        env = "VEOVEO_FILE_VIEWER_PATH",
+        default_value = "/opt/veoveo/file-viewer"
+    )]
+    file_viewer_path: std::path::PathBuf,
     /// Socket address of the Apps listener, which serves only the sandbox proxy; bound
     /// only with a sandbox origin.
     #[arg(
@@ -340,6 +351,8 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         refresh_delivery_window_seconds,
         allow_loopback_hosts,
         apps_sandbox_origin,
+        content_origin,
+        file_viewer_path,
         apps_listen_address,
         apps_listens_per_session,
         connectivity_mode,
@@ -389,6 +402,7 @@ async fn serve(args: ServeArgs) -> anyhow::Result<()> {
         refresh_delivery_window,
         allow_loopback_hosts,
         apps: apps_sandbox_origin.map(|sandbox| (sandbox, apps_listen_address)),
+        content: content_origin.map(|origin| (origin, file_viewer_path)),
         apps_listens_per_session,
         offline_mode: connectivity_mode == ConnectivityMode::Offline,
         audit_retention_days,

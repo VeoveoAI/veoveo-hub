@@ -46,6 +46,9 @@ struct HostConfig<'a> {
     /// The path on this origin under which `ui/open-link` opens the further programs of
     /// the signed-in person's own Computer.
     computer_apps: &'static str,
+    /// The path on this origin under which `ui/open-link` opens a file on the content
+    /// domain, through its page.
+    view_pages: &'static str,
 }
 
 #[derive(Serialize)]
@@ -56,7 +59,7 @@ struct HostInfo {
 
 /// JSON a `<script type="application/json">` element can hold: no `<`, `>` or `&` that
 /// could end it.
-fn script_json(value: &impl Serialize) -> String {
+pub(crate) fn script_json(value: &impl Serialize) -> String {
     serde_json::to_string(value)
         .expect("host data serializes")
         .replace('<', "\\u003c")
@@ -64,7 +67,7 @@ fn script_json(value: &impl Serialize) -> String {
         .replace('&', "\\u0026")
 }
 
-fn escaped(value: &str) -> String {
+pub(crate) fn escaped(value: &str) -> String {
     value
         .replace('&', "&amp;")
         .replace('<', "&lt;")
@@ -73,7 +76,7 @@ fn escaped(value: &str) -> String {
         .replace('\'', "&#39;")
 }
 
-fn private(mut response: Response, policy: &str) -> Response {
+pub(crate) fn private(mut response: Response, policy: &str) -> Response {
     let headers = response.headers_mut();
     headers.insert(
         header::CACHE_CONTROL,
@@ -96,7 +99,7 @@ fn private(mut response: Response, policy: &str) -> Response {
     }
 }
 
-fn html(status: StatusCode, body: String) -> Response {
+pub(crate) fn html(status: StatusCode, body: String) -> Response {
     (
         status,
         [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
@@ -130,6 +133,7 @@ pub(super) fn host_page(
         },
         app_origin,
         computer_apps: "/computer/apps/",
+        view_pages: "/view/",
     };
     let body = format!(
         "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\
@@ -175,7 +179,7 @@ pub(super) fn proxy_page(policy: &AppPolicy, origins: &AppOrigins) -> Response {
 }
 
 /// A plain page that says why no App opens.
-pub(super) fn message(status: StatusCode, title: &str, text: &str) -> Response {
+pub(crate) fn message(status: StatusCode, title: &str, text: &str) -> Response {
     let body = format!(
         "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>{0}</title></head>\
          <body><h1>{0}</h1><p>{1}</p></body></html>\n",

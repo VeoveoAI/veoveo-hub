@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hub.content_token\n    (digest, nonce, session_digest, owner, item, computer_id, family_id, expires_at, hard_expires_at)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bytea",
+        "Text",
+        "Text",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5e15089447a58b00edc7ffe2cc1745aff91a32478191795784de54a57c48f8bb"
+}

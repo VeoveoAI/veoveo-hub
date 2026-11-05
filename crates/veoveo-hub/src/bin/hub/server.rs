@@ -58,6 +58,7 @@ pub(super) struct ServeConfig {
     pub(super) allow_loopback_hosts: bool,
     /// The sandbox proxy's public origin and the address of the Apps listener.
     pub(super) apps: Option<(veoveo_hub::apps::SandboxOrigin, SocketAddr)>,
+    pub(super) content: Option<(veoveo_hub::content::ContentOrigin, std::path::PathBuf)>,
     /// The most open live-resource listens of one browser session.
     pub(super) apps_listens_per_session: std::num::NonZeroUsize,
     pub(super) offline_mode: bool,
@@ -80,6 +81,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         refresh_delivery_window,
         allow_loopback_hosts,
         apps: apps_config,
+        content: content_config,
         apps_listens_per_session,
         offline_mode,
         audit_retention_days,
@@ -303,6 +305,37 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
     if let Some(servers) = &server_origins {
         router = router.merge(servers.clone().entry_router());
     }
+    // The content domain: its page on the issuer here, its origins on the Apps listener.
+    let content = match (content_config, &app_origins) {
+        (Some((origin, viewer_files)), Some(origins)) => {
+            let owners: [(String, Arc<dyn veoveo_hub::content::ContentOwner>); 1] = [(
+                crate::contributions::lore::content::OWNER.to_owned(),
+                Arc::new(crate::contributions::lore::content::LoreContent::new()?),
+            )];
+            Some(veoveo_hub::content::ContentDomain::new(
+                catalog.clone(),
+                hub_state.clone(),
+                origins,
+                origin,
+                viewer_files,
+                veoveo_hub::surfaces::PublicRoutes::new(
+                    catalog.clone(),
+                    upstream_http.clone(),
+                    deployment.host_authority(),
+                )?,
+                owners,
+            )?)
+        }
+        (Some(_), None) => {
+            anyhow::bail!(
+                "the content domain needs the Apps listener: set VEOVEO_APPS_SANDBOX_ORIGIN"
+            )
+        }
+        (None, _) => None,
+    };
+    if let Some(content) = &content {
+        router = router.merge(content.router());
+    }
 
     router = router.merge(
         Router::new()
@@ -452,8 +485,8 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
             .await
             .with_context(|| format!("listen on {listen_address}"))?,
     };
-    // The Apps listener serves the sandbox proxy and the servers' app origins, which
-    // `X-Forwarded-Host` tells apart; the Hub's own listener serves neither.
+    // The Apps listener serves the sandbox proxy, the servers' app origins and the content
+    // domain, which `X-Forwarded-Host` tells apart; the Hub's own listener serves none.
     let apps_serving = match (app_origins, apps_listen_address) {
         (Some(origins), Some(address)) => {
             let apps_listener = tokio::net::TcpListener::bind(address)
@@ -465,7 +498,7 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
                 sandbox = origins.sandbox(),
                 "apps listening"
             );
-            let apps_router = veoveo_hub::apps::SandboxProxy::new(origins, server_origins)
+            let apps_router = veoveo_hub::apps::SandboxProxy::new(origins, server_origins, content)
                 .router()
                 .layer(axum::middleware::from_fn(
                     veoveo_hub::request_observation::observe_request,

@@ -156,7 +156,7 @@ pub(super) async fn family_bearer(
 
 /// A browser's page load: a GET the browser marks as a navigation, of a document when it
 /// names the destination.
-pub(super) fn document_navigation(headers: &HeaderMap) -> bool {
+pub(crate) fn document_navigation(headers: &HeaderMap) -> bool {
     headers
         .get("sec-fetch-mode")
         .is_some_and(|value| value == "navigate")
@@ -165,7 +165,7 @@ pub(super) fn document_navigation(headers: &HeaderMap) -> bool {
             .is_none_or(|value| value == "document")
 }
 
-fn same_origin(headers: &HeaderMap, origin: &str) -> bool {
+pub(crate) fn same_origin(headers: &HeaderMap, origin: &str) -> bool {
     let mut values = headers.get_all(header::ORIGIN).iter();
     matches!((values.next(), values.next()), (Some(value), None) if value.as_bytes() == origin.as_bytes())
 }

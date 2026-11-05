@@ -124,7 +124,16 @@ impl HubStore {
             "app_origin_session.family_id",
             HubRefreshFamilyId::parse(row.family_id.to_string()),
         )?;
-        let Some(family) = self.refresh_family(&family).await? else {
+        self.computer_and_family(&id, &family).await
+    }
+
+    /// `family` and `id`, its person's Computer, when both exist.
+    pub async fn computer_and_family(
+        &self,
+        id: &ComputerId,
+        family: &HubRefreshFamilyId,
+    ) -> Result<Option<(Computer, RefreshFamily)>, HubStoreError> {
+        let Some(family) = self.refresh_family(family).await? else {
             return Ok(None);
         };
         let principal = &family.principal.principal;
@@ -132,7 +141,7 @@ impl HubStore {
             return Ok(None);
         };
         Ok(self
-            .computer(tenant, &principal.id, &id)
+            .computer(tenant, &principal.id, id)
             .await?
             .map(|computer| (computer, family)))
     }

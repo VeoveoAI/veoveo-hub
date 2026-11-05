@@ -44,6 +44,7 @@ dotenvy.workspace = true
 futures.workspace = true
 getrandom.workspace = true
 hex.workspace = true
+hmac.workspace = true
 http-body.workspace = true
 http-body-util.workspace = true
 hyper.workspace = true
@@ -56,6 +57,7 @@ jsonwebtoken.workspace = true
 opentelemetry.workspace = true
 opentelemetry_sdk.workspace = true
 parking_lot.workspace = true
+mime_guess.workspace = true
 percent-encoding.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-no-provider", "stream"] }
 rmcp = { workspace = true, features = ["server", "client", "transport-streamable-http-client-reqwest", "transport-streamable-http-server", "reqwest-tls-no-provider"] }

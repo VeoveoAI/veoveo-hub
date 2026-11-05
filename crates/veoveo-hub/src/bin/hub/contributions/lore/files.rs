@@ -526,7 +526,7 @@ fn not_found() -> Problem {
         .detail("This branch's latest revision holds nothing at this path.")
 }
 
-fn unavailable() -> Problem {
+pub(crate) fn unavailable() -> Problem {
     Problem::new(
         StatusCode::SERVICE_UNAVAILABLE,
         "lore-files-unavailable",

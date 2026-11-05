@@ -3,6 +3,7 @@
 pub(crate) mod catalog;
 pub(crate) mod client_token;
 pub(crate) mod computer_client;
+pub(crate) mod content;
 pub(crate) mod factory;
 pub(crate) mod files;
 pub(crate) mod instance;

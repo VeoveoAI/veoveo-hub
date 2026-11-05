@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT nonce FROM hub.content_token\nWHERE session_digest = $1 AND owner = $2 AND item = $3 AND family_id = $4 AND expires_at > $5\nORDER BY expires_at DESC, digest\nLIMIT 1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "nonce",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "hub.content_token",
+            "name": "nonce"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1a28089e8c29e982beab7c828178509cfc8bcd453b9b01d67c9cf448f818acda"
+}
