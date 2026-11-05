@@ -15,7 +15,7 @@ use axum::{
     body::Body,
     extract::State,
     http::{
-        HeaderMap, HeaderValue, StatusCode, Uri,
+        HeaderMap, HeaderName, HeaderValue, StatusCode, Uri,
         header::{
             ACCEPT_RANGES, CACHE_CONTROL, CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE, ETAG,
             IF_NONE_MATCH, IF_RANGE, RANGE, X_CONTENT_TYPE_OPTIONS,
@@ -265,7 +265,12 @@ pub(crate) fn marked(result: Result<Response, Problem>) -> Response {
 }
 
 /// What a read asks of a branch's tip, as the person whose token it holds.
+/// The answer's header that names the branch's tip the file was read at.
+const LORE_REVISION: HeaderName = HeaderName::from_static("lore-revision");
+
 trait Tree: Sync {
+    /// The revision the tree is read at, when the branch has one.
+    fn revision(&self) -> Option<String>;
     /// The entries directly in `folder`, or at the top level, links listed and not entered;
     /// none when the tree has no such folder.
     fn folder<'a>(&'a self, folder: Option<&'a str>) -> BoxFuture<'a, Result<Vec<TreeNode>>>;
@@ -298,6 +303,10 @@ impl<'a> NativeTree<'a> {
 }
 
 impl Tree for NativeTree<'_> {
+    fn revision(&self) -> Option<String> {
+        self.tip.as_ref().map(ToString::to_string)
+    }
+
     fn folder<'a>(&'a self, folder: Option<&'a str>) -> BoxFuture<'a, Result<Vec<TreeNode>>> {
         Box::pin(async move {
             let Some(tip) = &self.tip else {
@@ -399,21 +408,28 @@ async fn answer(
     path: &FilePath,
     headers: &HeaderMap,
 ) -> Result<Response, Problem> {
-    match resolve(tree, path).await.map_err(failed)? {
-        None => Err(not_found()),
-        Some(Resolved::File { address }) => content.stream(&address, headers).await,
+    let mut response = match resolve(tree, path).await.map_err(failed)? {
+        None => return Err(not_found()),
+        Some(Resolved::File { address }) => content.stream(&address, headers).await?,
         Some(Resolved::Folder(nodes)) => {
             let mut entries = nodes.iter().map(Entry::of).collect::<Vec<_>>();
             entries.sort_by(|a, b| a.name.cmp(&b.name));
-            Ok(Json(Listing {
+            Json(Listing {
                 repository: content.repository,
                 branch,
                 path: path.tree_path(),
                 entries,
             })
-            .into_response())
+            .into_response()
         }
+    };
+    if let Some(revision) = tree
+        .revision()
+        .and_then(|revision| HeaderValue::from_str(&revision).ok())
+    {
+        response.headers_mut().insert(LORE_REVISION, revision);
     }
+    Ok(response)
 }
 
 /// Lore's HTTP content route, as the person whose token it holds.

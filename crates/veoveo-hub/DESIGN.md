@@ -2628,7 +2628,9 @@ branch that is not there 404 `lore-file-not-found`, and Lore failing 503
 `repository-not-found`, and one they hold no grant on 403, before Lore is asked.
 
 Every answer, a refusal as well, says `X-Content-Type-Options: nosniff` and
-`Cache-Control: private, no-transform`. A file's `ETag` is its content address, and an
+`Cache-Control: private, no-transform`. A file or a folder names the branch's tip it was read
+at in `Lore-Revision`, so a server that keeps something made from a file can say from which
+revision. A file's `ETag` is its content address, and an
 `If-None-Match` that holds it answers 304 after the checks above, without reading the
 content. `Range` goes to Lore, which answers 206 or 416 for one range and the whole file
 for what it does not understand; `If-Range` keeps the range only for the file's own

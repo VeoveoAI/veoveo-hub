@@ -66,6 +66,10 @@ fn node(path: &str, kind: NodeType, size: u64, address: Option<Address>) -> Tree
 struct Folders(BTreeMap<Option<&'static str>, Vec<TreeNode>>);
 
 impl Tree for Folders {
+    fn revision(&self) -> Option<String> {
+        Some("tip-revision".to_owned())
+    }
+
     fn folder<'a>(&'a self, folder: Option<&'a str>) -> BoxFuture<'a, Result<Vec<TreeNode>>> {
         Box::pin(async move {
             Ok(self
@@ -331,6 +335,7 @@ fn a_url_names_its_repository_branch_and_path() {
 async fn a_file_answers_its_bytes_with_its_address_as_the_etag() {
     let fixture = fixture().await;
     let response = fixture.ask("scenes/my%20kitchen.usda", &[]).await;
+    assert_eq!(response.headers()["lore-revision"], "tip-revision");
     assert_eq!(response.status(), StatusCode::OK);
     let headers = response.headers().clone();
     assert_eq!(headers[ETAG], etag().as_str());
@@ -531,6 +536,10 @@ async fn what_the_tree_does_not_hold_is_not_found() {
 struct Failing(fn() -> anyhow::Error);
 
 impl Tree for Failing {
+    fn revision(&self) -> Option<String> {
+        None
+    }
+
     fn folder<'a>(&'a self, _: Option<&'a str>) -> BoxFuture<'a, Result<Vec<TreeNode>>> {
         Box::pin(async move { Err(self.0()) })
     }
