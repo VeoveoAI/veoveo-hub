@@ -106,6 +106,17 @@ async fn forward(State(routes): State<PublicRoutes>, request: Request) -> Respon
         return Problem::not_found().into_response();
     };
     let catalog = routes.catalog.current();
+    // A server's links are files that run wherever they are served, so never here, on the
+    // issuer's origin, where they would run with a person's session.
+    let links = catalog
+        .registrations()
+        .deployment(&deployment)
+        .and_then(|server| server.surfaces.as_ref())
+        .and_then(|surfaces| surfaces.content.as_ref())
+        .and_then(|content| content.links.as_ref());
+    if links.is_some_and(|links| path.starts_with(links.as_str())) {
+        return Problem::not_found().into_response();
+    }
     routes.reach(&catalog, deployment, path, request).await
 }
 

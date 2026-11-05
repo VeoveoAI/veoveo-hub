@@ -2,11 +2,15 @@
 //! `/view/lore/{repository}/{branch}/{path}`, read as the person with [`files::read`], so Lore's
 //! rules decide each read and a push is live on the next request.
 use anyhow::Result;
-use axum::{http::HeaderMap, response::Response};
+use axum::{
+    http::{HeaderMap, Method},
+    response::Response,
+};
 use futures::future::BoxFuture;
 use percent_encoding::percent_decode_str;
 use veoveo_hub::{
     HubCatalog,
+    computers::BrowserSession,
     content::{ContentOwner, Named},
     problem::Problem,
 };
@@ -89,23 +93,25 @@ impl ContentOwner for LoreContent {
     fn admit<'a>(
         &'a self,
         catalog: &'a HubCatalog,
-        person: &'a Principal,
+        session: &'a BrowserSession,
         item: &'a str,
     ) -> BoxFuture<'a, Result<(), Problem>> {
         Box::pin(async move {
             let (repository, _) = item_parts(item).ok_or_else(Problem::not_found)?;
-            admitted(catalog, person, &repository).map(|_| ())
+            admitted(catalog, session.principal(), &repository).map(|_| ())
         })
     }
 
     fn read<'a>(
         &'a self,
         catalog: &'a HubCatalog,
-        person: &'a Principal,
+        session: &'a BrowserSession,
         item: &'a str,
         path: &'a str,
+        _method: &'a Method,
         headers: &'a HeaderMap,
     ) -> BoxFuture<'a, Result<Response, Problem>> {
+        let person = session.principal();
         Box::pin(async move {
             let (repository, branch) = item_parts(item).ok_or_else(Problem::not_found)?;
             let path = FilePath::decode(path).ok_or_else(Problem::not_found)?;

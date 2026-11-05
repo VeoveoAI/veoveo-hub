@@ -2,8 +2,10 @@
 //! another registrable domain from the issuer's, so a browser sends it none of the Hub's or an
 //! App's cookies. `/view/{owner}/{item}/{path}` on the issuer's origin mints a person's token
 //! and frames the file; the Apps listener answers the token's origin, checking the person's
-//! access on every request. Owners supply the items; the Hub names no server. `DESIGN.md`'s
-//! Content Domain section is the rule.
+//! access on every request. Owners supply the items, and a server that declares content is one;
+//! the Hub names no server. A server's link has an origin too, `{slug}-{token}.{content domain}`,
+//! which the server checks on every request. `DESIGN.md`'s Content Domain section is the rule.
+mod owned;
 mod pages;
 mod serve;
 #[cfg(test)]
@@ -14,14 +16,20 @@ mod view;
 use std::{collections::BTreeMap, fmt, path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::{Context, ensure};
-use axum::{http::HeaderMap, response::Response};
+use axum::{
+    http::{HeaderMap, Method},
+    response::Response,
+};
 use futures::future::BoxFuture;
-use veoveo_hub_sdk::Principal;
+use veoveo_hub_sdk::ServerSlug;
 
 pub use view::view_return_path;
 
 use crate::{
-    HubCatalog, HubCatalogHandle, HubState, apps::AppOrigins, problem::Problem,
+    HubCatalog, HubCatalogHandle, HubState,
+    apps::{AppOrigins, ServerOrigins},
+    computers::BrowserSession,
+    problem::Problem,
     surfaces::PublicRoutes,
 };
 
@@ -131,29 +139,42 @@ pub struct Named {
 }
 
 /// What supplies items on the content domain, under its `{owner}` in `/view/`. The Lore
-/// contribution is one; a server that owns items is another.
+/// contribution is one; a server that declares content is another.
 pub trait ContentOwner: Send + Sync + 'static {
     /// What `rest`, the canonical URL path after `/view/{owner}/`, names; `None` when it names
     /// nothing this owner holds.
     fn named(&self, rest: &str) -> Option<Named>;
 
-    /// Whether `person` may read `item` now. This runs on every request on the item's origin, so
-    /// it answers from what the Hub already holds.
+    /// Whether the person of `session` may read `item` now, before the Hub answers anything of
+    /// the item's origin itself, a viewer's file among them.
     fn admit<'a>(
         &'a self,
         catalog: &'a HubCatalog,
-        person: &'a Principal,
+        session: &'a BrowserSession,
         item: &'a str,
     ) -> BoxFuture<'a, Result<(), Problem>>;
 
-    /// `path`, raw from the URL, in `item`, as `person`, to a request of `headers`. A file of
-    /// unknown type answers `application/octet-stream`, and the Hub names its type.
+    /// The person of `session` opens `item` on the Hub's page: [`Self::admit`], and whatever an
+    /// owner keeps of a visit, once however many requests it makes.
+    fn visit<'a>(
+        &'a self,
+        catalog: &'a HubCatalog,
+        session: &'a BrowserSession,
+        item: &'a str,
+    ) -> BoxFuture<'a, Result<(), Problem>> {
+        self.admit(catalog, session, item)
+    }
+
+    /// `path`, raw from the URL, in `item`, as the person of `session`, to a `method` request of
+    /// `headers`, refused as [`Self::admit`] would. A file of unknown type answers
+    /// `application/octet-stream`, and the Hub names its type.
     fn read<'a>(
         &'a self,
         catalog: &'a HubCatalog,
-        person: &'a Principal,
+        session: &'a BrowserSession,
         item: &'a str,
         path: &'a str,
+        method: &'a Method,
         headers: &'a HeaderMap,
     ) -> BoxFuture<'a, Result<Response, Problem>>;
 }
@@ -169,11 +190,14 @@ pub struct ContentDomain {
     owners: Arc<BTreeMap<String, Arc<dyn ContentOwner>>>,
     viewer_files: PathBuf,
     public_routes: PublicRoutes,
+    servers: ServerOrigins,
 }
 
 impl ContentDomain {
     /// The service of `origin`, which `origins`' issuer and Apps domain must stand apart from,
-    /// with `file-viewer`'s files at `viewer_files` and the items of `owners`.
+    /// with `file-viewer`'s files at `viewer_files`, the items of `owners` and those of the
+    /// servers that declare content, which `servers` reaches as the person.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         catalog: HubCatalogHandle,
         hub: HubState,
@@ -181,6 +205,7 @@ impl ContentDomain {
         origin: ContentOrigin,
         viewer_files: PathBuf,
         public_routes: PublicRoutes,
+        servers: ServerOrigins,
         owners: impl IntoIterator<Item = (String, Arc<dyn ContentOwner>)>,
     ) -> anyhow::Result<Self> {
         check_apart(origins, &origin)?;
@@ -192,6 +217,23 @@ impl ContentDomain {
             owners: Arc::new(owners.into_iter().collect()),
             viewer_files,
             public_routes,
+            servers,
         })
+    }
+
+    /// The owner named `name`: one of the installation's, or the server of that slug when it
+    /// declares content.
+    fn owner(&self, catalog: &HubCatalog, name: &str) -> Option<Arc<dyn ContentOwner>> {
+        if let Some(owner) = self.owners.get(name) {
+            return Some(owner.clone());
+        }
+        let server = ServerSlug::parse(name).ok()?;
+        let route = self.routed(catalog, &server)?.surfaces.as_ref()?;
+        let route = route.content.as_ref()?.route.clone();
+        Some(Arc::new(owned::ServerContent::new(
+            self.servers.clone(),
+            server,
+            route,
+        )))
     }
 }

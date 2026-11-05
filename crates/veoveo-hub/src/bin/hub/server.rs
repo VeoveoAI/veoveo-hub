@@ -180,7 +180,15 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         server_database,
         registration_grace,
         app_origins.clone(),
-    )?;
+    )?
+    .with_content_origin(
+        content_config
+            .as_ref()
+            .map(|(origin, _)| {
+                veoveo_hub_sdk::registration::ContentOrigin::parse(&origin.to_string())
+            })
+            .transpose()?,
+    );
     registrations.refresh().await?;
     let delegation = veoveo_hub::delegation::DelegationService::new(
         registrations.clone(),
@@ -306,8 +314,8 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
         router = router.merge(servers.clone().entry_router());
     }
     // The content domain: its page on the issuer here, its origins on the Apps listener.
-    let content = match (content_config, &app_origins) {
-        (Some((origin, viewer_files)), Some(origins)) => {
+    let content = match (content_config, &app_origins, &server_origins) {
+        (Some((origin, viewer_files)), Some(origins), Some(servers)) => {
             let owners: [(String, Arc<dyn veoveo_hub::content::ContentOwner>); 1] = [(
                 crate::contributions::lore::content::OWNER.to_owned(),
                 Arc::new(crate::contributions::lore::content::LoreContent::new()?),
@@ -323,15 +331,16 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
                     upstream_http.clone(),
                     deployment.host_authority(),
                 )?,
+                servers.clone(),
                 owners,
             )?)
         }
-        (Some(_), None) => {
+        (Some(_), _, _) => {
             anyhow::bail!(
                 "the content domain needs the Apps listener: set VEOVEO_APPS_SANDBOX_ORIGIN"
             )
         }
-        (None, _) => None,
+        (None, _, _) => None,
     };
     if let Some(content) = &content {
         router = router.merge(content.router());

@@ -1539,8 +1539,8 @@ these. An App opens a file with `ui/open-link` on `/view/`, which the host admit
 person. It takes the Computer session as an [App's direct URL](#direct-url) does: a document
 navigation without one signs in and returns here, with the path re-spelled canonically,
 every segment percent-encoded but its unreserved characters. It asks the owner whether the
-person may read the item, so a person cannot mint a token for what they cannot read, mints the
-token, and frames the file with
+person may read the item, so a person cannot mint a token for what they cannot read, and, for an
+owner that keeps visits, records one. It mints the token and frames the file with
 
 ```text
 sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
@@ -1567,8 +1567,8 @@ refusal or another origin reloads the page, which signs in or mints anew.
 `X-Forwarded-Host` from the name the browser asked for. The listener takes such a host before
 anything else, and a name there that is no known token answers 404, with no cookie and no
 sign-in. Each GET or HEAD request reads the token, checks its expiry, admits the session's
-family again, and asks the owner whether the person may read the item, so revoking a grant or
-ending the session stops the token on its next request. Then its path says what it wants:
+family again, and has the owner decide whether the person may read the item, so revoking a grant
+or ending the session stops the token on its next request. Then its path says what it wants:
 
 | Path | Answer |
 |---|---|
@@ -1620,13 +1620,39 @@ prunes a batch of old ones with each new token.
 ### Owners
 
 The Hub reads items through `ContentOwner`, keyed by `{owner}`. An owner says what the URL's rest
-names (an item and a path), whether a person may read an item, and answers a read of a path.
-`lore` is the Hub's [Lore contribution](#files-from-lore): `/view/lore/{repository}/{branch}/{path}`,
-whose item is the repository and its branch, read as the person with [`read`](#files-from-lore).
+names (an item and a path), whether a person may read an item, and answers a read of a path, which
+it refuses as it would the item. `lore` is the Hub's [Lore contribution](#files-from-lore):
+`/view/lore/{repository}/{branch}/{path}`, whose item is the repository and its branch, read as the
+person with [`read`](#files-from-lore).
 
-A server that owns items, as Artifact will, is another owner, under its slug; each of its items
-has its own origin. Its token may name a share link instead of a person; that decision belongs to
-the step that builds it.
+A server that declares content in its registration's surfaces, as the SDK's
+[registration design](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/src/registration/DESIGN.md#surfaces)
+has it, is an owner under its slug, so the Hub names no server: `/view/{slug}/{item}/{path}`, and
+each of its items has its own origin. The Hub reads it as the person on the instance they selected,
+as it reaches an [app origin](#server-app-origins), with a forwarded token, and the server decides
+each read; no policy of the Hub's stands between them. Opening the page is `POST {route}{item}`, the
+one request that may count as a visit; `HEAD {route}{item}` is what the page's renewals and everything
+the Hub answers itself on the origin ask first; a file is `{route}{item}/{path}`, with `Range`,
+`If-Range` and `If-None-Match` and nothing else of the browser's. Only a plain path goes there, so that
+no spelling climbs out of the route with the person's token. An empty path is the item's top, which a
+server may redirect to its file.
+
+### Links
+
+A server's link, one anybody holding it may read, has an origin too:
+`{slug}-{token}.{content domain}`, one DNS label, whose token is 160 bits in hex that the server
+draws from the link. The name says which server, so the Hub holds nothing about a link and keeps no
+row: it asks the server on every request, through the public route `links` the server declares, with
+none of the browser's identity. `HEAD {links}{token}` before what the Hub answers itself, and
+`{links}{token}/{path}` for a file, by the [public route](#public-routes) rules, so a link's reads
+count against that route's rate. Anything but success answers one 404: a link names nobody, and a
+refusal says nothing. The server's own check is what revoking a link or its expiry ends at once.
+
+A link's route is one of the server's public routes, and the Hub serves it nowhere but here: under
+`/instances/` on the issuer's origin it answers 404, because a file there would run with a person's
+session. A page of a link's origin that the Hub answers itself, such as `file-viewer`, is the same as
+on a person's. `veoveo_content_origin`, in the registration response of a server that declares links,
+names the domain, and the server builds the origin with the SDK's `ContentOrigin::link`.
 
 ### Viewers
 

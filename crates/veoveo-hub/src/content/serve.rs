@@ -1,5 +1,7 @@
 //! `{token}.{content domain}` on the Apps listener: each request reads its token, admits the
 //! person again, and asks the owner whether they may read the item, then answers by its path.
+//! `{slug}-{token}.{content domain}` names one of a server's links, which the server checks on
+//! every request, so the Hub holds nothing about it.
 use axum::{
     body::Body,
     extract::Request,
@@ -10,7 +12,10 @@ use chrono::Utc;
 use percent_encoding::percent_decode_str;
 use tower::ServiceExt as _;
 use tower_http::services::ServeDir;
-use veoveo_hub_sdk::{ServerSlug, registration::ViewerDeclaration};
+use veoveo_hub_sdk::{
+    ServerSlug,
+    registration::{ContentLinkLabel, PublicRoutePrefix, ViewerDeclaration},
+};
 
 use super::{ContentDomain, pages, token, view::canonical_segment};
 use crate::{
@@ -29,6 +34,18 @@ const VIEWER_PAGE: &str = "/_veoveo/view/";
 const FILE_CACHE: &str = "private, no-transform";
 /// `file-viewer`'s files are published code, and an origin lives at most this long.
 const VIEWER_CACHE: &str = "private, max-age=86400";
+
+/// What a browser sends that would name its origin, and so the token, to a server.
+const BROWSER_HEADERS: [&str; 8] = [
+    "authorization",
+    "referer",
+    "origin",
+    "forwarded",
+    "x-forwarded-for",
+    "x-forwarded-host",
+    "x-forwarded-proto",
+    "x-forwarded-port",
+];
 
 /// What opens a file.
 pub(super) enum Viewer {
@@ -62,17 +79,37 @@ impl ContentDomain {
         self.origin.label(headers)
     }
 
+    /// The deployment `slug` routes to.
+    pub(super) fn routed<'a>(
+        &self,
+        catalog: &'a HubCatalog,
+        slug: &ServerSlug,
+    ) -> Option<&'a RegisteredServer> {
+        let registrations = catalog.registrations();
+        let routed = registrations.namespaces().get(slug)?.routed;
+        registrations.deployment(&routed)
+    }
+
     /// The deployment that serves `slug`'s viewer, and the viewer it declares.
     fn declared<'a>(
         &self,
         catalog: &'a HubCatalog,
         slug: &ServerSlug,
     ) -> Option<(&'a RegisteredServer, &'a ViewerDeclaration)> {
-        let registrations = catalog.registrations();
-        let routed = registrations.namespaces().get(slug)?.routed;
-        let server = registrations.deployment(&routed)?;
+        let server = self.routed(catalog, slug)?;
         let viewer = server.surfaces.as_ref()?.viewer.as_ref()?;
         Some((server, viewer))
+    }
+
+    /// The deployment that serves `slug`'s links, and their route.
+    fn links<'a>(
+        &self,
+        catalog: &'a HubCatalog,
+        slug: &ServerSlug,
+    ) -> Option<(&'a RegisteredServer, &'a PublicRoutePrefix)> {
+        let server = self.routed(catalog, slug)?;
+        let links = server.surfaces.as_ref()?.content.as_ref()?.links.as_ref()?;
+        Some((server, links))
     }
 
     /// What opens the file at the raw `path`: a declared viewer, the first by slug; HTML and
@@ -140,7 +177,8 @@ impl ContentDomain {
     }
 
     async fn answer(&self, name: &str, request: Request) -> Response {
-        if !token::well_formed(name) {
+        let link = ContentLinkLabel::parse(name);
+        if !token::well_formed(name) && link.is_none() {
             return Problem::not_found().into_response();
         }
         if !matches!(*request.method(), Method::GET | Method::HEAD) {
@@ -150,6 +188,9 @@ impl ContentDomain {
                 "Content is read-only",
             )
             .into_response();
+        }
+        if let Some(link) = link {
+            return self.link(&link, request).await;
         }
         let store = self.hub.hub_store();
         let row = match store.content_token(&session_digest(name)).await {
@@ -172,41 +213,91 @@ impl ContentDomain {
                 return unavailable();
             }
         };
-        let Some(owner) = self.owners.get(&row.owner) else {
+        let Some(owner) = self.owner(&catalog, &row.owner) else {
             return Problem::not_found().into_response();
         };
-        if let Err(problem) = owner.admit(&catalog, session.principal(), &row.item).await {
-            return problem.into_response();
-        }
         let path = request.uri().path().to_owned();
-        if let Some(rest) = path.strip_prefix(VIEWER_FILES) {
-            return self.viewer_file(rest, request).await;
-        }
-        if let Some(rest) = path.strip_prefix(SERVER_VIEWERS) {
-            return self.server_viewer(&catalog, rest, request).await;
-        }
-        if let Some(rest) = path.strip_prefix(VIEWER_PAGE) {
-            return self.viewer_page(&catalog, rest);
-        }
         if path.starts_with(RESERVED) {
-            return Problem::not_found().into_response();
+            if let Err(problem) = owner.admit(&catalog, &session, &row.item).await {
+                return problem.into_response();
+            }
+            return self.reserved(&catalog, &path, request).await;
         }
         let file = path.strip_prefix('/').unwrap_or(&path);
         let answer = owner
             .read(
                 &catalog,
-                session.principal(),
+                &session,
                 &row.item,
                 file,
+                request.method(),
                 request.headers(),
             )
             .await;
-        let mut response = answer.unwrap_or_else(IntoResponse::into_response);
-        name_type(&mut response, file);
-        response
-            .headers_mut()
-            .insert(header::CACHE_CONTROL, HeaderValue::from_static(FILE_CACHE));
-        response
+        file_answer(answer.unwrap_or_else(IntoResponse::into_response), file)
+    }
+
+    /// One request on the origin of a server's link: its check, the Hub's own paths, and
+    /// otherwise the server's file, read through the public route the server declares for its
+    /// links. A link names nobody, so every refusal is the same 404.
+    async fn link(&self, link: &ContentLinkLabel, request: Request) -> Response {
+        let catalog = self.catalog.current();
+        let Some((server, links)) = self.links(&catalog, link.server()) else {
+            return Problem::not_found().into_response();
+        };
+        let token = link.token().as_str();
+        let path = request.uri().path().to_owned();
+        if path.starts_with(RESERVED) {
+            let check = Request::head("/")
+                .body(Body::empty())
+                .expect("a fixed request");
+            let answer = self
+                .public_routes
+                .reach(
+                    &catalog,
+                    server.deployment,
+                    &format!("{links}{token}"),
+                    check,
+                )
+                .await;
+            return match answer.status() {
+                status if status.is_success() => self.reserved(&catalog, &path, request).await,
+                StatusCode::TOO_MANY_REQUESTS => answer,
+                StatusCode::NOT_FOUND => Problem::not_found().into_response(),
+                status => {
+                    tracing::warn!(%status, "a server did not answer for its link");
+                    unavailable()
+                }
+            };
+        }
+        let (mut parts, body) = request.into_parts();
+        for name in BROWSER_HEADERS {
+            parts.headers.remove(name);
+        }
+        let answer = self
+            .public_routes
+            .reach(
+                &catalog,
+                server.deployment,
+                &format!("{links}{token}{path}"),
+                Request::from_parts(parts, body),
+            )
+            .await;
+        file_answer(answer, path.strip_prefix('/').unwrap_or(&path))
+    }
+
+    /// What the Hub answers itself on an item's origin, once the item is admitted.
+    async fn reserved(&self, catalog: &HubCatalog, path: &str, request: Request) -> Response {
+        if let Some(rest) = path.strip_prefix(VIEWER_FILES) {
+            return self.viewer_file(rest, request).await;
+        }
+        if let Some(rest) = path.strip_prefix(SERVER_VIEWERS) {
+            return self.server_viewer(catalog, rest, request).await;
+        }
+        if let Some(rest) = path.strip_prefix(VIEWER_PAGE) {
+            return self.viewer_page(catalog, rest);
+        }
+        Problem::not_found().into_response()
     }
 
     /// `file-viewer`'s file at the raw path `rest`, from its mounted image.
@@ -242,15 +333,7 @@ impl ContentDomain {
             return Problem::not_found().into_response();
         };
         let (mut parts, body) = request.into_parts();
-        for name in [
-            "referer",
-            "origin",
-            "forwarded",
-            "x-forwarded-for",
-            "x-forwarded-host",
-            "x-forwarded-proto",
-            "x-forwarded-port",
-        ] {
+        for name in BROWSER_HEADERS {
             parts.headers.remove(name);
         }
         self.public_routes
@@ -328,6 +411,15 @@ impl ContentDomain {
         .detail("Reload the page to open it again.")
         .into_response()
     }
+}
+
+/// An owner's answer of the file at the raw `path`, as the origin sends it.
+fn file_answer(mut response: Response, path: &str) -> Response {
+    name_type(&mut response, path);
+    response
+        .headers_mut()
+        .insert(header::CACHE_CONTROL, HeaderValue::from_static(FILE_CACHE));
+    response
 }
 
 /// A file its owner calls `application/octet-stream` takes its type from its extension.

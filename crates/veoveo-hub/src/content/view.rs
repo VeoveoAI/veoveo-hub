@@ -94,7 +94,8 @@ impl ContentDomain {
     fn opened<'a>(&self, canonical: &'a str) -> Option<Opened<'a>> {
         let rest = canonical.strip_prefix(VIEW_PREFIX)?;
         let (owner, rest) = rest.split_once('/')?;
-        let named = self.owners.get(owner)?.named(rest)?;
+        let catalog = self.catalog.current();
+        let named = self.owner(&catalog, owner)?.named(rest)?;
         Some(Opened { owner, named })
     }
 
@@ -146,21 +147,24 @@ impl ContentDomain {
         Ok(token)
     }
 
-    /// The token of the request's person on what `opened` names, or the refusal.
+    /// The token of the request's person on what `opened` names, or the refusal. A visit is what
+    /// opening the page is, and the page's renewals are no more of one.
     async fn token(
         &self,
         opened: &Opened<'_>,
         session: &BrowserSession,
         headers: &HeaderMap,
+        visit: bool,
     ) -> Result<String, Problem> {
         let catalog = self.catalog.current();
         let owner = self
-            .owners
-            .get(opened.owner)
+            .owner(&catalog, opened.owner)
             .ok_or_else(Problem::not_found)?;
-        owner
-            .admit(&catalog, session.principal(), &opened.named.item)
-            .await?;
+        if visit {
+            owner.visit(&catalog, session, &opened.named.item).await?;
+        } else {
+            owner.admit(&catalog, session, &opened.named.item).await?;
+        }
         let cookie = session_cookie(headers).ok_or_else(sign_in_required)?;
         self.mint(&cookie, opened, session).await.map_err(|error| {
             tracing::error!("failed to mint a content token: {error:#}");
@@ -248,7 +252,7 @@ async fn open(State(domain): State<ContentDomain>, request: Request) -> Response
         Ok(session) => session,
         Err(answer) => return *answer,
     };
-    let token = match domain.token(&opened, &session, &parts.headers).await {
+    let token = match domain.token(&opened, &session, &parts.headers, true).await {
         Ok(token) => token,
         Err(problem) => return refused_page(problem),
     };
@@ -290,7 +294,7 @@ async fn renew(State(domain): State<ContentDomain>, request: Request) -> Respons
         Ok(session) => session,
         Err(answer) => return *answer,
     };
-    match domain.token(&opened, &session, &parts.headers).await {
+    match domain.token(&opened, &session, &parts.headers, false).await {
         Ok(token) => Json(json!({"origin": domain.origin.under(&token)})).into_response(),
         Err(problem) => problem.into_response(),
     }

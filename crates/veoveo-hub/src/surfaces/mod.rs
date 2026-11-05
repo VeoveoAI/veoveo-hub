@@ -36,7 +36,7 @@ pub(crate) fn strip_hop(headers: &mut HeaderMap) {
 
 /// Whether `path` is a path of nonempty segments with no dot segment and no encoded
 /// slash, dot or backslash, so a server's router reads it as the Hub matched it.
-fn plain_path(path: &str) -> bool {
+pub(crate) fn plain_path(path: &str) -> bool {
     let lower = path.to_ascii_lowercase();
     path.starts_with('/')
         && !lower.contains("%2f")

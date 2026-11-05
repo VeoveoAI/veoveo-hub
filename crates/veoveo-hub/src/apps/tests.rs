@@ -30,7 +30,8 @@ use super::{AppOrigins, AppsService};
 use crate::{HubCatalog, HubCatalogHandle, HubState};
 
 /// A synthetic Ed25519 PKCS#8 key the test catalog's authorization server signs with.
-const SIGNING_KEY: &str = "MC4CAQAwBQYDK2VwBCIEII4AsVspz8h7mpqvOkgslJP07HfqpiWMZA+6Ii90lVBl";
+pub(crate) const SIGNING_KEY: &str =
+    "MC4CAQAwBQYDK2VwBCIEII4AsVspz8h7mpqvOkgslJP07HfqpiWMZA+6Ii90lVBl";
 const SIGNING_KEY_ENV: &str = "VEOVEO_APPS_TEST_SIGNING_KEY_B64";
 const HOST: &str = "https://veoveo.example";
 const SANDBOX: &str = "https://sandbox.apps.veoveo.example";
@@ -144,7 +145,7 @@ struct Endpoint {
 /// The Hub's own profile authentication, which admits every request of `/mcp/{profile}`:
 /// the bearer's signature, issuer, audience and scope, its invocation authority, its
 /// session family's state and revocation, and its authentication record.
-fn profile_authentication(
+pub(crate) fn profile_authentication(
     hub: &HubState,
     catalog: &HubCatalogHandle,
 ) -> crate::http::ProfileAuthState {
@@ -945,6 +946,7 @@ async fn an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_th
                 public_routes: Vec::new(),
                 app_origin: true,
                 viewer: None,
+                content: None,
             });
             server.authorization = Arc::new(AuthorizationDeclaration {
                 permissions: Vec::new(),

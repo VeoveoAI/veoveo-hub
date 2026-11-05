@@ -10,24 +10,24 @@ use axum::{
     Router,
     body::Body,
     extract::Request,
-    http::{HeaderMap, StatusCode, header},
+    http::{HeaderMap, Method, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use futures::future::BoxFuture;
 use tower::ServiceExt as _;
-use veoveo_hub_sdk::{
-    Principal,
-    registration::{
-        BodyLimit, FileExtension, PublicRouteDeclaration, PublicRoutePrefix, RequestRate,
-        SurfacesDeclaration, ViewerDeclaration,
-    },
+use veoveo_hub_sdk::registration::{
+    BodyLimit, ContentDeclaration, FileExtension, PublicRouteDeclaration, PublicRoutePrefix,
+    RequestRate, SurfacesDeclaration, ViewerDeclaration,
 };
 
 use super::{ContentDomain, ContentOrigin, ContentOwner, Named, token, view_return_path};
 use crate::{
     HubCatalog, HubCatalogHandle,
-    apps::{AppOrigins, SandboxProxy},
-    computers::test_fixture::{AppsOwner, apps_owner},
+    apps::{AppOrigins, SandboxProxy, ServerOrigins},
+    computers::{
+        BrowserSession,
+        test_fixture::{AppsOwner, apps_owner},
+    },
     problem::Problem,
     surfaces::PublicRoutes,
     test_store::TestDb,
@@ -37,6 +37,8 @@ const HOST: &str = "https://veoveo.example";
 const SANDBOX: &str = "https://sandbox.apps.veoveo.example";
 const CONTENT: &str = "https://veoveo-content.example";
 const FRAMING: &str = "frame-ancestors https://veoveo.example 'self'";
+/// The fixture server's link, 160 bits in hex.
+const LINK_TOKEN: &str = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
 
 /// An owner of one item, `box`, holding three files, with a switch for the person's access.
 struct Fixture {
@@ -56,7 +58,7 @@ impl ContentOwner for Fixture {
     fn admit<'a>(
         &'a self,
         _catalog: &'a HubCatalog,
-        _person: &'a Principal,
+        _session: &'a BrowserSession,
         _item: &'a str,
     ) -> BoxFuture<'a, Result<(), Problem>> {
         Box::pin(async move {
@@ -74,13 +76,15 @@ impl ContentOwner for Fixture {
 
     fn read<'a>(
         &'a self,
-        _catalog: &'a HubCatalog,
-        _person: &'a Principal,
+        catalog: &'a HubCatalog,
+        session: &'a BrowserSession,
         item: &'a str,
         path: &'a str,
+        _method: &'a Method,
         headers: &'a HeaderMap,
     ) -> BoxFuture<'a, Result<Response, Problem>> {
         Box::pin(async move {
+            self.admit(catalog, session, item).await?;
             assert_eq!(item, "box");
             assert!(headers.get(header::COOKIE).is_none());
             self.reads.lock().unwrap().push(path.to_owned());
@@ -104,23 +108,62 @@ impl ContentOwner for Fixture {
 /// What reached the fixture viewer server.
 #[derive(Debug)]
 struct Seen {
+    method: Method,
     path: String,
     headers: HeaderMap,
 }
 
 /// A server that declares a viewer of `.usda` at `/beacon/viewer/`, and tries to set a cookie.
-async fn viewer_server() -> (crate::registration::RegisteredServer, Arc<Mutex<Vec<Seen>>>) {
+/// A server's answer on its content routes: its decision, or a file of no known type.
+fn owned_answer(request: &Request, allowed: bool) -> Response {
+    let links = request.uri().path().starts_with("/beacon/content-links/");
+    if !allowed {
+        let status = if links {
+            StatusCode::NOT_FOUND
+        } else {
+            StatusCode::FORBIDDEN
+        };
+        return status.into_response();
+    }
+    if request.uri().path().ends_with("/a1") || request.uri().path().ends_with(LINK_TOKEN) {
+        return StatusCode::NO_CONTENT.into_response();
+    }
+    let status = if request.headers().contains_key(header::RANGE) {
+        StatusCode::PARTIAL_CONTENT
+    } else {
+        StatusCode::OK
+    };
+    (
+        status,
+        [
+            (header::CONTENT_TYPE, "application/octet-stream"),
+            (header::SET_COOKIE, "own=1; Path=/"),
+        ],
+        "the server's file",
+    )
+        .into_response()
+}
+
+async fn viewer_server(
+    allows: Arc<AtomicBool>,
+) -> (crate::registration::RegisteredServer, Arc<Mutex<Vec<Seen>>>) {
     let seen: Arc<Mutex<Vec<Seen>>> = Arc::default();
     let recorded = seen.clone();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
     let app = Router::new().fallback(move |request: Request| {
         let recorded = recorded.clone();
+        let allows = allows.clone();
         async move {
             recorded.lock().unwrap().push(Seen {
+                method: request.method().clone(),
                 path: request.uri().to_string(),
                 headers: request.headers().clone(),
             });
+            let path = request.uri().path();
+            if path.starts_with("/beacon/content/") || path.starts_with("/beacon/content-links/") {
+                return owned_answer(&request, allows.load(Ordering::SeqCst));
+            }
             (
                 [
                     (header::SET_COOKIE, "viewer=own; Path=/"),
@@ -128,21 +171,28 @@ async fn viewer_server() -> (crate::registration::RegisteredServer, Arc<Mutex<Ve
                 ],
                 "the viewer's file",
             )
+                .into_response()
         }
     });
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
     let endpoint = format!("http://{address}/beacon/mcp");
     let mut server = crate::test_catalog::registered_server("beacon", &endpoint);
     server.surfaces = Some(SurfacesDeclaration {
-        public_routes: vec![PublicRouteDeclaration {
-            prefix: PublicRoutePrefix::new("/beacon/viewer/").unwrap(),
-            max_body_bytes: BodyLimit::new(1).unwrap(),
-            requests_per_minute: RequestRate::per_minute(6000).unwrap(),
-        }],
+        public_routes: ["/beacon/viewer/", "/beacon/content-links/"]
+            .map(|prefix| PublicRouteDeclaration {
+                prefix: PublicRoutePrefix::new(prefix).unwrap(),
+                max_body_bytes: BodyLimit::new(1).unwrap(),
+                requests_per_minute: RequestRate::per_minute(6000).unwrap(),
+            })
+            .to_vec(),
         app_origin: false,
         viewer: Some(ViewerDeclaration {
             extensions: vec![FileExtension::new("usda").unwrap()],
             route: PublicRoutePrefix::new("/beacon/viewer/").unwrap(),
+        }),
+        content: Some(ContentDeclaration {
+            route: PublicRoutePrefix::new("/beacon/content/").unwrap(),
+            links: Some(PublicRoutePrefix::new("/beacon/content-links/").unwrap()),
         }),
     });
     (server, seen)
@@ -155,6 +205,10 @@ struct Harness {
     allowed: Arc<AtomicBool>,
     reads: Arc<Mutex<Vec<String>>>,
     seen: Arc<Mutex<Vec<Seen>>>,
+    /// Whether the fixture server admits a read of its item or link.
+    server_allows: Arc<AtomicBool>,
+    instances: Router,
+    deployment: veoveo_types::DeploymentId,
     _files: tempfile::TempDir,
 }
 
@@ -162,7 +216,9 @@ impl Harness {
     async fn start(db: &TestDb) -> Self {
         let owner = apps_owner(db, crate::apps::tests::catalog()).await;
         let catalog = HubCatalogHandle::new(Arc::new(owner.catalog.clone()));
-        let (server, seen) = viewer_server().await;
+        let server_allows = Arc::new(AtomicBool::new(true));
+        let (server, seen) = viewer_server(server_allows.clone()).await;
+        let deployment = server.deployment;
         catalog.replace_registrations(crate::registration::RegistrationSnapshot::new([server]));
         let files = tempfile::tempdir().unwrap();
         std::fs::create_dir(files.path().join("file-viewer")).unwrap();
@@ -174,18 +230,40 @@ impl Harness {
             allowed: allowed.clone(),
             reads: reads.clone(),
         });
-        let domain = ContentDomain::new(
+        let issuer = veoveo_hub_sdk::HubInternalTokenIssuer::new(
+            veoveo_hub_sdk::TokenIssuer::parse(HOST).unwrap(),
+            veoveo_hub_sdk::HubInternalSigningKey::new(
+                base64::Engine::decode(
+                    &base64::engine::general_purpose::STANDARD,
+                    crate::apps::tests::SIGNING_KEY,
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let servers = ServerOrigins::new(
             catalog.clone(),
+            owner.hub.clone(),
+            origins.clone(),
+            crate::apps::tests::profile_authentication(&owner.hub, &catalog),
+            issuer,
+            crate::HubUpstreamHttpClientPool::new(),
+        );
+        let public_routes = PublicRoutes::new(
+            catalog.clone(),
+            crate::HubUpstreamHttpClientPool::new(),
+            "veoveo.example",
+        )
+        .unwrap();
+        let domain = ContentDomain::new(
+            catalog,
             owner.hub.clone(),
             &origins,
             CONTENT.parse().unwrap(),
             files.path().to_owned(),
-            PublicRoutes::new(
-                catalog,
-                crate::HubUpstreamHttpClientPool::new(),
-                "veoveo.example",
-            )
-            .unwrap(),
+            public_routes.clone(),
+            servers,
             [("fixture".to_owned(), fixture)],
         )
         .unwrap();
@@ -196,6 +274,9 @@ impl Harness {
             allowed,
             reads,
             seen,
+            server_allows,
+            instances: public_routes.router(),
+            deployment,
             _files: files,
         }
     }
@@ -795,6 +876,240 @@ async fn an_expired_token_recovers_through_the_page_and_never_comes_back() {
             .await
             .unwrap();
         assert_eq!(rows, 1);
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_servers_item_is_read_as_the_person_who_opens_it_once() {
+    timed(async {
+        let db = TestDb::new().await;
+        let harness = Harness::start(&db).await;
+        let seen = |harness: &Harness| {
+            std::mem::take(&mut *harness.seen.lock().unwrap())
+                .into_iter()
+                .map(|seen| (seen.method.to_string(), seen.path, seen.headers))
+                .collect::<Vec<_>>()
+        };
+
+        // Opening the page is the visit, as the person, and frames the viewer on its own origin.
+        let (token, src) = harness.minted("/view/beacon/a1/pic.png").await;
+        assert_eq!(
+            src,
+            format!("https://{token}.veoveo-content.example/_veoveo/view/pic.png")
+        );
+        let visit = seen(&harness);
+        assert_eq!(
+            visit.len(),
+            1,
+            "{:?}",
+            visit.iter().map(|v| &v.1).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            (visit[0].0.as_str(), visit[0].1.as_str()),
+            ("POST", "/beacon/content/a1")
+        );
+        assert!(
+            visit[0].2[header::AUTHORIZATION]
+                .to_str()
+                .unwrap()
+                .starts_with("Bearer ")
+        );
+
+        // The page's renewal checks the person and is no visit.
+        let renew = Request::post("/view/beacon/a1/pic.png")
+            .header(header::ORIGIN, HOST)
+            .header(
+                header::COOKIE,
+                format!("__Host-computer={}", harness.owner.cookie),
+            )
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(send(&harness.page, renew).await.0, StatusCode::OK);
+        let renewal = seen(&harness);
+        assert_eq!(
+            renewal
+                .iter()
+                .map(|v| (v.0.as_str(), v.1.as_str()))
+                .collect::<Vec<_>>(),
+            [("HEAD", "/beacon/content/a1")]
+        );
+
+        // A file goes to the server with its range and validators, and nothing that names the
+        // origin; its type comes from its name, and what it sets stays with it.
+        let (status, headers, body) = harness
+            .on_origin(
+                &token,
+                "/pic.png",
+                &[
+                    ("range", "bytes=0-3"),
+                    ("if-none-match", "\"a1\""),
+                    ("referer", "https://elsewhere.example/"),
+                    ("cookie", "own=1"),
+                ],
+            )
+            .await;
+        assert_eq!(status, StatusCode::PARTIAL_CONTENT);
+        assert_eq!(body, "the server's file");
+        assert_eq!(headers[header::CONTENT_TYPE], "image/png");
+        assert_eq!(headers[header::CACHE_CONTROL], "private, no-transform");
+        assert_eq!(headers[header::X_CONTENT_TYPE_OPTIONS], "nosniff");
+        assert!(headers.get(header::SET_COOKIE).is_none());
+        assert_eq!(policies(&headers), [FRAMING]);
+        let read = seen(&harness);
+        assert_eq!(read.len(), 1);
+        assert_eq!(
+            (read[0].0.as_str(), read[0].1.as_str()),
+            ("GET", "/beacon/content/a1/pic.png")
+        );
+        assert_eq!(read[0].2[header::RANGE], "bytes=0-3");
+        assert_eq!(read[0].2[header::IF_NONE_MATCH], "\"a1\"");
+        assert!(read[0].2.contains_key(header::AUTHORIZATION));
+        for name in [header::REFERER, header::COOKIE, header::ORIGIN] {
+            assert!(!read[0].2.contains_key(&name), "{name}");
+        }
+
+        // What the Hub serves itself asks the server first, and a refusal stops it.
+        let viewer = harness
+            .on_origin(&token, "/_veoveo/viewer/file-viewer/engine.wasm", &[])
+            .await;
+        assert_eq!(viewer.0, StatusCode::OK);
+        assert_eq!(
+            seen(&harness)
+                .iter()
+                .map(|v| (v.0.clone(), v.1.clone()))
+                .collect::<Vec<_>>(),
+            [("HEAD".to_owned(), "/beacon/content/a1".to_owned())]
+        );
+
+        // No path climbs out of the route, with the person's token, to the server's MCP.
+        for path in ["/%2e%2e/%2e%2e/mcp", "/x%2Fy", "//x"] {
+            let (status, ..) = harness.on_origin(&token, path, &[]).await;
+            assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
+        }
+        assert!(seen(&harness).is_empty());
+
+        // The server's refusal reaches the page, the file and the viewer's file at once.
+        harness.server_allows.store(false, Ordering::SeqCst);
+        assert_eq!(
+            harness.on_origin(&token, "/pic.png", &[]).await.0,
+            StatusCode::FORBIDDEN
+        );
+        assert_eq!(
+            harness
+                .on_origin(&token, "/_veoveo/viewer/file-viewer/engine.wasm", &[])
+                .await
+                .0,
+            StatusCode::FORBIDDEN
+        );
+        let (status, _, body) = harness.open("/view/beacon/a2/pic.png").await;
+        assert_eq!(status, StatusCode::FORBIDDEN);
+        assert!(body.contains("You cannot open this file"), "{body}");
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_servers_link_has_its_own_origin_and_never_runs_on_the_issuers() {
+    timed(async {
+        let db = TestDb::new().await;
+        let harness = Harness::start(&db).await;
+        let name = format!("beacon-{LINK_TOKEN}");
+        let seen = |harness: &Harness| {
+            std::mem::take(&mut *harness.seen.lock().unwrap())
+                .into_iter()
+                .map(|seen| (seen.method.to_string(), seen.path, seen.headers))
+                .collect::<Vec<_>>()
+        };
+
+        // The file comes from the link's route, without anything of the person or the browser.
+        let (status, headers, body) = harness
+            .on_origin(
+                &name,
+                "/pic.png",
+                &[
+                    ("range", "bytes=0-3"),
+                    ("referer", "https://elsewhere.example/"),
+                ],
+            )
+            .await;
+        assert_eq!(status, StatusCode::PARTIAL_CONTENT);
+        assert_eq!(body, "the server's file");
+        assert_eq!(headers[header::CONTENT_TYPE], "image/png");
+        assert_eq!(headers[header::CACHE_CONTROL], "private, no-transform");
+        assert_eq!(policies(&headers), [FRAMING]);
+        let read = seen(&harness);
+        assert_eq!(
+            (read[0].0.as_str(), read[0].1.clone()),
+            ("GET", format!("/beacon/content-links/{LINK_TOKEN}/pic.png"))
+        );
+        assert_eq!(read[0].2[header::RANGE], "bytes=0-3");
+        for name in [header::AUTHORIZATION, header::REFERER, header::COOKIE] {
+            assert!(!read[0].2.contains_key(&name), "{name}");
+        }
+
+        // The viewer's page and files ask the server first.
+        let (status, _, body) = harness.on_origin(&name, "/_veoveo/view/pic.png", &[]).await;
+        assert_eq!(status, StatusCode::OK);
+        assert!(body.contains("flyfish-file-viewer-web-full"), "{body}");
+        assert_eq!(
+            seen(&harness)
+                .iter()
+                .map(|v| (v.0.clone(), v.1.clone()))
+                .collect::<Vec<_>>(),
+            [(
+                "HEAD".to_owned(),
+                format!("/beacon/content-links/{LINK_TOKEN}")
+            )]
+        );
+
+        // A write is refused, and a slug that owns no links names nothing.
+        let write = Request::put("/pic.png")
+            .header("x-forwarded-host", format!("{name}.veoveo-content.example"))
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(
+            send(&harness.listener, write).await.0,
+            StatusCode::METHOD_NOT_ALLOWED
+        );
+        let other = format!("other-{LINK_TOKEN}");
+        assert_eq!(
+            harness.on_origin(&other, "/pic.png", &[]).await.0,
+            StatusCode::NOT_FOUND
+        );
+        assert!(seen(&harness).is_empty());
+
+        // On the issuer's origin the file would run with a person's session, so it is not served
+        // there, however it is spelled; the server's other public routes are.
+        for path in [
+            format!("/beacon/content-links/{LINK_TOKEN}/pic.html"),
+            format!("/beacon/content-links/{LINK_TOKEN}"),
+            format!("/beacon/%63ontent-links/{LINK_TOKEN}/pic.html"),
+            format!("/beacon/viewer/../content-links/{LINK_TOKEN}/pic.html"),
+        ] {
+            let request = Request::get(format!("/instances/{}{path}", harness.deployment))
+                .body(Body::empty())
+                .unwrap();
+            let (status, ..) = send(&harness.instances, request).await;
+            assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
+        }
+        assert!(seen(&harness).is_empty());
+        let request = Request::get(format!("/instances/{}/beacon/viewer/", harness.deployment))
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(send(&harness.instances, request).await.0, StatusCode::OK);
+        assert_eq!(seen(&harness).len(), 1);
+
+        // The server's refusal ends it at once: file, page and viewer's files alike.
+        harness.server_allows.store(false, Ordering::SeqCst);
+        for path in [
+            "/pic.png",
+            "/_veoveo/view/pic.png",
+            "/_veoveo/viewer/file-viewer/engine.wasm",
+        ] {
+            let (status, ..) = harness.on_origin(&name, path, &[]).await;
+            assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
+        }
     })
     .await;
 }

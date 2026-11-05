@@ -388,6 +388,35 @@ impl ServerOrigins {
             .unwrap_or_else(|never| match never {})
     }
 
+    /// `request` as the person of `session`, on the content route of the instance of `server`
+    /// they selected. The server decides each read from the forwarded token, so no policy of
+    /// the Hub's stands between them.
+    pub(crate) async fn content_request(
+        &self,
+        catalog: &crate::HubCatalog,
+        session: &crate::computers::BrowserSession,
+        server: &ServerSlug,
+        request: Request,
+    ) -> Response {
+        let Some(config) = catalog
+            .runtime
+            .as_ref()
+            .and_then(|runtime| runtime.computers.as_ref())
+            .map(|computers| computers.config().clone())
+        else {
+            return Problem::not_found().into_response();
+        };
+        self.as_person(
+            catalog,
+            &config,
+            session,
+            server,
+            request,
+            Admission::Content,
+        )
+        .await
+    }
+
     /// The server whose app origin a request names in `X-Forwarded-Host`: exactly one
     /// value, the `{slug}.{apps domain}` with the installation's port of a server whose
     /// registration declares an app origin.
@@ -572,6 +601,9 @@ enum Admission {
     Decide,
     /// Forward the request to the instance the person selected.
     Forward,
+    /// Forward the request to the content route of the instance the person selected, which
+    /// decides each read itself.
+    Content,
 }
 
 #[derive(Clone)]
@@ -615,7 +647,10 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
         registered
             .surfaces
             .as_ref()
-            .is_some_and(|surfaces| surfaces.app_origin)
+            .is_some_and(|surfaces| match admission {
+                Admission::Content => surfaces.content.is_some(),
+                Admission::Decide | Admission::Forward => surfaces.app_origin,
+            })
     }) else {
         return refused(
             StatusCode::NOT_FOUND,
@@ -623,31 +658,33 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
             "The instance you selected for this server serves no app origin.",
         );
     };
-    let target = PolicyTarget::AppOrigin {
-        server: server.clone(),
-    };
-    let managed = match origins
-        .hub
-        .oauth_action_admitted(catalog, &subject, HubAction::AppOrigin, &target)
-        .await
-    {
-        Ok(managed) => managed,
-        Err(error) => return unavailable(&error),
-    };
-    let decision = catalog.decide(crate::PolicyRequest {
-        principal: &subject.principal,
-        profile: &profile,
-        action: HubAction::AppOrigin.into(),
-        target: &target,
-        trace_id: &trace_id(),
-    });
-    if !managed || decision.effect != PolicyEffect::Allow {
-        tracing::info!(%server, reason = ?decision.reason, managed, "app origin request refused");
-        return refused(
-            StatusCode::FORBIDDEN,
-            "Not allowed",
-            &format!("You may not open {server}'s app."),
-        );
+    if admission != Admission::Content {
+        let target = PolicyTarget::AppOrigin {
+            server: server.clone(),
+        };
+        let managed = match origins
+            .hub
+            .oauth_action_admitted(catalog, &subject, HubAction::AppOrigin, &target)
+            .await
+        {
+            Ok(managed) => managed,
+            Err(error) => return unavailable(&error),
+        };
+        let decision = catalog.decide(crate::PolicyRequest {
+            principal: &subject.principal,
+            profile: &profile,
+            action: HubAction::AppOrigin.into(),
+            target: &target,
+            trace_id: &trace_id(),
+        });
+        if !managed || decision.effect != PolicyEffect::Allow {
+            tracing::info!(%server, reason = ?decision.reason, managed, "app origin request refused");
+            return refused(
+                StatusCode::FORBIDDEN,
+                "Not allowed",
+                &format!("You may not open {server}'s app."),
+            );
+        }
     }
     if admission == Admission::Decide {
         return StatusCode::NO_CONTENT.into_response();
@@ -692,18 +729,21 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
     let mut headers = parts.headers;
     super::super::surfaces::strip_hop(&mut headers);
     strip_hub_cookies(&mut headers);
-    let host = origins.origins.app_origin(&server);
-    let host = host
-        .split_once("://")
-        .map_or(host.as_str(), |(_, host)| host);
-    let (Ok(host), Ok(bearer)) = (
-        HeaderValue::from_str(host),
-        HeaderValue::from_str(&format!("Bearer {bearer}")),
-    ) else {
+    let Ok(bearer) = HeaderValue::from_str(&format!("Bearer {bearer}")) else {
         return Problem::internal().into_response();
     };
-    headers.insert(header::HOST, host);
     headers.insert(header::AUTHORIZATION, bearer);
+    // A content route is the server's own, reached under its own name.
+    if admission != Admission::Content {
+        let host = origins.origins.app_origin(&server);
+        let host = host
+            .split_once("://")
+            .map_or(host.as_str(), |(_, host)| host);
+        let Ok(host) = HeaderValue::from_str(host) else {
+            return Problem::internal().into_response();
+        };
+        headers.insert(header::HOST, host);
+    }
     let answer = match client
         .request(parts.method, url)
         .headers(headers)

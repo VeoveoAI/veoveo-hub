@@ -96,6 +96,7 @@ pub(super) struct Inner {
     pub(super) public_origin: String,
     /// The installation's Apps origins, without which no server has an app origin.
     pub(super) app_origins: Option<crate::apps::AppOrigins>,
+    pub(super) content_origin: Option<veoveo_hub_sdk::registration::ContentOrigin>,
 }
 
 /// The path segment under the issuer's origin that holds instances' public routes:
@@ -253,8 +254,21 @@ impl RegistrationService {
                 live: parking_lot::RwLock::new(LiveRegistrations::default()),
                 public_origin,
                 app_origins,
+                content_origin: None,
             }),
         })
+    }
+
+    /// The installation's content domain, which the response names to a server that declares
+    /// content links. The service takes it before it is shared.
+    pub fn with_content_origin(
+        mut self,
+        origin: Option<veoveo_hub_sdk::registration::ContentOrigin>,
+    ) -> Self {
+        Arc::get_mut(&mut self.inner)
+            .expect("the content origin is set before the service is shared")
+            .content_origin = origin;
+        self
     }
 
     pub fn issuer(&self) -> &TokenIssuer {
@@ -642,6 +656,13 @@ impl RegistrationService {
         database: Option<DatabaseGrant>,
     ) -> Result<ClientInformation, RegistrationError> {
         let (public_base, app_origin) = self.surfaces(&metadata)?;
+        let content_origin = metadata
+            .registration
+            .surfaces
+            .as_ref()
+            .and_then(|surfaces| surfaces.content.as_ref())
+            .and_then(|content| content.links.as_ref())
+            .and(self.inner.content_origin.clone());
         let information = ClientInformation {
             registration_client_uri: self.registration_client_uri(&client_id),
             client_id,
@@ -658,6 +679,7 @@ impl RegistrationService {
             database,
             public_base,
             app_origin,
+            content_origin,
         };
         information
             .check()
