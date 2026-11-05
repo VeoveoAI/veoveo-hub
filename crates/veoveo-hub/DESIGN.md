@@ -1586,7 +1586,9 @@ and every use is checked; and when its owner calls it `application/octet-stream`
 `Content-Type` comes from its extension, unknown staying that. Nothing is stripped from a file:
 the origin's isolation is the protection. `file-viewer`'s files, which are published code, take
 `private, max-age=86400`, the longest a token lives. Its page has a policy naming only its own
-origin, `blob:` and `data:`, so that a rendered document reaches nothing else.
+origin, `blob:` and `data:`, so that a rendered document reaches nothing else. All HTML there
+takes `no-transform` as well: measured on Bioma, Cloudflare added its analytics beacon to a page
+without it, and to no file with it.
 
 `file-viewer` 3.3.3 is used as published, from its own image, mounted read-only into the Hub as
 factory sandboxes mount Lore's; the Hub holds nothing of it.

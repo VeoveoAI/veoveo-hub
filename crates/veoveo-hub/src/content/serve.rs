@@ -121,6 +121,21 @@ impl ContentDomain {
         );
         // A hostile file or a server sets no cookie that anything here would read.
         headers.remove(header::SET_COOKIE);
+        // A proxy that may transform HTML adds to it: Cloudflare, its analytics beacon, which
+        // would be a request leaving this origin.
+        let html = headers
+            .get(header::CONTENT_TYPE)
+            .is_some_and(|value| value.as_bytes().starts_with(b"text/html"));
+        let kept = headers
+            .get_all(header::CACHE_CONTROL)
+            .iter()
+            .any(|value| value.as_bytes().ends_with(b"no-transform"));
+        if html && !kept {
+            headers.append(
+                header::CACHE_CONTROL,
+                HeaderValue::from_static("no-transform"),
+            );
+        }
         response
     }
 

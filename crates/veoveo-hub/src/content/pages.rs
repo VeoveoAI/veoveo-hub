@@ -68,7 +68,13 @@ pub(super) fn view_page(title: &str, origin: &str, src: &str, frames: &str) -> R
         "default-src 'none'; script-src 'self'; connect-src 'self'; frame-src {frames}; \
          img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
     );
-    private(html(StatusCode::OK, body), &policy)
+    let mut response = private(html(StatusCode::OK, body), &policy);
+    // Nothing between here and the browser adds to the page, as a CDN's analytics beacon would.
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("private, no-store, no-transform"),
+    );
+    response
 }
 
 /// What the viewer page tells `file-viewer`.

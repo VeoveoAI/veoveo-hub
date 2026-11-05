@@ -420,7 +420,10 @@ async fn a_person_is_signed_in_and_the_page_frames_the_file_with_one_token() {
             "{policy}"
         );
         assert!(policy.contains("frame-ancestors 'none'"), "{policy}");
-        assert_eq!(headers[header::CACHE_CONTROL], "private, no-store");
+        assert_eq!(
+            headers[header::CACHE_CONTROL],
+            "private, no-store, no-transform"
+        );
         let (token, src) = harness.minted("/view/fixture/box/site/page.html").await;
         assert_eq!(
             src,
@@ -590,6 +593,15 @@ async fn the_viewers_are_chosen_by_type_and_served_on_the_origin() {
             .await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(headers[header::CONTENT_TYPE], "text/html; charset=utf-8");
+        // No HTML here may be rewritten on the way, as a CDN adding its beacon would.
+        assert_eq!(
+            headers
+                .get_all(header::CACHE_CONTROL)
+                .iter()
+                .map(|value| value.to_str().unwrap())
+                .collect::<Vec<_>>(),
+            ["private, no-store", "no-transform"]
+        );
         assert!(body.contains("<meta charset=\"utf-8\">"), "{body}");
         assert!(
             body.contains("src=\"/_veoveo/viewer/flyfish-file-viewer-web-full.iife.js\""),
