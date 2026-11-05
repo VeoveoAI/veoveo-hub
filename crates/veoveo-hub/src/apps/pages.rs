@@ -243,7 +243,7 @@ pub(super) fn home_page(resources: &[Resource]) -> Response {
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
          <meta name=\"color-scheme\" content=\"light dark\"><title>Veoveo</title>\
          <style>{HOME_STYLE}</style></head><body><main>\
-         <h1>Veoveo</h1><p class=\"lead\">Your files, scenes and tools.</p>\
+         <h1>Veoveo</h1>\
          <nav class=\"grid\">\n{cards}\
          <a class=\"card\" href=\"/computer\"><span class=\"icon\"><span>&gt;_</span></span>\
          <span class=\"text\"><b>Your Computer</b><small>Your own sandbox, with its terminal and agents.</small></span></a>\n\
@@ -259,7 +259,7 @@ pub(super) fn home_page(resources: &[Resource]) -> Response {
 const HOME_STYLE: &str = ":root{color-scheme:light dark;--bg:#fff;--soft:#f4f5f7;--fg:#16181d;--muted:#5b616e;--line:#e1e4e9;--accent:#2557d6}\
 @media(prefers-color-scheme:dark){:root{--bg:#14161a;--soft:#1e2127;--fg:#e8eaee;--muted:#9aa1ad;--line:#2c3038;--accent:#7aa2ff}}\
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif}\
-main{max-width:960px;margin:0 auto;padding:48px 20px}h1{margin:0;font-size:26px}.lead{margin:4px 0 28px;color:var(--muted)}\
+main{max-width:960px;margin:0 auto;padding:48px 20px}h1{margin:0 0 28px;font-size:26px}\
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}\
 .card{display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--line);border-radius:12px;color:inherit;text-decoration:none;min-width:0}\
 .card:hover,.card:focus-visible{border-color:var(--accent);outline:none;background:var(--soft)}\
