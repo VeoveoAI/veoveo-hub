@@ -562,6 +562,119 @@ async fn a_retargeted_instance_publishes_its_complete_live_registration() {
     .expect("bounded joined-instance routing publication");
 }
 
+#[tokio::test]
+async fn an_instance_server_coming_up_starts_a_new_generation() {
+    tokio::time::timeout(Duration::from_secs(120), async {
+        let db = crate::test_store::TestDb::new().await;
+        let directory = tempfile::tempdir().unwrap();
+        let installation = crate::local::generate(directory.path(), "https://hub.test").unwrap();
+        let catalog = crate::HubCatalogHandle::new(std::sync::Arc::new(
+            crate::HubCatalog::load_json(&installation.config, crate::catalog_fixture::binding())
+                .unwrap(),
+        ));
+        let signing = ServerKeyPair::generate().unwrap();
+        let service = crate::registration::RegistrationService::new(
+            db.a.clone(),
+            catalog.clone(),
+            crate::registration::RegistrationIdentity {
+                issuer: veoveo_hub_sdk::TokenIssuer::parse("https://hub.test").unwrap(),
+                signing_key: veoveo_hub_sdk::HubInternalSigningKey::new(signing.pkcs8_der())
+                    .unwrap(),
+                verification_key: None,
+            },
+            crate::registration::ServerDatabase {
+                url: veoveo_hub_sdk::registration::DatabaseUrl::new(
+                    "postgres://127.0.0.1/unused".parse().unwrap(),
+                )
+                .unwrap(),
+            },
+            Duration::from_secs(60),
+            None,
+        )
+        .unwrap();
+        let link = crate::factory::Link {
+            name: veoveo_hub_sdk::hub::LinkName::parse("team-a").unwrap(),
+            repository: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+            tracked: crate::factory::TrackedBranch {
+                id: "11111111111111111111111111111111".into(),
+                name: "first".into(),
+            },
+        };
+        let instance = crate::registration::create_runner(
+            &db.a,
+            "0123456789abcdef0123456789abcdef",
+            &DatabaseName::installation(&db.a).unwrap(),
+            &BranchName::parse("served-publication").unwrap(),
+            &link,
+        )
+        .await
+        .unwrap();
+        let store = RegistrationStore::new(db.a.clone());
+        Candidate::new(
+            &signing,
+            instance.deployment,
+            "00000000000022",
+            1,
+            Utc::now().trunc_subsecs(6),
+        )
+        .register(&store)
+        .await
+        .unwrap();
+        let stop = tokio_util::sync::CancellationToken::new();
+        let _cancel_on_drop = stop.clone().drop_guard();
+        let watcher = service.spawn_watcher(stop.clone());
+        let mut changes = catalog.subscribe();
+        // The generation at which the instance is routed and `done` holds.
+        macro_rules! until {
+            ($done:expr) => {
+                loop {
+                    let snapshot = catalog.snapshot();
+                    let server = snapshot
+                        .catalog()
+                        .registrations()
+                        .deployment(&instance.deployment)
+                        .cloned();
+                    if let Some(server) = server
+                        && $done(&server)
+                    {
+                        break (snapshot.generation(), server.served_at);
+                    }
+                    changes.changed().await.unwrap();
+                }
+            };
+        }
+        let before = until!(|_: &crate::registration::RegisteredServer| true);
+        assert_eq!(
+            before.1, None,
+            "registering in the store alone serves nothing"
+        );
+
+        // A resume, with no registration changing: the declaration is the same.
+        store.served(instance.deployment).await.unwrap();
+        let first =
+            until!(|server: &crate::registration::RegisteredServer| { server.served_at.is_some() });
+        assert!(first.0 > before.0, "coming up must start a new generation");
+
+        // A restart and another resume.
+        sqlx::query_file!(
+            "src/factory/record/unserved.sql",
+            instance.deployment.as_uuid()
+        )
+        .execute(db.a.pool())
+        .await
+        .unwrap();
+        store.served(instance.deployment).await.unwrap();
+        let second = until!(|server: &crate::registration::RegisteredServer| {
+            server.served_at.is_some() && server.served_at != first.1
+        });
+        assert!(second.0 > first.0, "coming up again must start another");
+        stop.cancel();
+        watcher.await.unwrap();
+    })
+    .await
+    .expect("bounded served publication");
+}
+
 /// Only public identifiers/metadata and a statement digest enter diagnostics; a
 /// successful service response also carries secrets which must never be printed.
 fn registration_outcome(

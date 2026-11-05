@@ -8,7 +8,8 @@ SELECT
     registration.orphaned_at,
     instance.branch AS "branch?",
     instance.link AS "link?",
-    instance.linked_repository AS "linked_repository?"
+    instance.linked_repository AS "linked_repository?",
+    instance.served_at AS "served_at?"
 FROM hub.registration
 LEFT JOIN hub.instance ON instance.deployment = registration.deployment
 WHERE registration.client_id = $1

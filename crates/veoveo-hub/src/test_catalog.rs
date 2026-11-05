@@ -60,6 +60,7 @@ pub fn registered_server(slug: &str, endpoint: &str) -> crate::registration::Reg
         runner: None,
         surfaces: None,
         registered_at: chrono::Utc::now(),
+        served_at: None,
         orphaned: false,
     }
 }

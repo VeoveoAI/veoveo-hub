@@ -269,6 +269,7 @@ fn registered(row: &StoredRegistration) -> RegisteredServer {
         runner: row.runner.clone(),
         surfaces: registration.surfaces.clone(),
         registered_at: row.issued_at,
+        served_at: row.served_at,
         orphaned: row.orphaned_at.is_some(),
     }
 }

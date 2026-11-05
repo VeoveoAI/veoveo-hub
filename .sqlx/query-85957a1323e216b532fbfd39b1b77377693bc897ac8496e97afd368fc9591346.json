@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "-- Every replica routes every registered server, so a reconciliation reads them all.\n-- veoveo: unbounded (one row per registration of a running server process, which the installation's grace period bounds)\nSELECT\n    registration.client_id,\n    registration.server,\n    registration.metadata AS \"metadata: Json<ClientMetadata>\",\n    registration.software_statement,\n    registration.access_token_digest,\n    registration.issued_at,\n    registration.orphaned_at,\n    instance.branch AS \"branch?\",\n    instance.link AS \"link?\",\n    instance.linked_repository AS \"linked_repository?\"\nFROM hub.registration\nLEFT JOIN hub.instance ON instance.deployment = registration.deployment\nORDER BY registration.client_id\n",
+  "query": "-- Every replica routes every registered server, so a reconciliation reads them all.\n-- veoveo: unbounded (one row per registration of a running server process, which the installation's grace period bounds)\nSELECT\n    registration.client_id,\n    registration.server,\n    registration.metadata AS \"metadata: Json<ClientMetadata>\",\n    registration.software_statement,\n    registration.access_token_digest,\n    registration.issued_at,\n    registration.orphaned_at,\n    instance.branch AS \"branch?\",\n    instance.link AS \"link?\",\n    instance.linked_repository AS \"linked_repository?\",\n    instance.served_at AS \"served_at?\"\nFROM hub.registration\nLEFT JOIN hub.instance ON instance.deployment = registration.deployment\nORDER BY registration.client_id\n",
   "describe": {
     "columns": [
       {
@@ -112,6 +112,17 @@
             "name": "linked_repository"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "served_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "served_at"
+          }
+        }
       }
     ],
     "parameters": {
@@ -127,8 +138,9 @@
       true,
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "988294047f94d2b70ac205bc37d407ff44310b9dc2618a8c34f7c9c8bb8cbe2b"
+  "hash": "85957a1323e216b532fbfd39b1b77377693bc897ac8496e97afd368fc9591346"
 }

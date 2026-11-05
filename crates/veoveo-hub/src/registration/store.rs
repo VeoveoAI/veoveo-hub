@@ -34,6 +34,8 @@ pub(crate) struct StoredRegistration {
     pub branch: Option<BranchName>,
     /// The link the instance serves, when it is the runner of one.
     pub runner: Option<super::RunnerOf>,
+    /// When the instance's server last registered or resumed, until it next stops.
+    pub served_at: Option<DateTime<Utc>>,
 }
 
 struct RegistrationRow {
@@ -47,6 +49,7 @@ struct RegistrationRow {
     branch: Option<String>,
     link: Option<String>,
     linked_repository: Option<String>,
+    served_at: Option<DateTime<Utc>>,
 }
 
 impl TryFrom<RegistrationRow> for StoredRegistration {
@@ -82,6 +85,7 @@ impl TryFrom<RegistrationRow> for StoredRegistration {
                 }),
                 _ => None,
             },
+            served_at: row.served_at,
         })
     }
 }

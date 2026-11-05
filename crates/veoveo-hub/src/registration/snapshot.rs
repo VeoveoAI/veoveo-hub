@@ -62,6 +62,10 @@ pub struct RegisteredServer {
     pub surfaces: Option<veoveo_hub_sdk::registration::SurfacesDeclaration>,
     /// When its newest registration was issued.
     pub registered_at: DateTime<Utc>,
+    /// When its instance's server last registered or resumed, until it next stops. Its
+    /// coming up changes the routed output, and so starts a new generation, even under
+    /// the same declaration: what it serves may differ.
+    pub served_at: Option<DateTime<Utc>>,
     /// Whether housekeeping found that registration's login without a live kernel
     /// instance: its process ended, and the grace period has not removed it yet.
     pub orphaned: bool,

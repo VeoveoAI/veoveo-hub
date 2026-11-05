@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    registration.client_id,\n    registration.server,\n    registration.metadata AS \"metadata: Json<ClientMetadata>\",\n    registration.software_statement,\n    registration.access_token_digest,\n    registration.issued_at,\n    registration.orphaned_at,\n    instance.branch AS \"branch?\",\n    instance.link AS \"link?\",\n    instance.linked_repository AS \"linked_repository?\"\nFROM hub.registration\nLEFT JOIN hub.instance ON instance.deployment = registration.deployment\nWHERE registration.client_id = $1\n",
+  "query": "SELECT\n    registration.client_id,\n    registration.server,\n    registration.metadata AS \"metadata: Json<ClientMetadata>\",\n    registration.software_statement,\n    registration.access_token_digest,\n    registration.issued_at,\n    registration.orphaned_at,\n    instance.branch AS \"branch?\",\n    instance.link AS \"link?\",\n    instance.linked_repository AS \"linked_repository?\",\n    instance.served_at AS \"served_at?\"\nFROM hub.registration\nLEFT JOIN hub.instance ON instance.deployment = registration.deployment\nWHERE registration.client_id = $1\n",
   "describe": {
     "columns": [
       {
@@ -112,6 +112,17 @@
             "name": "linked_repository"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "served_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hub.instance",
+            "name": "served_at"
+          }
+        }
       }
     ],
     "parameters": {
@@ -129,8 +140,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "a37c65f51a032a988aca9dd51d93319fb2ebaf9efa885097fb87d6215cd74b1a"
+  "hash": "a40feb1499b5333950ffd6ec51759980af0ba56857c6b060a8e3a5ce1fb9048b"
 }

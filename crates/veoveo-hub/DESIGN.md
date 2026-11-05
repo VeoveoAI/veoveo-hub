@@ -867,6 +867,12 @@ server that fails is left out and named under the `skills` surface, as for promp
 Computer's own client the installation's own skills come first. The answer is private,
 paged by skill address, and its one `mcp.discovery` record has the collection `skills`.
 
+No declaration names a server's skills, so an instance's server coming up, by registering or
+by resuming, also starts a new generation: `served_at` is part of what registrations route, and a trigger on
+it notifies the `hub` channel. Every surface is asked again under the new generation, and every open listen
+ends with a list-changed hint, as after a publication. So a push that changes a skill reaches a client that
+keeps its entries. A server that stops changes nothing: what it served stays listed until it comes back.
+
 `skills/get` routes by the address's slug. The caller's policy must admit `skills/get` on
 the skill's `SKILL.md` before the server is asked, and then on every file of the manifest
 the server answers; the answer is private with a TTL of zero. A refusal before the server

@@ -434,6 +434,7 @@ mod tests {
             runner: None,
             surfaces: None,
             registered_at: chrono::Utc::now(),
+            served_at: None,
             orphaned: false,
         }
     }
