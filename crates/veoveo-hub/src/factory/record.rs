@@ -2,6 +2,7 @@
 //! the last revision it applied, whether its server registered or resumed since, the
 //! last failure of its own steps and the capacity warning of its creation.
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use veoveo_store::PlatformStore;
 use veoveo_types::{DeploymentId, PrincipalId};
 
@@ -446,41 +447,155 @@ pub(super) async fn read(
     else {
         return Ok(None);
     };
-    let failed = match (row.failed_stage, row.failed_message) {
-        (Some(stage), Some(message)) => Some(Failure {
-            stage: Stage::parse(&stage)?,
-            message,
-        }),
-        _ => None,
-    };
-    let runner = match (
-        row.link,
-        row.linked_repository,
-        row.tracked_branch,
-        row.tracked_branch_name,
-    ) {
-        (Some(link), Some(repository), Some(id), Some(name)) => Some(RunnerStatus {
-            link: LinkName::parse(link).context("the stored link is malformed")?,
-            linked_repository: repository,
-            tracked_branch: TrackedBranch { id, name },
-            linked_revision: row
-                .linked_revision
-                .map(Revision::parse)
-                .transpose()
-                .context("the stored linked revision is malformed")?,
-        }),
-        _ => None,
-    };
-    Ok(Some(Record {
-        runner,
-        revision: row
-            .revision
-            .map(Revision::parse)
-            .transpose()
-            .context("the stored instance revision is malformed")?,
+    Fields {
+        revision: row.revision,
         served: row.served,
-        failed,
+        failed_stage: row.failed_stage,
+        failed_message: row.failed_message,
         warning: row.warning,
         ungranted_providers: row.ungranted_providers,
-    }))
+        link: row.link,
+        linked_repository: row.linked_repository,
+        tracked_branch: row.tracked_branch,
+        tracked_branch_name: row.tracked_branch_name,
+        linked_revision: row.linked_revision,
+    }
+    .record()
+    .map(Some)
+}
+
+/// An instance's stored columns, as both reads select them.
+struct Fields {
+    revision: Option<String>,
+    served: bool,
+    failed_stage: Option<String>,
+    failed_message: Option<String>,
+    warning: Option<String>,
+    ungranted_providers: Vec<String>,
+    link: Option<String>,
+    linked_repository: Option<String>,
+    tracked_branch: Option<String>,
+    tracked_branch_name: Option<String>,
+    linked_revision: Option<String>,
+}
+
+impl Fields {
+    fn record(self) -> Result<Record> {
+        let failed = match (self.failed_stage, self.failed_message) {
+            (Some(stage), Some(message)) => Some(Failure {
+                stage: Stage::parse(&stage)?,
+                message,
+            }),
+            _ => None,
+        };
+        let runner = match (
+            self.link,
+            self.linked_repository,
+            self.tracked_branch,
+            self.tracked_branch_name,
+        ) {
+            (Some(link), Some(repository), Some(id), Some(name)) => Some(RunnerStatus {
+                link: LinkName::parse(link).context("the stored link is malformed")?,
+                linked_repository: repository,
+                tracked_branch: TrackedBranch { id, name },
+                linked_revision: self
+                    .linked_revision
+                    .map(Revision::parse)
+                    .transpose()
+                    .context("the stored linked revision is malformed")?,
+            }),
+            _ => None,
+        };
+        Ok(Record {
+            runner,
+            revision: self
+                .revision
+                .map(Revision::parse)
+                .transpose()
+                .context("the stored instance revision is malformed")?,
+            served: self.served,
+            failed,
+            warning: self.warning,
+            ungranted_providers: self.ungranted_providers,
+        })
+    }
+}
+
+/// An instance's place in the factory, with its record.
+pub(super) struct InventoryRow {
+    pub deployment: DeploymentId,
+    pub server: Option<String>,
+    pub repository: String,
+    pub branch: String,
+    pub database: String,
+    pub created_at: DateTime<Utc>,
+    pub served_at: Option<DateTime<Utc>>,
+    pub pusher: Option<String>,
+    pub linked_pusher: Option<String>,
+    pub record: Record,
+}
+
+/// Every instance of the factory.
+pub(super) async fn inventory(store: &PlatformStore) -> Result<Vec<InventoryRow>> {
+    sqlx::query_file!("src/factory/record/inventory.sql")
+        .fetch_all(store.pool())
+        .await
+        .context("failed to read the instances")?
+        .into_iter()
+        .map(|row| {
+            Ok(InventoryRow {
+                deployment: DeploymentId::try_from(row.deployment)
+                    .context("the stored deployment is malformed")?,
+                server: row.server,
+                repository: row.repository,
+                branch: row.branch,
+                database: row.database,
+                created_at: row.created_at,
+                served_at: row.served_at,
+                pusher: row.pusher,
+                linked_pusher: row.linked_pusher,
+                record: Fields {
+                    revision: row.revision,
+                    served: row.served,
+                    failed_stage: row.failed_stage,
+                    failed_message: row.failed_message,
+                    warning: row.warning,
+                    ungranted_providers: row.ungranted_providers,
+                    link: row.link,
+                    linked_repository: row.linked_repository,
+                    tracked_branch: row.tracked_branch,
+                    tracked_branch_name: row.tracked_branch_name,
+                    linked_revision: row.linked_revision,
+                }
+                .record()?,
+            })
+        })
+        .collect()
+}
+
+/// Whether `deployment` is an instance of the factory.
+pub(super) async fn is_instance(store: &PlatformStore, deployment: DeploymentId) -> Result<bool> {
+    Ok(
+        sqlx::query_file!("src/factory/record/is_instance.sql", deployment.as_uuid())
+            .fetch_one(store.pool())
+            .await
+            .context("failed to read the instance")?
+            .instance,
+    )
+}
+
+/// The size in bytes of each of the databases that exists.
+pub(super) async fn database_sizes(
+    store: &PlatformStore,
+    names: &[String],
+) -> Result<Vec<(String, i64)>> {
+    Ok(
+        sqlx::query_file!("src/factory/record/database_sizes.sql", names)
+            .fetch_all(store.pool())
+            .await
+            .context("failed to read the databases' sizes")?
+            .into_iter()
+            .map(|row| (row.name, row.bytes))
+            .collect(),
+    )
 }

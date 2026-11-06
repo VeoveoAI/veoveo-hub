@@ -28,6 +28,40 @@ pub async fn authorize_hub_action(
     subject: AuthenticatedSubject,
     request: AdminAuthorizationRequest,
 ) -> std::result::Result<(Arc<HubCatalog>, HubProfile, AuthenticatedSubject), Box<Response>> {
+    authorize(hub, catalog, profile_id, subject, request, false).await
+}
+
+/// [`authorize_hub_action`] for reading the tenant's factory inventory, the one
+/// administrative read a server may carry for its caller. The route answers nothing else,
+/// so there is no authority to narrow; `acting_server_installed` says the acting server is
+/// one the installation registered, not an instance, which acts with what someone pushed.
+pub async fn authorize_factory_read(
+    hub: &HubState,
+    catalog: Arc<HubCatalog>,
+    profile_id: &HubProfileId,
+    subject: AuthenticatedSubject,
+    request: AdminAuthorizationRequest,
+    acting_server_installed: bool,
+) -> std::result::Result<(Arc<HubCatalog>, HubProfile, AuthenticatedSubject), Box<Response>> {
+    authorize(
+        hub,
+        catalog,
+        profile_id,
+        subject,
+        request,
+        acting_server_installed,
+    )
+    .await
+}
+
+async fn authorize(
+    hub: &HubState,
+    catalog: Arc<HubCatalog>,
+    profile_id: &HubProfileId,
+    subject: AuthenticatedSubject,
+    request: AdminAuthorizationRequest,
+    server_may_carry: bool,
+) -> std::result::Result<(Arc<HubCatalog>, HubProfile, AuthenticatedSubject), Box<Response>> {
     let Some(profile) = catalog.profile(profile_id).cloned() else {
         return Err(Box::new(StatusCode::NOT_FOUND.into_response()));
     };
@@ -44,7 +78,7 @@ pub async fn authorize_hub_action(
     });
     // A registered server acting for its caller never reaches an administrative route:
     // this decision does not narrow to the permissions its exchanged token carries.
-    let decision = if subject.delegation.is_some() {
+    let decision = if subject.delegation.is_some() && !server_may_carry {
         PolicyDecision {
             effect: PolicyEffect::Deny,
             reason: crate::control_plane::PolicyReasonCode::UndeclaredTarget,

@@ -411,6 +411,12 @@ pub(super) async fn serve(config: ServeConfig) -> anyhow::Result<()> {
                 catalog.clone(),
                 auth_state.clone(),
             ))
+            .merge(crate::contributions::lore::inventory::router(
+                admin_state.clone(),
+                factory.clone(),
+                watches.clone(),
+                auth_state.clone(),
+            ))
             .merge(watches.clone().router(auth_state.clone()));
     }
     let admin_router = Router::new()

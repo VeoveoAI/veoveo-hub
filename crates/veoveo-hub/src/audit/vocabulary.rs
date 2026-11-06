@@ -41,6 +41,8 @@ pub enum AdministrativeOperation {
     /// A control-plane document validated and prepared as a publication would be, and
     /// not published.
     ControlPlaneValidation,
+    /// The tenant's whole factory read.
+    FactoryRead,
     JwtRevoke,
     JwtPrune,
     ServerHealth,

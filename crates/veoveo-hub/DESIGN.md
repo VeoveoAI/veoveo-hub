@@ -551,6 +551,53 @@ watcher and why the last subscription as them failed, and `prepareFailure`, why 
 branch's latest push could not be read; without an instance its detail names those
 causes. The route exists when the installation configures a factory.
 
+### Factory Inventory
+
+`GET /factory/{profile}/instances` answers the factory in one read, from what the Hub
+already holds: `hub.instance` and its deployments, one OpenShell `ListSandboxes` of the
+factory workspace, the catalog's repositories and assignments, `hub.lore_watch` and the
+failures it records, and Lore's own branches. It writes nothing and keeps nothing.
+
+Each repository is one entry, since a repository is known before its server first
+registers, with its title, its server when one has registered, its watch, who may reach
+it, its instances and its branches. An instance answers its branch, link, health, and
+its status as `GET /factory/{profile}/instance` reports it, with its server, database,
+creation and serving times, its latest pusher and whether they still hold a grant, since
+the instance's Lore token is issued as that person and Lore refuses one without a grant.
+
+A live branch answers its name, its latest revision and one state: `served`, it has an
+instance or runners; `no_run`, its latest revision has no executable `openshell/run`, so
+it does not ask to serve; `name_refused`, the Hub cannot name an instance after it;
+`prepare_failed`, with the recorded reason; `links_failed`, its links could not run;
+`pending`, it asks to serve and nothing has failed yet; or `unreadable`, with why. Comparing
+a branch's latest revision with its instance's applied and serving revisions says whether
+the branch is ahead of what serves. A repository nobody watches answers no branches: the
+Hub follows only what someone watches. A repository whose branches Lore does not answer
+says why, and the rest of the answer stands.
+
+The answer also holds each database's size, the servers the installation registered, and
+the caller's routes: for each server, the branch their selection or the base branch routes
+them to and why that routes nothing when it does, from the same routing as their calls.
+
+`scope=own`, the default, answers what the caller's grants reach, read in Lore as the
+caller: a repository they hold a grant on, and a runner whose linked repository they hold
+a grant on, as `GET /factory/{profile}/instance` admits them. A runner of a repository they
+hold a grant on whose linked repository they hold none on answers its branch, link and
+health only: the link's name is in the parent's tree, which they read anyway.
+
+`scope=tenant` answers the tenant's whole factory, read in Lore as each repository's
+watcher, and adds everyone's selections. It names people, repositories, branches and
+revisions, and holds no file, log or row. It is an administrative read: the action policy
+decides `admin_read`, and the admission is recorded as the `factory_read` operation.
+
+It is the one administrative read a server may carry for its caller, so that an
+administrator's console reaches it. A server acting for its caller reaches no
+administrative route, since an administrative decision does not narrow to the permissions
+its exchanged token carries; here there is nothing to narrow, as this route only reads
+this inventory, so the caller's `admin_read` decides it when the acting server is one the
+installation registered. An instance acts with the code someone pushed, and is refused, as
+it is on every administrative route.
+
 The Lore contribution turns pushes into instances
 (`src/bin/hub/contributions/lore/factory`). `PUT
 /factory/{profile}/watch?repository=<id>` subscribes to the repository's Lore
@@ -1701,6 +1748,7 @@ which has no person, takes the base branch's.
 | `/admin/{profile}/...` | Configuration, audit, JWT revocation, ending a person's sessions, Task cancellation, server health and usage |
 | `PUT`/`DELETE /selection/{profile}/{server}` | The caller's branch for a server, or back to the base branch; 204 |
 | `PUT /factory/{profile}/watch?repository=<id>` | The Hub watches a Lore repository as the caller; 204, or 403 without the caller's grant |
+| `GET /factory/{profile}/instances?scope=own\|tenant` | The factory as the caller may see it ([inventory](#factory-inventory)) |
 | `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
 | `GET /lore/{profile}/repositories` | The Lore repositories the caller holds a grant on, as [below](#repository-listing) |
 | `GET /lore/{profile}/repositories/{id}/files/{branch}/{path}` | A file of a Lore repository at the tip of a branch, or a folder's listing, read as the caller ([files](#files-from-lore)) |

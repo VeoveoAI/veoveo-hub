@@ -12,7 +12,7 @@
 //! current grant.
 pub(crate) mod native;
 pub(crate) mod read;
-mod store;
+pub(crate) mod store;
 pub(crate) mod watch;
 
 use std::{future::Future, path::Path, pin::Pin};
@@ -122,6 +122,13 @@ pub(crate) trait Lore: Send + Sync + 'static {
         revision: &'a Revision,
         directory: &'a Path,
     ) -> BoxFuture<'a, Result<Option<Prepared>>>;
+    /// Whether the revision has an executable `openshell/run`, from its tree alone.
+    fn asks_to_serve<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        watched: &'a Watched,
+        revision: &'a Revision,
+    ) -> BoxFuture<'a, Result<bool>>;
     /// The links at the top level of the revision and its own tree without them, read
     /// without entering the links; a revision that holds a link the factory's checkout
     /// cannot leave out, below its top level or not named by a lowercase DNS label, is

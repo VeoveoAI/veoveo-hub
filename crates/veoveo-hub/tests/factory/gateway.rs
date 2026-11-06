@@ -478,6 +478,19 @@ impl Gateway {
                     ..Default::default()
                 })
             }),
+            "ListSandboxes" => unary(request, move |request: p::ListSandboxesRequest| {
+                let state = state.lock().unwrap();
+                let workspace = workspace(request.workspace_scope.as_ref())?;
+                Ok(p::ListSandboxesResponse {
+                    sandboxes: state
+                        .sandboxes
+                        .iter()
+                        .filter(|((sandbox_workspace, _), _)| sandbox_workspace == &workspace)
+                        .map(|(_, sandbox)| sandbox.clone())
+                        .collect(),
+                    next_page_token: String::new(),
+                })
+            }),
             "UpdateConfig" => unary(request, |_: p::UpdateConfigRequest| {
                 Err::<p::UpdateConfigResponse, _>(Status::permission_denied(
                     "scope 'config:write' required",

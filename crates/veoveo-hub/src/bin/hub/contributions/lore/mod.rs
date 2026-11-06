@@ -8,6 +8,7 @@ pub(crate) mod factory;
 pub(crate) mod files;
 pub(crate) mod instance;
 pub(crate) mod instance_client;
+pub(crate) mod inventory;
 pub(crate) mod person;
 pub(crate) mod publication;
 pub(crate) mod repositories;

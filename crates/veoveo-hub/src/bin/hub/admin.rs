@@ -23,6 +23,6 @@ pub(super) use server_health::read_server_health;
 pub(super) use tasks::cancel_task;
 pub(super) use usage::daily_usage;
 
-fn admin_profile_id(profile: String) -> Option<HubProfileId> {
+pub(super) fn admin_profile_id(profile: String) -> Option<HubProfileId> {
     HubProfileId::parse(profile).ok()
 }

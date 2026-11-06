@@ -321,6 +321,25 @@ impl LoreProtocol for NativeLore {
         })
     }
 
+    fn asks_to_serve<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        watched: &'a Watched,
+        revision: &'a Revision,
+    ) -> BoxFuture<'a, Result<bool>> {
+        Box::pin(async move {
+            let (deployment, token) = self.token(person, watched).await?;
+            let channel = connect(&deployment).await?;
+            let nodes = super::read::tree(
+                ThinClientServiceClient::new(channel),
+                |message| request(message, &token, &watched.repository),
+                revision,
+            )
+            .await?;
+            Ok(super::read::asks_to_serve(&nodes))
+        })
+    }
+
     fn links<'a>(
         &'a self,
         person: &'a PrincipalId,

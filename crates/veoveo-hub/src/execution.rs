@@ -38,7 +38,10 @@ impl IdProfile for LoreBranchNames {
 }
 
 mod selection;
-pub use selection::{Admitted, ExecutionAdmissionError, Unavailable, admit_execution, routed_for};
+pub use selection::{
+    Admitted, ExecutionAdmissionError, PersonRoutes, Unavailable, admit_execution, routed_for,
+    routes_for,
+};
 
 #[cfg(test)]
 mod tests;

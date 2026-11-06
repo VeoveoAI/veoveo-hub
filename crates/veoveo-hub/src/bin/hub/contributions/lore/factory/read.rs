@@ -255,6 +255,16 @@ pub(super) fn linked_plan(nodes: &[TreeNode]) -> Vec<File> {
         .collect()
 }
 
+/// Whether the tree under `openshell/` holds an executable `openshell/run`.
+pub(super) fn asks_to_serve(nodes: &[TreeNode]) -> bool {
+    let run = format!("{ROOT}/run");
+    nodes.iter().any(|node| {
+        node.path == run
+            && node.node_type == NodeType::File as i32
+            && node.mode & FileMode::Executable as u64 != 0
+    })
+}
+
 /// The files to read for a revision whose `openshell/run` is an executable file: `run`,
 /// `policy.yaml`, `providers.yaml` and the `image/` subtree. None when the revision has
 /// no executable `openshell/run`.
@@ -262,10 +272,7 @@ pub(super) fn plan(nodes: &[TreeNode]) -> Result<Option<Vec<File>>> {
     let run = format!("{ROOT}/run");
     let file = |node: &TreeNode| node.node_type == NodeType::File as i32;
     let executable = |node: &TreeNode| node.mode & FileMode::Executable as u64 != 0;
-    if !nodes
-        .iter()
-        .any(|node| node.path == run && file(node) && executable(node))
-    {
+    if !asks_to_serve(nodes) {
         return Ok(None);
     }
     let policy = format!("{ROOT}/policy.yaml");

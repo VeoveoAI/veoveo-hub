@@ -96,6 +96,34 @@ pub async fn routed_for(
     Ok(catalog.registrations().selected(&admitted.composition))
 }
 
+/// What a person's selection routes to now, for a read that keeps no composition.
+#[derive(Debug, Clone)]
+pub struct PersonRoutes {
+    pub base: Option<BranchName>,
+    pub selection: BTreeMap<ServerSlug, BranchName>,
+    pub unavailable: BTreeMap<ServerSlug, Unavailable>,
+}
+
+/// [`PersonRoutes`] of `person`, by the routing their calls take.
+pub async fn routes_for(
+    state: &HubState,
+    catalog: &HubCatalog,
+    person: &PrincipalId,
+) -> Result<PersonRoutes, ExecutionAdmissionError> {
+    let base = catalog
+        .control_plane()
+        .execution
+        .as_ref()
+        .and_then(|execution| execution.base_branch.as_ref());
+    let selection = state.hub_store().selection(person).await?;
+    let admitted = route(catalog.registrations(), base, &selection);
+    Ok(PersonRoutes {
+        base: base.cloned(),
+        selection,
+        unavailable: admitted.unavailable,
+    })
+}
+
 /// Route each server to its newest registered deployment that is not an instance, then
 /// [`select_instances`] over it.
 pub(super) fn route(

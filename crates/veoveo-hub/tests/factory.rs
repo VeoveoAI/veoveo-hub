@@ -16,7 +16,9 @@
 //! instance whose server registered with the Hub binary removes its sandbox, provider,
 //! instance, registration, login and database. The Hub binary's status route waits for
 //! the applied revision to serve or fail, for callers with a grant on the repository
-//! only. An instance's own client receives its latest pusher's Lore token, and a
+//! only. The inventory route answers what each caller may see, and a server carries its
+//! whole factory for an administrator only when the installation registered that server,
+//! never when it is an instance. An instance's own client receives its latest pusher's Lore token, and a
 //! Computer's own client its owner's login token, or the token of the one repository its
 //! scope names; neither client is taken for the other. A person who creates a repository
 //! through the fake Lore owns it at once. No OpenShell, Lore, BuildKit or image is
@@ -71,6 +73,10 @@ use veoveo_hub::{
     },
     registration::NewInstance,
     store::{Computer, HubStore},
+};
+use veoveo_hub_sdk::{
+    ForwardedRequest, HubInternalSigningKey, HubInternalTokenIssuer, HubInternalTokenVerifier,
+    HubInternalTrustBundle, TokenAudience, TokenIssuer, registration::client::Registration,
 };
 use veoveo_hub_sdk_fixture::ledger::{self, LedgerDomain, LedgerTasks};
 use veoveo_store::PlatformStore;
@@ -1642,6 +1648,254 @@ async fn the_status_route_waits_for_the_applied_revision_to_serve_or_fail() {
         drop(served);
     })
     .await;
+}
+
+#[tokio::test]
+async fn the_inventory_answers_what_each_caller_may_see() {
+    bounded(async {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let fixture = Fixture::start(json!(null)).await;
+        let directory = tempfile::tempdir().unwrap();
+        let hub = factory_hub(&fixture, directory.path()).await;
+        let http = reqwest::Client::new();
+        fixture
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let member = hub.access_token(&http, hub.caller("member")).await;
+        let admin = hub.access_token(&http, hub.caller("admin")).await;
+
+        // A person sees what their grants reach, and their own route.
+        let (code, body) = get_inventory(&http, &hub.base, &member, "own").await;
+        assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+        assert_eq!(body["scope"], "own");
+        assert_eq!(body["baseBranch"], BASE);
+        assert!(body.get("selections").is_none(), "{body}");
+        let repository = &body["repositories"][0];
+        assert_eq!(repository["title"], "Served");
+        assert_eq!(repository["reached"], true);
+        let instance = &repository["instances"][0];
+        assert_eq!(instance["branch"], BASE);
+        assert_eq!(
+            instance["detail"]["status"]["appliedRevision"],
+            "1".repeat(64)
+        );
+        // Lore issues the instance's token as its latest pusher, who holds no grant here.
+        assert_eq!(instance["detail"]["pusher"], "alice");
+        assert_eq!(instance["detail"]["pusherHoldsGrant"], false);
+        assert_eq!(body["databases"][0]["name"], instance["detail"]["database"]);
+
+        // An administrator's own scope reaches only their own grants, and the whole
+        // factory answers their administrative read.
+        let (code, body) = get_inventory(&http, &hub.base, &admin, "own").await;
+        assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+        assert_eq!(body["repositories"], json!([]));
+        let (code, body) = get_inventory(&http, &hub.base, &admin, "tenant").await;
+        assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+        assert_eq!(body["scope"], "tenant");
+        assert_eq!(body["selections"], json!([]));
+        assert_eq!(body["repositories"][0]["instances"][0]["branch"], BASE);
+
+        // A person who is no administrator does not read the whole factory.
+        let (code, body) = get_inventory(&http, &hub.base, &member, "tenant").await;
+        assert_eq!(code, reqwest::StatusCode::FORBIDDEN, "{body}");
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_server_the_installation_registered_carries_the_whole_factory_and_an_instance_does_not() {
+    bounded(async {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let fixture = Fixture::start(json!(null)).await;
+        let directory = tempfile::tempdir().unwrap();
+        let hub = factory_hub(&fixture, directory.path()).await;
+        let http = reqwest::Client::new();
+        let mut declaration = ledger::authorization().unwrap();
+        declaration.calls_hub = true;
+        let hosted = async |registration: &Registration| {
+            servers::hosted::<LedgerDomain>(registration, &http)
+                .handler(|| ledger::hosted(LedgerTasks::default()))
+                .build()
+        };
+        let installed = servers::serve(
+            &hub,
+            &http,
+            "ledger",
+            declaration.clone(),
+            async |registration, _, _| hosted(registration).await,
+        )
+        .await;
+
+        // An instance acts with the code someone pushed: its caller's own scope, and no more.
+        fixture
+            .apply(BASE, push('1', "alice"), fixture.prepared("FROM a", None))
+            .await
+            .unwrap();
+        let deployment = fixture.status(BASE).await.unwrap().deployment;
+        let instance = servers::serve_instance(
+            &hub,
+            &http,
+            "ledger",
+            declaration,
+            &fixture.instance(deployment),
+            async |registration, _, _| hosted(registration).await,
+        )
+        .await;
+        let endpoint = instance.metadata.registration.endpoint.url();
+        fixture.gateway.forward_to(
+            format!(
+                "{}:{}",
+                endpoint.host_str().unwrap(),
+                endpoint.port().unwrap()
+            )
+            .parse()
+            .unwrap(),
+        );
+        fixture
+            .gateway
+            .set_phase(WORKSPACE, &sandbox_name(deployment), p::SandboxPhase::Ready);
+        let admin = forwarded_through_the_hub(&hub, &http, &instance, "admin").await;
+        let token = exchanged_for_the_hub(&hub, &http, &instance, &admin).await;
+        let (code, body) = get_inventory(&http, &hub.base, &token, "tenant").await;
+        assert_eq!(code, reqwest::StatusCode::FORBIDDEN, "{body}");
+        let (code, body) = get_inventory(&http, &hub.base, &token, "own").await;
+        assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+
+        // A server the installation registered carries it for an administrator, and reaches
+        // no administrative route.
+        let forwarded = forwarded_to(&hub, &instance, &installed, &admin);
+        let token = exchanged_for_the_hub(&hub, &http, &installed, &forwarded).await;
+        let (code, body) = get_inventory(&http, &hub.base, &token, "tenant").await;
+        assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+        assert_eq!(body["scope"], "tenant");
+        let administrative = http
+            .get(format!("{}/admin/local/control-plane", hub.base))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(administrative.status(), reqwest::StatusCode::FORBIDDEN);
+
+        // For a caller who is no administrator, it carries nothing more than their own scope.
+        let member = forwarded_through_the_hub(&hub, &http, &instance, "member").await;
+        let forwarded = forwarded_to(&hub, &instance, &installed, &member);
+        let token = exchanged_for_the_hub(&hub, &http, &installed, &forwarded).await;
+        let (code, body) = get_inventory(&http, &hub.base, &token, "tenant").await;
+        assert_eq!(code, reqwest::StatusCode::FORBIDDEN, "{body}");
+    })
+    .await;
+}
+
+/// The token the Hub forwards to `server` when `role` reaches it through the Hub.
+async fn forwarded_through_the_hub(
+    hub: &hub::Hub,
+    http: &reqwest::Client,
+    server: &servers::Served,
+    role: &str,
+) -> String {
+    let token = hub.access_token(http, hub.caller(role)).await;
+    let client = servers::mcp_client(hub, token).await;
+    client.list_all_tools().await.unwrap();
+    client.cancel().await.unwrap();
+    server.bearers.last()
+}
+
+/// What the Hub would forward to `to` for the caller of `forwarded`, a token it forwarded to
+/// `from`: the same caller, signed with the Hub's key, addressed to the other server.
+fn forwarded_to(
+    hub: &hub::Hub,
+    from: &servers::Served,
+    to: &servers::Served,
+    forwarded: &str,
+) -> String {
+    use base64::Engine as _;
+    let key = HubInternalSigningKey::new(
+        base64::engine::general_purpose::STANDARD
+            .decode(hub.secret("VEOVEO_FORWARDED_TOKEN_KEY_B64"))
+            .unwrap(),
+    )
+    .unwrap();
+    let trust = HubInternalTrustBundle::from_key_set(
+        &veoveo_hub_sdk::registration::Ed25519JwkSet::new(vec![key.verification_key()]).unwrap(),
+    )
+    .unwrap();
+    let issuer = TokenIssuer::parse(&hub.base).unwrap();
+    let identity = HubInternalTokenVerifier::new(
+        issuer.clone(),
+        TokenAudience {
+            deployment: from.metadata.registration.deployment,
+            server: from.metadata.slug().clone(),
+            resource: veoveo_hub_sdk::registration::ResourceIndicator::from(
+                &from.metadata.registration.endpoint,
+            ),
+        },
+        trust,
+    )
+    .verify(forwarded)
+    .unwrap();
+    HubInternalTokenIssuer::new(issuer, key)
+        .unwrap()
+        .issue(ForwardedRequest {
+            deployment: to.metadata.registration.deployment,
+            profile: identity.profile,
+            server: to.metadata.slug().clone(),
+            audience: veoveo_hub_sdk::registration::ResourceIndicator::from(
+                &to.metadata.registration.endpoint,
+            ),
+            client: identity.client,
+            actor: identity.actor,
+            authority: identity.authority,
+            permissions: identity.permissions,
+            request_context: identity.request_context,
+            acting_server: None,
+            acting_task: None,
+            delegation_context: None,
+            expires_at: chrono::Utc::now() + chrono::TimeDelta::minutes(5),
+        })
+        .unwrap()
+        .bearer_token
+}
+
+/// The token `server` presents to the Hub for the caller of `forwarded`, exchanged for the
+/// caller's profile and naming no permissions.
+async fn exchanged_for_the_hub(
+    hub: &hub::Hub,
+    http: &reqwest::Client,
+    server: &servers::Served,
+    forwarded: &str,
+) -> String {
+    let (status, exchanged) = servers::exchange(
+        hub,
+        http,
+        server,
+        (forwarded, veoveo_hub_sdk::calls::ACCESS_TOKEN_TOKEN_TYPE),
+        Some(json!([{"type": "https://veoveo.ai/oauth/permissions", "actions": []}])),
+        Some(&format!("{}/mcp/local", hub.base)),
+    )
+    .await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{exchanged}");
+    exchanged["access_token"].as_str().unwrap().to_owned()
+}
+
+/// `GET /factory/local/instances` with `token` for `scope`.
+async fn get_inventory(
+    http: &reqwest::Client,
+    base: &str,
+    token: &str,
+    scope: &str,
+) -> (reqwest::StatusCode, serde_json::Value) {
+    let response = http
+        .get(format!("{base}/factory/local/instances?scope={scope}"))
+        .bearer_auth(token)
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    (
+        status,
+        response.json().await.unwrap_or(serde_json::Value::Null),
+    )
 }
 
 /// `GET /factory/local/instance` with `token` for `branch` of the repository.

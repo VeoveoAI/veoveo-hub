@@ -29,6 +29,27 @@ impl crate::store::HubStore {
             .collect()
     }
 
+    /// Each selection of the people of `tenant`.
+    pub async fn tenant_selections(
+        &self,
+        tenant: &veoveo_types::TenantId,
+    ) -> Result<Vec<(PrincipalId, ServerSlug, BranchName)>> {
+        sqlx::query_file!("src/store/selection/tenant.sql", tenant.as_str())
+            .fetch_all(self.pool())
+            .await
+            .context("read the tenant's selections")?
+            .into_iter()
+            .map(|row| {
+                Ok((
+                    PrincipalId::parse(row.principal)
+                        .context("stored selection names no principal")?,
+                    ServerSlug::parse(row.server).context("stored selection names no server")?,
+                    BranchName::parse(row.branch).context("stored selection names no branch")?,
+                ))
+            })
+            .collect()
+    }
+
     /// Serve `server` to `principal` from the instance of `branch`.
     pub async fn select(
         &self,

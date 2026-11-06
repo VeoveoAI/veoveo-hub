@@ -26,6 +26,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, ensure};
+use chrono::{DateTime, Utc};
 use openshell_sdk::{OpenShellClient, raw::proto as p};
 use secrecy::ExposeSecret;
 use serde::Serialize;
@@ -34,7 +35,7 @@ use veoveo_types::{DeploymentId, PrincipalId};
 
 pub use sandbox::{LINKED_CHECKOUT, LORE, check_linked_policy, sandbox_name};
 pub use status::{Condition, Failure, InstanceStatus, Phase, RunnerStatus, SandboxStatus, Stage};
-use veoveo_hub_sdk::hub::LinkName;
+use veoveo_hub_sdk::{ServerSlug, hub::LinkName};
 
 use crate::{
     HubCatalogHandle,
@@ -275,6 +276,22 @@ impl Source {
 }
 
 /// The factory sandboxes of one installation, in its factory workspace.
+/// An instance's place in the factory and its status.
+#[derive(Debug, Clone)]
+pub struct InventoryEntry {
+    /// The server, once its first registration named it.
+    pub server: Option<ServerSlug>,
+    pub repository: String,
+    pub branch: BranchName,
+    pub database: String,
+    pub created_at: DateTime<Utc>,
+    /// When its server registered or resumed, since its sandbox last started.
+    pub served_at: Option<DateTime<Utc>>,
+    pub pusher: Option<PrincipalId>,
+    pub linked_pusher: Option<PrincipalId>,
+    pub status: InstanceStatus,
+}
+
 #[derive(Clone)]
 pub struct Factory {
     client: OpenShellClient,
@@ -710,20 +727,84 @@ impl Factory {
         }
     }
 
+    /// Every instance of the factory with its status, from one listing of the workspace's
+    /// sandboxes.
+    pub async fn inventory(&self) -> Result<Vec<InventoryEntry>> {
+        let rows = record::inventory(&self.store).await?;
+        let sandboxes = self.sandboxes().await?;
+        rows.into_iter()
+            .map(|row| {
+                let name = sandbox_name(row.deployment);
+                let found = sandboxes.get(&name);
+                Ok(InventoryEntry {
+                    server: row
+                        .server
+                        .map(ServerSlug::parse)
+                        .transpose()
+                        .context("the stored server is malformed")?,
+                    repository: row.repository,
+                    branch: BranchName::parse(row.branch)
+                        .context("the stored branch is malformed")?,
+                    database: row.database,
+                    created_at: row.created_at,
+                    served_at: row.served_at,
+                    pusher: row
+                        .pusher
+                        .map(PrincipalId::parse)
+                        .transpose()
+                        .context("the stored pusher is malformed")?,
+                    linked_pusher: row
+                        .linked_pusher
+                        .map(PrincipalId::parse)
+                        .transpose()
+                        .context("the stored pusher is malformed")?,
+                    status: self.composed_status(row.deployment, row.record, found),
+                })
+            })
+            .collect()
+    }
+
+    /// Whether `deployment` is an instance of the factory.
+    pub async fn is_instance(&self, deployment: DeploymentId) -> Result<bool> {
+        record::is_instance(&self.store, deployment).await
+    }
+
+    /// The name of the installation's database, the base branch's data environment.
+    pub fn installation_database(&self) -> Result<String> {
+        Ok(DatabaseName::installation(&self.store)?.as_str().to_owned())
+    }
+
+    /// The size in bytes of each of the databases that exists.
+    pub async fn database_sizes(&self, names: &[String]) -> Result<Vec<(String, i64)>> {
+        record::database_sizes(&self.store, names).await
+    }
+
     /// The instance's status: its sandbox as OpenShell reports it, and what the Hub
     /// last applied and why its last step failed.
     async fn instance_status(&self, deployment: DeploymentId) -> Result<Option<InstanceStatus>> {
         let Some(record) = record::read(&self.store, deployment).await? else {
             return Ok(None);
         };
+        let found = self.sandbox(&sandbox_name(deployment)).await?;
+        Ok(Some(self.composed_status(
+            deployment,
+            record,
+            found.as_ref(),
+        )))
+    }
+
+    fn composed_status(
+        &self,
+        deployment: DeploymentId,
+        record: record::Record,
+        found: Option<&p::Sandbox>,
+    ) -> InstanceStatus {
         let name = sandbox_name(deployment);
-        let found = self.sandbox(&name).await?;
         let sandbox_id = found
-            .as_ref()
             .and_then(|sandbox| sandbox.metadata.as_ref())
             .map(|metadata| metadata.id.clone())
             .filter(|id| !id.is_empty());
-        let sandbox = found.as_ref().map(SandboxStatus::of);
+        let sandbox = found.map(SandboxStatus::of);
         let ready = sandbox
             .as_ref()
             .is_some_and(|sandbox| sandbox.phase == Phase::Ready);
@@ -744,7 +825,7 @@ impl Factory {
                     .into(),
             })
         });
-        Ok(Some(InstanceStatus {
+        InstanceStatus {
             deployment,
             workspace: self.config.workspace.clone(),
             sandbox_name: name,
@@ -756,7 +837,7 @@ impl Factory {
             warning: record.warning,
             ungranted_providers: record.ungranted_providers,
             runner: record.runner,
-        }))
+        }
     }
 
     /// The providers among `requested` that the active control plane's `factory.providers`
@@ -1042,6 +1123,41 @@ impl Factory {
 
     async fn sandbox(&self, name: &str) -> Result<Option<p::Sandbox>> {
         read_sandbox(&self.client, &self.config.workspace, name).await
+    }
+
+    /// The factory workspace's sandboxes by name.
+    async fn sandboxes(&self) -> Result<HashMap<String, p::Sandbox>> {
+        let mut sandboxes = HashMap::new();
+        let mut page_token = String::new();
+        loop {
+            let mut grpc = self.client.raw_grpc_fresh().await?;
+            let answer = tokio::time::timeout(
+                RPC_TIMEOUT,
+                grpc.list_sandboxes(p::ListSandboxesRequest {
+                    workspace_scope: scope(&self.config.workspace),
+                    page_size: 1000,
+                    page_token: page_token.clone(),
+                    label_selector: String::new(),
+                }),
+            )
+            .await
+            .context("OpenShell did not list the sandboxes in time")?
+            .map_err(|status| refused("list the sandboxes", &status))?
+            .into_inner();
+            for sandbox in answer.sandboxes {
+                if let Some(name) = sandbox
+                    .metadata
+                    .as_ref()
+                    .map(|metadata| metadata.name.clone())
+                {
+                    sandboxes.insert(name, sandbox);
+                }
+            }
+            if answer.next_page_token.is_empty() {
+                return Ok(sandboxes);
+            }
+            page_token = answer.next_page_token;
+        }
     }
 
     /// Run one step for the instance; when it fails, record why before returning the

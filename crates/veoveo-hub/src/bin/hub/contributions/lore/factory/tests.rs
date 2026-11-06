@@ -17,6 +17,7 @@ use std::{
     time::Duration,
 };
 
+use super::watch::BranchState;
 use anyhow::Result;
 use futures::future::BoxFuture as Building;
 use lore_proto::lore::{
@@ -465,6 +466,22 @@ impl Lore for FakeLore {
                 std::fs::write(directory.join("openshell/policy.yaml"), policy)?;
             }
             Ok(Some(super::read::prepared(directory)?))
+        })
+    }
+
+    fn asks_to_serve<'a>(
+        &'a self,
+        person: &'a PrincipalId,
+        _: &'a Watched,
+        revision: &'a Revision,
+    ) -> BoxFuture<'a, Result<bool>> {
+        Box::pin(async move {
+            let state = self.0.lock().unwrap();
+            anyhow::ensure!(
+                state.granted.contains(person),
+                Refused(format!("Lore refused {person}: PermissionDenied"))
+            );
+            Ok(state.runs.contains_key(revision))
         })
     }
 
@@ -1177,6 +1194,91 @@ async fn a_failed_read_is_recorded_for_the_branch_until_a_push_is_prepared() {
         })
         .await;
         assert_eq!(failure().await, None);
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_repositorys_branches_say_what_became_of_each() {
+    bounded(async {
+        let fixture = Fixture::start().await;
+        let (alice, carol) = (person("alice"), person("carol"));
+        let refused = "x".repeat(1001);
+        fixture.lore.with(|state| {
+            state.granted.extend([alice.clone(), carol.clone()]);
+            state.branches = vec![
+                live('1', "main", 'a'),
+                live('2', "notes", 'b'),
+                live('3', "broken", 'c'),
+                live('4', &refused, 'd'),
+                Branch {
+                    deleted: true,
+                    ..live('5', "gone", 'e')
+                },
+            ];
+            state.committers.insert(revision('a'), carol.clone());
+            state.committers.insert(revision('b'), carol.clone());
+            state.committers.insert(revision('c'), carol.clone());
+            state.runs.insert(revision('a'), None);
+            state.unreadable.insert(revision('c'));
+        });
+        fixture
+            .watches
+            .watch(watched(), alice.clone())
+            .await
+            .unwrap();
+        let store = fixture.watches.store().clone();
+        until("the failed read", || async {
+            store
+                .prepare_failure(&watched(), &name("broken"))
+                .await
+                .unwrap()
+                .is_some()
+        })
+        .await;
+        until("the push", || async {
+            fixture.applied("main").await == Some(revision('a'))
+        })
+        .await;
+        // A branch that asks to serve and that nothing has failed for yet.
+        fixture.lore.with(|state| {
+            state.branches.push(live('6', "asks", 'f'));
+            state.runs.insert(revision('f'), None);
+        });
+
+        let reports = fixture
+            .watches
+            .branch_states(&alice, &watched(), |branch| branch == &name("main"))
+            .await
+            .unwrap();
+        let states = reports
+            .into_iter()
+            .map(|report| (report.name, report.latest, report.state))
+            .map(|(branch, latest, state)| {
+                let state = match state {
+                    BranchState::PrepareFailed { message } => {
+                        assert!(message.contains("Lore failed to clone"), "{message}");
+                        "prepare_failed"
+                    }
+                    BranchState::Served => "served",
+                    BranchState::NoRun => "no_run",
+                    BranchState::NameRefused => "name_refused",
+                    BranchState::Pending => "pending",
+                    other => panic!("{other:?}"),
+                };
+                (branch, latest, state)
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            states,
+            [
+                ("main".to_owned(), revision('a'), "served"),
+                ("notes".to_owned(), revision('b'), "no_run"),
+                ("broken".to_owned(), revision('c'), "prepare_failed"),
+                (refused.clone(), revision('d'), "name_refused"),
+                ("asks".to_owned(), revision('f'), "pending"),
+            ]
+        );
     })
     .await;
 }

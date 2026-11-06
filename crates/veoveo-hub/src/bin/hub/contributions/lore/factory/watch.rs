@@ -38,6 +38,35 @@ const RESUBSCRIBE: Duration = Duration::from_secs(5);
 /// Held while a push is applied to an instance.
 type InstanceLock = Arc<tokio::sync::Mutex<()>>;
 
+/// What the factory makes of a live branch of a repository.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case", tag = "state")]
+pub(crate) enum BranchState {
+    /// It has an instance or runners.
+    Served,
+    /// Its latest revision has no executable `openshell/run`, so it does not ask to serve.
+    NoRun,
+    /// The Hub cannot name an instance after it.
+    NameRefused,
+    /// Its latest push could not be prepared.
+    PrepareFailed { message: String },
+    /// Its links could not run.
+    LinksFailed,
+    /// It asks to serve and nothing has failed yet.
+    Pending,
+    /// Lore did not answer for its latest revision.
+    Unreadable { message: String },
+}
+
+/// A live branch of a repository, with why its links could not run.
+#[derive(Debug, Clone)]
+pub(crate) struct BranchReport {
+    pub name: String,
+    pub latest: Revision,
+    pub state: BranchState,
+    pub link_failures: Vec<(LinkName, super::store::RunnerFailure)>,
+}
+
 /// An instance: a branch's ordinary one, or the runner of one of its links.
 type InstanceKey = (RepositoryId, BranchName, Option<LinkName>);
 
@@ -161,6 +190,82 @@ impl Watches {
             prepare_failure: self.inner.store.prepare_failure(&watched, branch).await?,
             runner_failure,
         })
+    }
+
+    /// Every watched repository and its watcher.
+    pub async fn watches(&self) -> Result<Vec<(Watched, PrincipalId)>> {
+        self.inner.store.watches().await
+    }
+
+    /// Who watches the repository, and why the last subscription as them failed.
+    pub async fn watch_status(
+        &self,
+        watched: &Watched,
+    ) -> Result<Option<super::store::WatchStatus>> {
+        self.inner.store.status(watched).await
+    }
+
+    /// The repository's live branches as `person` reads them, each with what the factory
+    /// makes of it. `served` says whether the branch has an instance or runners.
+    pub async fn branch_states(
+        &self,
+        person: &PrincipalId,
+        watched: &Watched,
+        served: impl Fn(&BranchName) -> bool,
+    ) -> Result<Vec<BranchReport>> {
+        let branches = self.inner.lore.branches(person, watched).await?;
+        let mut reports = Vec::new();
+        for branch in branches.into_iter().filter(|branch| !branch.deleted) {
+            let Ok(name) = BranchName::parse(&branch.name) else {
+                reports.push(BranchReport {
+                    name: branch.name,
+                    latest: branch.latest,
+                    state: BranchState::NameRefused,
+                    link_failures: Vec::new(),
+                });
+                continue;
+            };
+            let mut link_failures = Vec::new();
+            for link in self.inner.store.runner_failures(watched, &name).await? {
+                if let Some(failure) = self
+                    .inner
+                    .store
+                    .runner_failure(watched, &name, &link)
+                    .await?
+                {
+                    link_failures.push((link, failure));
+                }
+            }
+            let state = if served(&name) {
+                BranchState::Served
+            } else if !link_failures.is_empty() {
+                BranchState::LinksFailed
+            } else if let Some(failure) = self.inner.store.prepare_failure(watched, &name).await? {
+                BranchState::PrepareFailed {
+                    message: failure.message,
+                }
+            } else {
+                match self
+                    .inner
+                    .lore
+                    .asks_to_serve(person, watched, &branch.latest)
+                    .await
+                {
+                    Ok(true) => BranchState::Pending,
+                    Ok(false) => BranchState::NoRun,
+                    Err(error) => BranchState::Unreadable {
+                        message: format!("{error:#}"),
+                    },
+                }
+            };
+            reports.push(BranchReport {
+                name: branch.name,
+                latest: branch.latest,
+                state,
+                link_failures,
+            });
+        }
+        Ok(reports)
     }
 
     /// The watch of a linked repository of the caller's tenant's Lore deployment.

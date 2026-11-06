@@ -6,7 +6,7 @@ use veoveo_hub::audit::{authentication_reason, client_target, profile_target};
 use veoveo_hub::contract::HubAction;
 pub(super) use veoveo_hub::http::action_audit::{
     AdminAuthorizationRequest, AdminOperationAuditRecord, AdminOperationStatus,
-    authorize_hub_action, record_hub_operation_audit,
+    authorize_factory_read, authorize_hub_action, record_hub_operation_audit,
 };
 use veoveo_hub::http::auth_support::audit_request;
 pub(super) use veoveo_hub::http::auth_support::{
