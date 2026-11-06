@@ -18,16 +18,16 @@ use chrono::{DateTime, Utc};
 use futures::{StreamExt, stream};
 use serde::{Deserialize, Serialize};
 use veoveo_hub::{
-    AuthenticatedSubject, HubCatalog,
+    AuthenticatedSubject, HubCatalog, PolicyRequest,
     contract::{HubAction, HubServerHealthState, PrincipalDisplayName},
-    control_plane::PolicyTarget,
+    control_plane::{PolicyEffect, PolicyTarget, TraceId},
     execution::{BranchName, routes_for},
     factory::{Factory, InstanceStatus, InventoryEntry, Revision},
     http::ProfileAuthState,
     person::{Email, Person},
     problem::Problem,
 };
-use veoveo_hub_sdk::{ServerSlug, hub::LinkName};
+use veoveo_hub_sdk::{HubProfileId, ServerSlug, hub::LinkName};
 use veoveo_types::{PrincipalId, TenantId};
 
 use super::{
@@ -248,6 +248,7 @@ async fn inventory(
         let Some(profile_id) = admin_profile_id(profile) else {
             return StatusCode::NOT_FOUND.into_response();
         };
+        let profile_id = administering_profile(&catalog, &subject).unwrap_or(profile_id);
         let acting_server_installed = match &subject.delegation {
             None => false,
             Some(delegation) => match inventory
@@ -298,6 +299,31 @@ async fn inventory(
             Problem::internal().into_response()
         }
     }
+}
+
+/// The profile whose policy admits the caller's administrative read. An administrator's
+/// browser and Computer come through the Computers' profile, and their administration
+/// through another, which is the one that decides this read.
+fn administering_profile(
+    catalog: &HubCatalog,
+    subject: &AuthenticatedSubject,
+) -> Option<HubProfileId> {
+    let trace_id = TraceId::parse(&subject.audit.trace_id).ok()?;
+    catalog
+        .profiles()
+        .map(|profile| profile.id.clone())
+        .find(|profile| {
+            catalog
+                .decide(PolicyRequest {
+                    principal: &subject.principal,
+                    profile,
+                    action: HubAction::AdminRead.into(),
+                    target: &PolicyTarget::Hub,
+                    trace_id: &trace_id,
+                })
+                .effect
+                == PolicyEffect::Allow
+        })
 }
 
 async fn read(

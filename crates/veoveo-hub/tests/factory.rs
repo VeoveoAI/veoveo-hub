@@ -1458,6 +1458,14 @@ async fn removing_an_instance_deletes_its_sandbox_providers_registrations_and_da
 /// The Hub binary with the factory on the fake gateway, over TLS, and a Lore grant on
 /// the repository for its `member` caller only.
 async fn factory_hub(fixture: &Fixture, directory: &Path) -> hub::Hub {
+    factory_hub_with(fixture, directory, |_| {}).await
+}
+
+async fn factory_hub_with(
+    fixture: &Fixture,
+    directory: &Path,
+    configure: impl FnOnce(&mut serde_json::Value),
+) -> hub::Hub {
     let (gateway, authority) = fixture.gateway.serve_tls().await;
     let authority_file = directory.join("gateway-ca.pem");
     std::fs::write(&authority_file, authority).unwrap();
@@ -1504,6 +1512,7 @@ async fn factory_hub(fixture: &Fixture, directory: &Path) -> hub::Hub {
                     "principal": format!("{issuer}#acceptance-member"), "actions": [],
                 }],
             });
+            configure(config);
         },
     )
     .await
@@ -1697,6 +1706,48 @@ async fn the_inventory_answers_what_each_caller_may_see() {
         assert_eq!(body["repositories"][0]["instances"][0]["branch"], BASE);
 
         // A person who is no administrator does not read the whole factory.
+        let (code, body) = get_inventory(&http, &hub.base, &member, "tenant").await;
+        assert_eq!(code, reqwest::StatusCode::FORBIDDEN, "{body}");
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn the_whole_factory_follows_administration_in_whichever_profile_the_policy_admits_it() {
+    bounded(async {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let fixture = Fixture::start(json!(null)).await;
+        let directory = tempfile::tempdir().unwrap();
+        let hub = factory_hub_with(&fixture, directory.path(), |config| {
+            let mut second = config["profiles"][0].clone();
+            second["id"] = json!("second");
+            second["protectedResource"] = json!(
+                second["protectedResource"]
+                    .as_str()
+                    .unwrap()
+                    .replace("/mcp/local", "/mcp/second")
+            );
+            config["profiles"].as_array_mut().unwrap().push(second);
+            for rule in config["policies"][0]["rules"].as_array_mut().unwrap() {
+                if rule["id"] == "fixture-control-plane" {
+                    rule["profiles"] = json!(["second"]);
+                }
+            }
+        })
+        .await;
+        let http = reqwest::Client::new();
+        let admin = hub.access_token(&http, hub.caller("admin")).await;
+        // The caller comes through `local`, where the policy admits no administration.
+        let administrative = http
+            .get(format!("{}/admin/local/control-plane", hub.base))
+            .bearer_auth(&admin)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(administrative.status(), reqwest::StatusCode::FORBIDDEN);
+        let (code, body) = get_inventory(&http, &hub.base, &admin, "tenant").await;
+        assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+        let member = hub.access_token(&http, hub.caller("member")).await;
         let (code, body) = get_inventory(&http, &hub.base, &member, "tenant").await;
         assert_eq!(code, reqwest::StatusCode::FORBIDDEN, "{body}");
     })

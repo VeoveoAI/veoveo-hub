@@ -594,8 +594,9 @@ It is the one administrative read a server may carry for its caller, so that an
 administrator's console reaches it. A server acting for its caller reaches no
 administrative route, since an administrative decision does not narrow to the permissions
 its exchanged token carries; here there is nothing to narrow, as this route only reads
-this inventory, so the caller's `admin_read` decides it when the acting server is one the
-installation registered. An instance acts with the code someone pushed, and is refused, as
+this inventory, so the caller's `admin_read`, in whichever profile the policy admits it, decides it when the
+acting server is one the installation registered: an administrator's browser and Computer come
+through the Computers' profile, and their administration through another. An instance acts with the code someone pushed, and is refused, as
 it is on every administrative route.
 
 The Lore contribution turns pushes into instances
