@@ -50,6 +50,9 @@ struct HostConfig<'a> {
     /// The path on this origin under which `ui/open-link` opens a file on the content
     /// domain, through its page.
     view_pages: &'static str,
+    /// The path on this origin under which `ui/open-link` opens another App's page, which
+    /// admits the person as any page does.
+    app_pages: &'static str,
 }
 
 #[derive(Serialize)]
@@ -135,6 +138,7 @@ pub(super) fn host_page(
         app_origin,
         computer_apps: "/computer/apps/",
         view_pages: "/view/",
+        app_pages: "/apps/",
     };
     let body = format!(
         "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\

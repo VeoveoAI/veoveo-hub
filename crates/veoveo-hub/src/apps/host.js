@@ -216,8 +216,9 @@
 
   // A view never frames a full web application: a frame nested in the view inherits its
   // sandbox and opaque origin, so it holds no session. The view opens top-level instead
-  // its server's app origin, or a program of the person's own Computer under
-  // `/computer/apps/` on this origin, which reaches nobody else's; other targets fail.
+  // its server's app origin, a program of the person's own Computer under `/computer/apps/`
+  // on this origin, which reaches nobody else's, a file's page or another App's page; other
+  // targets fail.
   const openLink = (id, params) => {
     let url;
     try {
@@ -235,8 +236,12 @@
       && typeof config.viewPages === "string"
       && url.pathname.startsWith(config.viewPages)
       && url.pathname.length > config.viewPages.length;
-    if (!appOrigin && !computer && !view) {
-      return fail(id, INVALID_PARAMS, "This host opens only the App's own server's app origin and your own Computer's programs.");
+    const app = url.origin === window.location.origin
+      && typeof config.appPages === "string"
+      && url.pathname.startsWith(config.appPages)
+      && url.pathname.length > config.appPages.length;
+    if (!appOrigin && !computer && !view && !app) {
+      return fail(id, INVALID_PARAMS, "This host opens only the App's own server's app origin, Apps, files and your own Computer's programs.");
     }
     // The page itself goes there: no pop-up to block and no opener to reach back.
     reply(id, {});
@@ -252,6 +257,12 @@
       else if (message.method === "ui/notifications/initialized") {
         initialized = true;
         for (const message of held.splice(0)) send(message);
+        // The address this page was opened at, as MCP Apps gives a view what it was opened with.
+        if (window.location.search) {
+          notify("ui/notifications/tool-input", {
+            arguments: Object.fromEntries(new URLSearchParams(window.location.search)),
+          });
+        }
       } else if (message.method === "notifications/cancelled" && isRecord(message.params)) {
         // The view ends its listen; a cancelled request is answered no more.
         listens.get(message.params.requestId)?.abort();

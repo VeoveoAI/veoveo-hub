@@ -525,6 +525,10 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
             "a server that declares no app origin is no target of ui/open-link"
         );
         assert_eq!(
+            data["appPages"], "/apps/",
+            "ui/open-link opens another App's page"
+        );
+        assert_eq!(
             data["viewPages"], "/view/",
             "the host admits a file's page beside the Computer's programs"
         );
@@ -579,6 +583,8 @@ async fn the_host_opens_only_an_app_the_person_sees_and_signs_in_first() {
         assert!(body.contains("allow-scripts allow-same-origin"));
         assert!(body.contains("url.pathname.startsWith(config.computerApps)"));
         assert!(body.contains("url.pathname.startsWith(config.viewPages)"));
+        assert!(body.contains("url.pathname.startsWith(config.appPages)"));
+        assert!(body.contains("ui/notifications/tool-input"));
         assert!(body.contains(r#"new Set(["tools/call", "resources/list", "resources/read", ...taskMethods])"#));
         assert_eq!(digest, hex::encode(&Sha256::digest(body.as_bytes())[..16]));
         let stale = axum::http::Request::get("/apps/host.js").body(Body::empty()).unwrap();

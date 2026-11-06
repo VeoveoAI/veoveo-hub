@@ -1364,8 +1364,12 @@ server's app origin when the server declares one, `computerApps`, `/computer/app
 `viewPages`, `/view/`. Its `ui/open-link` navigates the page to a URL of exactly that
 origin, to a URL under `/computer/apps/` on the issuer's origin, a relative one
 resolving there and its dot segments resolved first, which reaches the signed-in
-person's own Computer alone, or to a URL under `/view/` there, a
-[file's page](#content-domain), and refuses every other target.
+person's own Computer alone, to a URL under `/view/` there, a
+[file's page](#content-domain), or to a URL under `/apps/` there, `appPages`, another App's page,
+which admits the person as any page does, and refuses every other target. A page takes a query:
+the host hands its pairs to the view once it has initialized, as the `arguments` of MCP Apps'
+`ui/notifications/tool-input`, so one App can open another at a place. They are a stranger's text
+to the view, which reads with them only as the person.
 
 `hub.app_origin_code` and `hub.app_origin_session` hold the codes and sessions; a family's
 or Computer's deletion removes them, and an expired or revoked family admits none.
