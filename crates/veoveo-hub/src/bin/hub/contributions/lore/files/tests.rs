@@ -623,3 +623,35 @@ async fn a_lore_that_cannot_be_reached_answers_unavailable() {
         "lore-files-unavailable",
     );
 }
+
+#[test]
+fn a_whole_tree_names_paths_and_does_not_enter_a_link() {
+    let node = |path: &str, kind: NodeType| TreeNode {
+        path: path.to_owned(),
+        node_type: kind as i32,
+        size: 3,
+        ..TreeNode::default()
+    };
+    let entries = tree_entries(vec![
+        node("", NodeType::Directory),
+        node("a", NodeType::Directory),
+        node("a/b.png", NodeType::File),
+        node("a/linked", NodeType::Link),
+        node("a/linked/secret.png", NodeType::File),
+        node("a/linked/deep/secret.png", NodeType::File),
+        node("a/linked-not.png", NodeType::File),
+    ]);
+    let paths: Vec<(&str, &str)> = entries
+        .iter()
+        .map(|entry| (entry.path.as_str(), entry.kind))
+        .collect();
+    assert_eq!(
+        paths,
+        [
+            ("a", "directory"),
+            ("a/b.png", "file"),
+            ("a/linked", "link"),
+            ("a/linked-not.png", "file"),
+        ]
+    );
+}

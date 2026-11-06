@@ -62,6 +62,16 @@ pub(crate) async fn folder(
     walk(client, request, revision, folder, Some(1)).await
 }
 
+/// Everything in the revision. A link is listed and, when its person may read the linked
+/// repository, entered.
+pub(crate) async fn everything(
+    client: ThinClientServiceClient<Channel>,
+    request: impl Fn(RevisionTreeRequest) -> Result<Request<RevisionTreeRequest>>,
+    revision: &Revision,
+) -> Result<Vec<TreeNode>> {
+    walk(client, request, revision, None, None).await
+}
+
 /// Everything at or under the top-level `directory` of the revision. A link under it is
 /// listed and, when its person may read the linked repository, entered.
 pub(super) async fn under(

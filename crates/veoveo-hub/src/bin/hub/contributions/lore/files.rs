@@ -119,6 +119,7 @@ pub(crate) fn router(state: AdminState, auth: ProfileAuthState) -> Result<Router
         http: client()?,
     };
     Ok(Router::new()
+        .route("/lore/{profile}/repositories/{id}/tree/{branch}", get(tree))
         .route(
             "/lore/{profile}/repositories/{id}/files/{branch}",
             get(file),
@@ -199,6 +200,109 @@ async fn as_caller(
         headers,
     )
     .await
+}
+
+async fn tree(
+    State(files): State<Files>,
+    Extension(subject): Extension<AuthenticatedSubject>,
+    axum::extract::Path((_, id, branch)): axum::extract::Path<(String, String, String)>,
+) -> Response {
+    marked(whole_tree(&files, &subject, &id, &branch).await)
+}
+
+/// Everything on a branch's tip, by one read of Lore, for the caller with a grant on the
+/// repository. A link is listed and not entered, so what it answers does not depend on what
+/// else the caller may read.
+async fn whole_tree(
+    files: &Files,
+    subject: &AuthenticatedSubject,
+    id: &str,
+    branch: &str,
+) -> Result<Response, Problem> {
+    let repository = RepositoryId::parse(id).map_err(|_| refused(Refusal::UnknownRepository))?;
+    let tenant = subject
+        .principal
+        .tenant
+        .as_ref()
+        .ok_or_else(|| refused(Refusal::NotGranted))?;
+    let catalog = files.state.catalog.current();
+    let section = Lore::of(&catalog).map_err(|error| {
+        tracing::error!("the Lore section is unreadable: {error:#}");
+        unavailable()
+    })?;
+    let deployment = section.sole_deployment().map_err(|reason| {
+        tracing::error!("Lore files have no deployment: {reason}");
+        unavailable()
+    })?;
+    let caller = Caller {
+        tenant,
+        principal: &subject.principal.id,
+    };
+    section
+        .readable(&deployment.id, &repository, caller)
+        .map_err(refused)?;
+    let token = issue(&catalog, &subject.principal.id, &deployment.id, &repository)
+        .await
+        .map_err(|error| match error {
+            TokenIssueError::Denied(cause) => {
+                tracing::info!("no Lore token to read a tree: {cause:#}");
+                refused(Refusal::NotGranted)
+            }
+            TokenIssueError::Unavailable(cause) => {
+                tracing::error!("failed to issue a Lore token to read a tree: {cause:#}");
+                unavailable()
+            }
+        })?
+        .access_token;
+    let tree = NativeTree::at_tip(deployment, &repository, branch, &token)
+        .await
+        .map_err(failed)?;
+    let nodes = tree.everything().await.map_err(failed)?;
+    let mut response = Json(WholeTree {
+        repository: &repository,
+        branch,
+        entries: tree_entries(nodes),
+    })
+    .into_response();
+    if let Some(revision) = tree
+        .revision()
+        .and_then(|revision| HeaderValue::from_str(&revision).ok())
+    {
+        response.headers_mut().insert(LORE_REVISION, revision);
+    }
+    Ok(response)
+}
+
+/// A tree's entries by their whole paths, leaving out what lies under a link.
+fn tree_entries(nodes: Vec<TreeNode>) -> Vec<TreeEntry> {
+    let links: std::collections::HashSet<&str> = nodes
+        .iter()
+        .filter(|node| NodeType::try_from(node.node_type) == Ok(NodeType::Link))
+        .map(|node| node.path.as_str())
+        .collect();
+    let under_a_link = |path: &str| {
+        let mut path = path;
+        while let Some((parent, _)) = path.rsplit_once('/') {
+            if links.contains(parent) {
+                return true;
+            }
+            path = parent;
+        }
+        false
+    };
+    nodes
+        .iter()
+        .filter(|node| !node.path.is_empty() && !under_a_link(&node.path))
+        .map(|node| {
+            let entry = Entry::of(node);
+            TreeEntry {
+                path: node.path.clone(),
+                kind: entry.kind,
+                size: entry.size,
+                address: entry.address,
+            }
+        })
+        .collect()
 }
 
 /// What one read names.
@@ -302,6 +406,18 @@ impl<'a> NativeTree<'a> {
     }
 }
 
+impl NativeTree<'_> {
+    /// Everything on the tip; nothing when the branch has no revision.
+    async fn everything(&self) -> Result<Vec<TreeNode>> {
+        let Some(tip) = &self.tip else {
+            return Ok(Vec::new());
+        };
+        let request =
+            |message: RevisionTreeRequest| native::request(message, self.token, self.repository);
+        tree_read::everything(self.client.clone(), request, tip).await
+    }
+}
+
 impl Tree for NativeTree<'_> {
     fn revision(&self) -> Option<String> {
         self.tip.as_ref().map(ToString::to_string)
@@ -367,6 +483,23 @@ struct Listing<'a> {
     branch: &'a str,
     path: String,
     entries: Vec<Entry>,
+}
+
+#[derive(Serialize)]
+struct WholeTree<'a> {
+    repository: &'a RepositoryId,
+    branch: &'a str,
+    entries: Vec<TreeEntry>,
+}
+
+#[derive(Serialize)]
+struct TreeEntry {
+    path: String,
+    #[serde(rename = "type")]
+    kind: &'static str,
+    size: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    address: Option<String>,
 }
 
 #[derive(Serialize)]

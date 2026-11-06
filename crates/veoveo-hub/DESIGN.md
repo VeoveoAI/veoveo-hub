@@ -1762,6 +1762,7 @@ which has no person, takes the base branch's.
 | `POST /lore/{profile}/repositories` | The caller creates a Lore repository and owns it; 201 with its ID and clone URL |
 | `GET /lore/{profile}/repositories` | The Lore repositories the caller holds a grant on, as [below](#repository-listing) |
 | `GET /lore/{profile}/repositories/{id}/files/{branch}/{path}` | A file of a Lore repository at the tip of a branch, or a folder's listing, read as the caller ([files](#files-from-lore)) |
+| `GET /lore/{profile}/repositories/{id}/tree/{branch}` | Everything on a branch's tip by one read of Lore, as the caller ([files](#files-from-lore)) |
 | `GET`/`PUT /lore/{profile}/repositories/{id}/access` | Who may reach a repository; an owner shares it with a person or a group ([groups and sharing](#groups-and-sharing)) |
 | `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members`, `DELETE /lore/{profile}/groups/{name}` | The caller's groups; creating one; an owner sets a membership or deletes the group |
 | `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person holds a grant on, own or through a group, for Lore's repository listing |
@@ -2726,6 +2727,11 @@ caller with a grant on the repository, as the [access list](#groups-and-sharing)
    name matches.
 3. For a file, reads `GET {httpEndpoint}/v1/repository/{id}/content/{address}` with the
    token and streams the answer as it arrives.
+
+`GET /lore/{profile}/repositories/{id}/tree/{branch}` answers the same caller with every entry
+of the tip, by its whole path, type, size and address, from one `RevisionTree` that is not limited
+to a folder, and names the tip in `Lore-Revision`. A link is listed and not entered, so what it
+answers depends only on the repository and the revision, and a server may keep it by revision.
 
 Lore's rules decide each read, since the token is the person's and Lore checks it on
 both calls. A refusal by either answers 403 `repository-access-forbidden`, a path or
