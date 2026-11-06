@@ -131,6 +131,8 @@ struct Received {
     method: String,
     name: Option<String>,
     params: Value,
+    /// The App the bridge named on the in-process request.
+    caller: Option<String>,
 }
 
 #[derive(Clone)]
@@ -271,6 +273,10 @@ async fn mcp(State(endpoint): State<Endpoint>, request: Request) -> Response {
         subject.access_token.oauth_client_id.as_str(),
         "operator-local-public"
     );
+    let caller = request
+        .extensions()
+        .get::<super::AppCaller>()
+        .map(|caller| caller.uri().to_owned());
     let bytes = axum::body::to_bytes(request.into_body(), usize::MAX)
         .await
         .unwrap();
@@ -315,6 +321,7 @@ async fn mcp(State(endpoint): State<Endpoint>, request: Request) -> Response {
             .get("mcp-name")
             .map(|value| value.to_str().unwrap().to_owned()),
         params: params.clone(),
+        caller,
     });
     if method == "subscriptions/listen" {
         return listen_stream(&endpoint, &message["id"], &params);
@@ -635,33 +642,39 @@ async fn the_bridge_reaches_only_the_apps_own_linked_tools_and_resources_as_the_
         let answer = response(&text);
         assert_eq!(answer["result"]["structuredContent"]["called"], "fixture__move");
         assert!(text.contains("\"largest\":18446744073709551615"), "integers reach the host exactly: {text}");
-        let call = fixture.received().into_iter().find(|r| r.method == "tools/call").unwrap();
-        assert_eq!(call.name.as_deref(), Some("fixture__move"));
-        assert_eq!(call.params["arguments"], json!({"to": 3}));
+        // It is the one request sent, and it names its App, by which the Hub's call path
+        // admits it: no read of any catalog comes first.
+        let sent = fixture.received();
+        assert_eq!(sent.len(), 1, "{sent:?}");
+        assert_eq!(sent[0].method, "tools/call");
+        assert_eq!(sent[0].name.as_deref(), Some("fixture__move"));
+        assert_eq!(sent[0].params["arguments"], json!({"to": 3}));
+        assert_eq!(sent[0].caller.as_deref(), Some("ui://fixture/board.html"));
 
-        // Unlinked, model-only, another App's and another server's tools never leave
-        // the Hub.
-        for name in ["unlinked", "summarize", "other", "play", "neighbor__play", "fixture__move"] {
-            let (status, text) = fixture.call("tools/call", json!({"name": name})).await;
-            assert_eq!(status, StatusCode::OK);
-            let answer = response(&text);
-            assert_eq!(answer["error"]["code"], -32602, "{name}");
-            assert!(answer["error"]["message"].as_str().unwrap().contains("is not linked to the App"));
-            assert!(fixture.received().iter().all(|r| r.method != "tools/call"), "{name} reached no server");
+        // Whatever a view writes stays under its own server's slug.
+        for name in ["play", "neighbor__play", "fixture__move"] {
+            fixture.call("tools/call", json!({"name": name})).await;
+            let sent = fixture.received();
+            assert_eq!(sent[0].name.as_deref(), Some(format!("fixture__{name}").as_str()));
         }
+        let (_, text) = fixture.call("tools/call", json!({})).await;
+        assert_eq!(response(&text)["error"]["code"], -32602);
+        assert!(fixture.received().is_empty(), "a call that names no tool reaches nothing");
 
         // The App's own server's resources travel unchanged, queries included.
         for uri in ["fixture://events?cursor=eyJhZnRlciI6MX0%3D", "ui://fixture/board.html"] {
             let (_, text) = fixture.call("resources/read", json!({"uri": uri})).await;
             assert_eq!(response(&text)["result"]["contents"][0]["uri"], uri);
-            let read = fixture.received().into_iter().find(|r| r.method == "resources/read").unwrap();
-            assert_eq!(read.params["uri"], uri);
-            assert_eq!(read.name.as_deref(), Some(uri));
+            let sent = fixture.received();
+            assert_eq!(sent.len(), 1, "a read is the one request sent: {sent:?}");
+            assert_eq!(sent[0].params["uri"], uri);
+            assert_eq!(sent[0].name.as_deref(), Some(uri));
+            assert_eq!(sent[0].caller, None);
         }
         for uri in ["neighbor://items/1", "ui://neighbor/board.html"] {
             let (_, text) = fixture.call("resources/read", json!({"uri": uri})).await;
             assert_eq!(response(&text)["error"]["code"], -32602, "{uri}");
-            assert!(fixture.received().iter().all(|r| r.method != "resources/read"), "{uri}");
+            assert!(fixture.received().is_empty(), "{uri}");
         }
 
         // A Task request is the person's own; its error passes unchanged.
@@ -673,8 +686,7 @@ async fn the_bridge_reaches_only_the_apps_own_linked_tools_and_resources_as_the_
         assert_eq!(fixture.received().last().unwrap().name.as_deref(), Some("task-1"));
 
         // The view lists its own server's resources from the person's catalog, every page
-        // of it, with nothing sent but the reads that find the App: a linked server's
-        // under exactly the person's links, and its Apps.
+        // of it: a linked server's under exactly the person's links, and its Apps.
         fixture.received();
         let (status, text) = fixture.call("resources/list", json!({})).await;
         assert_eq!(status, StatusCode::OK);
@@ -709,6 +721,7 @@ async fn the_bridge_reaches_only_the_apps_own_linked_tools_and_resources_as_the_
         fixture.received();
         let (_, text) = fixture.call("ping", json!({})).await;
         assert_eq!(response(&text)["result"], json!({}));
+        assert!(fixture.received().is_empty(), "a ping reads nothing");
 
         // Only the host page's origin, with a session, sends one bounded request.
         let body = || json!({"jsonrpc": "2.0", "id": 1, "method": "ping"}).to_string();

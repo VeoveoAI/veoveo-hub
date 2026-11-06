@@ -248,6 +248,89 @@ fn payload(description: &'static str, denied: u32) -> AdmittedCatalog<Tool> {
     }
 }
 
+/// A view's call is admitted from its one server's discovered list, as that server
+/// declares its tools to this person. Any other caller names no App.
+#[tokio::test]
+async fn a_views_call_is_admitted_from_its_servers_discovered_list() {
+    use veoveo_hub_sdk::apps::{UiVisibility, link_tool_to_app};
+    let mut fixture = Fixture::new().await;
+    let (view, subject, key) = fixture.admitted();
+    // A list held before its server's change stream opened is not trusted, so the stream first.
+    fixture.open(&view, &subject, &key).await;
+    let app = crate::apps::AppView::from_path("/apps/watch-fixture/board.html").unwrap();
+    let tool = |name: &str| Tool::new(name.to_owned(), "fixture tool", Arc::default());
+    let items = vec![
+        link_tool_to_app(tool("watch-fixture__move"), app.uri(), &[UiVisibility::App]),
+        link_tool_to_app(
+            tool("watch-fixture__summarize"),
+            app.uri(),
+            &[UiVisibility::Model],
+        ),
+        link_tool_to_app(
+            tool("watch-fixture__other"),
+            "ui://watch-fixture/other.html",
+            &[UiVisibility::App],
+        ),
+        tool("watch-fixture__unlinked"),
+    ];
+    cache(&view, &key, &AdmittedCatalog { items, denied: 0 }).await;
+    let context = |caller: Option<crate::apps::AppCaller>| {
+        let mut context = rmcp::service::RequestContext::new(
+            rmcp::model::NumberOrString::Number(1),
+            fixture.downstream.peer().clone(),
+        );
+        let (mut parts, ()) = axum::http::Request::new(()).into_parts();
+        if let Some(caller) = caller {
+            parts.extensions.insert(caller);
+        }
+        context.extensions.insert(parts);
+        context
+    };
+    let caller = crate::apps::AppCaller::new(&app);
+    view.admit_app_caller(
+        &fixture.server,
+        "watch-fixture__move",
+        &context(Some(caller.clone())),
+        &subject,
+    )
+    .await
+    .unwrap();
+    for target in [
+        "watch-fixture__summarize",
+        "watch-fixture__other",
+        "watch-fixture__unlinked",
+        "watch-fixture__absent",
+        "watch-fixture__watch-fixture__move",
+    ] {
+        let refused = view
+            .admit_app_caller(
+                &fixture.server,
+                target,
+                &context(Some(caller.clone())),
+                &subject,
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(
+            refused.code,
+            rmcp::model::ErrorCode::INVALID_PARAMS,
+            "{target}"
+        );
+        assert!(
+            refused.message.contains("is not linked to the App"),
+            "{target}"
+        );
+    }
+    view.admit_app_caller(
+        &fixture.server,
+        "watch-fixture__unlinked",
+        &context(None),
+        &subject,
+    )
+    .await
+    .unwrap();
+}
+
 async fn cache(view: &HubMcp, key: &DiscoveryCacheKey, value: &AdmittedCatalog<Tool>) {
     let fetch = view.discovery.start_tools(key.clone()).await.unwrap();
     view.discovery

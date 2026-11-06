@@ -1,9 +1,9 @@
-//! What an App's view may ask of the Hub, decided against the catalogs the person sees
-//! now and never against anything the frame supplies besides its request.
+//! What an App's view may ask of the Hub, decided from its App's own address and never
+//! from anything the frame supplies besides its request.
 use rmcp::model::{Resource, Tool};
 use serde::Deserialize;
 use serde_json::{Map, Value};
-use veoveo_hub_sdk::apps::{is_app_resource, resolve_app_tool};
+use veoveo_hub_sdk::apps::{app_allows_tool, app_resource, is_app_resource};
 
 use super::route::AppView;
 
@@ -92,8 +92,6 @@ pub(super) enum Refusal {
     Missing(&'static str),
     #[error("the App `{0}` is not available to you")]
     App(String),
-    #[error("the tool `{tool}` is not linked to the App `{app}`")]
-    Tool { tool: String, app: String },
     #[error("the resource `{resource}` belongs to another server than the App `{app}`'s")]
     Resource { resource: String, app: String },
     #[error(
@@ -123,23 +121,36 @@ pub(super) fn find_app<'a>(
         .ok_or_else(|| Refusal::App(view.uri().to_owned()))
 }
 
-/// The tool a view's `tools/call` names, by its name on the App's server: a tool linked
-/// to this exact App and visible to Apps, which the SDK's shared admission resolves.
-/// The request's name becomes the tool's name in the Hub's catalog.
-pub(super) fn admit_tool(
-    app: &Resource,
-    tools: &[Tool],
-    params: &mut Map<String, Value>,
-) -> Result<Tool, Refusal> {
-    let Some(Value::String(name)) = params.get("name") else {
+/// A view's `tools/call` names a tool by its name on the App's server. Its catalog name
+/// is that name under the App's slug, so the call cannot leave that server.
+pub(super) fn name_tool(view: &AppView, params: &mut Map<String, Value>) -> Result<(), Refusal> {
+    let Some(Value::String(name)) = params.get_mut("name") else {
         return Err(Refusal::Missing("name"));
     };
-    let tool = resolve_app_tool(app, tools, name).ok_or_else(|| Refusal::Tool {
-        tool: name.clone(),
-        app: app.uri.clone(),
-    })?;
-    params.insert("name".to_owned(), Value::String(tool.name.to_string()));
-    Ok(tool.clone())
+    *name = format!("{}__{name}", view.server());
+    Ok(())
+}
+
+/// The App whose view sends a `tools/call`. Only the bridge sets it, on the in-process
+/// request, where no client can write it; the Hub's call path then reaches only a tool
+/// linked to this App and visible to Apps.
+#[derive(Debug, Clone)]
+pub struct AppCaller(Resource);
+
+impl AppCaller {
+    pub(crate) fn new(view: &AppView) -> Self {
+        Self(app_resource(view.uri(), view.uri()))
+    }
+
+    pub fn uri(&self) -> &str {
+        &self.0.uri
+    }
+
+    /// Whether `tools`, the App's server's as the person sees them, let this App call the
+    /// tool of catalog name `target`.
+    pub fn allows(&self, tools: &[Tool], target: &str) -> bool {
+        app_allows_tool(&self.0, tools, target)
+    }
 }
 
 /// The resources a view lists: those of `resources`, the catalog the person sees, that
@@ -259,14 +270,17 @@ mod tests {
 
     #[test]
     fn a_view_calls_only_tools_linked_to_its_own_app_on_its_own_server() {
-        let (resources, tools) = catalog();
-        let app = find_app(&view(), &resources).unwrap();
-        for name in ["move", "reset"] {
+        let (_, tools) = catalog();
+        let caller = AppCaller::new(&view());
+        let named = |name: &str| {
             let mut params = call(name);
-            let tool = admit_tool(app, &tools, &mut params).unwrap();
-            assert_eq!(tool.name, format!("fixture__{name}"));
-            assert_eq!(params["name"], json!(format!("fixture__{name}")));
+            name_tool(&view(), &mut params).unwrap();
             assert_eq!(params["arguments"], json!({"to": 3}));
+            params["name"].as_str().unwrap().to_owned()
+        };
+        for name in ["move", "reset"] {
+            assert_eq!(named(name), format!("fixture__{name}"));
+            assert!(caller.allows(&tools, &named(name)), "{name}");
         }
         for (name, why) in [
             ("unlinked", "a tool linked to no App"),
@@ -280,23 +294,10 @@ mod tests {
             ),
             ("missing", "no tool"),
         ] {
-            let mut params = call(name);
-            assert_eq!(
-                admit_tool(app, &tools, &mut params),
-                Err(Refusal::Tool {
-                    tool: name.to_owned(),
-                    app: "ui://fixture/board.html".to_owned()
-                }),
-                "{why}"
-            );
-            assert_eq!(
-                params["name"],
-                json!(name),
-                "a refused request is unchanged"
-            );
+            assert!(!caller.allows(&tools, &named(name)), "{why}");
         }
         assert_eq!(
-            admit_tool(app, &tools, &mut Map::new()),
+            name_tool(&view(), &mut Map::new()),
             Err(Refusal::Missing("name"))
         );
     }

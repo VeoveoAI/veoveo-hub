@@ -85,47 +85,17 @@ impl HubMcp {
         let results = stream::iter(servers.into_iter().map(|server| {
             let context = &context;
             let subject = &subject;
-            let hub = self.at(&server);
             let server_slug = server.slug.clone();
             async move {
-                let catalog = hub.catalog.current();
-                let key = DiscoveryCacheKey {
-                    catalog_generation,
-                    principal: subject.actor.id.clone(),
-                    authorization_fingerprint,
-                    server: server_slug.clone(),
-                    link: server.link().cloned(),
-                };
-                if let Err(error) = hub
-                    .ensure_discovery_watch(&key, context.peer.clone(), subject)
-                    .await
-                {
-                    return (server_slug, Err(error));
-                }
-                if let Some(tools) = self.discovery.tools(&key).await {
-                    return (server_slug, Ok::<_, McpError>(tools));
-                }
-                let fetch = self.discovery.start_tools(key.clone()).await;
-                let result = async {
-                    let tools = hub
-                        .discover_tools_for_server(&catalog, &server_slug, context, subject)
-                        .await?;
-                    self.discovery
-                        .store_tools(
-                            fetch.clone().map(|fetch| fetch.with_denied(tools.denied)),
-                            tools.items.clone(),
-                        )
-                        .await;
-                    Ok(tools)
-                }
-                .await;
-                if result.is_err()
-                    && let Some(fetch) = fetch
-                {
-                    self.discovery
-                        .finish_failure(HubDiscoverySurface::Tools, fetch)
-                        .await;
-                }
+                let result = self
+                    .server_tools(
+                        &server,
+                        catalog_generation,
+                        authorization_fingerprint,
+                        context,
+                        subject,
+                    )
+                    .await;
                 (server_slug, result)
             }
         }))
@@ -167,6 +137,88 @@ impl HubMcp {
             cache_scope: Some(rmcp::model::CacheScope::Private),
             meta: degradation.into_meta(),
         })
+    }
+
+    /// The tools of one reachable server as `subject` sees them: discovery's list while
+    /// it holds, or one read of that server.
+    async fn server_tools(
+        &self,
+        server: &crate::registration::RegisteredServer,
+        catalog_generation: u64,
+        authorization_fingerprint: [u8; 32],
+        context: &RequestContext<RoleServer>,
+        subject: &AuthenticatedSubject,
+    ) -> Result<AdmittedCatalog<rmcp::model::Tool>, McpError> {
+        let hub = self.at(server);
+        let catalog = hub.catalog.current();
+        let key = DiscoveryCacheKey {
+            catalog_generation,
+            principal: subject.actor.id.clone(),
+            authorization_fingerprint,
+            server: server.slug.clone(),
+            link: server.link().cloned(),
+        };
+        hub.ensure_discovery_watch(&key, context.peer.clone(), subject)
+            .await?;
+        if let Some(tools) = self.discovery.tools(&key).await {
+            return Ok(tools);
+        }
+        let fetch = self.discovery.start_tools(key).await;
+        let result = hub
+            .discover_tools_for_server(&catalog, &server.slug, context, subject)
+            .await;
+        match (&result, fetch) {
+            (Ok(tools), fetch) => {
+                self.discovery
+                    .store_tools(
+                        fetch.map(|fetch| fetch.with_denied(tools.denied)),
+                        tools.items.clone(),
+                    )
+                    .await;
+            }
+            (Err(_), Some(fetch)) => {
+                self.discovery
+                    .finish_failure(HubDiscoverySurface::Tools, fetch)
+                    .await;
+            }
+            (Err(_), None) => {}
+        }
+        result
+    }
+
+    /// A view's call reaches only a tool linked to its App and visible to Apps, as that
+    /// one server declares it to this person. Any other caller names no App.
+    pub(super) async fn admit_app_caller(
+        &self,
+        server: &crate::registration::RegisteredServer,
+        target: &str,
+        context: &RequestContext<RoleServer>,
+        subject: &AuthenticatedSubject,
+    ) -> Result<(), McpError> {
+        let Some(caller) = context
+            .extensions
+            .get::<axum::http::request::Parts>()
+            .and_then(|parts| parts.extensions.get::<crate::apps::AppCaller>())
+        else {
+            return Ok(());
+        };
+        let tools = self
+            .server_tools(
+                server,
+                self.catalog.snapshot().generation(),
+                super::discovery_authorization_fingerprint(subject)?,
+                context,
+                subject,
+            )
+            .await?;
+        if caller.allows(&tools.items, target) {
+            return Ok(());
+        }
+        tracing::info!(app = caller.uri(), tool = target, "App request refused");
+        Err(mcp_invalid_params(format!(
+            "the tool `{target}` is not linked to the App `{}`",
+            caller.uri()
+        )))
     }
 
     /// Share independent discovery and a bounded initial-settlement window.
@@ -386,8 +438,9 @@ impl HubMcp {
                 .await
                 .into());
         };
-        // Boxed: the routed call's future is large, and nesting it would overflow a
-        // worker's stack in a debug build.
+        // Boxed, as is the call below: these futures are large, and nesting them would
+        // overflow a worker's stack in a debug build.
+        Box::pin(self.admit_app_caller(&server, &request.name, &context, &subject)).await?;
         Box::pin(
             self.at(&server)
                 .call_routed_tool(request, context, projection),

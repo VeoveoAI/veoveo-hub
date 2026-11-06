@@ -1500,21 +1500,30 @@ client `veoveo-hub-apps` with the Hub's version, declares the extension
 `io.modelcontextprotocol/ui`, and keeps the view's own `_meta` and client
 capabilities, apart from the protocol version and client information the Hub sets.
 
-Before anything reaches a server, the bridge finds the view's App in the person's
-current catalog, as the host page does, and admits the request against the catalogs
-the person sees now:
+The host page opens only an App in the person's current catalog. After that, each
+request stands on what fixes its answer and nothing else: the session, the App's own
+server, and the person's authority, which the ordinary path applies as it does for any
+client. The bridge reads no catalog to admit a request, so a page's hundredth call
+costs what its first did. A person who loses an App keeps no more than they hold: an
+open page's calls still pass or fail by their own permissions.
 
 | View request | Admitted when | Sent as |
 |---|---|---|
-| `tools/call` | The SDK's `resolve_app_tool` finds the name for this App: a tool of the App's own server whose `_meta.ui` links it to this exact App with a visibility that includes `app` | `tools/call` of `{slug}__{name}` |
-| `resources/list` | Always | Answered by the bridge from the catalog it read to find the App: every page of the person's resources, those of them that are the App's own server's, by the rule of `resources/read`, in one answer without a cursor |
+| `tools/call` | The Hub's call path finds the tool in that one server's discovered list, as the person sees it, and its `_meta.ui` links it to this exact App with a visibility that includes `app` (the SDK's `app_allows_tool`). The bridge names the App on the in-process request, where no client can write it | `tools/call` of `{slug}__{name}` |
+| `resources/list` | Always | Answered by the bridge from a read of the catalog, which is what it asks for: every page of the person's resources, those of them that are the App's own server's, by the rule of `resources/read`, in one answer without a cursor |
 | `resources/read` | The URI is the App's own server's: its scheme is the slug, or it starts with `ui://{slug}/` | `resources/read` |
 | `tasks/get`, `tasks/update`, `tasks/cancel` | Always; the Hub's Task routes admit only the person's own Tasks | The same request |
 | `subscriptions/listen` | It names only `resourceSubscriptions`, each of them the App's own server's ([live resources](#live-resources)) | The same request, answered with an event stream |
 | `ping` | Always | Answered by the bridge |
 
 Another method answers `-32601`; a refused tool or resource answers `-32602` naming
-the reason, logged at INFO, and reaches no server.
+the reason, logged at INFO, and reaches no server. A name that routes nowhere, such as
+a link the person does not reach, fails as it does for any client.
+
+The one fact the call cannot learn from the person's authority is the App link, and
+that is the server's own declaration, so it comes from discovery's list of that server:
+the same list `tools/list` reads, with the same validity, a catalog generation and the
+server's change stream. A hit costs a lookup; a miss reads that one server.
 
 - **Names.** A view calls a tool by its own server's name for it, such as `resolve`;
   the Hub calls it by its catalog name, `{slug}__resolve`. A view of a linked server

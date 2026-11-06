@@ -9,13 +9,13 @@ use axum::{
     response::{IntoResponse, Response},
     routing::get,
 };
-use rmcp::model::{Resource, Tool};
+use rmcp::model::Resource;
 use serde_json::{Map, Value, json};
 use veoveo_hub_sdk::PrincipalKind;
 use veoveo_types::InvocationProvenance;
 
 use super::{
-    admission::{self, INTERNAL_ERROR, Method, Refusal, RequestId, ViewRequest},
+    admission::{self, AppCaller, INTERNAL_ERROR, Method, Refusal, RequestId, ViewRequest},
     csp::AppPolicy,
     listen::{self, ListenLimits, Listens},
     mcp::{Answer, Failure, Listened, PersonMcp},
@@ -336,8 +336,8 @@ fn error(code: i64, message: impl Into<String>) -> Answer {
     Answer::Error(json!({"code": code, "message": message.into()}))
 }
 
-/// `POST /apps/{slug}/{page}`: one JSON-RPC request of the App's view, admitted against
-/// the catalogs the person sees now and run through the Hub's MCP endpoint as them.
+/// `POST /apps/{slug}/{page}`: one JSON-RPC request of the App's view, admitted from its
+/// App's address and run through the Hub's MCP endpoint as the person.
 async fn bridge(State(apps): State<AppsService>, request: Request) -> Response {
     let Some(observation) = request_observation(&request) else {
         return unavailable(&"the request carries no correlation");
@@ -431,7 +431,7 @@ struct Admitted {
     cookies: HeaderMap,
 }
 
-/// A view's `subscriptions/listen`: admitted against the person's catalog, within the
+/// A view's `subscriptions/listen`: admitted for its own server's resources, within the
 /// session's ceiling, sent as the person with the view's own `id`, and answered with the
 /// endpoint's event stream, relayed unchanged.
 async fn listen(
@@ -449,19 +449,6 @@ async fn listen(
     } = admitted;
     let id = request.id;
     let params = request.params.unwrap_or_default();
-    let person = match apps
-        .person(
-            &catalog,
-            &config,
-            &session,
-            observation.clone(),
-            BEARER_SECONDS,
-        )
-        .await
-    {
-        Ok(person) => person,
-        Err(error) => return unavailable(&error),
-    };
     let unanswered = |cause: String| {
         tracing::warn!(app = view.uri(), %cause, "App listen unavailable");
         response(
@@ -469,14 +456,7 @@ async fn listen(
             error(INTERNAL_ERROR, "The Hub could not complete this request."),
         )
     };
-    let resources: Vec<Resource> = match person.list("resources/list", "resources").await {
-        Ok(resources) => resources,
-        Err(Failure::Unauthenticated) => return sign_in_required(),
-        Err(Failure::Unavailable(cause)) => return unanswered(cause),
-    };
-    if let Err(refusal) =
-        admission::find_app(view, &resources).and_then(|_| admission::admit_listen(view, &params))
-    {
+    if let Err(refusal) = admission::admit_listen(view, &params) {
         tracing::info!(app = view.uri(), method = "subscriptions/listen", %refusal, "App request refused");
         return response(&id, error(refusal.code(), refusal.to_string()));
     }
@@ -504,7 +484,7 @@ async fn listen(
         Ok(wire_id) => wire_id,
         Err(cause) => return unanswered(cause.to_string()),
     };
-    // The listen alone gets the bearer that lives as long as a listen's forwarded token.
+    // A listen's bearer lives as long as a listen's forwarded token.
     let person = match apps
         .person(
             &catalog,
@@ -553,58 +533,44 @@ async fn listen(
     }
 }
 
-/// Admit one view request and send it as the person, or answer it.
+/// Admit one view request and send it as the person, or answer it. Nothing here reads
+/// the catalog to admit a request: what a request may reach follows from the App's
+/// address, and the person's authority fails the call as it fails any client's.
 async fn serve(
     view: &AppView,
     person: &PersonMcp,
     request: ViewRequest,
 ) -> Result<Answer, Failure> {
-    let Some(method) = admission::Method::parse(&request.method) else {
+    let Some(method) = Method::parse(&request.method) else {
         let refusal = Refusal::Method(request.method);
         return Ok(error(refusal.code(), refusal.to_string()));
     };
     let mut params = request.params.unwrap_or_default();
-    let (resources, tools) = if method == Method::ToolsCall {
-        let (resources, tools) = tokio::join!(
-            person.list::<Resource>("resources/list", "resources"),
-            person.list::<Tool>("tools/list", "tools"),
-        );
-        (resources?, tools?)
-    } else {
-        (
-            person
+    let admitted = match method {
+        Method::Ping => return Ok(Answer::Result(Value::Object(Map::new()))),
+        // The host lists the catalog it reads here, every page of it, so the answer names
+        // no cursor and its request reaches no server again.
+        Method::ResourcesList => {
+            let resources = person
                 .list::<Resource>("resources/list", "resources")
-                .await?,
-            Vec::new(),
-        )
-    };
-    let admitted = admission::find_app(view, &resources).and_then(|app| match method {
-        Method::Ping | Method::ResourcesList => Ok(None),
-        Method::ToolsCall => admission::admit_tool(app, &tools, &mut params).map(Some),
-        Method::ResourcesRead => admission::admit_read(view, &params).map(|()| None),
+                .await?;
+            let listed: Vec<&Resource> = admission::listed(view, &resources).collect();
+            return Ok(Answer::Result(json!({ "resources": listed })));
+        }
+        Method::ToolsCall => admission::name_tool(view, &mut params),
+        Method::ResourcesRead => admission::admit_read(view, &params),
         Method::TasksGet | Method::TasksUpdate | Method::TasksCancel => {
-            admission::admit_task(&params).map(|()| None)
+            admission::admit_task(&params)
         }
         // The bridge answers a listen with its stream before it comes here.
         Method::SubscriptionsListen => Err(Refusal::Listen),
-    });
-    let tool = match admitted {
-        Ok(tool) => tool,
-        Err(refusal) => {
-            tracing::info!(app = view.uri(), method = method.name(), %refusal, "App request refused");
-            return Ok(error(refusal.code(), refusal.to_string()));
-        }
     };
-    if method == Method::Ping {
-        return Ok(Answer::Result(Value::Object(Map::new())));
+    if let Err(refusal) = admitted {
+        tracing::info!(app = view.uri(), method = method.name(), %refusal, "App request refused");
+        return Ok(error(refusal.code(), refusal.to_string()));
     }
-    // The host lists the catalog it just read, every page of it, so the answer names no
-    // cursor and its request reaches no server again.
-    if method == Method::ResourcesList {
-        let listed: Vec<&Resource> = admission::listed(view, &resources).collect();
-        return Ok(Answer::Result(json!({ "resources": listed })));
-    }
-    person.request(method.name(), params, tool.as_ref()).await
+    let caller = (method == Method::ToolsCall).then(|| AppCaller::new(view));
+    person.request(method.name(), params, caller).await
 }
 
 /// The correlation the Hub's request observation gave this browser request; the

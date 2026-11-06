@@ -6,10 +6,11 @@ use axum::{
     http::{HeaderValue, Request, StatusCode, header},
 };
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
-use rmcp::model::Tool;
 use serde_json::{Map, Value, json};
 use tower::ServiceExt as _;
 use veoveo_hub_sdk::{HubProfileId, apps::host_extension_capability};
+
+use super::admission::AppCaller;
 
 /// The MCP protocol version the Hub serves.
 const PROTOCOL_VERSION: &str = "2026-07-28";
@@ -61,14 +62,15 @@ pub(super) struct PersonMcp {
 }
 
 impl PersonMcp {
-    /// Send one request and read its JSON-RPC answer.
+    /// Send one request and read its JSON-RPC answer. `caller` is the App a `tools/call`
+    /// comes from.
     pub(super) async fn request(
         &self,
         method: &str,
         params: Map<String, Value>,
-        tool: Option<&Tool>,
+        caller: Option<AppCaller>,
     ) -> Result<Answer, Failure> {
-        let response = self.send(&json!(1), method, params, tool).await?;
+        let response = self.send(&json!(1), method, params, caller).await?;
         answer(response).await
     }
 
@@ -95,14 +97,13 @@ impl PersonMcp {
     /// Send one request with `id`. `meta` is the request's own `_meta`, whose protocol
     /// version and client information the host sets; its client capabilities stay, with
     /// the Apps and Tasks extensions declared, so a Task-based tool answers an App with
-    /// its Task. `tool` is the called tool, whose annotated arguments travel as
-    /// `Mcp-Param-*` headers too.
+    /// its Task. The request stays in process, so no `Mcp-Param-*` header has a reader.
     async fn send(
         &self,
         id: &Value,
         method: &str,
         mut params: Map<String, Value>,
-        tool: Option<&Tool>,
+        caller: Option<AppCaller>,
     ) -> Result<axum::response::Response, Failure> {
         let mut meta = match params.remove("_meta") {
             Some(Value::Object(meta)) => meta,
@@ -143,7 +144,7 @@ impl PersonMcp {
             .header(header::ACCEPT, "application/json, text/event-stream")
             .header("MCP-Protocol-Version", PROTOCOL_VERSION)
             .header("Mcp-Method", method);
-        for (name, value) in standard_headers(method, &params, tool) {
+        for (name, value) in standard_headers(method, &params) {
             request = request.header(name, value);
         }
         let body = serde_json::to_vec(&json!({
@@ -154,6 +155,9 @@ impl PersonMcp {
             .body(Body::from(body))
             .map_err(|error| Failure::Unavailable(error.to_string()))?;
         request.extensions_mut().insert(self.observation.clone());
+        if let Some(caller) = caller {
+            request.extensions_mut().insert(caller);
+        }
         let response = self
             .router
             .clone()
@@ -225,38 +229,19 @@ async fn answer(response: axum::response::Response) -> Result<Answer, Failure> {
     }
 }
 
-/// The SEP-2243 headers of a request: `Mcp-Name` from the parameter its method names, and
-/// for `tools/call` an `Mcp-Param-*` header for each argument the tool's input schema
-/// annotates with `x-mcp-header`.
-fn standard_headers(method: &str, params: &Value, tool: Option<&Tool>) -> Vec<(String, String)> {
-    let mut headers = Vec::new();
+/// The SEP-2243 headers of a request: `Mcp-Name` from the parameter its method names.
+fn standard_headers(method: &str, params: &Value) -> Vec<(String, String)> {
     let name = match method {
         "tools/call" | "prompts/get" => Some("name"),
         "resources/read" => Some("uri"),
         "tasks/get" | "tasks/update" | "tasks/cancel" => Some("taskId"),
         _ => None,
     };
-    if let Some(value) = name.and_then(|key| params.get(key)).and_then(Value::as_str) {
-        headers.push(("Mcp-Name".to_owned(), header_value(value)));
-    }
-    if method == "tools/call"
-        && let (Some(tool), Some(arguments)) = (tool, params.get("arguments"))
-        && let Some(Value::Object(properties)) = tool.input_schema.get("properties")
-    {
-        for (property, schema) in properties {
-            let Some(Value::String(header)) = schema.get("x-mcp-header") else {
-                continue;
-            };
-            let value = match arguments.get(property) {
-                Some(Value::String(value)) => value.clone(),
-                Some(Value::Bool(value)) => value.to_string(),
-                Some(Value::Number(value)) => value.to_string(),
-                _ => continue,
-            };
-            headers.push((format!("Mcp-Param-{header}"), header_value(&value)));
-        }
-    }
-    headers
+    name.and_then(|key| params.get(key))
+        .and_then(Value::as_str)
+        .map(|value| ("Mcp-Name".to_owned(), header_value(value)))
+        .into_iter()
+        .collect()
 }
 
 /// A header value as SEP-2243 carries it: as is, or Base64 inside `=?base64?…?=` when it
@@ -286,27 +271,17 @@ mod tests {
         );
         assert_eq!(header_value("é"), "=?base64?w6k=?=");
         assert_eq!(header_value(" x"), "=?base64?IHg=?=");
-        let tool = Tool::new(
-            "fixture__run",
-            "Run",
-            serde_json::from_value::<rmcp::model::JsonObject>(json!({
-                "type": "object",
-                "properties": {"region": {"type": "string", "x-mcp-header": "Region"}, "n": {"type": "integer"}}
-            }))
-            .unwrap(),
-        );
-        let params = json!({"name": "fixture__run", "arguments": {"region": "eu", "n": 3}});
         assert_eq!(
-            standard_headers("tools/call", &params, Some(&tool)),
-            [
-                ("Mcp-Name".to_owned(), "fixture__run".to_owned()),
-                ("Mcp-Param-Region".to_owned(), "eu".to_owned())
-            ]
+            standard_headers(
+                "tools/call",
+                &json!({"name": "fixture__run", "arguments": {"n": 3}})
+            ),
+            [("Mcp-Name".to_owned(), "fixture__run".to_owned())]
         );
         assert_eq!(
-            standard_headers("tasks/get", &json!({"taskId": "t-1"}), None),
+            standard_headers("tasks/get", &json!({"taskId": "t-1"})),
             [("Mcp-Name".to_owned(), "t-1".to_owned())]
         );
-        assert!(standard_headers("resources/list", &json!({}), None).is_empty());
+        assert!(standard_headers("resources/list", &json!({})).is_empty());
     }
 }

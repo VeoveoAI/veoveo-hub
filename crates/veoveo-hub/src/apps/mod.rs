@@ -15,6 +15,7 @@ mod server_origin;
 #[cfg(test)]
 pub(crate) mod tests;
 
+pub use admission::AppCaller;
 pub use bridge::AppsService;
 pub use csp::{AppPolicy, PolicyError};
 pub use listen::ListenLimits;
