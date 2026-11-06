@@ -114,7 +114,7 @@ pub(crate) fn request<T>(message: T, token: &str, repository: &RepositoryId) -> 
 }
 
 /// Lore's answer to a call that failed: a refusal of the person, or another failure.
-pub(super) fn failed(operation: &str, status: &tonic::Status) -> anyhow::Error {
+pub(crate) fn failed(operation: &str, status: &tonic::Status) -> anyhow::Error {
     let message = format!(
         "Lore refused to {operation}: {:?}: {}",
         status.code(),

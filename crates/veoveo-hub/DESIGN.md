@@ -1763,6 +1763,9 @@ which has no person, takes the base branch's.
 | `GET /lore/{profile}/repositories` | The Lore repositories the caller holds a grant on, as [below](#repository-listing) |
 | `GET /lore/{profile}/repositories/{id}/files/{branch}/{path}` | A file of a Lore repository at the tip of a branch, or a folder's listing, read as the caller ([files](#files-from-lore)) |
 | `GET /lore/{profile}/repositories/{id}/tree/{branch}` | Everything on a branch's tip by one read of Lore, as the caller ([files](#files-from-lore)) |
+| `GET /lore/{profile}/repositories/{id}/branches` | The live branches of a Lore repository, read as the caller ([what happened in a repository](#what-happened-in-a-repository)) |
+| `GET /lore/{profile}/repositories/{id}/history/{branch}` | A page of a branch's revisions, newest first, as the caller ([what happened in a repository](#what-happened-in-a-repository)) |
+| `GET /lore/{profile}/repositories/{id}/changes/{revision}` | What a revision changed, as the caller ([what happened in a repository](#what-happened-in-a-repository)) |
 | `GET`/`PUT /lore/{profile}/repositories/{id}/access` | Who may reach a repository; an owner shares it with a person or a group ([groups and sharing](#groups-and-sharing)) |
 | `GET`/`POST /lore/{profile}/groups`, `PUT /lore/{profile}/groups/{name}/members`, `DELETE /lore/{profile}/groups/{name}` | The caller's groups; creating one; an owner sets a membership or deletes the group |
 | `POST /epic_urc.UrcAuthApi/LookupUserPermissions` | gRPC: the Lore repositories the token's person holds a grant on, own or through a group, for Lore's repository listing |
@@ -2733,6 +2736,12 @@ of the tip, by its whole path, type, size and address, from one `RevisionTree` t
 to a folder, and names the tip in `Lore-Revision`. A link is listed and not entered, so what it
 answers depends only on the repository and the revision, and a server may keep it by revision.
 
+A `{branch}` of `@{signature}` names that revision instead of a branch's tip, on the files and
+tree routes and on the `/view/lore/` page, by the same calls, so the person's token still decides.
+`Lore-Revision` names it, and a revision the repository does not hold answers 404
+`lore-file-not-found`. It is how a server shows what a file was before a change, and whatever is
+handed a branch can read it unchanged, such as the Thumb and USD servers.
+
 Lore's rules decide each read, since the token is the person's and Lore checks it on
 both calls. A refusal by either answers 403 `repository-access-forbidden`, a path or
 branch that is not there 404 `lore-file-not-found`, and Lore failing 503
@@ -2767,6 +2776,47 @@ A Lore deployment names the origin with `httpEndpoint`, which is Lore's `[server
 with a `[server.http.certificate]`. A person's token goes there, so it must be one `https`
 origin, trusted through the same system roots as `endpoint`. A deployment without it
 answers 503 `lore-files-unavailable`. Its client follows no redirect and decodes nothing.
+
+#### What happened in a repository
+
+Three routes say what people did in a repository, for a server that shows it. Each takes the
+authenticated caller with a grant on the repository, issues their Lore token under that grant and
+reads with it alone, so Lore's rules decide; a refusal, a missing repository or a repository
+without a grant answer as the [files route](#files-from-lore) does. The Hub keeps nothing. The
+routes are in `src/bin/hub/contributions/lore/revisions.rs`. A revision never changes, so a server
+may keep what they say of one.
+
+`GET .../branches` answers `{"repository", "branches": [{"id", "name", "latest", "forkedAt",
+"created"}]}` from one `BranchList`, by name and without deleted branches. `latest` is the tip,
+absent while the branch has no revision, and `forkedAt` the revision the branch started from, absent
+on a root. A branch that has no revision of its own yet has the one it forked from as its tip.
+
+`GET .../history/{branch}` answers `{"repository", "branch", "revisions": [...], "next"}`, newest
+first. `?from={signature}` starts there rather than at the tip, and `?count=` asks for 1 to 50,
+30 by default. `next` is what to pass as `from` for the page after this one, absent at the branch's
+start. Each revision is `{"revision", "branchId", "number", "message", "at", "by", "parent",
+"merged"}`: `branchId` is the branch it was made on, `at` is in milliseconds since the epoch, `by`
+names who committed it, `{"principal", "name", "email"}` for a person who signed in and the
+identity Lore holds as `name` otherwise. `parent` is the revision before it, which may be on the
+branch it forked from, and `merged` what it merged, `{"revision", "branch"}`. Lore's `RevisionInfo`
+answers one revision at a time, so a page is that many reads of Lore, one after the next, since
+each names the one before it.
+
+`GET .../changes/{revision}` answers `{"repository", "revision", "against", "changes": [...],
+"truncated"}` from Lore's `RevisionDiff` against the revision's parent, or against
+`?against={signature}`. The first revision of a repository has no parent, so everything in it
+answers as added, and `against` is absent. A change is `{"path", "fromPath", "action", "type",
+"addressFrom", "addressTo", "link"}`, `action` being `added`, `removed`, `changed`, `moved` or
+`copied` and `type` being `file` or `link`. Folders are left out, since their files say the same,
+and so is what lies inside a link, which that repository's own history says. `truncated` says the
+list stopped at 2000 changes. Lore refusing a diff as too large answers 413
+`lore-changes-too-large`.
+
+A link's change has `link`: `{"reached", "repository", "title", "from", "to", "tracking"}`, the
+revisions it pinned before and after. Lore reports a link's move to anyone who reads the parent, but
+as the [factory inventory](#factory-inventory) has it, a person holding no grant on the linked
+repository sees that its name changed and nothing of the repository: `reached` is false, and neither
+`link` nor the change has an address, a repository, a title or a revision.
 
 #### Groups and sharing
 

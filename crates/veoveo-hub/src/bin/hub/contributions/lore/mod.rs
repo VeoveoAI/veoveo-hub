@@ -14,6 +14,7 @@ pub(crate) mod publication;
 pub(crate) mod repositories;
 pub(crate) mod repository_client;
 pub(crate) mod resources;
+pub(crate) mod revisions;
 pub(crate) mod sharing;
 use anyhow::{Context, Result, ensure};
 use schemars::JsonSchema;

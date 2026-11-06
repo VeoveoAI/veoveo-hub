@@ -6,7 +6,8 @@
 //! every request and reads with that token alone, so Lore's rules decide each read:
 //! `RevisionTree` resolves the path to a content address, and Lore's HTTP content route
 //! streams the bytes back. The address is the `ETag`, so a person holding an unchanged file
-//! is answered 304, after the same checks.
+//! is answered 304, after the same checks. A branch of `@{signature}` names that revision
+//! instead of a tip.
 use std::time::Duration;
 
 use anyhow::Result;
@@ -25,8 +26,12 @@ use axum::{
     routing::get,
 };
 use futures::future::BoxFuture;
-use lore_proto::lore::thin_client::v1::{
-    NodeType, RevisionTreeRequest, TreeNode, thin_client_service_client::ThinClientServiceClient,
+use lore_proto::lore::{
+    model::v1::Address,
+    thin_client::v1::{
+        NodeType, RevisionTreeRequest, TreeNode,
+        thin_client_service_client::ThinClientServiceClient,
+    },
 };
 use percent_encoding::percent_decode_str;
 use serde::Serialize;
@@ -310,6 +315,7 @@ fn tree_entries(nodes: Vec<TreeNode>) -> Vec<TreeEntry> {
 pub(crate) struct FileRead<'a> {
     pub deployment: &'a Deployment,
     pub repository: &'a RepositoryId,
+    /// A branch, or one revision as `@{signature}`.
     pub branch: &'a str,
     pub path: &'a FilePath,
 }
@@ -388,6 +394,11 @@ struct NativeTree<'a> {
     tip: Option<Revision>,
 }
 
+/// The one revision a branch segment of `@{signature}` names, in place of a branch's tip.
+fn pinned(branch: &str) -> Option<Revision> {
+    Revision::parse(branch.strip_prefix('@')?).ok()
+}
+
 impl<'a> NativeTree<'a> {
     async fn at_tip(
         deployment: &Deployment,
@@ -396,7 +407,10 @@ impl<'a> NativeTree<'a> {
         token: &'a str,
     ) -> Result<Self> {
         let channel = native::connect(deployment).await?;
-        let tip = native::tip(channel.clone(), branch, token, repository).await?;
+        let tip = match pinned(branch) {
+            Some(revision) => Some(revision),
+            None => native::tip(channel.clone(), branch, token, repository).await?,
+        };
         Ok(Self {
             client: ThinClientServiceClient::new(channel),
             repository,
@@ -469,12 +483,16 @@ async fn resolve(tree: &dyn Tree, path: &FilePath) -> Result<Option<Resolved>> {
 
 /// A tree entry's content address, as Lore's content route names it.
 fn address(node: &TreeNode) -> Option<String> {
-    let address = node.address.as_ref()?;
-    Some(format!(
+    node.address.as_ref().map(content_address)
+}
+
+/// A content address, as Lore's content route names it.
+pub(crate) fn content_address(address: &Address) -> String {
+    format!(
         "{}-{}",
         hex::encode(&address.hash),
         hex::encode(&address.context)
-    ))
+    )
 }
 
 #[derive(Serialize)]

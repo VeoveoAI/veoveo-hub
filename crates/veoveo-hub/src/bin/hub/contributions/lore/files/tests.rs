@@ -655,3 +655,15 @@ fn a_whole_tree_names_paths_and_does_not_enter_a_link() {
         ]
     );
 }
+
+#[test]
+fn a_branch_may_name_one_revision() {
+    let signature = "ab".repeat(32);
+    assert_eq!(
+        pinned(&format!("@{signature}")).unwrap().as_str(),
+        signature
+    );
+    assert_eq!(pinned(&signature), None, "a branch of that name");
+    assert_eq!(pinned("main"), None);
+    assert_eq!(pinned("@tip"), None, "and a branch of that name");
+}
