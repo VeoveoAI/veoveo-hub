@@ -1161,9 +1161,9 @@ through core's confined functions.
 
 ## Upstream Transport
 
-The workspace pins RMCP 3.8.0 from `VeoveoAI/rust-sdk`'s `veoveo/main` at
-`d45f7f5e43e910f818400ca702cc904c5682c213`, the revision `veoveo-hub-sdk` pins: upstream
-`main` after 3.8.0 with the fork's changes its `VEOVEO_FORK.md` lists. An upstream's
+The workspace pins RMCP 3.9.0 from `VeoveoAI/rust-sdk`'s `veoveo/main` at
+`e8c8868f252b22835b960942d38a4b51182e0270`, the revision `veoveo-hub-sdk` pins: upstream
+`main` after 3.9.0 with the fork's changes its `VEOVEO_FORK.md` lists. An upstream's
 HTTP rejection reaches the Hub typed: upstream rmcp reports 429 and 5xx without their
 body (`StreamableHttpError::HttpStatus`), and the fork reports every other rejection
 with its status and body (`StreamableHttpError::HttpResponse`); either is the upstream's
