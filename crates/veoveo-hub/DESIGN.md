@@ -14,7 +14,7 @@ Neither its code nor its configuration names a server.
 | MCP Skills extension `io.modelcontextprotocol/skills`, SEP-2640, and the Agent Skills format | `skills/list` and `skills/get` for the skills of the servers a caller reaches, each at `skill://{slug}/{name}/{path}` and passed unchanged, and for a Computer's own client the installation's own at `skill://veoveo/{name}/{path}`; the files are read with `resources/read`. Declared without `directoryRead`, since every manifest is complete; `"dynamic"` skills are not offered. See [skills](#skills) |
 | MCP Apps `2026-01-26`, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value. The Hub is the installation's web host of Apps, with the sandbox proxy on its own origin; see [Apps host](#apps-host) |
 | HTML iframe `sandbox` and Content Security Policy Level 3 | An App runs in an `allow-scripts` frame without `allow-same-origin`, under the policy the Hub builds from its declaration; see [Apps host](#apps-host) |
-| [Server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/5ff33f1f669385099fdd405f6e6bbd6ee190a45c/crates/veoveo-hub-sdk/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
+| [Server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/fb79f3f24b289b0afc647d2a3da208f858d08f10/crates/veoveo-hub-sdk/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
 | JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `HubInternalTokenIssuer`; a call another server made names that server as the prior actor |
 | OAuth 2.0 Token Exchange, RFC 8693, with RFC 9396 token requests | `/oauth/token` with the `urn:ietf:params:oauth:grant-type:token-exchange` grant, for registered servers that declare uses; profile in [calls between servers](#calls-between-servers) |
 | OAuth 2.0, RFC 6749, and RFC 7523 | The hosted authorization server; see [token and session authority](src/auth/DESIGN.md) |
@@ -232,7 +232,7 @@ and `acceptance-admin`, that hold the `member` and `admin` roles.
 ## Server Registration
 
 `src/registration` implements the [server registration
-protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/5ff33f1f669385099fdd405f6e6bbd6ee190a45c/crates/veoveo-hub-sdk/src/registration/DESIGN.md)
+protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/fb79f3f24b289b0afc647d2a3da208f858d08f10/crates/veoveo-hub-sdk/src/registration/DESIGN.md)
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
 then the software statement against the pinned key and the endpoint URL. The slug
@@ -1008,7 +1008,7 @@ takes three rollouts, each complete on every replica before the next begins:
 ## Calls Between Servers
 
 `src/delegation.rs` implements the exchange of the SDK's [calls between
-servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/5ff33f1f669385099fdd405f6e6bbd6ee190a45c/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers)
+servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/fb79f3f24b289b0afc647d2a3da208f858d08f10/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers)
 and the admission of the tokens it issues. A registered server authenticates at
 `/oauth/token` with an RFC 7523 assertion signed by the key its registration pinned;
 the Hub records the assertion's `jti` with the other replay identifiers. The
@@ -1161,9 +1161,9 @@ through core's confined functions.
 
 ## Upstream Transport
 
-The workspace pins RMCP 3.9.0 from `VeoveoAI/rust-sdk`'s `veoveo/main` at
-`e8c8868f252b22835b960942d38a4b51182e0270`, the revision `veoveo-hub-sdk` pins: upstream
-`main` after 3.9.0 with the fork's changes its `VEOVEO_FORK.md` lists. An upstream's
+The workspace pins RMCP 3.11.0 from `VeoveoAI/rust-sdk`'s `veoveo/main` at
+`1e7caf018db7eb3bed2e81023e10fc0ce58af8a5`, the revision `veoveo-hub-sdk` pins: upstream
+`rmcp-v3.11.0` with the fork's changes its `VEOVEO_FORK.md` lists. An upstream's
 HTTP rejection reaches the Hub typed: upstream rmcp reports 429 and 5xx without their
 body (`StreamableHttpError::HttpStatus`), and the fork reports every other rejection
 with its status and body (`StreamableHttpError::HttpResponse`); either is the upstream's

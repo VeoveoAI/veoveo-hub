@@ -62,7 +62,12 @@ impl ServerHandler for Source {
 
 #[derive(Clone)]
 struct Downstream;
-impl ServerHandler for Downstream {}
+impl ServerHandler for Downstream {
+    // rmcp answers `tools/list` only for a server that advertises tools.
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
+    }
+}
 
 struct Fixture {
     root: HubMcp,
