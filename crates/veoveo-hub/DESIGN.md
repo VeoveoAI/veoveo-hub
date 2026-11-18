@@ -14,7 +14,7 @@ Neither its code nor its configuration names a server.
 | MCP Skills extension `io.modelcontextprotocol/skills`, SEP-2640, and the Agent Skills format | `skills/list` and `skills/get` for the skills of the servers a caller reaches, each at `skill://{slug}/{name}/{path}` and passed unchanged, and for a Computer's own client the installation's own at `skill://veoveo/{name}/{path}`; the files are read with `resources/read`. Declared without `directoryRead`, since every manifest is complete; `"dynamic"` skills are not offered. See [skills](#skills) |
 | MCP Apps `2026-01-26`, extension `io.modelcontextprotocol/ui` | A server's Apps live under `ui://{slug}/`; `_meta.ui.resourceUri` keeps its value. The Hub is the installation's web host of Apps, with the sandbox proxy on its own origin; see [Apps host](#apps-host) |
 | HTML iframe `sandbox` and Content Security Policy Level 3 | An App runs in an `allow-scripts` frame without `allow-same-origin`, under the policy the Hub builds from its declaration; see [Apps host](#apps-host) |
-| [Server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/22ff657df5368eb15dd1a8e39c02ce57e19e3887/crates/veoveo-hub-sdk/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
+| [Server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/5ff33f1f669385099fdd405f6e6bbd6ee190a45c/crates/veoveo-hub-sdk/src/registration/DESIGN.md) | RFC 7591 registration, RFC 7592 read, update and delete, RFC 8414 discovery, software statements under RFC 7523 claim rules, and the `veoveo_*` client metadata members |
 | JWT access tokens, RFC 9068, with RFC 9396 and RFC 8693 `act` | The identity forwarded to a server, issued by the SDK's `HubInternalTokenIssuer`; a call another server made names that server as the prior actor |
 | OAuth 2.0 Token Exchange, RFC 8693, with RFC 9396 token requests | `/oauth/token` with the `urn:ietf:params:oauth:grant-type:token-exchange` grant, for registered servers that declare uses; profile in [calls between servers](#calls-between-servers) |
 | OAuth 2.0, RFC 6749, and RFC 7523 | The hosted authorization server; see [token and session authority](src/auth/DESIGN.md) |
@@ -28,8 +28,8 @@ Neither its code nor its configuration names a server.
 | PostgreSQL 18 through sqlx 0.9.0 | The installation database: core's kernel schemas, then the Hub's own `hub` schema, applied at startup; `LISTEN` on the `hub` channel for registration changes; one login role per registration. A database per data environment in the same instance, with core's kernel schemas |
 | OpenTelemetry | `service.name` is `veoveo-hub` |
 | Veoveo installation configuration | `HubControlPlane` in `src/control_plane.rs`, read as JSON |
-| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/97e85e054924d6db999da2d3d93ba3e383910e2d/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Hub's `hub.*` classes. The Hub's records carry its own reason codes and name targets by URI |
-| [Veoveo usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/97e85e054924d6db999da2d3d93ba3e383910e2d/platform/usage/DESIGN.md), after FOCUS 1.4 with ISO 4217 currencies | The Hub prepares the ledger's monthly partitions and serves daily totals across servers |
+| [Veoveo audit envelope](https://github.com/VeoveoAI/veoveo-core/blob/a8dafe90206d1cadbb1d2de26304fe061a542ffd/platform/audit/contract/DESIGN.md), after NIST SP 800-53 Rev. 5 AU-3 and mapped to OCSF 1.9 | Records name owner-declared classes, each with its OCSF class and activity: the SDK's `mcp.*` classes, core's `task.*` and `audit.*` classes, and the Hub's `hub.*` classes. The Hub's records carry its own reason codes and name targets by URI |
+| [Veoveo usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/a8dafe90206d1cadbb1d2de26304fe061a542ffd/platform/usage/DESIGN.md), after FOCUS 1.4 with ISO 4217 currencies | The Hub prepares the ledger's monthly partitions and serves daily totals across servers |
 
 ## Execution Composition And Deployment Identity
 
@@ -232,7 +232,7 @@ and `acceptance-admin`, that hold the `member` and `admin` roles.
 ## Server Registration
 
 `src/registration` implements the [server registration
-protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/22ff657df5368eb15dd1a8e39c02ce57e19e3887/crates/veoveo-hub-sdk/src/registration/DESIGN.md)
+protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/5ff33f1f669385099fdd405f6e6bbd6ee190a45c/crates/veoveo-hub-sdk/src/registration/DESIGN.md)
 at `/oauth/register` and `/oauth/register/{client_id}`. Admission follows the
 protocol's order: the initial access token, the request body, `ClientMetadata::check`,
 then the software statement against the pinned key and the endpoint URL. The slug
@@ -1008,7 +1008,7 @@ takes three rollouts, each complete on every replica before the next begins:
 ## Calls Between Servers
 
 `src/delegation.rs` implements the exchange of the SDK's [calls between
-servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/22ff657df5368eb15dd1a8e39c02ce57e19e3887/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers)
+servers](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/5ff33f1f669385099fdd405f6e6bbd6ee190a45c/crates/veoveo-hub-sdk/src/registration/DESIGN.md#calls-between-servers)
 and the admission of the tokens it issues. A registered server authenticates at
 `/oauth/token` with an RFC 7523 assertion signed by the key its registration pinned;
 the Hub records the assertion's `jti` with the other replay identifiers. The
@@ -1863,7 +1863,7 @@ the check and release builds compile them offline, from a cold target directory 
 as from the build host's cached one.
 
 `tests/database_conformance.rs` holds the Hub's own statements to core's
-[database rules](https://github.com/VeoveoAI/veoveo-core/blob/97e85e054924d6db999da2d3d93ba3e383910e2d/docs/DATABASE.md#server-schema-rules)
+[database rules](https://github.com/VeoveoAI/veoveo-core/blob/a8dafe90206d1cadbb1d2de26304fe061a542ffd/docs/DATABASE.md#server-schema-rules)
 over the `hub`, `identity` and `kernel` schemas. The fixture applies the Hub's
 migrations as the installation owner after the kernel migrations, as startup does, and
 plans every statement as that owner. Refresh families and control-plane revisions are
