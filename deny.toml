@@ -25,7 +25,7 @@ all-features = true
 #
 # Reviewed informational maintenance notices, not claims that the graph is free of
 # vulnerabilities. chrono 0.4.45 is used by core, the SDK and the Hub's sqlx feature, and
-# comes through rmcp 3.9.0, schemars 1.2.2, oauth2 5.0.0, object_store 0.14.1, sqlx 0.9.0
+# comes through rmcp 3.11.0, schemars 1.2.2, oauth2 5.0.0, object_store 0.14.1, sqlx 0.9.0
 # and openshell-core; humantime 2.4.0 comes through object_store 0.14.1 in core's audit.
 # RustSec lists no vulnerability and no patched version for either. Remove these
 # exceptions when the Hub's graph no longer contains them.
