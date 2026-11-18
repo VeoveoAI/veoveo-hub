@@ -22,9 +22,20 @@ all-features = true
 # patched version. Remove this exception when the Hub and the pinned OpenShell crates no
 # longer depend on serde_yaml.
 # https://rustsec.org/advisories/RUSTSEC-2024-0449.html
+#
+# Reviewed informational maintenance notices, not claims that the graph is free of
+# vulnerabilities. chrono 0.4.45 is used by core, the SDK and the Hub's sqlx feature, and
+# comes through rmcp 3.9.0, schemars 1.2.2, oauth2 5.0.0, object_store 0.14.1, sqlx 0.9.0
+# and openshell-core; humantime 2.4.0 comes through object_store 0.14.1 in core's audit.
+# RustSec lists no vulnerability and no patched version for either. Remove these
+# exceptions when the Hub's graph no longer contains them.
+# https://rustsec.org/advisories/RUSTSEC-2026-0543.html
+# https://rustsec.org/advisories/RUSTSEC-2026-0542.html
 ignore = [
     { id = "RUSTSEC-2025-0134", reason = "Reviewed unmaintained rustls-pemfile 2.2.0 via pinned openshell-core (5a7728c304b5528e954e9ae900cf21f84e1a12b1); informational maintenance notice, no patched release. Remove when the SDK drops the dependency." },
     { id = "RUSTSEC-2024-0449", reason = "Reviewed unmaintained unsafe-libyaml 0.2.11 via serde_yaml 0.9.34, used by kube-client 0.99 through openshell-crypto (c80bda2013a5656bc2421a38013463709481671f) and by the Hub for providers.yaml; informational maintenance notice, no patched release. Remove when the Hub and OpenShell drop serde_yaml." },
+    { id = "RUSTSEC-2026-0543", reason = "Reviewed unmaintained chrono 0.4.45, used by core, the SDK and the Hub's sqlx feature and through rmcp, schemars, oauth2, object_store, sqlx and openshell-core; informational maintenance notice, no patched release. Remove when the graph drops chrono." },
+    { id = "RUSTSEC-2026-0542", reason = "Reviewed unmaintained humantime 2.4.0 via object_store 0.14.1 in core's audit; informational maintenance notice, no patched release. Remove when object_store drops it." },
 ]
 unused-ignored-advisory = "deny"
 
