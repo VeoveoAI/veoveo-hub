@@ -2342,7 +2342,7 @@ again.
 
 The proxy records, in memory, the time of each browser request it forwards to a
 Computer. OpenShell records the sandbox's traffic as `SandboxStatus.last_activity_time`
-(pin `c80bda201`): the latest 10-second activity summary from the supervisor that held
+(pin `5f630f42c`): the latest 10-second activity summary from the supervisor that held
 an allowed proxied connection or L7 request, written at most once a minute and kept
 across gateway restarts. A long-lived connection counts once, when it opens. A sandbox
 with no recorded traffic counts from its creation. Both times count from no earlier

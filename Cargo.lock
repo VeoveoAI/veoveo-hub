@@ -2305,8 +2305,8 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "lore-proto"
-version = "0.1.65"
-source = "git+https://github.com/VeoveoAI/lore?rev=2c0c689bbfc9239ddb4ad01f751f27ce9f518019#2c0c689bbfc9239ddb4ad01f751f27ce9f518019"
+version = "0.1.67"
+source = "git+https://github.com/VeoveoAI/lore?rev=782e00ffa60468ef779cb818a87f56cdc75cb16a#782e00ffa60468ef779cb818a87f56cdc75cb16a"
 dependencies = [
  "prost 0.14.4",
  "prost-types 0.14.4",
@@ -2662,13 +2662,14 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "openshell-core"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=c80bda2013a5656bc2421a38013463709481671f#c80bda2013a5656bc2421a38013463709481671f"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=5f630f42ccf26336419a90ce01cccba40dfbf6c1#5f630f42ccf26336419a90ce01cccba40dfbf6c1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
  "chrono",
  "glob",
  "ipnet",
+ "libc",
  "miette",
  "nix",
  "openshell-crypto",
@@ -2680,7 +2681,6 @@ dependencies = [
  "reqwest 0.12.28",
  "rustix 1.1.5",
  "rustls",
- "rustls-pemfile",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -2699,7 +2699,7 @@ dependencies = [
 [[package]]
 name = "openshell-crypto"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=c80bda2013a5656bc2421a38013463709481671f#c80bda2013a5656bc2421a38013463709481671f"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=5f630f42ccf26336419a90ce01cccba40dfbf6c1#5f630f42ccf26336419a90ce01cccba40dfbf6c1"
 dependencies = [
  "aws-lc-rs",
  "jsonwebtoken 10.4.0",
@@ -2717,7 +2717,7 @@ dependencies = [
 [[package]]
 name = "openshell-extension-core"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=c80bda2013a5656bc2421a38013463709481671f#c80bda2013a5656bc2421a38013463709481671f"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=5f630f42ccf26336419a90ce01cccba40dfbf6c1#5f630f42ccf26336419a90ce01cccba40dfbf6c1"
 dependencies = [
  "hyper-util",
  "serde",
@@ -2730,7 +2730,7 @@ dependencies = [
 [[package]]
 name = "openshell-policy"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=c80bda2013a5656bc2421a38013463709481671f#c80bda2013a5656bc2421a38013463709481671f"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=5f630f42ccf26336419a90ce01cccba40dfbf6c1#5f630f42ccf26336419a90ce01cccba40dfbf6c1"
 dependencies = [
  "hickory-proto",
  "miette",
@@ -2744,7 +2744,7 @@ dependencies = [
 [[package]]
 name = "openshell-policy-schema"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=c80bda2013a5656bc2421a38013463709481671f#c80bda2013a5656bc2421a38013463709481671f"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=5f630f42ccf26336419a90ce01cccba40dfbf6c1#5f630f42ccf26336419a90ce01cccba40dfbf6c1"
 dependencies = [
  "miette",
  "noyalib",
@@ -2757,7 +2757,7 @@ dependencies = [
 [[package]]
 name = "openshell-sdk"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=c80bda2013a5656bc2421a38013463709481671f#c80bda2013a5656bc2421a38013463709481671f"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=5f630f42ccf26336419a90ce01cccba40dfbf6c1#5f630f42ccf26336419a90ce01cccba40dfbf6c1"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -3868,15 +3868,6 @@ dependencies = [
  "rustls-pki-types",
  "schannel",
  "security-framework",
-]
-
-[[package]]
-name = "rustls-pemfile"
-version = "2.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dce314e5fee3f39953d46bb63bb8a46d40c2f8fb7cc5a3b6cab2bde9721d6e50"
-dependencies = [
- "rustls-pki-types",
 ]
 
 [[package]]

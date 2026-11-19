@@ -106,6 +106,7 @@ async fn walk(
         )),
         path_prefix: prefix.map(str::to_owned),
         max_depth,
+        include_last_revision: false,
     };
     tokio::time::timeout(COMMAND_TIMEOUT, async {
         let mut stream = client
@@ -139,7 +140,11 @@ async fn walk(
                     signed = true;
                 }
                 Some(revision_tree_response::Payload::Node(node)) => nodes.push(node),
-                None => {}
+                Some(
+                    revision_tree_response::Payload::Revision(_)
+                    | revision_tree_response::Payload::Partition(_),
+                )
+                | None => {}
             }
         }
         ensure!(signed, "Lore answered without naming the revision");
@@ -730,6 +735,7 @@ mod tests {
                     lore_proto::lore::thin_client::v1::RevisionTreeHeader {
                         identifier: None,
                         signature,
+                        last_revision_included: false,
                     },
                 )),
             });

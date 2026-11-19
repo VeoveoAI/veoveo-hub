@@ -156,8 +156,10 @@ impl Phase {
             p::SandboxPhase::Provisioning => Self::Provisioning,
             p::SandboxPhase::Starting => Self::Starting,
             p::SandboxPhase::Ready => Self::Ready,
-            p::SandboxPhase::Stopping => Self::Stopping,
-            p::SandboxPhase::Stopped => Self::Stopped,
+            // The Hub never suspends a factory sandbox; an operator's suspend reads as a stop,
+            // so the status vocabulary console reads stays the same.
+            p::SandboxPhase::Stopping | p::SandboxPhase::Suspending => Self::Stopping,
+            p::SandboxPhase::Stopped | p::SandboxPhase::Suspended => Self::Stopped,
             p::SandboxPhase::Completed => Self::Completed,
             p::SandboxPhase::Error => Self::Error,
             p::SandboxPhase::Deleting => Self::Deleting,

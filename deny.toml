@@ -5,18 +5,9 @@ all-features = true
 
 [advisories]
 # Reviewed informational maintenance notice, not a claim that the graph is free of
-# vulnerabilities. The locked rustls-pemfile 2.2.0 dependency comes through
-# openshell-core from VeoveoAI/OpenShell at 9724fb1834dec157b4482a1da97338fd8ca1e50c.
-# Its code is unchanged from the original 5a7728c advisory review named below.
-# It parses configured CA certificates into rustls-pki-types; RootCertStore validates
-# them. RustSec lists no patched version. Remove this exception when the pinned SDK
-# removes the dependency. cargo-deny 0.20.2 scopes this by advisory ID only, not caller.
-# https://rustsec.org/advisories/RUSTSEC-2025-0134.html
-#
-# Reviewed informational maintenance notice, not a claim that the graph is free of
 # vulnerabilities. The locked unsafe-libyaml 0.2.11 comes through serde_yaml
 # 0.9.34+deprecated, which kube-client 0.99 uses through openshell-crypto from
-# VeoveoAI/OpenShell at c80bda2013a5656bc2421a38013463709481671f, and which the Hub uses
+# VeoveoAI/OpenShell at 5f630f42ccf26336419a90ce01cccba40dfbf6c1, and which the Hub uses
 # to read a branch's `openshell/providers.yaml`, a list of at most 16 provider names
 # that the factory validates after parsing. RustSec lists no vulnerability and no
 # patched version. Remove this exception when the Hub and the pinned OpenShell crates no
@@ -32,8 +23,7 @@ all-features = true
 # https://rustsec.org/advisories/RUSTSEC-2026-0543.html
 # https://rustsec.org/advisories/RUSTSEC-2026-0542.html
 ignore = [
-    { id = "RUSTSEC-2025-0134", reason = "Reviewed unmaintained rustls-pemfile 2.2.0 via pinned openshell-core (5a7728c304b5528e954e9ae900cf21f84e1a12b1); informational maintenance notice, no patched release. Remove when the SDK drops the dependency." },
-    { id = "RUSTSEC-2024-0449", reason = "Reviewed unmaintained unsafe-libyaml 0.2.11 via serde_yaml 0.9.34, used by kube-client 0.99 through openshell-crypto (c80bda2013a5656bc2421a38013463709481671f) and by the Hub for providers.yaml; informational maintenance notice, no patched release. Remove when the Hub and OpenShell drop serde_yaml." },
+    { id = "RUSTSEC-2024-0449", reason = "Reviewed unmaintained unsafe-libyaml 0.2.11 via serde_yaml 0.9.34, used by kube-client 0.99 through openshell-crypto (5f630f42ccf26336419a90ce01cccba40dfbf6c1) and by the Hub for providers.yaml; informational maintenance notice, no patched release. Remove when the Hub and OpenShell drop serde_yaml." },
     { id = "RUSTSEC-2026-0543", reason = "Reviewed unmaintained chrono 0.4.45, used by core, the SDK and the Hub's sqlx feature and through rmcp, schemars, oauth2, object_store, sqlx and openshell-core; informational maintenance notice, no patched release. Remove when the graph drops chrono." },
     { id = "RUSTSEC-2026-0542", reason = "Reviewed unmaintained humantime 2.4.0 via object_store 0.14.1 in core's audit; informational maintenance notice, no patched release. Remove when object_store drops it." },
 ]

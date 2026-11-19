@@ -59,6 +59,7 @@ fn node(path: &str, kind: NodeType, size: u64, address: Option<Address>) -> Tree
         size,
         mode: 0,
         tracking: false,
+        ..Default::default()
     }
 }
 

@@ -1136,6 +1136,8 @@ pub(super) fn phase_name(phase: p::SandboxPhase) -> &'static str {
         p::SandboxPhase::Deleting => "deleting",
         p::SandboxPhase::Stopping => "stopping",
         p::SandboxPhase::Stopped => "stopped",
+        p::SandboxPhase::Suspending => "suspending",
+        p::SandboxPhase::Suspended => "suspended",
         p::SandboxPhase::Starting => "starting",
         p::SandboxPhase::Completed => "completed",
     }
