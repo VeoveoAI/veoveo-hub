@@ -46,7 +46,7 @@ them requires no Hub restart.
 
 Tests that need a database start a private PostgreSQL cluster per test process from the
 PostgreSQL 18 programs on `PATH`; the `dev` image installs the PGDG `postgresql-18`
-18.6 packages, and on macOS Homebrew's `postgresql@18` provides the same programs.
+18.7 packages, and on macOS Homebrew's `postgresql@18` provides the same programs.
 The browser-session test logs a user in at a private Keycloak server it starts per test
 process. The `dev` image builds Keycloak 26.8.1 at `/opt/keycloak` for an in-memory
 database and runs it on Debian's OpenJDK 21. Elsewhere, `KEYCLOAK_HOME` names a
