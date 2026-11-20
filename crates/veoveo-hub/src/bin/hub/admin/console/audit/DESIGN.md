@@ -6,7 +6,7 @@
 |---|---|
 | HTTP, RFC 9110 | Profile-scoped authenticated JSON reads, POST view admission and streaming JSON Lines export; responses use `no-store` |
 | Server-Sent Events | Partition-filtered notifications and `Last-Event-ID` recovery through sealed block sequences |
-| PostgreSQL 18 through core's `AuditStore` | Parameterized SQL filtering and keyset pagination, partition-scoped change streams on the `audit` channel, exact-record access receipts |
+| PostgreSQL 19 through core's `AuditStore` | Parameterized SQL filtering and keyset pagination, partition-scoped change streams on the `audit` channel, exact-record access receipts |
 | Veoveo audit envelope | Owner-declared classes and targets, closed record summaries, queries and export framing; reads admit every class stored in `audit.detail_type` |
 
 `/admin/{profile}/console/audit` provides partitions, views, records, summary, stream

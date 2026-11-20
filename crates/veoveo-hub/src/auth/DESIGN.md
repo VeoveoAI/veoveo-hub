@@ -12,7 +12,7 @@
 | JWK Thumbprint, RFC 7638 | The `kid` of the hosted authorization server's key, which the configuration repeats as `accessTokenKeyId` |
 | Token revocation, RFC 7009, and OAuth security BCP, RFC 9700 | Refresh-family rotation, replay detection and revocation |
 | Veoveo access token claims | Collision-resistant names under `https://veoveo.ai/claims/`: `principal`, `principal-display-name`, `principal-kind`, `session-family`, `invocation-mode`, `initiator`, `delegation`, `tenant`, `data-labels` and `principal-assurances`; `managed-execution` is reserved and never accepted from a token |
-| PostgreSQL 18 | Refresh families, replay guards, JWT revocations and audit records shared by every replica, in the Hub's `hub` schema and core's `audit` schema |
+| PostgreSQL 19 | Refresh families, replay guards, JWT revocations and audit records shared by every replica, in the Hub's `hub` schema and core's `audit` schema |
 
 The forwarded tokens the Hub sends to registered servers are a separate profile,
 defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/fb79f3f24b289b0afc647d2a3da208f858d08f10/crates/veoveo-hub-sdk/src/registration/DESIGN.md#forwarded-identity).

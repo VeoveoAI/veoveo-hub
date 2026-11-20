@@ -6,7 +6,7 @@
 |---|---|
 | MCP 2026-07-28 Tasks extension | Opaque canonical Task identifiers projected from an upstream CreateTaskResult or the related task a CallToolResult names |
 | Veoveo invocation authority | Stable tenant, actual actor, profile and invocation provenance; every use checks current policy and retained data labels |
-| PostgreSQL 18 | `hub.task_route` in core's `hub` schema, read and written through checked sqlx queries beside `task_routes.rs` and pruned through core's `PlatformStore::prune_task_routes` |
+| PostgreSQL 19 | `hub.task_route` in core's `hub` schema, read and written through checked sqlx queries beside `task_routes.rs` and pruned through core's `PlatformStore::prune_task_routes` |
 | Veoveo `gtr_` route identifiers | 32 random bytes encoded as base64url without padding; identifiers convey no access authority |
 
 `task_routes.rs` owns the mapping between an upstream Task and its public hub
