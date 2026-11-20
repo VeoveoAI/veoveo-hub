@@ -158,12 +158,7 @@ impl PersonMcp {
         if let Some(caller) = caller {
             request.extensions_mut().insert(caller);
         }
-        let response = self
-            .router
-            .clone()
-            .oneshot(request)
-            .await
-            .map_err(|error| Failure::Unavailable(error.to_string()))?;
+        let Ok(response) = self.router.clone().oneshot(request).await;
         if response.status() == StatusCode::UNAUTHORIZED {
             return Err(Failure::Unauthenticated);
         }
