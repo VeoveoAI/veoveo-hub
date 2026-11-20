@@ -15,7 +15,7 @@
 | PostgreSQL 19 | Refresh families, replay guards, JWT revocations and audit records shared by every replica, in the Hub's `hub` schema and core's `audit` schema |
 
 The forwarded tokens the Hub sends to registered servers are a separate profile,
-defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/fb79f3f24b289b0afc647d2a3da208f858d08f10/crates/veoveo-hub-sdk/src/registration/DESIGN.md#forwarded-identity).
+defined by the SDK's [server registration protocol](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/18a6e8c5f8a69ca57a6e12f8b752203574efa231/crates/veoveo-hub-sdk/src/registration/DESIGN.md#forwarded-identity).
 
 ## Access Tokens
 
