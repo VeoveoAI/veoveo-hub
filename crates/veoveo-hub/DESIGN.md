@@ -477,6 +477,14 @@ build; layers stay cached, so an unchanged `openshell/image/` builds to the same
 digest. The Hub's policy reaches BuildKit as plain TCP for `buildctl`, which carries
 the prune as it carries the build.
 
+BuildKit pulls a base image itself, but it asks `buildctl` for the registry's pull
+token, and `buildctl` fetches that token from the registry's token service. The Hub's
+policy lets `buildctl` fetch one from Docker Hub alone: `GET /token` at `auth.docker.io`,
+inspected as REST. A branch's `openshell/image/` therefore takes its bases from Docker
+Hub or from the installation's registry, which asks for no token. A base from another
+registry fails the build at its first step with OpenShell's refusal, as does a Docker
+Hub base whenever the policy lacks that endpoint, even though BuildKit could pull it.
+
 The instance's client is no installed OAuth client. At `/oauth/token` a
 `client_credentials` request whose client ID is an instance's deployment ID and whose
 `client_secret` matches its digest receives the Lore token of the instance's latest
