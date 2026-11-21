@@ -50,6 +50,8 @@ use super::{
 };
 use crate::runtime::AdminState;
 
+mod links;
+
 /// How long Lore may take to accept a connection.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long Lore may pause in an answer while the caller waits for it. The whole answer has
@@ -124,6 +126,10 @@ pub(crate) fn router(state: AdminState, auth: ProfileAuthState) -> Result<Router
         http: client()?,
     };
     Ok(Router::new()
+        .route(
+            "/lore/{profile}/repositories/{id}/links/{revision}/{*path}",
+            get(links::link),
+        )
         .route("/lore/{profile}/repositories/{id}/tree/{branch}", get(tree))
         .route(
             "/lore/{profile}/repositories/{id}/files/{branch}",

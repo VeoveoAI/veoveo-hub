@@ -79,7 +79,7 @@ fn deployment(catalog: &HubCatalog, id: &DeploymentId) -> Result<Deployment> {
 }
 
 /// The Lore URL of a repository of the deployment.
-fn repository_url(deployment: &Deployment, repository: &RepositoryId) -> url::Url {
+pub(crate) fn repository_url(deployment: &Deployment, repository: &RepositoryId) -> url::Url {
     let mut url = deployment.endpoint.clone();
     url.set_path(&format!("/{repository}"));
     url

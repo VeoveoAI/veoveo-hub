@@ -395,7 +395,7 @@ pub(super) fn prepared(directory: &Path) -> Result<Prepared> {
 
 /// Lore's command line, from the Lore image the Hub's sandbox mounts, with its state
 /// confined to `root`.
-fn lore(root: &Path, token: &str) -> tokio::process::Command {
+pub(crate) fn lore(root: &Path, token: &str) -> tokio::process::Command {
     let state = root.join("lore");
     let mut command = tokio::process::Command::new(LORE);
     command
@@ -404,8 +404,10 @@ fn lore(root: &Path, token: &str) -> tokio::process::Command {
         .env("XDG_CONFIG_HOME", state.join("config"))
         .env("XDG_DATA_HOME", state.join("data"))
         .env("LORE_GLOBAL_PATH", state.join("global"))
-        .env("LORE_AUTH_PATH", state.join("auth"))
-        .args(["--access-token", token]);
+        .env("LORE_AUTH_PATH", state.join("auth"));
+    if !token.is_empty() {
+        command.args(["--access-token", token]);
+    }
     pass_trust_roots(&mut command, |name| std::env::var_os(name));
     command
 }

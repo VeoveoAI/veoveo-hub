@@ -2754,6 +2754,53 @@ tree routes and on the `/view/lore/` page, by the same calls, so the person's to
 `lore-file-not-found`. It is how a server shows what a file was before a change, and whatever is
 handed a branch can read it unchanged, such as the Thumb and USD servers.
 
+A reader that needs to compose repositories must resolve the mount itself.
+`GET /lore/{profile}/repositories/{id}/links/@{signature}/{path}` takes a
+repository-relative mount path in that exact parent revision. It authenticates
+the same caller as the files route. The parent grant admits the lookup of the
+link. Its native target repository and pinned revision determine a second grant
+check in the caller's tenant. With both grants, the response identifies the
+parent repository, its revision, the mount path and the target repository,
+revision and source path. The source path comes from Lore's mounted node.
+Two mounts of distinct directories in the same target revision have distinct
+source paths. The branch's current tip has no bearing on this response.
+
+The response has this shape. `target.path` is `/` for the root, or a
+repository-relative path such as `robots/go2` for a subtree.
+
+```json
+{
+  "repository": "<parent repository ID>",
+  "revision": "<parent revision signature>",
+  "path": "library",
+  "target": {
+    "repository": "<target repository ID>",
+    "revision": "<target revision signature>",
+    "path": "/"
+  }
+}
+```
+
+Missing parent or target access ends the request before returning the resolved
+mount. A caller reading a file beneath it then uses the ordinary files route,
+under the target repository and exact target revision. That route checks the
+person's current grant on its own. Responses containing resolved mounts are
+private. The factory's checkout and the pusher's access have no part in these
+reads.
+
+The mount read first finds the link in the exact parent's own folder tree. Its
+address names the target repository and signature. After independently admitting
+both current grants, the Hub gives Lore's unchanged command line separate
+repository-scoped tokens to clone only each revision's metadata into a fresh
+private shared store. An exclusion view materializes no source files. An offline
+`link info` on the parent checkout supplies the native source path; its target
+identity and signature must agree with the tree before the Hub answers. Native
+commands have bounded runtime and output, and the temporary store is removed at
+request end. No pusher checkout, stored credential or custom Lore decoder is used.
+The one-hop route accepts a mount below ordinary parent directories, but refuses
+a lookup crossing another mount. A consumer resolves that intermediate mount
+first, then asks its exact target repository for the next one under fresh grants.
+
 Lore's rules decide each read, since the token is the person's and Lore checks it on
 both calls. A refusal by either answers 403 `repository-access-forbidden`, a path or
 branch that is not there 404 `lore-file-not-found`, and Lore failing 503
