@@ -222,7 +222,21 @@ impl Fixture {
         for (name, value) in headers {
             request.append(name.clone(), value.parse().unwrap());
         }
-        marked(answer(tree, &content, "main", &path, &request).await)
+        let result = async {
+            let mut response = answer_resolved(
+                resolve(tree, &path).await.map_err(failed)?,
+                &content,
+                &self.repository,
+                "main",
+                &path,
+                &request,
+            )
+            .await?;
+            mark_revision(&mut response, tree.revision().as_deref());
+            Ok(response)
+        }
+        .await;
+        marked(result)
     }
 
     async fn ask(&self, path: &str, headers: &[(HeaderName, &str)]) -> Response {
@@ -510,10 +524,11 @@ async fn a_folder_answers_its_listing() {
     assert_eq!(root["entries"].as_array().unwrap().len(), 7);
     assert_eq!(root["entries"][0]["name"], "a#b?c%d [e].usd");
 
-    // A link lists as the folder it links to.
+    // The one-repository answer cannot enter a linked target. The production
+    // read loop must first resolve its exact mount under a separate current grant.
     assert_eq!(
-        listing("linked").await["entries"],
-        json!([{"name": "inside.usd", "type": "file", "size": 10, "address": file_address()}])
+        fixture.ask("linked", &[]).await.status(),
+        StatusCode::NOT_FOUND
     );
     assert!(fixture.reads().is_empty());
 }
@@ -667,4 +682,102 @@ fn a_branch_may_name_one_revision() {
     assert_eq!(pinned(&signature), None, "a branch of that name");
     assert_eq!(pinned("main"), None);
     assert_eq!(pinned("@tip"), None, "and a branch of that name");
+}
+
+#[tokio::test]
+async fn path_resolution_stops_at_the_mount_before_any_target_tree_read() {
+    struct ParentOnly {
+        queried: Mutex<Vec<Option<String>>>,
+    }
+    impl Tree for ParentOnly {
+        fn revision(&self) -> Option<String> {
+            Some("ab".repeat(32))
+        }
+        fn folder<'a>(&'a self, folder: Option<&'a str>) -> BoxFuture<'a, Result<Vec<TreeNode>>> {
+            Box::pin(async move {
+                self.queried.lock().unwrap().push(folder.map(str::to_owned));
+                match folder {
+                    None => Ok(vec![node("assets", NodeType::Directory, 0, None)]),
+                    Some("assets") => Ok(vec![node(
+                        "assets/library",
+                        NodeType::Link,
+                        0,
+                        Some(address_of(0xaa)),
+                    )]),
+                    _ => panic!("target queried with parent-only credentials"),
+                }
+            })
+        }
+    }
+    let tree = ParentOnly {
+        queried: Mutex::new(Vec::new()),
+    };
+    let Some(Resolved::Link {
+        mount, remainder, ..
+    }) = resolve(
+        &tree,
+        &FilePath::decode("assets/library/scenes/warehouse/base.usda").unwrap(),
+    )
+    .await
+    .unwrap()
+    else {
+        panic!("native mount not exposed to authorized resolver");
+    };
+    assert_eq!(mount.tree_path(), "assets/library");
+    assert_eq!(remainder.tree_path(), "scenes/warehouse/base.usda");
+    assert_eq!(*tree.queried.lock().unwrap(), [None, Some("assets".into())]);
+    assert_eq!(
+        mounted_path("/", &remainder).unwrap().tree_path(),
+        "scenes/warehouse/base.usda"
+    );
+    assert_eq!(
+        mounted_path("shared/100%25", &remainder)
+            .unwrap()
+            .tree_path(),
+        "shared/100%25/scenes/warehouse/base.usda"
+    );
+    for bad in ["/escape", "a//b", "a/../b", "a/./b", "a/b/", "a\\b"] {
+        assert!(mounted_path(bad, &remainder).is_err());
+    }
+}
+
+#[test]
+fn native_link_walk_rejects_cycles_and_bounds_distinct_mounts() {
+    let repository = RepositoryId::parse(REPOSITORY).unwrap();
+    let mut guard = LinkReadGuard::default();
+    let path = FilePath::decode("library/file.usda").unwrap();
+    guard
+        .enter(&repository, Some("ab".repeat(32)), &path)
+        .unwrap();
+    assert!(
+        guard
+            .enter(&repository, Some("ab".repeat(32)), &path)
+            .is_err()
+    );
+    // Distinct source subtrees are not falsely identified as the same mount.
+    let mut guard = LinkReadGuard::default();
+    for index in 0..=16 {
+        guard
+            .enter(
+                &repository,
+                Some("ab".repeat(32)),
+                &FilePath::decode(&format!("part{index}/file.usda")).unwrap(),
+            )
+            .unwrap();
+    }
+    assert!(
+        guard
+            .enter(&repository, Some("ab".repeat(32)), &path)
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn a_conditional_response_keeps_the_frozen_root_revision() {
+    let fixture = fixture().await;
+    let mut response = fixture.ask("readme.md", &[(IF_NONE_MATCH, &etag())]).await;
+    assert_eq!(response.status(), StatusCode::NOT_MODIFIED);
+    mark_revision(&mut response, Some(&"ab".repeat(32)));
+    assert_eq!(response.headers()[LORE_REVISION], "ab".repeat(32));
+    assert!(fixture.reads().is_empty());
 }

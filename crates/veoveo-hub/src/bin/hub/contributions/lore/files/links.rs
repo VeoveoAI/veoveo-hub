@@ -10,10 +10,10 @@ const OUTPUT_LIMIT: usize = 256 * 1024;
 const DIAGNOSTIC_LIMIT: usize = 64 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct Target {
-    repository: RepositoryId,
-    revision: Revision,
-    path: String,
+pub(super) struct Target {
+    pub(super) repository: RepositoryId,
+    pub(super) revision: Revision,
+    pub(super) path: String,
 }
 
 #[derive(Serialize)]
@@ -81,43 +81,60 @@ async fn as_caller(
         .await
         .map_err(failed)?
         .ok_or_else(not_found)?;
-    let (target_repository, target_revision) =
-        authorized_target(&section, deployment, caller, &node)?;
-    let target_token = token(
+    let target = resolve_target(
         &catalog,
-        &subject.principal.id,
-        deployment,
-        &target_repository,
-    )
-    .await?;
-    let source_path = native_source_path(
+        &section,
+        caller,
         deployment,
         AuthorizedRevision {
             repository: &repository,
             revision: &revision,
             token: &parent_token,
         },
-        AuthorizedRevision {
-            repository: &target_repository,
-            revision: &target_revision,
-            token: &target_token,
-        },
         &path,
         &node,
     )
-    .await
-    .map_err(failed)?;
+    .await?;
     Ok(Json(Mount {
         repository,
         revision,
         path: path.tree_path(),
-        target: Target {
-            repository: target_repository,
-            revision: target_revision,
-            path: source_path,
-        },
+        target,
     })
     .into_response())
+}
+
+/// Shared by logical file traversal and the explicit mount metadata route.
+/// Current target authority is established before any native target metadata read.
+pub(super) async fn resolve_target(
+    catalog: &HubCatalog,
+    section: &Lore,
+    caller: Caller<'_>,
+    deployment: &Deployment,
+    parent: AuthorizedRevision<'_>,
+    path: &FilePath,
+    node: &TreeNode,
+) -> Result<Target, Problem> {
+    let (repository, revision) = authorized_target(section, deployment, caller, node)?;
+    let target_token = token(catalog, caller.principal, deployment, &repository).await?;
+    let source_path = native_source_path(
+        deployment,
+        parent,
+        AuthorizedRevision {
+            repository: &repository,
+            revision: &revision,
+            token: &target_token,
+        },
+        path,
+        node,
+    )
+    .await
+    .map_err(failed)?;
+    Ok(Target {
+        repository,
+        revision,
+        path: source_path,
+    })
 }
 
 async fn token(
@@ -193,10 +210,10 @@ fn authorized_target(
 }
 
 /// Only native metadata enters these clones: the exclusion view materializes zero files.
-struct AuthorizedRevision<'a> {
-    repository: &'a RepositoryId,
-    revision: &'a Revision,
-    token: &'a str,
+pub(super) struct AuthorizedRevision<'a> {
+    pub(super) repository: &'a RepositoryId,
+    pub(super) revision: &'a Revision,
+    pub(super) token: &'a str,
 }
 
 async fn native_source_path(

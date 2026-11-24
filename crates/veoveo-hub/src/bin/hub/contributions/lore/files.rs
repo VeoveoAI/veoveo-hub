@@ -85,6 +85,7 @@ impl FilePath {
     }
 
     /// The folder holding this path, `None` at the top level; none at the root.
+    #[cfg(test)]
     fn parent(&self) -> Option<String> {
         let (_, folders) = self.0.split_last()?;
         (!folders.is_empty()).then(|| folders.join("/"))
@@ -201,7 +202,7 @@ async fn as_caller(
     read(
         &catalog,
         &files.http,
-        &subject.principal.id,
+        caller,
         FileRead {
             deployment,
             repository: &repository,
@@ -332,40 +333,148 @@ pub(crate) struct FileRead<'a> {
 pub(crate) async fn read(
     catalog: &HubCatalog,
     http: &reqwest::Client,
-    person: &PrincipalId,
+    caller: Caller<'_>,
     file: FileRead<'_>,
     headers: &HeaderMap,
 ) -> Result<Response, Problem> {
     let endpoint = file.deployment.http_endpoint.as_ref().ok_or_else(|| {
-        tracing::error!(
-            deployment = %file.deployment.id,
-            "the Lore deployment names no HTTP endpoint, so its files cannot be read"
-        );
+        tracing::error!(deployment = %file.deployment.id,
+            "the Lore deployment names no HTTP endpoint, so its files cannot be read");
         unavailable()
     })?;
-    let token = issue(catalog, person, &file.deployment.id, file.repository)
-        .await
-        .map_err(|error| match error {
-            TokenIssueError::Denied(cause) => {
-                tracing::info!(%person, "no Lore token to read a file: {cause:#}");
-                refused(Refusal::NotGranted)
+    let section = Lore::of(catalog).map_err(|error| {
+        tracing::error!("the Lore section is unreadable: {error:#}");
+        unavailable()
+    })?;
+    let mut repository = file.repository.clone();
+    let mut branch = file.branch.to_owned();
+    let mut path = file.path.clone();
+    let mut root_revision = None;
+    let mut guard = LinkReadGuard::default();
+    // One initial repository plus at most sixteen native mounts. No native
+    // tree query crosses a link before that target has its own current grant.
+    for hop in 0..=16 {
+        section
+            .readable(&file.deployment.id, &repository, caller)
+            .map_err(refused)?;
+        let token = issue(catalog, caller.principal, &file.deployment.id, &repository)
+            .await
+            .map_err(|error| match error {
+                TokenIssueError::Denied(_) => refused(Refusal::NotGranted),
+                TokenIssueError::Unavailable(cause) => {
+                    tracing::error!("failed to issue a Lore token to read a file: {cause:#}");
+                    unavailable()
+                }
+            })?
+            .access_token;
+        let tree = NativeTree::at_tip(file.deployment, &repository, &branch, &token)
+            .await
+            .map_err(failed)?;
+        if hop == 0 {
+            root_revision = tree.revision();
+        }
+        guard
+            .enter(&repository, tree.revision(), &path)
+            .map_err(failed)?;
+        match resolve(&tree, &path).await.map_err(failed)? {
+            Some(Resolved::Link {
+                node,
+                mount,
+                remainder,
+            }) => {
+                if hop == 16 {
+                    tracing::warn!(
+                        phase = "linked-file-resolution",
+                        "native file link depth exceeded"
+                    );
+                    return Err(unavailable());
+                }
+                let revision = tree.tip.as_ref().ok_or_else(not_found)?;
+                let target = links::resolve_target(
+                    catalog,
+                    &section,
+                    caller,
+                    file.deployment,
+                    links::AuthorizedRevision {
+                        repository: &repository,
+                        revision,
+                        token: &token,
+                    },
+                    &mount,
+                    &node,
+                )
+                .await?;
+                path = mounted_path(&target.path, &remainder).map_err(failed)?;
+                branch = format!("@{}", target.revision);
+                repository = target.repository;
             }
-            TokenIssueError::Unavailable(cause) => {
-                tracing::error!("failed to issue a Lore token to read a file: {cause:#}");
-                unavailable()
+            resolved => {
+                let content = Content {
+                    http,
+                    endpoint,
+                    repository: &repository,
+                    token: &token,
+                };
+                let mut response = answer_resolved(
+                    resolved,
+                    &content,
+                    file.repository,
+                    file.branch,
+                    file.path,
+                    headers,
+                )
+                .await?;
+                mark_revision(&mut response, root_revision.as_deref());
+                return Ok(response);
             }
-        })?
-        .access_token;
-    let tree = NativeTree::at_tip(file.deployment, file.repository, file.branch, &token)
-        .await
-        .map_err(failed)?;
-    let content = Content {
-        http,
-        endpoint,
-        repository: file.repository,
-        token: &token,
+        }
+    }
+    Err(unavailable())
+}
+
+/// Per-request traversal bound, not a cross-request cache or access grant.
+#[derive(Default)]
+struct LinkReadGuard {
+    visited: std::collections::HashSet<(String, Option<String>, String)>,
+}
+impl LinkReadGuard {
+    fn enter(
+        &mut self,
+        repository: &RepositoryId,
+        revision: Option<String>,
+        path: &FilePath,
+    ) -> Result<()> {
+        anyhow::ensure!(self.visited.len() <= 16, "native file link depth exceeded");
+        anyhow::ensure!(
+            self.visited
+                .insert((repository.to_string(), revision, path.tree_path())),
+            "native file link cycle refused"
+        );
+        Ok(())
+    }
+}
+
+/// Native source paths are already names, not percent-encoded URL segments.
+fn mounted_path(source: &str, remainder: &FilePath) -> Result<FilePath> {
+    let mut names = if source == "/" {
+        Vec::new()
+    } else {
+        anyhow::ensure!(
+            source
+                .split('/')
+                .all(|part| !matches!(part, "" | "." | "..") && !part.contains(['\\', '\0'])),
+            "native mounted source path is not canonical"
+        );
+        source.split('/').map(str::to_owned).collect()
     };
-    answer(&tree, &content, file.branch, file.path, headers).await
+    names.extend(remainder.0.iter().cloned());
+    Ok(FilePath(names))
+}
+
+fn mark_revision(response: &mut Response, revision: Option<&str>) {
+    if let Some(header) = revision.and_then(|revision| HeaderValue::from_str(revision).ok()) {
+        response.headers_mut().insert(LORE_REVISION, header);
+    }
 }
 
 /// `result` as an answer, with what every answer of a file route says.
@@ -458,33 +567,61 @@ impl Tree for NativeTree<'_> {
 
 /// What a path names on a branch's tip.
 enum Resolved {
-    File { address: String },
+    File {
+        address: String,
+    },
     Folder(Vec<TreeNode>),
+    Link {
+        node: TreeNode,
+        mount: FilePath,
+        remainder: FilePath,
+    },
 }
 
-/// Lore's `RevisionTree` walks only folders, so a path resolves through the listing of the
-/// folder that holds it. Only an exact name matches, so `..` never does. A link lists as the
-/// folder it links to, when the person may read that repository.
+/// Read one repository's own folders only. A native link is a separate authorization
+/// boundary, even when Lore can list it under the original logical parent path.
 async fn resolve(tree: &dyn Tree, path: &FilePath) -> Result<Option<Resolved>> {
     if path.is_root() {
         return Ok(Some(Resolved::Folder(tree.folder(None).await?)));
     }
-    let parent = path.parent();
-    let tree_path = path.tree_path();
-    let Some(node) = tree
-        .folder(parent.as_deref())
-        .await?
-        .into_iter()
-        .find(|node| node.path == tree_path)
-    else {
-        return Ok(None);
-    };
-    if node.node_type == NodeType::File as i32 {
-        let address = address(&node)
-            .ok_or_else(|| anyhow::anyhow!("Lore listed the file {tree_path} with no address"))?;
-        return Ok(Some(Resolved::File { address }));
+    let mut folder = None;
+    for (index, segment) in path.0.iter().enumerate() {
+        let name = folder
+            .as_ref()
+            .map_or_else(|| segment.clone(), |parent| format!("{parent}/{segment}"));
+        let Some(node) = tree
+            .folder(folder.as_deref())
+            .await?
+            .into_iter()
+            .find(|node| node.path == name)
+        else {
+            return Ok(None);
+        };
+        if node.node_type == NodeType::Link as i32 {
+            return Ok(Some(Resolved::Link {
+                node,
+                mount: FilePath(path.0[..=index].to_vec()),
+                remainder: FilePath(path.0[index + 1..].to_vec()),
+            }));
+        }
+        if index + 1 == path.0.len() {
+            return match NodeType::try_from(node.node_type) {
+                Ok(NodeType::File) => Ok(Some(Resolved::File {
+                    address: address(&node)
+                        .ok_or_else(|| anyhow::anyhow!("Lore listed a file without an address"))?,
+                })),
+                Ok(NodeType::Directory) => {
+                    Ok(Some(Resolved::Folder(tree.folder(Some(&name)).await?)))
+                }
+                _ => Ok(None),
+            };
+        }
+        if node.node_type != NodeType::Directory as i32 {
+            return Ok(None);
+        }
+        folder = Some(name);
     }
-    Ok(Some(Resolved::Folder(tree.folder(Some(&tree_path)).await?)))
+    Ok(None)
 }
 
 /// A tree entry's content address, as Lore's content route names it.
@@ -558,35 +695,29 @@ impl Entry {
     }
 }
 
-async fn answer(
-    tree: &dyn Tree,
+async fn answer_resolved(
+    resolved: Option<Resolved>,
     content: &Content<'_>,
+    repository: &RepositoryId,
     branch: &str,
     path: &FilePath,
     headers: &HeaderMap,
 ) -> Result<Response, Problem> {
-    let mut response = match resolve(tree, path).await.map_err(failed)? {
-        None => return Err(not_found()),
+    Ok(match resolved {
+        None | Some(Resolved::Link { .. }) => return Err(not_found()),
         Some(Resolved::File { address }) => content.stream(&address, headers).await?,
         Some(Resolved::Folder(nodes)) => {
             let mut entries = nodes.iter().map(Entry::of).collect::<Vec<_>>();
             entries.sort_by(|a, b| a.name.cmp(&b.name));
             Json(Listing {
-                repository: content.repository,
+                repository,
                 branch,
                 path: path.tree_path(),
                 entries,
             })
             .into_response()
         }
-    };
-    if let Some(revision) = tree
-        .revision()
-        .and_then(|revision| HeaderValue::from_str(&revision).ok())
-    {
-        response.headers_mut().insert(LORE_REVISION, revision);
-    }
-    Ok(response)
+    })
 }
 
 /// Lore's HTTP content route, as the person whose token it holds.

@@ -119,7 +119,13 @@ impl ContentOwner for LoreContent {
             files::read(
                 catalog,
                 &self.http,
-                &person.id,
+                Caller {
+                    tenant: person
+                        .tenant
+                        .as_ref()
+                        .ok_or_else(|| refused(Refusal::NotGranted))?,
+                    principal: &person.id,
+                },
                 FileRead {
                     deployment: &deployment,
                     repository: &repository,

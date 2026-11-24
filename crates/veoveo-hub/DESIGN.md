@@ -2754,7 +2754,20 @@ tree routes and on the `/view/lore/` page, by the same calls, so the person's to
 `lore-file-not-found`. It is how a server shows what a file was before a change, and whatever is
 handed a branch can read it unchanged, such as the Thumb and USD servers.
 
-A reader that needs to compose repositories must resolve the mount itself.
+Files beneath native links use their logical path in the original repository.
+The shared file reader walks ordinary parent folders and stops at each mount. It
+resolves that mount with the native metadata procedure below, admits the target
+under the same caller and tenant, and continues beneath the exact target revision
+and mounted source path. It never forwards a parent-only token to the target or
+reads as a pusher. Every contributing grant is checked before content, a folder
+listing, or a conditional 304 is returned. Repeated/cyclic resolutions and chains
+longer than sixteen mounts fail closed. `Lore-Revision` remains the frozen root
+revision, including when the original URL named a moving branch. The same reader
+serves the file route and content-domain previews, so relative USD dependencies
+retain their ordinary source URLs. The whole-tree route still lists links without
+entering them.
+
+A reader that needs the mount identities themselves can resolve them explicitly.
 `GET /lore/{profile}/repositories/{id}/links/@{signature}/{path}` takes a
 repository-relative mount path in that exact parent revision. It authenticates
 the same caller as the files route. The parent grant admits the lookup of the
@@ -2782,9 +2795,9 @@ repository-relative path such as `robots/go2` for a subtree.
 ```
 
 Missing parent or target access ends the request before returning the resolved
-mount. A caller reading a file beneath it then uses the ordinary files route,
-under the target repository and exact target revision. That route checks the
-person's current grant on its own. Responses containing resolved mounts are
+mount. A caller can read beneath it with the original logical files URL, or use the
+ordinary files route under the target repository and exact target revision. Both
+paths check the person's current contributing grants on their own. Responses containing resolved mounts are
 private. The factory's checkout and the pusher's access have no part in these
 reads.
 
@@ -2821,9 +2834,9 @@ Lore's route would let it choose the answer's content type. A file answers
 A folder answers `{"repository", "branch", "path", "entries": [{"name", "type", "size",
 "address"}]}`, entries by name, `type` being `file`, `directory` or `link`, and only a
 file having an `address`. `size` is the bytes under a folder. A link lists as the folder
-it links to, when the person may read that repository. The content of a file is read
-from the repository the URL names, so a file inside a link is read through its own
-repository's URL.
+it links to, when the person may read that repository. Linked file content is read
+from the independently admitted target while the public URL and revision remain
+those of the frozen logical root.
 
 The path is the raw URL path, percent-decoded one segment at a time, so `%2F` never
 separates. A segment that cannot be a name in a tree answers 404 without asking Lore: an
@@ -3049,3 +3062,11 @@ A deletion by a person whose actions on the repository, own or through a group, 
 Hub does not register leaves nothing to remove. A resource ID that names no repository of
 the deployment answers `INVALID_ARGUMENT`, and a publication that fails `UNAVAILABLE`,
 so Lore stores or removes nothing then.
+
+## Patched URL dependency boundary
+
+The Hub and its exact Core and SDK dependencies share url 2.5.9, including the
+upstream nested-blob origin recursion fix for RUSTSEC-2026-0592. The source-pin
+transition uses independently qualified non-default Core and SDK revisions. It
+changes no caller authorization or native Lore credential semantics. The complete
+Hub Mac and Linux check stages, including dependency audit, remain release gates.
