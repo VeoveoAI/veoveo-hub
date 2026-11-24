@@ -82,6 +82,8 @@ pub(super) fn view_page(title: &str, origin: &str, src: &str, frames: &str) -> R
 struct ViewerConfig<'a> {
     path: &'a str,
     filename: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    r#type: Option<&'static str>,
 }
 
 /// `file-viewer` needs an absolute asset URL and a declared charset, or it renders blank.
@@ -89,10 +91,12 @@ const MOUNT_JS: &str = r#"
 const file = JSON.parse(document.getElementById("file").textContent);
 const viewer = window.FlyfishFileViewerWebFull;
 viewer.setDefaultFullAssetBaseUrl(location.origin + "/_veoveo/viewer/");
-viewer.mountViewer(document.getElementById("viewer"), {
+const options = {
   url: location.origin + file.path,
   filename: file.filename,
-});
+};
+if (file.type) options.type = file.type;
+viewer.mountViewer(document.getElementById("viewer"), options);
 "#;
 
 /// The page on the content origin that opens the file at `path`, raw from its URL, with
@@ -107,7 +111,14 @@ pub(super) fn viewer_page(path: &str, filename: &str) -> Response {
          <script src=\"/_veoveo/viewer/flyfish-file-viewer-web-full.iife.js\"></script>\
          <script>{MOUNT_JS}</script></body></html>\n",
         escaped(filename),
-        script_json(&ViewerConfig { path, filename }),
+        script_json(&ViewerConfig {
+            path,
+            filename,
+            r#type: filename
+                .rsplit_once('.')
+                .is_some_and(|(_, extension)| extension.eq_ignore_ascii_case("rhai"))
+                .then_some("txt"),
+        }),
     );
     let mut response = html(StatusCode::OK, body);
     let headers = response.headers_mut();
@@ -126,4 +137,70 @@ pub(super) fn viewer_page(path: &str, filename: &str) -> Response {
         ),
     );
     response
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn viewer_body(path: &str, filename: &str) -> (serde_json::Value, String) {
+        let response = viewer_page(path, filename);
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers()[header::CONTENT_TYPE],
+            "text/html; charset=utf-8"
+        );
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body = String::from_utf8(bytes.to_vec()).unwrap();
+        let json = body
+            .split_once("id=\"file\">")
+            .unwrap()
+            .1
+            .split_once("</script>")
+            .unwrap()
+            .0;
+        (serde_json::from_str(json).unwrap(), body)
+    }
+
+    #[tokio::test]
+    async fn rhai_uses_native_plain_text_hint_without_renaming_the_source() {
+        for filename in ["rules.rhai", "RULES.RHAI", "rules.RhAi"] {
+            let (file, body) = viewer_body("/exact/source/rules.rhai", filename).await;
+            assert_eq!(
+                file,
+                serde_json::json!({"path":"/exact/source/rules.rhai", "filename":filename, "type":"txt"})
+            );
+            assert!(body.contains("if (file.type) options.type = file.type;"));
+            assert!(body.contains("filename: file.filename"));
+        }
+        for filename in [
+            "rules.txt",
+            "rules.html",
+            "rules.usda",
+            "rules.docx",
+            "rules.rhai.txt",
+            "rhai",
+        ] {
+            let (file, _) = viewer_body("/exact/source", filename).await;
+            assert_eq!(
+                file,
+                serde_json::json!({"path":"/exact/source", "filename":filename})
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn malicious_source_name_is_data_in_the_plain_text_viewer_page() {
+        let filename = "</script><img src=x onerror=alert(1)>.rhai";
+        let path = "/exact/%3Cscript%3E.rhai";
+        let (file, body) = viewer_body(path, filename).await;
+        assert_eq!(file["filename"], filename);
+        assert_eq!(file["path"], path);
+        assert_eq!(file["type"], "txt");
+        assert!(!body.contains("<img"));
+        assert!(!body.contains("</script><img"));
+        assert!(body.contains("\\u003c/script\\u003e"));
+    }
 }

@@ -39,6 +39,8 @@ const CONTENT: &str = "https://veoveo-content.example";
 const FRAMING: &str = "frame-ancestors https://veoveo.example 'self'";
 /// The fixture server's link, 160 bits in hex.
 const LINK_TOKEN: &str = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
+const RHAI_SOURCE: &str =
+    "// </script><img src=x onerror=alert(1)>\nfn choose() { #{action: \"hold\"} }\n";
 
 /// An owner of one item, `box`, holding three files, with a switch for the person's access.
 struct Fixture {
@@ -92,6 +94,11 @@ impl ContentOwner for Fixture {
                 "site/page.html" | "a%20b.png" | "x.no-such-type" => Ok((
                     [(header::CONTENT_TYPE, "application/octet-stream")],
                     "the file's bytes",
+                )
+                    .into_response()),
+                "rules.rhai" => Ok((
+                    [(header::CONTENT_TYPE, "application/octet-stream")],
+                    RHAI_SOURCE,
                 )
                     .into_response()),
                 "served.json" => Ok((
@@ -1141,4 +1148,30 @@ fn a_factory_instance_a_person_reaches_opens_its_extensions() {
         super::serve::viewer_for(&servers, "a/b.docx"),
         super::serve::Viewer::File
     ));
+}
+
+#[tokio::test]
+async fn rhai_plain_text_hint_keeps_original_bytes_and_current_file_authority() {
+    timed(async {
+        let db = TestDb::new().await;
+        let harness = Harness::start(&db).await;
+        let (token, src) = harness.minted("/view/fixture/box/rules.rhai").await;
+        assert!(src.ends_with("/_veoveo/view/rules.rhai"));
+        let (status, headers, page) = harness
+            .on_origin(&token, "/_veoveo/view/rules.rhai", &[])
+            .await;
+        assert_eq!(status, StatusCode::OK);
+        assert!(page.contains("\"filename\":\"rules.rhai\",\"type\":\"txt\""));
+        assert!(!page.contains(RHAI_SOURCE));
+        assert_eq!(policies(&headers)[1], FRAMING);
+        let (status, _, bytes) = harness.on_origin(&token, "/rules.rhai", &[]).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(bytes, RHAI_SOURCE);
+        harness.allowed.store(false, Ordering::SeqCst);
+        for path in ["/_veoveo/view/rules.rhai", "/rules.rhai"] {
+            let (status, _, _) = harness.on_origin(&token, path, &[]).await;
+            assert_eq!(status, StatusCode::FORBIDDEN);
+        }
+    })
+    .await;
 }

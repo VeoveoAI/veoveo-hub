@@ -1677,6 +1677,14 @@ origin, `blob:` and `data:`, so that a rendered document reaches nothing else. A
 takes `no-transform` as well: measured on Bioma, Cloudflare added its analytics beacon to a page
 without it, and to no file with it.
 
+The file-viewer mount supplies its supported `type: "txt"` hint for `.rhai`
+filenames, compared in lowercase, so source opens through the published plain-text
+renderer. The original filename and item URL remain unchanged, as do the bytes,
+download identity and each current-session file admission. This hint changes only
+the fallback viewer's presentation; declared server viewers still take precedence,
+and other extensions retain their existing dispatch. Rhai is displayed as escaped
+source text, never evaluated or treated as HTML, with no new editor or source copy.
+
 `file-viewer` 3.3.3 is used as published, from its own image, mounted read-only into the Hub as
 factory sandboxes mount Lore's; the Hub holds nothing of it.
 
