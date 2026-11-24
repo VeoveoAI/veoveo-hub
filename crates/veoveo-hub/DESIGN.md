@@ -1355,7 +1355,14 @@ in through the issuer, as identity-aware proxies do, and holds the session itsel
    lives 60 seconds, as the bridge does, and admits it through the Hub's own profile
    authentication in process. Admitted to the person's execution, the request routes to
    the instance they selected for the server, which must declare the app origin; the
-   server's `app_origin` requirement must allow them, or the request answers 403. It
+   server's `app_origin` requirement must allow them, or the request answers 403.
+   Both the issuer's entry decision and ordinary requests evaluate current OAuth
+   authority and policy in that captured selection, narrowed to the actual reached
+   registration. An unselected branch's declaration neither grants access nor makes
+   the selected slug ambiguous. For a linked branch, the existing caller repository
+   grant chooses the reached runner first; authorization uses that runner's own
+   declaration even when a sibling runner declares different requirements. Other
+   servers and grants remain in the same selected catalog generation. It
    goes over that deployment's upstream transport with its method, path, query, headers
    and streamed body, minus hop-by-hop fields and the Hub's own cookies, with `Host` set
    to the app origin's host and the person's forwarded token, which lives 60 seconds and

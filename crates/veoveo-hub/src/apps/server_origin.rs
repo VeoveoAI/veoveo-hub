@@ -614,6 +614,17 @@ struct Forward {
     admission: Admission,
 }
 
+/// The same selected request generation, restricted to the registration actually
+/// reached. A runner's own declaration is authority, as on its MCP route.
+fn reached_catalog(
+    selected: &HubCatalogHandle,
+    registered: &crate::registration::RegisteredServer,
+) -> Arc<crate::HubCatalog> {
+    selected
+        .narrowed(&registered.slug, registered.deployment)
+        .current()
+}
+
 /// The authenticated request on the app origin: admitted to the person's execution, it
 /// reaches the server's authenticated routes on the instance they selected, when the
 /// server's `app_origin` requirement allows them.
@@ -635,8 +646,8 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
             Ok(admitted) => admitted,
             Err(error) => return unavailable(&error),
         };
-    let catalog = snapshot.catalog();
-    let selected = snapshot.selected(&admitted.composition).current();
+    let selected_catalog = snapshot.selected(&admitted.composition);
+    let selected = selected_catalog.current();
     // A linked server's app origin is one for the server, which the runner the caller
     // reaches first serves.
     let serving = selected
@@ -658,13 +669,14 @@ async fn forwarded(State(forward): State<Forward>, request: Request) -> Response
             "The instance you selected for this server serves no app origin.",
         );
     };
+    let catalog = reached_catalog(&selected_catalog, &registered);
     if admission != Admission::Content {
         let target = PolicyTarget::AppOrigin {
             server: server.clone(),
         };
         let managed = match origins
             .hub
-            .oauth_action_admitted(catalog, &subject, HubAction::AppOrigin, &target)
+            .oauth_action_admitted(&catalog, &subject, HubAction::AppOrigin, &target)
             .await
         {
             Ok(managed) => managed,
@@ -820,6 +832,132 @@ fn strip_hub_set_cookies(headers: &mut HeaderMap) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn app_authority_is_the_reached_registration_even_with_mixed_runner_declarations() {
+        use crate::policy::PolicyCatalogView as _;
+        use crate::registration::{RegistrationSnapshot, RunnerOf};
+        use std::collections::BTreeMap;
+        use veoveo_hub_sdk::registration::{AuthorizationDeclaration, Requirements, RouteAccess};
+        use veoveo_hub_sdk::{ResolvedComponent, ResolvedComposition};
+        let mut allowed =
+            crate::test_catalog::registered_server("app-fixture", "https://allowed.example/mcp");
+        allowed.branch = Some(crate::execution::BranchName::parse("main").unwrap());
+        allowed.authorization = Arc::new(AuthorizationDeclaration {
+            permissions: Vec::new(),
+            requirements: Requirements {
+                app_origin: Some(RouteAccess::Authenticated),
+                ..Default::default()
+            },
+            uses: Vec::new(),
+            calls_hub: false,
+        });
+        let mut denied = allowed.clone();
+        denied.deployment = veoveo_types::DeploymentId::new();
+        denied.branch = Some(crate::execution::BranchName::parse("dev").unwrap());
+        denied.authorization = Arc::new(AuthorizationDeclaration {
+            permissions: Vec::new(),
+            requirements: Requirements {
+                app_origin: Some(RouteAccess::Permission(
+                    veoveo_types::PermissionName::parse("app-fixture.editor.use").unwrap(),
+                )),
+                ..Default::default()
+            },
+            uses: Vec::new(),
+            calls_hub: false,
+        });
+        let neighbor = crate::test_catalog::registered_server(
+            "neighbor-fixture",
+            "https://neighbor.example/mcp",
+        );
+        let handles = |left: &crate::registration::RegisteredServer,
+                       right: &crate::registration::RegisteredServer,
+                       component| {
+            let global =
+                HubCatalogHandle::new(Arc::new(super::super::tests::catalog().with_registrations(
+                    RegistrationSnapshot::new([left.clone(), right.clone(), neighbor.clone()]),
+                )));
+            assert!(
+                global.current().server_authorization(&left.slug).is_none(),
+                "unscoped ordinary or mixed-runner declarations remain ambiguous"
+            );
+            let composition = ResolvedComposition::new(BTreeMap::from([
+                (left.slug.clone(), component),
+                (
+                    neighbor.slug.clone(),
+                    ResolvedComponent::Deployment {
+                        deployment: neighbor.deployment,
+                    },
+                ),
+            ]));
+            let selected = global.snapshot().selected(&composition);
+            for registered in [left, right] {
+                if selected
+                    .current()
+                    .registrations()
+                    .deployment(&registered.deployment)
+                    .is_none()
+                {
+                    continue;
+                }
+                let scoped = reached_catalog(&selected, registered);
+                assert_eq!(
+                    scoped.server_authorization(&registered.slug),
+                    Some(registered.authorization.as_ref())
+                );
+                assert_eq!(
+                    scoped.server(&registered.slug).unwrap().deployment,
+                    registered.deployment
+                );
+                assert_eq!(
+                    scoped.server(&neighbor.slug),
+                    Some(&neighbor),
+                    "unrelated selected namespaces remain available to their own checks"
+                );
+            }
+            global
+        };
+        handles(
+            &allowed,
+            &denied,
+            ResolvedComponent::Deployment {
+                deployment: allowed.deployment,
+            },
+        );
+        handles(
+            &allowed,
+            &denied,
+            ResolvedComponent::Deployment {
+                deployment: denied.deployment,
+            },
+        );
+        allowed.branch = Some(crate::execution::BranchName::parse("linked").unwrap());
+        denied.branch = allowed.branch.clone();
+        allowed.runner = Some(RunnerOf {
+            link: veoveo_hub_sdk::hub::LinkName::parse("team-a").unwrap(),
+            repository: veoveo_hub_sdk::registration::RepositoryId::parse("ab".repeat(16)).unwrap(),
+        });
+        denied.runner = Some(RunnerOf {
+            link: veoveo_hub_sdk::hub::LinkName::parse("team-b").unwrap(),
+            repository: veoveo_hub_sdk::registration::RepositoryId::parse("cd".repeat(16)).unwrap(),
+        });
+        handles(
+            &allowed,
+            &denied,
+            ResolvedComponent::Runners {
+                runners: BTreeMap::from([
+                    (
+                        allowed.runner.as_ref().unwrap().link.clone(),
+                        allowed.deployment,
+                    ),
+                    (
+                        denied.runner.as_ref().unwrap().link.clone(),
+                        denied.deployment,
+                    ),
+                ]),
+            },
+        );
+    }
 
     #[test]
     fn a_return_path_stays_on_the_app_origin() {

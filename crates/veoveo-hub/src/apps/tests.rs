@@ -1001,28 +1001,58 @@ async fn an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_th
         let db = crate::test_store::TestDb::new().await;
         let (fixture, _owner) = Fixture::start(&db).await;
         let (endpoint, seen) = origin_server().await;
-        let register = |access: RouteAccess| {
-            let mut server = crate::test_catalog::registered_server("beacon", &endpoint);
-            server.surfaces = Some(SurfacesDeclaration {
-                public_routes: Vec::new(),
-                app_origin: true,
-                viewer: None,
-                content: None,
-            });
-            server.authorization = Arc::new(AuthorizationDeclaration {
-                permissions: Vec::new(),
-                requirements: Requirements {
-                    app_origin: Some(access),
-                    ..Default::default()
-                },
-                uses: Vec::new(),
-                calls_hub: false,
-            });
-            fixture
-                .catalog
-                .replace_registrations(crate::registration::RegistrationSnapshot::new([server]));
-        };
+        let register =
+            |access: RouteAccess| {
+                let mut server = crate::test_catalog::registered_server("beacon", &endpoint);
+                server.surfaces = Some(SurfacesDeclaration {
+                    public_routes: Vec::new(),
+                    app_origin: true,
+                    viewer: None,
+                    content: None,
+                });
+                server.authorization = Arc::new(AuthorizationDeclaration {
+                    permissions: Vec::new(),
+                    requirements: Requirements {
+                        app_origin: Some(access),
+                        ..Default::default()
+                    },
+                    uses: Vec::new(),
+                    calls_hub: false,
+                });
+                server.branch = Some(crate::execution::BranchName::parse("main").unwrap());
+                let mut other = server.clone();
+                other.deployment = veoveo_types::DeploymentId::new();
+                other.branch = Some(crate::execution::BranchName::parse("other").unwrap());
+                other.authorization = Arc::new(AuthorizationDeclaration {
+                    permissions: Vec::new(),
+                    requirements: Requirements {
+                        app_origin: Some(RouteAccess::Permission(
+                            veoveo_types::PermissionName::parse("beacon.editor.use").unwrap(),
+                        )),
+                        ..Default::default()
+                    },
+                    uses: Vec::new(),
+                    calls_hub: false,
+                });
+                fixture.catalog.replace_registrations(
+                    crate::registration::RegistrationSnapshot::new([server, other]),
+                );
+            };
         register(RouteAccess::Authenticated);
+        // Two live branches share one slug. The actual selected branch owns both
+        // the issuer entry decision and every subsequent origin request.
+        let owner = veoveo_types::PrincipalId::parse("https://identity.example#alice").unwrap();
+        let slug = veoveo_types::ServerSlug::parse("beacon").unwrap();
+        fixture
+            .hub
+            .hub_store()
+            .select(
+                &owner,
+                &slug,
+                &crate::execution::BranchName::parse("main").unwrap(),
+            )
+            .await
+            .unwrap();
         let origins = AppOrigins::new(HOST, SANDBOX.parse().unwrap()).unwrap();
         let issuer = veoveo_hub_sdk::HubInternalTokenIssuer::new(
             veoveo_hub_sdk::TokenIssuer::parse(HOST).unwrap(),
@@ -1193,6 +1223,40 @@ async fn an_app_origin_signs_the_person_in_through_the_issuer_and_forwards_as_th
             .body(Body::empty())
             .unwrap();
         assert_eq!(send(request).await.0, StatusCode::NOT_FOUND);
+
+        // An explicitly selected unauthorized sibling borrows no authority from main.
+        fixture
+            .hub
+            .hub_store()
+            .select(
+                &owner,
+                &slug,
+                &crate::execution::BranchName::parse("other").unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(enter(entry_path, true).await.0, StatusCode::FORBIDDEN);
+        assert_eq!(
+            send(on_origin(
+                "/editor",
+                &[("__Host-veoveo-app", &session)],
+                false
+            ))
+            .await
+            .0,
+            StatusCode::FORBIDDEN
+        );
+        assert!(seen.lock().unwrap().is_empty());
+        fixture
+            .hub
+            .hub_store()
+            .select(
+                &owner,
+                &slug,
+                &crate::execution::BranchName::parse("main").unwrap(),
+            )
+            .await
+            .unwrap();
 
         // Once the server's requirement is a permission the person lacks, both the entry
         // and every request are refused.
