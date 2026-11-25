@@ -15,11 +15,12 @@
 use anyhow::Result;
 use axum::{
     Extension, Json, Router,
-    extract::State,
+    extract::{Query, State},
     http::{HeaderValue, StatusCode, header::CACHE_CONTROL},
     response::{IntoResponse, Response},
     routing::get,
 };
+use lore_proto::lore::repository::v1::RepositoryTextMetadata;
 use serde::{Deserialize, Serialize};
 use veoveo_hub::{
     AuthenticatedSubject, control_plane::HubControlPlaneRevisionSource, http::ProfileAuthState,
@@ -77,9 +78,51 @@ struct Listed {
     access: Level,
 }
 
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ListingQuery {
+    metadata_key: Option<String>,
+    metadata_text: Option<String>,
+}
+
+impl ListingQuery {
+    fn predicate(self) -> Result<Option<RepositoryTextMetadata>, Problem> {
+        match (self.metadata_key, self.metadata_text) {
+            (None, None) => Ok(None),
+            (Some(key), Some(text))
+                if !key.is_empty() && key.len() <= 256 && text.len() <= 4096 =>
+            {
+                Ok(Some(RepositoryTextMetadata { key, text }))
+            }
+            _ => Err(Problem::new(
+                StatusCode::BAD_REQUEST,
+                "invalid-repository-metadata-predicate",
+                "Supply both a bounded metadata key and exact text value",
+            )),
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TextListed {
+    id: RepositoryId,
+    name: String,
+    access: Level,
+    default_branch: String,
+    matched_metadata: TextMatch,
+}
+
+#[derive(Serialize)]
+struct TextMatch {
+    key: String,
+    text: String,
+}
+
 async fn list(
     State(state): State<AdminState>,
     Extension(subject): Extension<AuthenticatedSubject>,
+    Query(query): Query<ListingQuery>,
 ) -> Result<Response, Problem> {
     let principal = &subject.principal;
     let tenant = principal.tenant.as_ref().ok_or_else(|| {
@@ -97,6 +140,64 @@ async fn list(
         tracing::error!("listing repositories has no Lore deployment: {reason}");
         listing_unavailable()
     })?;
+    if let Some(filter) = query.predicate()? {
+        let token = issue_login(
+            &state.catalog.current(),
+            &deployment.id,
+            tenant,
+            &principal.id,
+        )
+        .await
+        .map_err(|_| listing_unavailable())?;
+        let records = tokio::time::timeout(std::time::Duration::from_secs(30), async {
+            Client::connect(deployment)
+                .await?
+                .list_by_text(filter.clone(), &token.access_token)
+                .await
+        })
+        .await
+        .map_err(|_| listing_unavailable())?
+        .map_err(|_| {
+            tracing::warn!(
+                phase = "native-text-list",
+                "repository metadata discovery unavailable"
+            );
+            listing_unavailable()
+        })?;
+        let mut repositories = Vec::new();
+        for record in records {
+            let id =
+                RepositoryId::parse(hex::encode(&record.id)).map_err(|_| listing_unavailable())?;
+            let caller = super::sharing::Caller {
+                tenant,
+                principal: &principal.id,
+            };
+            if section.readable(&deployment.id, &id, caller).is_err() {
+                continue;
+            }
+            let Some(actions) = section.actions(&deployment.id, &id, tenant, &principal.id) else {
+                continue;
+            };
+            repositories.push(TextListed {
+                id,
+                name: record.name,
+                access: Level::of(&actions),
+                default_branch: record.default_branch_name,
+                matched_metadata: TextMatch {
+                    key: filter.key.clone(),
+                    text: filter.text.clone(),
+                },
+            });
+        }
+        repositories.sort_by(|left, right| left.id.as_str().cmp(right.id.as_str()));
+        let mut response = Json(serde_json::json!({"repositories":repositories,
+            "metadataFilter":TextMatch { key: filter.key, text: filter.text }}))
+        .into_response();
+        response
+            .headers_mut()
+            .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
+        return Ok(response);
+    }
     let mut repositories = section
         .held_repositories(&deployment.id, tenant, &principal.id)
         .map(|(repository, actions)| Listed {
@@ -325,6 +426,49 @@ fn refused_by_lore(error: &anyhow::Error) -> Response {
                 "Lore did not create the repository",
             )
             .into_response()
+        }
+    }
+}
+
+#[cfg(test)]
+mod metadata_query_tests {
+    use super::*;
+
+    #[test]
+    fn ordinary_listing_is_unchanged_and_metadata_requires_both_exact_text_arguments() {
+        assert!(ListingQuery::default().predicate().unwrap().is_none());
+        let value = ListingQuery {
+            metadata_key: Some("app.project".into()),
+            metadata_text: Some("true".into()),
+        }
+        .predicate()
+        .unwrap()
+        .unwrap();
+        assert_eq!(value.key, "app.project");
+        assert_eq!(value.text, "true");
+        for query in [
+            ListingQuery {
+                metadata_key: Some("key".into()),
+                metadata_text: None,
+            },
+            ListingQuery {
+                metadata_key: None,
+                metadata_text: Some("true".into()),
+            },
+            ListingQuery {
+                metadata_key: Some(String::new()),
+                metadata_text: Some("true".into()),
+            },
+            ListingQuery {
+                metadata_key: Some("k".repeat(257)),
+                metadata_text: Some("true".into()),
+            },
+            ListingQuery {
+                metadata_key: Some("key".into()),
+                metadata_text: Some("v".repeat(4097)),
+            },
+        ] {
+            assert!(query.predicate().is_err());
         }
     }
 }

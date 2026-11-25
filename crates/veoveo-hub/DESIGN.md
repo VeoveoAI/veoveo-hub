@@ -3085,3 +3085,19 @@ upstream nested-blob origin recursion fix for RUSTSEC-2026-0592. The source-pin
 transition uses independently qualified non-default Core and SDK revisions. It
 changes no caller authorization or native Lore credential semantics. The complete
 Hub Mac and Linux check stages, including dependency audit, remain release gates.
+
+
+#### Exact text repository metadata discovery
+
+The caller's repository listing may supply both `metadataKey` and `metadataText`.
+This is a generic native Lore text predicate, not a service-specific catalog. Hub
+uses the current caller's native login token and the authoritative RepositoryList
+query. It returns a repository only with an explicit native matching key/text,
+alongside that repository's actual default branch. An older native server that
+ignores the predicate cannot broaden the filtered HTTP result. Plain repository
+listing keeps its existing behavior.
+
+Only the requested matching text metadata is projected. Repository authorization,
+native listing/response size and time bounds, no-store responses and generic
+refusals remain in force. There are no source clones, raw metadata dumps, cached
+caller credentials or inferred predicates from filenames.
